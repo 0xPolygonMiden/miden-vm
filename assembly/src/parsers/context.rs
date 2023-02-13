@@ -1,6 +1,6 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, AbsolutePath, Instruction, LocalProcMap, Node,
-    ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, AbsolutePath, Instruction, LocalConstMap,
+    LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
@@ -15,6 +15,7 @@ use vm_core::utils::{
 pub struct ParserContext {
     pub imports: BTreeMap<String, AbsolutePath>,
     pub local_procs: LocalProcMap,
+    pub local_constants: LocalConstMap,
 }
 
 impl ParserContext {
@@ -462,7 +463,7 @@ impl ParserContext {
             "cdropw" => simple_instruction(op, CDropW),
 
             // ----- input / output operations ----------------------------------------------------
-            "push" => io_ops::parse_push(op),
+            "push" => io_ops::parse_push(op, &self.local_constants),
 
             "sdepth" => simple_instruction(op, Sdepth),
             "locaddr" => io_ops::parse_locaddr(op),
@@ -501,6 +502,9 @@ impl ParserContext {
             "exec" => self.parse_exec(op),
             "call" => self.parse_call(op),
             "syscall" => self.parse_syscall(op),
+
+            // ----- constant statements ----------------------------------------------------------
+            "const" => Err(ParsingError::const_invalid_scope(op)),
 
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),

@@ -92,6 +92,24 @@ In the above example we import `std::math::u64` module from the [standard librar
 
 The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
 
+### Constants
+Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Currently only `push` instruction supports this.
+
+Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100.
+
+```
+use.std::math::u64
+
+const.CONSTANT_1=100
+const.CONSTANT_2=200
+
+begin
+    push.CONSTANT_1.CONSTANT_2
+    exec.u64::checked_add
+end
+
+```
+
 ### Comments
 Miden assembly allows annotating code with simple comments. There are two types of comments: single-line comments which start with a `#` (pound) character, and documentation comments which start with `#!` characters. For example:
 ```

@@ -29,6 +29,7 @@ impl<'a> Token<'a> {
     // CONTROL TOKENS
     // --------------------------------------------------------------------------------------------
 
+    pub const CONST: &'static str = "const";
     pub const USE: &'static str = "use";
     pub const WHILE: &'static str = "while";
 
@@ -37,7 +38,7 @@ impl<'a> Token<'a> {
     /// Returns a new token created from the specified string and position.
     ///
     /// # Panics
-    /// Panic is the `token` parameter is an empty string.
+    /// Panic if the `token` parameter is an empty string.
     pub fn new(token: &'a str, pos: usize) -> Self {
         assert!(!token.is_empty(), "token cannot be an empty string");
         Self {

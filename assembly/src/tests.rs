@@ -105,6 +105,133 @@ fn span_and_simple_if() {
     assert_eq!(expected, format!("{program}"));
 }
 
+// CONSTANTS
+// ================================================================================================
+#[test]
+fn simple_constant() {
+    let assembler = super::Assembler::default();
+    let source = "const.TEST_CONSTANT=7 \
+    begin \
+    push.TEST_CONSTANT \
+    end \
+    ";
+    let expected = "\
+    begin \
+        span \
+            push(7) \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn multiple_constants_push() {
+    let assembler = super::Assembler::default();
+    let source = "const.CONSTANT_1=21 \
+    const.CONSTANT_2=44 \
+    begin \
+    push.CONSTANT_1.64.CONSTANT_2.72 \
+    end";
+    let expected = "\
+    begin \
+        span \
+            push(21) push(64) push(44) push(72) \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn constants_must_be_uppercase() {
+    let assembler = super::Assembler::default();
+    let source = "const.constant_1=12 \
+    begin \
+    push.constant_1 \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "invalid constant name: 'constant_1' cannot contain lower-case characters";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn duplicate_constant_name() {
+    let assembler = super::Assembler::default();
+    let source = "const.CONSTANT=12 \
+    const.CONSTANT=14 \
+    begin \
+    push.CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "duplicate constant name: 'CONSTANT'";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn constant_must_be_valid_felt() {
+    let assembler = super::Assembler::default();
+    let source = "const.CONSTANT=1122INVALID \
+    begin \
+    push.CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "malformed constant `const.CONSTANT=1122INVALID` - invalid value: \
+     `1122INVALID` - reason: invalid digit found in string";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn constant_must_be_within_valid_felt_range() {
+    let assembler = super::Assembler::default();
+    let source = "const.CONSTANT=18446744073709551615 \
+    begin \
+    push.CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "malformed constant `const.CONSTANT=18446744073709551615` - invalid value: \
+     `18446744073709551615` - reason: constant value must be greater than or equal to 0 and less than or \
+      equal to 18446744069414584320";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn constants_defined_in_global_scope() {
+    let assembler = super::Assembler::default();
+    let source = "
+    begin \
+    const.CONSTANT=12
+    push.CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "invalid constant declaration: `const.CONSTANT=12` - constants can only be defined below imports and above procedure / program bodies";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn constant_not_found() {
+    let assembler = super::Assembler::default();
+    let source = "
+    begin \
+    push.CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "constant used in operation `push.CONSTANT` not found";
+    assert_eq!(expected_error, err.to_string());
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 

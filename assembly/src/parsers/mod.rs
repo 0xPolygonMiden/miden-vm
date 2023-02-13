@@ -1,7 +1,7 @@
 use super::{
-    AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable, Felt, ParsingError,
-    ProcedureId, ProcedureName, Serializable, SerializationError, String, ToString, Token,
-    TokenStream, Vec,
+    AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable, Felt, LabelError, ParsingError,
+    ProcedureId, ProcedureName, Serializable, SerializationError, StarkField, String, ToString,
+    Token, TokenStream, Vec, MAX_LABEL_LEN,
 };
 use core::{fmt::Display, ops::RangeBounds};
 
@@ -10,6 +10,9 @@ use crate::utils::bound_into_included_u64;
 pub(crate) use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
+mod labels;
+use labels::CONSTANT_LABEL_PARSER;
+pub use labels::PROCEDURE_LABEL_PARSER;
 
 mod adv_ops;
 mod field_ops;
@@ -24,6 +27,7 @@ pub mod tests;
 // TYPE ALIASES
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
+type LocalConstMap = BTreeMap<String, u64>;
 
 // ABSTRACT SYNTAX TREE STRUCTS
 // ================================================================================================
@@ -175,9 +179,11 @@ impl Deserializable for ProcedureAst {
 pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
     let mut tokens = TokenStream::new(source)?;
     let imports = parse_imports(&mut tokens)?;
+    let local_constants = parse_constants(&mut tokens)?;
 
     let mut context = ParserContext {
         imports,
+        local_constants,
         ..Default::default()
     };
 
@@ -244,8 +250,10 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
     let mut tokens = TokenStream::new(source)?;
 
     let imports = parse_imports(&mut tokens)?;
+    let local_constants = parse_constants(&mut tokens)?;
     let mut context = ParserContext {
         imports,
+        local_constants,
         ..Default::default()
     };
     context.parse_procedures(&mut tokens, true)?;
@@ -293,6 +301,31 @@ fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, AbsolutePa
     Ok(imports)
 }
 
+/// Parses all `const` statements into a map which maps a const name to a value
+fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, ParsingError> {
+    // instantiate new constant map for this module
+    let mut constants = LocalConstMap::new();
+
+    // iterate over tokens until we find a const declaration
+    while let Some(token) = tokens.read() {
+        match token.parts()[0] {
+            Token::CONST => {
+                let (name, value) = parse_constant(token)?;
+
+                if constants.contains_key(&name) {
+                    return Err(ParsingError::duplicate_const_name(token, &name));
+                }
+
+                constants.insert(name, value);
+                tokens.advance();
+            }
+            _ => break,
+        }
+    }
+
+    Ok(constants)
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -314,6 +347,44 @@ fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I,
     };
 
     Ok(result)
+}
+
+/// parses a constant token and returns a (constant_name, constant_value) tuple
+pub fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
+    match token.num_parts() {
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(token)),
+        2 => {
+            let const_declaration: Vec<&str> = token.parts()[1].split('=').collect();
+            match const_declaration.len() {
+                0 => unreachable!(),
+                1 => Err(ParsingError::missing_param(token)),
+                2 => {
+                    let name = CONSTANT_LABEL_PARSER
+                        .parse_label(const_declaration[0].to_string())
+                        .map_err(|err| ParsingError::invalid_const_name(token, err))?;
+                    let value = parse_const_value(token, const_declaration[1])?;
+                    Ok((name, value))
+                }
+                _ => Err(ParsingError::extra_param(token)),
+            }
+        }
+        _ => Err(ParsingError::extra_param(token)),
+    }
+}
+
+/// Parses a constant value and ensures it falls within bounds specified by the caller
+fn parse_const_value(op: &Token, const_value: &str) -> Result<u64, ParsingError> {
+    let result = const_value
+        .parse::<u64>()
+        .map_err(|err| ParsingError::invalid_const_value(op, const_value, &err.to_string()))?;
+
+    let range = 0..Felt::MODULUS;
+    range.contains(&result).then_some(result).ok_or_else(|| ParsingError::invalid_const_value(op, const_value, format!(
+        "constant value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true), 
+        upper_bound = bound_into_included_u64(range.end_bound(), false)
+    )
+    .as_str(),))
 }
 
 /// Parses a param from the op token with the specified type and ensures that it falls within the
