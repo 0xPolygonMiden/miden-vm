@@ -54,6 +54,12 @@ In the `miden/examples/fib` directory, we provide a very simple Fibonacci calcul
 ```
 This will run the example code to completion and will output the top element remaining on the stack.
 
+If you want the output of the program in a file, you can use the `--output` or `-o` flag and specify the path to the output file. For example:
+```
+./target/release/miden run -a miden/examples/fib/fib.masm -o fib.out
+```
+This will dump the output of the program into the `fib.out` file. The output file will contain the state of the stack at the end of the program execution.
+
 ## REPL
 
 The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging of Miden assembly. After the REPL gets initialized, you can execute any Miden instruction, undo executed instructions, check the state of the stack and memory at a given point, and do many other useful things! When the REPL is exited, a `history.txt` file is saved. One thing to note is that all the REPL native commands start with an `!` to differentiate them from regular assembly instructions. The REPL currently supports the following commands:
