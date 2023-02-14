@@ -190,6 +190,10 @@
 <pre><code>./target/release/miden run -a miden/examples/fib/fib.masm -n 1
 </code></pre>
 <p>This will run the example code to completion and will output the top element remaining on the stack.</p>
+<p>If you want the output of the program in a file, you can use the <code>--output</code> or <code>-o</code> flag and specify the path to the output file. For example:</p>
+<pre><code>./target/release/miden run -a miden/examples/fib/fib.masm -o fib.out
+</code></pre>
+<p>This will dump the output of the program into the <code>fib.out</code> file. The output file will contain the state of the stack at the end of the program execution.</p>
 <h2 id="repl"><a class="header" href="#repl">REPL</a></h2>
 <p>The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging of Miden assembly. After the REPL gets initialized, you can execute any Miden instruction, undo executed instructions, check the state of the stack and memory at a given point, and do many other useful things! When the REPL is exited, a <code>history.txt</code> file is saved. One thing to note is that all the REPL native commands start with an <code>!</code> to differentiate them from regular assembly instructions. The REPL currently supports the following commands:</p>
 <h3 id="miden-assembly-instruction"><a class="header" href="#miden-assembly-instruction">Miden assembly instruction</a></h3>
