@@ -1,3 +1,5 @@
+use self::tiered_smt::TieredSmt;
+
 use super::{hasher, AdviceSetError, Felt, FieldElement, Word};
 use crate::utils::collections::Vec;
 
@@ -7,6 +9,9 @@ mod merkle_path_set;
 use merkle_path_set::MerklePathSet;
 mod sparse_merkle_tree;
 use sparse_merkle_tree::SparseMerkleTree;
+mod tiered_smt;
+pub use tiered_smt::TieredSmt as other_tiered_smt;
+pub use tiered_smt::Insertion;
 
 // ADVICE SET
 // ================================================================================================
@@ -17,6 +22,7 @@ pub enum AdviceSet {
     MerkleTree(MerkleTree),
     SparseMerkleTree(SparseMerkleTree),
     MerklePathSet(MerklePathSet),
+    TieredSMT(TieredSmt),
 }
 
 impl AdviceSet {
@@ -44,6 +50,17 @@ impl AdviceSet {
         Ok(Self::SparseMerkleTree(SparseMerkleTree::new(keys, values, depth)?))
     }
 
+    pub fn new_tiered_smt() -> Result<Self, AdviceSetError> {
+        Ok(Self::TieredSMT(TieredSmt::new()))
+    }
+
+
+    pub fn insert_tiered_smt(&mut self, key: Word, value: Word){
+        match self{
+            Self::TieredSMT(set) => {set.insert(key, value);},
+            _ => unimplemented!()
+        }
+    }
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -53,6 +70,7 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.root(),
             Self::SparseMerkleTree(tree) => tree.root(),
             Self::MerklePathSet(set) => set.root(),
+            Self::TieredSMT(set) => *set.root(),
         }
     }
 
@@ -62,6 +80,7 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.depth(),
             Self::SparseMerkleTree(tree) => tree.depth(),
             Self::MerklePathSet(set) => set.depth(),
+            Self::TieredSMT(set) => set.depth(),
         }
     }
 
@@ -77,6 +96,7 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.get_node(depth, index),
             Self::SparseMerkleTree(tree) => tree.get_node(depth, index),
             Self::MerklePathSet(set) => set.get_node(depth, index),
+            Self::TieredSMT(set) => set.get_node(depth, index),
         }
     }
 
@@ -93,6 +113,7 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.get_path(depth, index),
             Self::SparseMerkleTree(tree) => tree.get_path(depth, index),
             Self::MerklePathSet(set) => set.get_path(depth, index),
+            Self::TieredSMT(set) => set.get_path(depth, index),
         }
     }
 
@@ -110,6 +131,7 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.update_leaf(index, value),
             Self::SparseMerkleTree(tree) => tree.update_leaf(index, value),
             Self::MerklePathSet(set) => set.update_leaf(index, value),
+            Self::TieredSMT(set) => set.update_leaf(index, value),
         }
     }
 }

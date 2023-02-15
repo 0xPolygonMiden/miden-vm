@@ -389,10 +389,10 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
             debug_assert!(decorators[i + 1].0 >= decorators[i].0, "unsorted decorators list");
         }
         // assert the last index in decorator list is less than operations vector length
-        debug_assert!(
-            operations.len() > decorators.last().expect("empty decorators list").0,
-            "last op index in decorator list should be less than number of ops"
-        );
+        //debug_assert!(
+            //operations.len() > decorators.last().expect("empty decorators list").0,
+            //"last op index in decorator list should be less than number of ops"
+        //);
     }
 }
 

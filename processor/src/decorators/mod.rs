@@ -2,7 +2,7 @@ use super::{
     AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Felt, Process,
     StarkField,
 };
-use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
+use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO, Insertion};
 use winterfell::math::fft;
 
 // TYPE ALIASES
@@ -46,6 +46,8 @@ where
             }
             AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
             AdviceInjector::Ext2INTT => self.inject_ext2_intt_result(),
+            AdviceInjector::SetSMTDepth => self.inject_set_smt_depth(),
+            AdviceInjector::PreInsertTSMT => self.pre_insert_tiered_smt(),
         }
     }
 
@@ -252,6 +254,121 @@ where
         for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
             self.advice_provider.write_tape(AdviceSource::Value(i))?;
         }
+
+        Ok(())
+    }
+
+    fn inject_set_smt_depth(&mut self) -> Result<(), ExecutionError> {
+
+        let depth = self.stack.get(0);
+        let r3 = self.stack.get(1);
+        let r2 = self.stack.get(2);
+        let r1 = self.stack.get(3);
+        let r0 = self.stack.get(4);
+
+        let root = [r0, r1, r2, r3];
+        //let root = [r3, r2, r1, r0];
+
+        self.advice_provider.set_smt_depth(root, depth.as_int() as u32)
+    }
+
+    fn pre_insert_tiered_smt(&mut self) -> Result<(), ExecutionError> {
+        let k3 = self.stack.get(0);
+        let k2 = self.stack.get(1);
+        let k1 = self.stack.get(2);
+        let k0 = self.stack.get(3);
+
+        let key = [k0, k1, k2, k3];
+
+        let v3 = self.stack.get(4);
+        let v2 = self.stack.get(5);
+        let v1 = self.stack.get(6);
+        let v0 = self.stack.get(7);
+
+        let value = [v0, v1, v2, v3];
+
+        let r3 = self.stack.get(8);
+        let r2 = self.stack.get(9);
+        let r1 = self.stack.get(10);
+        let r0 = self.stack.get(11);
+
+        let root = [r0, r1, r2, r3];
+
+        println!("we are here");
+        // In fact we don't need the index and depth as these are computed inside the appropriate
+        // insertion procedure. What we need instead is the right combination of flags which depends
+        // on the (key, value) we want to insert and the current state of the tiered-smt.
+        let insertion = self.advice_provider.pre_insert_tiered_smt(root, key, value).unwrap();
+
+        let mut tape = match insertion{
+            Insertion::Simple { index: _, depth } => {
+                let tier = depth / 16;
+                let initial_flags = match tier{
+                    1 => vec![0, 1],
+                    2 => vec![0, 1, 1],
+                    3 => vec![0, 1, 1, 1],
+                    4 => vec![0, 1, 1, 1, 1],
+                    // Missing case of a leaf of type orderd list
+                    _ => unreachable!()
+                };
+                initial_flags
+
+            },
+            Insertion::Complex { index, depth, index0, depth0, index1, depth1, key, value } => {
+                let mut tape = vec![];
+                tape.push(index);
+                tape.push(depth.into());
+                tape.push(0);
+                tape.push(0);
+
+
+                tape.push(key[0].as_int());
+                tape.push(key[1].as_int());
+                tape.push(key[2].as_int());
+                tape.push(key[3].as_int());
+
+
+                tape.push(value[0].as_int());
+                tape.push(value[1].as_int());
+                tape.push(value[2].as_int());
+                tape.push(value[3].as_int());
+
+                assert_eq!(depth0, depth1);
+
+                match depth0/depth {
+                    1 => tape.push(0),
+                    2 => tape.extend_from_slice(&vec![0, 1]),
+                    3 => tape.extend_from_slice(&vec![0, 1, 1]),
+                    _ => tape.extend_from_slice(&vec![1, 1 , 1]),
+                }
+
+                tape.reverse();
+                // Flag for complex insertion
+                tape.extend_from_slice(&vec![0]);
+                println!("we are in a complex insertion case");
+                println!("{:?}",tape);
+                tape
+            },
+            
+        };
+
+        //println!("decorator side index {:?} and depth {:?}", index, depth);
+        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(index)))?;
+        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(depth as u64)))?;
+
+        // These are the logical flags for specifying ND the type of insertion
+        // These should be computed by `pre_insert_tiered_smt`
+
+        
+        for t in tape{
+            self.advice_provider.write_tape(AdviceSource::Value(Felt::new(t)))?;
+        }
+
+        //// Flag specifying that it is a simple insertion
+        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(0)))?;
+
+        //// Flag specifying that it is a simple insertion at level 16
+        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(1)))?;
 
         Ok(())
     }

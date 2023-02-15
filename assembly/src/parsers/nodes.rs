@@ -259,6 +259,8 @@ pub enum Instruction {
     AdvMem(u32, u32),
     AdvExt2Inv,
     AdvExt2INTT,
+    PreInsertTSMT,
+    AdvSetSMTDepth,
 
     // ----- cryptographic operations -------------------------------------------------------------
     HMerge,
@@ -520,6 +522,9 @@ impl fmt::Display for Instruction {
             Self::AdvMem(start_addr, num_words) => write!(f, "adv.mem.{start_addr}.{num_words}"),
             Self::AdvExt2Inv => write!(f, "adv.ext2inv"),
             Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
+
+            Self::AdvSetSMTDepth => write!(f, "adv.set_smt_depth"),
+            Self::PreInsertTSMT => write!(f, "adv.pre_insert_tiered_smt"),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::HMerge => write!(f, "hmerge"),

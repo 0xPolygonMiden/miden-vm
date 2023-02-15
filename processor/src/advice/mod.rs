@@ -4,7 +4,7 @@ use vm_core::{
         collections::{BTreeMap, Vec},
         IntoBytes,
     },
-    AdviceSet, StarkField,
+    AdviceSet, StarkField, Insertion,
 };
 
 mod inputs;
@@ -150,6 +150,17 @@ pub trait AdviceProvider {
         update_in_copy: bool,
     ) -> Result<Vec<Word>, ExecutionError>;
 
+    /// Sets the depth of a tiered-smt with a specific root
+    fn set_smt_depth(&mut self, root: Word, depth: u32) -> Result<(), ExecutionError>;
+
+    /// Sets the depth of the sparse Merkle tree with the specified root
+    fn pre_insert_tiered_smt(
+        &mut self,
+        root: Word,
+        key: Word,
+        value: Word,
+    ) -> Result<Insertion, ExecutionError>;
+
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 
@@ -205,6 +216,19 @@ where
         update_in_copy: bool,
     ) -> Result<Vec<Word>, ExecutionError> {
         T::update_merkle_leaf(self, root, index, leaf_value, update_in_copy)
+    }
+
+    fn set_smt_depth(&mut self, root: Word, depth: u32) -> Result<(), ExecutionError> {
+        T::set_smt_depth(self, root, depth)
+    }
+
+    fn pre_insert_tiered_smt(
+        &mut self,
+        root: Word,
+        key: Word,
+        value: Word,
+    ) -> Result<Insertion, ExecutionError> {
+        T::pre_insert_tiered_smt(self, root, key, value)
     }
 
     fn advance_clock(&mut self) {

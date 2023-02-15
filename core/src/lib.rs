@@ -26,7 +26,7 @@ pub use operations::{
 };
 
 mod inputs;
-pub use inputs::{AdviceSet, StackInputs};
+pub use inputs::{AdviceSet, StackInputs, tiered_smt, Insertion};
 
 mod outputs;
 pub use outputs::StackOutputs;

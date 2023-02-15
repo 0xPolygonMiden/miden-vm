@@ -1,7 +1,10 @@
+use vm_core::Insertion;
+
 use super::{
     AdviceInputs, AdviceProvider, AdviceSet, AdviceSource, BTreeMap, ExecutionError, Felt,
     IntoBytes, StarkField, Vec, Word,
 };
+
 
 // MEMORY ADVICE PROVIDER
 // ================================================================================================
@@ -152,9 +155,39 @@ impl AdviceProvider for MemAdviceProvider {
         advice_set
             .update_leaf(index.as_int(), leaf_value)
             .map_err(ExecutionError::AdviceSetLookupFailed)?;
+        println!("advice_set.root().into_bytes() is {:?}",advice_set.root().into_bytes());
         self.sets.insert(advice_set.root().into_bytes(), advice_set);
 
         Ok(path)
+    }
+
+    fn set_smt_depth(&mut self, root: Word, depth: u32) -> Result<(), ExecutionError> {
+        println!("root at set_smt_depth is {:?}", root.into_bytes());
+        //println!("sets are {:?}", self.sets);
+        let set = self.sets.get_mut(&root.into_bytes()).unwrap();
+        match set {
+            AdviceSet::TieredSMT(ref mut tree) => {
+                tree.set_depth(depth);
+                Ok(())
+            }
+            _ => Err(ExecutionError::CallerNotInSyscall),
+        }
+    }
+
+    fn pre_insert_tiered_smt(&mut self, root: Word, key: Word, value: Word) -> Result<Insertion, ExecutionError> {
+        let tiered_smt = self.sets.get_mut(&root.into_bytes()).unwrap();
+        match tiered_smt{
+            AdviceSet::TieredSMT(ref mut tiered_smt) => {
+                let insertion = tiered_smt.pre_insert(key, value).unwrap();
+                match insertion {
+                    Insertion::Simple { index, depth } => tiered_smt.set_depth(depth),
+                    Insertion::Complex { index, depth, index0, depth0, index1, depth1, key, value } => tiered_smt.set_depth(depth), 
+                }
+                
+                Ok(insertion)
+            }
+            _ => Err(ExecutionError::CallerNotInSyscall)
+        }
     }
 
     // CONTEXT MANAGEMENT

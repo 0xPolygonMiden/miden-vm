@@ -318,6 +318,9 @@ impl Deserializable for Instruction {
             OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),
             OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
 
+            OpCode::AdvSetSMTDepth => Ok(Instruction::AdvSetSMTDepth),
+            OpCode::PreInsertTSMT => Ok(Instruction::PreInsertTSMT),
+
             // ----- cryptographic operations -----------------------------------------------------
             OpCode::HMerge => Ok(Instruction::HMerge),
             OpCode::HPerm => Ok(Instruction::HPerm),

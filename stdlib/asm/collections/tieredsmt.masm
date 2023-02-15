@@ -1,0 +1,277 @@
+# Input: [K, V, R, ...]
+# Output: [R', E, ...]
+export.insert16
+
+    
+    # Extract upper 16 bits and remaining path
+    # [r, k2, k1, k0, V, R, p, ... ]
+    u32split
+    push.65536                  # 2^16
+    u32checked_divmod
+    mul.4294967296              # 2^32       
+    movup.2           
+    add
+    swap
+    movdn.12
+
+    swapw
+    hmerge
+
+    ## Hash [K,V] and set the first capacity register to the depth of insertion i.e. 16
+    ## [H, R, p, ...]
+    #swapw  
+    #push.0.0.0.0
+    #hperm
+    #dropw
+    #swapw
+    #dropw
+
+    # Insert H at depth 16 and index p
+    # [E, R']  
+    swapw
+    movup.8
+    push.16
+    mtree_set
+
+    # Check that the previous node is the root of an empty sub-tree at depth 16
+    # [R', ...]
+    
+
+    ## This is how it should be done using a kernel function
+    #push.16
+    #exec.get_empty_hash
+
+    ## In the meantime, we do it manually
+    push.17483286922353768131.353378057542380712.1935183237414585408.4820339620987989650
+
+    repeat.4
+        dup.4
+        assert_eq
+    end
+
+    swapw
+end
+
+
+
+# Input: [K, V, R, ...]
+# Output: [E, R_new, ...] where E is the root of an empty sub-tree
+export.complex_insertion
+    
+    # Temporary swap
+    # [R, K, V, ...]
+    swapw.2
+    # Load and store the depth and index of leaf node with conflicting prefix
+    # [0, 0, d, i, R, K, V]
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.1
+
+    ## Load the root of empty sub-tree at depth d
+    ## [E, 0, 0, d, i, R, K, V, ...]
+    #dup.2
+    #exec.get_empty_hash
+
+    # TODO: remove once get_empty_hash is implemented 
+    push.17483286922353768131.353378057542380712.1935183237414585408.4820339620987989650
+
+    # Replace conflicting leaf node with E
+    # [H', R', K, V, ...]
+    movdnw.2        # [0, 0, d, i, R, E, K, V, ...]
+    drop drop       # [d, i, R, E, K, V, ...]
+    mtree_set 
+
+    # Check that H is indeed a leaf node
+
+    ## Load the claimed key K', and store it, and value V'
+    ## [V', K', H', R', K, V, ...]
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.2
+
+    # Extract remainder
+    u32split
+    push.65536                  # 2^16
+    u32checked_divmod
+    mul.4294967296              # 2^32       
+    movup.2           
+    add
+    swap
+    drop
+
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.3
+
+    ## Hash and compare
+    ## [R', K, V, ...]
+    hmerge
+    movup.4
+    assert_eq
+    movup.3
+    assert_eq
+    movup.2
+    assert_eq
+    assert_eq
+
+    # Non-deterministically insert [K', V'] and [K, V] depending on the length of common prefix
+    adv_push.1
+    if.true             # Length of common prefix is greater than 32
+        adv_push.1
+        if.true         # Length of common prefix is greater than 48
+            adv_push.1
+            if.true     # Length of common prefix is greater than 64
+                # Here we use an ordered list to store all [K, V] pairs that
+                # share a common prefix of length 64
+                push.0
+
+            else    # Length of common prefix is in [48, 64)
+
+                # Compare prefixes of k3 and k'3
+                # ...
+                push.0
+            end
+        
+        else        # Length of common prefix is in [32, 48)
+
+            # Compare prefixes of k3 and k'3
+            # ...
+            push.0
+        end
+
+    else            # Length of common prefix is in [16, 32) 
+
+        ## Extract length 32 bit prefix of k3
+        dup.4
+        u32split
+        swap
+
+        ## Extract length 32 bit prefix of k'3
+        push.0.0.0
+        mem_loadw.2
+        movdn.3
+        drop drop drop
+        u32split
+        swap drop
+        push.0.0
+        mem_storew.8
+        
+        drop drop
+
+        ## Xor the two length 32 prefixes
+        u32checked_xor
+        
+        ## Check that first 16 bits are zero while the last 16 bits are not
+        ## [R', K, V, ...]
+        push.65536
+        u32checked_divmod       #[xor % 2^16, xor / 2^16, ...]
+        push.0
+        neq
+        assert
+        assertz
+
+        ## Insert [K, V] at correct index at depth 32
+
+        ## Compute hash h([K, V])
+        ## [R', H, ...]
+        swapw.2
+        hmerge 
+        swapw
+
+        ### Load the correct index to insert [K, V]
+        ### [R', i, H, ...]
+        push.0.0.0.0
+        mem_loadw.8
+        drop drop drop
+        movdn.4             #TODO: optimize later
+
+        ## Insert [K, V]
+        ## [E, R'', ...] where E should be hash of an empty sub-tree
+        push.32
+        adv.set_smt_depth
+
+        
+        # TODO: remove later together with just above TODO
+        movup.5
+        swap
+
+        mtree_set
+
+        # Insert [K', V'] at correct position
+
+        ## Load K' and V' from memory 
+        ## [V', K', R'', ...]
+        mem_loadw.2
+        push.0.0.0.0
+        mem_loadw.3
+
+        ## Compute h([K', V']) and swap (NB: This has been computed earlier but I am recomputing in case
+        ## we want to hash the leaf nodes with domain being the depth of where they are inserted.)
+        ## [R'', H', ..]
+        hperm
+        swapw
+
+        ## Fetch the index of insertion
+        ## [i', R'', H', ..]
+        push.0.0.0.0
+        mem_loadw.8
+        drop drop swap drop
+
+        ### Insert H' at correct position
+        ### [E, R''', ..]  
+        #push.32
+        #mtree_set
+    end
+end
+
+
+export.insert32
+    push.0
+end
+
+export.insert48
+    push.0
+end
+
+export.insert64
+    push.0
+end
+
+export.insertbeyond64
+    push.0
+end
+
+
+export.simple_insertion
+    adv_push.1
+    if.true
+        adv_push.1
+        if.true
+            adv_push.1
+            if.true
+                adv_push.1
+                if.true
+                    exec.insertbeyond64
+                else
+                    exec.insert64
+                end
+            else
+                exec.insert48
+            end
+        else
+            exec.insert32
+        end
+    else
+        exec.insert16
+    end
+end
+
+export.insert
+    adv.pre_insert_tiered_smt
+    adv_push.1
+    if.true
+        exec.simple_insertion
+    else
+        exec.complex_insertion
+    end
+end

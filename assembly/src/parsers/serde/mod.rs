@@ -255,6 +255,9 @@ pub enum OpCode {
     AdvMem = 225,
     AdvExt2Inv = 226,
     AdvExt2INTT = 227,
+    
+    PreInsertTSMT = 240,
+    AdvSetSMTDepth = 241,
 
     // ----- cryptographic operations -------------------------------------------------------------
     HMerge = 228,
@@ -274,6 +277,7 @@ pub enum OpCode {
     IfElse = 253,
     Repeat = 254,
     While = 255,
+    
 }
 
 impl Serializable for OpCode {

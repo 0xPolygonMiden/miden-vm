@@ -55,6 +55,18 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             }
             Ok(Instruction(AdvExt2INTT))
         }
+        "set_smt_depth" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
+            }
+            Ok(Instruction(AdvSetSMTDepth))
+        }
+        "pre_insert_tiered_smt" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
+            }
+            Ok(Instruction(PreInsertTSMT))
+        }
         _ => Err(ParsingError::invalid_op(op)),
     }
 }

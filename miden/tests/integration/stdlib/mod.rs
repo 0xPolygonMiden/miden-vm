@@ -4,3 +4,4 @@ mod crypto;
 mod math;
 mod mem;
 mod sys;
+mod collections;

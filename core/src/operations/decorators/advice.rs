@@ -35,6 +35,19 @@ pub enum AdviceInjector {
     /// routine interpolates ( using inverse NTT ) the evaluations into a polynomial in
     /// coefficient form and injects the result into the advice tape.
     Ext2INTT,
+
+    // Takes the key-value pair [K, V] and a root R of a tiered-smt and does:
+    // 1) Bases on the current content of the key-value map with commitment R, provide the type of
+    // insertion appropriate for [K, V]. This will be in the form of flags to help the insertion
+    // procedure non-deterministically.
+    // 2) Based on the previous point, determine the appropriate NodeIndex{index, depth} where
+    // the leaf node representing [K, V] is going to be inserted.
+    // 3) Store [K, V] in the storage of the tiered-smt with key (index, depth) so that the call
+    // to mtree_set with (index, depth) can map the latter to [K, V] inside update_leaf_node.
+    PreInsertTSMT,
+
+    // Changes the depth where the next insertion happens for a tiered-smt
+    SetSMTDepth,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -46,6 +59,8 @@ impl fmt::Display for AdviceInjector {
             Self::Memory(start_addr, num_words) => write!(f, "mem({start_addr}, {num_words})"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2INTT => write!(f, "ext2_intt"),
+            Self::SetSMTDepth => write!(f, "set_smt_depth"),
+            Self::PreInsertTSMT => write!(f, "pre_insert_tiered_smt"),
         }
     }
 }
