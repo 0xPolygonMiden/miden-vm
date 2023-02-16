@@ -257,18 +257,19 @@ pub enum OpCode {
     AdvExt2INTT = 227,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    HMerge = 228,
-    HPerm = 229,
-    MTreeGet = 230,
-    MTreeSet = 231,
-    MTreeCwm = 232,
+    Hash = 228,
+    HMerge = 229,
+    HPerm = 230,
+    MTreeGet = 231,
+    MTreeSet = 232,
+    MTreeCwm = 233,
 
     // ----- exec / call --------------------------------------------------------------------------
-    ExecLocal = 233,
-    ExecImported = 234,
-    CallLocal = 235,
-    CallImported = 236,
-    SysCall = 237,
+    ExecLocal = 234,
+    ExecImported = 235,
+    CallLocal = 236,
+    CallImported = 237,
+    SysCall = 238,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,

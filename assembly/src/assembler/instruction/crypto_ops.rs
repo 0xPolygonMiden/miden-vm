@@ -5,6 +5,52 @@ use vm_core::{AdviceInjector, Decorator};
 // ================================================================================================
 
 /// Appends HPERM and stack manipulation operations to the span block as required to compute a
+/// 1-to-1 hash. The top of the stack is expected to be arranged with 1 word (4 elements) to be
+/// hashed: [A, ...]. The resulting stack will contain the 1-to-1 hash result: [C, ...].
+///
+/// This assembly instruction uses the VM operation HPERM at its core, which permutes the top 12
+/// elements of the stack.
+///
+/// To perform the operation we do the following:
+/// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
+///    then reordering the stack and pushing an additional 4 elements so that the stack looks
+///    like: [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to
+///    ONE as we are hashing a number of elements which is not a multiple of the rate width. We
+///    also set the next element in the rate after `A` to ONE.  All other capacity and rate
+///    elements are set to ZERO, in accordance with the RPO rules.
+/// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
+///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
+/// 3. Drop D and B to achieve our result [C, ...]
+///
+/// This operation takes 20 VM cycles.
+pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    #[rustfmt::skip]
+    let ops = [
+        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
+        Pad, Incr, Pad, Pad, Pad,
+
+        // swap capacity elements such that they are below the elements to be hashed
+        SwapW,
+
+        // Duplicate capacity elements in the rate portion of the stack
+        Dup7, Dup7, Dup7, Dup7,
+
+        // Apply a hashing permutation on the top 12 elements in the stack
+        HPerm,
+
+        // Drop 4 elements (the part of the rate that doesn't have our result)
+        Drop, Drop, Drop, Drop,
+
+        // Move the top word (our result) down the stack
+        SwapW,
+
+        // Drop 4 elements (the capacity portion)
+        Drop, Drop, Drop, Drop,
+    ];
+    span.add_ops(ops)
+}
+
+/// Appends HPERM and stack manipulation operations to the span block as required to compute a
 /// 2-to-1 Rescue Prime Optimized hash. The top of the stack is expected to be arranged with 2 words
 /// (8 elements) to be hashed: [B, A, ...]. The resulting stack will contain the 2-to-1 hash result
 /// [E, ...].

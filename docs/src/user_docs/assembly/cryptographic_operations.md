@@ -6,6 +6,7 @@ Miden assembly provides a set of instructions for performing common cryptographi
 
 | Instruction    | Stack_input     | Stack_output   | Notes                                      |
 | -------------- | --------------- | -------------- | ------------------------------------------ |
+| hash <br> - *(20 cycles)*  | [A, ...] | [B, ...] | $\{B\} \leftarrow hash(A)$ <BR> where, $hash()$ computes a 1-to-1 Rescue Prime Optimized hash. |
 | hperm  <br> - *(1 cycle)*      | [C, B, A, ...]  | [F, E, D, ...] | $\{D, E, F\} \leftarrow permute(A, B, C)$ <br> where, $permute()$ computes a Rescue Prime Optimized permutation. |
 | hmerge  <br> - *(16 cycles)*        | [B, A, ...]     | [C, ...]       | $C \leftarrow hash(A,B)$ <br> where, $hash()$ computes a 2-to-1 Rescue Prime Optimized hash. |
 | mtree_get  <br> - *(9 cycles)*     | [d, i, R, ...]  | [V, R, ...] |  Verifies that a Merkle tree with root $R$ opens to node $V$ at depth $d$ and index $i$. Merkle tree with root $R$ must be present in the advice provider, otherwise execution fails. |

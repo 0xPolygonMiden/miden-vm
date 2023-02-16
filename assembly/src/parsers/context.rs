@@ -491,6 +491,7 @@ impl ParserContext {
             "adv" => adv_ops::parse_adv_inject(op),
 
             // ----- cryptographic operations -----------------------------------------------------
+            "hash" => simple_instruction(op, Hash),
             "hmerge" => simple_instruction(op, HMerge),
             "hperm" => simple_instruction(op, HPerm),
 
