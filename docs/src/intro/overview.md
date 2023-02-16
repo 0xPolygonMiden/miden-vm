@@ -8,7 +8,7 @@ Miden VM consists of three high-level components as illustrated below.
 These components are:
 * **Stack** which is a push-down stack where each item is a field element. Most assembly instructions operate with values located on the stack. The stack can grow up to $2^{32}$ items deep, however, only the top 16 items are directly accessible.
 * **Memory** which is a linear random-access read-write memory. The memory is word-addressable, meaning, four elements are located at each address, and we can read and write elements to/from memory in batches of four. Memory addresses can be in the range $[0, 2^{32})$.
-* **Advice provider** which is a way for the prover to provide nondeterministic inputs to the VM. The advice provider contains a single *advice tape* and unlimited number of *advice sets*. The latter contain structured data which can be interpreted as a set of Merkle paths.
+* **Advice provider** which is a way for the prover to provide nondeterministic inputs to the VM. The advice provider contains a single *advice tape* and unlimited number of *merkle sets*. The latter contain structured data which can be interpreted as a set of Merkle paths.
 
 In the future, additional components (e.g., storage, logs) may be added to the VM.
 
@@ -43,6 +43,6 @@ The *advice provider* component is responsible for supplying nondeterministic in
 The advice provider consists of three components:
 * **Advice tape** which is a one-dimensional array of values. The VM can access only the head of the tape. That is the VM can either remove values from the head of the tape or inject new values at the head of the tape. Formally, this means that the advice tape is actually a stack.
 * **Advice map** which is a key-value map where keys are words and values are vectors of field elements. The VM can copy values from the advice map onto the advice tape as well as insert new values into the advice map (e.g., from a region of memory).
-* **Advice sets** which contain structured data reducible to Merkle paths. Some examples of advice sets are: Merkle tree, Sparse Merkle tree, a collection of Merkle paths. Every advice set can be uniquely identified by its root. The VM can request Merkle paths from an advice set, as well as update an advice set by modifying one of its nodes (this will also change the root of the modified advice set).
+* **Merkle sets** which contain structured data reducible to Merkle paths. Some examples of merkle sets are: Merkle tree, Sparse Merkle tree, a collection of Merkle paths. Every merkle set can be uniquely identified by its root. The VM can request Merkle paths from an merkle set, as well as update an merkle set by modifying one of its nodes (this will also change the root of the modified merkle set).
 
 The prover initializes the advice provider prior to executing a program, and from that point on the advice provider is manipulated solely by executing operations on the VM.

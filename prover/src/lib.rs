@@ -16,8 +16,8 @@ use std::time::Instant;
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
-    math, utils, AdviceInputs, AdviceProvider, AdviceSet, AdviceSetError, Digest, ExecutionError,
-    InputError, MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
+    math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
+    MemAdviceProvider, MerkleError, MerkleSet, Program, StackInputs, StackOutputs, Word,
 };
 pub use prover::StarkProof;
 

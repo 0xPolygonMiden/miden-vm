@@ -1,7 +1,9 @@
 use proptest::prelude::*;
 use rand_utils::rand_value;
 
-use super::{build_op_test, prop_randw, test_inputs_out_of_bounds, TestError, U32_BOUND, WORD_LEN};
+use super::{
+    build_op_test, prop_randw, test_inputs_out_of_bounds, TestError, U32_BOUND, WORD_SIZE,
+};
 use vm_core::{Felt, StarkField};
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
@@ -181,10 +183,10 @@ fn u32assertw_fail() {
     let err = "NotU32Value";
 
     // --- any one of the inputs inputs >= 2^32 (out of bounds) -----------------------------------
-    test_inputs_out_of_bounds(asm_op, WORD_LEN);
+    test_inputs_out_of_bounds(asm_op, WORD_SIZE);
 
     // --- all elements out of range --------------------------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND; WORD_LEN]);
+    let test = build_op_test!(asm_op, &[U32_BOUND; WORD_SIZE]);
     test.expect_error(TestError::ExecutionError(err));
 }
 

@@ -3,11 +3,11 @@ use super::{
     Instruction::*,
     LocalConstMap,
     Node::{self, Instruction},
-    ParsingError, Token, Vec, CONSTANT_LABEL_PARSER,
+    ParsingError, ToString, Token, Vec, CONSTANT_LABEL_PARSER,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
 use core::ops::RangeBounds;
-use vm_core::WORD_LEN;
+use vm_core::WORD_SIZE;
 
 // CONSTANTS
 // ================================================================================================
@@ -387,7 +387,7 @@ where
         let values_len = values_iter.len();
         let values_felt =
             values_iter.map(|imm| Ok(Felt::new(imm?))).collect::<Result<Vec<Felt>, _>>()?;
-        if values_len == WORD_LEN {
+        if values_len == WORD_SIZE {
             Ok(Instruction(PushWord(
                 values_felt.try_into().expect("Invalid constatnts length"),
             )))

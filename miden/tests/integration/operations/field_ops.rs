@@ -1,6 +1,6 @@
 use proptest::prelude::*;
 use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, StarkField, WORD_LEN};
+use vm_core::{Felt, FieldElement, StarkField, WORD_SIZE};
 
 use crate::build_op_test;
 use crate::helpers::{prop_randw, TestError};
@@ -732,7 +732,7 @@ proptest! {
         let asm_op = "eqw";
 
         // 2 words (8 values) for comparison and 1 for the result
-        let mut values = vec![0; 2 * WORD_LEN + 1];
+        let mut values = vec![0; 2 * WORD_SIZE + 1];
 
         // check the inputs for equality in the field
         let mut inputs_equal = true;
@@ -743,7 +743,7 @@ proptest! {
             }
             // add the values to the vector
             values[i] = *a;
-            values[i + WORD_LEN] = *b;
+            values[i + WORD_SIZE] = *b;
         }
 
         let test = build_op_test!(asm_op, &values);

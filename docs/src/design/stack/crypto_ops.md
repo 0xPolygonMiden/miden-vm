@@ -83,7 +83,7 @@ The stack is expected to be arranged as follows (from the top):
 - current root of the tree, 4 elements ($R$ in the below image)
 - new value of the node, 4 element ($NV$ in the below image)
 
-The Merkle path for the node is expected to be provided by the prover non-deterministically (via advice sets). At the end of the operation, the old node value is replaced with the new root value computed based on the provided path. Everything else on the stack remains the same. The diagram below illustrates this graphically.
+The Merkle path for the node is expected to be provided by the prover non-deterministically (via merkle sets). At the end of the operation, the old node value is replaced with the new root value computed based on the provided path. Everything else on the stack remains the same. The diagram below illustrates this graphically.
 
 ![mrupdate](../../assets/design/stack/crypto_ops/MRUPDATE.png)
 

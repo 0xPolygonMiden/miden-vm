@@ -1,7 +1,9 @@
+use processor::MerkleSet;
 use rand_utils::rand_vector;
 use vm_core::{
     chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
-    AdviceSet, Felt, FieldElement, StarkField,
+    crypto::merkle::NodeIndex,
+    Felt, FieldElement, StarkField,
 };
 
 use crate::build_op_test;
@@ -104,7 +106,7 @@ fn mtree_get() {
 
     let index = 3usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),
@@ -134,12 +136,12 @@ fn mtree_get() {
 fn mtree_update() {
     let index = 5usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
 
     let new_node = init_merkle_leaf(9);
     let mut new_leaves = leaves;
     new_leaves[index] = new_node;
-    let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
+    let new_tree = MerkleSet::new_merkle_tree(new_leaves).unwrap();
 
     let stack_inputs = [
         new_node[0].as_int(),
@@ -159,7 +161,7 @@ fn mtree_update() {
     let asm_op = "mtree_set";
 
     let old_node = tree
-        .get_node(tree.depth(), index as u64)
+        .get_node(NodeIndex::new(tree.depth(), index as u64))
         .expect("Value should have been set on initialization");
 
     // expected state has the new leaf and the new root of the tree

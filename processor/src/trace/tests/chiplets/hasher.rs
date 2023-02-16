@@ -3,7 +3,7 @@ use super::{
     rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation, Trace,
     AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
-use crate::StackInputs;
+use crate::{MerkleSet, StackInputs};
 use core::ops::Range;
 use vm_core::{
     chiplets::{
@@ -17,9 +17,10 @@ use vm_core::{
         HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
     },
     code_blocks::CodeBlock,
+    crypto::merkle::NodeIndex,
     decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
     utils::range,
-    AdviceSet, StarkField, Word, DECODER_TRACE_OFFSET,
+    StarkField, Word, DECODER_TRACE_OFFSET,
 };
 
 // CONSTANTS
@@ -404,7 +405,7 @@ pub fn b_chip_permutation() {
 fn b_chip_mpverify() {
     let index = 5usize;
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),
@@ -448,7 +449,7 @@ fn b_chip_mpverify() {
     // at cycle 1 a merkle path verification is executed and the initialization and result of the
     // hash are both requested by the stack.
     let path = tree
-        .get_path(tree.depth(), index as u64)
+        .get_path(NodeIndex::new(tree.depth(), index as u64))
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
         &[path[0][0], path[0][1], path[0][2], path[0][3]],
