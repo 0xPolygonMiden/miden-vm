@@ -11,6 +11,20 @@ use crate::helpers::crypto::{init_merkle_leaf, init_merkle_leaves};
 // ================================================================================================
 
 #[test]
+fn hash() {
+    let asm_op = "hash";
+
+    // --- test hashing 4 random values -----------------------------------------------------------
+    let random_values = rand_vector::<u64>(4);
+    let expected = build_expected_hash(&random_values);
+
+    let test = build_op_test!(asm_op, &random_values);
+    let last_state = test.get_last_stack_state();
+
+    assert_eq!(expected, &last_state[..4]);
+}
+
+#[test]
 fn hperm() {
     let asm_op = "hperm";
 

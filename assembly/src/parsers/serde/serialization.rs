@@ -436,6 +436,7 @@ impl Serializable for Instruction {
             Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target)?,
 
             // ----- cryptographic operations -----------------------------------------------------
+            Self::Hash => OpCode::Hash.write_into(target)?,
             Self::HMerge => OpCode::HMerge.write_into(target)?,
             Self::HPerm => OpCode::HPerm.write_into(target)?,
             Self::MTreeGet => OpCode::MTreeGet.write_into(target)?,

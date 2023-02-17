@@ -290,6 +290,7 @@ impl Assembler {
             Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
 
             // ----- cryptographic instructions ---------------------------------------------------
+            Instruction::Hash => crypto_ops::hash(span),
             Instruction::HPerm => span.add_op(HPerm),
             Instruction::HMerge => crypto_ops::hmerge(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
