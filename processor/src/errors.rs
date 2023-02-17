@@ -1,6 +1,6 @@
 use super::{
     system::{FMP_MAX, FMP_MIN},
-    AdviceSetError, CodeBlock, Digest, Felt, Word,
+    CodeBlock, Digest, Felt, MerkleError, Word,
 };
 use core::fmt::{Display, Formatter};
 use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
@@ -15,10 +15,10 @@ use std::error::Error;
 #[derive(Debug)]
 pub enum ExecutionError {
     AdviceKeyNotFound(Word),
-    AdviceSetLookupFailed(AdviceSetError),
-    AdviceSetNotFound([u8; 32]),
-    AdviceSetUpdateFailed(AdviceSetError),
     AdviceTapeReadFailed(u32),
+    MerkleSetLookupFailed(MerkleError),
+    MerkleSetNotFound([u8; 32]),
+    MerkleSetUpdateFailed(MerkleError),
     CodeBlockNotFound(Digest),
     CallerNotInSyscall,
     DivideByZero(u32),
@@ -46,9 +46,9 @@ impl Display for ExecutionError {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
                 write!(fmt, "Can't write to advice tape: value for key {hex} not present in the advice map.")
             }
-            AdviceSetLookupFailed(reason) => write!(fmt, "Advice set lookup failed: {reason}"),
-            AdviceSetNotFound(root) => write!(fmt, "Advice set with root {root:x?} not found"),
-            AdviceSetUpdateFailed(reason) => write!(fmt, "Advice set update failed: {reason}"),
+            MerkleSetLookupFailed(reason) => write!(fmt, "Advice set lookup failed: {reason}"),
+            MerkleSetNotFound(root) => write!(fmt, "Advice set with root {root:x?} not found"),
+            MerkleSetUpdateFailed(reason) => write!(fmt, "Advice set update failed: {reason}"),
             AdviceTapeReadFailed(step) => write!(fmt, "Advice tape read failed at step {step}"),
             CodeBlockNotFound(digest) => {
                 let hex = to_hex(&digest.as_bytes())?;

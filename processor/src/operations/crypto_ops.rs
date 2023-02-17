@@ -104,19 +104,19 @@ where
     /// To perform the operation we do the following:
     /// 1. Update the leaf node at the specified index in the advice provider with the specified
     ///    root, and get the Merkle path to this leaf. If `copy` is set to true, we make a copy
-    ///    of the advice set before updating it.
+    ///    of the merkle set before updating it.
     /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this
     ///    we need to provide the old and the new node value.
     /// 3. Verify that the computed old root is equal to the input root provided via the stack.
     /// 4. Replace the old node value with the computed new root.
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
-    /// (via advice sets). At the end of the operation, the old node value is replaced with the
+    /// (via merkle sets). At the end of the operation, the old node value is replaced with the
     /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
     /// If `copy` is set to true, at the end of the operation the advice provide will keep both,
-    /// the old and the new advice sets. Otherwise, the old advice set is removed from the
+    /// the old and the new merkle sets. Otherwise, the old merkle set is removed from the
     /// provider.
     ///
     ///
@@ -138,7 +138,7 @@ where
         let new_node =
             [self.stack.get(13), self.stack.get(12), self.stack.get(11), self.stack.get(10)];
 
-        // update the leaf at the specified index in the advice set specified by the old root, and
+        // update the leaf at the specified index in the merkle set specified by the old root, and
         // get a Merkle path to the specified leaf. the length of the returned path is expected to
         // match the specified depth.
         // TODO: in the future, we should be able to replace sub-trees and not just the leaves,
@@ -177,12 +177,9 @@ mod tests {
         super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
-    use crate::{AdviceInputs, StackInputs, Word};
+    use crate::{AdviceInputs, MerkleSet, StackInputs, Word};
     use rand_utils::rand_vector;
-    use vm_core::{
-        chiplets::hasher::{apply_permutation, STATE_WIDTH},
-        AdviceSet,
-    };
+    use vm_core::chiplets::hasher::{apply_permutation, STATE_WIDTH};
 
     #[test]
     fn op_hperm() {
@@ -223,7 +220,7 @@ mod tests {
     fn op_mpverify() {
         let index = 5usize;
         let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
         let stack_inputs = [
             tree.root()[0].as_int(),
@@ -268,8 +265,8 @@ mod tests {
         let mut new_leaves = leaves.clone();
         new_leaves[node_index] = new_node;
 
-        let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
-        let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
+        let new_tree = MerkleSet::new_merkle_tree(new_leaves).unwrap();
 
         let stack_inputs = [
             new_node[0].as_int(),
@@ -314,8 +311,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure the old Merkle tree was discarded
-        assert!(!process.advice_provider.has_advice_set(tree.root()));
-        assert!(process.advice_provider.has_advice_set(new_tree.root()));
+        assert!(!process.advice_provider.has_merkle_set(tree.root()));
+        assert!(process.advice_provider.has_merkle_set(new_tree.root()));
     }
 
     #[test]
@@ -327,8 +324,8 @@ mod tests {
         let mut new_leaves = leaves.clone();
         new_leaves[node_index] = new_node;
 
-        let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
-        let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
+        let new_tree = MerkleSet::new_merkle_tree(new_leaves).unwrap();
 
         let stack_inputs = [
             new_node[0].as_int(),
@@ -372,9 +369,9 @@ mod tests {
         ]);
         assert_eq!(expected_stack, process.stack.trace_state());
 
-        // make sure both Merkle trees are still in the advice set
-        assert!(process.advice_provider.has_advice_set(tree.root()));
-        assert!(process.advice_provider.has_advice_set(new_tree.root()));
+        // make sure both Merkle trees are still in the merkle set
+        assert!(process.advice_provider.has_merkle_set(tree.root()));
+        assert!(process.advice_provider.has_merkle_set(new_tree.root()));
     }
 
     // HELPER FUNCTIONS

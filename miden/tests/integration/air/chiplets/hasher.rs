@@ -1,7 +1,8 @@
 use crate::build_op_test;
 use crate::helpers::crypto::{init_merkle_leaf, init_merkle_leaves};
+use processor::MerkleSet;
 use rand_utils::rand_vector;
-use vm_core::{AdviceSet, StarkField};
+use vm_core::StarkField;
 
 #[test]
 fn hperm() {
@@ -25,7 +26,7 @@ fn mtree_get() {
 
     let index = 3usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),
@@ -58,10 +59,10 @@ fn mtree_cwm() {
 }
 
 /// Helper function that builds a test stack and Merkle tree for testing mtree updates.
-fn build_mtree_update_test_inputs() -> (Vec<u64>, AdviceSet) {
+fn build_mtree_update_test_inputs() -> (Vec<u64>, MerkleSet) {
     let index = 5_usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
 
     let new_node = init_merkle_leaf(9);
     let mut new_leaves = leaves;

@@ -1,9 +1,11 @@
-use crate::chiplets::hasher::{lookups::HasherLookupContext, HasherLookup};
-
 use super::{
     init_state_from_words, AuxTraceBuilder, Digest, Felt, Hasher, HasherState, Selectors,
     SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
     MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+};
+use crate::{
+    chiplets::hasher::{lookups::HasherLookupContext, HasherLookup},
+    MerkleSet,
 };
 use rand_utils::rand_array;
 use vm_core::{
@@ -13,7 +15,8 @@ use vm_core::{
         STATE_COL_RANGE,
     },
     code_blocks::CodeBlock,
-    AdviceSet, Operation, StarkField, ONE, ZERO,
+    crypto::merkle::NodeIndex,
+    Operation, StarkField, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS
@@ -116,11 +119,11 @@ fn hasher_build_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2]);
-    let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
-    let path0 = tree.get_path(1, 0).unwrap();
+    let path0 = tree.get_path(NodeIndex::new(1, 0)).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
 
@@ -142,7 +145,7 @@ fn hasher_build_merkle_root() {
         vec![expected_lookup_start, expected_lookup_end],
     );
 
-    let path1 = tree.get_path(1, 1).unwrap();
+    let path1 = tree.get_path(NodeIndex::new(1, 1)).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[1], &path1, ONE, &mut lookups);
 
@@ -186,11 +189,11 @@ fn hasher_build_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
-    let path = tree.get_path(3, 5).unwrap();
+    let path = tree.get_path(NodeIndex::new(3, 5)).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[5], &path, Felt::new(5), &mut lookups);
 
@@ -229,7 +232,7 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
 
-    let path0 = tree.get_path(3, 0).unwrap();
+    let path0 = tree.get_path(NodeIndex::new(3, 0)).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
 
@@ -251,7 +254,7 @@ fn hasher_build_merkle_root() {
         vec![expected_lookup_start, expected_lookup_end],
     );
 
-    let path3 = tree.get_path(3, 3).unwrap();
+    let path3 = tree.get_path(NodeIndex::new(3, 3)).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[3], &path3, Felt::new(3), &mut lookups);
 
@@ -277,7 +280,7 @@ fn hasher_build_merkle_root() {
         vec![expected_lookup_start, expected_lookup_end],
     );
 
-    let path7 = tree.get_path(3, 7).unwrap();
+    let path7 = tree.get_path(NodeIndex::new(3, 7)).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[7], &path7, Felt::new(7), &mut lookups);
 
@@ -347,12 +350,12 @@ fn hasher_update_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2]);
-    let mut tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let mut tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and update both leaves
     let mut hasher = Hasher::default();
 
-    let path0 = tree.get_path(1, 0).unwrap();
+    let path0 = tree.get_path(NodeIndex::new(1, 0)).unwrap();
     let new_leaf0 = init_leaf(3);
     let mut lookups = Vec::new();
     let lookup_start_addr = 1;
@@ -384,7 +387,7 @@ fn hasher_update_merkle_root() {
     ];
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
-    let path1 = tree.get_path(1, 1).unwrap();
+    let path1 = tree.get_path(NodeIndex::new(1, 1)).unwrap();
     let new_leaf1 = init_leaf(4);
     let mut lookups = Vec::new();
 
@@ -456,12 +459,12 @@ fn hasher_update_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let mut tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let mut tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher
     let mut hasher = Hasher::default();
 
-    let path3 = tree.get_path(3, 3).unwrap();
+    let path3 = tree.get_path(NodeIndex::new(3, 3)).unwrap();
     let new_leaf3 = init_leaf(23);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(leaves[3], new_leaf3, &path3, Felt::new(3), &mut lookups);
@@ -498,7 +501,7 @@ fn hasher_update_merkle_root() {
     ];
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
-    let path6 = tree.get_path(3, 6).unwrap();
+    let path6 = tree.get_path(NodeIndex::new(3, 6)).unwrap();
     let new_leaf6 = init_leaf(25);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6), &mut lookups);
@@ -536,7 +539,7 @@ fn hasher_update_merkle_root() {
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     // update leaf 3 again
-    let path3_2 = tree.get_path(3, 3).unwrap();
+    let path3_2 = tree.get_path(NodeIndex::new(3, 3)).unwrap();
     let new_leaf3_2 = init_leaf(27);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3), &mut lookups);

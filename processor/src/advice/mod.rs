@@ -1,10 +1,11 @@
 use super::{utils, ExecutionError, Felt, InputError, Word};
 use vm_core::{
+    crypto::merkle::{MerkleError, MerklePath, MerklePathSet, MerkleTree, NodeIndex, SimpleSmt},
     utils::{
         collections::{BTreeMap, Vec},
         IntoBytes,
     },
-    AdviceSet, StarkField,
+    StarkField,
 };
 
 mod inputs;
@@ -12,6 +13,9 @@ pub use inputs::AdviceInputs;
 
 mod mem_provider;
 pub use mem_provider::MemAdviceProvider;
+
+mod merkle_set;
+pub use merkle_set::MerkleSet;
 
 mod source;
 pub use source::AdviceSource;
@@ -43,7 +47,7 @@ pub use source::AdviceSource;
 ///    implementation should error if the user attempts to insert this key again, instead of the
 ///    common behavior of the maps to simply override the previous contents. This is a design
 ///    decision to increase the runtime robustness of the execution.
-/// 3. Provide advice sets, that are mappings from a Merkle root its tree. The tree should yield
+/// 3. Provide merkle sets, that are mappings from a Merkle root its tree. The tree should yield
 ///    nodes & leaves, and will provide a Merkle path if a leaf is updated.
 pub trait AdviceProvider {
     // ACCESSORS
@@ -126,13 +130,13 @@ pub trait AdviceProvider {
         root: Word,
         depth: Felt,
         index: Felt,
-    ) -> Result<Vec<Word>, ExecutionError>;
+    ) -> Result<MerklePath, ExecutionError>;
 
     /// Updates a leaf at the specified index on an existing Merkle tree with the specified root;
     /// returns the Merkle path from the updated leaf to the new root.
     ///
     /// If `update_in_copy` is set to true, retains both the tree prior to the update (i.e. with
-    /// the original root), and the new updated tree. Otherwise, the old advice set is removed from
+    /// the original root), and the new updated tree. Otherwise, the old merkle set is removed from
     /// this provider.
     ///
     /// # Errors
@@ -148,7 +152,7 @@ pub trait AdviceProvider {
         index: Felt,
         leaf_value: Word,
         update_in_copy: bool,
-    ) -> Result<Vec<Word>, ExecutionError>;
+    ) -> Result<MerklePath, ExecutionError>;
 
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
@@ -193,7 +197,7 @@ where
         root: Word,
         depth: Felt,
         index: Felt,
-    ) -> Result<Vec<Word>, ExecutionError> {
+    ) -> Result<MerklePath, ExecutionError> {
         T::get_merkle_path(self, root, depth, index)
     }
 
@@ -203,7 +207,7 @@ where
         index: Felt,
         leaf_value: Word,
         update_in_copy: bool,
-    ) -> Result<Vec<Word>, ExecutionError> {
+    ) -> Result<MerklePath, ExecutionError> {
         T::update_merkle_leaf(self, root, index, leaf_value, update_in_copy)
     }
 

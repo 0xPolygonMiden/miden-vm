@@ -5,9 +5,8 @@
 extern crate alloc;
 
 pub use vm_core::{
-    chiplets::hasher::Digest,
-    errors::{AdviceSetError, InputError},
-    AdviceSet, Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
+    chiplets::hasher::Digest, crypto::merkle::MerkleError, errors::InputError, Kernel, Operation,
+    Program, ProgramInfo, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -38,7 +37,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
+pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, MerkleSet};
 
 mod chiplets;
 use chiplets::Chiplets;

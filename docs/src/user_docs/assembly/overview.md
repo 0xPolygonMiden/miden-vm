@@ -10,7 +10,7 @@ Miden VM consists of three high-level components as illustrated below.
 These components are:
 * **Stack** which is a push-down stack where each item is a field element. Most assembly instructions operate with values located on the stack. The stack can grow up to $2^{16}$ items deep, however, only the top 16 items are directly accessible.
 * **Memory** which is a linear random-access read-write memory. The memory is word-addressable, meaning, four elements are located at each address, and we can read and write elements to/from memory in batches of four. Memory addresses can be in the range $[0, 2^{32})$.
-* **Advice provider** which is a way for the prover to provide non-deterministic inputs to the VM. The advice provider contains a single *advice tape* and unlimited number of *advice sets*. The latter contain structured data which can be interpreted as a set of Merkle paths.
+* **Advice provider** which is a way for the prover to provide non-deterministic inputs to the VM. The advice provider contains a single *advice tape* and unlimited number of *merkle sets*. The latter contain structured data which can be interpreted as a set of Merkle paths.
 
 In the future, additional components (e.g., storage, logs) may be added to the VM.
 

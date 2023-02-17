@@ -140,14 +140,17 @@ where
 
     assert_eq!(
         expected_result,
-        outputs.stack_outputs(num_outputs),
+        outputs.stack_truncated(num_outputs),
         "Program result was computed incorrectly"
     );
 
+    let kernel = miden::Kernel::default();
+    let program_info = ProgramInfo::new(program.hash(), kernel);
+
     if fail {
         outputs.stack_mut()[0] += 1;
-        assert!(miden::verify(program.hash(), stack_inputs, &outputs, proof).is_err())
+        assert!(miden::verify(program_info, stack_inputs, outputs, proof).is_err())
     } else {
-        assert!(miden::verify(program.hash(), stack_inputs, &outputs, proof).is_ok());
+        assert!(miden::verify(program_info, stack_inputs, outputs, proof).is_ok());
     }
 }

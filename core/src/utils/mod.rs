@@ -23,8 +23,7 @@ pub use winter_utils::{
     ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
-// TODO: move these to "miden-crypto" package
-pub use winter_crypto::{RandomCoin, RandomCoinError};
+pub use crypto::{RandomCoin, RandomCoinError};
 
 pub mod math {
     pub use math::{batch_inversion, log2};
