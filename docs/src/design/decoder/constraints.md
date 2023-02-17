@@ -12,6 +12,8 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 
 | Operation | Flag         | Degree | Effect on stack |
 | --------- | :----------: | :----: | --------------- |
+| `CALL`    | $f_{call}$   | 4      | Top stack element is dropped. |
+| `SYSCALL` | $f_{syscall}$| 4      | Top stack element is dropped. |
 | `JOIN`    | $f_{join}$   | 6      | Stack remains unchanged. |
 | `SPLIT`   | $f_{split}$  | 6      | Top stack element is dropped. |
 | `LOOP`    | $f_{loop}$   | 6      | Top stack element is dropped. |
@@ -22,7 +24,7 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 | `HALT`    | $f_{halt}$   | 4      | Stack remains unchanged. |
 | `PUSH`    | $f_{push}$   | 4      | An immediate value is pushed onto the stack. |
 
-We also use the [control flow flag](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ exposed by the VM, which is set when any one of the above control flow operations is being executed. It has degree $4$.
+We also use the [control flow flags](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ and $f_{ctrlb}$ exposed by the VM. $f_{ctrl}$ is set when any one of the above control flow operations is being executed. $f_{ctrlb}$ is set when a control flow operation that signifies the initialization of a new control block is being executed.  $f_{ctrl}$ and $f_{ctrlb}$ have degree 4.
 
 As described [previously](./main.md#program-decoding), the general idea of the decoder is that the prove provides the program to the VM by populating some of cells in the trace non-deterministically. Values in these are then used to update virtual tables (represented via multiset checks) such as block hash table, block stack table etc. Transition constraints are used to enforce that the tables are updates correctly, and we also apply boundary constraints to enforce the correct initial and final states of these tables. One of these boundary constraints binds the execution trace to the hash of the program being executed. Thus, if the virtual tables were updated correctly and boundary constraints hold, we can be convinced that the prover executed the claimed program on the VM.
 
@@ -108,14 +110,14 @@ In constructing value of $u$ for decoder AIR constraints, we will use the follow
 To simplify constraint description, we define the following variables:
 
 $$
-h_{init4} = \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot a' + \sum_{i=0}^3(\alpha_{i + 8} \cdot h_i)
+h_{init4} = \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot a + f_{ctrlb} \cdot \alpha_5 \cdot \sum_{b=0}^6(b_i \cdot 2^i) + \sum_{i=0}^3(\alpha_{i + 8} \cdot h_i)
 $$
 
 $$
 h_{init8} = h_{init4} + \sum_{i=4}^7(\alpha_{i + 8} \cdot h_i)
 $$
 
-In the above, $h_{init4}$ can be thought of as initiating a hasher with address $a'$ and absorbing the first $4$ elements from the hasher state ($h_0, ..., h_3$) into it. Similarly, $h_{init8}$ initiates a hasher with address $a'$, but absorbs the entire hasher state ($h_0, ..., h_7$) into it. Notice that we didn't specify the number of elements to be hashed (via $\alpha_4$ term). This will be specified later on.
+In the above, $h_{init4}$ can be thought of as initiating a hasher with address $a$ and absorbing the first $4$ elements from the hasher state ($h_0, ..., h_3$) into it. $f_{ctrlb}$ can be thought of as a flag to indicate the start of a control block (excluding span). To achieve domain separation for control block hashing we set the second element of the capacity register (via the $\alpha_5$ term) to the opcode of the operation for control block initializers. Similarly, $h_{init8}$ initiates a hasher with address $a$, but absorbs the entire hasher state ($h_0, ..., h_7$) into it. Notice that we didn't specify the logic for populating the first element of the capacity register (via $\alpha_4$ term). This will be specified later on.
 
 $$
 h_{abp} = \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot a' + \sum_{i=0}^7(\alpha_{i + 8} \cdot h_i)
@@ -129,28 +131,28 @@ $$
 
 Using the above variables, we define operation values as described below.
 
-When `JOIN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. We also indicate that the number of elements to be hashed is $8$:
+When `JOIN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of elements to be hashed is $8$ so the $\alpha_4$ term is set to 0:
 
 $$
-u_{join} = f_{join} \cdot (h_{init8} + \alpha_4 \cdot 8) \text{ | degree} = 7
+u_{join} = f_{join} \cdot h_{init8} \text{ | degree} = 7
 $$
 
-When `SPLIT` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. We also indicate that the number of elements to be hashed is $8$:
+When `SPLIT` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of elements to be hashed is $8$ so the $\alpha_4$ term is set to 0:
 
 $$
-u_{split} = f_{split} \cdot (h_{init8} + \alpha_4 \cdot 8) \text{ | degree} = 7
+u_{split} = f_{split} \cdot h_{init8} \text{ | degree} = 7
 $$
 
-When `LOOP` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_3$ are absorbed into the hasher. We also indicate that the number of elements to be hashed is $4$:
+When `LOOP` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_3$ are absorbed into the hasher. The number of elements to be hashed is $4$ so the $\alpha_4$ term is present:
 
 $$
-u_{loop} = f_{loop} \cdot (h_{init4} + \alpha_4 \cdot 4) \text{ | degree} = 7
+u_{loop} = f_{loop} \cdot (h_{init4} + \alpha_4) \text{ | degree} = 7
 $$
 
-When `SPAN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. We also indicate that the number of operation groups to be hashed is located in the `group_count` register:
+When `SPAN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of operation groups to be hashed is padded to a multiple of the rate width ($8$) and so the $\alpha_4$ is set to 0:
 
 $$
-u_{span} = f_{span} \cdot (h_{init8} + \alpha_4 \cdot gc) \text{ | degree} = 7
+u_{span} = f_{span} \cdot h_{init8} \text{ | degree} = 7
 $$
 
 When `RESPAN` operation is executed, contents of $h_0, ..., h_7$ (which contain the new operation batch) are absorbed into the hasher:

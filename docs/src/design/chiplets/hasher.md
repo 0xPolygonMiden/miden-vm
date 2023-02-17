@@ -36,7 +36,7 @@ The meaning of the columns is as follows:
 - Three selector columns $s_0$, $s_1$, and $s_2$. These columns can contain only binary values (ones or zeros), and they are also used to help select the instruction to execute at a given row.
 - One row address column $r$. This column starts out at $1$ and gets incremented by $1$ with every row.
 - Twelve hasher state columns $h_0, ..., h_{11}$. These columns are used to hold the hasher state for each round of the hash function permutation. The state is laid out as follows:
-  - The first four columns ($h_0, ..., h_3$) are reserved for capacity elements of the state. When the state is initialized for hash computations, $h_0$ should be set to the number of elements to be hashed. All other capacity elements should be set to $0$'s.
+  - The first four columns ($h_0, ..., h_3$) are reserved for capacity elements of the state. When the state is initialized for hash computations, $h_0$ should be set to $0$ if the number of elements to be hashed is a multiple of the rate width ($8$) or else $1$. $h_1$ should be set to the domain value if a domain has been provided (as in the case of [control block hashing](../programs.md#program-hash-computation)).  All other capacity elements should be set to $0$'s.
   - The next eight columns ($h_4, ..., h_{11}$) are reserved for the rate elements of the state. These are used to absorb the values to be hashed. Once the permutation is complete, hash output is located in the first four rate columns ($h_4, ..., h_7$).
 - One index column $i$. This column is used to help with Merkle path verification and Merkle root update computations.
 
@@ -105,7 +105,7 @@ In the above $\{a_0, ..., a_{11}\}$ is the input state of the hasher, and $\{b_0
 
 Computing a 2-to-1 hash involves the following steps:
 
-1. Initialize hasher state with $8$ field elements, setting the first capacity element to $8$, and the remaining capacity elements to $0$
+1. Initialize hasher state with $8$ field elements, setting the second capacity element to $domain$ if the domain is provided (as in the case of [control block hashing](../programs.md#program-hash-computation)) or else $0$, and the remaining capacity elements to $0$.
 2. Apply Rescue Prime Optimized permutation.
 3. Return elements ${4, ..., 7}$ of the hasher state as output.
 
@@ -131,7 +131,7 @@ $$
 
 Computing a linear hash of $n$ elements consists of the following steps:
 
-1. Initialize hasher state with the first $8$ elements, setting the first capacity register to $n$, and the remaining capacity elements to $0$.
+1. Initialize hasher state with the first $8$ elements, setting the first capacity register to $0$ if $n$ is a multiple of the rate width ($8$) or else $1$, and the remaining capacity elements to $0$.
 2. Apply Rescue Prime Optimized permutation.
 3. Absorb the next set of elements into the state (up to $8$ elements), while keeping capacity elements unchanged.
 4. Repeat steps 2 and 3 until all $n$ elements have been absorbed.
@@ -161,9 +161,9 @@ $$
 
 Verifying a Merkle path involves the following steps:
 
-1. Initialize hasher state with the leaf and the first node of the path, setting the first capacity element to $8$, and the remaining capacity elements to $0$s.
+1. Initialize hasher state with the leaf and the first node of the path, setting all capacity elements to $0$s.
    a. Also, initialize the index register to the leaf's index value.
-2. Apply Rescue Prime Optimized permutation.
+2. Apply Rescue Prime Optimized permutation. 
    a. Make sure the index value doesn't change during this step.
 3. Copy the result of the hash to the next row, and absorb the next node of the Merkle path into the hasher state.
    a. Remove a single bit from the index, and use it to determine how to place the copied result and absorbed node in the state.
