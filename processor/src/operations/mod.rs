@@ -37,6 +37,8 @@ where
             Operation::SDepth => self.op_sdepth()?,
             Operation::Caller => self.op_caller()?,
 
+            Operation::Clk => self.op_clk()?,
+
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
             Operation::Join => unreachable!("control flow operation"),
@@ -140,7 +142,7 @@ where
             Operation::Pipe => self.op_pipe()?,
 
             // ----- cryptographic operations -----------------------------------------------------
-            Operation::RpPerm => self.op_rpperm()?,
+            Operation::HPerm => self.op_hperm()?,
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
         }

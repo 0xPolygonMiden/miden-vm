@@ -4,16 +4,16 @@ use rand_utils::rand_vector;
 use vm_core::{AdviceSet, StarkField};
 
 #[test]
-fn rpperm() {
-    let asm_op = "rpperm";
+fn hperm() {
+    let asm_op = "hperm";
     let pub_inputs = rand_vector::<u64>(8);
 
     build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
 }
 
 #[test]
-fn rphash() {
-    let asm_op = "rphash";
+fn hmerge() {
+    let asm_op = "hmerge";
     let pub_inputs = rand_vector::<u64>(8);
 
     build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);

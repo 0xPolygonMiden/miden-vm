@@ -29,6 +29,7 @@ In both case the values must still encode valid field elements.
 | sdepth <br> - *(1 cycle)*        | [ ... ] | [d, ... ] | $d \leftarrow stack.depth()$ <br> Pushes the current depth of the stack onto the stack. |
 | caller <br> - *(1 cycle)*        | [ A, b, ... ] | [H, b, ... ] | $H \leftarrow context.fn\_hash()$ <br> Overwrites the top four stack items with the hash of a function which initiated the current SYSCALL. <br> Executing this instruction outside of SYSCALL context will fail. |
 | locaddr.*i* <br> - *(2 cycles)*  | [ ... ] | [a, ... ] | $a \leftarrow address\_of(i)$ <br> Pushes the absolute memory address of local memory at index $i$ onto the stack. |
+| clk <br> - *(1 cycle)*           | [ ... ] | [t, ... ] | $t \leftarrow clock\_value()$ <br> Pushes the current value of the clock cycle counter onto the stack. |
 
 ### Non-deterministic inputs
 

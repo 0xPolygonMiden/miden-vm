@@ -15,7 +15,7 @@ where
     /// stack. The capacity word follows, with the element that specifies the padding rule at the
     /// deepest position in stack[11]. For an RPO permutation of [A, B, C] where A is the capacity,
     /// the stack should be arranged (from the top) as [C, B, A, ...].
-    pub(super) fn op_rpperm(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_hperm(&mut self) -> Result<(), ExecutionError> {
         let input_state = [
             self.stack.get(11),
             self.stack.get(10),
@@ -185,14 +185,14 @@ mod tests {
     };
 
     #[test]
-    fn op_rpperm() {
+    fn op_hperm() {
         // --- test hashing [ONE, ONE] ------------------------------------------------------------
         let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
         let stack = StackInputs::try_from_values(inputs).unwrap();
         let mut process = Process::new_dummy(stack);
 
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-        process.execute_op(Operation::RpPerm).unwrap();
+        process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test hashing 8 random values -------------------------------------------------------
@@ -204,7 +204,7 @@ mod tests {
 
         // add the capacity to prepare the input vector
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-        process.execute_op(Operation::RpPerm).unwrap();
+        process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test that the rest of the stack isn't affected -------------------------------------
@@ -215,7 +215,7 @@ mod tests {
 
         let stack = StackInputs::try_from_values(inputs).unwrap();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::RpPerm).unwrap();
+        process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }
 

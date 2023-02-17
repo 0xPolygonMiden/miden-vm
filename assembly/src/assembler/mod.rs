@@ -62,10 +62,9 @@ impl Assembler {
     }
 
     /// Adds a library bundle to provide modules for the compilation.
-    pub fn with_libraries<I, L, LB>(self, mut libraries: I) -> Result<Self, AssemblyError>
+    pub fn with_libraries<I, L>(self, mut libraries: I) -> Result<Self, AssemblyError>
     where
         L: Library,
-        LB: Borrow<L>,
         I: Iterator<Item = L>,
     {
         libraries.try_fold(self, |slf, library| slf.with_library(library.borrow()))

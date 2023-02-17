@@ -55,6 +55,12 @@ In the `miden/examples/fib` directory, we provide a very simple Fibonacci calcul
 ```
 This will run the example code to completion and will output the top element remaining on the stack.
 
+If you want the output of the program in a file, you can use the `--output` or `-o` flag and specify the path to the output file. For example:
+```
+./target/release/miden run -a miden/examples/fib/fib.masm -o fib.out
+```
+This will dump the output of the program into the `fib.out` file. The output file will contain the state of the stack at the end of the program execution.
+
 ## Miden Development Tooling
 
 ### Miden Debugger

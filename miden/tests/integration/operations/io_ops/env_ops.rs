@@ -169,3 +169,25 @@ fn build_bar_hash() -> [u64; 4] {
         bar_hash[3].as_int(),
     ]
 }
+
+// CLK INSTRUCTION
+// ================================================================================================
+
+#[test]
+fn clk() {
+    let test = build_op_test!("clk");
+    test.expect_stack(&[1]);
+
+    let source = "
+        proc.foo
+            push.5
+            push.4
+            clk
+        end
+        begin
+            exec.foo
+        end";
+
+    let test = build_test!(source, &[]);
+    test.expect_stack(&[3, 4, 5]);
+}

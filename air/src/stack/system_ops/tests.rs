@@ -1,6 +1,6 @@
 use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
 use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
-use vm_core::{Felt, FieldElement, Operation, FMP_COL_IDX, ONE, STACK_TRACE_OFFSET};
+use vm_core::{Felt, FieldElement, Operation, CLK_COL_IDX, FMP_COL_IDX, ONE, STACK_TRACE_OFFSET};
 
 use proptest::prelude::*;
 
@@ -25,6 +25,16 @@ proptest! {
     fn test_fmpupdate_operation(a in any::<u64>()) {
         let expected = [Felt::ZERO; NUM_CONSTRAINTS];
         let frame = get_fmpupdate_test_frame(a);
+        let result = get_constraint_evaluation(frame);
+        assert_eq!(expected, result);
+    }
+
+    // -------------------------------- CLK test --------------------------------------------------
+
+    #[test]
+    fn test_clk_operation(a in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_clk_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
     }
@@ -93,6 +103,19 @@ pub fn get_assert_test_frame() -> EvaluationFrame<Felt> {
 
     // Set the output. The top element in the current frame of the stack should be ONE.
     frame.current_mut()[STACK_TRACE_OFFSET] = ONE;
+
+    frame
+}
+
+/// Generates the correct current and next rows for the CLK operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_clk_test_frame(a: u64) -> EvaluationFrame<Felt> {
+    // frame initialised with a clk operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Clk.op_code() as usize);
+
+    // Set the output. The top element in the next frame should be the current clock cycle value.
+    frame.current_mut()[CLK_COL_IDX] = Felt::new(a);
+    frame.next_mut()[STACK_TRACE_OFFSET] = frame.current()[CLK_COL_IDX];
 
     frame
 }

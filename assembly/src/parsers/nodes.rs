@@ -232,6 +232,7 @@ pub enum Instruction {
     Locaddr(u16),
     Sdepth,
     Caller,
+    Clk,
 
     MemLoad,
     MemLoadImm(u32),
@@ -260,8 +261,8 @@ pub enum Instruction {
     AdvExt2INTT,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    RpHash,
-    RpPerm,
+    HMerge,
+    HPerm,
     MTreeGet,
     MTreeSet,
     MTreeCwm,
@@ -492,6 +493,7 @@ impl fmt::Display for Instruction {
             Self::Locaddr(value) => write!(f, "locaddr.{value}"),
             Self::Sdepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
+            Self::Clk => write!(f, "clk"),
 
             Self::MemLoad => write!(f, "mem_load"),
             Self::MemLoadImm(value) => write!(f, "mem_load.{value}"),
@@ -520,8 +522,8 @@ impl fmt::Display for Instruction {
             Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpHash => write!(f, "rphash"),
-            Self::RpPerm => write!(f, "rpperm"),
+            Self::HMerge => write!(f, "hmerge"),
+            Self::HPerm => write!(f, "hperm"),
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeCwm => write!(f, "mtree_cwm"),

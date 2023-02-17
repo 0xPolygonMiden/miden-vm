@@ -32,6 +32,10 @@ pub enum Operation {
     /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
     Caller,
 
+    /// Pushes the current value of the clock cycle onto the stack. This operation can be used to
+    /// measure the number of cycles it has taken to execute the program up to the current instruction.
+    Clk,
+
     // ----- flow control operations --------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
@@ -363,7 +367,7 @@ pub enum Operation {
     /// rate part of the sponge is assumed to be on top of the stack, and the capacity is expected
     /// to be deepest in the stack, starting at stack[8]. For an RPO permutation of [A, B, C] where
     /// A is the capacity, the stack should look like [C, B, A, ...] from the top.
-    RpPerm,
+    HPerm,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This
     /// operation can be used to prove that the prover knows a path in the specified Merkle tree
@@ -485,7 +489,7 @@ impl Operation {
             Self::Dup15     => 0b0011_1100,
             Self::Read      => 0b0011_1101,
             Self::SDepth    => 0b0011_1110,
-            // <empty>      => 0b0011_1111
+            Self::Clk       => 0b0011_1111,
 
             Self::U32add    => 0b0100_0000,
             Self::U32sub    => 0b0100_0010,
@@ -496,7 +500,7 @@ impl Operation {
             Self::U32add3   => 0b0100_1100,
             Self::U32madd   => 0b0100_1110,
 
-            Self::RpPerm    => 0b0101_0000,
+            Self::HPerm    => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
             Self::Pipe      => 0b0101_0100,
             Self::MStream   => 0b0101_0110,
@@ -554,6 +558,8 @@ impl fmt::Display for Operation {
 
             Self::SDepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
+
+            Self::Clk => write!(f, "clk"),
 
             // ----- flow control operations ------------------------------------------------------
             Self::Join => write!(f, "join"),
@@ -657,7 +663,7 @@ impl fmt::Display for Operation {
             Self::Pipe => write!(f, "pipe"),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpPerm => write!(f, "rpperm"),
+            Self::HPerm => write!(f, "hperm"),
             Self::MpVerify => write!(f, "mpverify"),
             Self::MrUpdate(copy) => {
                 if *copy {

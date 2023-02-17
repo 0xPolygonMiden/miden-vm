@@ -1,10 +1,12 @@
 use super::{
     parse_checked_param, parse_param, Felt,
     Instruction::*,
+    LocalConstMap,
     Node::{self, Instruction},
-    ParsingError, Token, Vec,
+    ParsingError, Token, Vec, CONSTANT_LABEL_PARSER,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
+use core::ops::RangeBounds;
 use vm_core::WORD_LEN;
 
 // CONSTANTS
@@ -21,7 +23,7 @@ const MAX_PUSH_PARTS: usize = MAX_PUSH_INPUTS + 1;
 /// # Errors
 /// Returns an error if the instruction token has invalid values or inappropriate number of
 /// values.
-pub fn parse_push(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_push(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "push");
     match op.num_parts() {
         0 => unreachable!("missing token"),
@@ -38,13 +40,18 @@ pub fn parse_push(op: &Token) -> Result<Node, ParsingError> {
                 Some(param_str) => parse_long_hex_param(op, param_str),
                 // if we have one decimal parameter
                 None => {
-                    let value = parse_checked_param(op, 1, 0..Felt::MODULUS)?;
+                    let value = parse_non_hex_param_with_constants_lookup(
+                        op,
+                        constants,
+                        1,
+                        0..Felt::MODULUS,
+                    )?;
                     build_push_one_instruction(value)
                 }
             }
         }
         // if we have many parameters (decimal or hex) separated by delimiters
-        3..=MAX_PUSH_PARTS => parse_param_list(op),
+        3..=MAX_PUSH_PARTS => parse_param_list(op, constants),
         _ => Err(ParsingError::extra_param(op)),
     }
 }
@@ -238,16 +245,40 @@ pub fn parse_loc_storew(op: &Token) -> Result<Node, ParsingError> {
 
 /// Parses a list of parameters (each of which could be in decimal or hexadecimal form) and returns
 /// an appropriate push instruction node.
-fn parse_param_list(op: &Token) -> Result<Node, ParsingError> {
+fn parse_param_list(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     let values =
         op.parts().iter().enumerate().skip(1).map(|(param_idx, &param_str)| {
             match param_str.strip_prefix("0x") {
                 Some(param_str) => parse_hex_value(op, param_str, param_idx),
-                None => parse_checked_param(op, param_idx, 0..Felt::MODULUS),
+                None => parse_non_hex_param_with_constants_lookup(
+                    op,
+                    constants,
+                    param_idx,
+                    0..Felt::MODULUS,
+                ),
             }
         });
 
     build_push_many_instruction(values)
+}
+
+/// Parses a non hexadecimal parameter and returns the value.  Takes as argument a constant map
+/// for constant lookup.
+fn parse_non_hex_param_with_constants_lookup<R: RangeBounds<u64>>(
+    op: &Token,
+    constants: &LocalConstMap,
+    param_idx: usize,
+    range: R,
+) -> Result<u64, ParsingError> {
+    let param_str = op.parts()[param_idx];
+    // if we have a valid constant label then try and fetch it
+    match CONSTANT_LABEL_PARSER.parse_label(param_str.to_string()) {
+        Ok(_) => constants
+            .get(param_str)
+            .cloned()
+            .ok_or_else(|| ParsingError::const_not_found(op)),
+        Err(_) => parse_checked_param(op, param_idx, range),
+    }
 }
 
 /// Parses a single hexadecimal parameter into multiple values and returns an appropriate push

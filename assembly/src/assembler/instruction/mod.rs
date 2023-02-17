@@ -262,11 +262,12 @@ impl Assembler {
             Instruction::PushFeltList(imms) => env_ops::push_many(imms, span),
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, ctx),
-            Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
+            Instruction::Clk => span.add_op(Clk),
+            Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
             Instruction::AdvLoadW => span.add_op(ReadW),
 
-            Instruction::MemStream => span.add_ops([MStream, RpPerm]),
+            Instruction::MemStream => span.add_ops([MStream, HPerm]),
 
             Instruction::Locaddr(v) => env_ops::locaddr(span, *v, ctx),
             Instruction::MemLoad => mem_ops::mem_read(span, ctx, None, false, true),
@@ -289,8 +290,8 @@ impl Assembler {
             Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
 
             // ----- cryptographic instructions ---------------------------------------------------
-            Instruction::RpPerm => span.add_op(RpPerm),
-            Instruction::RpHash => crypto_ops::rphash(span),
+            Instruction::HPerm => span.add_op(HPerm),
+            Instruction::HMerge => crypto_ops::hmerge(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),

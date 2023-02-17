@@ -4,10 +4,11 @@ use super::{
 };
 use vm_core::{
     chiplets::hasher::{
-        absorb_into_state, get_digest, init_state, init_state_from_words, Digest, Selectors,
-        HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW,
-        MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL,
-        RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+        absorb_into_state, get_digest, init_state, init_state_from_words,
+        init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
+        LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
+        MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
+        RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
     },
     utils::collections::BTreeMap,
 };
@@ -140,11 +141,12 @@ impl Hasher {
         &mut self,
         h1: Word,
         h2: Word,
+        domain: Felt,
         expected_hash: Digest,
         lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
         let addr = self.trace.next_row_addr();
-        let mut state = init_state_from_words(&h1, &h2);
+        let mut state = init_state_from_words_with_domain(&h1, &h2, domain);
 
         // add the lookup for the hash initialization.
         let lookup = self.get_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);

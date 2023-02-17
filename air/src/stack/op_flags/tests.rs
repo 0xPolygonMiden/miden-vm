@@ -251,7 +251,7 @@ fn composite_flags() {
 
     // ------ No change 12 ---------------------------------------------------------------------
 
-    let op = Operation::RpPerm;
+    let op = Operation::HPerm;
     // frame initialised with an op operation.
     let frame = generate_evaluation_frame(op.op_code().into());
 

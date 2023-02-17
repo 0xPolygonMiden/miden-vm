@@ -288,6 +288,7 @@ impl Deserializable for Instruction {
             OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_u16()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
             OpCode::Caller => Ok(Instruction::Caller),
+            OpCode::Clk => Ok(Instruction::Clk),
 
             OpCode::MemLoad => Ok(Instruction::MemLoad),
             OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_u32()?)),
@@ -318,8 +319,8 @@ impl Deserializable for Instruction {
             OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
 
             // ----- cryptographic operations -----------------------------------------------------
-            OpCode::RPHash => Ok(Instruction::RpHash),
-            OpCode::RPPerm => Ok(Instruction::RpPerm),
+            OpCode::HMerge => Ok(Instruction::HMerge),
+            OpCode::HPerm => Ok(Instruction::HPerm),
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
             OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),

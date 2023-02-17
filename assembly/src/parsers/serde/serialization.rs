@@ -378,6 +378,7 @@ impl Serializable for Instruction {
             }
             Self::Sdepth => OpCode::Sdepth.write_into(target)?,
             Self::Caller => OpCode::Caller.write_into(target)?,
+            Self::Clk => OpCode::Clk.write_into(target)?,
 
             Self::MemLoad => OpCode::MemLoad.write_into(target)?,
             Self::MemLoadImm(v) => {
@@ -435,8 +436,8 @@ impl Serializable for Instruction {
             Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target)?,
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpHash => OpCode::RPHash.write_into(target)?,
-            Self::RpPerm => OpCode::RPPerm.write_into(target)?,
+            Self::HMerge => OpCode::HMerge.write_into(target)?,
+            Self::HPerm => OpCode::HPerm.write_into(target)?,
             Self::MTreeGet => OpCode::MTreeGet.write_into(target)?,
             Self::MTreeSet => OpCode::MTreeSet.write_into(target)?,
             Self::MTreeCwm => OpCode::MTreeCwm.write_into(target)?,

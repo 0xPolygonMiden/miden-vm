@@ -140,7 +140,7 @@ This group contains $16$ operations which shift the stack to the right (i.e., pu
 | `DUP15`      | $60$         | `011_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `READ`       | $61$         | `011_1101`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `SDEPTH`     | $62$         | `011_1110`      | [I/O ops](./io_ops.md)        | $7$         |
-| `<unused>`   | $63$         | `011_1111`      |                               | $7$         |
+| `CLK`        | $63$         | `011_1111`      | [System ops](./system_ops.md) | $7$         |
 
 ### u32 operations
 This group contains $8$ u32 operations. These operations are grouped together because all of them require range checks. The constraints for range checks are of degree $5$, however, since all these operations require them, we can define a flag with common prefix `100` to serve as a selector for the range check constraints. The value of this flag is computed as follows:
@@ -177,7 +177,7 @@ This group contains operations which require constraints with degree up to $3$. 
 
 | Operation    | Opcode value | Binary encoding | Operation group                        | Flag degree |
 | ------------ | :----------: | :-------------: | :-------------------------------------:| :---------: |
-| `RPPERM`     | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
+| `HPERM`     | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
 | `MPVERIFY`   | $82$         | `101_0010`      | [Crypto ops](./crypto_ops.md)          | $6$         |
 | `<unused>`   | $84$         | `101_0100`      |                                        | $6$         |
 | `<unused>`   | $86$         | `101_0110`      |                                        | $6$         |

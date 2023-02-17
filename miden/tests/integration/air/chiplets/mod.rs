@@ -9,7 +9,7 @@ mod memory;
 fn chiplets() {
     // Test a program that uses all of the chiplets.
     let source = "begin
-        rpperm                          # hasher operation
+        hperm                          # hasher operation
         push.5 push.10 u32checked_or    # bitwise operation
         mem_load                        # memory operation
     end";

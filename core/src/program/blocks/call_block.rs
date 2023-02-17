@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Digest};
+use super::{fmt, hasher, Digest, Felt, Operation};
 
 // CALL BLOCK
 // ================================================================================================
@@ -10,8 +10,6 @@ use super::{fmt, hasher, Digest};
 ///
 /// Hash of a Call block is computed by hashing a concatenation of the function's body hash with
 /// zero.
-///
-/// TODO: update hashing methodology to make it different from Loop block.
 #[derive(Clone, Debug)]
 pub struct Call {
     hash: Digest,
@@ -20,11 +18,18 @@ pub struct Call {
 }
 
 impl Call {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    /// The domain of the call block (used for control block hashing).
+    pub const CALL_DOMAIN: Felt = Felt::new(Operation::Call.op_code() as u64);
+    /// The domain of the syscall block (used for control block hashing).
+    pub const SYSCALL_DOMAIN: Felt = Felt::new(Operation::SysCall.op_code() as u64);
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Call] block instantiated with the specified function body hash.
     pub fn new(fn_hash: Digest) -> Self {
-        let hash = hasher::merge(&[fn_hash, Digest::default()]);
+        let hash = hasher::merge_in_domain(&[fn_hash, Digest::default()], Self::CALL_DOMAIN);
         Self {
             hash,
             fn_hash,
@@ -35,8 +40,7 @@ impl Call {
     /// Returns a new [Call] block instantiated with the specified function body hash and marked
     /// as a kernel call.
     pub fn new_syscall(fn_hash: Digest) -> Self {
-        // TODO: make hash computation different from regular call
-        let hash = hasher::merge(&[fn_hash, Digest::default()]);
+        let hash = hasher::merge_in_domain(&[fn_hash, Digest::default()], Self::SYSCALL_DOMAIN);
         Self {
             hash,
             fn_hash,
@@ -60,6 +64,14 @@ impl Call {
     /// Returns true if this call block corresponds to a kernel call.
     pub fn is_syscall(&self) -> bool {
         self.is_syscall
+    }
+
+    /// Returns the domain of the call block
+    pub fn domain(&self) -> Felt {
+        match self.is_syscall() {
+            true => Self::SYSCALL_DOMAIN,
+            false => Self::CALL_DOMAIN,
+        }
     }
 }
 

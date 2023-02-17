@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Box, CodeBlock, Digest};
+use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // LOOP BLOCK
 // ================================================================================================
@@ -19,11 +19,16 @@ pub struct Loop {
 }
 
 impl Loop {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    /// The domain of the loop block (used for control block hashing).
+    pub const DOMAIN: Felt = Felt::new(Operation::Loop.op_code() as u64);
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Loop] bock instantiated with the specified body.
     pub fn new(body: CodeBlock) -> Self {
-        let hash = hasher::merge(&[body.hash(), Digest::default()]);
+        let hash = hasher::merge_in_domain(&[body.hash(), Digest::default()], Self::DOMAIN);
         Self {
             body: Box::new(body),
             hash,

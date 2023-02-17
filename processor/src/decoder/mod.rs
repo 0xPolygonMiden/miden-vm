@@ -53,7 +53,9 @@ where
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let addr = self.chiplets.hash_control_block(child1_hash, child2_hash, block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(child1_hash, child2_hash, Join::DOMAIN, block.hash());
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -86,7 +88,9 @@ where
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let addr = self.chiplets.hash_control_block(child1_hash, child2_hash, block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(child1_hash, child2_hash, Split::DOMAIN, block.hash());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
@@ -120,7 +124,9 @@ where
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let addr = self.chiplets.hash_control_block(body_hash, [ZERO; 4], block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(body_hash, [ZERO; 4], Loop::DOMAIN, block.hash());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -169,7 +175,9 @@ where
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
         let fn_hash = block.fn_hash().into();
-        let addr = self.chiplets.hash_control_block(fn_hash, [ZERO; 4], block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(fn_hash, [ZERO; 4], block.domain(), block.hash());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
