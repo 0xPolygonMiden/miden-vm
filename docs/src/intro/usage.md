@@ -35,6 +35,7 @@ Currently, Miden VM can be executed with the following subcommands:
 * `prove` - this will execute a Miden assembly program, and will also generate a STARK proof of execution.
 * `verify` - this will verify a previously generated proof of execution for a given program.
 * `compile` - this will compile a Miden assembly program (i.e., build a program [MAST](../design/programs.md)) and outputs stats about the compilation process.
+* `debug` - this will instantiate a CLI debugger against the specified Miden assembly program and inputs.
 * `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
 * `repl` - this will initiate the [Miden REPL](usage.md#repl) tool.
 
@@ -60,11 +61,34 @@ If you want the output of the program in a file, you can use the `--output` or `
 ```
 This will dump the output of the program into the `fib.out` file. The output file will contain the state of the stack at the end of the program execution.
 
-## REPL
+## Miden Development Tooling
+
+### Miden Debugger
+
+The Miden debugger is a shell that allow for efficient debugging of miden assembly programs that are sourced from file.  A Miden assembly program file and inputs are specified when the debugger is instantiated.  The debugger allows the user to step through the execution of the program with clock cycle granularity and provides the ability for virtual machine state inspection at each clock cycle.  The Miden debugger supports the following commands:
+
+```
+!next        steps to the next clock cycle
+!play        executes program until completion or failure
+!play.n      executes n clock cycles
+!prev        steps to the previous clock cycle
+!rewind      rewinds program until beginning
+!rewind.n    rewinds n clock cycles
+!print       displays the complete state of the virtual machine
+!stack       displays the complete state of the stack
+!stack[i]    displays the stack element at index i
+!mem         displays the complete state of memory
+!mem[i]      displays memory at address i
+!clock       displays the current clock cycle
+!quit        quits the debugger
+!help        displays this message
+```
+
+### REPL
 
 The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging of Miden assembly. After the REPL gets initialized, you can execute any Miden instruction, undo executed instructions, check the state of the stack and memory at a given point, and do many other useful things! When the REPL is exited, a `history.txt` file is saved. One thing to note is that all the REPL native commands start with an `!` to differentiate them from regular assembly instructions. The REPL currently supports the following commands:
 
-### Miden assembly instruction
+#### Miden assembly instruction
 
 All Miden instructions mentioned in the [Miden Assembly sections](../user_docs/assembly/main.md) are valid. One can either input instructions one by one or multiple instructions in one input.
 
@@ -93,11 +117,11 @@ The above example should be written as follows in the REPL tool:
 repeat.20 pow2 end
 ```
 
-### !help
+#### !help
 
 The `!help` command prints out all the available commands in the REPL tool. 
 
-### !program
+#### !program
 
 The `!program` command prints out the entire Miden program being executed. E.g., in the below scenario:
 
@@ -114,7 +138,7 @@ begin
 end
 ```
 
-### !stack
+#### !stack
 
 The `!stack` command prints out the state of the stack at the last executed instruction. Since the stack always contains at least 16 elements, 16 or more elements will be printed out (even if all of them are zeros).
 
@@ -134,7 +158,7 @@ The `!stack` command will print out the following state of the stack:
 3072 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ```
 
-### !mem
+#### !mem
 
 The `!mem` command prints out the contents of all initialized memory locations. For each such location, the address, along with its memory values, is printed. Recall that four elements are stored at each memory address.
 
@@ -154,7 +178,7 @@ If the memory is not yet been initialized:
 The memory has not been initialized yet
 ```
 
-### !mem[addr]
+#### !mem[addr]
 
 The `!mem[addr]` command prints out memory contents at the address specified by `addr`.
 
@@ -172,7 +196,7 @@ If the `addr` has not been initialized:
 Memory at address 87 is empty
 ```
 
-### !undo
+#### !undo
 
 The `!undo` command reverts to the previous state of the stack and memory by dropping off the last executed assembly instruction from the program. One could use `!undo` as often as they want to restore the state of a stack and memory $n$ instructions ago (provided there are $n$ instructions in the program). The `!undo` command will result in an error if no remaining instructions are left in the Miden program.
 

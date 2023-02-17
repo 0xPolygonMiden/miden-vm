@@ -222,6 +222,7 @@ Currently, Miden VM can be executed with the following subcommands:
 * `prove` - this will execute a Miden assembly program, and will also generate a STARK proof of execution.
 * `verify` - this will verify a previously generated proof of execution for a given program.
 * `compile` - this will compile a Miden assembly program and outputs stats about the compilation process.
+* `debug` - this will instantiate a CLI debugger against the specified Miden assembly program and inputs.
 * `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
 
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:

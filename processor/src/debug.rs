@@ -22,7 +22,11 @@ impl fmt::Display for VmState {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
         let memory: Vec<(u64, [u64; 4])> =
             self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
-        write!(f, "clk={}, fmp={}, stack={stack:?}, memory={memory:?}", self.clk, self.fmp)
+        write!(
+            f,
+            "clk={}, op={:?}, asmop={:?}, fmp={}, stack={stack:?}, memory={memory:?}",
+            self.clk, self.op, self.asmop, self.fmp
+        )
     }
 }
 
@@ -39,6 +43,7 @@ pub struct VmStateIterator {
     error: Option<ExecutionError>,
     clk: u32,
     asmop_idx: usize,
+    forward: bool,
 }
 
 impl VmStateIterator {
@@ -55,6 +60,7 @@ impl VmStateIterator {
             error: result.err(),
             clk: 0,
             asmop_idx: 0,
+            forward: true,
         }
     }
 
@@ -130,6 +136,12 @@ impl Iterator for VmStateIterator {
             }
         }
 
+        // if we are changing iteration directions we must increment the clk counter
+        if !self.forward && self.clk < self.system.clk() {
+            self.clk += 1;
+            self.forward = true;
+        }
+
         let ctx = self.system.get_ctx_at(self.clk);
 
         let op = if self.clk == 0 {
@@ -156,6 +168,45 @@ impl Iterator for VmStateIterator {
         self.clk += 1;
 
         result
+    }
+}
+
+impl DoubleEndedIterator for VmStateIterator {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.clk == 0 {
+            return None;
+        }
+
+        self.clk -= 1;
+
+        // if we are changing directions we must decrement the clk counter.
+        if self.forward && self.clk > 0 {
+            self.clk -= 1;
+            self.forward = false;
+        }
+
+        let ctx = self.system.get_ctx_at(self.clk);
+
+        let op = if self.clk == 0 {
+            None
+        } else {
+            Some(self.decoder.debug_info().operations()[self.clk as usize - 1])
+        };
+
+        let (asmop, is_start) = self.get_asmop();
+        if is_start {
+            self.asmop_idx -= 1;
+        }
+
+        Some(Ok(VmState {
+            clk: self.clk,
+            ctx,
+            op,
+            asmop,
+            fmp: self.system.get_fmp_at(self.clk),
+            stack: self.stack.get_state_at(self.clk),
+            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
+        }))
     }
 }
 
