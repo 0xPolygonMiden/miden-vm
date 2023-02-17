@@ -151,7 +151,7 @@ impl AdviceProvider for MemAdviceProvider {
         // update the advice set and re-insert it into the map
         advice_set
             .update_leaf(index.as_int(), leaf_value)
-            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+            .map_err(ExecutionError::AdviceSetUpdateFailed)?;
         self.sets.insert(advice_set.root().into_bytes(), advice_set);
 
         Ok(path)

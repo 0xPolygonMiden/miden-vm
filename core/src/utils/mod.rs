@@ -1,4 +1,5 @@
 use super::{Felt, StarkField};
+use core::fmt::{self, Write};
 use core::{
     fmt::Debug,
     ops::{Bound, Range},
@@ -134,4 +135,18 @@ fn debug_assert_is_checked() {
     // for reference, check
     // https://github.com/0xPolygonMiden/miden-vm/issues/433
     debug_assert!(false);
+}
+
+// FORMATTING
+// ================================================================================================
+
+/// Utility to convert a sequence of bytes to hex.
+pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
+    let mut s = String::with_capacity(bytes.len() * 2);
+
+    for byte in bytes {
+        write!(s, "{byte:02x}")?;
+    }
+
+    Ok(s)
 }

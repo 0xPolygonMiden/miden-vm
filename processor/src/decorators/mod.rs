@@ -231,7 +231,10 @@ where
             return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
         }
         if out_poly_len > in_evaluations_len {
-            return Err(ExecutionError::InterpolationResultSizeTooBig(out_poly_len as u64));
+            return Err(ExecutionError::InterpolationResultSizeTooBig(
+                out_poly_len,
+                in_evaluations_len,
+            ));
         }
 
         let mut poly = Vec::with_capacity(in_evaluations_len);
