@@ -225,9 +225,8 @@ impl AssemblyContext {
     ///   procedure cache or the local procedure set of the module.
     pub fn into_cb_table(mut self, proc_cache: &ProcedureCache) -> CodeBlockTable {
         // get the last module off the module stack
-        let mut main_module_context = self.module_stack.pop().expect("no modules");
-        assert!(self.module_stack.is_empty(), "executable not last module");
-
+        assert_eq!(self.module_stack.len(), 1, "executable not last module. module_stack len should be 1");
+        let mut main_module_context = self.module_stack.pop().unwrap();
         // complete compilation of the executable module; this appends the callset of the main
         // procedure to the callset of the executable module
         main_module_context.complete_executable();
@@ -439,14 +438,17 @@ impl ModuleContext {
     /// compiling a program, the executable module will have the main procedure left on the
     /// procedure stack. To complete the module we need to pop the main procedure off the stack and
     /// append its callset to the callset of the module context.
+    /// 
+    /// # Panics
+    /// Panics if:
+    /// - There is not exactly one module left on the procedure stack.
+    /// - If this module is not an executable module.
+    /// - If the procedure context is not main.
     pub fn complete_executable(&mut self) {
         assert!(self.is_executable(), "module not executable");
-
-        let main_proc_context = self.proc_stack.pop().expect("no procedures");
-
+        assert_eq!(self.proc_stack.len(), 1, "procedure stack should only have the main procedure. proc_stack length should be 1");
+        let main_proc_context = self.proc_stack.pop().unwrap();
         assert!(main_proc_context.is_main(), "not main procedure");
-        assert!(self.proc_stack.is_empty(), "more procedures after main");
-
         self.callset.append(&main_proc_context.callset);
     }
 }
