@@ -403,6 +403,9 @@ pub enum Operation {
     /// the specified root will be removed from the advice provider. Otherwise, the advice
     /// provider will keep track of both, the old and the new merkle sets.
     MrUpdate(bool),
+
+    /// TODO: add docs
+    FriE2F4,
 }
 
 impl Operation {
@@ -455,7 +458,7 @@ impl Operation {
             Self::SwapW2    => 0b0001_1100,
             Self::SwapW3    => 0b0001_1101,
             Self::SwapDW    => 0b0001_1110,
-            // <empty>      => 0b0001_1111
+            Self::FriE2F4   => 0b0001_1111,
 
             Self::Assert    => 0b0010_0000,
             Self::Eq        => 0b0010_0001,
@@ -672,6 +675,7 @@ impl fmt::Display for Operation {
                     write!(f, "mrupdate(move)")
                 }
             }
+            Self::FriE2F4 => write!(f, "frie2f4"),
         }
     }
 }

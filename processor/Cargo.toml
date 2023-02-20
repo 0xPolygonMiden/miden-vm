@@ -29,3 +29,5 @@ winter-prover = { package = "winter-prover", version = "0.5", default-features =
 logtest = { version = "2.0", default-features = false  }
 miden-assembly = { package = "miden-assembly", path = "../assembly", version = "0.4", default-features = false }
 rand-utils = { package = "winter-rand-utils", version = "0.5" }
+winter-fri = { package = "winter-fri", version = "0.5" }
+winter-utils = { package = "winter-utils", version = "0.5" }
