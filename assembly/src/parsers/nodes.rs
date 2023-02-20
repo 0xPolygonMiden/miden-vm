@@ -267,6 +267,7 @@ pub enum Instruction {
     MTreeGet,
     MTreeSet,
     MTreeCwm,
+    FriExt2Fold4,
 
     // ----- exec / call --------------------------------------------------------------------------
     ExecLocal(u16),
@@ -529,6 +530,7 @@ impl fmt::Display for Instruction {
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeCwm => write!(f, "mtree_cwm"),
+            Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
 
             // ----- exec / call ------------------------------------------------------------------
             // TODO: print exec/call instructions with procedures names, not indexes or id's

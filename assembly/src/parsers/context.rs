@@ -499,6 +499,8 @@ impl ParserContext {
             "mtree_set" => simple_instruction(op, MTreeSet),
             "mtree_cwm" => simple_instruction(op, MTreeCwm),
 
+            "fri_ext2fold4" => simple_instruction(op, FriExt2Fold4),
+
             // ----- procedure invocations --------------------------------------------------------
             "exec" => self.parse_exec(op),
             "call" => self.parse_call(op),

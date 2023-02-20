@@ -325,6 +325,7 @@ impl Deserializable for Instruction {
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
             OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),
+            OpCode::FriExt2Fold4 => Ok(Instruction::FriExt2Fold4),
 
             // ----- exec / call ------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),

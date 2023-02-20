@@ -5,6 +5,7 @@ use vm_core::{ExtensionOf, FieldElement, QuadExtension, StarkField, ONE, ZERO};
 // ================================================================================================
 
 const TWO: Felt = Felt::new(2);
+const TWO_INV: Felt = Felt::new(9223372034707292161);
 
 const DOMAIN_OFFSET: Felt = Felt::GENERATOR;
 
@@ -30,10 +31,11 @@ where
     pub(super) fn op_fri_ext2fold4(&mut self) -> Result<(), ExecutionError> {
         // read all relevant variables from the current state of the stack
         let query_values = self.get_query_values();
-        let alpha = self.get_alpha();
-        let poe = self.get_poe();
         let f_pos = self.get_folded_position();
         let d_seg = self.get_domain_segment().as_int();
+        let poe = self.get_poe();
+        let alpha = self.get_alpha();
+        let layer_ptr = self.get_layer_ptr();
 
         // compute x corresponding to query values
         let f_tau = get_tau_factor(d_seg);
@@ -45,20 +47,37 @@ where
         let (folded_value, tmp0, tmp1) = fold4(query_values, ev, es);
 
         // write the relevant values into the next state of the stack
-        self.set_folded_value(folded_value);
-        self.set_folded_position(f_pos);
-        self.set_next_poe(poe);
-        self.set_temp_evaluations(tmp0, tmp1);
-        self.set_domain_segment_flags(d_seg);
-        self.set_tau_factor(f_tau);
-        self.set_helper_registers(ev, es, x, x_inv);
-        self.stack.set(14, ZERO);
+        let tmp0 = tmp0.to_base_elements();
+        let tmp1 = tmp1.to_base_elements();
+        let ds = get_domain_segment_flags(d_seg);
+        let folded_value = folded_value.to_base_elements();
 
-        self.stack.copy_state(15);
+        let poe2 = poe.square();
+        let poe4 = poe2.square();
+
+        self.stack.set(0, tmp0[1]);
+        self.stack.set(1, tmp0[0]);
+        self.stack.set(2, tmp1[1]);
+        self.stack.set(3, tmp1[0]);
+        self.stack.set(4, ds[3]);
+        self.stack.set(5, ds[2]);
+        self.stack.set(6, ds[1]);
+        self.stack.set(7, ds[0]);
+        self.stack.set(8, poe2);
+        self.stack.set(9, f_tau);
+        self.stack.set(10, layer_ptr + TWO);
+        self.stack.set(11, poe4);
+        self.stack.set(12, f_pos);
+        self.stack.set(13, folded_value[1]);
+        self.stack.set(14, folded_value[0]);
+
+        self.set_helper_registers(ev, es, x, x_inv);
+
+        self.stack.shift_left(16);
         Ok(())
     }
 
-    // HELPER METHODS - GETTERS
+    // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
     /// TODO: add docs
@@ -81,10 +100,13 @@ where
     }
 
     /// TODO: add docs
-    fn get_alpha(&self) -> QuadFelt {
-        let a1 = self.stack.get(8);
-        let a0 = self.stack.get(9);
-        QuadFelt::new(a0, a1)
+    fn get_folded_position(&self) -> Felt {
+        self.stack.get(8)
+    }
+
+    /// TODO: add docs
+    fn get_domain_segment(&self) -> Felt {
+        self.stack.get(9)
     }
 
     /// TODO: add docs
@@ -93,71 +115,14 @@ where
     }
 
     /// TODO: add docs
-    fn get_folded_position(&self) -> Felt {
-        self.stack.get(11)
+    fn get_alpha(&self) -> QuadFelt {
+        let a1 = self.stack.get(13);
+        let a0 = self.stack.get(14);
+        QuadFelt::new(a0, a1)
     }
 
-    /// TODO: add docs
-    fn get_domain_segment(&self) -> Felt {
-        self.stack.get(12)
-    }
-
-    // HELPER METHODS - SETTERS
-    // --------------------------------------------------------------------------------------------
-
-    /// TODO: add docs
-    fn set_folded_value(&mut self, value: QuadFelt) {
-        let value_arr = [value];
-        let elements = QuadFelt::as_base_elements(&value_arr);
-        self.stack.set(0, elements[1]);
-        self.stack.set(1, elements[0]);
-    }
-
-    /// TODO: add docs
-    fn set_folded_position(&mut self, pos: Felt) {
-        self.stack.set(2, pos);
-    }
-
-    /// TODO: add docs
-    fn set_next_poe(&mut self, poe: Felt) {
-        let poe2 = poe.square();
-        self.stack.set(3, poe2);
-        self.stack.set(4, poe2.square());
-    }
-
-    /// TODO: add docs
-    fn set_temp_evaluations(&mut self, tmp0: QuadFelt, tmp1: QuadFelt) {
-        let tmp0_arr = [tmp0];
-        let tmp0_felts = QuadFelt::as_base_elements(&tmp0_arr);
-
-        let tmp1_arr = [tmp1];
-        let tmp1_felts = QuadFelt::as_base_elements(&tmp1_arr);
-
-        self.stack.set(5, tmp0_felts[1]);
-        self.stack.set(6, tmp0_felts[0]);
-        self.stack.set(7, tmp1_felts[1]);
-        self.stack.set(8, tmp1_felts[0]);
-    }
-
-    /// TODO: add docs
-    fn set_domain_segment_flags(&mut self, d_seg: u64) {
-        let ds = match d_seg {
-            0 => [ONE, ZERO, ZERO, ZERO],
-            1 => [ZERO, ONE, ZERO, ZERO],
-            2 => [ZERO, ZERO, ONE, ZERO],
-            3 => [ZERO, ZERO, ZERO, ONE],
-            _ => panic!("invalid domain segment {d_seg}"),
-        };
-
-        self.stack.set(9, ds[3]);
-        self.stack.set(10, ds[2]);
-        self.stack.set(11, ds[1]);
-        self.stack.set(12, ds[0]);
-    }
-
-    /// TODO: add docs
-    fn set_tau_factor(&mut self, f_tau: Felt) {
-        self.stack.set(13, f_tau);
+    fn get_layer_ptr(&self) -> Felt {
+        self.stack.get(15)
     }
 
     /// TODO: add docs
@@ -188,6 +153,17 @@ fn get_tau_factor(domain_segment: u64) -> Felt {
 }
 
 /// TODO: add docs
+fn get_domain_segment_flags(domain_segment: u64) -> [Felt; 4] {
+    match domain_segment {
+        0 => [ONE, ZERO, ZERO, ZERO],
+        1 => [ZERO, ONE, ZERO, ZERO],
+        2 => [ZERO, ZERO, ONE, ZERO],
+        3 => [ZERO, ZERO, ZERO, ONE],
+        _ => panic!("invalid domain segment {domain_segment}"),
+    }
+}
+
+/// TODO: add docs
 fn compute_evaluation_points(alpha: QuadFelt, x_inv: Felt) -> (QuadFelt, QuadFelt) {
     let ev = alpha.mul_base(x_inv);
     let es = ev.square();
@@ -204,9 +180,7 @@ fn fold4(values: [QuadFelt; 4], ev: QuadFelt, es: QuadFelt) -> (QuadFelt, QuadFe
 
 /// TODO: add docs
 fn fold2(f_x: QuadFelt, f_neg_x: QuadFelt, evaluation_point: QuadFelt) -> QuadFelt {
-    // TODO: put two_inv into a constant
-    let two_inv = QuadFelt::from(TWO).inv();
-    (f_x + f_neg_x + ((f_x - f_neg_x) * evaluation_point)) * two_inv
+    (f_x + f_neg_x + ((f_x - f_neg_x) * evaluation_point)).mul_base(TWO_INV)
 }
 
 // TESTS
@@ -215,10 +189,13 @@ fn fold2(f_x: QuadFelt, f_neg_x: QuadFelt, evaluation_point: QuadFelt) -> QuadFe
 #[cfg(test)]
 mod tests {
 
-    use super::{ExtensionOf, Felt, FieldElement, QuadFelt, StarkField};
-    use rand_utils::{rand_value, rand_vector};
+    use super::{
+        ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
+    };
+    use rand_utils::{rand_array, rand_value, rand_vector};
+    use vm_core::StackInputs;
+    use winter_prover::math::{fft, get_power_series_with_offset};
     use winter_utils::transpose_slice;
-    use winterfell::math::{fft, get_power_series_with_offset};
 
     #[test]
     fn fold4() {
@@ -256,11 +233,90 @@ mod tests {
     }
 
     #[test]
-    fn tau_const() {
+    fn constants() {
         let tau = Felt::get_root_of_unity(2);
 
         assert_eq!(super::TAU_INV, tau.inv());
         assert_eq!(super::TAU2_INV, tau.square().inv());
         assert_eq!(super::TAU3_INV, tau.cube().inv());
+
+        assert_eq!(TWO.inv(), TWO_INV);
+    }
+
+    #[test]
+    fn op_fri_ext2fold4() {
+        // --- build stack inputs ---------------------------------------------
+        // we need 17 values because we also assume that the pointer to the last FRI layer will
+        // be in the first position of the stack overflow table
+        let mut inputs = rand_array::<Felt, 17>();
+        inputs[7] = TWO; // domain segment must be < 4
+
+        // assign meaning to these values
+        let end_ptr = inputs[0];
+        let layer_ptr = inputs[1];
+        let alpha = QuadFelt::new(inputs[2], inputs[3]);
+        let poe = inputs[6];
+        let d_seg = inputs[7];
+        let f_pos = inputs[8];
+        let query_values = [
+            QuadFelt::new(inputs[9], inputs[10]),
+            QuadFelt::new(inputs[11], inputs[12]),
+            QuadFelt::new(inputs[13], inputs[14]),
+            QuadFelt::new(inputs[15], inputs[16]),
+        ];
+
+        // println!("{:?}", inputs.iter().map(|v| v.as_int()).collect::<Vec<_>>());
+
+        // --- execute FRIE2F4 operation --------------------------------------
+        let stack_inputs = StackInputs::new(inputs.to_vec());
+        let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
+        process.execute_op(Operation::FriE2F4).unwrap();
+
+        // --- check the stack state-------------------------------------------
+        let stack_state = process.stack.trace_state();
+
+        // perform layer folding
+        let f_tau = super::get_tau_factor(d_seg.as_int());
+        let x = poe * f_tau * super::DOMAIN_OFFSET;
+        let x_inv = x.inv();
+
+        let (ev, es) = super::compute_evaluation_points(alpha, x_inv);
+        let (folded_value, tmp0, tmp1) = super::fold4(query_values, ev, es);
+
+        // check temp values
+        let tmp0 = tmp0.to_base_elements();
+        let tmp1 = tmp1.to_base_elements();
+        assert_eq!(stack_state[0], tmp0[1]);
+        assert_eq!(stack_state[1], tmp0[0]);
+        assert_eq!(stack_state[2], tmp1[1]);
+        assert_eq!(stack_state[3], tmp1[0]);
+
+        // check domain segment flags
+        let ds = super::get_domain_segment_flags(d_seg.as_int());
+        assert_eq!(stack_state[4], ds[3]);
+        assert_eq!(stack_state[5], ds[2]);
+        assert_eq!(stack_state[6], ds[1]);
+        assert_eq!(stack_state[7], ds[0]);
+
+        // check poe, f_tau, layer_ptr, f_pos
+        assert_eq!(stack_state[8], poe.square());
+        assert_eq!(stack_state[9], f_tau);
+        assert_eq!(stack_state[10], layer_ptr + TWO);
+        assert_eq!(stack_state[11], poe.exp(4));
+        assert_eq!(stack_state[12], f_pos);
+
+        // check folded value
+        let folded_value = folded_value.to_base_elements();
+        assert_eq!(stack_state[13], folded_value[1]);
+        assert_eq!(stack_state[14], folded_value[0]);
+
+        // check end ptr (should be moved from overflow table)
+        assert_eq!(stack_state[15], end_ptr);
+
+        // --- check helper registers -----------------------------------------
+        let mut expected_helpers = QuadFelt::as_base_elements(&[ev, es]).to_vec();
+        expected_helpers.push(x);
+        expected_helpers.push(x_inv);
+        assert_eq!(expected_helpers, process.decoder.get_user_op_helpers().to_vec());
     }
 }
