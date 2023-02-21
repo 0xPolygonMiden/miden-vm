@@ -237,7 +237,7 @@ end
 #! Final stack state
 #!
 #! [β1, β0, τ1, τ0, q_ptr, ...]
-proc.compute_beta
+proc.compute_beta_64
     # decrement starting address by 1, because we first increment and then load onto the stack
     movup.2
     sub.1
@@ -520,6 +520,170 @@ proc.compute_beta
     ext2mul
 end
 
+#! Given τ and starting memory address to q (FRI codeword of size 32), this routine computes β.
+#!
+#! Expected stack state
+#!
+#! [τ1, τ0, q_ptr, ...]
+#!
+#! Final stack state
+#!
+#! [β1, β0, τ1, τ0, q_ptr, ...]
+proc.compute_beta_32
+    # decrement starting address by 1, because we first increment and then load onto the stack
+    movup.2
+    sub.1
+    movdn.2
+
+    push.0.0 # accumulator for β
+
+    # for j = 0
+    push.1
+    exec.accumulate_for_even_index
+
+    # for j = 1
+    push.70368744161280
+    exec.accumulate_for_odd_index
+
+    # for j = 2
+    push.17293822564807737345
+    exec.accumulate_for_even_index
+
+    # for j = 3
+    push.4398046511104
+    exec.accumulate_for_odd_index
+
+    # for j = 4
+    push.18446744069397807105
+    exec.accumulate_for_even_index
+
+    # for j = 5
+    push.64
+    exec.accumulate_for_odd_index
+
+    # for j = 6
+    push.4503599626321920
+    exec.accumulate_for_even_index
+
+    # for j = 7
+    push.18446744052234715141
+    exec.accumulate_for_odd_index
+
+    # for j = 8
+    push.281474976710656
+    exec.accumulate_for_even_index
+
+    # for j = 9
+    push.18446744068340842497
+    exec.accumulate_for_odd_index
+
+    # for j = 10
+    push.4096
+    exec.accumulate_for_even_index
+
+    # for j = 11
+    push.288230376084602880
+    exec.accumulate_for_odd_index
+
+    # for j = 12
+    push.18446742969902956801
+    exec.accumulate_for_even_index
+
+    # for j = 13
+    push.18014398509481984
+    exec.accumulate_for_odd_index
+
+    # for j = 14
+    push.18446744000695107585
+    exec.accumulate_for_even_index
+
+    # for j = 15
+    push.262144
+    exec.accumulate_for_odd_index
+
+    # for j = 16
+    push.18446744069414584320
+    exec.accumulate_for_even_index
+
+    # for j = 17
+    push.18446673700670423041
+    exec.accumulate_for_odd_index
+
+    # for j = 18
+    push.1152921504606846976
+    exec.accumulate_for_even_index
+
+    # for j = 19
+    push.18446739671368073217
+    exec.accumulate_for_odd_index
+
+    # for j = 20
+    push.16777216
+    exec.accumulate_for_even_index
+
+    # for j = 21
+    push.18446744069414584257
+    exec.accumulate_for_odd_index
+
+    # for j = 22
+    push.18442240469788262401
+    exec.accumulate_for_even_index
+
+    # for j = 23
+    push.17179869180
+    exec.accumulate_for_odd_index
+
+    # for j = 24
+    push.18446462594437873665
+    exec.accumulate_for_even_index
+
+    # for j = 25
+    push.1073741824
+    exec.accumulate_for_odd_index
+
+    # for j = 26
+    push.18446744069414580225
+    exec.accumulate_for_even_index
+
+    # for j = 27
+    push.18158513693329981441
+    exec.accumulate_for_odd_index
+
+    # for j = 28
+    push.1099511627520
+    exec.accumulate_for_even_index
+
+    # for j = 29
+    push.18428729670905102337
+    exec.accumulate_for_odd_index
+
+    # for j = 30
+    push.68719476736
+    exec.accumulate_for_even_index
+
+    # for j = 31
+    push.18446744069414322177
+    exec.accumulate_for_odd_index
+
+    # compute (τ^32 - 1) / 32
+    dup.3
+    dup.3
+
+    repeat.5
+        dup.1
+        dup.1
+        ext2mul
+    end
+
+    swap
+    sub.1
+    swap
+
+    push.17870283317245378561.0
+    ext2mul
+    ext2mul
+end
+
 #! Given τ and end memory address of interpolated polynomial p (with degree at max 7, over 
 #! quadratic extension field of Fq) on the top of the stack, this routine computes α.
 #!
@@ -637,7 +801,7 @@ export.verify_remainder_64.4
     exec.compute_tau_64
 
     # [τ1, τ0, q_ptr, ...]
-    exec.compute_beta
+    exec.compute_beta_64
 
     # [β1, β0, τ1, τ0, q_ptr, ...]
     movup.4
