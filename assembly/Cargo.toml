@@ -20,6 +20,6 @@ default = ["std"]
 std = ["vm-core/std"]
 
 [dependencies]
-crypto = { package = "winter-crypto", version = "0.4.2", default-features = false }
+crypto = { package = "winter-crypto", version = "0.5.1", default-features = false }
 num_enum = "0.5.7"
 vm-core = { package = "miden-core", path = "../core", version = "0.4", default-features = false }

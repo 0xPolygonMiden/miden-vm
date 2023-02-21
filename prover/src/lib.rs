@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, ExecutionTrace};
+use processor::{math::Felt, ExecutionTrace, Rpo256};
 use prover::Prover;
 
 #[cfg(feature = "std")]
@@ -14,7 +14,7 @@ use std::time::Instant;
 // EXPORTS
 // ================================================================================================
 
-pub use air::{FieldExtension, HashFunction, ProofOptions};
+pub use air::{FieldExtension, ProofOptions};
 pub use processor::{
     math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
     MemAdviceProvider, MerkleError, MerkleSet, Program, StackInputs, StackOutputs, Word,
@@ -111,6 +111,7 @@ impl Prover for ExecutionProver {
     type Air = ProcessorAir;
     type BaseField = Felt;
     type Trace = ExecutionTrace;
+    type HashFn = Rpo256;
 
     fn options(&self) -> &prover::ProofOptions {
         &self.options

@@ -8,7 +8,7 @@ pub use winterfell::VerifierError;
 // EXPORTS
 // ================================================================================================
 
-pub use vm_core::{chiplets::hasher::Digest, StackOutputs, Word};
+pub use vm_core::{chiplets::hasher::Digest, crypto::hash::rpo::Rpo256, StackOutputs, Word};
 pub use winterfell::StarkProof;
 
 pub mod math {
@@ -43,7 +43,8 @@ pub fn verify(
 ) -> Result<(), VerificationError> {
     // build public inputs and try to verify the proof
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
-    winterfell::verify::<ProcessorAir>(proof, pub_inputs).map_err(VerificationError::VerifierError)
+    winterfell::verify::<ProcessorAir, Rpo256>(proof, pub_inputs)
+        .map_err(VerificationError::VerifierError)
 }
 
 // ERRORS

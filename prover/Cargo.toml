@@ -20,4 +20,4 @@ std = ["air/std", "processor/std", "prover/std", "log/std"]
 air = { package = "miden-air", path = "../air", version = "0.4", default-features = false }
 log = { version = "0.4", default-features = false }
 processor = { package = "miden-processor", path = "../processor", version = "0.4", default-features = false }
-prover = { package = "winter-prover", version = "0.4.2", default-features = false }
+prover = { package = "winter-prover", version = "0.5.1", default-features = false }

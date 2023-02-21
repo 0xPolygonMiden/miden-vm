@@ -5,8 +5,8 @@
 extern crate alloc;
 
 pub use vm_core::{
-    chiplets::hasher::Digest, crypto::merkle::MerkleError, errors::InputError, Kernel, Operation,
-    Program, ProgramInfo, StackInputs, StackOutputs, Word,
+    chiplets::hasher::Digest, crypto::hash::rpo::Rpo256, crypto::merkle::MerkleError,
+    errors::InputError, Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{

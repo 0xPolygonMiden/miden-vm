@@ -58,13 +58,13 @@ assert_cmd = "2.0"
 blake3 = "1.3"
 criterion = "0.4"
 escargot = "0.5.7"
-math = { package = "winter-math", version = "0.4.2", default-features = false }
+math = { package = "winter-math", version = "0.5.1", default-features = false }
 num-bigint = "0.4"
 predicates = "2.1.5"
 proptest = "1.0.0"
-rand-utils = { package = "winter-rand-utils", version = "0.4.2" }
+rand-utils = { package = "winter-rand-utils", version = "0.5.1" }
 sha2 = "0.10"
 sha3 = "0.10"
 test-case = "2.2.2"
 vm-core = { package = "miden-core", path = "../core", version = "0.4", default-features = false }
-winterfell = { package = "winter-prover", version = "0.4.2", default-features = false }
+winterfell = { package = "winter-prover", version = "0.5.1", default-features = false }
