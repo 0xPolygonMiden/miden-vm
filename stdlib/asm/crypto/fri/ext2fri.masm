@@ -696,8 +696,8 @@ end
 #! [α1, α0, _, _, ...]
 #!
 #! Note, p_ptr is absolute memory address of polynomial p (which was interpolated using advice
-#! provider)! s.t. next 3 decreasing (by 1) memory addresses hold remaining 6 coefficients of p.
-proc.compute_alpha
+#! provider) s.t. next 3 decreasing (by 1) memory addresses hold remaining 6 coefficients of p.
+proc.compute_alpha_64
     movup.4
     dup
     sub.1
@@ -769,6 +769,51 @@ proc.compute_alpha
     ext2add
 end
 
+#! Given τ and end memory address of interpolated polynomial p (with degree at max 3, over 
+#! quadratic extension field of Fq) on the top of the stack, this routine computes α.
+#!
+#! Expected stack state:
+#!
+#! [_, _, τ1, τ0, p_ptr, ...]
+#!
+#! Final stack state:
+#!
+#! [α1, α0, _, _, ...]
+#!
+#! Note, p_ptr is absolute memory address of polynomial p (which was interpolated using advice
+#! provider) s.t. this and next (decreased by 1) memory address holds total 4 coefficients of p.
+proc.compute_alpha_32
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    movup.6
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    movup.7
+    movup.7
+    ext2mul
+    ext2add
+end
+
 #! Given memory address of the remainder codeword with 64 evaluations, this routine attempts to
 #! probabilistically verify that the codeword contains evaluations of a a degree 7 polynomial.
 #!
@@ -815,7 +860,7 @@ export.verify_remainder_64.4
     # computation of τ. Now p_ptr is set to locaddr.3, because it's easier to compute α, by
     # accessing coefficients of the interpolated polynomial p in reverse (i.e. descending) order
     # using Horner's evaluation.
-    exec.compute_alpha
+    exec.compute_alpha_64
     
     # assert α == β
     #
