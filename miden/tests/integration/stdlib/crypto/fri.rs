@@ -114,3 +114,40 @@ fn test_verify_remainder_64() {
     let res = test.execute();
     assert!(res.is_ok());
 }
+
+#[test]
+fn test_verify_remainder_32() {
+    let source = "
+    use.std::crypto::fri::ext2fri
+
+    proc.helper.16
+        locaddr.15
+        repeat.16
+            movdn.4
+            dup.4
+            mem_storew
+            dropw
+            sub.1
+        end
+        drop
+
+        locaddr.0
+        exec.ext2fri::verify_remainder_32
+    end
+
+    begin
+        exec.helper
+    end
+    ";
+
+    let poly = rand_utils::rand_vector::<Ext2Element>(4);
+    let twiddles = fft::get_twiddles(poly.len());
+    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
+
+    let ifelts = Ext2Element::as_base_elements(&evals);
+    let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
+
+    let test = build_test!(source, &iu64s);
+    let res = test.execute();
+    assert!(res.is_ok());
+}
