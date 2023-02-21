@@ -24,7 +24,7 @@
 #! - q is a vector of length 128 s.t. each element ∈ Fq.
 #! - p is a vector of length 16 s.t. each element ∈ Fq.
 #! - [..2] picks first two Fq elements from the digest.
-proc.compute_tau
+proc.compute_tau_64
     push.64
     push.8
     adv.ext2intt # interpolate polynomial p, using advice provider
@@ -51,6 +51,68 @@ proc.compute_tau
     repeat.2
         adv_pipe
     end
+
+    movup.12
+    drop
+
+    dropw
+    swapw
+    dropw
+    drop
+    drop
+end
+
+#! Given starting memory address of a FRI codeword of size 32 q, this routine computes τ, by
+#! first non-deterministically interpolating polynomial q into p (a polynomial of degree 3) using
+#! the advice provider (i.e. computation performed outside of the VM) and then sequentially hashing
+#! coefficients of q, p (in order), using Rescue Prime Optimized (RPO) hash function.
+#!
+#! Note, both q (polynomial evaluations), p (polynomial in coefficient form), is over quadratic
+#! extension field over Fq | q = 2^64 - 2^32 + 1
+#!
+#! Other than starting address of q, starting memory address of p is also provided via the stack,
+#! which is used for piping interpolated polynomial coefficients into memory, which will be later
+#! used for computing α.
+#!
+#! Expected stack state:
+#!
+#! [q_ptr, p_ptr, ...]
+#!
+#! Final stack state:
+#!
+#! [τ1, τ0, q_ptr, ...] | τ = (τ0, τ1)
+#!
+#! τ = rpo::hash_elements(q || p)[..2]
+#!
+#! - `hash_elements` routine works over vector of elements of Fq | q = 2^64 -2^32 + 1
+#! - q is a vector of length 64 s.t. each element ∈ Fq.
+#! - p is a vector of length 8 s.t. each element ∈ Fq.
+#! - [..2] picks first two Fq elements from the digest.
+proc.compute_tau_32
+    push.32
+    push.4
+    adv.ext2intt # interpolate polynomial p, using advice provider
+
+    drop
+    drop
+    dup
+
+    # Initialize RPO state; since the number of elements to be hashed is a multiple of 8, all
+    # capacity elements are set to zeros
+    push.0.0.0.0.0.0.0.0.0.0.0.0
+
+    # Consume `q` into Rescue state
+    repeat.8
+        mem_stream
+    end
+
+    movup.12
+    drop
+    movup.13
+    movdn.12
+
+    # Consume `p` into Rescue state
+    adv_pipe
 
     movup.12
     drop
@@ -572,7 +634,7 @@ export.verify_remainder_64.4
     #
     # note, p_ptr is pointing to function local memory address space which will be filled with
     # coefficients of polynomial p, which is computed outside of the VM, from given codeword q.
-    exec.compute_tau
+    exec.compute_tau_64
 
     # [τ1, τ0, q_ptr, ...]
     exec.compute_beta
