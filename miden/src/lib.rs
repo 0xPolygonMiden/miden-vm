@@ -6,12 +6,12 @@
 
 pub use assembly::{Assembler, AssemblyError, ParsingError};
 pub use processor::{
-    execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, ExecutionError,
-    ExecutionTrace, Kernel, MemAdviceProvider, Operation, ProgramInfo, StackInputs, VmState,
-    VmStateIterator,
+    execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, Blake3_192,
+    ExecutionError, ExecutionTrace, Kernel, MemAdviceProvider, Operation, ProgramInfo, Rpo256,
+    StackInputs, VmState, VmStateIterator,
 };
 pub use prover::{
-    math, prove, Digest, FieldExtension, HashFunction, InputError, MerkleError, MerkleSet, Program,
-    ProofOptions, StackOutputs, StarkProof, Word,
+    math, prove, Digest, FieldExtension, InputError, MerkleError, MerkleSet, Program, ProofOptions,
+    StackOutputs, StarkProof, Word,
 };
 pub use verifier::{verify, VerificationError};

@@ -11,12 +11,25 @@ pub mod decoder;
 pub mod errors;
 pub mod range;
 
-pub use crypto;
-pub use crypto::{Word, ONE, WORD_SIZE, ZERO};
+pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
+pub mod crypto {
+    pub mod merkle {
+        pub use ::crypto::merkle::{
+            MerkleError, MerklePath, MerklePathSet, MerkleTree, NodeIndex, SimpleSmt,
+        };
+    }
+
+    pub mod hash {
+        pub use ::crypto::hash::{
+            blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
+            rpo::{Rpo256, RpoDigest},
+        };
+    }
+}
 
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
-    ExtensionOf, FieldElement, StarkField,
+    polynom, ExtensionOf, FieldElement, StarkField,
 };
 
 mod program;

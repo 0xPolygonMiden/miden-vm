@@ -1,7 +1,7 @@
 use super::{build_test, Felt};
+use processor::math::fft;
 use test_case::test_case;
 use vm_core::{FieldElement, QuadExtension, StarkField};
-use winterfell::math::fft;
 
 type Ext2Element = QuadExtension<Felt>;
 

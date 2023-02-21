@@ -11,7 +11,7 @@ use vm_core::{
     ProgramInfo, StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
     MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
-use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
+use winter_prover::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
 use vm_core::StarkField;
