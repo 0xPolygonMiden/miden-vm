@@ -26,7 +26,7 @@ use utils::TransitionConstraintRange;
 
 pub use options::ProofOptions;
 pub use vm_core::{utils::ToElements, Felt, FieldElement, StarkField};
-pub use winter_air::{FieldExtension, HashFunction};
+pub use winter_air::FieldExtension;
 
 // PROCESSOR AIR
 // ================================================================================================

@@ -2,15 +2,13 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-pub use vm_core::{Kernel, ProgramInfo, StackInputs};
-pub use winterfell::VerifierError;
+use vm_core::crypto::hash::Blake3_192;
 
 // EXPORTS
 // ================================================================================================
 
-pub use vm_core::{chiplets::hasher::Digest, StackOutputs, Word};
-pub use winterfell::StarkProof;
-
+pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
+pub use winter_verifier::{StarkProof, VerifierError};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }
@@ -43,7 +41,8 @@ pub fn verify(
 ) -> Result<(), VerificationError> {
     // build public inputs and try to verify the proof
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
-    winterfell::verify::<ProcessorAir>(proof, pub_inputs).map_err(VerificationError::VerifierError)
+    winter_verifier::verify::<ProcessorAir, Blake3_192>(proof, pub_inputs)
+        .map_err(VerificationError::VerifierError)
 }
 
 // ERRORS

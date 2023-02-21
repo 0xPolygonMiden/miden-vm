@@ -3,7 +3,7 @@ use super::{
     StarkField,
 };
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_SIZE, ZERO};
-use winterfell::math::fft;
+use winter_prover::math::fft;
 
 // TYPE ALIASES
 // ================================================================================================

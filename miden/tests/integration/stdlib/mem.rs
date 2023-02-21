@@ -1,5 +1,3 @@
-pub use math::fields::f64::BaseElement;
-pub use math::FieldElement;
 use miden::MemAdviceProvider;
 use processor::{AdviceInputs, Process, StackInputs};
 use stdlib::StdLibrary;
