@@ -12,7 +12,7 @@ fn program_execution(c: &mut Criterion) {
             use.std::crypto::hashes::sha256
 
             begin
-                exec.sha256::hash
+                exec.sha256::hash_2to1
             end";
         let assembler = Assembler::default()
             .with_library(&StdLibrary::default())
