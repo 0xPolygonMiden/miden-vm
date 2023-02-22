@@ -18,7 +18,7 @@ impl Deserializable for Node {
             ))
         } else if first_byte == OpCode::Repeat as u8 {
             bytes.read_u8()?;
-            Ok(Node::Repeat(bytes.read_u16()?, Deserializable::read_from(bytes)?))
+            Ok(Node::Repeat(bytes.read_u32()?, Deserializable::read_from(bytes)?))
         } else if first_byte == OpCode::While as u8 {
             bytes.read_u8()?;
             Ok(Node::While(Deserializable::read_from(bytes)?))
