@@ -32,10 +32,16 @@ harness = false
 name = "program_execution"
 harness = false
 
+[[test]]
+name = "miden"
+path = "tests/integration/main.rs"
+required-features = ["internals"]
+
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
+executable = ["env_logger", "hex/std", "internals", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
+internals = ["processor/internals"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]

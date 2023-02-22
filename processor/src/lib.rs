@@ -137,7 +137,8 @@ where
 // PROCESS
 // ================================================================================================
 
-pub struct Process<A>
+#[cfg(not(any(test, feature = "internals")))]
+struct Process<A>
 where
     A: AdviceProvider,
 {
@@ -443,4 +444,20 @@ where
             self.advice_provider,
         )
     }
+}
+
+// INTERNALS
+// ================================================================================================
+
+#[cfg(any(test, feature = "internals"))]
+pub struct Process<A>
+where
+    A: AdviceProvider,
+{
+    pub system: System,
+    pub decoder: Decoder,
+    pub stack: Stack,
+    pub range: RangeChecker,
+    pub chiplets: Chiplets,
+    pub advice_provider: A,
 }
