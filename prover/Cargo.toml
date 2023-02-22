@@ -9,15 +9,15 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.67"
 
 [features]
-concurrent = ["prover/concurrent", "std"]
+concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
-std = ["air/std", "processor/std", "prover/std", "log/std"]
+std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.4", default-features = false }
 log = { version = "0.4", default-features = false }
 processor = { package = "miden-processor", path = "../processor", version = "0.4", default-features = false }
-prover = { package = "winter-prover", version = "0.5.1", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.5", default-features = false }

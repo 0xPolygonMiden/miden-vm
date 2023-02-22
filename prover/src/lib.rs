@@ -1,15 +1,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, ExecutionTrace, Rpo256};
-use prover::Prover;
+use processor::{math::Felt, Blake3_192, ExecutionTrace};
+use winter_prover::Prover;
 
 #[cfg(feature = "std")]
 use log::debug;
 #[cfg(feature = "std")]
-use prover::Trace;
-#[cfg(feature = "std")]
 use std::time::Instant;
+#[cfg(feature = "std")]
+use winter_prover::Trace;
 
 // EXPORTS
 // ================================================================================================
@@ -19,7 +19,7 @@ pub use processor::{
     math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
     MemAdviceProvider, MerkleError, MerkleSet, Program, StackInputs, StackOutputs, Word,
 };
-pub use prover::StarkProof;
+pub use winter_prover::StarkProof;
 
 // PROVER
 // ================================================================================================
@@ -111,9 +111,9 @@ impl Prover for ExecutionProver {
     type Air = ProcessorAir;
     type BaseField = Felt;
     type Trace = ExecutionTrace;
-    type HashFn = Rpo256;
+    type HashFn = Blake3_192;
 
-    fn options(&self) -> &prover::ProofOptions {
+    fn options(&self) -> &winter_prover::ProofOptions {
         &self.options
     }
 

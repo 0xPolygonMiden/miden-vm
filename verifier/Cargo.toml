@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["cryptography", "no-std"]
 keywords = ["miden", "stark", "verifier", "zkp"]
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.67"
 
 [lib]
 bench = false
@@ -17,9 +17,9 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["air/std", "vm-core/std", "winterfell/std"]
+std = ["air/std", "vm-core/std", "winter-verifier/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.4", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.4", default-features = false }
-winterfell = { package = "winter-verifier", version = "0.5.1", default-features = false }
+winter-verifier = { package = "winter-verifier", version = "0.5", default-features = false }

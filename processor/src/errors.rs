@@ -4,7 +4,7 @@ use super::{
 };
 use core::fmt::{Display, Formatter};
 use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
-use winterfell::{math::FieldElement, ProverError};
+use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]
 use std::error::Error;

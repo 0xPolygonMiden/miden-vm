@@ -1,4 +1,6 @@
-use miden::{AdviceProvider, Program, ProgramInfo, ProofOptions, Rpo256, StackInputs, StarkProof};
+use miden::{
+    AdviceProvider, Blake3_192, Program, ProgramInfo, ProofOptions, StackInputs, StarkProof,
+};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -100,7 +102,7 @@ impl ExampleOptions {
         // serialize the proof to see how big it is
         let proof_bytes = proof.to_bytes();
         println!("Execution proof size: {} KB", proof_bytes.len() / 1024);
-        println!("Execution proof security: {} bits", proof.security_level::<Rpo256>(true));
+        println!("Execution proof security: {} bits", proof.security_level::<Blake3_192>(true));
         println!("--------------------------------");
 
         // verify that executing a program with a given hash and given inputs

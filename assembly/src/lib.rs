@@ -7,6 +7,7 @@ extern crate alloc;
 use core::ops::Deref;
 use vm_core::{
     code_blocks::CodeBlock,
+    crypto,
     utils::{
         collections::{BTreeMap, BTreeSet, Vec},
         string::{String, ToString},
