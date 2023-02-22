@@ -1,4 +1,14 @@
-use super::{range, Range};
+use super::{errors::InputError, range, Felt, Range, StackTopState, StarkField};
+use winter_utils::{
+    collections::{vec, Vec},
+    ByteWriter, Serializable,
+};
+
+mod inputs;
+pub use inputs::StackInputs;
+
+mod outputs;
+pub use outputs::StackOutputs;
 
 // CONSTANTS
 // ================================================================================================

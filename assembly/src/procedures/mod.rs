@@ -1,14 +1,13 @@
 use super::{
-    AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, Felt, LabelError,
-    Serializable, SerializationError, String, ToString, MAX_LABEL_LEN, MODULE_PATH_DELIM,
-    PROCEDURE_LABEL_PARSER,
+    crypto::hash::Blake3_192, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
+    Deserializable, LabelError, Serializable, SerializationError, String, ToString, MAX_LABEL_LEN,
+    MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
 };
 use core::{
     fmt,
     ops::{self, Deref},
     str::from_utf8,
 };
-use crypto::{hashers::Blake3_256, Digest, Hasher};
 
 // PROCEDURE
 // ================================================================================================
@@ -204,8 +203,8 @@ impl ProcedureId {
         L: AsRef<str>,
     {
         let mut digest = [0u8; Self::SIZE];
-        let hash = Blake3_256::<Felt>::hash(path.as_ref().as_bytes());
-        digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
+        let hash = Blake3_192::hash(path.as_ref().as_bytes());
+        digest.copy_from_slice(&(*hash)[..Self::SIZE]);
         Self(digest)
     }
 

@@ -1,4 +1,4 @@
-use super::{utils::IntoBytes, AdviceSet, BTreeMap, Felt, InputError, Vec};
+use super::{utils::IntoBytes, BTreeMap, Felt, InputError, MerkleSet, Vec};
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -12,13 +12,13 @@ use super::{utils::IntoBytes, AdviceSet, BTreeMap, Felt, InputError, Vec};
 ///
 /// 1. Single advice tape which can contain any number of elements.
 /// 2. Multiple advice tapes that can be appended to the main tape, and are mapped by 32 bytes keys.
-/// 3. Advice sets list, which are used to provide nondeterministic inputs for instructions that
+/// 3. Merkle sets list, which are used to provide nondeterministic inputs for instructions that
 ///    operates with Merkle trees.
 #[derive(Clone, Debug, Default)]
 pub struct AdviceInputs {
     tape: Vec<Felt>,
     values_map: BTreeMap<[u8; 32], Vec<Felt>>,
-    merkle_sets: BTreeMap<[u8; 32], AdviceSet>,
+    merkle_sets: BTreeMap<[u8; 32], MerkleSet>,
 }
 
 impl AdviceInputs {
@@ -65,7 +65,7 @@ impl AdviceInputs {
     /// provided.
     pub fn with_merkle_sets<I>(mut self, iter: I) -> Result<Self, InputError>
     where
-        I: IntoIterator<Item = AdviceSet>,
+        I: IntoIterator<Item = MerkleSet>,
     {
         for set in iter.into_iter() {
             let key = set.root().into_bytes();
@@ -91,7 +91,7 @@ impl AdviceInputs {
     }
 
     /// Fetch a Merkle set mapped by the given key.
-    pub fn merkle_set(&self, key: &[u8; 32]) -> Option<&AdviceSet> {
+    pub fn merkle_set(&self, key: &[u8; 32]) -> Option<&MerkleSet> {
         self.merkle_sets.get(key)
     }
 
@@ -102,7 +102,7 @@ impl AdviceInputs {
     #[allow(clippy::type_complexity)]
     pub(crate) fn into_parts(
         self,
-    ) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, BTreeMap<[u8; 32], AdviceSet>) {
+    ) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, BTreeMap<[u8; 32], MerkleSet>) {
         let Self {
             tape,
             values_map,

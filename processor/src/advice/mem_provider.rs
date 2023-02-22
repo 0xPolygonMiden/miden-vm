@@ -1,6 +1,6 @@
 use super::{
-    AdviceInputs, AdviceProvider, AdviceSet, AdviceSource, BTreeMap, ExecutionError, Felt,
-    IntoBytes, StarkField, Vec, Word,
+    AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
+    MerklePath, MerkleSet, NodeIndex, StarkField, Vec, Word,
 };
 
 // MEMORY ADVICE PROVIDER
@@ -14,7 +14,7 @@ pub struct MemAdviceProvider {
     step: u32,
     tape: Vec<Felt>,
     values: BTreeMap<[u8; 32], Vec<Felt>>,
-    sets: BTreeMap<[u8; 32], AdviceSet>,
+    sets: BTreeMap<[u8; 32], MerkleSet>,
 }
 
 impl From<AdviceInputs> for MemAdviceProvider {
@@ -87,16 +87,16 @@ impl AdviceProvider for MemAdviceProvider {
     // --------------------------------------------------------------------------------------------
 
     fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError> {
-        // look up the advice set and return an error if none is found
-        let advice_set = self
+        // look up the merkle set and return an error if none is found
+        let merkle_set = self
             .sets
             .get(&root.into_bytes())
-            .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
+            .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?;
 
-        // get the tree node from the advice set based on depth and index
-        let node = advice_set
-            .get_node(depth.as_int() as u32, index.as_int())
-            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+        // get the tree node from the merkle set based on depth and index
+        let index = NodeIndex::from_elements(&depth, &index)
+            .map_err(ExecutionError::MerkleSetLookupFailed)?;
+        let node = merkle_set.get_node(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
 
         Ok(node)
     }
@@ -106,17 +106,17 @@ impl AdviceProvider for MemAdviceProvider {
         root: Word,
         depth: Felt,
         index: Felt,
-    ) -> Result<Vec<Word>, ExecutionError> {
-        // look up the advice set and return an error if none is found
-        let advice_set = self
+    ) -> Result<MerklePath, ExecutionError> {
+        // look up the merkle set and return an error if none is found
+        let merkle_set = self
             .sets
             .get(&root.into_bytes())
-            .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
+            .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?;
 
-        // get the Merkle path from the advice set based on depth and index
-        let path = advice_set
-            .get_path(depth.as_int() as u32, index.as_int())
-            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+        // get the Merkle path from the merkle set based on depth and index
+        let index = NodeIndex::from_elements(&depth, &index)
+            .map_err(ExecutionError::MerkleSetLookupFailed)?;
+        let path = merkle_set.get_path(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
 
         Ok(path)
     }
@@ -127,32 +127,31 @@ impl AdviceProvider for MemAdviceProvider {
         index: Felt,
         leaf_value: Word,
         update_in_copy: bool,
-    ) -> Result<Vec<Word>, ExecutionError> {
-        // look up the advice set and return error if none is found. if we are updating a copy,
-        // clone the advice set; otherwise remove it from the map because the root will change,
+    ) -> Result<MerklePath, ExecutionError> {
+        // look up the merkle set and return error if none is found. if we are updating a copy,
+        // clone the merkle set; otherwise remove it from the map because the root will change,
         // and we'll re-insert the set later under a different root.
-        let mut advice_set = if update_in_copy {
-            // look up the advice set and return an error if none is found
+        let mut merkle_set = if update_in_copy {
+            // look up the merkle set and return an error if none is found
             self.sets
                 .get(&root.into_bytes())
-                .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?
+                .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?
                 .clone()
         } else {
             self.sets
                 .remove(&root.into_bytes())
-                .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?
+                .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?
         };
 
-        // get the Merkle path from the advice set for the leaf at the specified index
-        let path = advice_set
-            .get_path(advice_set.depth(), index.as_int())
-            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+        // get the Merkle path from the merkle set for the leaf at the specified index
+        let index = NodeIndex::new(merkle_set.depth(), index.as_int());
+        let path = merkle_set.get_path(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
 
-        // update the advice set and re-insert it into the map
-        advice_set
-            .update_leaf(index.as_int(), leaf_value)
-            .map_err(ExecutionError::AdviceSetLookupFailed)?;
-        self.sets.insert(advice_set.root().into_bytes(), advice_set);
+        // update the merkle set and re-insert it into the map
+        merkle_set
+            .update_leaf(index.value(), leaf_value)
+            .map_err(ExecutionError::MerkleSetLookupFailed)?;
+        self.sets.insert(merkle_set.root().into_bytes(), merkle_set);
 
         Ok(path)
     }
@@ -170,8 +169,8 @@ impl MemAdviceProvider {
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns true if the advice set with the specified root is present in this advice provider.
-    pub fn has_advice_set(&self, root: Word) -> bool {
+    /// Returns true if the merkle set with the specified root is present in this advice provider.
+    pub fn has_merkle_set(&self, root: Word) -> bool {
         self.sets.contains_key(&root.into_bytes())
     }
 }

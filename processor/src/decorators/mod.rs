@@ -2,8 +2,8 @@ use super::{
     AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Felt, Process,
     StarkField,
 };
-use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
-use winterfell::math::fft;
+use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_SIZE, ZERO};
+use winter_prover::math::fft;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -143,12 +143,12 @@ where
     /// Returns an error if the key is already present in the advice map.
     fn inject_mem_values(&mut self, start_addr: u32, num_words: u32) -> Result<(), ExecutionError> {
         let ctx = self.system.ctx();
-        let mut values = Vec::with_capacity(num_words as usize * WORD_LEN);
+        let mut values = Vec::with_capacity(num_words as usize * WORD_SIZE);
         for i in 0..num_words {
             let mem_value = self
                 .chiplets
                 .get_mem_value(ctx, (start_addr + i) as u64)
-                .unwrap_or([ZERO; WORD_LEN]);
+                .unwrap_or([ZERO; WORD_SIZE]);
             values.extend_from_slice(&mem_value);
         }
         let top_word = self.stack.get_top_word();
@@ -231,7 +231,10 @@ where
             return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
         }
         if out_poly_len > in_evaluations_len {
-            return Err(ExecutionError::InterpolationResultSizeTooBig(out_poly_len as u64));
+            return Err(ExecutionError::InterpolationResultSizeTooBig(
+                out_poly_len,
+                in_evaluations_len,
+            ));
         }
 
         let mut poly = Vec::with_capacity(in_evaluations_len);
@@ -275,14 +278,14 @@ mod tests {
         super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::{MemAdviceProvider, StackInputs, Word};
-    use vm_core::{AdviceInjector, AdviceSet, Decorator};
+    use crate::{MemAdviceProvider, MerkleSet, StackInputs, Word};
+    use vm_core::{AdviceInjector, Decorator};
 
     #[test]
     fn inject_merkle_node() {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
 
-        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
         let stack_inputs = [
             tree.root()[0].as_int(),
             tree.root()[1].as_int(),

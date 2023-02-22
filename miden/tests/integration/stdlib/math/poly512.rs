@@ -1,8 +1,6 @@
 use super::build_test;
-use math::fields::f64::BaseElement;
-use math::polynom;
 use std::fmt::Write;
-use vm_core::StarkField;
+use vm_core::{polynom, Felt, StarkField};
 
 const POLYNOMIAL_LENGTH: usize = 512;
 const WORDS: usize = 128;
@@ -257,10 +255,8 @@ fn test_poly512_mul_zq() {
 fn generate_test_script_mul_zq() -> String {
     const Q: u64 = 12289; // Prime Number
 
-    let polynomial_1 =
-        rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| BaseElement::new(v % Q));
-    let polynomial_2 =
-        rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| BaseElement::new(v % Q));
+    let polynomial_1 = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
+    let polynomial_2 = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
 
     let result_polynomial: Vec<u64> = polynom::mul(&polynomial_1, &polynomial_2)
         .iter()

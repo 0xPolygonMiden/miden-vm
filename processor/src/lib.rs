@@ -6,8 +6,12 @@ extern crate alloc;
 
 pub use vm_core::{
     chiplets::hasher::Digest,
-    errors::{AdviceSetError, InputError},
-    AdviceSet, Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
+    crypto::{
+        hash::{Blake3_192, Rpo256},
+        merkle::MerkleError,
+    },
+    errors::InputError,
+    Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -18,8 +22,7 @@ use vm_core::{
     StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
-
-use winterfell::Matrix;
+use winter_prover::Matrix;
 
 mod decorators;
 mod operations;
@@ -38,7 +41,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
+pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, MerkleSet};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -60,6 +63,7 @@ pub use debug::{AsmOpInfo, VmState, VmStateIterator};
 
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
+    pub use winter_prover::math::fft;
 }
 
 // TYPE ALIASES

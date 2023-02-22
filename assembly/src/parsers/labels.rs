@@ -1,4 +1,4 @@
-use super::{LabelError, MAX_LABEL_LEN};
+use super::{LabelError, String, MAX_LABEL_LEN};
 
 // LABEL PARSERS
 // ================================================================================================

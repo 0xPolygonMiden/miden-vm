@@ -1,6 +1,4 @@
-use super::{Felt, StarkField};
-use crate::{stack::STACK_TOP_SIZE, StackTopState};
-use winter_utils::{collections::Vec, ByteWriter, Serializable};
+use super::{ByteWriter, Felt, Serializable, StackTopState, StarkField, Vec, STACK_TOP_SIZE};
 
 // STACK OUTPUTS
 // ================================================================================================

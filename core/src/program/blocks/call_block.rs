@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Digest, Felt, Operation};
+use crate::utils::to_hex;
 
 // CALL BLOCK
 // ================================================================================================
@@ -83,10 +84,8 @@ impl fmt::Display for Call {
             write!(f, "call.0x")?;
         }
 
-        let fn_hash_bytes: [u8; 32] = self.fn_hash.into();
-        for byte in fn_hash_bytes {
-            write!(f, "{byte:02x}")?;
-        }
+        let hex = to_hex(&self.fn_hash.as_bytes())?;
+        f.write_str(&hex)?;
 
         Ok(())
     }

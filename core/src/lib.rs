@@ -10,11 +10,26 @@ pub mod chiplets;
 pub mod decoder;
 pub mod errors;
 pub mod range;
-pub mod stack;
+
+pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
+pub mod crypto {
+    pub mod merkle {
+        pub use ::crypto::merkle::{
+            MerkleError, MerklePath, MerklePathSet, MerkleTree, NodeIndex, SimpleSmt,
+        };
+    }
+
+    pub mod hash {
+        pub use ::crypto::hash::{
+            blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
+            rpo::{Rpo256, RpoDigest},
+        };
+    }
+}
 
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
-    ExtensionOf, FieldElement, StarkField,
+    polynom, ExtensionOf, FieldElement, StarkField,
 };
 
 mod program;
@@ -25,11 +40,8 @@ pub use operations::{
     AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList, Operation,
 };
 
-mod inputs;
-pub use inputs::{AdviceSet, StackInputs};
-
-mod outputs;
-pub use outputs::StackOutputs;
+pub mod stack;
+pub use stack::{StackInputs, StackOutputs};
 
 pub mod utils;
 use utils::range;
@@ -37,24 +49,13 @@ use utils::range;
 // TYPE ALIASES
 // ================================================================================================
 
-pub type Word = [Felt; WORD_LEN];
-
 pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];
 
 // CONSTANTS
 // ================================================================================================
 
-/// Field element representing ZERO in the base field of the VM.
-pub const ZERO: Felt = Felt::ZERO;
-
-/// Field element representing ONE in the base field of the VM.
-pub const ONE: Felt = Felt::ONE;
-
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
 pub const MIN_TRACE_LEN: usize = 1024;
-
-/// Number of field elements in a Word.
-pub const WORD_LEN: usize = 4;
 
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------

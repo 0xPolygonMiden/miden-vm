@@ -3,7 +3,7 @@
 use super::{create_range, Felt, Word, HASHER_AUX_TRACE_OFFSET, ONE, ZERO};
 use core::ops::Range;
 
-pub use crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
+pub use crate::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
 
 // TYPES ALIASES
 // ================================================================================================

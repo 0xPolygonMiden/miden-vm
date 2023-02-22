@@ -380,7 +380,7 @@ pub enum Operation {
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
-    /// advice sets). If the prover is not able to provide the required path, the operation fails.
+    /// merkle sets). If the prover is not able to provide the required path, the operation fails.
     /// The state of the stack does not change.
     MpVerify,
 
@@ -395,13 +395,13 @@ pub enum Operation {
     /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
-    /// (via advice sets). At the end of the operation, the old node value is replaced with the
+    /// (via merkle sets). At the end of the operation, the old node value is replaced with the
     /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
-    /// If the boolean parameter is set to false, at the end of the operation the advice set with
+    /// If the boolean parameter is set to false, at the end of the operation the merkle set with
     /// the specified root will be removed from the advice provider. Otherwise, the advice
-    /// provider will keep track of both, the old and the new advice sets.
+    /// provider will keep track of both, the old and the new merkle sets.
     MrUpdate(bool),
 }
 

@@ -3,9 +3,10 @@ use super::{
     build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, LookupTableRow, Operation,
     Word, ONE, ZERO,
 };
-use crate::{chiplets::SiblingTableRow, StackInputs};
+use crate::{chiplets::SiblingTableRow, MerkleSet, StackInputs};
 use vm_core::{
-    chiplets::hasher::P1_COL_IDX, AdviceSet, FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS,
+    chiplets::hasher::P1_COL_IDX, crypto::merkle::NodeIndex, FieldElement, StarkField,
+    AUX_TRACE_RAND_ELEMENTS,
 };
 
 // SIBLING TABLE TESTS
@@ -15,7 +16,7 @@ use vm_core::{
 #[allow(clippy::needless_range_loop)]
 fn hasher_p1_mp_verify() {
     let tree = build_merkle_tree();
-    let node = tree.get_node(3, 1).unwrap();
+    let node = tree.get_node(NodeIndex::new(3, 1)).unwrap();
 
     // build program inputs
     let mut init_stack = vec![];
@@ -45,9 +46,9 @@ fn hasher_p1_mp_verify() {
 fn hasher_p1_mr_update() {
     let tree = build_merkle_tree();
     let index = 5_u64;
-    let old_node = tree.get_node(3, index).unwrap();
+    let old_node = tree.get_node(NodeIndex::new(3, index)).unwrap();
     let new_node = init_leaf(11);
-    let path = tree.get_path(3, index).unwrap();
+    let path = tree.get_path(NodeIndex::new(3, index)).unwrap();
 
     // build program inputs
     let mut init_stack = vec![];
@@ -144,10 +145,10 @@ fn hasher_p1_mr_update() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_merkle_tree() -> AdviceSet {
+fn build_merkle_tree() -> MerkleSet {
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap()
+    MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap()
 }
 
 fn init_leaves(values: &[u64]) -> Vec<Word> {

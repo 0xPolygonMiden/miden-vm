@@ -2,7 +2,7 @@ use crate::{
     build_op_test,
     helpers::{prop_randw, TestError, U32_BOUND},
 };
-use vm_core::WORD_LEN;
+use vm_core::WORD_SIZE;
 
 mod arithmetic_ops;
 mod bitwise_ops;
