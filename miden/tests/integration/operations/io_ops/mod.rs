@@ -5,6 +5,7 @@ use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, Star
 mod adv_ops;
 mod constant_ops;
 mod env_ops;
+mod fri_ops;
 mod local_ops;
 mod mem_ops;
 
