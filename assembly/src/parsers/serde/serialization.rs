@@ -14,7 +14,7 @@ impl Serializable for Node {
             }
             Self::Repeat(times, nodes) => {
                 OpCode::Repeat.write_into(target)?;
-                target.write_u16(*times);
+                target.write_u32(*times);
                 nodes.write_into(target)
             }
             Self::While(nodes) => {
