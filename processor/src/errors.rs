@@ -1,6 +1,6 @@
 use super::{
     system::{FMP_MAX, FMP_MIN},
-    CodeBlock, Digest, Felt, MerkleError, Word,
+    CodeBlock, Digest, Felt, MerkleError, QuadFelt, Word,
 };
 use core::fmt::{Display, Formatter};
 use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
@@ -26,9 +26,11 @@ pub enum ExecutionError {
     FailedAssertion(u32),
     UninitializedMemoryAddress(u64),
     InvalidFmpValue(Felt, Felt),
-    NttDomainSizeTooSmall(u64),
-    NttDomainSizeNotPowerof2(u64),
+    InvalidFriDomainSegment(u64),
+    InvalidFriLayerFolding(QuadFelt, QuadFelt),
     InvalidStackDepthOnReturn(usize),
+    NttDomainSizeTooSmall(u64),
+    NttDomainSizeNotPowerOf2(u64),
     InterpolationResultSizeTooBig(usize, usize),
     NotBinaryValue(Felt),
     NotU32Value(Felt),
@@ -75,10 +77,16 @@ impl Display for ExecutionError {
             InvalidFmpValue(old, new) => {
                 write!(fmt, "Updating FMP register from {old} to {new} failed because {new} is outside of {FMP_MIN}..{FMP_MAX}")
             }
+            InvalidFriDomainSegment(value) => {
+                write!(fmt, "FRI domain segment value cannot exceed 3, but was {value}")
+            }
+            InvalidFriLayerFolding(expected, actual) => {
+                write!(fmt, "Degree-respecting projection is inconsistent: expected {expected} but was {actual}")
+            }
             NttDomainSizeTooSmall(v) => {
                 write!(fmt, "Input NTT domain size ({v} elements) is too small")
             }
-            NttDomainSizeNotPowerof2(v) => {
+            NttDomainSizeNotPowerOf2(v) => {
                 write!(fmt, "Input NTT domain size must be a power of two, but was {v}")
             }
             InvalidStackDepthOnReturn(depth) => {

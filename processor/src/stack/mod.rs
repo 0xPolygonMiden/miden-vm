@@ -184,7 +184,7 @@ impl Stack {
     /// stack is set to ZERO.
     pub fn shift_left(&mut self, start_pos: usize) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
-        debug_assert!(start_pos < STACK_TOP_SIZE, "start position cannot exceed stack top size");
+        debug_assert!(start_pos <= STACK_TOP_SIZE, "start position cannot exceed stack top size");
 
         match self.active_depth {
             0..=MAX_TOP_IDX => unreachable!("stack underflow"),

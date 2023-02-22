@@ -228,7 +228,7 @@ where
             return Err(ExecutionError::NttDomainSizeTooSmall(in_evaluations_len as u64));
         }
         if !in_evaluations_len.is_power_of_two() {
-            return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
+            return Err(ExecutionError::NttDomainSizeNotPowerOf2(in_evaluations_len as u64));
         }
         if out_poly_len > in_evaluations_len {
             return Err(ExecutionError::InterpolationResultSizeTooBig(

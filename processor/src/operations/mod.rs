@@ -4,6 +4,7 @@ use vm_core::stack::STACK_TOP_SIZE;
 mod crypto_ops;
 mod ext2_ops;
 mod field_ops;
+mod fri_ops;
 mod io_ops;
 mod stack_ops;
 mod sys_ops;
@@ -145,6 +146,7 @@ where
             Operation::HPerm => self.op_hperm()?,
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
+            Operation::FriE2F4 => self.op_fri_ext2fold4()?,
         }
 
         self.advance_clock();
