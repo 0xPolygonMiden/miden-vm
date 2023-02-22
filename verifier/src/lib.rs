@@ -1,8 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use air::{ProcessorAir, PublicInputs};
+use air::{HashFunction, ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::crypto::hash::Blake3_192;
+use vm_core::crypto::hash::{Blake3_192, Blake3_256, Rpo256};
 
 // EXPORTS
 // ================================================================================================
@@ -12,11 +12,12 @@ pub use winter_verifier::{StarkProof, VerifierError};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }
+pub use air::ExecutionProof;
 
 // VERIFIER
 // ================================================================================================
-/// Returns Ok(()) if the specified program was executed correctly against the specified inputs
-/// and outputs.
+/// Returns the security level of the proof if the specified program was executed correctly against
+/// the specified inputs and outputs.
 ///
 /// Specifically, verifies that if a program with the specified `program_hash` is executed against
 /// the provided `stack_inputs` and some secret inputs, the result is equal to the `stack_outputs`.
@@ -37,18 +38,29 @@ pub fn verify(
     program_info: ProgramInfo,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
-    proof: StarkProof,
-) -> Result<(), VerificationError> {
+    proof: ExecutionProof,
+) -> Result<u32, VerificationError> {
     // build public inputs and try to verify the proof
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
-    winter_verifier::verify::<ProcessorAir, Blake3_192>(proof, pub_inputs)
-        .map_err(VerificationError::VerifierError)
+    let (hasher, proof) = proof.into_inner();
+    let security_level = hasher.security_level();
+    match hasher {
+        HashFunction::Blake3_192 => {
+            winter_verifier::verify::<ProcessorAir, Blake3_192>(proof, pub_inputs)
+        }
+        HashFunction::Blake3_256 => {
+            winter_verifier::verify::<ProcessorAir, Blake3_256>(proof, pub_inputs)
+        }
+        HashFunction::Rpo256 => winter_verifier::verify::<ProcessorAir, Rpo256>(proof, pub_inputs),
+    }
+    .map_err(VerificationError::VerifierError)?;
+    Ok(security_level)
 }
 
 // ERRORS
 // ================================================================================================
 
-/// TODO: add docs, implement Display
+/// TODO: add docs
 #[derive(Debug, PartialEq, Eq)]
 pub enum VerificationError {
     VerifierError(VerifierError),
@@ -58,7 +70,14 @@ pub enum VerificationError {
 
 impl fmt::Display for VerificationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: implement friendly messages
-        write!(f, "{self:?}")
+        use VerificationError::*;
+        match self {
+            VerifierError(e) => write!(f, "there was a verification error: {e}"),
+            InputNotFieldElement(i) => write!(f, "the input {i} is not a valid field element!"),
+            OutputNotFieldElement(o) => write!(f, "the output {o} is not a valid field element!"),
+        }
     }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for VerificationError {}

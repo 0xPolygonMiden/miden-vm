@@ -17,7 +17,7 @@ use super::{ByteWriter, Felt, Serializable, StackTopState, StarkField, Vec, STAC
 /// overflow table (the row representing the deepest element in the stack) and then be followed by
 /// the address (`clk` value) of each row in the table starting from the deepest element in the
 /// stack and finishing with the row which was added to the table last.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StackOutputs {
     /// The elements on the stack at the end of execution.
     stack: Vec<u64>,

@@ -8,6 +8,7 @@ use vm_core::{
         memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
         MEMORY_TRACE_OFFSET,
     },
+    utils::collections::Vec,
     TRACE_WIDTH,
 };
 

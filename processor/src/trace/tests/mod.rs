@@ -1,4 +1,6 @@
-use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, NUM_RAND_ROWS};
+use super::{
+    ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, Vec, NUM_RAND_ROWS,
+};
 use crate::{AdviceInputs, MemAdviceProvider, StackInputs};
 use rand_utils::rand_array;
 use vm_core::{

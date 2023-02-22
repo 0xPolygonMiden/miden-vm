@@ -1,4 +1,4 @@
-use super::{Felt, OverflowTableRow, Stack, StackInputs, ONE, STACK_TOP_SIZE, ZERO};
+use super::{Felt, OverflowTableRow, Stack, StackInputs, Vec, ONE, STACK_TOP_SIZE, ZERO};
 use crate::StackTopState;
 use vm_core::{
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},

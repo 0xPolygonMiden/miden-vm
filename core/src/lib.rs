@@ -1,7 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(not(feature = "std"))]
-#[macro_use]
 extern crate alloc;
 
 use core::ops::Range;
@@ -23,6 +22,7 @@ pub mod crypto {
         pub use ::crypto::hash::{
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
+            ElementHasher, Hasher,
         };
     }
 }

@@ -5,6 +5,7 @@ use super::{
 use rand_utils::rand_array;
 use vm_core::{
     chiplets::hasher::{apply_round, Selectors, LINEAR_HASH, STATE_WIDTH},
+    utils::collections::Vec,
     Felt, FieldElement, TRACE_WIDTH,
 };
 use winter_air::EvaluationFrame;

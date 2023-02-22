@@ -4,7 +4,7 @@ use core::{
     fmt::Debug,
     ops::{Bound, Range},
 };
-use winter_utils::collections::Vec;
+use winter_utils::{collections::Vec, string::String};
 
 // FEATURE BASED RE-EXPORT
 // ================================================================================================

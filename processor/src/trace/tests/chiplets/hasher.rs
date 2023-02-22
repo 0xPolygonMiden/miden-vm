@@ -19,7 +19,7 @@ use vm_core::{
     code_blocks::CodeBlock,
     crypto::merkle::NodeIndex,
     decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
-    utils::range,
+    utils::{collections::Vec, range},
     StarkField, Word, DECODER_TRACE_OFFSET,
 };
 

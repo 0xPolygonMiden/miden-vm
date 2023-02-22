@@ -1,7 +1,8 @@
 use super::{
     super::bus::{ChipletsLookup, ChipletsLookupRow},
-    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ADDR_COL_IDX,
-    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE, V_COL_RANGE, ZERO,
+    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, Vec,
+    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE,
+    V_COL_RANGE, ZERO,
 };
 use vm_core::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,

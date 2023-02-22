@@ -169,13 +169,9 @@ impl Test {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        let (mut stack_outputs, proof) = prover::prove(
-            &program,
-            stack_inputs.clone(),
-            advice_provider,
-            &ProofOptions::default(),
-        )
-        .unwrap();
+        let (mut stack_outputs, proof) =
+            prover::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
+                .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {

@@ -1,7 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, Blake3_192, ExecutionTrace};
+use core::marker::PhantomData;
+use processor::{math::Felt, Blake3_192, Blake3_256, ElementHasher, ExecutionTrace, Rpo256};
 use winter_prover::Prover;
 
 #[cfg(feature = "std")]
@@ -14,9 +15,9 @@ use winter_prover::Trace;
 // EXPORTS
 // ================================================================================================
 
-pub use air::{FieldExtension, ProofOptions};
+pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
-    math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
+    math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, Hasher, InputError,
     MemAdviceProvider, MerkleError, MerkleSet, Program, StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::StarkProof;
@@ -37,8 +38,8 @@ pub fn prove<A>(
     program: &Program,
     stack_inputs: StackInputs,
     advice_provider: A,
-    options: &ProofOptions,
-) -> Result<(StackOutputs, StarkProof), ExecutionError>
+    options: ProofOptions,
+) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
 where
     A: AdviceProvider,
 {
@@ -55,10 +56,25 @@ where
     );
 
     let stack_outputs = trace.stack_outputs().clone();
+    let hasher = options.hasher();
 
     // generate STARK proof
-    let prover = ExecutionProver::new(options.clone(), stack_inputs, stack_outputs.clone());
-    let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
+    let proof = match hasher {
+        HashFunction::Blake3_192 => {
+            ExecutionProver::<Blake3_192>::new(options, stack_inputs, stack_outputs.clone())
+                .prove(trace)
+        }
+        HashFunction::Blake3_256 => {
+            ExecutionProver::<Blake3_256>::new(options, stack_inputs, stack_outputs.clone())
+                .prove(trace)
+        }
+        HashFunction::Rpo256 => {
+            ExecutionProver::<Rpo256>::new(options, stack_inputs, stack_outputs.clone())
+                .prove(trace)
+        }
+    }
+    .map_err(ExecutionError::ProverError)?;
+    let proof = ExecutionProof::new(hasher, proof);
 
     Ok((stack_outputs, proof))
 }
@@ -66,19 +82,27 @@ where
 // PROVER
 // ================================================================================================
 
-struct ExecutionProver {
+struct ExecutionProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
+    hasher: PhantomData<H>,
     options: ProofOptions,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
 }
 
-impl ExecutionProver {
+impl<H> ExecutionProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
     pub fn new(
         options: ProofOptions,
         stack_inputs: StackInputs,
         stack_outputs: StackOutputs,
     ) -> Self {
         Self {
+            hasher: PhantomData,
             options,
             stack_inputs,
             stack_outputs,
@@ -107,11 +131,14 @@ impl ExecutionProver {
     }
 }
 
-impl Prover for ExecutionProver {
+impl<H> Prover for ExecutionProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
     type Air = ProcessorAir;
     type BaseField = Felt;
     type Trace = ExecutionTrace;
-    type HashFn = Blake3_192;
+    type HashFn = H;
 
     fn options(&self) -> &winter_prover::ProofOptions {
         &self.options

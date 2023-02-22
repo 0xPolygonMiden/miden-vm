@@ -7,10 +7,11 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     crypto::{
-        hash::{Blake3_192, Rpo256},
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256},
         merkle::MerkleError,
     },
     errors::InputError,
+    utils::DeserializationError,
     Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
 };
 use vm_core::{

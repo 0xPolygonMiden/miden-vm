@@ -1,7 +1,7 @@
 use miden::{
     utils::{Deserializable, SliceReader},
-    AdviceInputs, Assembler, Digest, MemAdviceProvider, Program, StackInputs, StackOutputs,
-    StarkProof,
+    AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
+    StackOutputs,
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
@@ -195,7 +195,10 @@ pub struct ProofFile;
 /// Helper methods to interact with proof file
 impl ProofFile {
     /// Read stark proof from file
-    pub fn read(proof_path: &Option<PathBuf>, program_path: &Path) -> Result<StarkProof, String> {
+    pub fn read(
+        proof_path: &Option<PathBuf>,
+        program_path: &Path,
+    ) -> Result<ExecutionProof, String> {
         // If proof_path has been provided then use this as path.  Alternatively we will
         // replace the program_path extension with `.proof` and use this as a default.
         let path = match proof_path {
@@ -210,13 +213,13 @@ impl ProofFile {
             .map_err(|err| format!("Failed to open proof file `{}` - {}", path.display(), err))?;
 
         // deserialize bytes into a stark proof
-        StarkProof::from_bytes(&file)
+        ExecutionProof::from_bytes(&file)
             .map_err(|err| format!("Failed to decode proof data - {}", err))
     }
 
     /// Write stark proof to file
     pub fn write(
-        proof: StarkProof,
+        proof: ExecutionProof,
         proof_path: &Option<PathBuf>,
         program_path: &Path,
     ) -> Result<(), String> {

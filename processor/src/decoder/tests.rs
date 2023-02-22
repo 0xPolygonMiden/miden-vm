@@ -12,8 +12,8 @@ use vm_core::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
-        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE,
-        OP_BIT_EXTRA_COL_IDX, OP_INDEX_COL_IDX,
+        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BIT_EXTRA_COL_IDX,
+        OP_INDEX_COL_IDX,
     },
     utils::collections::Vec,
     CodeBlockTable, StarkField, CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX,
@@ -1660,11 +1660,12 @@ fn print_row(trace: &DecoderTrace, idx: usize) {
     for column in trace.iter() {
         row.push(column[idx].as_int());
     }
+    #[cfg(feature = "std")]
     println!(
         "{}\t{}\t{:?} {} {: <16x?} {: <16x?} {} {}",
         idx,
         row[0],
-        &row[OP_BITS_RANGE],
+        &row[vm_core::decoder::OP_BITS_RANGE],
         row[8],
         &row[9..13],
         &row[13..17],

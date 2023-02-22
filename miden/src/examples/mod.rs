@@ -1,6 +1,4 @@
-use miden::{
-    AdviceProvider, Blake3_192, Program, ProgramInfo, ProofOptions, StackInputs, StarkProof,
-};
+use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProofOptions, StackInputs};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -84,7 +82,7 @@ impl ExampleOptions {
         // execute the program and generate the proof of execution
         let now = Instant::now();
         let (stack_outputs, proof) =
-            miden::prove(&program, stack_inputs.clone(), advice_provider, &proof_options).unwrap();
+            miden::prove(&program, stack_inputs.clone(), advice_provider, proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -102,12 +100,12 @@ impl ExampleOptions {
         // serialize the proof to see how big it is
         let proof_bytes = proof.to_bytes();
         println!("Execution proof size: {} KB", proof_bytes.len() / 1024);
-        println!("Execution proof security: {} bits", proof.security_level::<Blake3_192>(true));
+        println!("Execution proof security: {} bits", proof.hasher().security_level());
         println!("--------------------------------");
 
         // verify that executing a program with a given hash and given inputs
         // results in the expected output
-        let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
+        let proof = ExecutionProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
         let program_info = ProgramInfo::from(program);
 
@@ -137,7 +135,7 @@ where
     } = example;
 
     let (mut outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), advice_provider, &ProofOptions::default())
+        miden::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
             .unwrap();
 
     assert_eq!(
