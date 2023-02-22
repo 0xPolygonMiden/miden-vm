@@ -11,7 +11,7 @@ pub use vm_core::{
         merkle::MerkleError,
     },
     errors::InputError,
-    Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
+    Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -68,6 +68,8 @@ pub mod math {
 
 // TYPE ALIASES
 // ================================================================================================
+
+type QuadFelt = QuadExtension<Felt>;
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 

@@ -1,6 +1,6 @@
-use super::{build_test, Felt, StarkField};
+use crate::build_test;
 use rand_utils::rand_array;
-use vm_core::FieldElement;
+use vm_core::{Felt, FieldElement, StarkField};
 
 // FRI_EXT2FOLD4
 // ================================================================================================
@@ -15,6 +15,10 @@ fn fri_ext2fold4() {
     // create a set of random inputs
     let mut inputs = rand_array::<Felt, 17>().iter().map(|v| v.as_int()).collect::<Vec<_>>();
     inputs[7] = 2; // domain segment must be < 4
+
+    // when domain segment is 2, the 3rd query value and the previous value must be the same
+    inputs[4] = inputs[13];
+    inputs[5] = inputs[14];
 
     let end_ptr = inputs[0];
     let layer_ptr = inputs[1];
