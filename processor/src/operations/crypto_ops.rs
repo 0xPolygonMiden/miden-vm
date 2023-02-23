@@ -179,7 +179,10 @@ mod tests {
     };
     use crate::{AdviceInputs, MerkleSet, StackInputs, Word};
     use rand_utils::rand_vector;
-    use vm_core::chiplets::hasher::{apply_permutation, STATE_WIDTH};
+    use vm_core::{
+        chiplets::hasher::{apply_permutation, STATE_WIDTH},
+        utils::collections::Vec,
+    };
 
     #[test]
     fn op_hperm() {

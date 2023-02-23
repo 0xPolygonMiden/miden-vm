@@ -1,8 +1,8 @@
 use super::{
     super::bus::{ChipletsLookup, ChipletsLookupRow},
-    Bitwise, BitwiseLookup, ChipletsBus, Felt, StarkField, TraceFragment, A_COL_IDX, A_COL_RANGE,
-    BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, B_COL_IDX, B_COL_RANGE,
-    OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
+    Bitwise, BitwiseLookup, ChipletsBus, Felt, StarkField, TraceFragment, Vec, A_COL_IDX,
+    A_COL_RANGE, BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, B_COL_IDX,
+    B_COL_RANGE, OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
 use rand_utils::rand_value;
 use vm_core::ZERO;

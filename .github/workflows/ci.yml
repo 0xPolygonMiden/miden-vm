@@ -8,13 +8,14 @@ on:
 
 jobs:
   check:
-    name: Check Rust ${{matrix.toolchain}} on ${{matrix.os}}
+    name: Check Rust ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}
     runs-on: ${{matrix.os}}-latest
     strategy:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
+        args: [--all-targets --no-default-features, --all-targets, --all-targets --all-features]
     steps:
       - uses: actions/checkout@main
       - name: Install rust
@@ -26,7 +27,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --all-targets
+          args: ${{matrix.args}}
 
   test:
     name: Test Rust ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}

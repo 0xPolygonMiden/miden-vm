@@ -1,6 +1,6 @@
 use crate::{
     utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, MemAdviceProvider, Operation, Process,
-    StackInputs,
+    StackInputs, Vec,
 };
 use vm_core::{
     chiplets::{

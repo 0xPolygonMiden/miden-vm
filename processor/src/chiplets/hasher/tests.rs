@@ -1,6 +1,6 @@
 use super::{
     init_state_from_words, AuxTraceBuilder, Digest, Felt, Hasher, HasherState, Selectors,
-    SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
+    SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
     MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use crate::{

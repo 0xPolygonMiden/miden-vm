@@ -15,18 +15,23 @@ use winter_air::{
 };
 
 mod chiplets;
-mod options;
+mod proof;
 mod range;
-pub mod stack;
+
 mod utils;
 use utils::TransitionConstraintRange;
+
+pub mod stack;
 
 // EXPORTS
 // ================================================================================================
 
-pub use options::ProofOptions;
-pub use vm_core::{utils::ToElements, Felt, FieldElement, StarkField};
-pub use winter_air::FieldExtension;
+pub use proof::{ExecutionProof, HashFunction, ProofOptions};
+pub use vm_core::{
+    utils::{DeserializationError, ToElements},
+    Felt, FieldElement, StarkField,
+};
+pub use winter_air::{proof::StarkProof, FieldExtension};
 
 // PROCESSOR AIR
 // ================================================================================================

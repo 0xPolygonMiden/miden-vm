@@ -1,7 +1,7 @@
 use super::{
     super::{Trace, NUM_RAND_ROWS},
     build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, LookupTableRow, Operation,
-    Word, ONE, ZERO,
+    Vec, Word, ONE, ZERO,
 };
 use crate::{chiplets::SiblingTableRow, MerkleSet, StackInputs};
 use vm_core::{
