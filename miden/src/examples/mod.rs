@@ -100,7 +100,7 @@ impl ExampleOptions {
         // serialize the proof to see how big it is
         let proof_bytes = proof.to_bytes();
         println!("Execution proof size: {} KB", proof_bytes.len() / 1024);
-        println!("Execution proof security: {} bits", proof.hasher().security_level());
+        println!("Execution proof security: {} bits", proof.security_level());
         println!("--------------------------------");
 
         // verify that executing a program with a given hash and given inputs

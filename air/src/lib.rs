@@ -21,6 +21,7 @@ mod range;
 mod utils;
 use utils::TransitionConstraintRange;
 
+// exported publicly for benchmarking purposes
 pub mod stack;
 
 // EXPORTS
@@ -31,7 +32,7 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::{proof::StarkProof, FieldExtension};
+pub use winter_air::FieldExtension;
 
 // PROCESSOR AIR
 // ================================================================================================
