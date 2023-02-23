@@ -228,7 +228,7 @@ impl AssemblyContext {
         assert_eq!(
             self.module_stack.len(),
             1,
-            "executable not last module. module_stack len should be 1"
+            "module stack must contain exactly one module"
         );
         let mut main_module_context = self.module_stack.pop().unwrap();
         // complete compilation of the executable module; this appends the callset of the main
@@ -444,16 +444,15 @@ impl ModuleContext {
     /// append its callset to the callset of the module context.
     ///
     /// # Panics
-    /// Panics if:
-    /// - There is not exactly one module left on the procedure stack.
     /// - If this module is not an executable module.
-    /// - If the procedure context is not main.
+    /// - If there is not exactly one procedure left on the procedure stack.
+    /// - If the procedure left on the procedure stack is not main procedure.
     pub fn complete_executable(&mut self) {
         assert!(self.is_executable(), "module not executable");
         assert_eq!(
             self.proc_stack.len(),
             1,
-            "procedure stack should only have the main procedure. proc_stack length should be 1"
+            "procedure stack must contain exactly one procedure"
         );
         let main_proc_context = self.proc_stack.pop().unwrap();
         assert!(main_proc_context.is_main(), "not main procedure");
