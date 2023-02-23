@@ -1,0 +1,272 @@
+use.std::crypto::fri::ext2fri
+
+#! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] where:
+#! 1) d_size is the domain size divided by 4 of the domain corresponding to C.
+#! 2) t_depth is the tree depth of the Merkle tree with commitment C.
+#! 3) (a0, a1) is the folding challenge to create the next layer.
+#! TODO: This processing function should in fact compute d_size and t_depth for each C
+#! starting from the original domain size.
+export.preprocess.4
+    locaddr.3                   
+    adv_push.1                  #[num_layers, ptr, ..]
+    dup
+    neq.0
+    while.true
+        push.0.0.0.0
+        adv_loadw                       #[C, num_layers, ptr, ..]
+        movup.5                         #[ptr, C, num_layers, ..]
+        u32wrapping_add.1               #[ptr+1, C, num_layers, ..]
+        dup movdn.5                     #[ptr+1, C, ptr+1, num_layers, ..]
+        mem_storew                      #[C, ptr+1, num_layers, ..]
+        adv_loadw                       #[d_size, t_depth, a1, a0, ptr+1, num_layers, ..]
+        movup.4                         #[ptr+1, d_size, t_depth, a1, a0, num_layers, ..]
+        u32wrapping_add.1               #[ptr+2, d_size, t_depth, a1, a0, num_layers, ..]
+        dup movdn.6                     #[ptr+2, d_size, t_depth, a1, a0, num_layers, ptr+2, ..]
+        mem_storew dropw                #[num_layers, ptr+2, ..]
+        u32wrapping_sub.1 dup           #[num_layers-1, num_layers-1, ptr+2, ..]
+        neq.0                           #[?, num_layers-1, ptr+2, ..]                          
+    end
+
+    #[0, ptr, ..]
+    drop 
+    #sub.1
+    adv_push.1
+    dup.1               
+
+
+    # value of the remainder codeword
+    push.0.0.0.0
+    push.1
+    while.true
+        adv_loadw
+        movup.4
+        add.1
+        dup
+        movdn.5
+        mem_storew
+        movup.5
+    u32wrapping_sub.1
+    movdn.5
+    dup.5
+    neq.0
+
+    end
+
+    dropw
+    # [ptr_(2n+32), ptr_2n]
+    drop
+    drop
+    # Add 1 to point to the next word which is word[0] of remainder
+    u32wrapping_add.1
+    # Get a pointer to the first layer commitment
+    locaddr.3
+    u32wrapping_add.1
+    # [ptr, ptr_2n]
+end
+
+
+#! This functions checks that the evaluation at (g^p)^2^n of the last folded codeword is equal 
+#! to the remainder codeword sent by the prover at (g^p)^2^n.
+#! Input: [ptr2n, ptr2n, (g^p)^4, p % d_size, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+#! Output: # [ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+#! Cost: 20 cycles
+export.verify_remainder_query  
+    movup.3                 # [p % d_size, ptr2n, ptr2n, (g^p)^4, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    push.2
+
+    # Since each memory address contains two extension field elements, we have to get which of the two elements
+    # we should compare against.
+    u32checked_divmod       # [?, pos, ptr2n, ptr2n, (g^p)^4, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    movdn.4              
+    dup.1
+    dup.1
+    u32wrapping_add         # [p % d_size % 2 + ptr2n, p % d_size % 2, ptr2n, ptr2n, (g^p)^4, ?, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    
+    mem_loadw               # [e1', e0', e1, e0, ?, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    
+    movup.2 
+    swap            
+    dup.4             
+    cdrop               
+    movdn.3
+    #swap             
+    movup.2
+    cdrop
+    swap.2             
+    assert_eq
+    assert_eq
+end
+
+#! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
+#! was performed correctly.      
+#! Input: [ptr0 + 2 * i, ptr0 + 2 * i, (g^p)^4, p % d_size, ne1, ne0, ptr0 + 2 * i, ptr2n, x, x, x, x, x, x, x, x, ...]
+#! Output: [ptr0 + 2 * i, ptr0 + 2 * i, (g^p)^4, p % d_size, ne1, ne0, ptr0 + 2 * i, ptr2n, x, x, x, x, x, x, x, x, ...]
+#! Cost: 83
+export.verify_query_layer.3
+    
+    # Load layer commitment as well as [d_size, t_depth, a1, a0]
+    # 12 cycles
+    swapdw                          # [x, x, x, x, x, x, x, x, ptr0+2, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, ...]
+    movup.8 u32wrapping_add.1       # [ptr0+2+1, x, x, x, x, x, x, x, x, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, ...]
+    mem_loadw                       # [d_size, t_depth, a1, a0, x, x, x, x, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, ...]
+    swapw                           # [x, x, x, x, d_size, t_depth, a1, a0, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, ...]
+    movup.8                         # [ptr0+2, x, x, x, x, d_size, t_depth, a1, a0, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, ...]
+    mem_loadw                       # [C, d_size, t_depth, a1, a0, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, ...]
+
+    # Verify Merkle auth path for (index = p % d_size, depth = t_depth, Root = C)
+    # [V, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+    # 27 cycles
+    swapw.2                 # [g^p, p, e1, e0, d_size, t_depth, a1, a0, C, ptr0, ptr2n, ..]
+    swap                    # [p, g^p, e1, e0, d_size, t_depth, a1, a0, C, ptr0, ptr2n, ..]
+    movup.4                 # [d_size, p, g^p, e1, e0, t_depth, a1, a0, C, ptr0, ptr2n, ..]
+    u32checked_divmod       # [p % d_size, d_seg, g^p, e1, e0, t_depth, a1, a0, C, ptr0, ptr2n, ..]
+    movup.5                 # [t_depth, p % d_size, d_seg, g^p, e1, e0, a1, a0, C, ptr0, ptr2n, ..]
+    movupw.2                # [C, t_depth, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+    dup.5
+    movup.5                 # [t_depth, p % d_size, C, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+    mtree_get               # [t_depth, p % d_size, C, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+    swapw dropw             # [V, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+
+    # Unhashing the leaf values i.e. V to (v7,..., v0)
+    # Output: [v7, ..., v0, ]
+    # Cost: ~44 cycles
+
+    # Unhash V and save the pre-image in locaddr.0 and locaddr.1
+    # [T2, T1, T0, ptr, V, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+    # 17 cycles
+    locaddr.1
+    push.0.0.0.0.0.0.0.0.0.0.0.0
+    adv_pipe
+
+    # Assert T1 == V
+    # 13 cycles
+    swapw.3                    
+    drop                         
+    movup.3
+    assert_eq                   
+    movup.2
+    assert_eq
+    assert_eq
+    movup.9
+    assert_eq 
+    
+    # Load (v7, ..v0) from memory
+    # [v7, ..., v0, p % d_size, d_seg, g^p, e1, e0, a1, a0, ptr0, ptr2n, ..]
+    # 3 cycles
+    loc_loadw.1
+    swapw
+    loc_loadw.2
+
+    # Fold by 4
+    # 1 cycle
+    fri_ext2fold4
+
+    # Prepare for next iteration
+    # Input: [x, x, x, x, x, x, x, x, x, x, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr2n, ...]
+    # Output: [?, ptr0+2, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, x, x, x, x, x, x, x, x, ...]
+    # 11 cycles
+    swapdw              # [x, x, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr2n, x, x, x, x, x, x, x, x, ...] 
+    dup.2
+    movdn.7             # [x, x, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, x, x, x, x, x, x, x, x, ...]
+    drop
+    drop
+    dup                 # [ptr0+2, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, x, x, x, x, x, x, x, x, ...]
+    dup.7               # [ptr2n, ptr0+2, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, x, x, x, x, x, x, x, x, ...]
+    dup.1               # [ptr0+2, ptr2n, ptr0+2, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, x, x, x, x, x, x, x, x, ...]
+    neq                 # [?, ptr0+2, ptr0+2, (g^p)^4, p % d_size, ne1, ne0, ptr0+2, ptr2n, x, x, x, x, x, x, x, x, ...]
+end
+
+#! Verifies one FRI query.
+#! Input: [g^p, p, e1, e0, ptr0, ptr2n, ..]
+#! Output: ()
+#! Cost: 37 + num_layers * 105
+export.verify_query
+
+    # Prepare stack to be in a form that leverages the fri_ext2fold4 instruction ouput stack state.
+    # Input: [g^p, p, e1, e0, ptr0, ptr2n, ..]
+    # Output: [?, ptr0, ptr0, g^p, p, e1, e0, ptr0, ptr2n, x, x, x, x, x, x, x, x, ..]
+    dup.5               
+    dup.5               
+    push.0.0.0.0
+    push.0.0.0.0
+    swapdw              
+    dup dup             
+    movup.3             
+    neq                 
+    
+    # Input: [ptr0, ptr0, (g^p)^4, p % d_size, ne1, ne0, ptr0, ptr2n, x, x, x, x, x, x, x, x, ...]
+    # Output: [ptr2n, ptr2n, (g^p)^4, p % d_size, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    while.true
+        # Input: [ptr0, ptr0, g^p, p, e1, e0, ptr0, ptr2n, x, x, x, x, x, x, x, x, ..]
+        # Output: [?, ptr0 + 2 * i, ptr0 + 2 * i, (g^p)^2^i, f_pos, ne1, ne0, ptr0 + 2 * i, ptr2n, x, x, x, x, x, x, x, x, ..]
+        exec.verify_query_layer
+    end
+
+    # Check that remainder[f_pos] == (ne0, ne1)
+    # ()
+    exec.verify_remainder_query
+end
+
+#! Verifies a FRI proof
+#! Cost: 2626 + 8 + num_queries * (37 + num_layers * 105 + 58)
+export.verify_fri.1
+
+    # Load num of queries num_q and domain generator g
+    #[num_q, g, ptr0, ptr2n, ...]
+    adv_push.1
+    adv_push.1
+    locaddr.0
+    mem_storew
+
+    neq.0
+    
+    while.true
+        #[g, ptr0, ptr2n, ...]
+        
+        # Load [p, e1, e0] from advice i.e. next query data
+        # [p, e1, e0, g, ptr0, ptr2n]
+        adv_push.3
+
+        # Compute poe = g^p
+        # [g^p, p, e1, e0, ptr0, ptr2n, ..]
+        movup.3
+        dup.1
+        exp.u32
+
+        # We now have everything to verify query p. 
+        # [ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+        exec.verify_query
+
+        # Prepare for next iteration
+        # [?, g, ptr0, ptr2n]
+        dropw drop drop
+        locaddr.0
+        mem_loadw
+        sub.1
+        locaddr.0
+        mem_storew
+        neq.0
+    end
+    
+
+    # Stack so far
+    # [g, ptr0, ptr2n]
+
+    # Verify that remainder corresponds to a low degree polynomial
+    # ()
+    drop drop
+
+    # TODO: Fix the final remainder verification
+    #u32wrapping_add.1
+
+    adv_push.1
+    if.true
+    exec.ext2fri::verify_remainder_64
+    else
+    #TODO: change to 32
+    exec.ext2fri::verify_remainder_32
+    end
+    
+    # TODO: remove after decommenting previous two lines
+    #drop drop
+end
