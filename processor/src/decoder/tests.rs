@@ -1653,23 +1653,3 @@ fn build_expected_hasher_state(values: &[Felt]) -> [Felt; NUM_HASHER_COLUMNS] {
     }
     result
 }
-
-#[allow(dead_code)]
-fn print_row(trace: &DecoderTrace, idx: usize) {
-    let mut row = Vec::new();
-    for column in trace.iter() {
-        row.push(column[idx].as_int());
-    }
-    #[cfg(feature = "std")]
-    println!(
-        "{}\t{}\t{:?} {} {: <16x?} {: <16x?} {} {}",
-        idx,
-        row[0],
-        &row[vm_core::decoder::OP_BITS_RANGE],
-        row[8],
-        &row[9..13],
-        &row[13..17],
-        row[17],
-        row[18]
-    );
-}

@@ -3,12 +3,13 @@
 use air::{HashFunction, ProcessorAir, PublicInputs};
 use core::fmt;
 use vm_core::crypto::hash::{Blake3_192, Blake3_256, Rpo256};
+use winter_verifier::verify as verify_proof;
 
 // EXPORTS
 // ================================================================================================
 
 pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
-pub use winter_verifier::{StarkProof, VerifierError};
+pub use winter_verifier::VerifierError;
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }
@@ -40,20 +41,19 @@ pub fn verify(
     stack_outputs: StackOutputs,
     proof: ExecutionProof,
 ) -> Result<u32, VerificationError> {
+    // get security level of the proof
+    let security_level = proof.security_level();
+
     // build public inputs and try to verify the proof
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
-    let (hasher, proof) = proof.into_inner();
-    let security_level = hasher.security_level();
-    match hasher {
-        HashFunction::Blake3_192 => {
-            winter_verifier::verify::<ProcessorAir, Blake3_192>(proof, pub_inputs)
-        }
-        HashFunction::Blake3_256 => {
-            winter_verifier::verify::<ProcessorAir, Blake3_256>(proof, pub_inputs)
-        }
-        HashFunction::Rpo256 => winter_verifier::verify::<ProcessorAir, Rpo256>(proof, pub_inputs),
+    let (hash_fn, proof) = proof.into_parts();
+    match hash_fn {
+        HashFunction::Blake3_192 => verify_proof::<ProcessorAir, Blake3_192>(proof, pub_inputs),
+        HashFunction::Blake3_256 => verify_proof::<ProcessorAir, Blake3_256>(proof, pub_inputs),
+        HashFunction::Rpo256 => verify_proof::<ProcessorAir, Rpo256>(proof, pub_inputs),
     }
     .map_err(VerificationError::VerifierError)?;
+
     Ok(security_level)
 }
 
@@ -72,7 +72,7 @@ impl fmt::Display for VerificationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use VerificationError::*;
         match self {
-            VerifierError(e) => write!(f, "there was a verification error: {e}"),
+            VerifierError(e) => write!(f, "{e}"),
             InputNotFieldElement(i) => write!(f, "the input {i} is not a valid field element!"),
             OutputNotFieldElement(o) => write!(f, "the output {o} is not a valid field element!"),
         }

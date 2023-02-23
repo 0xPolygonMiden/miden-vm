@@ -3,7 +3,7 @@
 use air::{ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
 use processor::{math::Felt, Blake3_192, Blake3_256, ElementHasher, ExecutionTrace, Rpo256};
-use winter_prover::Prover;
+use winter_prover::{ProofOptions as WinterProofOptions, Prover};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -56,10 +56,10 @@ where
     );
 
     let stack_outputs = trace.stack_outputs().clone();
-    let hasher = options.hasher();
+    let hash_fn = options.hash_fn();
 
     // generate STARK proof
-    let proof = match hasher {
+    let proof = match hash_fn {
         HashFunction::Blake3_192 => {
             ExecutionProver::<Blake3_192>::new(options, stack_inputs, stack_outputs.clone())
                 .prove(trace)
@@ -74,7 +74,7 @@ where
         }
     }
     .map_err(ExecutionError::ProverError)?;
-    let proof = ExecutionProof::new(hasher, proof);
+    let proof = ExecutionProof::new(proof, hash_fn);
 
     Ok((stack_outputs, proof))
 }
@@ -87,7 +87,7 @@ where
     H: ElementHasher<BaseField = Felt>,
 {
     hasher: PhantomData<H>,
-    options: ProofOptions,
+    options: WinterProofOptions,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
 }
@@ -103,7 +103,7 @@ where
     ) -> Self {
         Self {
             hasher: PhantomData,
-            options,
+            options: options.into(),
             stack_inputs,
             stack_outputs,
         }
@@ -140,7 +140,7 @@ where
     type Trace = ExecutionTrace;
     type HashFn = H;
 
-    fn options(&self) -> &winter_prover::ProofOptions {
+    fn options(&self) -> &WinterProofOptions {
         &self.options
     }
 
