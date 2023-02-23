@@ -66,3 +66,6 @@ sha2 = "0.10"
 sha3 = "0.10"
 test-case = "2.2.2"
 vm-core = { package = "miden-core", path = "../core", version = "0.4", default-features = false }
+winterfell = { package = "winter-prover", version = "0.5.1", default-features = false }
+winter-fri = { package = "winter-fri", version = "0.5.1" }
+winter-utils = { package = "winter-utils", version = "0.5.1" }
