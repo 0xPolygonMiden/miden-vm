@@ -24,7 +24,7 @@
 #! - q is a vector of length 128 s.t. each element ∈ Fq.
 #! - p is a vector of length 16 s.t. each element ∈ Fq.
 #! - [..2] picks first two Fq elements from the digest.
-proc.compute_tau
+proc.compute_tau_64
     push.64
     push.8
     adv.ext2intt # interpolate polynomial p, using advice provider
@@ -51,6 +51,68 @@ proc.compute_tau
     repeat.2
         adv_pipe
     end
+
+    movup.12
+    drop
+
+    dropw
+    swapw
+    dropw
+    drop
+    drop
+end
+
+#! Given starting memory address of a FRI codeword of size 32 q, this routine computes τ, by
+#! first non-deterministically interpolating polynomial q into p (a polynomial of degree 3) using
+#! the advice provider (i.e. computation performed outside of the VM) and then sequentially hashing
+#! coefficients of q, p (in order), using Rescue Prime Optimized (RPO) hash function.
+#!
+#! Note, both q (polynomial evaluations), p (polynomial in coefficient form), is over quadratic
+#! extension field over Fq | q = 2^64 - 2^32 + 1
+#!
+#! Other than starting address of q, starting memory address of p is also provided via the stack,
+#! which is used for piping interpolated polynomial coefficients into memory, which will be later
+#! used for computing α.
+#!
+#! Expected stack state:
+#!
+#! [q_ptr, p_ptr, ...]
+#!
+#! Final stack state:
+#!
+#! [τ1, τ0, q_ptr, ...] | τ = (τ0, τ1)
+#!
+#! τ = rpo::hash_elements(q || p)[..2]
+#!
+#! - `hash_elements` routine works over vector of elements of Fq | q = 2^64 -2^32 + 1
+#! - q is a vector of length 64 s.t. each element ∈ Fq.
+#! - p is a vector of length 8 s.t. each element ∈ Fq.
+#! - [..2] picks first two Fq elements from the digest.
+proc.compute_tau_32
+    push.32
+    push.4
+    adv.ext2intt # interpolate polynomial p, using advice provider
+
+    drop
+    drop
+    dup
+
+    # Initialize RPO state; since the number of elements to be hashed is a multiple of 8, all
+    # capacity elements are set to zeros
+    push.0.0.0.0.0.0.0.0.0.0.0.0
+
+    # Consume `q` into Rescue state
+    repeat.8
+        mem_stream
+    end
+
+    movup.12
+    drop
+    movup.13
+    movdn.12
+
+    # Consume `p` into Rescue state
+    adv_pipe
 
     movup.12
     drop
@@ -175,7 +237,7 @@ end
 #! Final stack state
 #!
 #! [β1, β0, τ1, τ0, q_ptr, ...]
-proc.compute_beta
+proc.compute_beta_64
     # decrement starting address by 1, because we first increment and then load onto the stack
     movup.2
     sub.1
@@ -458,6 +520,170 @@ proc.compute_beta
     ext2mul
 end
 
+#! Given τ and starting memory address to q (FRI codeword of size 32), this routine computes β.
+#!
+#! Expected stack state
+#!
+#! [τ1, τ0, q_ptr, ...]
+#!
+#! Final stack state
+#!
+#! [β1, β0, τ1, τ0, q_ptr, ...]
+proc.compute_beta_32
+    # decrement starting address by 1, because we first increment and then load onto the stack
+    movup.2
+    sub.1
+    movdn.2
+
+    push.0.0 # accumulator for β
+
+    # for j = 0
+    push.1
+    exec.accumulate_for_even_index
+
+    # for j = 1
+    push.70368744161280
+    exec.accumulate_for_odd_index
+
+    # for j = 2
+    push.17293822564807737345
+    exec.accumulate_for_even_index
+
+    # for j = 3
+    push.4398046511104
+    exec.accumulate_for_odd_index
+
+    # for j = 4
+    push.18446744069397807105
+    exec.accumulate_for_even_index
+
+    # for j = 5
+    push.64
+    exec.accumulate_for_odd_index
+
+    # for j = 6
+    push.4503599626321920
+    exec.accumulate_for_even_index
+
+    # for j = 7
+    push.18446744052234715141
+    exec.accumulate_for_odd_index
+
+    # for j = 8
+    push.281474976710656
+    exec.accumulate_for_even_index
+
+    # for j = 9
+    push.18446744068340842497
+    exec.accumulate_for_odd_index
+
+    # for j = 10
+    push.4096
+    exec.accumulate_for_even_index
+
+    # for j = 11
+    push.288230376084602880
+    exec.accumulate_for_odd_index
+
+    # for j = 12
+    push.18446742969902956801
+    exec.accumulate_for_even_index
+
+    # for j = 13
+    push.18014398509481984
+    exec.accumulate_for_odd_index
+
+    # for j = 14
+    push.18446744000695107585
+    exec.accumulate_for_even_index
+
+    # for j = 15
+    push.262144
+    exec.accumulate_for_odd_index
+
+    # for j = 16
+    push.18446744069414584320
+    exec.accumulate_for_even_index
+
+    # for j = 17
+    push.18446673700670423041
+    exec.accumulate_for_odd_index
+
+    # for j = 18
+    push.1152921504606846976
+    exec.accumulate_for_even_index
+
+    # for j = 19
+    push.18446739671368073217
+    exec.accumulate_for_odd_index
+
+    # for j = 20
+    push.16777216
+    exec.accumulate_for_even_index
+
+    # for j = 21
+    push.18446744069414584257
+    exec.accumulate_for_odd_index
+
+    # for j = 22
+    push.18442240469788262401
+    exec.accumulate_for_even_index
+
+    # for j = 23
+    push.17179869180
+    exec.accumulate_for_odd_index
+
+    # for j = 24
+    push.18446462594437873665
+    exec.accumulate_for_even_index
+
+    # for j = 25
+    push.1073741824
+    exec.accumulate_for_odd_index
+
+    # for j = 26
+    push.18446744069414580225
+    exec.accumulate_for_even_index
+
+    # for j = 27
+    push.18158513693329981441
+    exec.accumulate_for_odd_index
+
+    # for j = 28
+    push.1099511627520
+    exec.accumulate_for_even_index
+
+    # for j = 29
+    push.18428729670905102337
+    exec.accumulate_for_odd_index
+
+    # for j = 30
+    push.68719476736
+    exec.accumulate_for_even_index
+
+    # for j = 31
+    push.18446744069414322177
+    exec.accumulate_for_odd_index
+
+    # compute (τ^32 - 1) / 32
+    dup.3
+    dup.3
+
+    repeat.5
+        dup.1
+        dup.1
+        ext2mul
+    end
+
+    swap
+    sub.1
+    swap
+
+    push.17870283317245378561.0
+    ext2mul
+    ext2mul
+end
+
 #! Given τ and end memory address of interpolated polynomial p (with degree at max 7, over 
 #! quadratic extension field of Fq) on the top of the stack, this routine computes α.
 #!
@@ -470,8 +696,8 @@ end
 #! [α1, α0, _, _, ...]
 #!
 #! Note, p_ptr is absolute memory address of polynomial p (which was interpolated using advice
-#! provider)! s.t. next 3 decreasing (by 1) memory addresses hold remaining 6 coefficients of p.
-proc.compute_alpha
+#! provider) s.t. next 3 decreasing (by 1) memory addresses hold remaining 6 coefficients of p.
+proc.compute_alpha_64
     movup.4
     dup
     sub.1
@@ -543,8 +769,53 @@ proc.compute_alpha
     ext2add
 end
 
+#! Given τ and end memory address of interpolated polynomial p (with degree at max 3, over 
+#! quadratic extension field of Fq) on the top of the stack, this routine computes α.
+#!
+#! Expected stack state:
+#!
+#! [_, _, τ1, τ0, p_ptr, ...]
+#!
+#! Final stack state:
+#!
+#! [α1, α0, _, _, ...]
+#!
+#! Note, p_ptr is absolute memory address of polynomial p (which was interpolated using advice
+#! provider) s.t. this and next (decreased by 1) memory address holds total 4 coefficients of p.
+proc.compute_alpha_32
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    movup.6
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    movup.7
+    movup.7
+    ext2mul
+    ext2add
+end
+
 #! Given memory address of the remainder codeword with 64 evaluations, this routine attempts to
-#! probabilistically verify that the codeword contains evaluations of a a degree 7 polynomial.
+#! probabilistically verify that the codeword contains evaluations of a degree 7 polynomial.
 #!
 #! Expected stack state:
 #!
@@ -556,7 +827,7 @@ end
 #!   each memory address will hold two consecutive evaluations)
 #! - Words (four field elements), in memory, are laid out in this order (a0_0, a0_1, a1_0, a1_1).
 #!   This means that (a0_1, a0_0) -> first evaluation and (a1_1, a1_0) -> next evaluation
-#! - Next 31 memory addresses should be holding remaining 62 evaluations. That is, f q_ptr holds
+#! - Next 31 memory addresses should be holding remaining 62 evaluations. That is, if q_ptr holds
 #!   (a0_0, a0_1, a1_0, a1_1), then q_ptr + 1, must hold (a2_0, a2_1, a3_0, a3_1), and q_ptr + 31
 #!   should be holding (a62_0, a62_1, a63_0, a63_1).
 #!
@@ -572,10 +843,10 @@ export.verify_remainder_64.4
     #
     # note, p_ptr is pointing to function local memory address space which will be filled with
     # coefficients of polynomial p, which is computed outside of the VM, from given codeword q.
-    exec.compute_tau
+    exec.compute_tau_64
 
     # [τ1, τ0, q_ptr, ...]
-    exec.compute_beta
+    exec.compute_beta_64
 
     # [β1, β0, τ1, τ0, q_ptr, ...]
     movup.4
@@ -589,7 +860,67 @@ export.verify_remainder_64.4
     # computation of τ. Now p_ptr is set to locaddr.3, because it's easier to compute α, by
     # accessing coefficients of the interpolated polynomial p in reverse (i.e. descending) order
     # using Horner's evaluation.
-    exec.compute_alpha
+    exec.compute_alpha_64
+    
+    # assert α == β
+    #
+    # [α1, α0, β1, β0, ...]
+    movup.2
+    eq
+    movdn.2
+    eq
+    and
+    assert
+    # [...]
+end
+
+#! Given memory address of the remainder codeword with 32 evaluations, this routine attempts to
+#! probabilistically verify that the codeword contains evaluations of a degree 3 polynomial.
+#!
+#! Expected stack state:
+#!
+#! [q_ptr, ...]
+#!
+#! A few assumptions about q_ptr:
+#! - q_ptr is an absolute memory address of the beginning of remainder codeword.
+#! - Each evaluation is 2 elements wide because they belong to quadratic extension field (meaning
+#!   each memory address will hold two consecutive evaluations)
+#! - Words (four field elements), in memory, are laid out in this order (a0_0, a0_1, a1_0, a1_1).
+#!   This means that (a0_1, a0_0) -> first evaluation and (a1_1, a1_0) -> next evaluation
+#! - Next 15 memory addresses should be holding remaining 30 evaluations. That is, if q_ptr holds
+#!   (a0_0, a0_1, a1_0, a1_1), then q_ptr + 1, must hold (a2_0, a2_1, a3_0, a3_1), and q_ptr + 15
+#!   should be holding (a30_0, a30_1, a31_0, a31_1).
+#!
+#! At the end of execution q_ptr is popped off the stack.
+#!
+#! If remainder verification fails, execution of the program stops.
+export.verify_remainder_32.2
+    # [q_ptr, ...]
+    locaddr.0
+    swap
+
+    # [q_ptr, p_ptr, ...]
+    #
+    # note, p_ptr is pointing to function local memory address space which will be filled with
+    # coefficients of polynomial p, which is computed outside of the VM, from given codeword q.
+    exec.compute_tau_32
+
+    # [τ1, τ0, q_ptr, ...]
+    exec.compute_beta_32
+
+    # [β1, β0, τ1, τ0, q_ptr, ...]
+    movup.4
+    drop
+    locaddr.1
+    movdn.4
+
+    # [β1, β0, τ1, τ0, p_ptr, ...]
+    #
+    # notice, p_ptr was previously set to locaddr.0, which was used (and dropped) during the 
+    # computation of τ. Now p_ptr is set to locaddr.1, because it's easier to compute α, by
+    # accessing coefficients of the interpolated polynomial p in reverse (i.e. descending) order
+    # using Horner's evaluation.
+    exec.compute_alpha_32
     
     # assert α == β
     #
