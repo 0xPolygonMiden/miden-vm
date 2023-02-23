@@ -225,11 +225,7 @@ impl AssemblyContext {
     ///   procedure cache or the local procedure set of the module.
     pub fn into_cb_table(mut self, proc_cache: &ProcedureCache) -> CodeBlockTable {
         // get the last module off the module stack
-        assert_eq!(
-            self.module_stack.len(),
-            1,
-            "module stack must contain exactly one module"
-        );
+        assert_eq!(self.module_stack.len(), 1, "module stack must contain exactly one module");
         let mut main_module_context = self.module_stack.pop().unwrap();
         // complete compilation of the executable module; this appends the callset of the main
         // procedure to the callset of the executable module
@@ -449,11 +445,7 @@ impl ModuleContext {
     /// - If the procedure left on the procedure stack is not main procedure.
     pub fn complete_executable(&mut self) {
         assert!(self.is_executable(), "module not executable");
-        assert_eq!(
-            self.proc_stack.len(),
-            1,
-            "procedure stack must contain exactly one procedure"
-        );
+        assert_eq!(self.proc_stack.len(), 1, "procedure stack must contain exactly one procedure");
         let main_proc_context = self.proc_stack.pop().unwrap();
         assert!(main_proc_context.is_main(), "not main procedure");
         self.callset.append(&main_proc_context.callset);
