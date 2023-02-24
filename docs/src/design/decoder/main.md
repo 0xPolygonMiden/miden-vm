@@ -21,14 +21,14 @@ Managing control flow in the VM is accomplished by executing control flow operat
 
 | Operation | Description |
 | --------- | ----------- |
-| `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block). |
-| `SYSCALL` | Initiates processing ofa new  [Syscall block](../programs.md#syscall-block). |
 | `JOIN`    | Initiates processing of a new [Join block](../programs.md#join-block). |
 | `SPLIT`   | Initiates processing of a new [Split block](../programs.md#split-block). |
 | `LOOP`    | Initiates processing of a new [Loop block](../programs.md#loop-block). |
 | `REPEAT`  | Initiates a new iteration of an executing loop. |
 | `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block). |
 | `RESPAN`  | Initiates processing of a new operation batch within a span block. |
+| `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block). |
+| `SYSCALL` | Initiates processing ofa new  [Syscall block](../programs.md#syscall-block). |
 | `END`     | Marks the end of a program block. |
 | `HALT`    | Marks the end of the entire program. |
 
@@ -115,7 +115,7 @@ These registers have the following meanings:
 
 1. Block address register $a$. This register contains address of the hasher for the current block (row index from the auxiliary hashing table). It also serves the role of unique block identifiers. This is convenient, because hasher addresses are guaranteed to be unique.
 2. Registers $b_0, ..., b_6$, which encode opcodes for operation to be executed by the VM. Each of these registers can contain a single binary value (either $1$ or $0$). And together these values describe a single opcode.
-3. Hasher registers $h_0, ..., h_7$. When control flow operations are executed, these registers are used to provide inputs for the current block's hash computation (e.g., for `CALL`, `SYSCALL`, `JOIN`, `SPLIT`, `LOOP`, `SPAN` operations) or to record the result of the hash computation (i.e., for `END` operation). However, when regular operations are executed, $2$ of these registers are used to help with op group decoding, and the remaining $6$ can be used to hold operation-specific helper variables.
+3. Hasher registers $h_0, ..., h_7$. When control flow operations are executed, these registers are used to provide inputs for the current block's hash computation (e.g., for `JOIN`, `SPLIT`, `LOOP`, `SPAN`, `CALL`, `SYSCALL` operations) or to record the result of the hash computation (i.e., for `END` operation). However, when regular operations are executed, $2$ of these registers are used to help with op group decoding, and the remaining $6$ can be used to hold operation-specific helper variables.
 4. Register $sp$ which contains a binary flag indicating whether the VM is currently executing instructions inside a *span* block. The flag is set to $1$ when the VM executes non-control flow instructions, and is set to $0$ otherwise.
 5. Register $gc$ which keep track of the number of unprocessed operation groups in a given *span* block.
 6. Register $ox$ which keeps track of a currently executing operation's index within its operation group.
@@ -136,14 +136,13 @@ We denote the running product column used to keep track of hash chiplet state as
 To initiate a 2-to-1 hash of $8$ elements ($v_0, ..., v_7$) we need to divide $p_0$ by the following value:
 
 $$
-\alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot r + f_{ctrlb} \cdot \alpha_5 \cdot \sum_{b=0}^6(b_i \cdot 2^i) + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_i)
+\alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot r + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_i)
 $$
 
 where:
 * $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../chiplets/hasher.md#multiset-check-constraints).
-* $f_{ctrlb}$ is a flag indicating whether the current operation is a control block initializer (excluding span).
 * $r$ is the address of the row at which the hashing begins.
-* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduced to field elements (described [here](../chiplets/hasher.md#multiset-check-constraints)). For example, $\alpha_3$ is used a coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.  The $\alpha_4$ is omitted when the number of items being hashed is a multiple of the rate width ($8$) because it is multiplied by 0 - the value of the first capacity register as determined by the [hasher chiplet logic](../chiplets/hasher.md#simple-2-to-1-hash).
+* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduced to field elements (described [here](../chiplets/hasher.md#multiset-check-constraints)). For example, $\alpha_3$ is used as a coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.  The $\alpha_4$ term is omitted when the number of items being hashed is a multiple of the rate width ($8$) because it is multiplied by 0 - the value of the first capacity register as determined by the [hasher chiplet logic](../chiplets/hasher.md#simple-2-to-1-hash).
 
 To read the $4$-element result ($u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 

@@ -255,7 +255,7 @@ Thus, similarly to the right-shift flag, we compute the value of the left-shift 
 The control flow flag $f_{ctrl}$ is set to $1$ when a control flow operation is being executed by the VM, and to $0$ otherwise. Naively, this flag can be computed as follows:
 
 $$
-f_{ctrl} = f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{span} + f_{respan} + f_{end} + f_{halt} \text{ | degree} = 6
+f_{ctrl} = f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{span} + f_{respan} + f_{call} + f_{syscall} + f_{end} + f_{halt} \text{ | degree} = 6
 $$
 
 However, this can be computed more efficiently via the common operation prefixes for the two groups of control flow operations as follows.
@@ -269,13 +269,7 @@ f_{end,repeat,respan,halt} = b_6 \cdot b_5 \cdot b_4  \text{ | degree} = 3
 $$
 
 $$
-f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} \text{ | degree} = 4
+f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{call} + f_{syscall} \text{ | degree} = 4
 $$
 
 Note that the degree of $f_{end,repeat,respan,halt}$ can be reduced to degree 2 using the extra column, but this will not affect the degree of the $f_{ctrl}$ constraint.
-
-The control flow flag $f_{ctrlb}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM, and to $0$ otherwise.  This flag can be computed as follows. 
-
-$$
-f_{ctrlb} = f_{call} + f_{syscall} + f_{span,join,split,loop} + f_{end,repeat,respan,halt} \text{ | degree} = 4
-$$

@@ -12,19 +12,19 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 
 | Operation | Flag         | Degree | Effect on stack |
 | --------- | :----------: | :----: | --------------- |
-| `CALL`    | $f_{call}$   | 4      | Top stack element is dropped. |
-| `SYSCALL` | $f_{syscall}$| 4      | Top stack element is dropped. |
 | `JOIN`    | $f_{join}$   | 6      | Stack remains unchanged. |
 | `SPLIT`   | $f_{split}$  | 6      | Top stack element is dropped. |
 | `LOOP`    | $f_{loop}$   | 6      | Top stack element is dropped. |
 | `REPEAT`  | $f_{repeat}$ | 4      | Top stack element is dropped. |
 | `SPAN`    | $f_{span}$   | 6      | Stack remains unchanged. |
 | `RESPAN`  | $f_{respan}$ | 4      | Stack remains unchanged. |
+| `CALL`    | $f_{call}$   | 4      | Top stack element is dropped. |
+| `SYSCALL` | $f_{syscall}$| 4      | Top stack element is dropped. |
 | `END`     | $f_{end}$    | 4      | When exiting a loop block, top stack element is dropped; otherwise, the stack remains unchanged. |
 | `HALT`    | $f_{halt}$   | 4      | Stack remains unchanged. |
 | `PUSH`    | $f_{push}$   | 4      | An immediate value is pushed onto the stack. |
 
-We also use the [control flow flags](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ and $f_{ctrlb}$ exposed by the VM. $f_{ctrl}$ is set when any one of the above control flow operations is being executed. $f_{ctrlb}$ is set when a control flow operation that signifies the initialization of a new control block is being executed.  $f_{ctrl}$ and $f_{ctrlb}$ have degree 4.
+We also use the [control flow flag](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ exposed by the VM, which is set when any one of the above control flow operations is being executed. It has degree $4$.
 
 As described [previously](./main.md#program-decoding), the general idea of the decoder is that the prove provides the program to the VM by populating some of cells in the trace non-deterministically. Values in these are then used to update virtual tables (represented via multiset checks) such as block hash table, block stack table etc. Transition constraints are used to enforce that the tables are updates correctly, and we also apply boundary constraints to enforce the correct initial and final states of these tables. One of these boundary constraints binds the execution trace to the hash of the program being executed. Thus, if the virtual tables were updated correctly and boundary constraints hold, we can be convinced that the prover executed the claimed program on the VM.
 
@@ -110,49 +110,47 @@ In constructing value of $u$ for decoder AIR constraints, we will use the follow
 To simplify constraint description, we define the following variables:
 
 $$
-h_{init4} = \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot a + f_{ctrlb} \cdot \alpha_5 \cdot \sum_{b=0}^6(b_i \cdot 2^i) + \sum_{i=0}^3(\alpha_{i + 8} \cdot h_i)
+h_{init} = \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot a' + \sum_{i=0}^7(\alpha_{i + 8} \cdot h_i)
 $$
 
-$$
-h_{init8} = h_{init4} + \sum_{i=4}^7(\alpha_{i + 8} \cdot h_i)
-$$
-
-In the above, $h_{init4}$ can be thought of as initiating a hasher with address $a$ and absorbing the first $4$ elements from the hasher state ($h_0, ..., h_3$) into it. $f_{ctrlb}$ can be thought of as a flag to indicate the start of a control block (excluding span). To achieve domain separation for control block hashing we set the second element of the capacity register (via the $\alpha_5$ term) to the opcode of the operation for control block initializers. Similarly, $h_{init8}$ initiates a hasher with address $a$, but absorbs the entire hasher state ($h_0, ..., h_7$) into it. Notice that we didn't specify the logic for populating the first element of the capacity register (via $\alpha_4$ term). This will be specified later on.
+In the above, $h_{init}$ can be thought of as initiating a hasher with address $a'$ and absorbing $8$ elements from the hasher state ($h_0, ..., h_7$) into it. Control blocks are always padded to fill the hasher rate and as such the $\alpha_4$ (first capacity register) term is set to $0$.
 
 $$
 h_{abp} = \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot a' + \sum_{i=0}^7(\alpha_{i + 8} \cdot h_i)
 $$
 
-In the above, we assume that $a' = a + 8$, which is enforced via separate constraints.
+It should be noted that $a$ refers to a column in the decoder, as depicted. The addresses in this column are set using the address from the hasher chiplet for the corresponding hash initialization / absorption / return. In the case of $h_{abp}$ the value of the address in column $a$ in the current row of the decoder is set to equal the value of the address of the row in the hasher chiplet where the previous absorption (or initialization) occurred. $a'$ is the address of the next row of the decoder, which is set to equal the address in the hasher chiplet where the absorption referred to by the $h_{abp}$ label is happening.
 
 $$
 h_{res} = \alpha_0 + \alpha_1 \cdot m_{hout} + \alpha_2 \cdot (a + 7) + \sum_{i=0}^3(\alpha_{i + 8} \cdot h_i)
 $$
 
+In the above, $a$ represents the address value in the decoder which corresponds to the hasher chiplet address at which the hasher was initialized (or the last absorption took place).  As such, $a + 7$ corresponds to the hasher chiplet address at which the result is returned.
+
+$$
+f_{ctrli} = f_{join} + f_{split} + f_{loop} +  f_{call} + f_{syscall} \text{ | degree} = 6
+$$
+
+In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$.  
+
+$$
+d = \sum_{b=0}^6(b_i \cdot 2^i)
+$$
+
+In the above, $d$ represents the opcode value of the opcode being executed on the virtual machine. It is calculated via a bitwise combination of the op bits. We leverage the opcode value to achieve domain separation when hashing control blocks. This is done by populating the second capacity register of the hasher with the value $d$ via the $\alpha_5$ term when initializing the hasher.
+
 Using the above variables, we define operation values as described below.
 
-When `JOIN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of elements to be hashed is $8$ so the $\alpha_4$ term is set to 0:
+When a control block initializer operation (`JOIN`, `SPLIT`, `LOOP`, `CALL`, `SYSCALL`) is executed, a new hasher is initialized and the contents of $h_0, ..., h_7$ are absorbed into the hasher. As mentioned above, the opcode value $d$ is populated in the second capacity resister via the $\alpha_5$ term.
 
 $$
-u_{join} = f_{join} \cdot h_{init8} \text{ | degree} = 7
-$$
-
-When `SPLIT` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of elements to be hashed is $8$ so the $\alpha_4$ term is set to 0:
-
-$$
-u_{split} = f_{split} \cdot h_{init8} \text{ | degree} = 7
-$$
-
-When `LOOP` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_3$ are absorbed into the hasher. The number of elements to be hashed is $4$ so the $\alpha_4$ term is present:
-
-$$
-u_{loop} = f_{loop} \cdot (h_{init4} + \alpha_4) \text{ | degree} = 7
+u_{ctrli} = f_{ctrli} \cdot (h_{init} + \alpha_5 \cdot d) \text{ | degree} = 7
 $$
 
 When `SPAN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of operation groups to be hashed is padded to a multiple of the rate width ($8$) and so the $\alpha_4$ is set to 0:
 
 $$
-u_{span} = f_{span} \cdot h_{init8} \text{ | degree} = 7
+u_{span} = f_{span} \cdot h_{init} \text{ | degree} = 7
 $$
 
 When `RESPAN` operation is executed, contents of $h_0, ..., h_7$ (which contain the new operation batch) are absorbed into the hasher:
@@ -170,8 +168,8 @@ $$
 Using the above definitions, we can describe the constraint for computing block hashes as follows:
 
 > $$
-p_0' \cdot (u_{join} + u_{split} + u_{loop} + u_{span} + u_{respan} + u_{end} + \\
-1 - (f_{join} + f_{split} + f_{loop} + f_{span} + f_{respan} + f_{end})) = p_0
+p_0' \cdot (u_{ctrli} + u_{span} + u_{respan} + u_{end} + \\
+1 - (f_{ctrli} + f_{span} + f_{respan} + f_{end})) = p_0
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_0' = p_0$.
