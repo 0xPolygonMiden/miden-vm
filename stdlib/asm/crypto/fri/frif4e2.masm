@@ -125,7 +125,6 @@ export.verify_remainder_query
     dup.4             
     cdrop               
     movdn.3
-    #swap             
     movup.2
     cdrop
     swap.2             
