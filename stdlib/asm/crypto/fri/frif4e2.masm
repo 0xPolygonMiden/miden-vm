@@ -1,14 +1,16 @@
 use.std::crypto::fri::ext2fri
 
-#! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] where:
+#! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] and [0, p, e1, e0] where:
 #! 1) d_size is the domain size divided by 4 of the domain corresponding to C.
 #! 2) t_depth is the tree depth of the Merkle tree with commitment C.
 #! 3) (a0, a1) is the folding challenge to create the next layer.
+#! 4) p is the query index and (e0, e1) is the evaluation at the first layer.
 #! TODO: This processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
 export.preprocess.4
+    #adv_push.1
     locaddr.3                   
-    adv_push.1                  #[num_layers, ptr, ..]
+    adv_push.1                  #[num_layers, ptr0, g, ..]
     dup
     neq.0
     while.true
@@ -27,11 +29,12 @@ export.preprocess.4
         neq.0                           #[?, num_layers-1, ptr+2, ..]                          
     end
 
-    #[0, ptr, ..]
-    drop 
-    #sub.1
+    #[ptr2n', rem_len, ptr_rem_start, g, ..]
+    drop
     adv_push.1
-    dup.1               
+    dup.1
+    add.1
+    swap.2          
 
 
     # value of the remainder codeword
@@ -45,36 +48,68 @@ export.preprocess.4
         movdn.5
         mem_storew
         movup.5
-    u32wrapping_sub.1
-    movdn.5
-    dup.5
-    neq.0
-
+        u32wrapping_sub.1
+        movdn.5
+        dup.5
+        neq.0
     end
 
+    # [ptr_(2n+len_rem/2)', ptr_rem_start, g]
     dropw
-    # [ptr_(2n+32), ptr_2n]
+    swap 
     drop
+    
+    # number of queries
+    adv_push.1
+
+    # [ptr_(2n+len_rem/2)', num_q, ptr_queries_start, ptr_rem_start, g]    
+    dup.1               
+    add.1
+    swap.2
+
+    # value of the queries and evaluations
+    push.0.0.0.0
+    push.1
+    while.true
+        adv_loadw
+        movup.4
+        add.1
+        dup
+        movdn.5
+        mem_storew
+        movup.5
+        u32wrapping_sub.1
+        movdn.5
+        dup.5
+        neq.0
+    end
+
+   
+    # [ptr_queries_end, ptr_queries_start, ptr_rem_start, g]    
+    dropw
+    swap 
     drop
-    # Add 1 to point to the next word which is word[0] of remainder
-    u32wrapping_add.1
-    # Get a pointer to the first layer commitment
+
+    # [ptr_queries_end + 1, ptr_queries_start, ptr_rem_start, g]
+    add.1
+
+    # [ptr_queries_start, ptr_queries_end + 1, ptr_c_start, ptr_rem_start, g]  
     locaddr.3
-    u32wrapping_add.1
-    # [ptr, ptr_2n]
+    add.1
+    swap.2
 end
 
 
 #! This functions checks that the last folded codeword is agrees at index p with the remainder
 #! codeword sent by the prover.
-#! Input: [ptr2n, ptr2n, poe^2^n, f_pos, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
-#! Output: [ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+#! Input: [ptr_rem_start, ptr_rem_start, poe^2^n, f_pos, ne1, ne0, ptr_rem_start, ptr_rem_start, x, x, x, x, x, x, x, x, ..]
+#! Output: [ptr_rem_start, ptr_rem_start, x, x, x, x, x, x, x, x, ..]
 #! Cost: 20 cycles
 export.verify_remainder_query  
 
     # Since each memory address contains two extension field elements, we have to get which of the two elements
     # we should compare against.
-    # [f_pos % 2 + ptr2n, x, x, x, x, ?, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    # [ptr_rem_start + offset, x, x, x, x, ?, ne1, ne0, ptr_rem_start, ptr_rem_start, x, x, x, x, x, x, x, x, ..]
     movup.3                 
     push.2
     u32checked_divmod       
@@ -83,7 +118,7 @@ export.verify_remainder_query
     dup.1
     u32wrapping_add         
     
-    mem_loadw               # [e1', e0', e1, e0, ?, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    mem_loadw               # [e1', e0', e1, e0, ?, ne1, ne0, ptr_rem_start, ptr_rem_start, x, x, x, x, x, x, x, x, ..]
     
     movup.2 
     swap            
@@ -100,13 +135,13 @@ end
 
 #! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
 #! was performed correctly.      
-#! Input: [ptr0 + 2 * i, ptr0 + 2 * i, poe, p, e1, e0, ptr0 + 2 * i, ptr2n, x, x, x, x, x, x, x, x, ...]
-#! Output: [ptr0 + 2 * (i + 1), ptr0 + 2 * (i + 1), poe^4, f_pos, ne1, ne0, ptr0 + 2 * (i + 1), ptr2n, x, x, x, x, x, x, x, x, ...]
+#! Input: [ptr0 + 2 * i, ptr0 + 2 * i, poe, p, e1, e0, ptr0 + 2 * i, ptr_rem_start, x, x, x, x, x, x, x, x, ...]
+#! Output: [ptr0 + 2 * (i + 1), ptr0 + 2 * (i + 1), poe^4, f_pos, ne1, ne0, ptr0 + 2 * (i + 1), ptr_rem_start, x, x, x, x, x, x, x, x, ...]
 #! Cost: 83
 export.verify_query_layer.3
     
     # Load layer commitment as well as [d_size, t_depth, a1, a0]
-    # [C, d_size, t_depth, a1, a0, poe, p, e1, e0, ptr0 + 2 * i, ptr2n, ...]
+    # [C, d_size, t_depth, a1, a0, poe, p, e1, e0, ptr0 + 2 * i, ptr_rem_start, ...]
     # 12 cycles
     swapdw                          
     movup.8 add.1       
@@ -116,10 +151,10 @@ export.verify_query_layer.3
     mem_loadw                       
 
     # Verify Merkle auth path for (index = f_pos, depth = t_depth, Root = C)
-    # [V, f_pos, d_seg, poe, e1, e0, a1, a0, ptr0 + 2 * i, ptr2n, ..] where f_pos = p % d_size and d_seg = p / 4
+    # [V, f_pos, d_seg, poe, e1, e0, a1, a0, ptr0 + 2 * i, ptr_rem_start, ..] where f_pos = p % d_size and d_seg = p / 4
     # 27 cycles
     swapw.2                 
-    swap                    
+    swap                    # [poe, p, e1, e0, d_size, t_depth, a1, a0, C, ptr0 + 2 * i, ptr_rem_start, ...]
     movup.4                 
     u32checked_divmod       
     movup.5                 
@@ -130,7 +165,7 @@ export.verify_query_layer.3
     swapw dropw
 
     # Unhash V and save the pre-image in locaddr.0 and locaddr.1
-    # [T2, T1, T0, ptr, V, f_pos, d_seg, poe, e1, e0, a1, a0, ptr0 + 2 * i, ptr2n, ..]
+    # [T2, T1, T0, ptr, V, f_pos, d_seg, poe, e1, e0, a1, a0, ptr0 + 2 * i, ptr_rem_start, ..]
     # 17 cycles
     locaddr.1
     push.0.0.0.0.0.0.0.0.0.0.0.0
@@ -149,19 +184,19 @@ export.verify_query_layer.3
     assert_eq 
     
     # Load (v7, ..v0) from memory
-    # [v7, ..., v0, f_pos, d_seg, poe, e1, e0, a1, a0, ptr0 + 2 * i, ptr2n, ..]
+    # [v7, ..., v0, f_pos, d_seg, poe, e1, e0, a1, a0, ptr0 + 2 * i, ptr_rem_start, ..]
     # 8 cycles
     loc_loadw.1
     swapw
     loc_loadw.2
 
     # Fold by 4
-    # [x, x, x, x, x, x, x, x, x, x, ptr0 + 2 * (i + 1), poe^4, f_pos, ne1, ne0, ptr2n, ...]
+    # [x, x, x, x, x, x, x, x, x, x, ptr0 + 2 * (i + 1), poe^4, f_pos, ne1, ne0, ptr_rem_start, ...]
     # 1 cycle
     fri_ext2fold4
 
     # Prepare for next iteration
-    # [?, ptr0 + 2 * (i + 1), ptr0 + 2 * (i + 1), poe^4, f_pos, ne1, ne0, ptr0 + 2 * (i + 1), ptr2n, x, x, x, x, x, x, x, x, ...]
+    # [?, ptr0 + 2 * (i + 1), ptr0 + 2 * (i + 1), poe^4, f_pos, ne1, ne0, ptr0 + 2 * (i + 1), ptr_rem_start, x, x, x, x, x, x, x, x, ...]
     # 11 cycles
     swapdw               
     dup.2
@@ -175,14 +210,14 @@ export.verify_query_layer.3
 end
 
 #! Verifies one FRI query.
-#! Input: [poe, p, e1, e0, ptr0, ptr2n, ..]
+#! Input: [poe, p, e1, e0, ptr0, ptr_rem_start, ..]
 #! Output: ()
 #! Cost: 37 + num_layers * 105
 export.verify_query
 
     # Prepare stack to be in a form that leverages the fri_ext2fold4 instruction ouput stack state.
-    # Input: [poe, p, e1, e0, ptr0, ptr2n, ..]
-    # Output: [?, ptr0, ptr0, poe, p, e1, e0, ptr0, ptr2n, x, x, x, x, x, x, x, x, ..]
+    # Input: [poe, p, e1, e0, ptr0, ptr_rem_start, ..]
+    # Output: [?, ptr0, ptr0, poe, p, e1, e0, ptr0, ptr_rem_start, x, x, x, x, x, x, x, x, ..]
     dup.5               
     dup.5               
     push.0.0.0.0
@@ -192,8 +227,8 @@ export.verify_query
     movup.3             
     neq                 
     
-    # Input: [ptr0, ptr0, poe, p, e1, e0, ptr0, ptr2n, x, x, x, x, x, x, x, x, ...]
-    # Output: [ptr2n, ptr2n, poe^2^n, f_pos, ne1, ne0, ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+    # Input: [ptr0, ptr0, poe, p, e1, e0, ptr0, ptr_rem_start, x, x, x, x, x, x, x, x, ...]
+    # Output: [ptr_rem_start, ptr_rem_start, poe^2^n, f_pos, ne1, ne0, ptr_rem_start, ptr_rem_start, x, x, x, x, x, x, x, x, ..]
     while.true
         exec.verify_query_layer
     end
@@ -204,55 +239,84 @@ export.verify_query
 end
 
 #! Verifies a FRI proof
+#! Expects a stack in the following configuration [ptr_query_start, ptr_query_end, ptr0, ptr_rem_start, g] where:
+#!
+#!  1) ptr0 is a pointer to the first layer commitment denoted throughout the code by C. ptr0 + 1 
+#!  points to the first [d_size, t_depth, alpha1, alpha0] where d_size is the size of initial domain
+#!  divided by 4, t_depth is the depth of the Merkle tree commiment to the first layer and (alpha1, alpha0)
+#!  is the first challenge used in folding the first layer.
+#!  2) ptr_rem_start is a pointer to the first tuple of two consecutive degree 2 extension field elements 
+#!  making up the remainder codeword. This codeword can be of length either 32 or 64.
+#!  3) ptr_queries_start is a pointer to a list of tuples of the form (0, p, e1, e0) where p is a query
+#!  index at the first layer and (e0, e1) is an extension field elements corresponding to the value 
+#!  of the first layer at index p.
+#!  4) ptr_queries_end is a pointer to the first empty memory address after the last (0, p, e1, e0) tuple.
+#!
+#!  The memory referenced above is used contiguously. This means for example that:
+#!  1)  ptr_rem_start - 1 points to the last (d_size, t_depth, alpha1, alpha0) tuple.
+#!  2) The length of the remainder codeword is 2 * (ptr_rem_start - ptr_queries_start).
+#! Input: [ptr_query_start, ptr_query_end, ptr0, ptr_rem_start, g]
+#! Output: ()
 #! Cost: 2626 + 8 + num_queries * (37 + num_layers * 105 + 58)
-export.verify_fri.1
+export.verify.1
 
-    # Load num of queries num_q and domain generator g
-    #[num_q, g, ptr0, ptr2n, ...]
-    adv_push.1
-    adv_push.1
+    # Store [ptr_query_start, ptr_query_end, ptr0, ptr_rem_start] to keep track of all queries
     locaddr.0
     mem_storew
 
-    neq.0
+    # Compute size of remainder divided by 2 to be used in determining the appropriate remainder
+    # verification procedure.
+    # [ptr_query_start, ptr_query_end, ptr0, ptr_rem_start, g, rem_len]
+    dup
+    dup.4
+    sub
+    movdn.5
     
+    # Compute number of remaining queries to be verified and assert it is not 0
+    # [?, ptr_query_start, ptr0, ptr_rem_start, g, rem_len, ...]
+    swap
+    dup.1
+    neq
+
     while.true
-        #[g, ptr0, ptr2n, ...]
-        
-        # Load [p, e1, e0] from advice i.e. next query data
-        # [p, e1, e0, g, ptr0, ptr2n]
-        adv_push.3
+        # Load [0, p, e1, e0] from mempry i.e. next query data
+        # [p, e1, e0, ptr0, ptr_rem_start, g, rem_len, ...]
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+        drop
 
         # Compute poe = g^p
-        # [poe, p, e1, e0, ptr0, ptr2n, ..]
-        movup.3
+        # [poe, p, e1, e0, ptr0, ptr_rem_start, rem_len, ..]
+        dup.5
         dup.1
         exp.u32
 
-        # We now have everything to verify query p. 
-        # [ptr2n, ptr2n, x, x, x, x, x, x, x, x, ..]
+        # We now have everything to verify query p
         exec.verify_query
 
         # Prepare for next iteration
-        # [?, g, ptr0, ptr2n]
+        # [?, ptr_query_start + 1, ptr0, ptr_rem_start, g, rem_len, ...]
         dropw drop drop
         locaddr.0
         mem_loadw
-        sub.1
+        add.1
         locaddr.0
         mem_storew
-        neq.0
+        swap
+        dup.1
+        neq
     end
-    
-
-    # Stack so far
-    # [g, ptr0, ptr2n]
 
     # Verify that remainder corresponds to a low degree polynomial
-    # ()
-    drop drop
 
-    adv_push.1
+    # Check if remainder is of size 64
+    # [?, ptr_remainder_start]
+    drop drop swap drop
+    swap
+    push.32
+    eq
+
     if.true
         exec.ext2fri::verify_remainder_64
     else
