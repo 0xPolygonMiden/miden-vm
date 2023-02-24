@@ -18,6 +18,7 @@ doctest = false
 [features]
 concurrent = ["winter-prover/concurrent", "std"]
 default = ["std"]
+internals = []
 std = ["vm-core/std", "winter-prover/std", "log/std"]
 
 [dependencies]
