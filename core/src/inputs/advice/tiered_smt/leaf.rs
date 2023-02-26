@@ -42,9 +42,6 @@ impl Leaf {
         let remaining = [Felt::new(remaining[0]),Felt::new(remaining[1]),Felt::new(remaining[2]),Felt::new(remaining[3])];
         let value = self.value;
         let hash = Rpo256::merge(&[remaining.into(), value.into()]);
-        println!("hash of inserted leaf {:?}", hash);
-        println!("remaining of inserted leaf {:?}", remaining);
-        println!("value in inserted leaf {:?}", value);
         hash
     }
 }

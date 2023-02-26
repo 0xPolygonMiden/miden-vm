@@ -419,8 +419,5 @@ where
 #[test]
 fn values_correspond_to_manually_generated_tree() {
     let null: Vec<RpoDigest> = empty_merkle_subtrees(TieredSmt::MAX_DEPTH);
-    //assert_eq!(null, EMPTY_SUBTREES.to_vec());
-    for (i, digest) in null.iter().enumerate(){
-        println!("depth {i} has digest {:?}", digest);
-    }
+    assert_eq!(null, EMPTY_SUBTREES.to_vec());
 }

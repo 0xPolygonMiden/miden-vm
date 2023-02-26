@@ -152,11 +152,6 @@ impl TieredSmt {
         Ok(result.nodes)
     }
 
-    //pub fn update_leaf(&self, index: u64) -> Result<(), AdviceSetError>{
-    //let depth = self.depth();
-
-    //}
-
     /// Returns the index of the leaf with the specified key.
     ///
     /// If the leaf is not in the tree, returns the index at which it could have been located.
@@ -252,11 +247,6 @@ impl TieredSmt {
                 self.append_bottom_leaf((&index).into(), leaf)?
             }
             NodeType::Empty => {
-                let insertion = Insertion::Simple {
-                    index: index.index(),
-                    depth: index.depth() as u32,
-                };
-                println!("insertion type {:?}", insertion);
                 self.replace_upper_leaf(index.into(), leaf)?
             }
             NodeType::Leaf => {
@@ -429,10 +419,6 @@ impl TieredSmt {
         key: [Felt; 4],
         value: [Felt; 4],
     ) -> Result<Insertion, AdviceSetError> {
-        //let leaf_index = self.get_leaf_index(key).unwrap();
-        //let depth = leaf_index.depth();
-        //let index = leaf_index.index();
-
         let key = CanonicalWord::from(key);
         let leaf = Leaf::new(key, value);
 
@@ -527,14 +513,6 @@ impl TieredSmt {
                     key: sibling_key.into(),
                     value: sibling_value,
                 };
-                //if sibling_index.is_max_depth() {
-                //self.append_bottom_leaf(sibling_index.into(), sibling)?;
-                //self.append_bottom_leaf(index.into(), leaf)?;
-                //} else {
-                //self.replace_upper_leaf(sibling_index.into(), sibling)?;
-                //self.storage.take_leaf_key(&node)?;
-                //self.replace_upper_leaf(index.into(), leaf)?;
-                //}
                 insertion
             }
         };
