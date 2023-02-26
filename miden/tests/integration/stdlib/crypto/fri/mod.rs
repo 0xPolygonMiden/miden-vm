@@ -12,6 +12,8 @@ pub use channel::*;
 pub(crate) mod verifier_fri_e2f4;
 pub use verifier_fri_e2f4::*;
 
+mod remainder;
+
 #[test]
 fn fri_fold4_ext2_remainder32() {
     let source = "
