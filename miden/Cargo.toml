@@ -1,5 +1,5 @@
 [package]
-name = "miden"
+name = "miden-vm"
 version = "0.4.0"
 description="Miden virtual machine"
 authors = ["miden contributors"]

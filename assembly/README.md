@@ -24,17 +24,17 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 ## Assembler options
 By default, the assembler is instantiated in the most minimal form. To extend the capabilities of the assembler, you can apply a chain of `with_*` methods to the default instance in a builder pattern. The set of currently available options is described below.
 
-### Module provider
-To enable calls to procedures from external modules, the assembler must be supplied with a `ModuleProvider`. A module provider tells the assembler how to resolve calls to external procedures.
+### Libraries
+To enable calls to procedures from external modules, the assembler must be supplied with libraries containing these modules. This can be done via `with_library()` or `with_libraries()` methods.
 
-`ModuleProvider` is a trait which can be implemented in a number of different ways. We have implemented it for the Miden [standard library](../stdlib). Thus, for example, to make Miden stdlib available to programs during compilation, the assembler can be instantiated as follows:
+ A library can be anything that implements the `Library` trait. We have implemented this trait for the Miden [standard library](../stdlib). Thus, for example, to make Miden stdlib available to programs during compilation, the assembler can be instantiated as follows:
 
 ```Rust
 use miden_assembly::Assembler;
 use miden_stdlib::StdLibrary;
 
 // instantiate the assembler with access to Miden stdlib
-let assembler = Assembler::default().with_module_provider(StdLibrary::default());
+let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
 ```
 Programs compiled with this assembler can invoke any procedure from Miden `stdlib`. For example, something like this will be possible:
 ```
@@ -47,6 +47,8 @@ begin
 end
 ```
 
+We also provide a concrete implementation of the `Library` trait called `MaslLibrary`. This implementation can be used to instantiate libraries from `.masl` files.
+
 ### Program kernels
 A *program kernel* defines a set of procedures which can be invoked via `syscall` instructions. Miden programs are always compiled against some kernel, and by default this kernel is empty (i.e., no `syscall`'s are possible).
 
@@ -58,7 +60,7 @@ use miden_assembly::Assembler;
 let kernel_source = "export.foo add end";
 
 // instantiate the assembler with a kernel
-let assembler = Assembler::default().with_kernel(kernel_source);
+let assembler = Assembler::default().with_kernel(kernel_source).unwrap();
 ```
 
 Programs compiled with this assembler will be able to make calls to `foo` procedure by executing `syscall.foo` instruction.
@@ -86,9 +88,10 @@ let kernel_source = "export.foo add end";
 
 // instantiate the assembler
 let assembler = Assembler::default()
-    .with_module_provider(StdLibrary::default())
-    .with_kernel(kernel_source)
-    .with_debug_mode(true);
+    .with_debug_mode(true)
+    .with_library(&StdLibrary::default())
+    .and_then(|a| a.with_kernel(kernel_source))
+    .unwrap();
 ```
 
 ## License

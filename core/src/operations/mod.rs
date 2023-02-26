@@ -503,7 +503,7 @@ impl Operation {
             Self::U32add3   => 0b0100_1100,
             Self::U32madd   => 0b0100_1110,
 
-            Self::HPerm    => 0b0101_0000,
+            Self::HPerm     => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
             Self::Pipe      => 0b0101_0100,
             Self::MStream   => 0b0101_0110,

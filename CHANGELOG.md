@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 (TBD)
+## 0.4.0 (2023-02-27)
 
 #### Advice provider
 - [BREAKING] Converted `AdviceProvider` into a trait which can be provided to the processor.
@@ -12,7 +12,6 @@
 - Added cycle count to the output of program execution.
 
 #### Assembly
-
 - Added support for constant declarations.
 - Added new instructions: `clk`, `ext2*`, `fri_ext2fold4`, `hash`, `u32checked_popcnt`, `u32unchecked_popcnt`.
 - [BREAKING] Renamed `rpperm` to `hperm` and `rphash` to `hmerge`.
