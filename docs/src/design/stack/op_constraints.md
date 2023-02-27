@@ -74,7 +74,7 @@ This group contains $32$ operations which do not shift the stack (this is almost
 | `FMPADD`     | $6$          | `000_0110`      | [System ops](./system_ops.md) | $7$         |
 | `MLOAD`      | $7$          | `000_0111`      | [I/O ops](./io_ops.md)        | $7$         |
 | `SWAP`       | $8$          | `000_1000`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `<unused>`   | $9$          | `000_1001`      |                               | $7$         |
+| `CALLER`     | $9$          | `000_1001`      | [System ops](./system_ops.md) | $7$         |
 | `MOVUP2`     | $10$         | `000_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN2`     | $11$         | `000_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVUP3`     | $12$         | `000_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
@@ -90,7 +90,7 @@ This group contains $32$ operations which do not shift the stack (this is almost
 | `MOVUP7`     | $22$         | `001_0110`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN7`     | $23$         | `001_0111`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `SWAPW`      | $24$         | `001_1000`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `<unused>`   | $25$         | `001_1001`      |                               | $7$         |
+| `EXT2MUL`    | $25$         | `001_1001`      | [Field ops](./field_ops.md)   | $7$         |
 | `MOVUP8`     | $26$         | `001_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN8`     | $27$         | `001_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `SWAPW2`     | $28$         | `001_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
@@ -111,7 +111,7 @@ This group contains $16$ operations which shift the stack to the left (i.e., rem
 | `OR`         | $37$         | `010_0101`      | [Field ops](./field_ops.md)   | $7$         |
 | `U32AND`     | $38$         | `010_0110`      | [u32 ops](./u32_ops.md)       | $7$         |
 | `U32XOR`     | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `<unused>`   | $40$         | `010_1000`      |                               | $7$         |
+| `FRIE2F4`    | $40$         | `010_1000`      | [Crypto ops](./crypto_ops.md) | $7$         |
 | `DROP`       | $41$         | `010_1001`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAP`      | $42$         | `010_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAPW`     | $43$         | `010_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
@@ -177,10 +177,10 @@ This group contains operations which require constraints with degree up to $3$. 
 
 | Operation    | Opcode value | Binary encoding | Operation group                        | Flag degree |
 | ------------ | :----------: | :-------------: | :-------------------------------------:| :---------: |
-| `HPERM`     | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
+| `HPERM`      | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
 | `MPVERIFY`   | $82$         | `101_0010`      | [Crypto ops](./crypto_ops.md)          | $6$         |
-| `<unused>`   | $84$         | `101_0100`      |                                        | $6$         |
-| `<unused>`   | $86$         | `101_0110`      |                                        | $6$         |
+| `PIPE`       | $84$         | `101_0100`      | [I/O ops](./io_ops.md)                 | $6$         |
+| `MSTREAM`    | $86$         | `101_0110`      | [I/O ops](./io_ops.md)                 | $6$         |
 | `SPAN`       | $88$         | `101_1000`      | [Flow control ops](../decoder/main.md) | $6$         |
 | `JOIN`       | $90$         | `101_1010`      | [Flow control ops](../decoder/main.md) | $6$         |
 | `SPLIT`      | $92$         | `101_1100`      | [Flow control ops](../decoder/main.md) | $6$         |

@@ -183,7 +183,7 @@ end
 #!
 #! - poe is g^p.
 #! - p is a query index at the first layer. 
-#! - (e0, e1) is an extension field elements corresponding to the value of the first layer at index p.
+#! - (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
 #! - layer_ptr is the memory address of the layer data (Merkle tree root, alpha etc.) for the next
 #!   layer.
 #! - rem_ptr is the memory address of the remainder codeword.
@@ -240,14 +240,14 @@ export.verify_query
     # => [x, x, x, x, x, x, x, x, x, x, ...]
 end
 
-#! Verifies a FRI proof where the proof was generated over quadratic extension of the base field
-#! and layer folding was performed using folding factor 4.
+#! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
+#! field and layer folding was performed using folding factor 4.
 #!
 #! Input:  [query_start_ptr, query_end_ptr, layer_ptr, rem_ptr, g, ...]
 #! Output: [...]
 #!
 #! - query_start_ptr is a pointer to a list of tuples of the form (e0, e1, p, 0) where p is a
-#!   query index at the first layer and (e0, e1) is an extension field elements corresponding to
+#!   query index at the first layer and (e0, e1) is an extension field element corresponding to
 #!   the value of the first layer at index p.
 #! - query_end_ptr is a pointer to the first empty memory address after the last (e0, e1, p, 0)
 #!   tuple.
