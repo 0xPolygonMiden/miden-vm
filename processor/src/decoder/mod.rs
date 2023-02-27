@@ -1,6 +1,6 @@
 use super::{
-    Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    AdviceProvider, Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation,
+    Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
@@ -39,7 +39,10 @@ const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::chiplets::hasher::HASH_CYCLE_LEN
 // DECODER PROCESS EXTENSION
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // JOIN BLOCK
     // --------------------------------------------------------------------------------------------
 
@@ -50,9 +53,9 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let addr = self
-            .chiplets
-            .hash_control_block(child1_hash, child2_hash, block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(child1_hash, child2_hash, Join::DOMAIN, block.hash());
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -85,14 +88,13 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let addr = self
-            .chiplets
-            .hash_control_block(child1_hash, child2_hash, block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(child1_hash, child2_hash, Split::DOMAIN, block.hash());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
-        self.decoder
-            .start_split(child1_hash, child2_hash, addr, condition);
+        self.decoder.start_split(child1_hash, child2_hash, addr, condition);
         self.execute_op(Operation::Drop)?;
         Ok(condition)
     }
@@ -122,9 +124,9 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let addr = self
-            .chiplets
-            .hash_control_block(body_hash, [ZERO; 4], block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(body_hash, [ZERO; 4], Loop::DOMAIN, block.hash());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -173,9 +175,9 @@ impl Process {
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
         let fn_hash = block.fn_hash().into();
-        let addr = self
-            .chiplets
-            .hash_control_block(fn_hash, [ZERO; 4], block.hash());
+        let addr =
+            self.chiplets
+                .hash_control_block(fn_hash, [ZERO; 4], block.domain(), block.hash());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -250,16 +252,13 @@ impl Process {
         // hashing operation batches. Thus, the result of the hash is expected to be in row
         // addr + (num_batches * 8) - 1.
         let op_batches = block.op_batches();
-        let num_op_groups = get_span_op_group_count(op_batches);
-        let addr = self
-            .chiplets
-            .hash_span_block(op_batches, num_op_groups, block.hash());
+        let addr = self.chiplets.hash_span_block(op_batches, block.hash());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
-        self.decoder
-            .start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
+        let num_op_groups = get_span_op_group_count(op_batches);
+        self.decoder.start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
         self.execute_op(Operation::Noop)
     }
 
@@ -430,11 +429,7 @@ impl Decoder {
         // mark this cycle as the cycle at which a SPLIT block began execution (this affects block
         // stack and block hash tables). Only one child of the SPLIT block is expected to be
         // executed, and thus, we record the hash only for that child.
-        let taken_branch_hash = if stack_top == ONE {
-            child1_hash
-        } else {
-            child2_hash
-        };
+        let taken_branch_hash = if stack_top == ONE { child1_hash } else { child2_hash };
         self.aux_hints
             .block_started(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
 
@@ -451,20 +446,14 @@ impl Decoder {
 
         // append a LOOP row to the execution trace
         let enter_loop = stack_top == ONE;
-        let parent_addr = self
-            .block_stack
-            .push(addr, BlockType::Loop(enter_loop), None);
+        let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop), None);
         self.trace
             .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
 
         // mark this cycle as the cycle at which a new LOOP block has started (this may affect
         // block hash table). A loop block has a single child only if the body of the loop is
         // executed at least once.
-        let executed_loop_body = if enter_loop {
-            Some(loop_body_hash)
-        } else {
-            None
-        };
+        let executed_loop_body = if enter_loop { Some(loop_body_hash) } else { None };
         self.aux_hints
             .block_started(clk, self.block_stack.peek(), executed_loop_body, None);
 
@@ -500,13 +489,11 @@ impl Decoder {
 
         // push CALL block info onto the block stack and append a CALL row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
-        self.trace
-            .append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
+        self.trace.append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
 
         // mark this cycle as the cycle at which a new CALL block began execution (this affects
         // block stack and block hash tables). A CALL block has only a single child.
-        self.aux_hints
-            .block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
+        self.aux_hints.block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
 
         self.debug_info.append_operation(Operation::Call);
     }
@@ -521,16 +508,13 @@ impl Decoder {
 
         // push SYSCALL block info onto the block stack and append a SYSCALL row to the execution
         // trace
-        let parent_addr = self
-            .block_stack
-            .push(addr, BlockType::SysCall, Some(ctx_info));
+        let parent_addr = self.block_stack.push(addr, BlockType::SysCall, Some(ctx_info));
         self.trace
             .append_block_start(parent_addr, Operation::SysCall, fn_hash, [ZERO; 4]);
 
         // mark this cycle as the cycle at which a new SYSCALL block began execution (this affects
         // block stack and block hash tables). A SYSCALL block has only a single child.
-        self.aux_hints
-            .block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
+        self.aux_hints.block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
 
         self.debug_info.append_operation(Operation::SysCall);
     }
@@ -594,8 +578,7 @@ impl Decoder {
 
         // mark the current cycle as the cycle at which a SPAN block has started; SPAN block has
         // no children
-        self.aux_hints
-            .block_started(clk, self.block_stack.peek(), None, None);
+        self.aux_hints.block_started(clk, self.block_stack.peek(), None, None);
 
         self.debug_info.append_operation(Operation::Span);
     }
@@ -641,14 +624,10 @@ impl Decoder {
         // at the current cycle.
         let group_pos = ctx.num_groups_left;
         let batch_id = self.block_stack.peek().addr;
-        self.aux_hints
-            .remove_op_group(clk - 1, batch_id, group_pos, op_group);
+        self.aux_hints.remove_op_group(clk - 1, batch_id, group_pos, op_group);
 
         // reset the current group value and decrement the number of left groups by ONE
-        debug_assert_eq!(
-            ZERO, ctx.group_ops_left,
-            "not all ops executed in current group"
-        );
+        debug_assert_eq!(ZERO, ctx.group_ops_left, "not all ops executed in current group");
         ctx.group_ops_left = op_group;
         ctx.num_groups_left -= ONE;
     }
@@ -680,8 +659,7 @@ impl Decoder {
         // removed from the op_group table.
         if let Some(imm_value) = op.imm_value() {
             let group_pos = ctx.num_groups_left;
-            self.aux_hints
-                .remove_op_group(clk, block.addr, group_pos, imm_value);
+            self.aux_hints.remove_op_group(clk, block.addr, group_pos, imm_value);
 
             ctx.num_groups_left -= ONE;
         }
@@ -707,8 +685,7 @@ impl Decoder {
         // remove the block from the stack of executing blocks and add an END row to the
         // execution trace
         let block_info = self.block_stack.pop();
-        self.trace
-            .append_span_end(block_hash, block_info.is_loop_body());
+        self.trace.append_span_end(block_hash, block_info.is_loop_body());
         self.span_context = None;
 
         // mark this cycle as the cycle at which block execution has ended

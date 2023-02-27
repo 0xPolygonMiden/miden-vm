@@ -22,12 +22,7 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 ) -> Vec<Vec<E>> {
     let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
     let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements);
-    let p3 = build_aux_col_p3(
-        main_trace,
-        main_trace.num_rows(),
-        aux_trace_hints,
-        rand_elements,
-    );
+    let p3 = build_aux_col_p3(main_trace, main_trace.num_rows(), aux_trace_hints, rand_elements);
     vec![p1, p2, p3]
 }
 

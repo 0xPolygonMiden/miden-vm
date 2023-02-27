@@ -181,9 +181,7 @@ impl StackTrace {
         // will remain unchanged
         trace[H0_COL_IDX] = batch_inversion(&trace[H0_COL_IDX]);
 
-        trace
-            .try_into()
-            .expect("Failed to convert vector to an array")
+        trace.try_into().expect("Failed to convert vector to an array")
     }
 
     // HELPER METHODS
@@ -240,9 +238,7 @@ fn init_stack_columns(
         stack.push(column)
     }
 
-    stack
-        .try_into()
-        .expect("Failed to convert vector to an array")
+    stack.try_into().expect("Failed to convert vector to an array")
 }
 
 /// Initializes the bookkeeping & helper columns.

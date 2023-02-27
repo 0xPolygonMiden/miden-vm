@@ -1,7 +1,7 @@
 use crate::{build_op_test, build_test, helpers::Test};
-use processor::FMP_MIN;
+use processor::{AdviceInputs, FMP_MIN};
 use vm_core::{
-    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, ProgramInputs, StarkField, Word,
+    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, StackInputs, StarkField, Word,
 };
 
 // SDEPTH INSTRUCTION
@@ -21,7 +21,7 @@ fn sdepth() {
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
-    let source = format!("begin push.1 push.1 {} end", test_op);
+    let source = format!("begin push.1 push.1 {test_op} end");
     let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }
@@ -146,7 +146,8 @@ fn caller() {
     let test = Test {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
-        inputs: ProgramInputs::from_stack_inputs(&[1, 2, 3, 4, 5]).unwrap(),
+        stack_inputs: StackInputs::try_from_values([1, 2, 3, 4, 5]).unwrap(),
+        advice_inputs: AdviceInputs::default(),
         in_debug_mode: false,
     };
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
@@ -167,4 +168,26 @@ fn build_bar_hash() -> [u64; 4] {
         bar_hash[2].as_int(),
         bar_hash[3].as_int(),
     ]
+}
+
+// CLK INSTRUCTION
+// ================================================================================================
+
+#[test]
+fn clk() {
+    let test = build_op_test!("clk");
+    test.expect_stack(&[1]);
+
+    let source = "
+        proc.foo
+            push.5
+            push.4
+            clk
+        end
+        begin
+            exec.foo
+        end";
+
+    let test = build_test!(source, &[]);
+    test.expect_stack(&[3, 4, 5]);
 }

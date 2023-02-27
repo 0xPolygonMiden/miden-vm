@@ -27,15 +27,9 @@ impl BlockStack {
     ) -> Felt {
         // make sure execution context was provided for CALL and SYSCALL blocks
         if block_type == BlockType::Call || block_type == BlockType::SysCall {
-            debug_assert!(
-                ctx_info.is_some(),
-                "no execution context provided for a CALL block"
-            );
+            debug_assert!(ctx_info.is_some(), "no execution context provided for a CALL block");
         } else {
-            debug_assert!(
-                ctx_info.is_none(),
-                "execution context provided for a non-CALL block"
-            );
+            debug_assert!(ctx_info.is_none(), "execution context provided for a non-CALL block");
         }
 
         // determine additional info about the new block based on its parent

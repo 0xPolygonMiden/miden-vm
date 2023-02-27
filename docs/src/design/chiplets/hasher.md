@@ -1,8 +1,8 @@
 # Hash Chiplet
 
-Miden VM "offloads" all hash-related computations to a separate _hash processor_. This chiplet supports executing [Rescue Prime](https://eprint.iacr.org/2020/1143) hash function (or rather a [specific instantiation](https://docs.rs/winter-crypto/0.3.2/winter_crypto/hashers/struct.Rp64_256.html) of it) in the following settings:
+Miden VM "offloads" all hash-related computations to a separate _hash processor_. This chiplet supports executing the [Rescue Prime Optimized](https://eprint.iacr.org/2022/1577) hash function (or rather a [specific instantiation](https://docs.rs/miden-crypto/latest/miden_crypto/hash/rpo/struct.Rpo256.html) of it) in the following settings:
 
-- A single permutation of Rescue Prime.
+- A single permutation of Rescue Prime Optimized.
 - A simple 2-to-1 hash.
 - A linear hash of $n$ field elements.
 - Merkle path verification.
@@ -12,11 +12,11 @@ The chiplet can be thought of as having a small instruction set of $11$ instruct
 
 | Instruction | Description |
 | ----------- | ----------- |
-| `RPR`       | Executes a single round of Rescue Prime. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the chiplet executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                             |
-| `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                      |
-| `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                                                                       |
-| `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
-| `MU`        | Initiates Merkle path verification for the "new" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
+| `HR`       | Executes a single round of the VM's native hash function. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the chiplet executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                             |
+| `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                      |
+| `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                                                                       |
+| `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                    |
+| `MU`        | Initiates Merkle path verification for the "new" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                    |
 | `HOUT`      | Returns the result of the currently running computation. This instruction can be executed only on cycles which are one less than a multiple of $8$ (e.g. $7$, $15$ etc.).                                                                                                                                          |
 | `SOUT`      | Returns the whole hasher state. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `BP` instruction.                                                                                                                         |
 | `ABP`       | Absorbs a new set of elements into the hasher state when computing a linear hash of many elements. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `BP` instruction.                                                      |
@@ -35,8 +35,8 @@ The meaning of the columns is as follows:
 - Three periodic columns $k_0$, $k_1$, and $k_2$ are used to help select the instruction executed at a given row. All of these columns contain patterns which repeat every $8$ rows. For $k_0$ the pattern is $7$ zeros followed by $1$ one, helping us identify the last row in the cycle. For $k_1$ the pattern is $6$ zeros, $1$ one, and $1$ zero, which can be used to identify the second-to-last row in a cycle. For $k_2$ the pattern is $1$ one followed by $7$ zeros, which can identify the first row in the cycle.
 - Three selector columns $s_0$, $s_1$, and $s_2$. These columns can contain only binary values (ones or zeros), and they are also used to help select the instruction to execute at a given row.
 - One row address column $r$. This column starts out at $1$ and gets incremented by $1$ with every row.
-- Twelve hasher state columns $h_0, ..., h_{11}$. These columns are used to hold the hasher state for each round of Rescue Prime permutation. The state is laid out as follows:
-  - The first four columns ($h_0, ..., h_3$) are reserved for capacity elements of the state. When the state is initialized for hash computations, $h_0$ should be set to the number of elements to be hashed. All other capacity elements should be set to $0$'s.
+- Twelve hasher state columns $h_0, ..., h_{11}$. These columns are used to hold the hasher state for each round of the hash function permutation. The state is laid out as follows:
+  - The first four columns ($h_0, ..., h_3$) are reserved for capacity elements of the state. When the state is initialized for hash computations, $h_0$ should be set to $0$ if the number of elements to be hashed is a multiple of the rate width ($8$). Otherwise, $h_0$ should be set to $1$. $h_1$ should be set to the domain value if a domain has been provided (as in the case of [control block hashing](../programs.md#program-hash-computation)).  All other capacity elements should be set to $0$'s.
   - The next eight columns ($h_4, ..., h_{11}$) are reserved for the rate elements of the state. These are used to absorb the values to be hashed. Once the permutation is complete, hash output is located in the first four rate columns ($h_4, ..., h_7$).
 - One index column $i$. This column is used to help with Merkle path verification and Merkle root update computations.
 
@@ -81,17 +81,17 @@ The above rules ensure that we must finish one computation before starting anoth
 
 ### Single permutation
 
-Computing a single permutation of Rescue Prime hash function involves the following steps:
+Computing a single permutation of Rescue Prime Optimized hash function involves the following steps:
 
 1. Initialize hasher state with $12$ field elements.
-2. Apply Rescue Prime permutation.
+2. Apply Rescue Prime Optimized permutation.
 3. Return the entire hasher state as output.
 
 The chiplet accomplishes the above by executing the following instructions:
 
 ```
-[BP, RPR]                // init state and execute Rescue round (concurrently)
-RPR RPR RPR RPR RPR RPR  // execute 6 more Rescue rounds
+[BP, HR]                 // init state and execute a hash round (concurrently)
+HR HR HR HR HR HR        // execute 6 more hash rounds
 SOUT                     // return the entire state as output
 ```
 
@@ -105,15 +105,15 @@ In the above $\{a_0, ..., a_{11}\}$ is the input state of the hasher, and $\{b_0
 
 Computing a 2-to-1 hash involves the following steps:
 
-1. Initialize hasher state with $8$ field elements, setting the first capacity element to $8$, and the remaining capacity elements to $0$
-2. Apply Rescue Prime permutation.
+1. Initialize hasher state with $8$ field elements, setting the second capacity element to $domain$ if the domain is provided (as in the case of [control block hashing](../programs.md#program-hash-computation)) or else $0$, and the remaining capacity elements to $0$.
+2. Apply Rescue Prime Optimized permutation.
 3. Return elements ${4, ..., 7}$ of the hasher state as output.
 
 The chiplet accomplishes the above by executing the following instructions:
 
 ```
-[BP, RPR]                // init state and execute Rescue round (concurrently)
-RPR RPR RPR RPR RPR RPR  // execute 6 more Rescue rounds
+[BP, HR]                 // init state and execute a hash round (concurrently)
+HR HR HR HR HR HR        // execute 6 more hash rounds
 HOUT                     // return elements 4, 5, 6, 7 of the state as output
 ```
 
@@ -131,8 +131,8 @@ $$
 
 Computing a linear hash of $n$ elements consists of the following steps:
 
-1. Initialize hasher state with the first $8$ elements, setting the first capacity register to $n$, and the remaining capacity elements to $0$.
-2. Apply Rescue Prime permutation.
+1. Initialize hasher state with the first $8$ elements, setting the first capacity register to $0$ if $n$ is a multiple of the rate width ($8$) or else $1$, and the remaining capacity elements to $0$.
+2. Apply Rescue Prime Optimized permutation.
 3. Absorb the next set of elements into the state (up to $8$ elements), while keeping capacity elements unchanged.
 4. Repeat steps 2 and 3 until all $n$ elements have been absorbed.
 5. Return elements ${4, ..., 7}$ of the hasher state as output.
@@ -140,10 +140,10 @@ Computing a linear hash of $n$ elements consists of the following steps:
 The chiplet accomplishes the above by executing the following instructions (for hashing $16$ elements):
 
 ```
-[BP, RPR]                   // init state and execute Rescue round (concurrently)
-RPR RPR RPR RPR RPR RPR     // execute 6 more Rescue rounds
+[BP, HR]                    // init state and execute a hash round (concurrently)
+HR HR HR HR HR HR           // execute 6 more hash rounds
 ABP                         // absorb the next set of elements into the state
-RPR RPR RPR RPR RPR RPR RPR // execute 7 Rescue rounds
+HR HR HR HR HR HR HR        // execute 7 hash rounds
 HOUT                        // return elements 4, 5, 6, 7 of the state as output
 ```
 
@@ -161,9 +161,9 @@ $$
 
 Verifying a Merkle path involves the following steps:
 
-1. Initialize hasher state with the leaf and the first node of the path, setting the first capacity element to $8$, and the remaining capacity elements to $0$s.
+1. Initialize hasher state with the leaf and the first node of the path, setting all capacity elements to $0$s.
    a. Also, initialize the index register to the leaf's index value.
-2. Apply Rescue Prime permutation.
+2. Apply Rescue Prime Optimized permutation. 
    a. Make sure the index value doesn't change during this step.
 3. Copy the result of the hash to the next row, and absorb the next node of the Merkle path into the hasher state.
    a. Remove a single bit from the index, and use it to determine how to place the copied result and absorbed node in the state.
@@ -174,10 +174,10 @@ Verifying a Merkle path involves the following steps:
 The chiplet accomplishes the above by executing the following instructions (for Merkle tree of depth $3$):
 
 ```
-[MP, RPR]                   // init state and execute Rescue round (concurrently)
-RPR RPR RPR RPR RPR RPR     // execute 6 more Rescue rounds
+[MP, HR]                    // init state and execute a hash round (concurrently)
+HR HR HR HR HR HR           // execute 6 more hash rounds
 MPA                         // copy result & absorb the next node into the state
-RPR RPR RPR RPR RPR RPR RPR // execute 7 Rescue rounds
+HR HR HR HR HR HR HR        // execute 7 hash rounds
 HOUT                        // return elements 4, 5, 6, 7 of the state as output
 ```
 
@@ -214,17 +214,17 @@ The chiplet accomplishes the above by executing the following instructions:
 
 ```
 // verify the old merkle path
-[MV, RPR]                   // init state and execute Rescue round (concurrently)
-RPR RPR RPR RPR RPR RPR     // execute 6 more Rescue rounds
+[MV, HR]                    // init state and execute a hash round (concurrently)
+HR HR HR HR HR HR           // execute 6 more hash rounds
 MPV                         // copy result & absorb the next node into the state
-RPR RPR RPR RPR RPR RPR RPR // execute 7 Rescue rounds
+HR HR HR HR HR HR HR        // execute 7 hash rounds
 HOUT                        // return elements 4, 5, 6, 7 of the state as output
 
 // verify the new merkle path
-[MU, RPR]                   // init state and execute Rescue round (concurrently)
-RPR RPR RPR RPR RPR RPR     // execute 6 more Rescue rounds
+[MU, HR]                    // init state and execute a hash round (concurrently)
+HR HR HR HR HR HR           // execute 6 more hash rounds
 MPU                         // copy result & absorb the next node into the state
-RPR RPR RPR RPR RPR RPR RPR // execute 7 Rescue rounds
+HR HR HR HR HR HR HR        // execute 7 hash rounds
 HOUT                        // return elements 4, 5, 6, 7 of the state as output
 ```
 
@@ -330,7 +330,7 @@ To satisfy these constraints for computations not related to Merkle paths (i.e.,
 
 Hasher state columns $h_0, ..., h_{11}$ should behave as follows:
 
-- For the first $7$ row of every $8$-row cycle (i.e., when $k_0=0$), we need to apply [Rescue Prime](https://eprint.iacr.org/2020/1143) round constraints to the hasher state. For brevity, we omit these constraints from this note.
+- For the first $7$ row of every $8$-row cycle (i.e., when $k_0=0$), we need to apply [Rescue Prime Optimized](https://eprint.iacr.org/2022/1577) round constraints to the hasher state. For brevity, we omit these constraints from this note.
 - On the $8$th row of every $8$-row cycle, we apply the constraints based on which transition flag is set as described in the table below.
 
 Specifically, when absorbing the next set of elements into the state during linear hash computation (i.e., $f_{abp} = 1$), the first $4$ elements (the capacity portion) are carried over to the next row. For $j \in \{0, ..., 3\}$ this can be described as follows:

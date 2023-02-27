@@ -1,32 +1,59 @@
 use super::{
-    parse_checked_param, parse_decimal_param, parse_element_param, parse_hex_param, parse_param,
-    Felt,
+    parse_checked_param, parse_param, Felt,
     Instruction::*,
+    LocalConstMap,
     Node::{self, Instruction},
-    ParsingError, Token, Vec,
+    ParsingError, ToString, Token, Vec, CONSTANT_LABEL_PARSER,
 };
-use crate::{validate_operation, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
+use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
+use core::ops::RangeBounds;
+use vm_core::WORD_SIZE;
 
 // CONSTANTS
 // ================================================================================================
 
-/// The required length of the hexadecimal representation for an input value when more than one hex
-/// input is provided to `push` without period separators.
-const HEX_CHUNK_SIZE: usize = 16;
+/// The maximum parts number allowed for the `push` instruction.
+const MAX_PUSH_PARTS: usize = MAX_PUSH_INPUTS + 1;
 
 // INSTRUCTION PARSERS
 // ================================================================================================
 
-/// Returns `PushConstants` instruction node.
+/// Returns one of the `Push` instruction nodes.
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid values or inappropriate number of
 /// values.
-pub fn parse_push(op: &Token) -> Result<Node, ParsingError> {
-    validate_operation!(op, "push", 1..MAX_PUSH_INPUTS);
-
-    let constants = parse_constants(op)?;
-    Ok(Instruction(PushConstants(constants)))
+pub fn parse_push(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "push");
+    match op.num_parts() {
+        0 => unreachable!("missing token"),
+        1 => Err(ParsingError::missing_param(op)),
+        2 => {
+            let param_str = op.parts()[1];
+            match param_str.strip_prefix("0x") {
+                // if we have only one hex parameter
+                Some(param_str) if param_str.len() <= HEX_CHUNK_SIZE => {
+                    let value = parse_hex_value(op, param_str, 1)?;
+                    build_push_one_instruction(value)
+                }
+                // if we have many hex parameters without delimiter
+                Some(param_str) => parse_long_hex_param(op, param_str),
+                // if we have one decimal parameter
+                None => {
+                    let value = parse_non_hex_param_with_constants_lookup(
+                        op,
+                        constants,
+                        1,
+                        0..Felt::MODULUS,
+                    )?;
+                    build_push_one_instruction(value)
+                }
+            }
+        }
+        // if we have many parameters (decimal or hex) separated by delimiters
+        3..=MAX_PUSH_PARTS => parse_param_list(op, constants),
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }
 
 /// Returns `Locaddr` instruction node.
@@ -47,19 +74,6 @@ pub fn parse_locaddr(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns `Caller` instruction node.
-///
-/// # Errors
-/// Returns an error if the instruction token is malformed.
-pub fn parse_caller(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "caller");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(Caller)),
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
 /// Returns `AdvPush` instruction node.
 ///
 /// # Errors
@@ -71,37 +85,10 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let num_vals = parse_checked_param(op, 1, 1, ADVICE_READ_LIMIT)?;
+            let num_vals = parse_checked_param(op, 1, 1..=ADVICE_READ_LIMIT)?;
             Ok(Instruction(AdvPush(num_vals)))
         }
         _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
-/// Returns `AdvU64Div`, `AdvKeyval`, or `AdvMem`  instruction node.
-///
-/// # Errors
-/// Returns an error if:
-/// - Any of the instructions have a wrong number of parameters.
-/// - adv.mem.a.n has a + n > u32::MAX.
-pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "adv");
-    match op.parts()[1] {
-        "u64div" => {
-            validate_operation!(op, "adv.u64div", 0);
-            Ok(Instruction(AdvU64Div))
-        }
-        "keyval" => {
-            validate_operation!(op, "adv.keyval", 0);
-            Ok(Instruction(AdvKeyval))
-        }
-        "mem" => {
-            validate_operation!(op, "adv.mem", 2);
-            let start_addr = parse_param(op, 2)?;
-            let num_words = parse_checked_param(op, 3, 1, u32::MAX - start_addr)?;
-            Ok(Instruction(AdvMem(start_addr, num_words)))
-        }
-        _ => Err(ParsingError::invalid_op(op)),
     }
 }
 
@@ -256,69 +243,158 @@ pub fn parse_loc_storew(op: &Token) -> Result<Node, ParsingError> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn parse_constants(op: &Token) -> Result<Vec<Felt>, ParsingError> {
-    let mut constants = Vec::new();
-    let param_idx = 1;
-    let param_count = op.num_parts() - param_idx;
+/// Parses a list of parameters (each of which could be in decimal or hexadecimal form) and returns
+/// an appropriate push instruction node.
+fn parse_param_list(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
+    let values =
+        op.parts().iter().enumerate().skip(1).map(|(param_idx, &param_str)| {
+            match param_str.strip_prefix("0x") {
+                Some(param_str) => parse_hex_value(op, param_str, param_idx),
+                None => parse_non_hex_param_with_constants_lookup(
+                    op,
+                    constants,
+                    param_idx,
+                    0..Felt::MODULUS,
+                ),
+            }
+        });
 
-    // for multiple input parameters, parse & push each one onto the stack in order, then return
-    if param_count > 1 {
-        for param_idx in param_idx..=param_count {
-            let value = parse_element_param(op, param_idx)?;
-            constants.push(value);
-        }
-        return Ok(constants);
-    }
-
-    // for a single input, there could be one value or there could be a series of many hexadecimal
-    // values without separators
-    let param_str = op.parts()[param_idx];
-    if let Some(param_str) = param_str.strip_prefix("0x") {
-        // parse 1 or more hexadecimal values
-        let values = parse_hex_params(op, param_idx, param_str)?;
-        // push each value onto the stack in order
-        for &value in values.iter() {
-            constants.push(value);
-        }
-    } else {
-        // parse 1 decimal value and push it onto the stack
-        let value = parse_decimal_param(op, param_idx, param_str)?;
-        constants.push(value);
-    }
-
-    Ok(constants)
+    build_push_many_instruction(values)
 }
 
-fn parse_hex_params(
+/// Parses a non hexadecimal parameter and returns the value.  Takes as argument a constant map
+/// for constant lookup.
+fn parse_non_hex_param_with_constants_lookup<R: RangeBounds<u64>>(
     op: &Token,
+    constants: &LocalConstMap,
     param_idx: usize,
-    param_str: &str,
-) -> Result<Vec<Felt>, ParsingError> {
-    // handle error cases where the hex string is poorly formed
-    let is_single_element = if param_str.len() <= HEX_CHUNK_SIZE {
-        if param_str.len() % 2 != 0 {
-            // parameter string is not a valid hex representation
-            return Err(ParsingError::invalid_param(op, param_idx));
-        }
-        true
-    } else {
-        if param_str.len() % HEX_CHUNK_SIZE != 0 {
-            // hex string doesn't contain a valid number of bytes
-            return Err(ParsingError::invalid_param(op, param_idx));
-        }
-        false
-    };
+    range: R,
+) -> Result<u64, ParsingError> {
+    let param_str = op.parts()[param_idx];
+    // if we have a valid constant label then try and fetch it
+    match CONSTANT_LABEL_PARSER.parse_label(param_str.to_string()) {
+        Ok(_) => constants
+            .get(param_str)
+            .cloned()
+            .ok_or_else(|| ParsingError::const_not_found(op)),
+        Err(_) => parse_checked_param(op, param_idx, range),
+    }
+}
 
-    // parse the hex string into one or more valid field elements
-    if is_single_element {
-        // parse a single element in hex representation
-        let parsed_param = parse_hex_param(op, param_idx, param_str)?;
-        Ok(vec![parsed_param])
+/// Parses a single hexadecimal parameter into multiple values and returns an appropriate push
+/// instruction node.
+///
+/// # Errors
+/// Returns an error if:
+/// - The length of hex string is not even.
+/// - The length of hex string is not divisible by 16.
+/// - If the string does not contain a valid hexadecimal value.
+/// - If the parsed value is greater than or equal to the field modulus.
+fn parse_long_hex_param(op: &Token, param_str: &str) -> Result<Node, ParsingError> {
+    // handle error cases where the hex string is poorly formed
+    if param_str.len() % HEX_CHUNK_SIZE != 0 {
+        // hex string doesn't contain a valid number of bytes
+        return Err(ParsingError::invalid_param_with_reason(
+            op,
+            1,
+            &format!(
+                "hex string '{param_str}' does not contain a number of characters multiple 16"
+            ),
+        ));
+    }
+
+    // iterate over the multi-value hex string and parse each 8-byte chunk into a valid u64
+    let values = (0..param_str.len())
+        .step_by(HEX_CHUNK_SIZE)
+        .map(|i| parse_hex_value(op, &param_str[i..i + HEX_CHUNK_SIZE], 1));
+
+    build_push_many_instruction(values)
+}
+
+/// Parses a hexadecimal parameter value into a u64.
+///
+/// # Errors
+/// Returns an error if:
+/// - The length of hex string is not even.
+/// - The length of hex string is greater than 16.
+/// - If the string does not contain a valid hexadecimal value.
+/// - If the parsed value is greater than or equal to the field modulus.
+fn parse_hex_value(op: &Token, param_str: &str, param_idx: usize) -> Result<u64, ParsingError> {
+    if param_str.len() % 2 != 0 {
+        return Err(ParsingError::invalid_param_with_reason(
+            op,
+            param_idx,
+            &format!("hex string '{param_str}' does not contain an even number of characters"),
+        ));
+    }
+
+    if param_str.len() > HEX_CHUNK_SIZE {
+        return Err(ParsingError::invalid_param_with_reason(
+            op,
+            param_idx,
+            &format!("hex string '{param_str}' contains too many characters"),
+        ));
+    }
+
+    let value = u64::from_str_radix(param_str, 16)
+        .map_err(|_| ParsingError::invalid_param(op, param_idx))?;
+
+    if value >= Felt::MODULUS {
+        Err(ParsingError::invalid_param_with_reason(
+            op,
+            param_idx,
+            &format!("hex string '{param_str}' contains value greater than field modulus"),
+        ))
     } else {
-        // iterate over the multi-value hex string and parse each 8-byte chunk into a valid element
-        (0..param_str.len())
-            .step_by(HEX_CHUNK_SIZE)
-            .map(|i| parse_hex_param(op, param_idx, &param_str[i..i + HEX_CHUNK_SIZE]))
-            .collect()
+        Ok(value)
+    }
+}
+
+/// Determines the minimal type appropriate for provided value and returns appropriate instruction
+/// for this value
+fn build_push_one_instruction(value: u64) -> Result<Node, ParsingError> {
+    if value <= u8::MAX as u64 {
+        Ok(Instruction(PushU8(value as u8)))
+    } else if value <= u16::MAX as u64 {
+        Ok(Instruction(PushU16(value as u16)))
+    } else if value <= u32::MAX as u64 {
+        Ok(Instruction(PushU32(value as u32)))
+    } else if value < Felt::MODULUS {
+        Ok(Instruction(PushFelt(Felt::new(value))))
+    } else {
+        unreachable!()
+    }
+}
+
+/// Determines the minimal type appropriate for provided values iterator and returns appropriate
+/// instruction for this values
+fn build_push_many_instruction<I>(values_iter: I) -> Result<Node, ParsingError>
+where
+    I: Iterator<Item = Result<u64, ParsingError>> + Clone + ExactSizeIterator,
+{
+    assert!(values_iter.len() != 0);
+    let max_value = values_iter.clone().try_fold(0, |max, value| Ok(value?.max(max)))?;
+    if max_value <= u8::MAX as u64 {
+        let values_u8 = values_iter.map(|v| Ok(v? as u8)).collect::<Result<Vec<u8>, _>>()?;
+        Ok(Instruction(PushU8List(values_u8)))
+    } else if max_value <= u16::MAX as u64 {
+        let values_u16 = values_iter.map(|v| Ok(v? as u16)).collect::<Result<Vec<u16>, _>>()?;
+        Ok(Instruction(PushU16List(values_u16)))
+    } else if max_value <= u32::MAX as u64 {
+        let values_u32 = values_iter.map(|v| Ok(v? as u32)).collect::<Result<Vec<u32>, _>>()?;
+        Ok(Instruction(PushU32List(values_u32)))
+    } else if max_value < Felt::MODULUS {
+        let values_len = values_iter.len();
+        let values_felt =
+            values_iter.map(|imm| Ok(Felt::new(imm?))).collect::<Result<Vec<Felt>, _>>()?;
+        if values_len == WORD_SIZE {
+            Ok(Instruction(PushWord(
+                values_felt.try_into().expect("Invalid constatnts length"),
+            )))
+        } else {
+            Ok(Instruction(PushFeltList(values_felt)))
+        }
+    } else {
+        unreachable!()
     }
 }

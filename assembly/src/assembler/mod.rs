@@ -1,12 +1,16 @@
 use super::{
     parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
-    AssemblyError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, ModuleAst,
-    ModuleProvider, Operation, Procedure, ProcedureId, Program, String, ToString, Vec, ONE, ZERO,
+    AbsolutePath, AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel,
+    Library, LibraryError, Module, ModuleAst, Operation, Procedure, ProcedureId, Program, String,
+    ToString, Vec, ONE, ZERO,
 };
-use core::{borrow::Borrow, pin::Pin};
+use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
+
+mod module_provider;
+use module_provider::ModuleProvider;
 
 mod span_builder;
 use span_builder::SpanBuilder;
@@ -30,28 +34,17 @@ type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 /// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
 ///   instantiated with a default empty kernel. Programs compiled using such assembler
 ///   cannot make calls to kernel procedures via `syscall` instruction.
-/// - If `with_module_provider()` method is not used, the assembler will be instantiated without
-///   access to external libraries. Programs compiled with such assembler must be self-contained
-///   (i.e., they cannot invoke procedures from external libraries).
+#[derive(Default)]
 pub struct Assembler {
     kernel: Kernel,
-    module_provider: Box<dyn ModuleProvider>,
-    proc_cache: Pin<Box<ProcedureCache>>,
+    module_provider: ModuleProvider,
+    proc_cache: RefCell<ProcedureCache>,
     in_debug_mode: bool,
 }
 
 impl Assembler {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new instance of [Assembler] instantiated with empty module map.
-    pub fn new() -> Self {
-        Self {
-            kernel: Kernel::default(),
-            module_provider: Box::new(()),
-            proc_cache: Box::pin(BTreeMap::default()),
-            in_debug_mode: false,
-        }
-    }
 
     /// Puts the assembler into the debug mode.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
@@ -59,13 +52,22 @@ impl Assembler {
         self
     }
 
-    /// Adds the specified [ModuleProvider] to the assembler.
-    pub fn with_module_provider<P>(mut self, provider: P) -> Self
+    /// Adds the library to provide modules for the compilation.
+    pub fn with_library<L>(mut self, library: &L) -> Result<Self, AssemblyError>
     where
-        P: ModuleProvider + 'static,
+        L: Library,
     {
-        self.module_provider = Box::new(provider);
-        self
+        self.module_provider.add_library(library)?;
+        Ok(self)
+    }
+
+    /// Adds a library bundle to provide modules for the compilation.
+    pub fn with_libraries<I, L>(self, mut libraries: I) -> Result<Self, AssemblyError>
+    where
+        L: Library,
+        I: Iterator<Item = L>,
+    {
+        libraries.try_fold(self, |slf, library| slf.with_library(library.borrow()))
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided source.
@@ -77,17 +79,18 @@ impl Assembler {
     /// Panics if the assembler has already been used to compile programs.
     pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
         let kernel_ast = parsers::parse_module(kernel_source)?;
-        self.with_kernel_module(&kernel_ast)
+        self.with_kernel_module(kernel_ast)
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided module.
     ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_module(mut self, module: &ModuleAst) -> Result<Self, AssemblyError> {
+    pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
         let mut context = AssemblyContext::new(true);
-        self.compile_module(module, ProcedureId::KERNEL_PATH, &mut context)?;
+        let kernel = Module::kernel(module);
+        self.compile_module(&kernel, &mut context)?;
 
         // convert the context into Kernel; this builds the kernel from hashes of procedures
         // exported form the kernel module
@@ -139,31 +142,25 @@ impl Assembler {
         let program_root = self.compile_body(body.iter(), &mut context, None)?;
 
         // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache);
+        let cb_table = context.into_cb_table(&self.proc_cache.borrow());
 
         // build and return the program
-        Ok(Program::with_kernel(
-            program_root,
-            self.kernel.clone(),
-            cb_table,
-        ))
+        Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
     }
 
     // MODULE COMPILER
     // --------------------------------------------------------------------------------------------
 
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
-    #[allow(clippy::cast_ref_to_mut)]
     fn compile_module(
         &self,
-        module: &ModuleAst,
-        module_path: &str,
+        module: &Module,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
         // compile all procedures in the module; once the compilation is complete, we get all
         // compiled procedures (and their combined callset) from the context
-        context.begin_module(module_path)?;
-        for proc_ast in module.local_procs.iter() {
+        context.begin_module(&module.path)?;
+        for proc_ast in module.ast.local_procs.iter() {
             self.compile_procedure(proc_ast, context)?;
         }
         let (module_procs, module_callset) = context.complete_module();
@@ -175,11 +172,11 @@ impl Assembler {
         //   which has been invoked via a local call instruction.
         for proc in module_procs {
             if proc.is_export() || module_callset.contains(proc.id()) {
-                // TODO: figure out how to do this using interior mutability
-                unsafe {
-                    let mutable_self = &mut *(self as *const _ as *mut Assembler);
-                    mutable_self.proc_cache.insert(*proc.id(), proc);
-                }
+                // this is safe because we fail if the cache is borrowed.
+                self.proc_cache
+                    .try_borrow_mut()
+                    .map(|mut cache| cache.insert(*proc.id(), proc))
+                    .map_err(|_| AssemblyError::InvalidCacheLock)?;
             }
         }
 
@@ -285,48 +282,47 @@ impl Assembler {
         }
 
         span.extract_final_span_into(&mut blocks);
-
-        Ok(combine_blocks(blocks))
+        Ok(if blocks.is_empty() {
+            CodeBlock::new_span(vec![Operation::Noop])
+        } else {
+            combine_blocks(blocks)
+        })
     }
 
-    // PROCEDURE GETTER
+    // PROCEDURE CACHE
     // --------------------------------------------------------------------------------------------
-    /// Returns procedure MAST for a procedure with the specified ID.
+
+    /// Ensure a procedure exists in the cache. Otherwise, attempt to fetch it from the module
+    /// provider, compile, and check again.
     ///
-    /// This will first check if procedure is in the assembler's cache, and if not, will attempt
-    /// to find the module in which the procedure is located, compile the module, and return the
-    /// compiled procedure MAST.
-    fn get_imported_proc(
+    /// If `Ok` is returned, the procedure can be safely unwrapped from the cache.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal procedure cache is mutably borrowed somewhere.
+    fn ensure_procedure_is_in_cache(
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-    ) -> Result<&Procedure, AssemblyError> {
-        // if the procedure is already in the procedure cache, return it
-        if let Some(p) = self.proc_cache.get(proc_id) {
-            return Ok(p);
+    ) -> Result<(), AssemblyError> {
+        if !self.proc_cache.borrow().contains_key(proc_id) {
+            // if procedure is not in cache, try to get its module and compile it
+            let module = self
+                .module_provider
+                .get_module(proc_id)
+                .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
+            self.compile_module(module, context)?;
+
+            // if the procedure is still not in cache, then there was some error
+            if !self.proc_cache.borrow().contains_key(proc_id) {
+                return Err(AssemblyError::imported_proc_not_found_in_module(
+                    proc_id,
+                    &module.path,
+                ));
+            }
         }
 
-        // otherwise, get the module to which the procedure belongs and compile the entire module;
-        // this will add all procedures exported from the module to the procedure cache
-        let module = self
-            .module_provider
-            .get_module(proc_id)
-            .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
-        self.compile_module(&module, module.path(), context)?;
-
-        // then, get the procedure out of the procedure cache and return; if the procedure
-        // cannot be found in the cache, it is possible that the procedure was not in the
-        // module returned from the module provider
-        let proc = self.proc_cache.get(proc_id).ok_or_else(|| {
-            AssemblyError::imported_proc_not_found_in_module(proc_id, module.path())
-        })?;
-        Ok(proc)
-    }
-}
-
-impl Default for Assembler {
-    fn default() -> Self {
-        Self::new()
+        Ok(())
     }
 }
 
@@ -368,11 +364,7 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     // build a binary tree of blocks joining them using Join blocks
     let mut blocks = merged_blocks;
     while blocks.len() > 1 {
-        let last_block = if blocks.len() % 2 == 0 {
-            None
-        } else {
-            blocks.pop()
-        };
+        let last_block = if blocks.len() % 2 == 0 { None } else { blocks.pop() };
 
         let mut grouped_blocks = Vec::new();
         core::mem::swap(&mut blocks, &mut grouped_blocks);

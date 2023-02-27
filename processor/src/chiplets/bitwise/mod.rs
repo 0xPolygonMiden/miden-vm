@@ -49,7 +49,6 @@ const INIT_TRACE_CAPACITY: usize = 128;
 ///   significant 4-bit limbs of the input values. With every subsequent row, the next most
 ///   significant 4-bit limb of the result is appended to it. Thus, by the 8th row, column `z`
 ///   contains the full result of the bitwise operation.
-///
 pub struct Bitwise {
     trace: [Vec<Felt>; TRACE_WIDTH],
 }
@@ -103,7 +102,7 @@ impl Bitwise {
             self.add_bitwise_trace_row(BITWISE_AND, a, b);
 
             // compute bitwise AND of the 4 least significant bits of a and b
-            let result_4_bit = (a & b) & 0xF;
+            let result_4_bit = (a & b) & 0xf;
 
             // append the 4 bit result to the result accumulator, and save the current result into
             // the output column in the trace.
@@ -138,7 +137,7 @@ impl Bitwise {
             self.add_bitwise_trace_row(BITWISE_XOR, a, b);
 
             // compute bitwise XOR of the 4 least significant bits of a and b
-            let result_4_bit = (a ^ b) & 0xF;
+            let result_4_bit = (a ^ b) & 0xf;
 
             // append the 4 bit result to the result accumulator, and save the current result into
             // the output column in the trace.

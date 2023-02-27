@@ -7,7 +7,7 @@ use vm_core::{
     decoder::{IS_CALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET},
     stack::STACK_TOP_SIZE,
     utils::collections::Vec,
-    ProgramOutputs, StarkField, CLK_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX,
+    StackOutputs, StarkField, CLK_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX,
     STACK_AUX_TRACE_OFFSET,
 };
 
@@ -220,10 +220,10 @@ pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs
 pub fn get_assertions_last_step(
     result: &mut Vec<Assertion<Felt>>,
     step: usize,
-    outputs: &ProgramOutputs,
+    stack_outputs: &StackOutputs,
 ) {
     // stack columns at the last step should be set to stack outputs, excluding overflow outputs
-    for (i, value) in outputs.stack_top().iter().enumerate() {
+    for (i, value) in stack_outputs.stack_top().iter().enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, step, *value));
     }
 }
@@ -240,10 +240,7 @@ pub fn get_aux_assertions_first_step<E: FieldElement>(
 {
     let step = 0;
     let value = if stack_inputs.len() > STACK_TOP_SIZE {
-        get_overflow_table_init(
-            alphas.get_segment_elements(0),
-            &stack_inputs[STACK_TOP_SIZE..],
-        )
+        get_overflow_table_init(alphas.get_segment_elements(0), &stack_inputs[STACK_TOP_SIZE..])
     } else {
         E::ONE
     };
@@ -255,13 +252,13 @@ pub fn get_aux_assertions_first_step<E: FieldElement>(
 pub fn get_aux_assertions_last_step<E: FieldElement>(
     result: &mut Vec<Assertion<E>>,
     alphas: &AuxTraceRandElements<E>,
-    outputs: &ProgramOutputs,
+    stack_outputs: &StackOutputs,
     step: usize,
 ) where
     E: FieldElement<BaseField = Felt>,
 {
-    let value = if outputs.has_overflow() {
-        get_overflow_table_final(alphas.get_segment_elements(0), outputs)
+    let value = if stack_outputs.has_overflow() {
+        get_overflow_table_final(alphas.get_segment_elements(0), stack_outputs)
     } else {
         E::ONE
     };
@@ -300,7 +297,7 @@ where
 
 /// Gets the final value of the overflow table auxiliary column from the provided program outputs
 /// and random elements.
-fn get_overflow_table_final<E: FieldElement>(alphas: &[E], outputs: &ProgramOutputs) -> E
+fn get_overflow_table_final<E: FieldElement>(alphas: &[E], stack_outputs: &StackOutputs) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -309,8 +306,8 @@ where
     // When the overflow table is non-empty, we expect at least 2 addresses (the `prev` value of
     // the first row and the address value(s) of the row(s)) and more than STACK_TOP_SIZE
     // elements in the stack.
-    let mut prev = outputs.overflow_prev();
-    for (clk, val) in outputs.stack_overflow() {
+    let mut prev = stack_outputs.overflow_prev();
+    for (clk, val) in stack_outputs.stack_overflow() {
         value *= alphas[0]
             + alphas[1].mul_base(clk)
             + alphas[2].mul_base(val)

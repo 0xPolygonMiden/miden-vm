@@ -1,11 +1,9 @@
 use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
-use air::ProofOptions;
-use crypto::Digest;
-use std::io::Write;
-use std::path::PathBuf;
-use std::time::Instant;
+use miden::ProofOptions;
+use std::{io::Write, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
+// TODO check if structopt is supporting automatic generation of list values of hash function
 #[derive(StructOpt, Debug)]
 #[structopt(name = "Prove", about = "Prove a miden program")]
 pub struct ProveCmd {
@@ -55,23 +53,22 @@ impl ProveCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
-        println!(
-            "Proving program with hash {}...",
-            hex::encode(program.hash().as_bytes())
-        );
+        let program_hash: [u8; 32] = program.hash().into();
+        println!("Proving program with hash {}...", hex::encode(program_hash));
         let now = Instant::now();
 
+        // fetch the stack and program inputs from the arguments
+        let stack_inputs = input_data.parse_stack_inputs()?;
+        let advice_provider = input_data.parse_advice_provider()?;
+
         // execute program and generate proof
-        let (outputs, proof) = prover::prove(
-            &program,
-            &input_data.get_program_inputs(),
-            &self.get_proof_security(),
-        )
-        .map_err(|err| format!("Failed to prove program - {:?}", err))?;
+        let (stack_outputs, proof) =
+            prover::prove(&program, stack_inputs, advice_provider, self.get_proof_security())
+                .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
         println!(
             "Program with hash {} proved in {} ms",
-            hex::encode(program.hash().as_bytes()),
+            hex::encode(program_hash),
             now.elapsed().as_millis()
         );
 
@@ -81,16 +78,16 @@ impl ProveCmd {
         // provide outputs
         if let Some(output_path) = &self.output_file {
             // write all outputs to specified file.
-            OutputFile::write(outputs, output_path)?;
+            OutputFile::write(&stack_outputs, output_path)?;
         } else {
             // if no output path was provided, get the stack outputs for printing to the screen.
-            let stack_outputs = outputs.stack_outputs(self.num_outputs).to_vec();
+            let stack = stack_outputs.stack_truncated(self.num_outputs).to_vec();
 
             // write all outputs to default location if none was provided
-            OutputFile::write(outputs, &self.assembly_file.with_extension("outputs"))?;
+            OutputFile::write(&stack_outputs, &self.assembly_file.with_extension("outputs"))?;
 
             // print stack outputs to screen.
-            println!("Output: {:?}", stack_outputs);
+            println!("Output: {:?}", stack);
         }
 
         Ok(())

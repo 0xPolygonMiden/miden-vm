@@ -1,13 +1,8 @@
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure, ProcedureCache,
-    ProcedureId, String, ToString, Vec,
+    AbsolutePath, AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure,
+    ProcedureCache, ProcedureId, String, ToString, Vec,
 };
-use crate::MODULE_PATH_DELIM;
-
-// CONSTANTS
-// ================================================================================================
-
-const MAIN_PROC_NAME: &str = "#main";
+use crate::{ProcedureName, MODULE_PATH_DELIM};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -56,9 +51,7 @@ impl AssemblyContext {
 
     /// Returns the number of memory locals allocated for the procedure currently being compiled.
     pub fn num_proc_locals(&self) -> u16 {
-        self.current_proc_context()
-            .expect("no procedures")
-            .num_locals
+        self.current_proc_context().expect("no procedures").num_locals
     }
 
     // STATE MUTATORS
@@ -76,24 +69,20 @@ impl AssemblyContext {
             // a kernel context must be initialized with a kernel module path
             debug_assert_eq!(
                 module_path,
-                ProcedureId::KERNEL_PATH,
+                AbsolutePath::KERNEL_PATH,
                 "kernel context not initialized with kernel module"
             );
         }
 
         // make sure this module is not in the chain of modules which are currently being compiled
         if self.module_stack.iter().any(|m| m.path == module_path) {
-            let dep_chain = self
-                .module_stack
-                .iter()
-                .map(|m| m.path.to_string())
-                .collect::<Vec<_>>();
+            let dep_chain =
+                self.module_stack.iter().map(|m| m.path.to_string()).collect::<Vec<_>>();
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
         }
 
         // push a new module context onto the module stack and return
-        self.module_stack
-            .push(ModuleContext::for_module(module_path));
+        self.module_stack.push(ModuleContext::for_module(module_path));
         Ok(())
     }
 
@@ -133,7 +122,7 @@ impl AssemblyContext {
     /// module.
     pub fn begin_proc(
         &mut self,
-        name: &str,
+        name: &ProcedureName,
         is_export: bool,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
@@ -146,10 +135,7 @@ impl AssemblyContext {
     /// Completes compilation of the current procedure and adds the compiled procedure to the list
     /// of the current module's compiled procedures.
     pub fn complete_proc(&mut self, code_root: CodeBlock) {
-        self.module_stack
-            .last_mut()
-            .expect("no modules")
-            .complete_proc(code_root);
+        self.module_stack.last_mut().expect("no modules").complete_proc(code_root);
     }
 
     // CALL PROCESSORS
@@ -239,9 +225,8 @@ impl AssemblyContext {
     ///   procedure cache or the local procedure set of the module.
     pub fn into_cb_table(mut self, proc_cache: &ProcedureCache) -> CodeBlockTable {
         // get the last module off the module stack
-        let mut main_module_context = self.module_stack.pop().expect("no modules");
-        assert!(self.module_stack.is_empty(), "executable not last module");
-
+        assert_eq!(self.module_stack.len(), 1, "module stack must contain exactly one module");
+        let mut main_module_context = self.module_stack.pop().unwrap();
         // complete compilation of the executable module; this appends the callset of the main
         // procedure to the callset of the executable module
         main_module_context.complete_executable();
@@ -299,7 +284,8 @@ impl ModuleContext {
     /// Procedure in the returned module context is initialized with procedure context for the
     /// "main" procedure.
     pub fn for_program() -> Self {
-        let main_proc_context = ProcedureContext::new(MAIN_PROC_NAME, false, 0);
+        let name = ProcedureName::main();
+        let main_proc_context = ProcedureContext::new(name, false, 0);
         Self {
             proc_stack: vec![main_proc_context],
             compiled_procs: Vec::new(),
@@ -346,20 +332,20 @@ impl ModuleContext {
     /// process of being compiled.
     pub fn begin_proc(
         &mut self,
-        name: &str,
+        name: &ProcedureName,
         is_export: bool,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
         // make sure a procedure with this name as not been compiled yet and is also not currently
         // on the stack of procedures being compiled
         if self.compiled_procs.iter().any(|p| p.label() == name)
-            || self.proc_stack.iter().any(|p| p.name == name)
+            || self.proc_stack.iter().any(|p| &p.name == name)
         {
             return Err(AssemblyError::duplicate_proc_name(name, &self.path));
         }
 
-        self.proc_stack
-            .push(ProcedureContext::new(name, is_export, num_locals));
+        let name = ProcedureName::try_from(name.to_string())?;
+        self.proc_stack.push(ProcedureContext::new(name, is_export, num_locals));
         Ok(())
     }
 
@@ -452,14 +438,16 @@ impl ModuleContext {
     /// compiling a program, the executable module will have the main procedure left on the
     /// procedure stack. To complete the module we need to pop the main procedure off the stack and
     /// append its callset to the callset of the module context.
+    ///
+    /// # Panics
+    /// - If this module is not an executable module.
+    /// - If there is not exactly one procedure left on the procedure stack.
+    /// - If the procedure left on the procedure stack is not main procedure.
     pub fn complete_executable(&mut self) {
         assert!(self.is_executable(), "module not executable");
-
-        let main_proc_context = self.proc_stack.pop().expect("no procedures");
-
+        assert_eq!(self.proc_stack.len(), 1, "procedure stack must contain exactly one procedure");
+        let main_proc_context = self.proc_stack.pop().unwrap();
         assert!(main_proc_context.is_main(), "not main procedure");
-        assert!(self.proc_stack.is_empty(), "more procedures after main");
-
         self.callset.append(&main_proc_context.callset);
     }
 }
@@ -470,16 +458,16 @@ impl ModuleContext {
 /// Contains information about compilation of a single procedure.
 #[derive(Debug)]
 struct ProcedureContext {
-    name: String,
+    name: ProcedureName,
     is_export: bool,
     num_locals: u16,
     callset: CallSet,
 }
 
 impl ProcedureContext {
-    pub fn new(name: &str, is_export: bool, num_locals: u16) -> Self {
+    pub fn new(name: ProcedureName, is_export: bool, num_locals: u16) -> Self {
         Self {
-            name: name.to_string(),
+            name,
             is_export,
             num_locals,
             callset: CallSet::default(),
@@ -487,7 +475,7 @@ impl ProcedureContext {
     }
 
     pub fn is_main(&self) -> bool {
-        self.name == MAIN_PROC_NAME
+        self.name.is_main()
     }
 
     pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> Procedure {

@@ -1,4 +1,5 @@
 use super::{Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
+use vm_core::utils::collections::Vec;
 
 // CONSTANTS
 // ================================================================================================
@@ -12,14 +13,14 @@ const PROC2_HASH: Word = [ONE, ONE, ONE, ONE];
 #[test]
 fn kernel_rom_empty() {
     let kernel = Kernel::default();
-    let rom = KernelRom::new(&kernel);
+    let rom = KernelRom::new(kernel);
     assert_eq!(0, rom.trace_len());
 }
 
 #[test]
 fn kernel_rom_invalid_access() {
     let kernel = build_kernel();
-    let mut rom = KernelRom::new(&kernel);
+    let mut rom = KernelRom::new(kernel);
 
     // accessing procedure which is in the kernel should be fine
     assert!(rom.access_proc(PROC1_HASH.into()).is_ok());
@@ -31,7 +32,7 @@ fn kernel_rom_invalid_access() {
 #[test]
 fn kernel_rom_no_access() {
     let kernel = build_kernel();
-    let rom = KernelRom::new(&kernel);
+    let rom = KernelRom::new(kernel);
 
     let expected_trace_len = 2;
     assert_eq!(expected_trace_len, rom.trace_len());
@@ -63,7 +64,7 @@ fn kernel_rom_no_access() {
 #[test]
 fn kernel_rom_with_access() {
     let kernel = build_kernel();
-    let mut rom = KernelRom::new(&kernel);
+    let mut rom = KernelRom::new(kernel);
 
     // generate 5 access: 3 for proc1 and 2 for proc2
     rom.access_proc(PROC1_HASH.into()).unwrap();
@@ -110,9 +111,7 @@ fn build_kernel() -> Kernel {
 /// Builds a trace of the specified length and fills it with data from the provided KernelRom
 /// instance.
 fn build_trace(kernel_rom: KernelRom, num_rows: usize) -> Vec<Vec<Felt>> {
-    let mut trace = (0..TRACE_WIDTH)
-        .map(|_| vec![ZERO; num_rows])
-        .collect::<Vec<_>>();
+    let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     kernel_rom.fill_trace(&mut fragment);
 

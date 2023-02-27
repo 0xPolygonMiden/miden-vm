@@ -26,8 +26,12 @@ impl Assembler {
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
+        // make sure the procedure is in procedure cache
+        self.ensure_procedure_is_in_cache(proc_id, context)?;
+
         // get the procedure from the assembler
-        let proc = self.get_imported_proc(proc_id, context)?;
+        let proc_cache = self.proc_cache.borrow();
+        let proc = proc_cache.get(proc_id).expect("procedure not in cache");
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "inlined" call to the procedure; this updates the callset of the
@@ -61,8 +65,12 @@ impl Assembler {
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
+        // make sure the procedure is in procedure cache
+        self.ensure_procedure_is_in_cache(proc_id, context)?;
+
         // get the procedure from the assembler
-        let proc = self.get_imported_proc(proc_id, context)?;
+        let proc_cache = self.proc_cache.borrow();
+        let proc = proc_cache.get(proc_id).expect("procedure not in cache");
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the
@@ -82,17 +90,15 @@ impl Assembler {
         // fetch from proc cache and check if its a kernel procedure
         // note: the assembler is expected to have all kernel procedures properly inserted in the
         // proc cache upon initialization, with their correct procedure ids
-        let proc = self
-            .proc_cache
+        let proc_cache = self.proc_cache.borrow();
+
+        let proc = proc_cache
             .get(proc_id)
             .ok_or_else(|| AssemblyError::kernel_proc_not_found(proc_id))?;
 
         // since call and syscall instructions cannot be executed inside a kernel, a callset for
         // a kernel procedure must be empty.
-        debug_assert!(
-            proc.callset().is_empty(),
-            "non-empty callset for a kernel procedure"
-        );
+        debug_assert!(proc.callset().is_empty(), "non-empty callset for a kernel procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled

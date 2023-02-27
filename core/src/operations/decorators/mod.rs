@@ -24,12 +24,7 @@ impl fmt::Display for Decorator {
         match self {
             Self::Advice(injector) => write!(f, "advice({injector})"),
             Self::AsmOp(assembly_op) => {
-                write!(
-                    f,
-                    "asmOp({}, {})",
-                    assembly_op.op(),
-                    assembly_op.num_cycles()
-                )
+                write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
             }
         }
     }

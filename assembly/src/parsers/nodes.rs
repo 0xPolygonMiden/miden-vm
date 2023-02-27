@@ -1,4 +1,4 @@
-use super::{Felt, ProcedureId, String, ToString, Vec};
+use super::{Felt, ProcedureId, Vec};
 use core::fmt;
 
 // NODES
@@ -9,7 +9,7 @@ use core::fmt;
 pub enum Node {
     Instruction(Instruction),
     IfElse(Vec<Node>, Vec<Node>),
-    Repeat(usize, Vec<Node>),
+    Repeat(u32, Vec<Node>),
     While(Vec<Node>),
 }
 
@@ -31,6 +31,7 @@ pub enum Instruction {
     DivImm(Felt),
     Neg,
     Inv,
+    Incr,
     Pow2,
     Exp,
     ExpImm(Felt),
@@ -49,7 +50,15 @@ pub enum Instruction {
     Gt,
     Gte,
 
-    // ----- u32 manipulation ---------------------------------------------------------------
+    // ----- ext2 operations ----------------------------------------------------------------------
+    Ext2Add,
+    Ext2Sub,
+    Ext2Mul,
+    Ext2Div,
+    Ext2Neg,
+    Ext2Inv,
+
+    // ----- u32 manipulation ---------------------------------------------------------------------
     U32Test,
     U32TestW,
     U32Assert,
@@ -111,6 +120,8 @@ pub enum Instruction {
     U32CheckedRotlImm(u8),
     U32UncheckedRotl,
     U32UncheckedRotlImm(u8),
+    U32CheckedPopcnt,
+    U32UncheckedPopcnt,
     U32CheckedEq,
     U32CheckedEqImm(u32),
     U32CheckedNeq,
@@ -128,7 +139,7 @@ pub enum Instruction {
     U32CheckedMax,
     U32UncheckedMax,
 
-    // ----- stack manipulation ---------------------------------------------------------------
+    // ----- stack manipulation -------------------------------------------------------------------
     Drop,
     DropW,
     PadW,
@@ -208,11 +219,20 @@ pub enum Instruction {
     CDrop,
     CDropW,
 
-    // ----- input / output operations --------------------------------------------------------
-    PushConstants(Vec<Felt>),
+    // ----- input / output operations ------------------------------------------------------------
+    PushU8(u8),
+    PushU16(u16),
+    PushU32(u32),
+    PushFelt(Felt),
+    PushWord([Felt; 4]),
+    PushU8List(Vec<u8>),
+    PushU16List(Vec<u16>),
+    PushU32List(Vec<u32>),
+    PushFeltList(Vec<Felt>),
     Locaddr(u16),
     Sdepth,
     Caller,
+    Clk,
 
     MemLoad,
     MemLoadImm(u32),
@@ -237,15 +257,19 @@ pub enum Instruction {
     AdvU64Div,
     AdvKeyval,
     AdvMem(u32, u32),
+    AdvExt2Inv,
+    AdvExt2INTT,
 
-    // ----- cryptographic operations ---------------------------------------------------------
-    RpHash,
-    RpPerm,
+    // ----- cryptographic operations -------------------------------------------------------------
+    Hash,
+    HMerge,
+    HPerm,
     MTreeGet,
     MTreeSet,
     MTreeCwm,
+    FriExt2Fold4,
 
-    // ----- exec / call ----------------------------------------------------------------------
+    // ----- exec / call --------------------------------------------------------------------------
     ExecLocal(u16),
     ExecImported(ProcedureId),
     CallLocal(u16),
@@ -269,6 +293,7 @@ impl fmt::Display for Instruction {
             Self::DivImm(value) => write!(f, "div.{value}"),
             Self::Neg => write!(f, "neg"),
             Self::Inv => write!(f, "inv"),
+            Self::Incr => write!(f, "add.1"),
             Self::Pow2 => write!(f, "pow2"),
             Self::Exp => write!(f, "exp"),
             Self::ExpImm(value) => write!(f, "exp.{value}"),
@@ -286,6 +311,14 @@ impl fmt::Display for Instruction {
             Self::Lte => write!(f, "lte"),
             Self::Gt => write!(f, "gt"),
             Self::Gte => write!(f, "gte"),
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Add => write!(f, "ext2add"),
+            Self::Ext2Sub => write!(f, "ext2sub"),
+            Self::Ext2Mul => write!(f, "ext2mul"),
+            Self::Ext2Div => write!(f, "ext2div"),
+            Self::Ext2Neg => write!(f, "ext2neg"),
+            Self::Ext2Inv => write!(f, "ext2inv"),
 
             // ----- u32 manipulation ---------------------------------------------------------------
             Self::U32Test => write!(f, "u32test"),
@@ -349,6 +382,8 @@ impl fmt::Display for Instruction {
             Self::U32CheckedRotlImm(value) => write!(f, "u32checked_rotl.{value}"),
             Self::U32UncheckedRotl => write!(f, "u32unchecked_rotl"),
             Self::U32UncheckedRotlImm(value) => write!(f, "u32unchecked_rotl.{value}"),
+            Self::U32CheckedPopcnt => write!(f, "u32checked_popcnt"),
+            Self::U32UncheckedPopcnt => write!(f, "u32unchecked_popcnt"),
             Self::U32CheckedEq => write!(f, "u32checked_eq"),
             Self::U32CheckedEqImm(value) => write!(f, "u32checked_eq.{value}"),
             Self::U32CheckedNeq => write!(f, "u32checked_neq"),
@@ -446,18 +481,21 @@ impl fmt::Display for Instruction {
             Self::CDrop => write!(f, "cdrop"),
             Self::CDropW => write!(f, "cdropw"),
 
-            // ----- input / output operations --------------------------------------------------------
-            Self::PushConstants(values) => {
-                let mut values_string = String::from("push");
-                for elem in values {
-                    values_string.push('.');
-                    values_string.push_str(&elem.to_string());
-                }
-                write!(f, "{values_string}")
-            }
+            // ----- input / output operations ----------------------------------------------------
+            Self::PushU8(value) => write!(f, "push.{value}"),
+            Self::PushU16(value) => write!(f, "push.{value}"),
+            Self::PushU32(value) => write!(f, "push.{value}"),
+            Self::PushFelt(value) => write!(f, "push.{value}"),
+            Self::PushWord(values) => display_push_vec(f, values),
+            Self::PushU8List(values) => display_push_vec(f, values),
+            Self::PushU16List(values) => display_push_vec(f, values),
+            Self::PushU32List(values) => display_push_vec(f, values),
+            Self::PushFeltList(values) => display_push_vec(f, values),
+
             Self::Locaddr(value) => write!(f, "locaddr.{value}"),
             Self::Sdepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
+            Self::Clk => write!(f, "clk"),
 
             Self::MemLoad => write!(f, "mem_load"),
             Self::MemLoadImm(value) => write!(f, "mem_load.{value}"),
@@ -482,15 +520,19 @@ impl fmt::Display for Instruction {
             Self::AdvU64Div => write!(f, "adv.u64div"),
             Self::AdvKeyval => write!(f, "adv.keyval"),
             Self::AdvMem(start_addr, num_words) => write!(f, "adv.mem.{start_addr}.{num_words}"),
+            Self::AdvExt2Inv => write!(f, "adv.ext2inv"),
+            Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
 
-            // ----- cryptographic operations ---------------------------------------------------------
-            Self::RpHash => write!(f, "rphash"),
-            Self::RpPerm => write!(f, "rpperm"),
+            // ----- cryptographic operations -----------------------------------------------------
+            Self::Hash => write!(f, "hash"),
+            Self::HMerge => write!(f, "hmerge"),
+            Self::HPerm => write!(f, "hperm"),
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeCwm => write!(f, "mtree_cwm"),
+            Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
 
-            // ----- exec / call ----------------------------------------------------------------------
+            // ----- exec / call ------------------------------------------------------------------
             // TODO: print exec/call instructions with procedures names, not indexes or id's
             Self::ExecLocal(index) => write!(f, "exec.{index}"),
             Self::ExecImported(proc_id) => write!(f, "exec.{proc_id}"),
@@ -499,6 +541,18 @@ impl fmt::Display for Instruction {
             Self::SysCall(proc_id) => write!(f, "syscall.{proc_id}"),
         }
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Builds a string from input vector to display push operation
+fn display_push_vec<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[T]) -> fmt::Result {
+    write!(f, "push")?;
+    for elem in values {
+        write!(f, ".{elem}")?;
+    }
+    Ok(())
 }
 
 // TESTS
@@ -520,15 +574,12 @@ fn test_instruction_display() {
 
     let instruction = format!(
         "{}",
-        Instruction::PushConstants(vec![Felt::new(3), Felt::new(4), Felt::new(8), Felt::new(9)])
+        Instruction::PushFeltList(vec![Felt::new(3), Felt::new(4), Felt::new(8), Felt::new(9)])
     );
     assert_eq!("push.3.4.8.9", instruction);
 
     let hash = [7; 24];
     let proc_id = ProcedureId::from(hash);
     let instruction = format!("{}", Instruction::ExecImported(proc_id));
-    assert_eq!(
-        "exec.0x070707070707070707070707070707070707070707070707",
-        instruction
-    );
+    assert_eq!("exec.0x070707070707070707070707070707070707070707070707", instruction);
 }

@@ -1,5 +1,5 @@
 use proptest::prelude::*;
-use vm_core::{stack::STACK_TOP_SIZE, WORD_LEN};
+use vm_core::{stack::STACK_TOP_SIZE, WORD_SIZE};
 
 use crate::build_op_test;
 use crate::helpers::TestError;
@@ -12,10 +12,7 @@ fn drop() {
     let asm_op = "drop";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0]);
 }
 
@@ -24,10 +21,7 @@ fn dropw() {
     let asm_op = "dropw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0]);
 }
 
@@ -36,10 +30,7 @@ fn padw() {
     let asm_op = "padw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 }
 
@@ -48,10 +39,7 @@ fn dup() {
     let asm_op = "dup";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 }
 
@@ -60,10 +48,7 @@ fn dupn() {
     let asm_op = "dup.1";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 }
 
@@ -72,10 +57,7 @@ fn dupn_fail() {
     let asm_op = "dup.16";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -84,10 +66,7 @@ fn dupw() {
     let asm_op = "dupw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 }
 
@@ -96,10 +75,7 @@ fn dupwn() {
     let asm_op = "dupw.1";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 }
 
@@ -108,10 +84,7 @@ fn dupwn_fail() {
     let asm_op = "dupw.4";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -120,10 +93,7 @@ fn swap() {
     let asm_op = "swap";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
@@ -132,10 +102,7 @@ fn swapn() {
     let asm_op = "swap.2";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[3, 2, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
@@ -144,10 +111,7 @@ fn swapn_fail() {
     let asm_op = "swap.16";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -156,10 +120,7 @@ fn swapw() {
     let asm_op = "swapw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
@@ -168,10 +129,7 @@ fn swapwn() {
     let asm_op = "swapw.2";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[9, 10, 11, 12, 5, 6, 7, 8, 1, 2, 3, 4, 13, 14, 15, 16]);
 }
 
@@ -180,10 +138,7 @@ fn swapwn_fail() {
     let asm_op = "swapw.4";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -192,10 +147,7 @@ fn swapdw() {
     let asm_op = "swapdw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8]);
 }
 
@@ -203,34 +155,22 @@ fn swapdw() {
 fn movup() {
     let asm_op = "movup.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movup_fail() {
     let asm_op = "movup.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movup.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movup.16";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -238,34 +178,22 @@ fn movup_fail() {
 fn movupw() {
     let asm_op = "movupw.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movupw_fail() {
     let asm_op = "movupw.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movupw.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movupw.4";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -273,34 +201,22 @@ fn movupw_fail() {
 fn movdn() {
     let asm_op = "movdn.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movdn_fail() {
     let asm_op = "movdn.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdn.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdn.16";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -308,34 +224,22 @@ fn movdn_fail() {
 fn movdnw() {
     let asm_op = "movdnw.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movdnw_fail() {
     let asm_op = "movdnw.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdnw.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdnw.4";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -343,16 +247,10 @@ fn movdnw_fail() {
 fn cswap() {
     let asm_op = "cswap";
     // --- simple cases ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
 }
 
@@ -360,16 +258,10 @@ fn cswap() {
 fn cswapw() {
     let asm_op = "cswapw";
     // --- simple cases ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0]);
 }
 
@@ -377,16 +269,10 @@ fn cswapw() {
 fn cdrop() {
     let asm_op = "cdrop";
     // --- simple cases ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0]);
 }
 
@@ -395,16 +281,10 @@ fn cdropw() {
     let asm_op = "cdropw";
     // --- simple cases ----------------------------------------------------------------------------
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0]);
 }
 
@@ -424,9 +304,9 @@ proptest! {
     fn dropw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
         let asm_op = "dropw";
         let mut expected_values = test_values.clone();
-        expected_values.truncate(STACK_TOP_SIZE - WORD_LEN);
+        expected_values.truncate(STACK_TOP_SIZE - WORD_SIZE);
         expected_values.reverse();
-        expected_values.append(&mut vec![0; WORD_LEN]);
+        expected_values.append(&mut vec![0; WORD_SIZE]);
         build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
     }
 
@@ -434,8 +314,8 @@ proptest! {
     fn padw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
         let asm_op = "padw";
         let mut expected_values = test_values.clone();
-        expected_values.drain(0..WORD_LEN);
-        expected_values.append(&mut vec![0; WORD_LEN]);
+        expected_values.drain(0..WORD_SIZE);
+        expected_values.append(&mut vec![0; WORD_SIZE]);
         expected_values.reverse();
         build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
     }
@@ -466,8 +346,8 @@ proptest! {
     fn dupw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
         let asm_op = "dupw";
         let mut expected_values = test_values.clone();
-        expected_values.drain(0..WORD_LEN);
-        let dupw_idx = STACK_TOP_SIZE - WORD_LEN;
+        expected_values.drain(0..WORD_SIZE);
+        let dupw_idx = STACK_TOP_SIZE - WORD_SIZE;
         let mut a = test_values[dupw_idx..].to_vec();
         expected_values.append(&mut a);
         expected_values.reverse();
@@ -475,12 +355,12 @@ proptest! {
     }
 
     #[test]
-    fn dupwn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 0_usize..WORD_LEN) {
+    fn dupwn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 0_usize..WORD_SIZE) {
         let asm_op = format!("dupw.{n}");
         let mut expected_values = test_values.clone();
-        expected_values.drain(0..WORD_LEN);
-        let start_dupw_idx = STACK_TOP_SIZE - WORD_LEN * (n + 1);
-        let end_dupw_idx = STACK_TOP_SIZE - WORD_LEN * n;
+        expected_values.drain(0..WORD_SIZE);
+        let start_dupw_idx = STACK_TOP_SIZE - WORD_SIZE * (n + 1);
+        let end_dupw_idx = STACK_TOP_SIZE - WORD_SIZE * n;
         let mut a = test_values[start_dupw_idx..end_dupw_idx].to_vec();
         expected_values.append(&mut a);
         expected_values.reverse();
@@ -509,8 +389,8 @@ proptest! {
     fn swapw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
         let asm_op = "swapw";
         let mut expected_values = test_values.clone();
-        let mut a = expected_values.split_off(WORD_LEN * 3);
-        let mut b = expected_values.split_off(WORD_LEN * 2);
+        let mut a = expected_values.split_off(WORD_SIZE * 3);
+        let mut b = expected_values.split_off(WORD_SIZE * 2);
         expected_values.append(&mut a);
         expected_values.append(&mut b);
         expected_values.reverse();
@@ -518,13 +398,13 @@ proptest! {
     }
 
     #[test]
-    fn swapwn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 1_usize..WORD_LEN) {
+    fn swapwn_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 1_usize..WORD_SIZE) {
         let asm_op = format!("swapw.{n}");
         let mut expected_values = test_values.clone();
-        let start_swapwn_idx = WORD_LEN * (STACK_TOP_SIZE / WORD_LEN - n - 1);
+        let start_swapwn_idx = WORD_SIZE * (STACK_TOP_SIZE / WORD_SIZE - n - 1);
         let mut a = expected_values.split_off(start_swapwn_idx);
-        let mut b = a.split_off(WORD_LEN);
-        let mut c = b.split_off(b.len() - WORD_LEN);
+        let mut b = a.split_off(WORD_SIZE);
+        let mut c = b.split_off(b.len() - WORD_SIZE);
         expected_values.append(&mut c);
         expected_values.append(&mut b);
         expected_values.append(&mut a);
@@ -535,8 +415,8 @@ proptest! {
     #[test]
     fn swapdw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE)) {
         let asm_op = "swapdw";
-        let mut expected_values = test_values[..(WORD_LEN * 2)].to_vec();
-        let mut b = test_values[(WORD_LEN * 2)..].to_vec();
+        let mut expected_values = test_values[..(WORD_SIZE * 2)].to_vec();
+        let mut b = test_values[(WORD_SIZE * 2)..].to_vec();
         expected_values.reverse();
         b.reverse();
         expected_values.append(&mut b);
@@ -556,10 +436,10 @@ proptest! {
     }
 
     #[test]
-    fn movupw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movupw_idx in 2_usize..WORD_LEN) {
+    fn movupw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movupw_idx in 2_usize..WORD_SIZE) {
         let asm_op = format!("movupw.{movupw_idx}");
-        let start_movupw_idx = STACK_TOP_SIZE - (movupw_idx + 1) * WORD_LEN;
-        let end_movupw_idx = STACK_TOP_SIZE - movupw_idx * WORD_LEN;
+        let start_movupw_idx = STACK_TOP_SIZE - (movupw_idx + 1) * WORD_SIZE;
+        let end_movupw_idx = STACK_TOP_SIZE - movupw_idx * WORD_SIZE;
         let mut movupw_values = test_values[start_movupw_idx..end_movupw_idx].to_vec();
         let mut expected_values = test_values[..start_movupw_idx].to_vec();
         expected_values.append(&mut test_values[end_movupw_idx..].to_vec());
@@ -581,10 +461,10 @@ proptest! {
     }
 
     #[test]
-    fn movdnw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movdnw_idx in 2_usize..WORD_LEN) {
+    fn movdnw_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), movdnw_idx in 2_usize..WORD_SIZE) {
         let asm_op = format!("movdnw.{movdnw_idx}");
-        let idx1 = STACK_TOP_SIZE - (movdnw_idx + 1) * WORD_LEN;
-        let movdnw_idx = STACK_TOP_SIZE - WORD_LEN;
+        let idx1 = STACK_TOP_SIZE - (movdnw_idx + 1) * WORD_SIZE;
+        let movdnw_idx = STACK_TOP_SIZE - WORD_SIZE;
         let mut movdnw_values = test_values[movdnw_idx..].to_vec();
         let mut expected_values = test_values[..idx1].to_vec();
         expected_values.append(&mut movdnw_values);
@@ -615,9 +495,9 @@ proptest! {
         test_values.push(c);
         let mut expected_values = vec![];
         if c == 1 {
-            expected_values.append(&mut a[WORD_LEN..(WORD_LEN * 2)].to_vec());
-            expected_values.append(&mut a[..WORD_LEN].to_vec());
-            expected_values.append(&mut a[(WORD_LEN * 2)..].to_vec());
+            expected_values.append(&mut a[WORD_SIZE..(WORD_SIZE * 2)].to_vec());
+            expected_values.append(&mut a[..WORD_SIZE].to_vec());
+            expected_values.append(&mut a[(WORD_SIZE * 2)..].to_vec());
         } else {
             expected_values = a;
         }
@@ -650,14 +530,14 @@ proptest! {
         test_values.push(c);
         let mut expected_values = a.clone();
         if c == 0 {
-            expected_values.drain(0..WORD_LEN);
-            expected_values.append(&mut vec![0; WORD_LEN]);
+            expected_values.drain(0..WORD_SIZE);
+            expected_values.append(&mut vec![0; WORD_SIZE]);
             expected_values.push(0);
         } else {
-            expected_values = a[..WORD_LEN].to_vec();
-            a.drain(0..(WORD_LEN * 2));
+            expected_values = a[..WORD_SIZE].to_vec();
+            a.drain(0..(WORD_SIZE * 2));
             expected_values.append(&mut a.to_vec());
-            expected_values.append(&mut vec![0; WORD_LEN]);
+            expected_values.append(&mut vec![0; WORD_SIZE]);
             expected_values.push(0);
         }
         build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;

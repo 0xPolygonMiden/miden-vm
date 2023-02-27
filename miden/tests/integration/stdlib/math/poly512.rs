@@ -1,8 +1,6 @@
 use super::build_test;
-use math::fields::f64::BaseElement;
-use math::polynom;
 use std::fmt::Write;
-use vm_core::StarkField;
+use vm_core::{polynom, Felt, StarkField};
 
 const POLYNOMIAL_LENGTH: usize = 512;
 const WORDS: usize = 128;
@@ -39,7 +37,7 @@ fn generate_test_script_add_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
@@ -73,9 +71,9 @@ fn generate_test_script_add_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.384
-            {}
+            {polynomial_1_script}
 
-            {}
+            {polynomial_2_script}
 
             locaddr.256 # output
             locaddr.128 # input 1
@@ -83,14 +81,13 @@ fn generate_test_script_add_zq() -> String {
 
             exec.poly512::add_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, polynomial_2_script, check_result_script
+    "
     );
     script
 }
@@ -106,9 +103,7 @@ fn test_poly512_neg_zq() {
 fn generate_test_script_neg_zq() -> String {
     let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
-    let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH)
-        .map(|i| Q - polynomial_1[i])
-        .collect();
+    let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH).map(|i| Q - polynomial_1[i]).collect();
 
     let mut polynomial_1_script = String::new();
     let mut check_result_script = String::new();
@@ -124,7 +119,7 @@ fn generate_test_script_neg_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for checking the result
@@ -145,21 +140,20 @@ fn generate_test_script_neg_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.256
-            {}
+            {polynomial_1_script}
 
             locaddr.128 # output
             locaddr.0 # input 0
 
             exec.poly512::neg_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, check_result_script
+    "
     );
     script
 }
@@ -195,7 +189,7 @@ fn generate_test_script_sub_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
@@ -229,9 +223,9 @@ fn generate_test_script_sub_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.384
-            {}
+            {polynomial_1_script}
 
-            {}
+            {polynomial_2_script}
 
             locaddr.256 # output
             locaddr.128 # input 1
@@ -239,14 +233,13 @@ fn generate_test_script_sub_zq() -> String {
 
             exec.poly512::sub_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, polynomial_2_script, check_result_script
+    "
     );
     script
 }
@@ -262,10 +255,8 @@ fn test_poly512_mul_zq() {
 fn generate_test_script_mul_zq() -> String {
     const Q: u64 = 12289; // Prime Number
 
-    let polynomial_1 =
-        rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| BaseElement::new(v % Q));
-    let polynomial_2 =
-        rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| BaseElement::new(v % Q));
+    let polynomial_1 = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
+    let polynomial_2 = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
 
     let result_polynomial: Vec<u64> = polynom::mul(&polynomial_1, &polynomial_2)
         .iter()
@@ -276,9 +267,8 @@ fn generate_test_script_mul_zq() -> String {
     let mut upper = upper.to_vec();
     upper.push(0);
 
-    let result_polynomial: Vec<u64> = (0..POLYNOMIAL_LENGTH)
-        .map(|i| (lower[i] + Q - upper[i]) % Q)
-        .collect();
+    let result_polynomial: Vec<u64> =
+        (0..POLYNOMIAL_LENGTH).map(|i| (lower[i] + Q - upper[i]) % Q).collect();
 
     let mut polynomial_1_script = String::new();
     let mut polynomial_2_script = String::new();
@@ -295,7 +285,7 @@ fn generate_test_script_mul_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
@@ -329,9 +319,9 @@ fn generate_test_script_mul_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.384
-            {}
+            {polynomial_1_script}
 
-            {}
+            {polynomial_2_script}
 
             locaddr.256 # output
             locaddr.128 # input 1
@@ -339,14 +329,13 @@ fn generate_test_script_mul_zq() -> String {
 
             exec.poly512::mul_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, polynomial_2_script, check_result_script
+    "
     );
     script
 }

@@ -1,5 +1,5 @@
 # Programs in Miden VM
-Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST). This tree is a binary tree where each node is a *code block*. The execution starts at the root of the tree, and recursively executes all required blocks according to their semantics. A set of currently available blocks and their execution semantics are described below.
+Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST). This tree is a binary tree where each node is a *code block*. The VM starts execution at the root of the tree, and attempts to recursively execute each required block according to its semantics. If the execution of a code block fails, the VM halts at that point and no further blocks are executed. A set of currently available blocks and their execution semantics are described below.
 
 ## Code blocks
 
@@ -25,6 +25,33 @@ After the body of the loop is executed, the VM checks the top of the stack again
 ![loop_block](../assets/design/programs/loop_block.png)
 
 A *loop* block must always have one child, and thus, cannot be a leaf node in the tree.
+
+### Call block
+
+A **call** block is used to describe a function call which is executed in a [user context](../user_docs/assembly/execution_contexts.md). When the VM encounters a *call* block, it creates a new user context, then executes a program which hashes to the target specified by the *call* block in the new context. Thus, in order to execute a *call* block, the VM must be aware of a program with the specified hash. Otherwise, the execution fails. At the end of the *call* block, execution returns to the previous context. 
+
+
+When executing a *call* block, the VM does the following:
+1. Checks if a *syscall* is already being executed and fails if so.
+2. Sets the depth of the stack to 16.
+3. Upon return, checks that the depth of the stack is 16. If so, the original stack depth is restored. Otherwise, an error occurs.
+
+![call_block](../assets/design/programs/call_block.png)
+
+A *call* block does not have any children. Thus, it must be leaf node in the tree.
+
+### Syscall block
+
+A **syscall** block is used to describe a function call which is executed in the [root context](../user_docs/assembly/execution_contexts.md). When the VM encounters a *syscall* block, it returns to the root context, then executes a program which hashes to the target specified by the *syscall* block. Thus, in order to execute a *syscall* block, the VM must be aware of a program with the specified hash, and that program must belong to the kernel against which the code is compiled. Otherwise, the execution fails. At the end of the *syscall* block, execution returns to the previous context. 
+
+When executing a *syscall* block, the VM does the following:
+1. Checks if a *syscall* is already being executed and fails if so.
+2. Sets the depth of the stack to 16.
+3. Upon return, checks that the depth of the stack is 16. If so, the original stack depth is restored. Otherwise, an error occurs.
+
+![syscall_block](../assets/design/programs/syscall_block.png)
+
+A *syscall* block does not have any children. Thus, it must be leaf node in the tree.
 
 ### Span block
 A **span** block is used to describe a linear sequence of operations. When the VM encounters a *span* block, it breaks the sequence of operations into batches and groups according to the following rules:
@@ -80,12 +107,16 @@ Execution of this program would proceed as follows:
 8. If the VM does enter the loop, then after operation $d_n$ is executed, the VM will pop the value off the top of the stack again. If the popped value is $1$, the VM will execute block $d$ again, and again until the top of the stack becomes $0$. Once the top of the stack becomes $0$, the VM will exit the loop and will move up the tree executing first block $e$, then $f$.
 
 ## Program hash computation
-Every Miden VM program can be reduced to a unique hash value. Specifically, it is infeasible to find two Miden VM programs with distinct semantics which hash to the same value. Padding a program with `NOOP`s does not change a program's execution semantics, and thus, programs which differ only in the number and/or placement of `NOOP`s may hash to the same value, although in most cases padding with `NOOP` should not affect program hash.
+Every Miden VM program can be reduced to a unique hash value. Specifically, it is infeasible to find two Miden VM programs with distinct semantics which hash to the same value. Padding a program with `NOOP`s does not change a program's execution semantics, and thus, programs which differ only in the number and/or placement of `NOOP`s may hash to the same value, although in most cases padding with `NOOP` should not affect program hash. 
 
-Below we denote $hash$ to be an arithmetization-friendly hash function with $4$-element output and capable of absorbing $8$ elements in a single permutation.
+To prevent program hash collisions we implement domain separation across the variants of control blocks. We define the domain value to be the opcode of the operation that initializes the control block.
 
-* Hash of a **join** block is computed as $hash(a, b)$, where $a$ and $b$ are hashes of the code block being joined.
-* Hash of a **split** block is computed as $hash(a, b)$, where $a$ is a hash of a code block corresponding to the *true* branch of execution, and $b$ is a hash of a code block corresponding to the *false branch* of execution.
-* Hash of a **loop** block is computed as $hash(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
-* Hash of a **span** block is computed as $hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
+Below we denote $hash$ to be an arithmetization-friendly hash function with $4$-element output and capable of absorbing $8$ elements in a single permutation. The hash domain is specified as the subscript of the hash function and its value is used to populate the second capacity register upon initialization of control block hashing - $hash_{domain}(a, b)$.
+
+* The hash of a **join** block is computed as $hash_{join}(a, b)$, where $a$ and $b$ are hashes of the code block being joined.
+* The hash of a **split** block is computed as $hash_{split}(a, b)$, where $a$ is a hash of a code block corresponding to the *true* branch of execution, and $b$ is a hash of a code block corresponding to the *false branch* of execution.
+* The hash of a **loop** block is computed as $hash_{loop}(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
+* The hash of a **call** block is computed as $hash_{call}(a, 0)$, where $a$ is a hash of a program of which the VM is aware.
+* The hash of a **syscall** block is computed as $hash_{syscall}(a, 0)$, where $a$ is a hash of a program belonging to the kernel against which the code was compiled.
+* The hash of a **span** block is computed as $hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
     * In cases when the number of operations is insufficient to fill the last batch entirely, `NOOPs` are appended to the end of the last batch to ensure that the number of operations in the batch is always equal to $8$.

@@ -97,10 +97,8 @@ pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: Looku
 
     // compute row values and compute their product
     let mut acc = E::ONE;
-    for ((row, value), inv_value) in rows
-        .iter()
-        .zip(row_values.iter_mut())
-        .zip(inv_row_values.iter_mut())
+    for ((row, value), inv_value) in
+        rows.iter().zip(row_values.iter_mut()).zip(inv_row_values.iter_mut())
     {
         *inv_value = acc;
         *value = row.to_value(main_trace, rand_values);

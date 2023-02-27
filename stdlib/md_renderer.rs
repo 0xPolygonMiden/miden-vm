@@ -1,9 +1,10 @@
-use crate::ModuleMap;
-use crate::Renderer;
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::Path;
-use vm_assembly::ProcedureAst;
+use crate::{ModuleMap, Renderer};
+use assembly::{ModuleAst, ProcedureAst};
+use std::{
+    fs::{self, File},
+    io::Write,
+    path::Path,
+};
 
 // MARKDOWN RENDERER
 // ================================================================================================
@@ -14,9 +15,7 @@ impl MarkdownRenderer {
     fn write_docs_header(mut writer: &File, ns: &str) {
         let header =
             format!("\n## {ns}\n| Procedure | Description |\n| ----------- | ------------- |\n");
-        writer
-            .write_all(header.as_bytes())
-            .expect("unable to write header to writer");
+        writer.write_all(header.as_bytes()).expect("unable to write header to writer");
     }
 
     fn write_docs_procedure(mut writer: &File, proc: &ProcedureAst) {
@@ -25,16 +24,21 @@ impl MarkdownRenderer {
         }
         let func_output = format!(
             "| {} | {} |\n",
-            proc.name,
-            proc.docs
-                .clone()
-                .unwrap()
-                .replace('|', "\\|")
-                .replace('\n', "<br /><br />")
+            proc.name.as_str(),
+            proc.docs.clone().unwrap().replace('|', "\\|").replace('\n', "<br /><br />")
         );
         writer
             .write_all(func_output.as_bytes())
             .expect("unable to write func to writer");
+    }
+
+    fn write_docs_module(mut writer: &File, module: &ModuleAst) {
+        if module.docs.is_none() {
+            return;
+        }
+        writer
+            .write_all(module.docs.clone().unwrap().replace('\n', "<br />").as_bytes())
+            .expect("unable to write module comments");
     }
 }
 
@@ -50,6 +54,7 @@ impl Renderer for MarkdownRenderer {
                 .create(true)
                 .open(file_path)
                 .expect("unable to open stdlib markdown file");
+            Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, ns);
             for proc in module.local_procs.iter() {
                 Self::write_docs_procedure(&f, proc);

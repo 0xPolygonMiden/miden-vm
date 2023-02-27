@@ -1,5 +1,4 @@
-use super::{build_op_test, build_test};
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
+use super::{apply_permutation, build_op_test, build_test, Felt, StarkField, ToElements};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -14,7 +13,7 @@ fn mem_load() {
     test.expect_stack(&[0]);
 
     // --- read from uninitialized memory - address provided as a parameter -----------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op);
     test.expect_stack(&[0]);
 
@@ -36,7 +35,7 @@ fn mem_store() {
     test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 
     // --- address provided as a parameter --------------------------------------------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
     test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 }
@@ -54,7 +53,7 @@ fn mem_loadw() {
     test.expect_stack(&[0, 0, 0, 0]);
 
     // --- read from uninitialized memory - address provided as a parameter -----------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
 
     let test = build_op_test!(asm_op, &[5, 6, 7, 8]);
     test.expect_stack(&[0, 0, 0, 0]);
@@ -78,7 +77,7 @@ fn mem_storew() {
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
 
     // --- address provided as a parameter --------------------------------------------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
 
@@ -107,13 +106,11 @@ fn mem_stream() {
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
 
     // the state of the hasher is the first 12 elements of the stack (in reverse order). the state
-    // is built by adding values in memory addresses 0 and 1 (i.e., 1 through 8) to the values on
-    // the top of the stack (i.e., 8 through 1). Thus, the first 8 elements on the stack will be
-    // equal to 9, and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
-    let mut state: [Felt; 12] = [12_u64, 11, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9]
-        .to_elements()
-        .try_into()
-        .unwrap();
+    // is built by replacing the values on the top of the stack with the values in memory addresses
+    // 0 and 1 (i.e., 1 through 8). Thus, the first 8 elements on the stack will be 1 through 8 (in
+    // stack order, with 8 at stack[0]), and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
+    let mut state: [Felt; 12] =
+        [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
 
     // apply a hash permutation to the state
     apply_permutation(&mut state);

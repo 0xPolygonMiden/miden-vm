@@ -51,7 +51,7 @@ fn u32eq_fail() {
 
 #[test]
 fn u32checked_eq_b() {
-    let build_asm_op = |param: u32| format!("u32checked_eq.{}", param);
+    let build_asm_op = |param: u32| format!("u32checked_eq.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[1]);
@@ -134,7 +134,7 @@ fn u32checked_neq_fail() {
 
 #[test]
 fn u32checked_neq_b() {
-    let build_asm_op = |param: u32| format!("u32checked_neq.{}", param);
+    let build_asm_op = |param: u32| format!("u32checked_neq.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[1]);
@@ -354,7 +354,7 @@ proptest! {
         test.prop_expect_stack(&[expected])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -371,7 +371,7 @@ proptest! {
         test.prop_expect_stack(&[expected])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected])?;
     }

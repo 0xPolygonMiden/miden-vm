@@ -1,6 +1,10 @@
 use super::{Felt, StarkField};
-use core::{fmt::Debug, ops::Range};
-use winter_utils::collections::Vec;
+use core::fmt::{self, Write};
+use core::{
+    fmt::Debug,
+    ops::{Bound, Range},
+};
+use winter_utils::{collections::Vec, string::String};
 
 // FEATURE BASED RE-EXPORT
 // ================================================================================================
@@ -15,8 +19,8 @@ pub use std::boxed::Box;
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_vector_elements, string, uninit_vector, ByteReader, ByteWriter,
-    Deserializable, DeserializationError, Serializable, SliceReader,
+    collections, group_slice_elements, group_vector_elements, string, uninit_vector, ByteReader,
+    ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
 pub use crypto::{RandomCoin, RandomCoinError};
@@ -89,6 +93,24 @@ pub const fn range(start: usize, len: usize) -> Range<usize> {
     }
 }
 
+/// Converts and parses a [Bound] into an included u64 value.
+pub fn bound_into_included_u64<I>(bound: Bound<&I>, is_start: bool) -> u64
+where
+    I: Clone + Into<u64>,
+{
+    match bound {
+        Bound::Excluded(i) => i.clone().into().saturating_sub(1),
+        Bound::Included(i) => i.clone().into(),
+        Bound::Unbounded => {
+            if is_start {
+                0
+            } else {
+                u64::MAX
+            }
+        }
+    }
+}
+
 // ARRAY CONSTRUCTORS
 // ================================================================================================
 
@@ -112,4 +134,18 @@ fn debug_assert_is_checked() {
     // for reference, check
     // https://github.com/0xPolygonMiden/miden-vm/issues/433
     debug_assert!(false);
+}
+
+// FORMATTING
+// ================================================================================================
+
+/// Utility to convert a sequence of bytes to hex.
+pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
+    let mut s = String::with_capacity(bytes.len() * 2);
+
+    for byte in bytes {
+        write!(s, "{byte:02x}")?;
+    }
+
+    Ok(s)
 }

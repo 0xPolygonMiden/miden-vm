@@ -1,5 +1,7 @@
-use super::Word;
-use crate::utils::collections::Vec;
+use core::fmt;
+
+// INPUT ERROR
+// ================================================================================================
 
 #[derive(Clone, Debug)]
 pub enum InputError {
@@ -7,14 +9,19 @@ pub enum InputError {
     DuplicateAdviceRoot([u8; 32]),
 }
 
-#[derive(Clone, Debug)]
-pub enum AdviceSetError {
-    DepthTooSmall,
-    DepthTooBig(u32),
-    NumLeavesNotPowerOfTwo(usize),
-    InvalidKey(u64),
-    InvalidIndex(u32, u64),
-    InvalidDepth(u32, u32),
-    InvalidPath(Vec<Word>),
-    NodeNotInSet(u64),
+impl fmt::Display for InputError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use InputError::*;
+        match self {
+            NotFieldElement(num, description) => {
+                write!(f, "{num} is not a valid field element: {description}")
+            }
+            DuplicateAdviceRoot(key) => {
+                write!(f, "{key:02x?} is a duplicate of the current merkle set")
+            }
+        }
+    }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for InputError {}

@@ -1,522 +1,471 @@
-use super::{
-    super::nodes::{Instruction, Node},
-    OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
-};
-use crate::{
-    errors::SerializationError, Felt, ProcedureId, StarkField, String, Vec, MAX_PROC_NAME_LEN,
-};
+use super::{ByteWriter, Instruction, Node, OpCode, Serializable, SerializationError};
 
-// BYTE WRITER IMPLEMENTATION
+// NODE SERIALIZATION
 // ================================================================================================
-
-/// Contains a vector for storing serialized objects
-pub struct ByteWriter(Vec<u8>);
-
-impl ByteWriter {
-    pub fn new() -> Self {
-        let vec_bytes = Vec::new();
-        Self(vec_bytes)
-    }
-
-    pub fn write_bool(&mut self, val: bool) {
-        self.write_u8(val as u8);
-    }
-
-    pub fn write_u8(&mut self, val: u8) {
-        self.0.push(val);
-    }
-
-    pub fn write_u16(&mut self, val: u16) {
-        self.0.append(&mut val.to_le_bytes().to_vec());
-    }
-
-    pub fn write_u32(&mut self, val: u32) {
-        self.0.append(&mut val.to_le_bytes().to_vec());
-    }
-
-    pub fn write_u64(&mut self, val: u64) {
-        self.0.append(&mut val.to_le_bytes().to_vec());
-    }
-
-    pub fn write_proc_name(&mut self, val: &String) -> Result<(), SerializationError> {
-        let val_bytes = val.as_bytes();
-        let val_bytes_len = val_bytes.len() as u8;
-        if val_bytes_len > MAX_PROC_NAME_LEN {
-            return Err(SerializationError::StringTooLong);
-        } else {
-            self.write_u8(val_bytes_len);
-            self.0.append(&mut val_bytes.to_vec());
-        }
-        Ok(())
-    }
-
-    pub fn write_procedure_id(&mut self, val: &ProcedureId) {
-        self.0.append(&mut val.to_vec());
-    }
-
-    pub fn write_docs(&mut self, val: &Option<String>) -> Result<(), SerializationError> {
-        match val {
-            Some(docs) => {
-                let doc_bytes = docs.as_bytes();
-                if doc_bytes.len() > u16::MAX as usize {
-                    return Err(SerializationError::StringTooLong);
-                }
-                self.write_u16(doc_bytes.len() as u16);
-                self.0.append(&mut doc_bytes.to_vec());
-            }
-            None => {
-                self.write_u16(0);
-            }
-        }
-        Ok(())
-    }
-
-    pub fn write_felt(&mut self, val: Felt) {
-        self.write_u64(val.as_int());
-    }
-
-    pub fn write_opcode(&mut self, val: OpCode) {
-        self.write_u8(val as u8);
-    }
-
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.0
-    }
-}
-
-// SERIALIZABLE TRAIT IMPLEMENTATIONS
-// ================================================================================================
-
-/// Converts `self` into bytes and writes them to the provided `ByteWriter` struct
-pub trait Serializable: Sized {
-    fn write_into(&self, target: &mut ByteWriter);
-}
-
-impl Serializable for Vec<Node> {
-    fn write_into(&self, target: &mut ByteWriter) {
-        target.write_u16(self.len() as u16);
-
-        for node in self {
-            node.write_into(target);
-        }
-    }
-}
 
 impl Serializable for Node {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
         match self {
-            Self::Instruction(i) => {
-                i.write_into(target);
-            }
+            Self::Instruction(i) => i.write_into(target),
             Self::IfElse(if_clause, else_clause) => {
-                target.write_u8(IF_ELSE_OPCODE);
-
-                if_clause.write_into(target);
-
-                else_clause.write_into(target);
+                OpCode::IfElse.write_into(target)?;
+                if_clause.write_into(target)?;
+                else_clause.write_into(target)
             }
             Self::Repeat(times, nodes) => {
-                target.write_u8(REPEAT_OPCODE);
-
-                target.write_u16(*times as u16);
-
-                nodes.write_into(target);
+                OpCode::Repeat.write_into(target)?;
+                target.write_u32(*times);
+                nodes.write_into(target)
             }
             Self::While(nodes) => {
-                target.write_u8(WHILE_OPCODE);
-
-                nodes.write_into(target);
+                OpCode::While.write_into(target)?;
+                nodes.write_into(target)
             }
-        };
+        }
     }
 }
 
+// INSTRUCTION SERIALIZATION
+// ================================================================================================
+
 impl Serializable for Instruction {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
         match self {
-            Self::Assert => target.write_opcode(OpCode::Assert),
-            Self::AssertEq => target.write_opcode(OpCode::AssertEq),
-            Self::Assertz => target.write_opcode(OpCode::Assertz),
-            Self::Add => target.write_opcode(OpCode::Add),
+            Self::Assert => OpCode::Assert.write_into(target)?,
+            Self::AssertEq => OpCode::AssertEq.write_into(target)?,
+            Self::Assertz => OpCode::Assertz.write_into(target)?,
+            Self::Add => OpCode::Add.write_into(target)?,
             Self::AddImm(v) => {
-                target.write_opcode(OpCode::AddImm);
+                OpCode::AddImm.write_into(target)?;
                 target.write_felt(*v);
             }
-            Self::Sub => target.write_opcode(OpCode::Sub),
+            Self::Sub => OpCode::Sub.write_into(target)?,
             Self::SubImm(v) => {
-                target.write_opcode(OpCode::SubImm);
+                OpCode::SubImm.write_into(target)?;
                 target.write_felt(*v);
             }
-            Self::Mul => target.write_opcode(OpCode::Mul),
+            Self::Mul => OpCode::Mul.write_into(target)?,
             Self::MulImm(v) => {
-                target.write_opcode(OpCode::MulImm);
+                OpCode::MulImm.write_into(target)?;
                 target.write_felt(*v);
             }
-            Self::Div => target.write_opcode(OpCode::Div),
+            Self::Div => OpCode::Div.write_into(target)?,
             Self::DivImm(v) => {
-                target.write_opcode(OpCode::DivImm);
+                OpCode::DivImm.write_into(target)?;
                 target.write_felt(*v);
             }
-            Self::Neg => target.write_opcode(OpCode::Neg),
-            Self::Inv => target.write_opcode(OpCode::Inv),
-            Self::Pow2 => target.write_opcode(OpCode::Pow2),
-            Self::Exp => target.write_opcode(OpCode::Exp),
+            Self::Neg => OpCode::Neg.write_into(target)?,
+            Self::Inv => OpCode::Inv.write_into(target)?,
+            Self::Incr => OpCode::Incr.write_into(target)?,
+            Self::Pow2 => OpCode::Pow2.write_into(target)?,
+            Self::Exp => OpCode::Exp.write_into(target)?,
             Self::ExpImm(v) => {
-                target.write_opcode(OpCode::ExpImm);
+                OpCode::ExpImm.write_into(target)?;
                 target.write_felt(*v);
             }
             Self::ExpBitLength(v) => {
-                target.write_opcode(OpCode::ExpBitLength);
+                OpCode::ExpBitLength.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::Not => target.write_opcode(OpCode::Not),
-            Self::And => target.write_opcode(OpCode::And),
-            Self::Or => target.write_opcode(OpCode::Or),
-            Self::Xor => target.write_opcode(OpCode::Xor),
-            Self::Eq => target.write_opcode(OpCode::Eq),
+            Self::Not => OpCode::Not.write_into(target)?,
+            Self::And => OpCode::And.write_into(target)?,
+            Self::Or => OpCode::Or.write_into(target)?,
+            Self::Xor => OpCode::Xor.write_into(target)?,
+            Self::Eq => OpCode::Eq.write_into(target)?,
             Self::EqImm(v) => {
-                target.write_opcode(OpCode::EqImm);
+                OpCode::EqImm.write_into(target)?;
                 target.write_felt(*v);
             }
-            Self::Neq => target.write_opcode(OpCode::Neq),
+            Self::Neq => OpCode::Neq.write_into(target)?,
             Self::NeqImm(v) => {
-                target.write_opcode(OpCode::NeqImm);
+                OpCode::NeqImm.write_into(target)?;
                 target.write_felt(*v);
             }
-            Self::Eqw => target.write_opcode(OpCode::Eqw),
-            Self::Lt => target.write_opcode(OpCode::Lt),
-            Self::Lte => target.write_opcode(OpCode::Lte),
-            Self::Gt => target.write_opcode(OpCode::Gt),
-            Self::Gte => target.write_opcode(OpCode::Gte),
+            Self::Eqw => OpCode::Eqw.write_into(target)?,
+            Self::Lt => OpCode::Lt.write_into(target)?,
+            Self::Lte => OpCode::Lte.write_into(target)?,
+            Self::Gt => OpCode::Gt.write_into(target)?,
+            Self::Gte => OpCode::Gte.write_into(target)?,
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Add => OpCode::Ext2Add.write_into(target)?,
+            Self::Ext2Sub => OpCode::Ext2Sub.write_into(target)?,
+            Self::Ext2Mul => OpCode::Ext2Mul.write_into(target)?,
+            Self::Ext2Div => OpCode::Ext2Div.write_into(target)?,
+            Self::Ext2Neg => OpCode::Ext2Neg.write_into(target)?,
+            Self::Ext2Inv => OpCode::Ext2Inv.write_into(target)?,
 
             // ----- u32 operations ---------------------------------------------------------------
-            Self::U32Test => target.write_opcode(OpCode::U32Test),
-            Self::U32TestW => target.write_opcode(OpCode::U32TestW),
-            Self::U32Assert => target.write_opcode(OpCode::U32Assert),
-            Self::U32Assert2 => target.write_opcode(OpCode::U32Assert2),
-            Self::U32AssertW => target.write_opcode(OpCode::U32AssertW),
-            Self::U32Split => target.write_opcode(OpCode::U32Split),
-            Self::U32Cast => target.write_opcode(OpCode::U32Cast),
-            Self::U32CheckedAdd => target.write_opcode(OpCode::U32CheckedAdd),
+            Self::U32Test => OpCode::U32Test.write_into(target)?,
+            Self::U32TestW => OpCode::U32TestW.write_into(target)?,
+            Self::U32Assert => OpCode::U32Assert.write_into(target)?,
+            Self::U32Assert2 => OpCode::U32Assert2.write_into(target)?,
+            Self::U32AssertW => OpCode::U32AssertW.write_into(target)?,
+            Self::U32Split => OpCode::U32Split.write_into(target)?,
+            Self::U32Cast => OpCode::U32Cast.write_into(target)?,
+            Self::U32CheckedAdd => OpCode::U32CheckedAdd.write_into(target)?,
             Self::U32CheckedAddImm(v) => {
-                target.write_opcode(OpCode::U32CheckedAddImm);
+                OpCode::U32CheckedAddImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32WrappingAdd => target.write_opcode(OpCode::U32WrappingAdd),
+            Self::U32WrappingAdd => OpCode::U32WrappingAdd.write_into(target)?,
             Self::U32WrappingAddImm(v) => {
-                target.write_opcode(OpCode::U32WrappingAddImm);
+                OpCode::U32WrappingAddImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32OverflowingAdd => target.write_opcode(OpCode::U32OverflowingAdd),
+            Self::U32OverflowingAdd => OpCode::U32OverflowingAdd.write_into(target)?,
             Self::U32OverflowingAddImm(v) => {
-                target.write_opcode(OpCode::U32OverflowingAddImm);
+                OpCode::U32OverflowingAddImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32OverflowingAdd3 => target.write_opcode(OpCode::U32OverflowingAdd3),
-            Self::U32WrappingAdd3 => target.write_opcode(OpCode::U32WrappingAdd3),
-            Self::U32CheckedSub => target.write_opcode(OpCode::U32CheckedSub),
+            Self::U32OverflowingAdd3 => OpCode::U32OverflowingAdd3.write_into(target)?,
+            Self::U32WrappingAdd3 => OpCode::U32WrappingAdd3.write_into(target)?,
+            Self::U32CheckedSub => OpCode::U32CheckedSub.write_into(target)?,
             Self::U32CheckedSubImm(v) => {
-                target.write_opcode(OpCode::U32CheckedSubImm);
+                OpCode::U32CheckedSubImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32WrappingSub => target.write_opcode(OpCode::U32WrappingSub),
+            Self::U32WrappingSub => OpCode::U32WrappingSub.write_into(target)?,
             Self::U32WrappingSubImm(v) => {
-                target.write_opcode(OpCode::U32WrappingSubImm);
+                OpCode::U32WrappingSubImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32OverflowingSub => target.write_opcode(OpCode::U32OverflowingSub),
+            Self::U32OverflowingSub => OpCode::U32OverflowingSub.write_into(target)?,
             Self::U32OverflowingSubImm(v) => {
-                target.write_opcode(OpCode::U32OverflowingSubImm);
+                OpCode::U32OverflowingSubImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32CheckedMul => target.write_opcode(OpCode::U32CheckedMul),
+            Self::U32CheckedMul => OpCode::U32CheckedMul.write_into(target)?,
             Self::U32CheckedMulImm(v) => {
-                target.write_opcode(OpCode::U32CheckedMulImm);
+                OpCode::U32CheckedMulImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32WrappingMul => target.write_opcode(OpCode::U32WrappingMul),
+            Self::U32WrappingMul => OpCode::U32WrappingMul.write_into(target)?,
             Self::U32WrappingMulImm(v) => {
-                target.write_opcode(OpCode::U32WrappingMulImm);
+                OpCode::U32WrappingMulImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32OverflowingMul => target.write_opcode(OpCode::U32OverflowingMul),
+            Self::U32OverflowingMul => OpCode::U32OverflowingMul.write_into(target)?,
             Self::U32OverflowingMulImm(v) => {
-                target.write_opcode(OpCode::U32OverflowingMulImm);
+                OpCode::U32OverflowingMulImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32OverflowingMadd => target.write_opcode(OpCode::U32OverflowingMadd),
-            Self::U32WrappingMadd => target.write_opcode(OpCode::U32WrappingMadd),
-            Self::U32CheckedDiv => target.write_opcode(OpCode::U32CheckedDiv),
+            Self::U32OverflowingMadd => OpCode::U32OverflowingMadd.write_into(target)?,
+            Self::U32WrappingMadd => OpCode::U32WrappingMadd.write_into(target)?,
+            Self::U32CheckedDiv => OpCode::U32CheckedDiv.write_into(target)?,
             Self::U32CheckedDivImm(v) => {
-                target.write_opcode(OpCode::U32CheckedDivImm);
+                OpCode::U32CheckedDivImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32UncheckedDiv => target.write_opcode(OpCode::U32UncheckedDiv),
+            Self::U32UncheckedDiv => OpCode::U32UncheckedDiv.write_into(target)?,
             Self::U32UncheckedDivImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedDivImm);
+                OpCode::U32UncheckedDivImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32CheckedMod => target.write_opcode(OpCode::U32CheckedMod),
+            Self::U32CheckedMod => OpCode::U32CheckedMod.write_into(target)?,
             Self::U32CheckedModImm(v) => {
-                target.write_opcode(OpCode::U32CheckedModImm);
+                OpCode::U32CheckedModImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32UncheckedMod => target.write_opcode(OpCode::U32UncheckedMod),
+            Self::U32UncheckedMod => OpCode::U32UncheckedMod.write_into(target)?,
             Self::U32UncheckedModImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedModImm);
+                OpCode::U32UncheckedModImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32CheckedDivMod => target.write_opcode(OpCode::U32CheckedDivMod),
+            Self::U32CheckedDivMod => OpCode::U32CheckedDivMod.write_into(target)?,
             Self::U32CheckedDivModImm(v) => {
-                target.write_opcode(OpCode::U32CheckedDivModImm);
+                OpCode::U32CheckedDivModImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32UncheckedDivMod => target.write_opcode(OpCode::U32UncheckedDivMod),
+            Self::U32UncheckedDivMod => OpCode::U32UncheckedDivMod.write_into(target)?,
             Self::U32UncheckedDivModImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedDivModImm);
+                OpCode::U32UncheckedDivModImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32CheckedAnd => target.write_opcode(OpCode::U32CheckedAnd),
-            Self::U32CheckedOr => target.write_opcode(OpCode::U32CheckedOr),
-            Self::U32CheckedXor => target.write_opcode(OpCode::U32CheckedXor),
-            Self::U32CheckedNot => target.write_opcode(OpCode::U32CheckedNot),
-            Self::U32CheckedShr => target.write_opcode(OpCode::U32CheckedShr),
+            Self::U32CheckedAnd => OpCode::U32CheckedAnd.write_into(target)?,
+            Self::U32CheckedOr => OpCode::U32CheckedOr.write_into(target)?,
+            Self::U32CheckedXor => OpCode::U32CheckedXor.write_into(target)?,
+            Self::U32CheckedNot => OpCode::U32CheckedNot.write_into(target)?,
+            Self::U32CheckedShr => OpCode::U32CheckedShr.write_into(target)?,
             Self::U32CheckedShrImm(v) => {
-                target.write_opcode(OpCode::U32CheckedShrImm);
+                OpCode::U32CheckedShrImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32UncheckedShr => target.write_opcode(OpCode::U32UncheckedShr),
+            Self::U32UncheckedShr => OpCode::U32UncheckedShr.write_into(target)?,
             Self::U32UncheckedShrImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedShrImm);
+                OpCode::U32UncheckedShrImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32CheckedShl => target.write_opcode(OpCode::U32CheckedShl),
+            Self::U32CheckedShl => OpCode::U32CheckedShl.write_into(target)?,
             Self::U32CheckedShlImm(v) => {
-                target.write_opcode(OpCode::U32CheckedShlImm);
+                OpCode::U32CheckedShlImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32UncheckedShl => target.write_opcode(OpCode::U32UncheckedShl),
+            Self::U32UncheckedShl => OpCode::U32UncheckedShl.write_into(target)?,
             Self::U32UncheckedShlImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedShlImm);
+                OpCode::U32UncheckedShlImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32CheckedRotr => target.write_opcode(OpCode::U32CheckedRotr),
+            Self::U32CheckedRotr => OpCode::U32CheckedRotr.write_into(target)?,
             Self::U32CheckedRotrImm(v) => {
-                target.write_opcode(OpCode::U32CheckedRotrImm);
+                OpCode::U32CheckedRotrImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32UncheckedRotr => target.write_opcode(OpCode::U32UncheckedRotr),
+            Self::U32UncheckedRotr => OpCode::U32UncheckedRotr.write_into(target)?,
             Self::U32UncheckedRotrImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedRotrImm);
+                OpCode::U32UncheckedRotrImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32CheckedRotl => target.write_opcode(OpCode::U32CheckedRotl),
+            Self::U32CheckedRotl => OpCode::U32CheckedRotl.write_into(target)?,
             Self::U32CheckedRotlImm(v) => {
-                target.write_opcode(OpCode::U32CheckedRotlImm);
+                OpCode::U32CheckedRotlImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32UncheckedRotl => target.write_opcode(OpCode::U32UncheckedRotl),
+            Self::U32UncheckedRotl => OpCode::U32UncheckedRotl.write_into(target)?,
             Self::U32UncheckedRotlImm(v) => {
-                target.write_opcode(OpCode::U32UncheckedRotlImm);
+                OpCode::U32UncheckedRotlImm.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::U32CheckedEq => target.write_opcode(OpCode::U32CheckedEq),
+            Self::U32CheckedPopcnt => OpCode::U32CheckedPopcnt.write_into(target)?,
+            Self::U32UncheckedPopcnt => OpCode::U32UncheckedPopcnt.write_into(target)?,
+            Self::U32CheckedEq => OpCode::U32CheckedEq.write_into(target)?,
             Self::U32CheckedEqImm(v) => {
-                target.write_opcode(OpCode::U32CheckedEqImm);
+                OpCode::U32CheckedEqImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32CheckedNeq => target.write_opcode(OpCode::U32CheckedNeq),
+            Self::U32CheckedNeq => OpCode::U32CheckedNeq.write_into(target)?,
             Self::U32CheckedNeqImm(v) => {
-                target.write_opcode(OpCode::U32CheckedNeqImm);
+                OpCode::U32CheckedNeqImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::U32CheckedLt => target.write_opcode(OpCode::U32CheckedLt),
-            Self::U32UncheckedLt => target.write_opcode(OpCode::U32UncheckedLt),
-            Self::U32CheckedLte => target.write_opcode(OpCode::U32CheckedLte),
-            Self::U32UncheckedLte => target.write_opcode(OpCode::U32UncheckedLte),
-            Self::U32CheckedGt => target.write_opcode(OpCode::U32CheckedGt),
-            Self::U32UncheckedGt => target.write_opcode(OpCode::U32UncheckedGt),
-            Self::U32CheckedGte => target.write_opcode(OpCode::U32CheckedGte),
-            Self::U32UncheckedGte => target.write_opcode(OpCode::U32UncheckedGte),
-            Self::U32CheckedMin => target.write_opcode(OpCode::U32CheckedMin),
-            Self::U32UncheckedMin => target.write_opcode(OpCode::U32UncheckedMin),
-            Self::U32CheckedMax => target.write_opcode(OpCode::U32CheckedMax),
-            Self::U32UncheckedMax => target.write_opcode(OpCode::U32UncheckedMax),
+            Self::U32CheckedLt => OpCode::U32CheckedLt.write_into(target)?,
+            Self::U32UncheckedLt => OpCode::U32UncheckedLt.write_into(target)?,
+            Self::U32CheckedLte => OpCode::U32CheckedLte.write_into(target)?,
+            Self::U32UncheckedLte => OpCode::U32UncheckedLte.write_into(target)?,
+            Self::U32CheckedGt => OpCode::U32CheckedGt.write_into(target)?,
+            Self::U32UncheckedGt => OpCode::U32UncheckedGt.write_into(target)?,
+            Self::U32CheckedGte => OpCode::U32CheckedGte.write_into(target)?,
+            Self::U32UncheckedGte => OpCode::U32UncheckedGte.write_into(target)?,
+            Self::U32CheckedMin => OpCode::U32CheckedMin.write_into(target)?,
+            Self::U32UncheckedMin => OpCode::U32UncheckedMin.write_into(target)?,
+            Self::U32CheckedMax => OpCode::U32CheckedMax.write_into(target)?,
+            Self::U32UncheckedMax => OpCode::U32UncheckedMax.write_into(target)?,
 
             // ----- stack manipulation ---------------------------------------------------------------
-            Self::Drop => target.write_opcode(OpCode::Drop),
-            Self::DropW => target.write_opcode(OpCode::DropW),
-            Self::PadW => target.write_opcode(OpCode::PadW),
-            Self::Dup0 => target.write_opcode(OpCode::Dup0),
-            Self::Dup1 => target.write_opcode(OpCode::Dup1),
-            Self::Dup2 => target.write_opcode(OpCode::Dup2),
-            Self::Dup3 => target.write_opcode(OpCode::Dup3),
-            Self::Dup4 => target.write_opcode(OpCode::Dup4),
-            Self::Dup5 => target.write_opcode(OpCode::Dup5),
-            Self::Dup6 => target.write_opcode(OpCode::Dup6),
-            Self::Dup7 => target.write_opcode(OpCode::Dup7),
-            Self::Dup8 => target.write_opcode(OpCode::Dup8),
-            Self::Dup9 => target.write_opcode(OpCode::Dup9),
-            Self::Dup10 => target.write_opcode(OpCode::Dup10),
-            Self::Dup11 => target.write_opcode(OpCode::Dup11),
-            Self::Dup12 => target.write_opcode(OpCode::Dup12),
-            Self::Dup13 => target.write_opcode(OpCode::Dup13),
-            Self::Dup14 => target.write_opcode(OpCode::Dup14),
-            Self::Dup15 => target.write_opcode(OpCode::Dup15),
-            Self::DupW0 => target.write_opcode(OpCode::DupW0),
-            Self::DupW1 => target.write_opcode(OpCode::DupW1),
-            Self::DupW2 => target.write_opcode(OpCode::DupW2),
-            Self::DupW3 => target.write_opcode(OpCode::DupW3),
-            Self::Swap1 => target.write_opcode(OpCode::Swap1),
-            Self::Swap2 => target.write_opcode(OpCode::Swap2),
-            Self::Swap3 => target.write_opcode(OpCode::Swap3),
-            Self::Swap4 => target.write_opcode(OpCode::Swap4),
-            Self::Swap5 => target.write_opcode(OpCode::Swap5),
-            Self::Swap6 => target.write_opcode(OpCode::Swap6),
-            Self::Swap7 => target.write_opcode(OpCode::Swap7),
-            Self::Swap8 => target.write_opcode(OpCode::Swap8),
-            Self::Swap9 => target.write_opcode(OpCode::Swap9),
-            Self::Swap10 => target.write_opcode(OpCode::Swap10),
-            Self::Swap11 => target.write_opcode(OpCode::Swap11),
-            Self::Swap12 => target.write_opcode(OpCode::Swap12),
-            Self::Swap13 => target.write_opcode(OpCode::Swap13),
-            Self::Swap14 => target.write_opcode(OpCode::Swap14),
-            Self::Swap15 => target.write_opcode(OpCode::Swap15),
-            Self::SwapW1 => target.write_opcode(OpCode::SwapW1),
-            Self::SwapW2 => target.write_opcode(OpCode::SwapW2),
-            Self::SwapW3 => target.write_opcode(OpCode::SwapW3),
-            Self::SwapDw => target.write_opcode(OpCode::SwapDW),
-            Self::MovUp2 => target.write_opcode(OpCode::MovUp2),
-            Self::MovUp3 => target.write_opcode(OpCode::MovUp3),
-            Self::MovUp4 => target.write_opcode(OpCode::MovUp4),
-            Self::MovUp5 => target.write_opcode(OpCode::MovUp5),
-            Self::MovUp6 => target.write_opcode(OpCode::MovUp6),
-            Self::MovUp7 => target.write_opcode(OpCode::MovUp7),
-            Self::MovUp8 => target.write_opcode(OpCode::MovUp8),
-            Self::MovUp9 => target.write_opcode(OpCode::MovUp9),
-            Self::MovUp10 => target.write_opcode(OpCode::MovUp10),
-            Self::MovUp11 => target.write_opcode(OpCode::MovUp11),
-            Self::MovUp12 => target.write_opcode(OpCode::MovUp12),
-            Self::MovUp13 => target.write_opcode(OpCode::MovUp13),
-            Self::MovUp14 => target.write_opcode(OpCode::MovUp14),
-            Self::MovUp15 => target.write_opcode(OpCode::MovUp15),
-            Self::MovUpW2 => target.write_opcode(OpCode::MovUpW2),
-            Self::MovUpW3 => target.write_opcode(OpCode::MovUpW3),
-            Self::MovDn2 => target.write_opcode(OpCode::MovDn2),
-            Self::MovDn3 => target.write_opcode(OpCode::MovDn3),
-            Self::MovDn4 => target.write_opcode(OpCode::MovDn4),
-            Self::MovDn5 => target.write_opcode(OpCode::MovDn5),
-            Self::MovDn6 => target.write_opcode(OpCode::MovDn6),
-            Self::MovDn7 => target.write_opcode(OpCode::MovDn7),
-            Self::MovDn8 => target.write_opcode(OpCode::MovDn8),
-            Self::MovDn9 => target.write_opcode(OpCode::MovDn9),
-            Self::MovDn10 => target.write_opcode(OpCode::MovDn10),
-            Self::MovDn11 => target.write_opcode(OpCode::MovDn11),
-            Self::MovDn12 => target.write_opcode(OpCode::MovDn12),
-            Self::MovDn13 => target.write_opcode(OpCode::MovDn13),
-            Self::MovDn14 => target.write_opcode(OpCode::MovDn14),
-            Self::MovDn15 => target.write_opcode(OpCode::MovDn15),
-            Self::MovDnW2 => target.write_opcode(OpCode::MovDnW2),
-            Self::MovDnW3 => target.write_opcode(OpCode::MovDnW3),
-            Self::CSwap => target.write_opcode(OpCode::CSwap),
-            Self::CSwapW => target.write_opcode(OpCode::CSwapW),
-            Self::CDrop => target.write_opcode(OpCode::CDrop),
-            Self::CDropW => target.write_opcode(OpCode::CDropW),
+            Self::Drop => OpCode::Drop.write_into(target)?,
+            Self::DropW => OpCode::DropW.write_into(target)?,
+            Self::PadW => OpCode::PadW.write_into(target)?,
+            Self::Dup0 => OpCode::Dup0.write_into(target)?,
+            Self::Dup1 => OpCode::Dup1.write_into(target)?,
+            Self::Dup2 => OpCode::Dup2.write_into(target)?,
+            Self::Dup3 => OpCode::Dup3.write_into(target)?,
+            Self::Dup4 => OpCode::Dup4.write_into(target)?,
+            Self::Dup5 => OpCode::Dup5.write_into(target)?,
+            Self::Dup6 => OpCode::Dup6.write_into(target)?,
+            Self::Dup7 => OpCode::Dup7.write_into(target)?,
+            Self::Dup8 => OpCode::Dup8.write_into(target)?,
+            Self::Dup9 => OpCode::Dup9.write_into(target)?,
+            Self::Dup10 => OpCode::Dup10.write_into(target)?,
+            Self::Dup11 => OpCode::Dup11.write_into(target)?,
+            Self::Dup12 => OpCode::Dup12.write_into(target)?,
+            Self::Dup13 => OpCode::Dup13.write_into(target)?,
+            Self::Dup14 => OpCode::Dup14.write_into(target)?,
+            Self::Dup15 => OpCode::Dup15.write_into(target)?,
+            Self::DupW0 => OpCode::DupW0.write_into(target)?,
+            Self::DupW1 => OpCode::DupW1.write_into(target)?,
+            Self::DupW2 => OpCode::DupW2.write_into(target)?,
+            Self::DupW3 => OpCode::DupW3.write_into(target)?,
+            Self::Swap1 => OpCode::Swap1.write_into(target)?,
+            Self::Swap2 => OpCode::Swap2.write_into(target)?,
+            Self::Swap3 => OpCode::Swap3.write_into(target)?,
+            Self::Swap4 => OpCode::Swap4.write_into(target)?,
+            Self::Swap5 => OpCode::Swap5.write_into(target)?,
+            Self::Swap6 => OpCode::Swap6.write_into(target)?,
+            Self::Swap7 => OpCode::Swap7.write_into(target)?,
+            Self::Swap8 => OpCode::Swap8.write_into(target)?,
+            Self::Swap9 => OpCode::Swap9.write_into(target)?,
+            Self::Swap10 => OpCode::Swap10.write_into(target)?,
+            Self::Swap11 => OpCode::Swap11.write_into(target)?,
+            Self::Swap12 => OpCode::Swap12.write_into(target)?,
+            Self::Swap13 => OpCode::Swap13.write_into(target)?,
+            Self::Swap14 => OpCode::Swap14.write_into(target)?,
+            Self::Swap15 => OpCode::Swap15.write_into(target)?,
+            Self::SwapW1 => OpCode::SwapW1.write_into(target)?,
+            Self::SwapW2 => OpCode::SwapW2.write_into(target)?,
+            Self::SwapW3 => OpCode::SwapW3.write_into(target)?,
+            Self::SwapDw => OpCode::SwapDW.write_into(target)?,
+            Self::MovUp2 => OpCode::MovUp2.write_into(target)?,
+            Self::MovUp3 => OpCode::MovUp3.write_into(target)?,
+            Self::MovUp4 => OpCode::MovUp4.write_into(target)?,
+            Self::MovUp5 => OpCode::MovUp5.write_into(target)?,
+            Self::MovUp6 => OpCode::MovUp6.write_into(target)?,
+            Self::MovUp7 => OpCode::MovUp7.write_into(target)?,
+            Self::MovUp8 => OpCode::MovUp8.write_into(target)?,
+            Self::MovUp9 => OpCode::MovUp9.write_into(target)?,
+            Self::MovUp10 => OpCode::MovUp10.write_into(target)?,
+            Self::MovUp11 => OpCode::MovUp11.write_into(target)?,
+            Self::MovUp12 => OpCode::MovUp12.write_into(target)?,
+            Self::MovUp13 => OpCode::MovUp13.write_into(target)?,
+            Self::MovUp14 => OpCode::MovUp14.write_into(target)?,
+            Self::MovUp15 => OpCode::MovUp15.write_into(target)?,
+            Self::MovUpW2 => OpCode::MovUpW2.write_into(target)?,
+            Self::MovUpW3 => OpCode::MovUpW3.write_into(target)?,
+            Self::MovDn2 => OpCode::MovDn2.write_into(target)?,
+            Self::MovDn3 => OpCode::MovDn3.write_into(target)?,
+            Self::MovDn4 => OpCode::MovDn4.write_into(target)?,
+            Self::MovDn5 => OpCode::MovDn5.write_into(target)?,
+            Self::MovDn6 => OpCode::MovDn6.write_into(target)?,
+            Self::MovDn7 => OpCode::MovDn7.write_into(target)?,
+            Self::MovDn8 => OpCode::MovDn8.write_into(target)?,
+            Self::MovDn9 => OpCode::MovDn9.write_into(target)?,
+            Self::MovDn10 => OpCode::MovDn10.write_into(target)?,
+            Self::MovDn11 => OpCode::MovDn11.write_into(target)?,
+            Self::MovDn12 => OpCode::MovDn12.write_into(target)?,
+            Self::MovDn13 => OpCode::MovDn13.write_into(target)?,
+            Self::MovDn14 => OpCode::MovDn14.write_into(target)?,
+            Self::MovDn15 => OpCode::MovDn15.write_into(target)?,
+            Self::MovDnW2 => OpCode::MovDnW2.write_into(target)?,
+            Self::MovDnW3 => OpCode::MovDnW3.write_into(target)?,
+            Self::CSwap => OpCode::CSwap.write_into(target)?,
+            Self::CSwapW => OpCode::CSwapW.write_into(target)?,
+            Self::CDrop => OpCode::CDrop.write_into(target)?,
+            Self::CDropW => OpCode::CDropW.write_into(target)?,
 
             // ----- input / output operations --------------------------------------------------------
-            Self::PushConstants(values) => {
-                target.write_opcode(OpCode::PushConstants);
+            Self::PushU8(value) => {
+                OpCode::PushU8.write_into(target)?;
+                target.write_u8(*value);
+            }
+            Self::PushU16(value) => {
+                OpCode::PushU16.write_into(target)?;
+                target.write_u16(*value);
+            }
+            Self::PushU32(value) => {
+                OpCode::PushU32.write_into(target)?;
+                target.write_u32(*value);
+            }
+            Self::PushFelt(value) => {
+                OpCode::PushFelt.write_into(target)?;
+                target.write_felt(*value);
+            }
+            Self::PushWord(values) => {
+                OpCode::PushWord.write_into(target)?;
+                values.iter().for_each(|&v| target.write_felt(v));
+            }
+            Self::PushU8List(values) => {
+                OpCode::PushU8List.write_into(target)?;
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u8(v));
+            }
+            Self::PushU16List(values) => {
+                OpCode::PushU16List.write_into(target)?;
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u16(v));
+            }
+            Self::PushU32List(values) => {
+                OpCode::PushU32List.write_into(target)?;
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u32(v));
+            }
+            Self::PushFeltList(values) => {
+                OpCode::PushFeltList.write_into(target)?;
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| target.write_felt(v));
             }
             Self::Locaddr(v) => {
-                target.write_opcode(OpCode::Locaddr);
+                OpCode::Locaddr.write_into(target)?;
                 target.write_u16(*v);
             }
-            Self::Sdepth => target.write_opcode(OpCode::Sdepth),
-            Self::Caller => target.write_opcode(OpCode::Caller),
+            Self::Sdepth => OpCode::Sdepth.write_into(target)?,
+            Self::Caller => OpCode::Caller.write_into(target)?,
+            Self::Clk => OpCode::Clk.write_into(target)?,
 
-            Self::MemLoad => target.write_opcode(OpCode::MemLoad),
+            Self::MemLoad => OpCode::MemLoad.write_into(target)?,
             Self::MemLoadImm(v) => {
-                target.write_opcode(OpCode::MemLoadImm);
+                OpCode::MemLoadImm.write_into(target)?;
                 target.write_u32(*v);
             }
-            Self::MemLoadW => target.write_opcode(OpCode::MemLoadW),
+            Self::MemLoadW => OpCode::MemLoadW.write_into(target)?,
             Self::MemLoadWImm(v) => {
-                target.write_opcode(OpCode::MemLoadWImm);
+                OpCode::MemLoadWImm.write_into(target)?;
                 target.write_u32(*v);
             }
             Self::LocLoad(v) => {
-                target.write_opcode(OpCode::LocLoad);
+                OpCode::LocLoad.write_into(target)?;
                 target.write_u16(*v);
             }
             Self::LocLoadW(v) => {
-                target.write_opcode(OpCode::LocLoadW);
+                OpCode::LocLoadW.write_into(target)?;
                 target.write_u16(*v);
             }
-            Self::MemStore => target.write_opcode(OpCode::MemStore),
+            Self::MemStore => OpCode::MemStore.write_into(target)?,
             Self::MemStoreImm(v) => {
-                target.write_opcode(OpCode::MemStoreImm);
+                OpCode::MemStoreImm.write_into(target)?;
                 target.write_u32(*v);
             }
             Self::LocStore(v) => {
-                target.write_opcode(OpCode::LocStore);
+                OpCode::LocStore.write_into(target)?;
                 target.write_u16(*v);
             }
-            Self::MemStoreW => target.write_opcode(OpCode::MemStoreW),
+            Self::MemStoreW => OpCode::MemStoreW.write_into(target)?,
             Self::MemStoreWImm(v) => {
-                target.write_opcode(OpCode::MemStoreWImm);
+                OpCode::MemStoreWImm.write_into(target)?;
                 target.write_u32(*v);
             }
             Self::LocStoreW(v) => {
-                target.write_opcode(OpCode::LocStoreW);
+                OpCode::LocStoreW.write_into(target)?;
                 target.write_u16(*v);
             }
 
-            Self::MemStream => target.write_opcode(OpCode::MemStream),
-            Self::AdvPipe => target.write_opcode(OpCode::AdvPipe),
+            Self::MemStream => OpCode::MemStream.write_into(target)?,
+            Self::AdvPipe => OpCode::AdvPipe.write_into(target)?,
 
-            Self::AdvU64Div => target.write_opcode(OpCode::AdvU64Div),
-            Self::AdvKeyval => target.write_opcode(OpCode::AdvKeyval),
+            Self::AdvU64Div => OpCode::AdvU64Div.write_into(target)?,
+            Self::AdvKeyval => OpCode::AdvKeyval.write_into(target)?,
             Self::AdvMem(start_addr, num_words) => {
-                target.write_opcode(OpCode::AdvMem);
+                OpCode::AdvMem.write_into(target)?;
                 target.write_u32(*start_addr);
                 target.write_u32(*num_words);
             }
             Self::AdvPush(v) => {
-                target.write_opcode(OpCode::AdvPush);
+                OpCode::AdvPush.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::AdvLoadW => target.write_opcode(OpCode::AdvLoadW),
+            Self::AdvLoadW => OpCode::AdvLoadW.write_into(target)?,
+            Self::AdvExt2Inv => OpCode::AdvExt2Inv.write_into(target)?,
+            Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target)?,
 
-            // ----- cryptographic operations ---------------------------------------------------------
-            Self::RpHash => target.write_opcode(OpCode::RPHash),
-            Self::RpPerm => target.write_opcode(OpCode::RPPerm),
-            Self::MTreeGet => target.write_opcode(OpCode::MTreeGet),
-            Self::MTreeSet => target.write_opcode(OpCode::MTreeSet),
-            Self::MTreeCwm => target.write_opcode(OpCode::MTreeCwm),
+            // ----- cryptographic operations -----------------------------------------------------
+            Self::Hash => OpCode::Hash.write_into(target)?,
+            Self::HMerge => OpCode::HMerge.write_into(target)?,
+            Self::HPerm => OpCode::HPerm.write_into(target)?,
+            Self::MTreeGet => OpCode::MTreeGet.write_into(target)?,
+            Self::MTreeSet => OpCode::MTreeSet.write_into(target)?,
+            Self::MTreeCwm => OpCode::MTreeCwm.write_into(target)?,
+            Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target)?,
 
-            // ----- exec / call ----------------------------------------------------------------------
+            // ----- exec / call ------------------------------------------------------------------
             Self::ExecLocal(v) => {
-                target.write_opcode(OpCode::ExecLocal);
+                OpCode::ExecLocal.write_into(target)?;
                 target.write_u16(*v);
             }
             Self::ExecImported(imported) => {
-                target.write_opcode(OpCode::ExecImported);
-                target.write_procedure_id(imported);
+                OpCode::ExecImported.write_into(target)?;
+                imported.write_into(target)?
             }
             Self::CallLocal(v) => {
-                target.write_opcode(OpCode::CallLocal);
+                OpCode::CallLocal.write_into(target)?;
                 target.write_u16(*v);
             }
             Self::CallImported(imported) => {
-                target.write_opcode(OpCode::CallImported);
-                target.write_procedure_id(imported);
+                OpCode::CallImported.write_into(target)?;
+                imported.write_into(target)?
             }
             Self::SysCall(imported) => {
-                target.write_opcode(OpCode::SysCall);
-                target.write_procedure_id(imported);
+                OpCode::SysCall.write_into(target)?;
+                imported.write_into(target)?
             }
         }
+        Ok(())
     }
 }

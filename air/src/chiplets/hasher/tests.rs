@@ -5,6 +5,7 @@ use super::{
 use rand_utils::rand_array;
 use vm_core::{
     chiplets::hasher::{apply_round, Selectors, LINEAR_HASH, STATE_WIDTH},
+    utils::collections::Vec,
     Felt, FieldElement, TRACE_WIDTH,
 };
 use winter_air::EvaluationFrame;
@@ -12,10 +13,10 @@ use winter_air::EvaluationFrame;
 // UNIT TESTS
 // ================================================================================================
 
-/// Tests instruction RPR, which is executed on all cycles that are not one less than a multiple of
-/// eight, and applies a round of Rescue-XLIX.
+/// Tests instruction HR, which is executed on all cycles that are not one less than a multiple of
+/// eight, and applies a round of the VM's native hash function.
 #[test]
-fn rescue_round() {
+fn hash_round() {
     let expected = [Felt::ZERO; NUM_CONSTRAINTS];
 
     let cycle_row_num: usize = 3;
@@ -54,7 +55,7 @@ fn get_test_periodic_values(cycle_row: usize) -> Vec<Felt> {
         _ => vec![Felt::ZERO, Felt::ZERO, Felt::ZERO],
     };
 
-    // Add the Rescue Prime round constants for the first 7 rows of the cycle, or pad with zeros.
+    // Add the RPO round constants for the first 7 rows of the cycle, or pad with zeros.
     if cycle_row == 7 {
         periodic_values.resize(periodic_values.len() + STATE_WIDTH * 2, Felt::ZERO);
     } else {

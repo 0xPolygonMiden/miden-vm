@@ -32,6 +32,10 @@ pub enum Operation {
     /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
     Caller,
 
+    /// Pushes the current value of the clock cycle onto the stack. This operation can be used to
+    /// measure the number of cycles it has taken to execute the program up to the current instruction.
+    Clk,
+
     // ----- flow control operations --------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
@@ -122,6 +126,12 @@ pub enum Operation {
     /// number `a` on exponent is incorported into the accumulator and the number is shifted to the right
     /// by one bit.
     Expacc,
+
+    // ----- ext2 operations -----------------------------------------------------------------------
+    /// Computes the product of two elements in the extension field of degree 2 and pushes the
+    /// result back onto the stack as the third and fourth elemtns. Pushes 0 onto the stack as
+    /// the first and second elements.
+    Ext2Mul,
 
     // ----- u32 operations -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
@@ -326,37 +336,38 @@ pub enum Operation {
     /// memory address. The remaining 3 elements of the word are not affected.
     MStore,
 
-    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    /// Loads two words from memory, and replaces the top 8 elements of the stack with them,
+    /// element-wise, in stack order.
     ///
     /// The operation works as follows:
     /// - The memory address of the first word is retrieved from 13th stack element (position 12).
     /// - Two consecutive words, starting at this address, are loaded from memory.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
-    ///   stack order).
+    /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
+    ///   order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
     MStream,
 
-    /// Loads two words from the advice tape, writes them to memory, and adds their contents to the
-    /// top 8 elements of the stack.
+    /// Loads two words from the advice tape, writes them to memory, and replaces the top 8 elements
+    /// of the stack with them, element-wise, in stack order.
     ///
     /// The operation works as follows:
     /// - Two words are read from the head of the advice tape.
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
-    ///   stack order).
+    /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
+    ///   order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
     Pipe,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The rate part of the
-    /// sponge is assumed to be on top of the stack, and the capacity is expected to be deepest in
-    /// the stack, starting at stack[8]. For a Rescue Prime permutation of [A, B, C] where A is the
-    /// capacity, the stack should look like [C, B, A, ...] from the top.
-    RpPerm,
+    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
+    /// rate part of the sponge is assumed to be on top of the stack, and the capacity is expected
+    /// to be deepest in the stack, starting at stack[8]. For an RPO permutation of [A, B, C] where
+    /// A is the capacity, the stack should look like [C, B, A, ...] from the top.
+    HPerm,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This
     /// operation can be used to prove that the prover knows a path in the specified Merkle tree
@@ -369,7 +380,7 @@ pub enum Operation {
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
-    /// advice sets). If the prover is not able to provide the required path, the operation fails.
+    /// merkle sets). If the prover is not able to provide the required path, the operation fails.
     /// The state of the stack does not change.
     MpVerify,
 
@@ -384,14 +395,17 @@ pub enum Operation {
     /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
-    /// (via advice sets). At the end of the operation, the old node value is replaced with the
+    /// (via merkle sets). At the end of the operation, the old node value is replaced with the
     /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
-    /// If the boolean parameter is set to false, at the end of the operation the advice set with
+    /// If the boolean parameter is set to false, at the end of the operation the merkle set with
     /// the specified root will be removed from the advice provider. Otherwise, the advice
-    /// provider will keep track of both, the old and the new advice sets.
+    /// provider will keep track of both, the old and the new merkle sets.
     MrUpdate(bool),
+
+    /// TODO: add docs
+    FriE2F4,
 }
 
 impl Operation {
@@ -438,13 +452,13 @@ impl Operation {
             Self::MovUp7    => 0b0001_0110,
             Self::MovDn7    => 0b0001_0111,
             Self::SwapW     => 0b0001_1000,
-            // <empty>      => 0b0001_1001
+            Self::Ext2Mul   => 0b0001_1001,
             Self::MovUp8    => 0b0001_1010,
             Self::MovDn8    => 0b0001_1011,
             Self::SwapW2    => 0b0001_1100,
             Self::SwapW3    => 0b0001_1101,
             Self::SwapDW    => 0b0001_1110,
-            // <empty>      => 0b0001_1111
+            // <empty>      => 0b0001_1111,
 
             Self::Assert    => 0b0010_0000,
             Self::Eq        => 0b0010_0001,
@@ -454,7 +468,7 @@ impl Operation {
             Self::Or        => 0b0010_0101,
             Self::U32and    => 0b0010_0110,
             Self::U32xor    => 0b0010_0111,
-            // <empty>      => 0b0010_1000
+            Self::FriE2F4   => 0b0010_1000,
             Self::Drop      => 0b0010_1001,
             Self::CSwap     => 0b0010_1010,
             Self::CSwapW    => 0b0010_1011,
@@ -478,7 +492,7 @@ impl Operation {
             Self::Dup15     => 0b0011_1100,
             Self::Read      => 0b0011_1101,
             Self::SDepth    => 0b0011_1110,
-            // <empty>      => 0b0011_1111
+            Self::Clk       => 0b0011_1111,
 
             Self::U32add    => 0b0100_0000,
             Self::U32sub    => 0b0100_0010,
@@ -489,7 +503,7 @@ impl Operation {
             Self::U32add3   => 0b0100_1100,
             Self::U32madd   => 0b0100_1110,
 
-            Self::RpPerm    => 0b0101_0000,
+            Self::HPerm     => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
             Self::Pipe      => 0b0101_0100,
             Self::MStream   => 0b0101_0110,
@@ -548,6 +562,8 @@ impl fmt::Display for Operation {
             Self::SDepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
 
+            Self::Clk => write!(f, "clk"),
+
             // ----- flow control operations ------------------------------------------------------
             Self::Join => write!(f, "join"),
             Self::Split => write!(f, "split"),
@@ -575,6 +591,9 @@ impl fmt::Display for Operation {
             Self::Eqz => write!(f, "eqz"),
 
             Self::Expacc => write!(f, "expacc"),
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Mul => write!(f, "ext2mul"),
 
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32assert2 => write!(f, "u32assert2"),
@@ -647,7 +666,7 @@ impl fmt::Display for Operation {
             Self::Pipe => write!(f, "pipe"),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpPerm => write!(f, "rpperm"),
+            Self::HPerm => write!(f, "hperm"),
             Self::MpVerify => write!(f, "mpverify"),
             Self::MrUpdate(copy) => {
                 if *copy {
@@ -656,6 +675,7 @@ impl fmt::Display for Operation {
                     write!(f, "mrupdate(move)")
                 }
             }
+            Self::FriE2F4 => write!(f, "frie2f4"),
         }
     }
 }

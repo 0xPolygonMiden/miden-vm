@@ -1,42 +1,88 @@
 use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::{AdviceInjector, Decorator, Felt};
+use vm_core::{AdviceInjector, Decorator};
 
 // HASHING
 // ================================================================================================
-// The number of elements to be hashed by the rphash operation
-const RPHASH_NUM_ELEMENTS: u64 = 8;
 
-/// Appends RPPERM and stack manipulation operations to the span block as required to compute a
-/// 2-to-1 Rescue Prime hash. The top of the stack is expected to be arranged with 2 words
+/// Appends HPERM and stack manipulation operations to the span block as required to compute a
+/// 1-to-1 hash. The top of the stack is expected to be arranged with 1 word (4 elements) to be
+/// hashed: [A, ...]. The resulting stack will contain the 1-to-1 hash result: [C, ...].
+///
+/// This assembly instruction uses the VM operation HPERM at its core, which permutes the top 12
+/// elements of the stack.
+///
+/// To perform the operation we do the following:
+/// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
+///    then reordering the stack and pushing an additional 4 elements so that the stack looks
+///    like: [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to
+///    ONE as we are hashing a number of elements which is not a multiple of the rate width. We
+///    also set the next element in the rate after `A` to ONE.  All other capacity and rate
+///    elements are set to ZERO, in accordance with the RPO rules.
+/// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
+///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
+/// 3. Drop D and B to achieve our result [C, ...]
+///
+/// This operation takes 20 VM cycles.
+pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    #[rustfmt::skip]
+    let ops = [
+        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
+        Pad, Incr, Pad, Pad, Pad,
+
+        // swap capacity elements such that they are below the elements to be hashed
+        SwapW,
+
+        // Duplicate capacity elements in the rate portion of the stack
+        Dup7, Dup7, Dup7, Dup7,
+
+        // Apply a hashing permutation on the top 12 elements in the stack
+        HPerm,
+
+        // Drop 4 elements (the part of the rate that doesn't have our result)
+        Drop, Drop, Drop, Drop,
+
+        // Move the top word (our result) down the stack
+        SwapW,
+
+        // Drop 4 elements (the capacity portion)
+        Drop, Drop, Drop, Drop,
+    ];
+    span.add_ops(ops)
+}
+
+/// Appends HPERM and stack manipulation operations to the span block as required to compute a
+/// 2-to-1 Rescue Prime Optimized hash. The top of the stack is expected to be arranged with 2 words
 /// (8 elements) to be hashed: [B, A, ...]. The resulting stack will contain the 2-to-1 hash result
 /// [E, ...].
 ///
-/// This assembly operation uses the VM operation RPPERM at its core, which permutes the top 12
+/// This assembly operation uses the VM operation HPERM at its core, which permutes the top 12
 /// elements of the stack.
 ///
 /// To perform the operation, we do the following:
-/// 1. Prepare the stack with 12 elements for RPPERM by pushing 4 more elements for the capacity,
-///    including the number of elements to be hashed (8), so the stack looks like [C, B, A, ...]
-///    where C is the capacity, and the number of elements is the deepest element in C.
-/// 2. Reorder the stack so the capacity is deepest in the stack [B, A, C, ...]
-/// 3. Append the RPPERM operation, which performs a Rescue Prime permutation on the top 12
-///    elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash result.
+/// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
+///    then reordering so the stack looks like [A, B, C, ...] where C is the capacity. All capacity
+///    elements are set to ZERO, in accordance with the RPO padding rule for when the input length
+///    is a multiple of the rate.
+/// 2. Reorder the top 2 words to restore the order of the elements to be hashed to [B, A, C, ...].
+/// 3. Append the HPERM operation, which performs a permutation of Rescue Prime Optimized on the
+///    top 12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash
+///    result.
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
+        // Add 4 elements to the stack to prepare the capacity portion for the RPO permutation
         // The capacity should start at stack[8], and the number of elements to be hashed should
         // be deepest in the stack at stack[11]
-        Push(Felt::new(RPHASH_NUM_ELEMENTS)), Pad, Pad, Pad, SwapW2,
+        Pad, Pad, Pad, Pad, SwapW2,
 
         // restore the order of the top 2 words to be hashed
         SwapW,
 
-        // Do the Rescue Prime permutation on the top 12 elements in the stack
-        RpPerm,
+        // Do the RPO permutation on the top 12 elements in the stack
+        HPerm,
 
         // Drop 4 elements (the part of the rate that doesn't have our result)
         Drop, Drop, Drop, Drop,
@@ -91,24 +137,15 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new value of the node, 4 element
 ///
 /// After the operations are executed, the stack will be arranged as follows:
+/// - old value of the node, 4 elements
 /// - new root of the tree after the update, 4 elements
-/// - new value of the node, 4 elements
 ///
-/// This operation takes 14 VM cycles.
+/// This operation takes 29 VM cycles.
 pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Inject the old node value onto the stack for the call to MRUPDATE.
-    // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
-    read_mtree_node(span);
-    update_mtree(span, false);
-    #[rustfmt::skip]
-    let ops = [
-        // Move the old root to the top of the stack => [R, R_new, V_new, ...]
-        SwapW,
+    // stack: [d, i, R_old, V_new, ...]
 
-        // Drop old root from the stack => [R_new, V_new ...]
-        Drop, Drop, Drop, Drop,
-    ];
-    span.add_ops(ops)
+    // stack: [V_old, R_new, ...] (29 cycles)
+    update_mtree(span, false)
 }
 
 /// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as
@@ -120,19 +157,15 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new value of the node, 4 element
 ///
 /// After the operations are executed, the stack will be arranged as follows:
+/// - old value of the node, 4 elements
 /// - new root of the tree after the update, 4 elements
-/// - new value of the node, 4 elements
-/// - root of the old tree which was copied, 4 elements
 ///
-/// This operation takes 12 VM cycles.
+/// This operation takes 29 VM cycles.
 pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Inject the old node value onto the stack for the call to MRUPDATE.
-    // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
-    read_mtree_node(span);
-    update_mtree(span, true);
+    // stack: [d, i, R_old, V_new, ...]
 
-    // Move the new value to the top => [R_new, V_new, R ...]
-    span.add_ops([SwapW, SwapW2, SwapW])
+    // stack: [V_old, R_new, ...] (29 cycles)
+    update_mtree(span, true)
 }
 
 // MERKLE TREES - HELPERS
@@ -171,16 +204,76 @@ fn read_mtree_node(span: &mut SpanBuilder) {
 
 /// Update a node in the merkle tree. The `copy` flag will be passed as argument of the `MrUpdate`
 /// operation.
-fn update_mtree(span: &mut SpanBuilder, copy: bool) {
+///
+/// This operation takes 29 VM cycles.
+fn update_mtree(span: &mut SpanBuilder, copy: bool) -> Result<Option<CodeBlock>, AssemblyError> {
+    // stack: [d, i, R_old, V_new, ...]
+    // output: [R_new, R_old, V_new, V_old, ...]
+
+    // Inject the old node value onto the stack for the call to MRUPDATE.
+    // stack: [V_old, d, i, R_old, V_new, ...] (4 cycles)
+    read_mtree_node(span);
+
     #[rustfmt::skip]
-    span.push_ops([
-        // Update the Merkle tree with the new value without copying the old tree. This replaces the
-        // old node value with the computed new Merkle root.
-        // => [R_new, d, i, R, V_new, ...]
+    let ops = [
+        // Note: The stack is 14 elements deep already. The existing ops manipulate up to depth 16,
+        // so it's only possible to copy 2-elements at the time.
+
+        // COPY V_old
+        // These instructions will push the current copy of V_old down, and create a new word with
+        // the same elements on the top of the stack.
+        //
+        // ========================================================================================
+        // Renamed V_old => o<pos>, R_old => r<pos>, V_new => n<pos>
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+
+        // Renamed V_old => o<pos>, R_old => r<pos>, V_new => n<pos>
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+
+        // Move i then d up
+        // stack: [[d, i, o3, o2], [o1, o0, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+        MovUp5, MovUp5,
+
+        // Copy half of the word, o0 then o1
+        // stack: [[o1, o0, d, i], [o3, o2, o1, o0], [r3, r2, r1, r0], [n3, n2, n1, n0], ...]
+        Dup5, Dup5,
+
+        // Move the data down
+        // stack: [[o1, o0, d, i], [r3, r2, r1, r0], [n3, n2, n1, n0], [o3, o2, o1, o0], ...]
+        SwapDW, SwapW, SwapW2,
+
+        // Copy the other half of the word, o2 then o3
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2,] [n1, n0, o3, o2], o1, o0, ...]
+        Dup13, Dup13,
+
+        // Update the Merkle tree
+        // ========================================================================================
+
+        // Update the node at depth `d` and position `i`. Copy of the Merkle tree depends on the
+        // value of the `copy` flag.
+        // stack: [R_new, d, i, R_old, V_new, V_old, ...]
         MrUpdate(copy),
 
-        // move d, i back to the top of the stack and are dropped since they are
-        // no longer needed => [R_new, R, V_new, ...]
+        // Drop unecessary values
+        // ========================================================================================
+
+        // drop d and i since they are no longer needed
+        // stack: [R_new, R_old, V_new, V_old, ...]
         MovUp4, Drop, MovUp4, Drop,
-    ]);
+
+        // drop old Merkle root from the stack
+        // stack: [R_new, V_new, V_old, ...]
+        SwapW, Drop, Drop, Drop, Drop,
+
+        // drop new value from stack
+        // stack: [R_new, V_old, ...]
+        SwapW, Drop, Drop, Drop, Drop,
+
+        // move the V_old to the front
+        // stack: [V_old, R_new, ...]
+        SwapW
+    ];
+
+    // stack: [V_old, R_new, ...] (25 cycles)
+    span.add_ops(ops)
 }

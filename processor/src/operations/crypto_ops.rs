@@ -1,19 +1,21 @@
+use super::{AdviceProvider, ExecutionError, Operation, Process};
 use vm_core::StarkField;
-
-use super::{ExecutionError, Operation, Process};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The stack is assumed
-    /// to be arranged so that the 8 elements of the rate are at the top of the stack. The capacity
-    /// word follows, with the number of elements to be hashed at the deepest position in stack[11].
-    /// For a Rescue Prime permutation of [A, B, C] where A is the capacity, the stack should be
-    /// arranged (from the top) as [C, B, A, ...].
-    pub(super) fn op_rpperm(&mut self) -> Result<(), ExecutionError> {
+    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
+    /// stack is assumed to be arranged so that the 8 elements of the rate are at the top of the
+    /// stack. The capacity word follows, with the element that specifies the padding rule at the
+    /// deepest position in stack[11]. For an RPO permutation of [A, B, C] where A is the capacity,
+    /// the stack should be arranged (from the top) as [C, B, A, ...].
+    pub(super) fn op_hperm(&mut self) -> Result<(), ExecutionError> {
         let input_state = [
             self.stack.get(11),
             self.stack.get(10),
@@ -65,39 +67,26 @@ impl Process {
     /// Panics if the computed root does not match the root provided via the stack.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
-        let node = [
-            self.stack.get(3),
-            self.stack.get(2),
-            self.stack.get(1),
-            self.stack.get(0),
-        ];
+        let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let provided_root = [
-            self.stack.get(9),
-            self.stack.get(8),
-            self.stack.get(7),
-            self.stack.get(6),
-        ];
+        let provided_root =
+            [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = self.advice.get_merkle_path(provided_root, depth, index)?;
+        let path = self.advice_provider.get_merkle_path(provided_root, depth, index)?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder
-            .set_user_op_helpers(Operation::MpVerify, &[addr]);
+        self.decoder.set_user_op_helpers(Operation::MpVerify, &[addr]);
 
         // Asserting the computed root of the merkle path from the advice provider is consistent with
         // the input root.
-        assert_eq!(
-            provided_root, computed_root,
-            "inconsistent Merkle tree root"
-        );
+        assert_eq!(provided_root, computed_root, "inconsistent Merkle tree root");
 
         // The same state is copied over to the next clock cycle with no changes.
         self.stack.copy_state(0);
@@ -115,19 +104,19 @@ impl Process {
     /// To perform the operation we do the following:
     /// 1. Update the leaf node at the specified index in the advice provider with the specified
     ///    root, and get the Merkle path to this leaf. If `copy` is set to true, we make a copy
-    ///    of the advice set before updating it.
+    ///    of the merkle set before updating it.
     /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this
     ///    we need to provide the old and the new node value.
     /// 3. Verify that the computed old root is equal to the input root provided via the stack.
     /// 4. Replace the old node value with the computed new root.
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
-    /// (via advice sets). At the end of the operation, the old node value is replaced with the
+    /// (via merkle sets). At the end of the operation, the old node value is replaced with the
     /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
     /// If `copy` is set to true, at the end of the operation the advice provide will keep both,
-    /// the old and the new advice sets. Otherwise, the old advice set is removed from the
+    /// the old and the new merkle sets. Otherwise, the old merkle set is removed from the
     /// provider.
     ///
     ///
@@ -142,54 +131,35 @@ impl Process {
     /// Panics if the computed old root does not match the input root provided via the stack.
     pub(super) fn op_mrupdate(&mut self, copy: bool) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
-        let old_node = [
-            self.stack.get(3),
-            self.stack.get(2),
-            self.stack.get(1),
-            self.stack.get(0),
-        ];
+        let old_node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let old_root = [
-            self.stack.get(9),
-            self.stack.get(8),
-            self.stack.get(7),
-            self.stack.get(6),
-        ];
-        let new_node = [
-            self.stack.get(13),
-            self.stack.get(12),
-            self.stack.get(11),
-            self.stack.get(10),
-        ];
+        let old_root = [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
+        let new_node =
+            [self.stack.get(13), self.stack.get(12), self.stack.get(11), self.stack.get(10)];
 
-        // update the leaf at the specified index in the advice set specified by the old root, and
+        // update the leaf at the specified index in the merkle set specified by the old root, and
         // get a Merkle path to the specified leaf. the length of the returned path is expected to
         // match the specified depth.
         // TODO: in the future, we should be able to replace sub-trees and not just the leaves,
         // and, thus, the assert on depth would not be needed.
-        let path = self
-            .advice
-            .update_merkle_leaf(old_root, index, new_node, copy)?;
+        let path = self.advice_provider.update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
-        // use hasher to update the Merkle root.
-        let (addr, computed_old_root, new_root) = self
-            .chiplets
-            .update_merkle_root(old_node, new_node, &path, index);
+        let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
 
         // Asserts the computed old root of the merkle path from the advice provider is consistent
         // with the input root provided via the stack. This will panic only if the advice provider
         // returns a Merkle path inconsistent with the specified root.
-        assert_eq!(old_root, computed_old_root, "inconsistent Merkle tree root");
+        assert_eq!(old_root, merkle_tree_update.get_old_root(), "inconsistent Merkle tree root");
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
         self.decoder
-            .set_user_op_helpers(Operation::MrUpdate(copy), &[addr]);
+            .set_user_op_helpers(Operation::MrUpdate(copy), &[merkle_tree_update.get_address()]);
 
         // Replace the old node value with computed new root; everything else remains the same.
-        for (i, &value) in new_root.iter().rev().enumerate() {
+        for (i, &value) in merkle_tree_update.get_new_root().iter().rev().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.copy_state(4);
@@ -207,46 +177,45 @@ mod tests {
         super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
-    use crate::Word;
+    use crate::{AdviceInputs, MerkleSet, StackInputs, Word};
     use rand_utils::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
-        AdviceSet, ProgramInputs,
+        utils::collections::Vec,
     };
 
     #[test]
-    fn op_rpperm() {
+    fn op_hperm() {
         // --- test hashing [ONE, ONE] ------------------------------------------------------------
         let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
-        let mut process = Process::new_dummy(&inputs);
+        let stack = StackInputs::try_from_values(inputs).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-        process.execute_op(Operation::RpPerm).unwrap();
+        process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test hashing 8 random values -------------------------------------------------------
         let values = rand_vector::<u64>(8);
         let mut inputs: Vec<u64> = vec![values.len() as u64, 0, 0, 0];
         inputs.extend_from_slice(&values);
-        let mut process = Process::new_dummy(&inputs);
+        let stack = StackInputs::try_from_values(inputs.clone()).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         // add the capacity to prepare the input vector
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-        process.execute_op(Operation::RpPerm).unwrap();
+        process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test that the rest of the stack isn't affected -------------------------------------
         let mut inputs: Vec<u64> = vec![1, 2, 3, 4];
-        let expected = inputs
-            .iter()
-            .rev()
-            .map(|&v| Felt::new(v))
-            .collect::<Vec<Felt>>();
+        let expected = inputs.iter().rev().map(|&v| Felt::new(v)).collect::<Vec<Felt>>();
         let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
         inputs.extend_from_slice(&values);
 
-        let mut process = Process::new_dummy(&inputs);
-        process.execute_op(Operation::RpPerm).unwrap();
+        let stack = StackInputs::try_from_values(inputs).unwrap();
+        let mut process = Process::new_dummy(stack);
+        process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }
 
@@ -254,7 +223,7 @@ mod tests {
     fn op_mpverify() {
         let index = 5usize;
         let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
         let stack_inputs = [
             tree.root()[0].as_int(),
@@ -269,8 +238,10 @@ mod tests {
             leaves[index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
@@ -297,8 +268,8 @@ mod tests {
         let mut new_leaves = leaves.clone();
         new_leaves[node_index] = new_node;
 
-        let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
-        let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
+        let new_tree = MerkleSet::new_merkle_tree(new_leaves).unwrap();
 
         let stack_inputs = [
             new_node[0].as_int(),
@@ -317,8 +288,10 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
@@ -341,8 +314,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure the old Merkle tree was discarded
-        assert!(!process.advice.has_advice_set(tree.root()));
-        assert!(process.advice.has_advice_set(new_tree.root()));
+        assert!(!process.advice_provider.has_merkle_set(tree.root()));
+        assert!(process.advice_provider.has_merkle_set(new_tree.root()));
     }
 
     #[test]
@@ -354,8 +327,8 @@ mod tests {
         let mut new_leaves = leaves.clone();
         new_leaves[node_index] = new_node;
 
-        let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
-        let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
+        let new_tree = MerkleSet::new_merkle_tree(new_leaves).unwrap();
 
         let stack_inputs = [
             new_node[0].as_int(),
@@ -374,8 +347,10 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();
@@ -397,9 +372,9 @@ mod tests {
         ]);
         assert_eq!(expected_stack, process.stack.trace_state());
 
-        // make sure both Merkle trees are still in the advice set
-        assert!(process.advice.has_advice_set(tree.root()));
-        assert!(process.advice.has_advice_set(new_tree.root()));
+        // make sure both Merkle trees are still in the merkle set
+        assert!(process.advice_provider.has_merkle_set(tree.root()));
+        assert!(process.advice_provider.has_merkle_set(new_tree.root()));
     }
 
     // HELPER FUNCTIONS

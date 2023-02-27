@@ -107,10 +107,7 @@ mod tests {
         );
 
         assert_eq!(constraint_ranges.stack.start, sys_constraints_len);
-        assert_eq!(
-            constraint_ranges.stack.end,
-            sys_constraints_len + stack_constraints_len
-        );
+        assert_eq!(constraint_ranges.stack.end, sys_constraints_len + stack_constraints_len);
         assert_eq!(
             constraint_ranges.range_checker.start,
             sys_constraints_len + stack_constraints_len

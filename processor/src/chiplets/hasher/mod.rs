@@ -1,13 +1,14 @@
 use super::{
-    Felt, FieldElement, HasherState, LookupTableRow, OpBatch, StarkField, TraceFragment, Vec, Word,
-    ZERO,
+    Felt, FieldElement, HasherState, LookupTableRow, MerkleRootUpdate, OpBatch, StarkField,
+    TraceFragment, Vec, Word, ZERO,
 };
 use vm_core::{
     chiplets::hasher::{
-        absorb_into_state, get_digest, init_state, init_state_from_words, Digest, Selectors,
-        HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW,
-        MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL,
-        RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+        absorb_into_state, get_digest, init_state, init_state_from_words,
+        init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
+        LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
+        MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
+        RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
     },
     utils::collections::BTreeMap,
 };
@@ -121,8 +122,7 @@ impl Hasher {
         lookups.push(lookup);
 
         // perform the hash.
-        self.trace
-            .append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
+        self.trace.append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
 
         // add the lookup for the hash result.
         let lookup = self.get_lookup(RETURN_STATE_LABEL, ZERO, HasherLookupContext::Return);
@@ -141,11 +141,12 @@ impl Hasher {
         &mut self,
         h1: Word,
         h2: Word,
+        domain: Felt,
         expected_hash: Digest,
         lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
         let addr = self.trace.next_row_addr();
-        let mut state = init_state_from_words(&h1, &h2);
+        let mut state = init_state_from_words_with_domain(&h1, &h2, domain);
 
         // add the lookup for the hash initialization.
         let lookup = self.get_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
@@ -156,8 +157,7 @@ impl Hasher {
             self.trace.copy_trace(&mut state, *start_row..*end_row);
         } else {
             // perform the hash.
-            self.trace
-                .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+            self.trace.append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
 
             self.insert_to_memoized_trace_map(addr, expected_hash);
         };
@@ -180,7 +180,6 @@ impl Hasher {
     pub(super) fn hash_span_block(
         &mut self,
         op_batches: &[OpBatch],
-        num_op_groups: usize,
         expected_hash: Digest,
         lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
@@ -200,7 +199,7 @@ impl Hasher {
         let addr = self.trace.next_row_addr();
 
         // initialize the state and absorb the first operation batch into it
-        let mut state = init_state(op_batches[0].groups(), num_op_groups);
+        let mut state = init_state(op_batches[0].groups(), ZERO);
 
         // add the lookup for the hash initialization.
         let lookup = self.get_lookup(START_LABEL, ZERO, HasherLookupContext::Start);
@@ -320,13 +319,8 @@ impl Hasher {
     /// lookups required for verifying its correctness so that they can be provided to the Chiplets
     /// Bus.
     ///
-    /// The computation consists of two Merkle path verification procedures for a node at the
-    /// specified index. The procedures compute Merkle roots for the specified path for the old
-    /// value of the node (value before the update), and the new value of the node (value after
-    /// the update).
-    ///
-    /// The returned tuple contains these roots, as well as the row address of the execution trace
-    /// at which the computation started.
+    /// The computation consists of two Merkle path verifications, one for the old value of the
+    /// node (value before the update), and another for the new value (value after the update).
     ///
     /// # Panics
     /// Panics if:
@@ -339,8 +333,8 @@ impl Hasher {
         path: &[Word],
         index: Felt,
         lookups: &mut Vec<HasherLookup>,
-    ) -> (Felt, Word, Word) {
-        let addr = self.trace.next_row_addr();
+    ) -> MerkleRootUpdate {
+        let address = self.trace.next_row_addr();
         let index = index.as_int();
 
         let old_root = self.verify_merkle_path(
@@ -358,7 +352,11 @@ impl Hasher {
             lookups,
         );
 
-        (addr, old_root, new_root)
+        MerkleRootUpdate {
+            address,
+            old_root,
+            new_root,
+        }
     }
 
     // TRACE GENERATION
@@ -406,14 +404,7 @@ impl Hasher {
             // handle path of length 1 separately because pattern for init and final selectors
             // is different from other cases
             self.update_sibling_hints(context, index, path[0], depth);
-            self.verify_mp_leg(
-                root,
-                path[0],
-                &mut index,
-                main_selectors,
-                RETURN_HASH,
-                lookups,
-            )
+            self.verify_mp_leg(root, path[0], &mut index, main_selectors, RETURN_HASH, lookups)
         } else {
             // process the first node of the path; for this node, init and final selectors are
             // the same
@@ -446,14 +437,7 @@ impl Hasher {
             // process the last node
             let sibling = path[path.len() - 1];
             self.update_sibling_hints(context, index, sibling, depth);
-            self.verify_mp_leg(
-                root,
-                sibling,
-                &mut index,
-                part_selectors,
-                RETURN_HASH,
-                lookups,
-            )
+            self.verify_mp_leg(root, sibling, &mut index, part_selectors, RETURN_HASH, lookups)
         }
     }
 
@@ -533,8 +517,7 @@ impl Hasher {
         let step = self.trace.trace_len() as u32;
         match context {
             MerklePathContext::MrUpdateOld => {
-                self.aux_trace
-                    .sibling_added(step, Felt::new(index), sibling);
+                self.aux_trace.sibling_added(step, Felt::new(index), sibling);
             }
             MerklePathContext::MrUpdateNew => {
                 // we use node depth as row offset here because siblings are added to the table

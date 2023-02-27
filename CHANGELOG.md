@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.0 (2023-02-27)
+
+#### Advice provider
+- [BREAKING] Converted `AdviceProvider` into a trait which can be provided to the processor.
+- Added a decorator for interpolating polynomials over degree 2 extension field (`ext2intt`).
+- Added `AdviceSource` enum for greater future flexibility of advice injectors.
+
+#### CLI
+- Added `debug` subcommand to enable stepping through program execution forward/backward.
+- Added cycle count to the output of program execution.
+
+#### Assembly
+- Added support for constant declarations.
+- Added new instructions: `clk`, `ext2*`, `fri_ext2fold4`, `hash`, `u32checked_popcnt`, `u32unchecked_popcnt`.
+- [BREAKING] Renamed `rpperm` to `hperm` and `rphash` to `hmerge`.
+- Removed requirement that code blocks must be non-empty (i.e., allowed empty blocks).
+- [BREAKING] Refactored `mtree_set` and `mtree_cwm` instructions to leave the old value on the stack.
+- [BREAKING] Replaced `ModuleProvider` with `Library` to improve 3rd party library support.
+
+#### Processor, Prover, and Verifier
+- [BREAKING] Refactored `execute()`, `prove()`, `verify()` functions to take `StackInputs` as one of the parameters.
+- [BREAKING] Refactored `prove()` function to return `ExecutionProof` (which is a wrapper for `StarkProof`).
+- [BREAKING] Refactored `verify()` function to take `ProgramInfo`, `StackInputs`, and `ExecutionProof` as parameters and return a `u32` indicating security level of the verified proof.
+
+#### Stdlib
+- Added `std::mem::memcopy` procedure for copying regions of memory.
+- Added `std::crypto::fri::frie2f4::verify` for verifying FRI proofs over degree 2 extension field.
+
+#### VM Internals
+- [BREAKING] Migrated to Rescue Prime Optimized hash function.
+- Updated Winterfell backend to v0.5.1
+
 ## 0.3.0 (2022-11-23)
 
 - Implemented `call` operation for context-isolated function calls.

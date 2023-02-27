@@ -55,7 +55,7 @@ const DEGREE_4_OPCODE_ENDS: usize = DEGREE_4_OPCODE_STARTS + 31;
 ///
 /// The operation flag values are computed separately for degree 7 and degree 6 and 4 stack operations.
 /// Only one flag will be set to ONE and rest all would be ZERO for an execution trace. It also computes
-/// the composite flags using individual stack operation flags for generic stack constraints.    
+/// the composite flags using individual stack operation flags for generic stack constraints.
 pub struct OpFlags<E: FieldElement> {
     degree7_op_flags: [E; NUM_DEGREE_7_OPS],
     degree6_op_flags: [E; NUM_DEGREE_6_OPS],
@@ -187,6 +187,8 @@ impl<E: FieldElement> OpFlags<E> {
             degree7_op_flags[i] *= not_0;
         }
 
+        let ext2mul_flag = degree7_op_flags[25];
+
         // flag when the items from first point onwards are copied over. It doesn't have noop.
         let no_change_1_flag = f0000 - degree7_op_flags[0];
         // flag when the items from second point onwards are shifted to the left. It doesn't have assert.
@@ -212,13 +214,10 @@ impl<E: FieldElement> OpFlags<E> {
 
         // helper register is multiplied with the intermediate values to enumerate all the possible
         // degree 4 operations flags.
-        degree4_op_flags
-            .iter_mut()
-            .take(8)
-            .for_each(|v| *v *= helper);
+        degree4_op_flags.iter_mut().take(8).for_each(|v| *v *= helper);
 
-        // flag of END operation shifting stack to the left. It's effect on stack depends if the current
-        // block being executed is a loop block or not.
+        // flag of END operation shifting stack to the left. It's effect on stack depends if the
+        // current block being executed is a loop block or not.
         let shift_left_on_end = degree4_op_flags[4] * frame.is_loop_end();
 
         // The degree 6 flag (`10xxxxx`) is clubbed with both 6th bit and it's boolean not value to
@@ -231,7 +230,7 @@ impl<E: FieldElement> OpFlags<E> {
             degree6_op_flags[i] *= degree_six_flag_not_1;
         }
 
-        // -------------------------- no shift composite flags computation ------------------------------
+        // -------------------------- no shift composite flags computation ------------------------
 
         no_shift_flags[0] = degree7_op_flags[0]
             + degree6_op_flags[5]
@@ -246,8 +245,12 @@ impl<E: FieldElement> OpFlags<E> {
         no_shift_flags[1] = no_shift_flags[0] + no_change_1_flag;
         no_shift_flags[2] = no_shift_flags[1] + degree7_op_flags[8] + f1000;
         no_shift_flags[3] = no_shift_flags[2] + mov2_flag;
-        no_shift_flags[4] =
-            no_shift_flags[3] + mov3_flag + readw_expacc + swapwx_flag + degree4_op_flags[0];
+        no_shift_flags[4] = no_shift_flags[3]
+            + mov3_flag
+            + readw_expacc
+            + swapwx_flag
+            + ext2mul_flag
+            + degree4_op_flags[0];
 
         no_shift_flags[5] = no_shift_flags[4] + mov4_flag;
         no_shift_flags[6] = no_shift_flags[5] + mov5_flag;
@@ -264,7 +267,7 @@ impl<E: FieldElement> OpFlags<E> {
         no_shift_flags[14] = no_shift_flags[12];
         no_shift_flags[15] = no_shift_flags[12];
 
-        // -------------------------- left shift composite flags computation ------------------------------
+        // -------------------------- left shift composite flags computation ----------------------
 
         let movdnn_flag = degree7_op_flags[11]
             + degree7_op_flags[13]
@@ -302,7 +305,7 @@ impl<E: FieldElement> OpFlags<E> {
         left_shift_flags[14] = left_shift_flags[9];
         left_shift_flags[15] = left_shift_flags[9];
 
-        // -------------------------- right shift composite flags computation ------------------------------
+        // -------------------------- right shift composite flags computation ---------------------
 
         let movupn_flag = degree7_op_flags[10]
             + degree7_op_flags[12]
@@ -375,9 +378,9 @@ impl<E: FieldElement> OpFlags<E> {
     }
 
     // STATE ACCESSORS
-    // ==========================================================================================
+    // ============================================================================================
 
-    // ------ Degree 7 operations with no shift -------------------------------------------------
+    // ------ Degree 7 operations with no shift ---------------------------------------------------
 
     /// Operation Flag of NOOP operation.
     #[inline(always)]
@@ -553,7 +556,13 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree7_op_flags[get_op_index(Operation::SwapDW.op_code())]
     }
 
-    // ------ Degree 7 operations with left shift ----------------------------------------
+    /// Operation Flag of EXT2MUL operation.
+    #[inline(always)]
+    pub fn ext2mul(&self) -> E {
+        self.degree7_op_flags[get_op_index(Operation::Ext2Mul.op_code())]
+    }
+
+    // ------ Degree 7 operations with left shift -------------------------------------------------
 
     /// Operation Flag of ASSERT operation.
     #[inline(always)]
@@ -645,7 +654,7 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree7_op_flags[get_op_index(Operation::FmpUpdate.op_code())]
     }
 
-    // ------ Degree 7 operations with right shift -----------------------------------------------
+    // ------ Degree 7 operations with right shift ------------------------------------------------
 
     /// Operation Flag of PAD operation.
     #[inline(always)]
@@ -737,7 +746,7 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree7_op_flags[get_op_index(Operation::SDepth.op_code())]
     }
 
-    // ------ Degree 6 u32 operations  --------------------------------------------------------
+    // ------ Degree 6 u32 operations  ------------------------------------------------------------
 
     /// Operation Flag of U32ADD operation.
     #[inline(always)]
@@ -787,12 +796,12 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree6_op_flags[get_op_index(Operation::U32madd.op_code())]
     }
 
-    // ------ Degree 6 non u32 operations  ---------------------------------------------------
+    // ------ Degree 6 non u32 operations  --------------------------------------------------------
 
-    /// Operation Flag of RPPERM operation.
+    /// Operation Flag of HPERM operation.
     #[inline(always)]
-    pub fn rpperm(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::RpPerm.op_code())]
+    pub fn hperm(&self) -> E {
+        self.degree6_op_flags[get_op_index(Operation::HPerm.op_code())]
     }
 
     /// Operation Flag of MPVERIFY operation.
@@ -825,7 +834,7 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree6_op_flags[get_op_index(Operation::Loop.op_code())]
     }
 
-    // ------ Degree 4 stack operations  -----------------------------------------------------
+    // ------ Degree 4 stack operations  ----------------------------------------------------------
 
     /// Operation Flag of MRUPDATE operation.
     #[inline(always)]
@@ -875,26 +884,26 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree4_op_flags[get_op_index(Operation::Halt.op_code())]
     }
 
-    // ------ Composite Flags ---------------------------------------------------------------------------
+    // ------ Composite Flags ---------------------------------------------------------------------
 
-    /// Returns ONE when the stack item at the specified depth remains unchanged during an operation, and
-    /// ZERO otherwise
+    /// Returns ONE when the stack item at the specified depth remains unchanged during an
+    /// operation, and ZERO otherwise
     #[inline(always)]
     pub fn no_shift_at(&self, index: usize) -> E {
         self.no_shift_flags[index]
     }
 
-    /// Returns ONE when the stack item at the specified depth shifts to the left during an operation, and
-    /// ZERO otherwise. The left shift is not defined on the first postion in the stack and therefore, a ZERO
-    /// is returned.
+    /// Returns ONE when the stack item at the specified depth shifts to the left during an
+    /// operation, and ZERO otherwise. The left shift is not defined on the first postion in the
+    /// stack and therefore, a ZERO is returned.
     #[inline(always)]
     pub fn left_shift_at(&self, index: usize) -> E {
         self.left_shift_flags[index]
     }
 
-    /// Returns ONE when the stack item at the specified depth shifts to the right during an operation, and
-    /// ZERO otherwise. The right shift is not defined on the last postion in the stack and therefore, a ZERO
-    /// is returned.
+    /// Returns ONE when the stack item at the specified depth shifts to the right during an
+    /// operation, and ZERO otherwise. The right shift is not defined on the last postion in the
+    /// stack and therefore, a ZERO is returned.
     #[inline(always)]
     pub fn right_shift_at(&self, index: usize) -> E {
         self.right_shift_flags[index]
@@ -940,7 +949,7 @@ impl<E: FieldElement> OpFlags<E> {
 }
 
 trait EvaluationFrameExt<E: FieldElement> {
-    // --- Operation bit accessors ---------------------------------------------------------------
+    // --- Operation bit accessors ----------------------------------------------------------------
 
     /// Returns the current value of the specified operation bit in the decoder. It assumes that
     /// the index is a valid index.
@@ -962,7 +971,7 @@ trait EvaluationFrameExt<E: FieldElement> {
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
-    // --- Operation bit accessors ---------------------------------------------------------------
+    // --- Operation bit accessors ----------------------------------------------------------------
 
     #[inline]
     fn op_bit(&self, idx: usize) -> E {

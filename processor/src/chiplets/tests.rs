@@ -1,4 +1,7 @@
-use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, Operation, Process};
+use crate::{
+    utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, MemAdviceProvider, Operation, Process,
+    StackInputs, Vec,
+};
 use vm_core::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -7,7 +10,7 @@ use vm_core::{
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
         NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
     },
-    CodeBlockTable, Felt, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
+    CodeBlockTable, Felt, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -16,10 +19,10 @@ type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 fn hasher_chiplet_trace() {
     // --- single hasher permutation with no stack manipulation -----------------------------------
     let stack = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
-    let operations = vec![Operation::RpPerm];
+    let operations = vec![Operation::HPerm];
     let (chiplets_trace, trace_len) = build_trace(&stack, operations, Kernel::default());
 
-    // Skip the hash of the span block generated while building the trace to check only the RpPerm.
+    // Skip the hash of the span block generated while building the trace to check only the HPerm.
     let hasher_start = HASH_CYCLE_LEN;
     let hasher_end = hasher_start + HASH_CYCLE_LEN;
     validate_hasher_trace(&chiplets_trace, hasher_start, hasher_end);
@@ -63,18 +66,13 @@ fn memory_chiplet_trace() {
 fn stacked_chiplet_trace() {
     // --- operations in hasher, bitwise, and memory processors without stack manipulation --------
     let stack = [8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1];
-    let ops = vec![
-        Operation::U32xor,
-        Operation::Push(ZERO),
-        Operation::MStoreW,
-        Operation::RpPerm,
-    ];
+    let ops = vec![Operation::U32xor, Operation::Push(ZERO), Operation::MStoreW, Operation::HPerm];
     let kernel = build_kernel();
     let (chiplets_trace, trace_len) = build_trace(&stack, ops, kernel);
     let memory_len = 1;
     let kernel_rom_len = 2;
 
-    // Skip the hash of the span block generated while building the trace to check only the RpPerm.
+    // Skip the hash of the span block generated while building the trace to check only the HPerm.
     let hasher_start = HASH_CYCLE_LEN;
     let hasher_end = hasher_start + HASH_CYCLE_LEN;
     validate_hasher_trace(&chiplets_trace, hasher_start, hasher_end);
@@ -107,16 +105,15 @@ fn build_kernel() -> Kernel {
 /// Builds a sample trace by executing a span block containing the specified operations. This
 /// results in 1 additional hash cycle (8 rows) at the beginning of the hash chiplet.
 fn build_trace(
-    stack: &[u64],
+    stack_inputs: &[u64],
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, inputs);
+    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let advice_provider = MemAdviceProvider::default();
+    let mut process = Process::new(kernel, stack_inputs, advice_provider);
     let program = CodeBlock::new_span(operations);
-    process
-        .execute_code_block(&program, &CodeBlockTable::default())
-        .unwrap();
+    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
@@ -130,7 +127,7 @@ fn build_trace(
     )
 }
 
-/// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in
+/// Validate the hasher trace output by the hperm operation. The full hasher trace is tested in
 /// the Hasher module, so this just tests the ChipletsTrace selectors and the initial columns
 /// of the hasher trace.
 fn validate_hasher_trace(trace: &ChipletsTrace, start: usize, end: usize) {
@@ -173,10 +170,7 @@ fn validate_bitwise_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(BITWISE_XOR, trace[2][row]);
 
         // the final columns should be padded
-        for column in trace
-            .iter()
-            .skip(BITWISE_TRACE_WIDTH + NUM_BITWISE_SELECTORS)
-        {
+        for column in trace.iter().skip(BITWISE_TRACE_WIDTH + NUM_BITWISE_SELECTORS) {
             assert_eq!(ZERO, column[row]);
         }
     }
@@ -214,10 +208,7 @@ fn validate_kernel_rom_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(ZERO, trace[4][row]);
 
         // the final columns should be padded
-        for column in trace
-            .iter()
-            .skip(KERNEL_ROM_TRACE_WIDTH + NUM_KERNEL_ROM_SELECTORS)
-        {
+        for column in trace.iter().skip(KERNEL_ROM_TRACE_WIDTH + NUM_KERNEL_ROM_SELECTORS) {
             assert_eq!(ZERO, column[row]);
         }
     }

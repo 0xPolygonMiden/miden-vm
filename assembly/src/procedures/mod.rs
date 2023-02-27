@@ -1,6 +1,13 @@
-use super::{BTreeSet, CodeBlock, Felt, String, MODULE_PATH_DELIM};
-use core::{fmt, ops};
-use crypto::{hashers::Blake3_256, Digest, Hasher};
+use super::{
+    crypto::hash::Blake3_192, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
+    Deserializable, LabelError, Serializable, SerializationError, String, ToString, MAX_LABEL_LEN,
+    MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
+};
+use core::{
+    fmt,
+    ops::{self, Deref},
+    str::from_utf8,
+};
 
 // PROCEDURE
 // ================================================================================================
@@ -9,7 +16,7 @@ use crypto::{hashers::Blake3_256, Digest, Hasher};
 #[derive(Clone, Debug)]
 pub struct Procedure {
     id: ProcedureId,
-    label: String,
+    label: ProcedureName,
     is_export: bool,
     num_locals: u32,
     code_root: CodeBlock,
@@ -22,7 +29,7 @@ impl Procedure {
     /// Returns a new [Procedure] instantiated with the specified properties.
     pub fn new(
         id: ProcedureId,
-        label: String,
+        label: ProcedureName,
         is_export: bool,
         num_locals: u32,
         code_root: CodeBlock,
@@ -47,7 +54,7 @@ impl Procedure {
     }
 
     /// Returns a label of this procedure.
-    pub fn label(&self) -> &str {
+    pub fn label(&self) -> &ProcedureName {
         &self.label
     }
 
@@ -74,6 +81,108 @@ impl Procedure {
     }
 }
 
+// PROCEDURE NAME
+// ================================================================================================
+
+/// Procedure name.
+///
+/// Procedure name must comply with the following rules:
+/// - It cannot be longer than 100 characters.
+/// - It must start with a ASCII letter.
+/// - It must consist of only ASCII letters, numbers, and underscores.
+///
+/// The only exception from the above rules is the name for the main procedure of an executable
+/// module which is set to `#main`.
+///
+/// # Type-safety
+/// Any instance of this type can be created only via the checked [`Self::try_from`].
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProcedureName {
+    name: String,
+}
+
+impl ProcedureName {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Reserved name for a main procedure.
+    pub const MAIN_PROC_NAME: &str = "#main";
+
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Create a new procedure name with the reserved label for `main`.
+    pub fn main() -> Self {
+        Self {
+            name: Self::MAIN_PROC_NAME.into(),
+        }
+    }
+
+    // TYPE-SAFE TRANSFORMATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Append the procedure name to a module path.
+    pub fn to_absolute(&self, module: &AbsolutePath) -> AbsolutePath {
+        AbsolutePath::new_unchecked(format!("{}{MODULE_PATH_DELIM}{}", module.as_str(), &self.name))
+    }
+
+    // HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Check if the procedure label is the reserved name for `main`.
+    pub fn is_main(&self) -> bool {
+        self.name == Self::MAIN_PROC_NAME
+    }
+}
+
+impl TryFrom<String> for ProcedureName {
+    type Error = LabelError;
+
+    fn try_from(name: String) -> Result<Self, Self::Error> {
+        Ok(Self {
+            name: PROCEDURE_LABEL_PARSER.parse_label(name)?,
+        })
+    }
+}
+
+impl Deref for ProcedureName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.name
+    }
+}
+
+impl AsRef<str> for ProcedureName {
+    fn as_ref(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Serializable for ProcedureName {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        let name_bytes = self.name.as_bytes();
+        let num_bytes = name_bytes.len() as u8;
+        if num_bytes > MAX_LABEL_LEN {
+            return Err(SerializationError::LengthTooLong);
+        }
+
+        target.write_u8(num_bytes);
+        target.write_bytes(name_bytes);
+        Ok(())
+    }
+}
+
+impl Deserializable for ProcedureName {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let num_bytes = bytes.read_u8()?;
+        let name_bytes = bytes.read_bytes(num_bytes as usize)?;
+        let name = from_utf8(name_bytes).map_err(|_| SerializationError::InvalidUtf8)?;
+        let name = ProcedureName::try_from(name.to_string())?;
+        Ok(name)
+    }
+}
+
 // PROCEDURE ID
 // ================================================================================================
 
@@ -81,6 +190,56 @@ impl Procedure {
 /// label of a procedure
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureId(pub [u8; Self::SIZE]);
+
+impl ProcedureId {
+    /// Truncated length of the id
+    pub const SIZE: usize = 24;
+
+    /// Creates a new procedure id from its path, composed by module path + name identifier.
+    ///
+    /// No validation is performed regarding the consistency of the path format.
+    pub fn new<L>(path: L) -> Self
+    where
+        L: AsRef<str>,
+    {
+        let mut digest = [0u8; Self::SIZE];
+        let hash = Blake3_192::hash(path.as_ref().as_bytes());
+        digest.copy_from_slice(&(*hash)[..Self::SIZE]);
+        Self(digest)
+    }
+
+    /// Computes the full path, given a module path and the procedure name
+    pub fn path<N, M>(name: N, module_path: M) -> String
+    where
+        N: AsRef<str>,
+        M: AsRef<str>,
+    {
+        format!("{}{MODULE_PATH_DELIM}{}", module_path.as_ref(), name.as_ref())
+    }
+
+    /// Creates a new procedure ID from a name to be resolved in the kernel.
+    pub fn from_kernel_name(name: &str) -> Self {
+        let path = format!("{}{MODULE_PATH_DELIM}{name}", AbsolutePath::KERNEL_PATH);
+        Self::new(path)
+    }
+
+    /// Creates a new procedure ID from its name and module path.
+    ///
+    /// No validation is performed regarding the consistency of the module path or procedure name
+    /// format.
+    pub fn from_name(name: &str, module_path: &str) -> Self {
+        let path = Self::path(name, module_path);
+        Self::new(path)
+    }
+
+    /// Creates a new procedure ID from its local index and module path.
+    ///
+    /// No validation is performed regarding the consistency of the module path format.
+    pub fn from_index(index: u16, module_path: &str) -> Self {
+        let path = format!("{module_path}{MODULE_PATH_DELIM}{index}");
+        Self::new(path)
+    }
+}
 
 impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
     fn from(value: [u8; ProcedureId::SIZE]) -> Self {
@@ -106,61 +265,18 @@ impl fmt::Display for ProcedureId {
     }
 }
 
-impl ProcedureId {
-    /// Truncated length of the id
-    pub const SIZE: usize = 24;
-
-    /// Base kernel path
-    /// TODO better use `MODULE_PATH_DELIM`. maybe require `const_format` crate?
-    pub const KERNEL_PATH: &str = "::sys";
-
-    /// Creates a new procedure id from its path, composed by module path + name identifier.
-    ///
-    /// No validation is performed regarding the consistency of the path format.
-    pub fn new<L>(path: L) -> Self
-    where
-        L: AsRef<str>,
-    {
-        let mut digest = [0u8; Self::SIZE];
-        let hash = Blake3_256::<Felt>::hash(path.as_ref().as_bytes());
-        digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
-        Self(digest)
+impl Serializable for ProcedureId {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_bytes(&self.0);
+        Ok(())
     }
+}
 
-    /// Computes the full path, given a module path and the procedure name
-    pub fn path<N, M>(name: N, module_path: M) -> String
-    where
-        N: AsRef<str>,
-        M: AsRef<str>,
-    {
-        format!(
-            "{}{MODULE_PATH_DELIM}{}",
-            module_path.as_ref(),
-            name.as_ref()
-        )
-    }
-
-    /// Creates a new procedure ID from a name to be resolved in the kernel.
-    pub fn from_kernel_name(name: &str) -> Self {
-        let path = format!("{}{MODULE_PATH_DELIM}{name}", Self::KERNEL_PATH);
-        Self::new(path)
-    }
-
-    /// Creates a new procedure ID from its name and module path.
-    ///
-    /// No validation is performed regarding the consistency of the module path or procedure name
-    /// format.
-    pub fn from_name(name: &str, module_path: &str) -> Self {
-        let path = Self::path(name, module_path);
-        Self::new(path)
-    }
-
-    /// Creates a new procedure ID from its local index and module path.
-    ///
-    /// No validation is performed regarding the consistency of the module path format.
-    pub fn from_index(index: u16, module_path: &str) -> Self {
-        let path = format!("{module_path}{MODULE_PATH_DELIM}{index}");
-        Self::new(path)
+impl Deserializable for ProcedureId {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let proc_id_bytes = bytes.read_bytes(Self::SIZE)?;
+        let proc_id = proc_id_bytes.try_into().expect("to array conversion failed");
+        Ok(Self(proc_id))
     }
 }
 

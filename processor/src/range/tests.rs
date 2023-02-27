@@ -1,4 +1,4 @@
-use super::{BTreeMap, Felt, RangeChecker, ONE, ZERO};
+use super::{BTreeMap, Felt, RangeChecker, Vec, ONE, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
 use rand_utils::rand_array;
 use vm_core::{utils::ToElements, StarkField};
@@ -42,10 +42,7 @@ fn range_checks() {
 fn range_checks_rand() {
     let mut checker = RangeChecker::new();
     let values = rand_array::<u64, 300>();
-    let values = values
-        .into_iter()
-        .map(|v| Felt::new(v as u16 as u64))
-        .collect::<Vec<_>>();
+    let values = values.into_iter().map(|v| Felt::new(v as u16 as u64)).collect::<Vec<_>>();
 
     for &value in values.iter() {
         checker.add_value(value.as_int() as u16);
@@ -107,10 +104,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
 
         // keep track of lookup count for each value
         let count = get_lookup_count(trace, i);
-        lookups_8bit
-            .entry(value)
-            .and_modify(|value| *value += count)
-            .or_insert(count);
+        lookups_8bit.entry(value).and_modify(|value| *value += count).or_insert(count);
 
         i += 1;
         prev_value = value;
@@ -156,10 +150,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
 
         // keep track of lookup count for each value
         let count = get_lookup_count(trace, i);
-        lookups_16bit
-            .entry(value)
-            .and_modify(|value| *value += count)
-            .or_insert(count);
+        lookups_16bit.entry(value).and_modify(|value| *value += count).or_insert(count);
 
         i += 1;
         prev_value = value;

@@ -1,16 +1,15 @@
-use core::ops::Range;
-
 use super::{
     build_span_with_respan_ops, build_trace_from_block, build_trace_from_ops_with_inputs,
-    rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, AUX_TRACE_RAND_ELEMENTS,
-    CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+    rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation, Trace,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
-
+use crate::{MerkleSet, StackInputs};
+use core::ops::Range;
 use vm_core::{
     chiplets::{
         hasher::{
-            apply_permutation, init_state_from_words, HasherState, Selectors, CAPACITY_LEN,
-            DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY,
+            apply_permutation, init_state_from_words, HasherState, Selectors, CAPACITY_DOMAIN_IDX,
+            CAPACITY_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY,
             MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD,
             MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL,
             STATE_WIDTH,
@@ -18,8 +17,10 @@ use vm_core::{
         HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
     },
     code_blocks::CodeBlock,
-    utils::range,
-    AdviceSet, ProgramInputs, StarkField, Word, DECODER_TRACE_OFFSET,
+    crypto::merkle::NodeIndex,
+    decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
+    utils::{collections::Vec, range},
+    StarkField, Word, DECODER_TRACE_OFFSET,
 };
 
 // CONSTANTS
@@ -29,6 +30,10 @@ const DECODER_HASHER_STATE_RANGE: Range<usize> = range(
     DECODER_TRACE_OFFSET + vm_core::decoder::HASHER_STATE_OFFSET,
     vm_core::decoder::NUM_HASHER_COLUMNS,
 );
+
+/// Location of operation bits columns relative to the main trace.
+pub const DECODER_OP_BITS_RANGE: Range<usize> =
+    range(DECODER_TRACE_OFFSET + OP_BITS_OFFSET, NUM_OP_BITS);
 
 // TESTS
 // ================================================================================================
@@ -52,19 +57,12 @@ pub fn b_chip_span() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut state = [ZERO; STATE_WIDTH];
-    state[0] = ONE;
-    fill_state_from_decoder(&trace, &mut state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut state, 0);
     // request the initialization of the span hash
-    let request_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let request_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = request_init.inv();
 
     // provide the initialization of the span hash
@@ -124,19 +122,12 @@ pub fn b_chip_span_with_respan() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut state = [ZERO; STATE_WIDTH];
-    state[0] = Felt::new(12);
-    fill_state_from_decoder(&trace, &mut state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut state, 0);
     // request the initialization of the span hash
-    let request_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let request_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = request_init.inv();
 
     // provide the initialization of the span hash
@@ -161,15 +152,10 @@ pub fn b_chip_span_with_respan() {
     apply_permutation(&mut state);
     let prev_state = state;
     // get the state with the next absorbed batch.
-    absorb_state_from_decoder(&trace, &mut state, 9);
-    let request_respan = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        prev_state,
-        state,
-        Felt::new(8),
-        ZERO,
-    );
+    fill_state_from_decoder(&trace, &mut state, 9);
+
+    let request_respan =
+        build_expected(&alphas, LINEAR_HASH_LABEL, prev_state, state, Felt::new(8), ZERO);
     expected *= request_respan.inv();
     assert_eq!(expected, b_chip[10]);
 
@@ -191,14 +177,8 @@ pub fn b_chip_span_with_respan() {
     // At cycle 21, after the second operation batch, the decoder ends the SPAN block and requests
     // its hash.
     apply_permutation(&mut state);
-    let request_result = build_expected(
-        &alphas,
-        RETURN_HASH_LABEL,
-        state,
-        [ZERO; STATE_WIDTH],
-        Felt::new(16),
-        ZERO,
-    );
+    let request_result =
+        build_expected(&alphas, RETURN_HASH_LABEL, state, [ZERO; STATE_WIDTH], Felt::new(16), ZERO);
     expected *= request_result.inv();
     assert_eq!(expected, b_chip[22]);
 
@@ -229,19 +209,12 @@ pub fn b_chip_merge() {
     // - the initialization of the merge of the split's child hashes is requested by the decoder
     // - the initialization of the code block merge is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut split_state = [ZERO; STATE_WIDTH];
-    split_state[0] = Felt::new(8);
-    fill_state_from_decoder(&trace, &mut split_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut split_state, 0);
     // request the initialization of the span hash
-    let split_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        split_state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let split_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, split_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = split_init.inv();
 
     // provide the initialization of the span hash
@@ -251,8 +224,7 @@ pub fn b_chip_merge() {
     // at cycle 1 the initialization of the span block hash for the false branch is requested by the
     // decoder
     let mut f_branch_state = [ZERO; STATE_WIDTH];
-    f_branch_state[0] = Felt::new(1);
-    fill_state_from_decoder(&trace, &mut f_branch_state, 1);
+    fill_state_from_decoder_with_domain(&trace, &mut f_branch_state, 1);
     // request the initialization of the false branch hash
     let f_branch_init = build_expected(
         &alphas,
@@ -324,15 +296,15 @@ pub fn b_chip_merge() {
 }
 
 /// Tests the generation of the `b_chip` bus column when the hasher performs a permutation
-/// requested by the `RpPerm` user operation.
+/// requested by the `HPerm` user operation.
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_permutation() {
-    let program = CodeBlock::new_span(vec![Operation::RpPerm]);
+    let program = CodeBlock::new_span(vec![Operation::HPerm]);
     let stack = vec![8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
     let mut trace = build_trace_from_block(&program, &stack);
 
-    let mut rpperm_state: [Felt; STATE_WIDTH] = stack
+    let mut hperm_state: [Felt; STATE_WIDTH] = stack
         .iter()
         .map(|v| Felt::new(*v))
         .collect::<Vec<_>>()
@@ -349,47 +321,40 @@ pub fn b_chip_permutation() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    span_state[0] = ONE;
-    fill_state_from_decoder(&trace, &mut span_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0);
     // request the initialization of the span hash
-    let span_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        span_state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let span_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
     expected *= build_expected_from_trace(&trace, &alphas, 0);
     assert_eq!(expected, b_chip[1]);
 
-    // at cycle 1 rpperm is executed and the initialization and result of the hash are both
+    // at cycle 1 hperm is executed and the initialization and result of the hash are both
     // requested by the stack.
-    let rpperm_init = build_expected(
+    let hperm_init = build_expected(
         &alphas,
         LINEAR_HASH_LABEL,
-        rpperm_state,
+        hperm_state,
         [ZERO; STATE_WIDTH],
         Felt::new(9),
         ZERO,
     );
-    // request the rpperm initialization.
-    expected *= rpperm_init.inv();
-    apply_permutation(&mut rpperm_state);
-    let rpperm_result = build_expected(
+    // request the hperm initialization.
+    expected *= hperm_init.inv();
+    apply_permutation(&mut hperm_state);
+    let hperm_result = build_expected(
         &alphas,
         RETURN_STATE_LABEL,
-        rpperm_state,
+        hperm_state,
         [ZERO; STATE_WIDTH],
         Felt::new(16),
         ZERO,
     );
-    // request the rpperm result.
-    expected *= rpperm_result.inv();
+    // request the hperm result.
+    expected *= hperm_result.inv();
     assert_eq!(expected, b_chip[2]);
 
     // at cycle 2 the result of the span hash is requested by the decoder
@@ -414,7 +379,7 @@ pub fn b_chip_permutation() {
     expected *= build_expected_from_trace(&trace, &alphas, 7);
     assert_eq!(expected, b_chip[8]);
 
-    // at cycle 8 the initialization of the rpperm hash is provided by the hasher
+    // at cycle 8 the initialization of the hperm hash is provided by the hasher
     expected *= build_expected_from_trace(&trace, &alphas, 8);
     assert_eq!(expected, b_chip[9]);
 
@@ -423,7 +388,7 @@ pub fn b_chip_permutation() {
         assert_eq!(expected, b_chip[row]);
     }
 
-    // at cycle 15 the result of the rpperm hash is provided by the hasher
+    // at cycle 15 the result of the hperm hash is provided by the hasher
     expected *= build_expected_from_trace(&trace, &alphas, 15);
     assert_eq!(expected, b_chip[16]);
 
@@ -440,7 +405,7 @@ pub fn b_chip_permutation() {
 fn b_chip_mpverify() {
     let index = 5usize;
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),
@@ -454,9 +419,11 @@ fn b_chip_mpverify() {
         leaves[index][2].as_int(),
         leaves[index][3].as_int(),
     ];
-    let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
+    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
 
-    let mut trace = build_trace_from_ops_with_inputs(vec![Operation::MpVerify], inputs);
+    let mut trace =
+        build_trace_from_ops_with_inputs(vec![Operation::MpVerify], stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
@@ -468,19 +435,12 @@ fn b_chip_mpverify() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    span_state[0] = ONE;
-    fill_state_from_decoder(&trace, &mut span_state, 0);
+    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0);
     // request the initialization of the span hash
-    let span_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        span_state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let span_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
     expected *= build_expected_from_trace(&trace, &alphas, 0);
@@ -489,16 +449,11 @@ fn b_chip_mpverify() {
     // at cycle 1 a merkle path verification is executed and the initialization and result of the
     // hash are both requested by the stack.
     let path = tree
-        .get_path(tree.depth(), index as u64)
+        .get_path(NodeIndex::new(tree.depth(), index as u64))
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
         &[path[0][0], path[0][1], path[0][2], path[0][3]],
-        &[
-            leaves[index][0],
-            leaves[index][1],
-            leaves[index][2],
-            leaves[index][3],
-        ],
+        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]],
     );
     let mp_init = build_expected(
         &alphas,
@@ -592,11 +547,7 @@ fn build_expected(
     index: Felt,
 ) -> Felt {
     let first_cycle_row = addr_to_cycle_row(addr) == 0;
-    let transition_label = if first_cycle_row {
-        label + 16_u8
-    } else {
-        label + 32_u8
-    };
+    let transition_label = if first_cycle_row { label + 16_u8 } else { label + 32_u8 };
     let header =
         alphas[0] + alphas[1] * Felt::from(transition_label) + alphas[2] * addr + alphas[3] * index;
     let mut value = header;
@@ -687,17 +638,47 @@ fn get_label_from_selectors(selectors: Selectors) -> Option<u8> {
 
 /// Populates the provided HasherState with the state stored in the decoder's execution trace at the
 /// specified row.
+fn fill_state_from_decoder_with_domain(
+    trace: &ExecutionTrace,
+    state: &mut HasherState,
+    row: usize,
+) {
+    let domain = extract_control_block_domain_from_trace(trace, row);
+    state[CAPACITY_DOMAIN_IDX] = domain;
+
+    fill_state_from_decoder(trace, state, row);
+}
+
+/// Populates the provided HasherState with the state stored in the decoder's execution trace at the
+/// specified row.
 fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row: usize) {
     for (i, col_idx) in DECODER_HASHER_STATE_RANGE.enumerate() {
         state[CAPACITY_LEN + i] = trace.main_trace.get_column(col_idx)[row];
     }
 }
 
-/// Absorbs the elements specified in the decoder's execution trace helper columns at the specified
-/// row into the provided HasherState.
-fn absorb_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row: usize) {
-    for (i, col_idx) in DECODER_HASHER_STATE_RANGE.enumerate() {
-        state[CAPACITY_LEN + i] += trace.main_trace.get_column(col_idx)[row];
+/// Extract the control block domain from the execution trace.  This is achieved
+/// by calculating the op code as [bit_0 * 2**0 + bit_1 * 2**1 + ... + bit_6 * 2**6]
+fn extract_control_block_domain_from_trace(trace: &ExecutionTrace, row: usize) -> Felt {
+    // calculate the op code
+    let opcode_value = DECODER_OP_BITS_RANGE.rev().fold(0u8, |result, bit_index| {
+        let op_bit = trace.main_trace.get_column(bit_index)[row].as_int() as u8;
+        (result << 1) ^ op_bit
+    });
+
+    // opcode values that represent control block initialization (excluding span)
+    let control_block_initializers = [
+        Operation::Call.op_code(),
+        Operation::Join.op_code(),
+        Operation::Loop.op_code(),
+        Operation::Split.op_code(),
+        Operation::SysCall.op_code(),
+    ];
+
+    if control_block_initializers.contains(&opcode_value) {
+        Felt::from(opcode_value)
+    } else {
+        Felt::ZERO
     }
 }
 

@@ -1,0 +1,51 @@
+# ===== MEMORY FUNCTIONS ==========================================================================
+
+#! Copies `n` words from `read_ptr` to `write_ptr`.
+#!
+#! Stack transition looks as follows:
+#! [n, read_ptr, write_ptr, ...] -> [...]
+#! cycles: 15 + 16n
+export.memcopy
+  # The loop variable is changed with an add instead of sub because the former
+  # uses one fewer cycle. So here the counter is negated. (1 cycles)
+  # stack: [-n, read_ptr, write_ptr, ...]
+  neg
+
+  # Pad the stack because mem_load overwrites it (4 cycles)
+  # stack: [0, 0, 0, 0, -n, read_ptr, write_ptr, ...]
+  padw
+
+  # check loop condition (3 cycles)
+  # stack: [b, 0, 0, 0, 0, -n, read_ptr, write_ptr, ...]
+  dup.4 neq.0
+
+  # LOOP: [0, 0, 0, 0, -n, read_ptr, write_ptr, ...]
+  # while(n!=0) (16 cycles)
+  while.true
+    # perform read (2 cycles)
+    # stack: [a3, a2, a1, a0, -n, read_ptr, write_ptr, ...]
+    dup.5 mem_loadw
+
+    # peform write (2 cycles)
+    # stack: [a3, a2, a1, a0, -n, read_ptr, write_ptr, ...]
+    dup.6 mem_storew
+
+    # note: the values of `A` are no longer necessary, use 0 to signal its a
+    # padding
+    # stack: [-n, read_ptr, write_ptr, x, 0, 0, 0, 0, ...]
+    swapw
+
+    # stack: [-n+1, read_ptr+1, write_ptr+1, x, 0, 0, 0, 0, ...]
+    # update counters (9 cycles)
+    add.1 movup.3 movup.3 add.1 movup.3 add.1 movup.3
+
+    # stack: [0, 0, 0, 0, -n+1, read_ptr+1, write_ptr+1, x, ...]
+    swapw
+
+    dup.4 neq.0 # while(n!=0) (3 cycles)
+  end
+
+  # clean stack (7 cycles)
+  # stack: [...]
+  dropw drop drop drop
+end

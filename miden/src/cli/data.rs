@@ -1,16 +1,21 @@
-use miden::Assembler;
-use prover::StarkProof;
+use miden::{
+    utils::{Deserializable, SliceReader},
+    AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
+    StackOutputs,
+};
 use serde_derive::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-use std::{fs, io::Write, time::Instant};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    time::Instant,
+};
 use stdlib::StdLibrary;
-use vm_core::ProgramOutputs;
-use vm_core::{chiplets::hasher::Digest, Program, ProgramInputs};
-use winter_utils::{Deserializable, SliceReader};
 
 // INPUT FILE
 // ================================================================================================
 
+// TODO consider using final types instead of string representations.
 /// Input file struct
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
@@ -50,27 +55,29 @@ impl InputFile {
         Ok(inputs)
     }
 
-    /// Returns program inputs.
-    pub fn get_program_inputs(&self) -> ProgramInputs {
-        ProgramInputs::new(&self.stack_init(), &self.advice_tape(), Vec::new()).unwrap()
-    }
-
-    /// Parse stack_init vector of strings to a vector of u64
-    pub fn stack_init(&self) -> Vec<u64> {
-        self.stack_init
-            .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>()
-    }
-
-    /// Parse advice_tape vector of strings to a vector of u64
-    pub fn advice_tape(&self) -> Vec<u64> {
-        self.advice_tape
+    pub fn parse_advice_provider(&self) -> Result<MemAdviceProvider, String> {
+        let tape = self
+            .advice_tape
             .as_ref()
-            .unwrap_or(&vec![])
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
             .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>()
+            .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let advice_inputs =
+            AdviceInputs::default().with_tape_values(tape).map_err(|e| e.to_string())?;
+        Ok(MemAdviceProvider::from(advice_inputs))
+    }
+
+    /// Parse and return the stack inputs for the program.
+    pub fn parse_stack_inputs(&self) -> Result<StackInputs, String> {
+        let stack_inputs = self
+            .stack_init
+            .iter()
+            .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        StackInputs::try_from_values(stack_inputs).map_err(|e| e.to_string())
     }
 }
 
@@ -87,14 +94,10 @@ pub struct OutputFile {
 /// Helper methods to interact with the output file
 impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vectors
-    pub fn new(outputs: ProgramOutputs) -> Self {
+    pub fn new(stack_outputs: &StackOutputs) -> Self {
         Self {
-            stack: outputs
-                .stack()
-                .iter()
-                .map(|&v| v.to_string())
-                .collect::<Vec<String>>(),
-            overflow_addrs: outputs
+            stack: stack_outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
+            overflow_addrs: stack_outputs
                 .overflow_addrs()
                 .iter()
                 .map(|&v| v.to_string())
@@ -125,32 +128,24 @@ impl OutputFile {
     }
 
     /// Write the output file
-    pub fn write(outputs: ProgramOutputs, path: &PathBuf) -> Result<(), String> {
+    pub fn write(stack_outputs: &StackOutputs, path: &PathBuf) -> Result<(), String> {
         // if path provided, create output file
         println!("Creating output file `{}`", path.display());
 
         let file = fs::File::create(&path).map_err(|err| {
-            format!(
-                "Failed to create output file `{}` - {}",
-                path.display(),
-                err
-            )
+            format!("Failed to create output file `{}` - {}", path.display(), err)
         })?;
 
         println!("Writing data to output file");
 
         // write outputs to output file
-        serde_json::to_writer_pretty(file, &Self::new(outputs))
+        serde_json::to_writer_pretty(file, &Self::new(stack_outputs))
             .map_err(|err| format!("Failed to write output data - {}", err))
     }
 
-    /// Converts outputs vectors for stack and overflow addresses to [ProgramOutputs].
-    pub fn outputs(&self) -> ProgramOutputs {
-        let stack = self
-            .stack
-            .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>();
+    /// Converts outputs vectors for stack and overflow addresses to [StackOutputs].
+    pub fn stack_outputs(&self) -> StackOutputs {
+        let stack = self.stack.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>();
 
         let overflow_addrs = self
             .overflow_addrs
@@ -158,7 +153,7 @@ impl OutputFile {
             .map(|v| v.parse::<u64>().unwrap())
             .collect::<Vec<u64>>();
 
-        ProgramOutputs::new(stack, overflow_addrs)
+        StackOutputs::new(stack, overflow_addrs)
     }
 }
 
@@ -180,8 +175,9 @@ impl ProgramFile {
         let now = Instant::now();
 
         // compile program
-        let program = Assembler::new()
-            .with_module_provider(StdLibrary::default())
+        let program = Assembler::default()
+            .with_library(&StdLibrary::default())
+            .map_err(|err| format!("Failed to load stdlib - {}", err))?
             .compile(&program_file)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 
@@ -199,7 +195,10 @@ pub struct ProofFile;
 /// Helper methods to interact with proof file
 impl ProofFile {
     /// Read stark proof from file
-    pub fn read(proof_path: &Option<PathBuf>, program_path: &Path) -> Result<StarkProof, String> {
+    pub fn read(
+        proof_path: &Option<PathBuf>,
+        program_path: &Path,
+    ) -> Result<ExecutionProof, String> {
         // If proof_path has been provided then use this as path.  Alternatively we will
         // replace the program_path extension with `.proof` and use this as a default.
         let path = match proof_path {
@@ -214,13 +213,13 @@ impl ProofFile {
             .map_err(|err| format!("Failed to open proof file `{}` - {}", path.display(), err))?;
 
         // deserialize bytes into a stark proof
-        StarkProof::from_bytes(&file)
+        ExecutionProof::from_bytes(&file)
             .map_err(|err| format!("Failed to decode proof data - {}", err))
     }
 
     /// Write stark proof to file
     pub fn write(
-        proof: StarkProof,
+        proof: ExecutionProof,
         proof_path: &Option<PathBuf>,
         program_path: &Path,
     ) -> Result<(), String> {
@@ -239,10 +238,7 @@ impl ProofFile {
 
         let proof_bytes = proof.to_bytes();
 
-        println!(
-            "Writing data to proof file - size {} KB",
-            proof_bytes.len() / 1024
-        );
+        println!("Writing data to proof file - size {} KB", proof_bytes.len() / 1024);
 
         // write proof bytes to file
         file.write_all(&proof_bytes).unwrap();

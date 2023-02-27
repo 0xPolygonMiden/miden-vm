@@ -9,7 +9,7 @@ fn adv_push() {
     let asm_op = "adv_push";
     let advice_tape = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let test_n = |n: usize| {
-        let source = format!("{}.{}", asm_op, n);
+        let source = format!("{asm_op}.{n}");
         let mut final_stack = vec![0; n];
         final_stack.copy_from_slice(&advice_tape[..n]);
         final_stack.reverse();
@@ -67,13 +67,11 @@ fn adv_pipe() {
     let advice_tape = [1, 2, 3, 4, 5, 6, 7, 8];
 
     // the state of the hasher is the first 12 elements of the stack (in reverse order). the state
-    // is built by adding the top 8 values from the head of the advice tape to the values on
-    // the top of the stack (i.e., 8 through 1). Thus, the first 8 elements on the stack will be
-    // equal to 9, and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
-    let mut state: [Felt; 12] = [12_u64, 11, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9]
-        .to_elements()
-        .try_into()
-        .unwrap();
+    // is built by replacing the values on the top of the stack with the top 8 values from the head
+    // of the advice tape (i.e. values 1 through 8). Thus, the first 8 elements on the stack will be
+    // 1-8 in stack order (stack[0] = 8), and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
+    let mut state: [Felt; 12] =
+        [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
 
     // apply a hash permutation to the state
     apply_permutation(&mut state);

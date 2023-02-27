@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt, Kernel,
-    Operation, Process, ProgramInputs, Word,
+    MemAdviceProvider, Operation, Process, StackInputs, Word,
 };
 use rand_utils::rand_value;
 use vm_core::{
@@ -12,8 +12,8 @@ use vm_core::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
-        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE,
-        OP_BIT_EXTRA_COL_IDX, OP_INDEX_COL_IDX,
+        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BIT_EXTRA_COL_IDX,
+        OP_INDEX_COL_IDX,
     },
     utils::collections::Vec,
     CodeBlockTable, StarkField, CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX,
@@ -82,10 +82,8 @@ fn span_block_one_group() {
     assert!(aux_hints.op_group_table_rows().is_empty());
 
     // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (4, BlockTableUpdate::BlockEnded(false)),
-    ];
+    let expected_hints =
+        vec![(0, BlockTableUpdate::BlockStarted(0)), (4, BlockTableUpdate::BlockEnded(false))];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
@@ -100,11 +98,7 @@ fn span_block_one_group() {
 #[test]
 fn span_block_small() {
     let iv = [ONE, TWO];
-    let ops = vec![
-        Operation::Push(iv[0]),
-        Operation::Push(iv[1]),
-        Operation::Add,
-    ];
+    let ops = vec![Operation::Push(iv[0]), Operation::Push(iv[1]), Operation::Add];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
@@ -162,10 +156,8 @@ fn span_block_small() {
     assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 
     // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (5, BlockTableUpdate::BlockEnded(false)),
-    ];
+    let expected_hints =
+        vec![(0, BlockTableUpdate::BlockStarted(0)), (5, BlockTableUpdate::BlockEnded(false))];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
@@ -775,10 +767,8 @@ fn loop_block_skip() {
     assert!(aux_hints.op_group_table_rows().is_empty());
 
     // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (1, BlockTableUpdate::BlockEnded(false)),
-    ];
+    let expected_hints =
+        vec![(0, BlockTableUpdate::BlockStarted(0)), (1, BlockTableUpdate::BlockEnded(false))];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
@@ -1468,7 +1458,7 @@ fn set_user_op_helpers_many() {
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
-    let (trace, _, _) = build_trace(&[dividend as u64, divisor as u64], &program);
+    let (trace, ..) = build_trace(&[dividend as u64, divisor as u64], &program);
     let hasher_state = get_hasher_state(&trace, 1);
 
     // Check the hasher state of the user operation which was executed.
@@ -1492,12 +1482,11 @@ fn set_user_op_helpers_many() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&Kernel::default(), inputs);
-    process
-        .execute_code_block(program, &CodeBlockTable::default())
-        .unwrap();
+fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
+    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let advice_provider = MemAdviceProvider::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
+    process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
@@ -1521,8 +1510,9 @@ fn build_call_trace(
         Some(ref proc) => Kernel::new(&[proc.hash()]),
         None => Kernel::default(),
     };
-    let inputs = ProgramInputs::new(&[], &[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, inputs);
+    let advice_provider = MemAdviceProvider::default();
+    let stack_inputs = crate::StackInputs::default();
+    let mut process = Process::new(kernel, stack_inputs, advice_provider);
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();
@@ -1592,12 +1582,7 @@ fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {
 
 fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
     let mut result = 0;
-    for (i, column) in trace
-        .iter()
-        .skip(OP_BITS_OFFSET)
-        .take(NUM_OP_BITS)
-        .enumerate()
-    {
+    for (i, column) in trace.iter().skip(OP_BITS_OFFSET).take(NUM_OP_BITS).enumerate() {
         let op_bit = column[row_idx].as_int();
         assert!(op_bit <= 1, "invalid op bit");
         result += op_bit << i;
@@ -1611,7 +1596,7 @@ fn build_op_batch_flags(num_groups: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {
         2 => OP_BATCH_2_GROUPS,
         4 => OP_BATCH_4_GROUPS,
         8 => OP_BATCH_8_GROUPS,
-        _ => panic!("invalid num groups: {}", num_groups),
+        _ => panic!("invalid num groups: {num_groups}"),
     }
 }
 
@@ -1655,10 +1640,7 @@ fn get_hasher_state1(trace: &DecoderTrace, row_idx: usize) -> Word {
 
 fn get_hasher_state2(trace: &DecoderTrace, row_idx: usize) -> Word {
     let mut result = [ZERO; 4];
-    for (result, column) in result
-        .iter_mut()
-        .zip(trace[HASHER_STATE_RANGE].iter().skip(4))
-    {
+    for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter().skip(4)) {
         *result = column[row_idx];
     }
     result
@@ -1670,23 +1652,4 @@ fn build_expected_hasher_state(values: &[Felt]) -> [Felt; NUM_HASHER_COLUMNS] {
         result[i] = *value;
     }
     result
-}
-
-#[allow(dead_code)]
-fn print_row(trace: &DecoderTrace, idx: usize) {
-    let mut row = Vec::new();
-    for column in trace.iter() {
-        row.push(column[idx].as_int());
-    }
-    println!(
-        "{}\t{}\t{:?} {} {: <16x?} {: <16x?} {} {}",
-        idx,
-        row[0],
-        &row[OP_BITS_RANGE],
-        row[8],
-        &row[9..13],
-        &row[13..17],
-        row[17],
-        row[18]
-    );
 }

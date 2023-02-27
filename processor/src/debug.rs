@@ -1,6 +1,9 @@
-use crate::{ExecutionError, Felt, Process, StarkField, Vec};
+use crate::{
+    advice::AdviceProvider, Chiplets, Decoder, ExecutionError, Felt, Process, Stack, StarkField,
+    System, Vec,
+};
 use core::fmt;
-use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
+use vm_core::{utils::string::String, Operation, StackOutputs, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -17,15 +20,12 @@ pub struct VmState {
 impl fmt::Display for VmState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
-        let memory: Vec<(u64, [u64; 4])> = self
-            .memory
-            .iter()
-            .map(|x| (x.0, word_to_ints(&x.1)))
-            .collect();
+        let memory: Vec<(u64, [u64; 4])> =
+            self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
         write!(
             f,
-            "clk={}, fmp={}, stack={stack:?}, memory={memory:?}",
-            self.clk, self.fmp
+            "clk={}, op={:?}, asmop={:?}, fmp={}, stack={stack:?}, memory={memory:?}",
+            self.clk, self.op, self.asmop, self.fmp
         )
     }
 }
@@ -36,28 +36,40 @@ impl fmt::Display for VmState {
 /// If the execution returned an error, it returns that error on the clock cycle
 /// it stopped.
 pub struct VmStateIterator {
-    process: Process,
+    chiplets: Chiplets,
+    decoder: Decoder,
+    stack: Stack,
+    system: System,
     error: Option<ExecutionError>,
     clk: u32,
     asmop_idx: usize,
+    forward: bool,
 }
 
 impl VmStateIterator {
-    pub(super) fn new(process: Process, result: Result<ProgramOutputs, ExecutionError>) -> Self {
+    pub(super) fn new<A>(process: Process<A>, result: Result<StackOutputs, ExecutionError>) -> Self
+    where
+        A: AdviceProvider,
+    {
+        let (system, decoder, stack, _, chiplets, _) = process.into_parts();
         Self {
-            process,
+            chiplets,
+            decoder,
+            stack,
+            system,
             error: result.err(),
             clk: 0,
             asmop_idx: 0,
+            forward: true,
         }
     }
 
     /// Returns the asm op info corresponding to this vm state and whether this is the start of
     /// operation sequence corresponding to current assembly instruction.
     fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
-        let assembly_ops = self.process.decoder.debug_info().assembly_ops();
+        let assembly_ops = self.decoder.debug_info().assembly_ops();
 
-        if self.clk == 0 || self.asmop_idx > assembly_ops.len() {
+        if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
             return (None, false);
         }
 
@@ -98,7 +110,7 @@ impl VmStateIterator {
             let asmop = Some(AsmOpInfo::new(
                 curr_asmop.1.op().clone(),
                 curr_asmop.1.num_cycles(),
-                cycle_idx, // diff between curr clock cycle and start clock cycle of the current asmop
+                cycle_idx, /* diff between curr clock cycle and start clock cycle of the current asmop */
             ));
             (asmop, false)
         }
@@ -114,7 +126,7 @@ impl Iterator for VmStateIterator {
     type Item = Result<VmState, ExecutionError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.clk > self.process.system.clk() {
+        if self.clk > self.system.clk() {
             match &self.error {
                 Some(_) => {
                     let error = core::mem::take(&mut self.error);
@@ -124,12 +136,18 @@ impl Iterator for VmStateIterator {
             }
         }
 
-        let ctx = self.process.system.get_ctx_at(self.clk);
+        // if we are changing iteration directions we must increment the clk counter
+        if !self.forward && self.clk < self.system.clk() {
+            self.clk += 1;
+            self.forward = true;
+        }
+
+        let ctx = self.system.get_ctx_at(self.clk);
 
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.process.decoder.debug_info().operations()[self.clk as usize - 1])
+            Some(self.decoder.debug_info().operations()[self.clk as usize - 1])
         };
 
         let (asmop, is_start) = self.get_asmop();
@@ -142,9 +160,9 @@ impl Iterator for VmStateIterator {
             ctx,
             op,
             asmop,
-            fmp: self.process.system.get_fmp_at(self.clk),
-            stack: self.process.stack.get_state_at(self.clk),
-            memory: self.process.chiplets.get_mem_state_at(ctx, self.clk),
+            fmp: self.system.get_fmp_at(self.clk),
+            stack: self.stack.get_state_at(self.clk),
+            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
         }));
 
         self.clk += 1;
@@ -153,15 +171,49 @@ impl Iterator for VmStateIterator {
     }
 }
 
+impl DoubleEndedIterator for VmStateIterator {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.clk == 0 {
+            return None;
+        }
+
+        self.clk -= 1;
+
+        // if we are changing directions we must decrement the clk counter.
+        if self.forward && self.clk > 0 {
+            self.clk -= 1;
+            self.forward = false;
+        }
+
+        let ctx = self.system.get_ctx_at(self.clk);
+
+        let op = if self.clk == 0 {
+            None
+        } else {
+            Some(self.decoder.debug_info().operations()[self.clk as usize - 1])
+        };
+
+        let (asmop, is_start) = self.get_asmop();
+        if is_start {
+            self.asmop_idx -= 1;
+        }
+
+        Some(Ok(VmState {
+            clk: self.clk,
+            ctx,
+            op,
+            asmop,
+            fmp: self.system.get_fmp_at(self.clk),
+            stack: self.stack.get_state_at(self.clk),
+            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
+        }))
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 fn word_to_ints(word: &Word) -> [u64; 4] {
-    [
-        word[0].as_int(),
-        word[1].as_int(),
-        word[2].as_int(),
-        word[3].as_int(),
-    ]
+    [word[0].as_int(), word[1].as_int(), word[2].as_int(), word[3].as_int()]
 }
 
 /// Contains assembly instruction and operation index in the sequence corresponding to the specified

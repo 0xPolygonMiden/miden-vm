@@ -36,11 +36,22 @@ For instructions where one or more operands can be provided as immediate paramet
 | Instruction      | Stack_input | Stack_output   | Notes                         |
 | ---------------- | ----------- | -------------- | ----------------------------- |
 | eq <br> - *(1 cycle)*  <br> eq.*b* <br> - *(1-2 cycles)*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a=b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| neq <br> - *(1 cycle)*  <br> neq.*b* <br> - *(1-2 cycles)*  | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| neq <br> - *(2 cycle)*  <br> neq.*b* <br> - *(2-3 cycles)*  | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | lt <br> - *(17 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | lte <br> - *(18 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | gt <br> - *(18 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | gte <br> - *(19 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | eqw <br> - *(15 cycles)*              | [A, B, ...] | [c, A, B, ...] | $c \leftarrow \begin{cases} 1, & \text{if}\ a_i = b_i \; \forall i \in \{0, 1, 2, 3\} \\ 0, & \text{otherwise}\ \end{cases}$ |
 
+### Extension Field Operations
 
+| Instruction | Stack Input | Stack Output | Notes |
+| ----------- | ----------- | ------------ | ----------- |
+| ext2add <br> - *(5 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a + b) \mod q$                                |
+| ext2sub <br> - *(7 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a - b) \mod q$                                |
+| ext2mul <br> - *(3 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b) \mod q$                            |
+| ext2div <br> - *(11 cycles)*  <br> | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b^{-1}) \mod q$ <br> Fails if $b = 0$ |
+| ext2neg <br> - *(4 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow -a \mod q$                                     |
+| ext2inv <br> - *(8 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow a^{-1} \mod q$ <br> Fails if $a = 0$           |
+
+where $q$ is an irreducible polynomial $x^2 - x + 2$ over $F_p$ for $p = 2^{64} - 2^{32} + 1$

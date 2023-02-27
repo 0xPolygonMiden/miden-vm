@@ -1,6 +1,7 @@
 mod helpers;
 
 mod air;
+mod cli;
 mod exec_iters;
 mod flow_control;
 mod operations;
@@ -27,14 +28,14 @@ fn multi_output_program() {
 /// specified stack and advice inputs.
 ///
 /// Parameters are expected in the following order:
-/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `advice_sets` (optional)
+/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `merkle_sets` (optional)
 ///
 /// * `source`: a string of one or more operations, e.g. "push.1 push.2".
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
 /// executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
-/// `advice_sets` are also expected.
-/// * `advice_sets` (optional): the initial advice set values. When provided, `stack_inputs` and
+/// `merkle_sets` are also expected.
+/// * `merkle_sets` (optional): the initial merkle set values. When provided, `stack_inputs` and
 /// `advice_tape` are also expected.
 #[macro_export]
 macro_rules! build_op_test {
@@ -52,14 +53,14 @@ macro_rules! build_op_test {
 /// stack and advice inputs.
 ///
 /// Parameters are expected in the following order:
-/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `advice_sets` (optional)
+/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `merkle_sets` (optional)
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
 /// executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
-/// `advice_sets` are also expected.
-/// * `advice_sets` (optional): the initial advice set values. When provided, `stack_inputs` and
+/// `merkle_sets` are also expected.
+/// * `merkle_sets` (optional): the initial merkle set values. When provided, `stack_inputs` and
 /// `advice_tape` are also expected.
 #[macro_export]
 macro_rules! build_test {
@@ -72,14 +73,14 @@ macro_rules! build_test {
 /// and advice inputs.
 ///
 /// Parameters are expected in the following order:
-/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `advice_sets` (optional)
+/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `merkle_sets` (optional)
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
 /// executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
-/// `advice_sets` are also expected.
-/// * `advice_sets` (optional): the initial advice set values. When provided, `stack_inputs` and
+/// `merkle_sets` are also expected.
+/// * `merkle_sets` (optional): the initial merkle set values. When provided, `stack_inputs` and
 /// `advice_tape` are also expected.
 #[macro_export]
 macro_rules! build_debug_test {
@@ -103,23 +104,54 @@ macro_rules! build_test_by_mode {
         $crate::helpers::Test::new($source, $in_debug_mode)
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
-        let inputs = $crate::helpers::ProgramInputs::new($stack_inputs, &[], vec![]).unwrap();
+        let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
+        let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
+        let advice_inputs = $crate::helpers::AdviceInputs::default();
 
         $crate::helpers::Test {
             source: String::from($source),
             kernel: None,
-            inputs,
+            stack_inputs,
+            advice_inputs,
             in_debug_mode: $in_debug_mode,
         }
     }};
-    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr) => {{
-        let inputs =
-            $crate::helpers::ProgramInputs::new($stack_inputs, $advice_tape, $advice_sets).unwrap();
+    (
+        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $merkle_sets:expr
+    ) => {{
+        let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
+        let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
+        let tape_values: Vec<u64> = $advice_tape.to_vec();
+        let advice_inputs = $crate::helpers::AdviceInputs::default()
+            .with_tape_values(tape_values)
+            .unwrap()
+            .with_merkle_sets($merkle_sets)
+            .unwrap();
 
         $crate::helpers::Test {
             source: String::from($source),
             kernel: None,
-            inputs,
+            stack_inputs,
+            advice_inputs,
+            in_debug_mode: $in_debug_mode,
+        }
+    }};
+    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr, $advice_map:expr) => {{
+        let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
+        let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
+        let tape_values: Vec<u64> = $advice_tape.to_vec();
+        let advice_inputs = $crate::helpers::AdviceInputs::default()
+            .with_tape_values(tape_values)
+            .unwrap()
+            .with_merkle_sets($advice_sets)
+            .unwrap()
+            .with_values_map($advice_map);
+
+        $crate::helpers::Test {
+            source: String::from($source),
+            kernel: None,
+            stack_inputs,
+            advice_inputs,
             in_debug_mode: $in_debug_mode,
         }
     }};

@@ -189,8 +189,8 @@ fn composite_flags() {
 
     // ------ no change 2 ---------------------------------------------------------------------
 
-    let op_no_change_0 = [Operation::Swap, Operation::U32div];
-    for op in op_no_change_0 {
+    let op_no_change_2 = [Operation::Swap, Operation::U32div];
+    for op in op_no_change_2 {
         // frame initialised with an op operation.
         let frame = generate_evaluation_frame(op.op_code().into());
 
@@ -219,18 +219,18 @@ fn composite_flags() {
 
     // ------ no change 4 ---------------------------------------------------------------------
 
-    let op_no_change_0 = [Operation::MrUpdate(false), Operation::ReadW];
-    for op in op_no_change_0 {
+    let op_no_change_4 = [Operation::MrUpdate(false), Operation::ReadW, Operation::Ext2Mul];
+    for op in op_no_change_4 {
         // frame initialised with an op operation.
         let frame = generate_evaluation_frame(op.op_code().into());
 
         // All the operation flags are generated for the given frame.
         let op_flags = OpFlags::new(&frame);
 
-        assert_eq!(op_flags.no_shift_at(0), ZERO);
-        assert_eq!(op_flags.no_shift_at(1), ZERO);
-        assert_eq!(op_flags.no_shift_at(2), ZERO);
-        assert_eq!(op_flags.no_shift_at(3), ZERO);
+        for i in 0..4 {
+            assert_eq!(op_flags.no_shift_at(i), ZERO);
+        }
+
         for i in 4..16 {
             assert_eq!(op_flags.no_shift_at(i), ONE);
         }
@@ -251,7 +251,7 @@ fn composite_flags() {
 
     // ------ No change 12 ---------------------------------------------------------------------
 
-    let op = Operation::RpPerm;
+    let op = Operation::HPerm;
     // frame initialised with an op operation.
     let frame = generate_evaluation_frame(op.op_code().into());
 
@@ -329,7 +329,7 @@ fn composite_flags() {
     assert_eq!(op_flags.control_flow(), ZERO);
     assert_eq!(op_flags.top_binary(), ONE);
 
-    // ------ Left shift 2 ---------------------------------------------------------------------
+    // ------ Left shift 3 ---------------------------------------------------------------------
 
     let op = Operation::U32add3;
     // frame initialised with an op operation.

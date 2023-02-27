@@ -2,11 +2,14 @@ use super::{
     Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
     ProcedureId, SpanBuilder, ONE, ZERO,
 };
+use crate::utils::bound_into_included_u64;
+use core::ops::RangeBounds;
 use vm_core::{AdviceInjector, FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;
 mod env_ops;
+mod ext2_ops;
 mod field_ops;
 mod mem_ops;
 mod procedures;
@@ -42,13 +45,14 @@ impl Assembler {
             Instruction::Add => span.add_op(Add),
             Instruction::AddImm(imm) => field_ops::add_imm(span, *imm),
             Instruction::Sub => span.add_ops([Neg, Add]),
-            Instruction::SubImm(imm) => span.add_ops([Push(-*imm), Add]),
+            Instruction::SubImm(imm) => field_ops::sub_imm(span, *imm),
             Instruction::Mul => span.add_op(Mul),
             Instruction::MulImm(imm) => field_ops::mul_imm(span, *imm),
             Instruction::Div => span.add_ops([Inv, Mul]),
             Instruction::DivImm(imm) => field_ops::div_imm(span, *imm),
             Instruction::Neg => span.add_op(Neg),
             Instruction::Inv => span.add_op(Inv),
+            Instruction::Incr => span.add_op(Incr),
 
             Instruction::Pow2 => field_ops::pow2(span),
             Instruction::Exp => field_ops::exp(span, 64),
@@ -70,6 +74,15 @@ impl Assembler {
             Instruction::Gt => field_ops::gt(span),
             Instruction::Gte => field_ops::gte(span),
 
+            // ----- ext2 instructions ------------------------------------------------------------
+            Instruction::Ext2Add => ext2_ops::ext2_add(span),
+            Instruction::Ext2Sub => ext2_ops::ext2_sub(span),
+            Instruction::Ext2Mul => ext2_ops::ext2_mul(span),
+            Instruction::Ext2Div => ext2_ops::ext2_div(span),
+            Instruction::Ext2Neg => ext2_ops::ext2_neg(span),
+            Instruction::Ext2Inv => ext2_ops::ext2_inv(span),
+
+            // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => span.add_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(span),
             Instruction::U32Assert => span.add_ops([Pad, U32assert2, Drop]),
@@ -136,6 +149,8 @@ impl Assembler {
             Instruction::U32CheckedRotrImm(v) => u32_ops::u32rotr(span, Checked, Some(*v)),
             Instruction::U32UncheckedRotr => u32_ops::u32rotr(span, Unchecked, None),
             Instruction::U32UncheckedRotrImm(v) => u32_ops::u32rotr(span, Unchecked, Some(*v)),
+            Instruction::U32CheckedPopcnt => u32_ops::u32popcnt(span, Checked),
+            Instruction::U32UncheckedPopcnt => u32_ops::u32popcnt(span, Unchecked),
 
             Instruction::U32CheckedEq => u32_ops::u32eq(span, None),
             Instruction::U32CheckedEqImm(v) => u32_ops::u32eq(span, Some(*v)),
@@ -154,6 +169,7 @@ impl Assembler {
             Instruction::U32CheckedMax => u32_ops::u32max(span, Checked),
             Instruction::U32UncheckedMax => u32_ops::u32max(span, Unchecked),
 
+            // ----- stack manipulation -----------------------------------------------------------
             Instruction::Drop => span.add_op(Drop),
             Instruction::DropW => span.add_ops([Drop; 4]),
             Instruction::PadW => span.add_ops([Pad; 4]),
@@ -234,14 +250,24 @@ impl Assembler {
             Instruction::CDrop => span.add_ops([CSwap, Drop]),
             Instruction::CDropW => span.add_ops([CSwapW, Drop, Drop, Drop, Drop]),
 
-            Instruction::PushConstants(imms) => env_ops::push(imms, span),
+            // ----- input / output instructions --------------------------------------------------
+            Instruction::PushU8(imm) => env_ops::push_one(*imm, span),
+            Instruction::PushU16(imm) => env_ops::push_one(*imm, span),
+            Instruction::PushU32(imm) => env_ops::push_one(*imm, span),
+            Instruction::PushFelt(imm) => env_ops::push_one(*imm, span),
+            Instruction::PushWord(imms) => env_ops::push_many(imms, span),
+            Instruction::PushU8List(imms) => env_ops::push_many(imms, span),
+            Instruction::PushU16List(imms) => env_ops::push_many(imms, span),
+            Instruction::PushU32List(imms) => env_ops::push_many(imms, span),
+            Instruction::PushFeltList(imms) => env_ops::push_many(imms, span),
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, ctx),
-            Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
+            Instruction::Clk => span.add_op(Clk),
+            Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
             Instruction::AdvLoadW => span.add_op(ReadW),
 
-            Instruction::MemStream => span.add_ops([MStream, RpPerm]),
+            Instruction::MemStream => span.add_ops([MStream, HPerm]),
 
             Instruction::Locaddr(v) => env_ops::locaddr(span, *v, ctx),
             Instruction::MemLoad => mem_ops::mem_read(span, ctx, None, false, true),
@@ -250,25 +276,29 @@ impl Assembler {
             Instruction::MemLoadWImm(v) => mem_ops::mem_read(span, ctx, Some(*v), false, false),
             Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, true),
             Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, false),
-            Instruction::MemStore => mem_ops::mem_write(span, ctx, None, false, true),
-            Instruction::MemStoreImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, true),
-            Instruction::MemStoreW => mem_ops::mem_write(span, ctx, None, false, false),
-            Instruction::MemStoreWImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, false),
-            Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(*v as u32), true, true),
-            Instruction::LocStoreW(v) => {
-                mem_ops::mem_write(span, ctx, Some(*v as u32), true, false)
-            }
+            Instruction::MemStore => span.add_ops([MStore, Drop]),
+            Instruction::MemStoreW => span.add_ops([MStoreW]),
+            Instruction::MemStoreImm(v) => mem_ops::mem_write_imm(span, ctx, *v, false, true),
+            Instruction::MemStoreWImm(v) => mem_ops::mem_write_imm(span, ctx, *v, false, false),
+            Instruction::LocStore(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, true),
+            Instruction::LocStoreW(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, false),
 
             Instruction::AdvU64Div => span.add_decorator(Decorator::Advice(DivResultU64)),
             Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
             Instruction::AdvMem(a, n) => adv_ops::adv_mem(span, *a, *n),
+            Instruction::AdvExt2Inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
+            Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
 
-            Instruction::RpPerm => span.add_op(RpPerm),
-            Instruction::RpHash => crypto_ops::rphash(span),
+            // ----- cryptographic instructions ---------------------------------------------------
+            Instruction::Hash => crypto_ops::hash(span),
+            Instruction::HPerm => span.add_op(HPerm),
+            Instruction::HMerge => crypto_ops::hmerge(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),
+            Instruction::FriExt2Fold4 => span.add_op(FriE2F4),
 
+            // ----- exec/call instructions -------------------------------------------------------
             Instruction::ExecLocal(idx) => self.exec_local(*idx, ctx),
             Instruction::ExecImported(id) => self.exec_imported(id, ctx),
             Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
@@ -326,14 +356,16 @@ fn push_felt(span: &mut SpanBuilder, value: Felt) {
 
 /// Returns an error if the specified value is smaller than or equal to min or greater than or
 /// equal to max. Otherwise, returns Ok(()).
-fn validate_param<I: Ord + Into<u64>>(value: I, min: I, max: I) -> Result<(), AssemblyError> {
-    if value < min || value > max {
-        Err(AssemblyError::param_out_of_bounds(
+fn validate_param<I, R>(value: I, range: R) -> Result<(), AssemblyError>
+where
+    I: Ord + Clone + Into<u64>,
+    R: RangeBounds<I>,
+{
+    range.contains(&value).then_some(()).ok_or_else(|| {
+        AssemblyError::param_out_of_bounds(
             value.into(),
-            min.into(),
-            max.into(),
-        ))
-    } else {
-        Ok(())
-    }
+            bound_into_included_u64(range.start_bound(), true),
+            bound_into_included_u64(range.end_bound(), false),
+        )
+    })
 }

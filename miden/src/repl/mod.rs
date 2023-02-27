@@ -1,7 +1,10 @@
 use super::ProgramError;
+use miden::{
+    math::{Felt, StarkField},
+    MemAdviceProvider, StackInputs, Word,
+};
 use processor::Process;
 use rustyline::{error::ReadlineError, Editor};
-use vm_core::{Felt, ProgramInputs, StarkField, Word};
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
@@ -120,7 +123,6 @@ use vm_core::{Felt, ProgramInputs, StarkField, Word};
 /// If the `addr` has not been initialized:
 /// >> !mem[87]
 /// Memory at address 87 is empty
-///
 
 /// Initiates the Miden Repl tool.
 pub fn start_repl() {
@@ -261,18 +263,17 @@ pub fn start_repl() {
 /// The program is passed in as a String, passed to the Miden Assembler, and then passed into the Miden
 /// Processor to be executed.
 fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramError> {
-    let program = assembly::Assembler::new()
+    let program = assembly::Assembler::default()
         .compile(&program)
         .map_err(ProgramError::AssemblyError)?;
 
-    let pub_inputs = vec![];
-    let inputs = ProgramInputs::new(&pub_inputs, &[], vec![]).unwrap();
-    let mut process = Process::new_debug(program.kernel(), inputs);
-    let _program_outputs = process
-        .execute(&program)
-        .map_err(ProgramError::ExecutionError);
+    let stack_inputs = StackInputs::default();
+    let advice_provider = MemAdviceProvider::default();
 
-    let (sys, _, stack, _, chiplets) = process.to_components();
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
+    let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
+
+    let (sys, _, stack, _, chiplets, _) = process.into_parts();
 
     // loads the memory at the latest clock cycle.
     let mem = chiplets.get_mem_state_at(0, sys.clk());
@@ -321,14 +322,7 @@ fn print_instructions() {
 /// Returns the state of the stack along with its overflown part in a string format.
 fn print_stack(stack: Vec<Felt>) {
     // converts the stack which is a vector of felt into string and prints it.
-    println!(
-        "{}",
-        stack
-            .iter()
-            .map(|f| format!("{}", f))
-            .collect::<Vec<_>>()
-            .join(" "),
-    )
+    println!("{}", stack.iter().map(|f| format!("{}", f)).collect::<Vec<_>>().join(" "),)
 }
 
 /// Accepts and returns a memory at an address by converting its register into integer

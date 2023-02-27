@@ -37,9 +37,6 @@ fn mul_unsafe() {
 // ================================================================================================
 
 fn rand_u256() -> BigUint {
-    let limbs = rand_vector::<u64>(8)
-        .iter()
-        .map(|&v| v as u32)
-        .collect::<Vec<_>>();
+    let limbs = rand_vector::<u64>(8).iter().map(|&v| v as u32).collect::<Vec<_>>();
     BigUint::new(limbs)
 }

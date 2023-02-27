@@ -1,6 +1,11 @@
-use super::{ExecutionError, Felt, FieldElement, Process, StarkField, STACK_TOP_SIZE};
+use super::{
+    AdviceProvider, ExecutionError, Felt, FieldElement, Process, StarkField, STACK_TOP_SIZE,
+};
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
     /// Pushes a ZERO onto the stack.
@@ -299,10 +304,12 @@ mod tests {
         super::{FieldElement, Operation, Process},
         Felt, STACK_TOP_SIZE,
     };
+    use crate::StackInputs;
 
     #[test]
     fn op_pad() {
-        let mut process = Process::new_dummy(&[]);
+        let stack = StackInputs::default();
+        let mut process = Process::new_dummy(stack);
 
         // push one item onto the stack
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
@@ -329,7 +336,8 @@ mod tests {
     #[test]
     fn op_drop() {
         // push a few items onto the stack
-        let mut process = Process::new_dummy(&[]);
+        let stack = StackInputs::default();
+        let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Push(Felt::new(2))).unwrap();
 
@@ -351,7 +359,8 @@ mod tests {
 
     #[test]
     fn op_dup() {
-        let mut process = Process::new_dummy(&[]);
+        let stack = StackInputs::default();
+        let mut process = Process::new_dummy(stack);
 
         // push one item onto the stack
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
@@ -403,50 +412,60 @@ mod tests {
     #[test]
     fn op_swap() {
         // push a few items onto the stack
-        let mut process = Process::new_dummy(&[1, 2, 3]);
+        let stack = StackInputs::try_from_values([1, 2, 3]).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Swap).unwrap();
         let expected = build_expected(&[2, 3, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let mut process = Process::new_dummy(&[]);
+        let stack = StackInputs::default();
+        let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::Swap).is_ok());
     }
 
     #[test]
     fn op_swapw() {
         // push a few items onto the stack
-        let mut process = Process::new_dummy(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        let stack = StackInputs::try_from_values([1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW).unwrap();
         let expected = build_expected(&[5, 4, 3, 2, 9, 8, 7, 6, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let mut process = Process::new_dummy(&[]);
+        let stack = StackInputs::default();
+        let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::SwapW).is_ok());
     }
 
     #[test]
     fn op_swapw2() {
         // push a few items onto the stack
-        let mut process = Process::new_dummy(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+        let stack =
+            StackInputs::try_from_values([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW2).unwrap();
         let expected = build_expected(&[5, 4, 3, 2, 9, 8, 7, 6, 13, 12, 11, 10, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let mut process = Process::new_dummy(&[]);
+        let stack = StackInputs::default();
+        let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::SwapW2).is_ok());
     }
 
     #[test]
     fn op_swapw3() {
         // push a few items onto the stack
-        let mut process =
-            Process::new_dummy(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+        let stack = StackInputs::try_from_values([
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+        ])
+        .unwrap();
+        let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW3).unwrap();
         let expected = build_expected(&[5, 4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14]);
@@ -458,15 +477,17 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         assert!(process.execute_op(Operation::SwapW3).is_ok());
     }
 
     #[test]
     fn op_movup() {
         // push a few items onto the stack
-        let mut process =
-            Process::new_dummy(&[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+        let stack =
+            StackInputs::try_from_values([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+                .unwrap();
+        let mut process = Process::new_dummy(stack);
 
         // movup2
         process.execute_op(Operation::MovUp2).unwrap();
@@ -489,15 +510,17 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // executing movup with a minimum stack depth should be ok
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         assert!(process.execute_op(Operation::MovUp2).is_ok());
     }
 
     #[test]
     fn op_movdn() {
         // push a few items onto the stack
-        let mut process =
-            Process::new_dummy(&[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+        let stack =
+            StackInputs::try_from_values([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+                .unwrap();
+        let mut process = Process::new_dummy(stack);
 
         // movdn2
         process.execute_op(Operation::MovDn2).unwrap();
@@ -520,14 +543,15 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // executing movdn with a minimum stack depth should be ok
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         assert!(process.execute_op(Operation::MovDn2).is_ok());
     }
 
     #[test]
     fn op_cswap() {
         // push a few items onto the stack
-        let mut process = Process::new_dummy(&[4, 3, 2, 1, 0]);
+        let stack = StackInputs::try_from_values([4, 3, 2, 1, 0]).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         // no swap (top of the stack is 0)
         process.execute_op(Operation::CSwap).unwrap();
@@ -543,14 +567,15 @@ mod tests {
         assert!(process.execute_op(Operation::CSwap).is_err());
 
         // executing conditional swap with a minimum stack depth should be ok
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         assert!(process.execute_op(Operation::CSwap).is_ok());
     }
 
     #[test]
     fn op_cswapw() {
         // push a few items onto the stack
-        let mut process = Process::new_dummy(&[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
+        let stack = StackInputs::try_from_values([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         // no swap (top of the stack is 0)
         process.execute_op(Operation::CSwapW).unwrap();
@@ -566,7 +591,7 @@ mod tests {
         assert!(process.execute_op(Operation::CSwapW).is_err());
 
         // executing conditional swap with a minimum stack depth should be ok
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         assert!(process.execute_op(Operation::CSwapW).is_ok());
     }
 

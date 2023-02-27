@@ -2,7 +2,7 @@ use crate::{
     build_op_test,
     helpers::{prop_randw, TestError, U32_BOUND},
 };
-use vm_core::WORD_LEN;
+use vm_core::WORD_SIZE;
 
 mod arithmetic_ops;
 mod bitwise_ops;
@@ -37,7 +37,7 @@ pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
 /// This helper function tests a provided assembly operation which takes a single parameter
 /// to ensure that it fails when that parameter is over the maximum allowed value (out of bounds).
 pub fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
-    let asm_op = format!("{}.{}", asm_op_base, gt_max_value);
+    let asm_op = format!("{asm_op_base}.{gt_max_value}");
     let test = build_op_test!(&asm_op);
     test.expect_error(TestError::AssemblyError("parameter"));
 }

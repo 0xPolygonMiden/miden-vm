@@ -3,15 +3,15 @@ use super::{
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder,
-    Digest, Felt, FieldElement, Process, StackTopState, Vec,
+    AdviceProvider, Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     stack::STACK_TOP_SIZE,
-    ProgramOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
+    ProgramInfo, StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
+    MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
-use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
+use winter_prover::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
 use vm_core::StarkField;
@@ -58,8 +58,8 @@ pub struct ExecutionTrace {
     layout: TraceLayout,
     main_trace: Matrix<Felt>,
     aux_trace_hints: AuxTraceHints,
-    program_hash: Digest,
-    program_outputs: ProgramOutputs,
+    program_info: ProgramInfo,
+    stack_outputs: StackOutputs,
 }
 
 impl ExecutionTrace {
@@ -72,13 +72,20 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process, program_outputs: ProgramOutputs) -> Self {
+    pub(super) fn new<A>(process: Process<A>, stack_outputs: StackOutputs) -> Self
+    where
+        A: AdviceProvider,
+    {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
         // perfect zero knowledge.
         let program_hash: Digest = process.decoder.program_hash().into();
         let rng = RandomCoin::new(&program_hash.to_bytes());
+
+        // create a new program info instance with the underlying kernel
+        let kernel = process.kernel().clone();
+        let program_info = ProgramInfo::new(program_hash, kernel);
         let (main_trace, aux_trace_hints) = finalize_trace(process, rng);
 
         Self {
@@ -86,22 +93,27 @@ impl ExecutionTrace {
             layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
-            program_hash,
-            program_outputs,
+            program_info,
+            stack_outputs,
         }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the program info of this execution trace.
+    pub fn program_info(&self) -> &ProgramInfo {
+        &self.program_info
+    }
+
     /// Returns hash of the program execution of which resulted in this execution trace.
-    pub fn program_hash(&self) -> Digest {
-        self.program_hash
+    pub fn program_hash(&self) -> &Digest {
+        self.program_info.program_hash()
     }
 
     /// Returns outputs of the program execution which resulted in this execution trace.
-    pub fn program_outputs(&self) -> ProgramOutputs {
-        self.program_outputs.clone()
+    pub fn stack_outputs(&self) -> &StackOutputs {
+        &self.stack_outputs
     }
 
     /// Returns the initial state of the top 16 stack registers.
@@ -127,11 +139,14 @@ impl ExecutionTrace {
     pub fn get_user_op_helpers_at(&self, clk: u32) -> [Felt; NUM_USER_OP_HELPERS] {
         let mut result = [ZERO; NUM_USER_OP_HELPERS];
         for (i, result) in result.iter_mut().enumerate() {
-            *result = self
-                .main_trace
-                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk as usize];
+            *result = self.main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)
+                [clk as usize];
         }
         result
+    }
+
+    pub fn get_trace_len(&self) -> usize {
+        self.main_trace.num_rows()
     }
 
     // HELPER METHODS
@@ -155,7 +170,10 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace(process: Process) -> (Vec<Vec<Felt>>, AuxTraceHints) {
+    pub fn test_finalize_trace<A>(process: Process<A>) -> (Vec<Vec<Felt>>, AuxTraceHints)
+    where
+        A: AdviceProvider,
+    {
         let rng = RandomCoin::new(&[0; 32]);
         finalize_trace(process, rng)
     }
@@ -203,28 +221,20 @@ impl Trace for ExecutionTrace {
         );
 
         // add stack's running product columns
-        let stack_aux_columns = self
-            .aux_trace_hints
-            .stack
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let stack_aux_columns =
+            self.aux_trace_hints.stack.build_aux_columns(&self.main_trace, rand_elements);
 
         // add the range checker's running product columns
-        let range_aux_columns = self
-            .aux_trace_hints
-            .range
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let range_aux_columns =
+            self.aux_trace_hints.range.build_aux_columns(&self.main_trace, rand_elements);
 
         // add hasher's running product columns
-        let hasher_aux_columns = self
-            .aux_trace_hints
-            .hasher
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let hasher_aux_columns =
+            self.aux_trace_hints.hasher.build_aux_columns(&self.main_trace, rand_elements);
 
         // add running product columns for the chiplets module
-        let chiplets_aux_columns = self
-            .aux_trace_hints
-            .chiplets
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let chiplets_aux_columns =
+            self.aux_trace_hints.chiplets.build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
@@ -236,7 +246,7 @@ impl Trace for ExecutionTrace {
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
-        let mut rng = RandomCoin::new(&self.program_hash.to_bytes());
+        let mut rng = RandomCoin::new(&self.program_hash().to_bytes());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 column[i] = rng.draw().expect("failed to draw a random value");
@@ -249,8 +259,7 @@ impl Trace for ExecutionTrace {
     fn read_main_frame(&self, row_idx: usize, frame: &mut EvaluationFrame<Felt>) {
         let next_row_idx = (row_idx + 1) % self.length();
         self.main_trace.read_row_into(row_idx, frame.current_mut());
-        self.main_trace
-            .read_row_into(next_row_idx, frame.next_mut());
+        self.main_trace.read_row_into(next_row_idx, frame.next_mut());
     }
 }
 
@@ -265,27 +274,18 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints) {
-    let (system, decoder, stack, mut range, chiplets) = process.to_components();
+fn finalize_trace<A>(process: Process<A>, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints)
+where
+    A: AdviceProvider,
+{
+    let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
 
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(
-        clk as usize,
-        system.trace_len(),
-        "inconsistent system trace lengths"
-    );
-    assert_eq!(
-        clk as usize,
-        decoder.trace_len(),
-        "inconsistent decoder trace length"
-    );
-    assert_eq!(
-        clk as usize,
-        stack.trace_len(),
-        "inconsistent stack trace lengths"
-    );
+    assert_eq!(clk as usize, system.trace_len(), "inconsistent system trace lengths");
+    assert_eq!(clk as usize, decoder.trace_len(), "inconsistent decoder trace length");
+    assert_eq!(clk as usize, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);

@@ -1,10 +1,9 @@
-pub use miden::{ProofOptions, StarkProof};
+pub use miden::{MemAdviceProvider, ProgramInfo, ProofOptions, StarkProof};
+pub use processor::{AdviceInputs, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 use stdlib::StdLibrary;
-pub use vm_core::{
-    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
-};
+pub use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program, StackOutputs};
 
 pub mod crypto;
 
@@ -40,7 +39,8 @@ pub enum TestError<'a> {
 pub struct Test {
     pub source: String,
     pub kernel: Option<String>,
-    pub inputs: ProgramInputs,
+    pub stack_inputs: StackInputs,
+    pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
 }
 
@@ -53,7 +53,8 @@ impl Test {
         Test {
             source: String::from(source),
             kernel: None,
-            inputs: ProgramInputs::none(),
+            stack_inputs: StackInputs::default(),
+            advice_inputs: AdviceInputs::default(),
             in_debug_mode,
         }
     }
@@ -104,9 +105,11 @@ impl Test {
     ) {
         // compile the program
         let program = self.compile();
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
 
         // execute the test
-        let mut process = Process::new(program.kernel(), self.inputs.clone());
+        let mut process =
+            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -138,14 +141,13 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program.
     pub fn compile(&self) -> Program {
-        let assembler = assembly::Assembler::new()
+        let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
-            .with_module_provider(StdLibrary::default());
+            .with_library(&StdLibrary::default())
+            .expect("failed to load stdlib");
 
         match self.kernel.as_ref() {
-            Some(kernel) => assembler
-                .with_kernel(kernel)
-                .expect("kernel compilation failed"),
+            Some(kernel) => assembler.with_kernel(kernel).expect("kernel compilation failed"),
             None => assembler,
         }
         .compile(&self.source)
@@ -156,23 +158,28 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
-        processor::execute(&program, &self.inputs)
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        processor::execute(&program, self.stack_inputs.clone(), advice_provider)
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
+        let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
-        let (mut outputs, proof) =
-            prover::prove(&program, &self.inputs, &ProofOptions::default()).unwrap();
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        let (mut stack_outputs, proof) =
+            prover::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
+                .unwrap();
 
+        let program_info = ProgramInfo::from(program);
         if test_fail {
-            outputs.stack_mut()[0] += 1;
-            assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err());
+            stack_outputs.stack_mut()[0] += 1;
+            assert!(miden::verify(program_info, stack_inputs, stack_outputs, proof).is_err());
         } else {
-            let result = miden::verify(program.hash(), &pub_inputs, &outputs, proof);
-            assert!(result.is_ok(), "error: {:?}", result);
+            let result = miden::verify(program_info, stack_inputs, stack_outputs, proof);
+            assert!(result.is_ok(), "error: {result:?}");
         }
     }
 
@@ -181,7 +188,8 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
-        processor::execute_iter(&program, &self.inputs)
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        processor::execute_iter(&program, self.stack_inputs.clone(), advice_provider)
     }
 
     /// Returns the last state of the stack after executing a test.

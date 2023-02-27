@@ -6,16 +6,16 @@ While [Miden](../miden) crate also contains verifier functionality, if a project
 ## Usage
 This crate exposes a `verify()` function which can be used to verify proofs of program execution. The function takes the following parameters:
 
-* `program_hash: Digest` - a hash of the program to be verified (represented as a 32-byte digest).
-* `stack_inputs: &[u64]` - a list of the values with which the stack was initialized prior to the program's execution..
-* `stack_outputs: &[u64]` - a list of the values returned from the stack after the program completed execution.
-* `proof: StarkProof` - the proof generated during program execution.
+* `program_info: ProgramInfo` -  a structure containing the hash of the program to be verified (represented as a 32-byte digest), and the hashes of the kernel procedures used to execute the program.
+* `stack_inputs: StackInputs` - a list of the values with which the stack was initialized prior to the program's execution.
+* `stack_outputs: StackOutputs` - a list of the values returned from the stack after the program completed execution.
+* `proof: ExecutionProof` - the proof generated during program execution.
 
-Stack inputs are expected to be ordered as if they would be pushed onto the stack one by one. Thus, their expected order on the stack will be the reverse of the order in which they are provided, and the last value in the `stack_inputs` slice is expected to be the value at the top of the stack.
+Stack inputs are expected to be ordered as if they would be pushed onto the stack one by one. Thus, their expected order on the stack will be the reverse of the order in which they are provided, and the last value in the `stack_inputs` is expected to be the value at the top of the stack.
 
-Stack outputs are expected to be ordered as if they would be popped off the stack one by one. Thus, the value at the top of the stack is expected to be in the first position of the `stack_outputs` slice, and the order of the rest of the output elements will also match the order on the stack. This is the reverse of the order of the `stack_inputs` slice.
+Stack outputs are expected to be ordered as if they would be popped off the stack one by one. Thus, the value at the top of the stack is expected to be in the first position of the `stack_outputs`, and the order of the rest of the output elements will also match the order on the stack. This is the reverse of the order of the `stack_inputs`.
 
-The function returns `Result<(), VerificationError>` which will be `Ok(())` if verification passes, or `Err(VerificationError)` if verification fails, with `VerificationError` describing the reason for the failure.
+The function returns `Result<u32, VerificationError>` which will be `Ok(security_level)` if verification passes, or `Err(VerificationError)` if verification fails, with `VerificationError` describing the reason for the failure.
 
 Verifying execution proof of a program basically means the following:
 

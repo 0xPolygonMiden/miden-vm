@@ -1,28 +1,26 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::ExecutionTrace;
-use prover::Prover;
-use vm_core::{utils::collections::Vec, Felt, ProgramOutputs};
+use core::marker::PhantomData;
+use processor::{math::Felt, Blake3_192, Blake3_256, ElementHasher, ExecutionTrace, Rpo256};
+use winter_prover::{ProofOptions as WinterProofOptions, Prover};
 
 #[cfg(feature = "std")]
 use log::debug;
 #[cfg(feature = "std")]
-use prover::Trace;
-#[cfg(feature = "std")]
 use std::time::Instant;
+#[cfg(feature = "std")]
+use winter_prover::Trace;
 
 // EXPORTS
 // ================================================================================================
 
-pub use air::{FieldExtension, HashFunction, ProofOptions};
-pub use processor::ExecutionError;
-pub use prover::StarkProof;
-pub use vm_core::{
-    chiplets::hasher::Digest,
-    errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs,
+pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProofOptions};
+pub use processor::{
+    math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, Hasher, InputError,
+    MemAdviceProvider, MerkleError, MerkleSet, Program, StackInputs, StackOutputs, Word,
 };
+pub use winter_prover::StarkProof;
 
 // PROVER
 // ================================================================================================
@@ -36,15 +34,19 @@ pub use vm_core::{
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn prove(
+pub fn prove<A>(
     program: &Program,
-    inputs: &ProgramInputs,
-    options: &ProofOptions,
-) -> Result<(ProgramOutputs, StarkProof), ExecutionError> {
+    stack_inputs: StackInputs,
+    advice_provider: A,
+    options: ProofOptions,
+) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
+where
+    A: AdviceProvider,
+{
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, inputs)?;
+    let trace = processor::execute(program, stack_inputs.clone(), advice_provider)?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",
@@ -53,34 +55,57 @@ pub fn prove(
         now.elapsed().as_millis()
     );
 
-    let outputs = trace.program_outputs();
+    let stack_outputs = trace.stack_outputs().clone();
+    let hash_fn = options.hash_fn();
 
     // generate STARK proof
-    let prover = ExecutionProver::new(
-        options.clone(),
-        inputs.stack_init().to_vec(),
-        outputs.clone(),
-    );
-    let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
+    let proof = match hash_fn {
+        HashFunction::Blake3_192 => {
+            ExecutionProver::<Blake3_192>::new(options, stack_inputs, stack_outputs.clone())
+                .prove(trace)
+        }
+        HashFunction::Blake3_256 => {
+            ExecutionProver::<Blake3_256>::new(options, stack_inputs, stack_outputs.clone())
+                .prove(trace)
+        }
+        HashFunction::Rpo256 => {
+            ExecutionProver::<Rpo256>::new(options, stack_inputs, stack_outputs.clone())
+                .prove(trace)
+        }
+    }
+    .map_err(ExecutionError::ProverError)?;
+    let proof = ExecutionProof::new(proof, hash_fn);
 
-    Ok((outputs, proof))
+    Ok((stack_outputs, proof))
 }
 
 // PROVER
 // ================================================================================================
 
-struct ExecutionProver {
-    options: ProofOptions,
-    stack_inputs: Vec<Felt>,
-    outputs: ProgramOutputs,
+struct ExecutionProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
+    hasher: PhantomData<H>,
+    options: WinterProofOptions,
+    stack_inputs: StackInputs,
+    stack_outputs: StackOutputs,
 }
 
-impl ExecutionProver {
-    pub fn new(options: ProofOptions, stack_inputs: Vec<Felt>, outputs: ProgramOutputs) -> Self {
+impl<H> ExecutionProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
+    pub fn new(
+        options: ProofOptions,
+        stack_inputs: StackInputs,
+        stack_outputs: StackOutputs,
+    ) -> Self {
         Self {
-            options,
+            hasher: PhantomData,
+            options: options.into(),
             stack_inputs,
-            outputs,
+            stack_outputs,
         }
     }
 
@@ -89,42 +114,33 @@ impl ExecutionProver {
 
     /// Validates the stack inputs against the provided execution trace and returns true if valid.
     fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
-        for (input_element, trace_element) in self
-            .stack_inputs
+        self.stack_inputs
+            .values()
             .iter()
             .zip(trace.init_stack_state().iter())
-        {
-            if *input_element != *trace_element {
-                return false;
-            }
-        }
-
-        true
+            .all(|(l, r)| l == r)
     }
 
-    /// Validates the program outputs against the provided execution trace and returns true if valid.
+    /// Validates the stack outputs against the provided execution trace and returns true if valid.
     fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
-        for (output_element, trace_element) in self
-            .outputs
+        self.stack_outputs
             .stack_top()
             .iter()
             .zip(trace.last_stack_state().iter())
-        {
-            if *output_element != *trace_element {
-                return false;
-            }
-        }
-
-        true
+            .all(|(l, r)| l == r)
     }
 }
 
-impl Prover for ExecutionProver {
-    type BaseField = Felt;
+impl<H> Prover for ExecutionProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
     type Air = ProcessorAir;
+    type BaseField = Felt;
     type Trace = ExecutionTrace;
+    type HashFn = H;
 
-    fn options(&self) -> &prover::ProofOptions {
+    fn options(&self) -> &WinterProofOptions {
         &self.options
     }
 
@@ -139,10 +155,7 @@ impl Prover for ExecutionProver {
             "provided outputs do not match the execution trace"
         );
 
-        PublicInputs::new(
-            trace.program_hash(),
-            self.stack_inputs.clone(),
-            self.outputs.clone(),
-        )
+        let program_info = trace.program_info().clone();
+        PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 }

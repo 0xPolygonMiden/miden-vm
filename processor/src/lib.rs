@@ -6,20 +6,24 @@ extern crate alloc;
 
 pub use vm_core::{
     chiplets::hasher::Digest,
-    errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs, ProgramOutputs,
+    crypto::{
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256},
+        merkle::MerkleError,
+    },
+    errors::InputError,
+    utils::DeserializationError,
+    Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
         Call, CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Kernel,
-    Operation, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN,
-    ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
+    StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
+    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
-
-use winterfell::Matrix;
+use winter_prover::Matrix;
 
 mod decorators;
 mod operations;
@@ -38,7 +42,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-use advice::AdviceProvider;
+pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, MerkleSet};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -50,13 +54,23 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
-mod utils;
+pub mod utils;
 
 mod debug;
 pub use debug::{AsmOpInfo, VmState, VmStateIterator};
 
+// RE-EXPORTS
+// ================================================================================================
+
+pub mod math {
+    pub use vm_core::{Felt, FieldElement, StarkField};
+    pub use winter_prover::math::fft;
+}
+
 // TYPE ALIASES
 // ================================================================================================
+
+type QuadFelt = QuadExtension<Felt>;
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
@@ -84,27 +98,34 @@ pub struct ChipletsTrace {
 // EXECUTORS
 // ================================================================================================
 
-/// Returns execution output and an execution trace resulting from executing the provided program
-/// against the provided inputs.
-pub fn execute(
+/// Returns an execution trace resulting from executing the provided program against the provided
+/// inputs.
+pub fn execute<A>(
     program: &Program,
-    inputs: &ProgramInputs,
-) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel(), inputs.clone());
-    let program_outputs = process.execute(program)?;
-    let trace = ExecutionTrace::new(process, program_outputs);
-    assert_eq!(
-        program.hash(),
-        trace.program_hash(),
-        "inconsistent program hash"
-    );
+    stack_inputs: StackInputs,
+    advice_provider: A,
+) -> Result<ExecutionTrace, ExecutionError>
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_provider);
+    let stack_outputs = process.execute(program)?;
+    let trace = ExecutionTrace::new(process, stack_outputs);
+    assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
 
-/// Returns an iterator that allows callers to step through each execution and inspect
-/// vm state information along side.
-pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel(), inputs.clone());
+/// Returns an iterator which allows callers to step through the execution and inspect VM state at
+/// each execution step.
+pub fn execute_iter<A>(
+    program: &Program,
+    stack_inputs: StackInputs,
+    advice_provider: A,
+) -> VmStateIterator
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -119,36 +140,48 @@ pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterato
 // PROCESS
 // ================================================================================================
 
-pub struct Process {
+#[cfg(not(any(test, feature = "internals")))]
+struct Process<A>
+where
+    A: AdviceProvider,
+{
     system: System,
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    advice: AdviceProvider,
+    advice_provider: A,
 }
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
-    pub fn new(kernel: &Kernel, inputs: ProgramInputs) -> Self {
-        Self::initialize(kernel, inputs, false)
+    pub fn new(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, false)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: &Kernel, inputs: ProgramInputs) -> Self {
-        Self::initialize(kernel, inputs, true)
+    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, true)
     }
 
-    fn initialize(kernel: &Kernel, inputs: ProgramInputs, in_debug_mode: bool) -> Self {
+    fn initialize(
+        kernel: Kernel,
+        stack: StackInputs,
+        advice_provider: A,
+        in_debug_mode: bool,
+    ) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(in_debug_mode),
-            stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
+            stack: Stack::new(&stack, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            advice: AdviceProvider::new(inputs),
+            advice_provider,
         }
     }
 
@@ -156,15 +189,11 @@ impl Process {
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [Program] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<ProgramOutputs, ExecutionError> {
-        assert_eq!(
-            self.system.clk(),
-            0,
-            "a program has already been executed in this process"
-        );
+    pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
+        assert_eq!(self.system.clk(), 0, "a program has already been executed in this process");
         self.execute_code_block(program.root(), program.cb_table())?;
 
-        Ok(self.stack.get_outputs())
+        Ok(self.stack.build_stack_outputs())
     }
 
     // CODE BLOCK EXECUTORS
@@ -400,17 +429,38 @@ impl Process {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    pub const fn kernel(&self) -> &Kernel {
+        self.chiplets.kernel()
+    }
+
     pub fn get_memory_value(&self, ctx: u32, addr: u64) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)
     }
 
-    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
+    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, A) {
         (
             self.system,
             self.decoder,
             self.stack,
             self.range,
             self.chiplets,
+            self.advice_provider,
         )
     }
+}
+
+// INTERNALS
+// ================================================================================================
+
+#[cfg(any(test, feature = "internals"))]
+pub struct Process<A>
+where
+    A: AdviceProvider,
+{
+    pub system: System,
+    pub decoder: Decoder,
+    pub stack: Stack,
+    pub range: RangeChecker,
+    pub chiplets: Chiplets,
+    pub advice_provider: A,
 }

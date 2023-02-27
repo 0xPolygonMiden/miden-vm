@@ -1,10 +1,21 @@
-use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
-use vm_core::{utils::collections::Vec, WORD_LEN, ZERO};
+use super::{
+    AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Felt, Process,
+    StarkField,
+};
+use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_SIZE, ZERO};
+use winter_prover::math::fft;
+
+// TYPE ALIASES
+// ================================================================================================
+type Ext2Element = QuadExtension<Felt>;
 
 // DECORATORS
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     /// Executes the specified decorator
     pub(super) fn execute_decorator(
         &mut self,
@@ -14,13 +25,13 @@ impl Process {
             Decorator::Advice(injector) => self.dec_advice(injector)?,
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {
-                    self.decoder
-                        .append_asmop(self.system.clk(), assembly_op.clone());
+                    self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
             }
         }
         Ok(())
     }
+
     // ADVICE INJECTION
     // --------------------------------------------------------------------------------------------
 
@@ -33,6 +44,8 @@ impl Process {
             AdviceInjector::Memory(start_addr, num_words) => {
                 self.inject_mem_values(*start_addr, *num_words)
             }
+            AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
+            AdviceInjector::Ext2INTT => self.inject_ext2_intt_result(),
         }
     }
 
@@ -55,22 +68,17 @@ impl Process {
         // read node depth, node index, and tree root from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);
-        let root = [
-            self.stack.get(5),
-            self.stack.get(4),
-            self.stack.get(3),
-            self.stack.get(2),
-        ];
+        let root = [self.stack.get(5), self.stack.get(4), self.stack.get(3), self.stack.get(2)];
 
         // look up the node in the advice provider
-        let node = self.advice.get_tree_node(root, depth, index)?;
+        let node = self.advice_provider.get_tree_node(root, depth, index)?;
 
         // write the node into the advice tape with first element written last so that it can be
         // removed first
-        self.advice.write_tape(node[3]);
-        self.advice.write_tape(node[2]);
-        self.advice.write_tape(node[1]);
-        self.advice.write_tape(node[0]);
+        self.advice_provider.write_tape(AdviceSource::Value(node[3]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(node[2]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(node[1]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(node[0]))?;
 
         Ok(())
     }
@@ -105,10 +113,10 @@ impl Process {
         let (q_hi, q_lo) = u64_to_u32_elements(quotient);
         let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-        self.advice.write_tape(r_hi);
-        self.advice.write_tape(r_lo);
-        self.advice.write_tape(q_hi);
-        self.advice.write_tape(q_lo);
+        self.advice_provider.write_tape(AdviceSource::Value(r_hi))?;
+        self.advice_provider.write_tape(AdviceSource::Value(r_lo))?;
+        self.advice_provider.write_tape(AdviceSource::Value(q_hi))?;
+        self.advice_provider.write_tape(AdviceSource::Value(q_lo))?;
 
         Ok(())
     }
@@ -121,7 +129,7 @@ impl Process {
     /// Returns an error if the required key was not found in the key-value map.
     fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
         let top_word = self.stack.get_top_word();
-        self.advice.write_tape_from_map(top_word)?;
+        self.advice_provider.write_tape(AdviceSource::Map { key: top_word })?;
 
         Ok(())
     }
@@ -135,16 +143,118 @@ impl Process {
     /// Returns an error if the key is already present in the advice map.
     fn inject_mem_values(&mut self, start_addr: u32, num_words: u32) -> Result<(), ExecutionError> {
         let ctx = self.system.ctx();
-        let mut values = Vec::with_capacity(num_words as usize * WORD_LEN);
+        let mut values = Vec::with_capacity(num_words as usize * WORD_SIZE);
         for i in 0..num_words {
             let mem_value = self
                 .chiplets
                 .get_mem_value(ctx, (start_addr + i) as u64)
-                .unwrap_or([ZERO; WORD_LEN]);
+                .unwrap_or([ZERO; WORD_SIZE]);
             values.extend_from_slice(&mem_value);
         }
         let top_word = self.stack.get_top_word();
-        self.advice.insert_into_map(top_word, values)?;
+        self.advice_provider.insert_into_map(top_word, values)?;
+
+        Ok(())
+    }
+
+    /// Given a quadratic extension field element ( say a ) on stack top, this routine computes
+    /// multiplicative inverse of that element ( say b ) s.t.
+    ///
+    /// a * b = 1 ( mod P ) | b = a ^ -1, P = irreducible polynomial x^2 - x + 2 over F_q, q = 2^64 - 2^32 + 1
+    ///
+    /// Input on stack expected in following order
+    ///
+    /// [coeff_1, coeff_0, ...]
+    ///
+    /// While computed multiplicative inverse is put on advice provider in following order
+    ///
+    /// [coeff'_0, coeff'_1, ...]
+    ///
+    /// Meaning when a Miden program is going to read it from advice tape, it'll see
+    /// coefficient_0 first and then coefficient_1.
+    ///
+    /// Note, in case input operand is zero, division by zero error is returned, because
+    /// that's a non-invertible element of extension field.
+    fn inject_ext2_inv_result(&mut self) -> Result<(), ExecutionError> {
+        let coef0 = self.stack.get(1);
+        let coef1 = self.stack.get(0);
+
+        let elm = Ext2Element::new(coef0, coef1);
+        if elm == Ext2Element::ZERO {
+            return Err(ExecutionError::DivideByZero(self.system.clk()));
+        }
+
+        let inv_elm = elm.inv();
+
+        let elm_arr = [inv_elm];
+        let coeffs = Ext2Element::as_base_elements(&elm_arr);
+
+        self.advice_provider.write_tape(AdviceSource::Value(coeffs[1]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(coeffs[0]))?;
+
+        Ok(())
+    }
+
+    /// Given evaluations of a polynomial over some specified domain, this routine
+    /// interpolates the evaluations into a polynomial in coefficient form and writes
+    /// the result into the advice tape. The interpolation is performed using the iNTT
+    /// algorithm. The evaluations are expected to be in the quadratic extension field of
+    /// Z_q and the resulting coefficients are in the quadratic extension field as
+    /// well | q = 2^64 - 2^32 + 1.
+    ///
+    /// Input stack state should look like
+    ///
+    /// `[output_poly_len, input_eval_len, input_eval_begin_address, ...]`
+    ///
+    /// - `input_eval_len` must be a power of 2 and > 1.
+    /// - `output_poly_len <= input_eval_len`
+    /// - Only starting memory address of evaluations ( of length `input_eval_len` ) is
+    /// provided on the stack, consecutive memory addresses are expected to be holding
+    /// remaining `input_eval_len - 2` many evaluations.
+    /// - Each memory address holds two evaluations of the polynomial at adjacent points
+    ///
+    /// Final advice tape should look like
+    ///
+    /// `[coeff_0, coeff_1, ..., coeff_{n-1}, ...]` | n = output_poly_len
+    ///
+    /// Program which is requesting this non-deterministic computation should read `coeff0`
+    /// first i.e. `coeff{n-1}` should be seen at the very end.
+    fn inject_ext2_intt_result(&mut self) -> Result<(), ExecutionError> {
+        let out_poly_len = self.stack.get(0).as_int() as usize;
+        let in_evaluations_len = self.stack.get(1).as_int() as usize;
+        let in_evaluations_addr = self.stack.get(2).as_int();
+
+        if in_evaluations_len <= 1 {
+            return Err(ExecutionError::NttDomainSizeTooSmall(in_evaluations_len as u64));
+        }
+        if !in_evaluations_len.is_power_of_two() {
+            return Err(ExecutionError::NttDomainSizeNotPowerOf2(in_evaluations_len as u64));
+        }
+        if out_poly_len > in_evaluations_len {
+            return Err(ExecutionError::InterpolationResultSizeTooBig(
+                out_poly_len,
+                in_evaluations_len,
+            ));
+        }
+
+        let mut poly = Vec::with_capacity(in_evaluations_len);
+        for i in 0..(in_evaluations_len >> 1) {
+            let word = self
+                .get_memory_value(self.system.ctx(), in_evaluations_addr + i as u64)
+                .ok_or_else(|| {
+                    ExecutionError::UninitializedMemoryAddress(in_evaluations_addr + i as u64)
+                })?;
+
+            poly.push(Ext2Element::new(word[0], word[1]));
+            poly.push(Ext2Element::new(word[2], word[3]));
+        }
+
+        let twiddles = fft::get_inv_twiddles::<Felt>(in_evaluations_len);
+        fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
+
+        for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
+            self.advice_provider.write_tape(AdviceSource::Value(i))?;
+        }
 
         Ok(())
     }
@@ -165,18 +275,17 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Kernel, Operation, StarkField},
+        super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::Word;
-
-    use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
+    use crate::{MemAdviceProvider, MerkleSet, StackInputs, Word};
+    use vm_core::{AdviceInjector, Decorator};
 
     #[test]
     fn inject_merkle_node() {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
 
-        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
         let stack_inputs = [
             tree.root()[0].as_int(),
             tree.root()[1].as_int(),
@@ -186,8 +295,10 @@ mod tests {
             tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new(&Kernel::default(), inputs);
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let advice_provider = MemAdviceProvider::from(advice_inputs);
+        let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

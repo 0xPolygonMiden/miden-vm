@@ -5,9 +5,9 @@
 extern crate alloc;
 
 use vm_core::{
-    chiplets::hasher::Digest,
     utils::{collections::Vec, ByteWriter, Serializable},
-    ExtensionOf, ProgramOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE, STACK_TRACE_OFFSET, ZERO,
+    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE,
+    STACK_TRACE_OFFSET, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,
@@ -15,18 +15,24 @@ use winter_air::{
 };
 
 mod chiplets;
-mod options;
+mod proof;
 mod range;
-pub mod stack;
+
 mod utils;
 use utils::TransitionConstraintRange;
+
+// exported publicly for benchmarking purposes
+pub mod stack;
 
 // EXPORTS
 // ================================================================================================
 
-pub use options::ProofOptions;
-pub use vm_core::{utils::ToElements, Felt, FieldElement, StarkField};
-pub use winter_air::{FieldExtension, HashFunction};
+pub use proof::{ExecutionProof, HashFunction, ProofOptions};
+pub use vm_core::{
+    utils::{DeserializationError, ToElements},
+    Felt, FieldElement, StarkField,
+};
+pub use winter_air::FieldExtension;
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -34,8 +40,8 @@ pub use winter_air::{FieldExtension, HashFunction};
 /// TODO: add docs
 pub struct ProcessorAir {
     context: AirContext<Felt>,
-    stack_inputs: Vec<Felt>,
-    outputs: ProgramOutputs,
+    stack_inputs: StackInputs,
+    stack_outputs: StackOutputs,
     constraint_ranges: TransitionConstraintRange,
 }
 
@@ -101,7 +107,7 @@ impl Air for ProcessorAir {
         Self {
             context,
             stack_inputs: pub_inputs.stack_inputs,
-            outputs: pub_inputs.outputs,
+            stack_outputs: pub_inputs.stack_outputs,
             constraint_ranges,
         }
     }
@@ -129,7 +135,7 @@ impl Air for ProcessorAir {
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
 
         // add initial assertions for the stack.
-        stack::get_assertions_first_step(&mut result, &self.stack_inputs);
+        stack::get_assertions_first_step(&mut result, self.stack_inputs.values());
 
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
@@ -141,7 +147,7 @@ impl Air for ProcessorAir {
         let last_step = self.last_step();
 
         // add the stack's assertions for the last step.
-        stack::get_assertions_last_step(&mut result, last_step, &self.outputs);
+        stack::get_assertions_last_step(&mut result, last_step, &self.stack_outputs);
 
         // Add the range checker's assertions for the last step.
         range::get_assertions_last_step(&mut result, last_step);
@@ -158,7 +164,11 @@ impl Air for ProcessorAir {
         // --- set assertions for the first step --------------------------------------------------
 
         // add initial assertions for the stack's auxiliary columns.
-        stack::get_aux_assertions_first_step(&mut result, aux_rand_elements, &self.stack_inputs);
+        stack::get_aux_assertions_first_step(
+            &mut result,
+            aux_rand_elements,
+            self.stack_inputs.values(),
+        );
 
         // Add initial assertions for the range checker's auxiliary columns.
         range::get_aux_assertions_first_step(&mut result);
@@ -170,7 +180,7 @@ impl Air for ProcessorAir {
         stack::get_aux_assertions_last_step(
             &mut result,
             aux_rand_elements,
-            &self.outputs,
+            &self.stack_outputs,
             last_step,
         );
 
@@ -241,41 +251,29 @@ impl Air for ProcessorAir {
 
 #[derive(Debug)]
 pub struct PublicInputs {
-    program_hash: Digest,
-    stack_inputs: Vec<Felt>,
-    outputs: ProgramOutputs,
+    program_info: ProgramInfo,
+    stack_inputs: StackInputs,
+    stack_outputs: StackOutputs,
 }
 
 impl PublicInputs {
-    pub fn new(program_hash: Digest, stack_inputs: Vec<Felt>, outputs: ProgramOutputs) -> Self {
+    pub fn new(
+        program_info: ProgramInfo,
+        stack_inputs: StackInputs,
+        stack_outputs: StackOutputs,
+    ) -> Self {
         Self {
-            program_hash,
+            program_info,
             stack_inputs,
-            outputs,
+            stack_outputs,
         }
     }
 }
 
 impl Serializable for PublicInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write(self.program_hash.as_elements());
-        target.write(self.stack_inputs.as_slice());
-
-        // write program outputs.
-        let stack = self
-            .outputs
-            .stack()
-            .iter()
-            .map(|v| Felt::new(*v))
-            .collect::<Vec<_>>();
-        target.write(&stack);
-
-        let overflow_addrs = self
-            .outputs
-            .overflow_addrs()
-            .iter()
-            .map(|v| Felt::new(*v))
-            .collect::<Vec<_>>();
-        target.write(&overflow_addrs);
+        self.program_info.write_into(target);
+        self.stack_inputs.write_into(target);
+        self.stack_outputs.write_into(target);
     }
 }

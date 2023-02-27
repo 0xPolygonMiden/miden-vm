@@ -1,11 +1,10 @@
 use super::{cli::InputFile, ProgramError};
 use core::fmt;
-use miden::Assembler;
+use miden::{utils::collections::Vec, AdviceProvider, Assembler, Operation, StackInputs};
 use processor::AsmOpInfo;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
 use structopt::StructOpt;
-use vm_core::{utils::collections::Vec, Operation, ProgramInputs};
 
 // CLI
 // ================================================================================================
@@ -25,13 +24,21 @@ pub struct Analyze {
 /// Implements CLI execution logic
 impl Analyze {
     pub fn execute(&self) -> Result<(), String> {
-        let program =
-            std::fs::read_to_string(&self.assembly_file).expect("Could not read masm file");
+        let program = fs::read_to_string(&self.assembly_file)
+            .map_err(|e| format!("could not read masm file: {e}"))?;
+
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
-        let program_info: ProgramInfo = analyze(program.as_str(), input_data.get_program_inputs())
+
+        // fetch the stack and program inputs from the arguments
+        let stack_inputs = input_data.parse_stack_inputs()?;
+        let advice_provider = input_data.parse_advice_provider()?;
+
+        let program_info: ProgramInfo = analyze(program.as_str(), stack_inputs, advice_provider)
             .expect("Could not retrieve program info");
+
         println!("{}", program_info);
+
         Ok(())
     }
 }
@@ -139,13 +146,21 @@ impl fmt::Display for ProgramInfo {
 }
 
 /// Returns program analysis of a given program.
-pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let program = Assembler::new()
+pub fn analyze<A>(
+    program: &str,
+    stack_inputs: StackInputs,
+    advice_provider: A,
+) -> Result<ProgramInfo, ProgramError>
+where
+    A: AdviceProvider,
+{
+    let program = Assembler::default()
         .with_debug_mode(true)
-        .with_module_provider(StdLibrary::default())
+        .with_library(&StdLibrary::default())
+        .map_err(ProgramError::AssemblyError)?
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
-    let vm_state_iterator = processor::execute_iter(&program, &inputs);
+    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, advice_provider);
     let mut program_info = ProgramInfo::default();
 
     for state in vm_state_iterator {
@@ -218,15 +233,17 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
-    use super::{AsmOpStats, ProgramInfo};
+    use super::{AsmOpStats, ProgramInfo, StackInputs};
+    use miden::MemAdviceProvider;
 
     #[test]
     fn analyze_test() {
         let source =
             "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
-        let program_inputs = super::ProgramInputs::none();
-        let program_info =
-            super::analyze(source, program_inputs).expect("analyze_test: Unexpected Error");
+        let stack_inputs = StackInputs::default();
+        let advice_provider = MemAdviceProvider::default();
+        let program_info = super::analyze(source, stack_inputs, advice_provider)
+            .expect("analyze_test: Unexpected Error");
         let expected_program_info = ProgramInfo {
             total_vm_cycles: 23,
             total_noops: 2,
@@ -244,9 +261,10 @@ mod tests {
     #[test]
     fn analyze_test_execution_error() {
         let source = "begin div end";
-        let stack_input = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let program_inputs = super::ProgramInputs::new(&stack_input, &[], vec![]).unwrap();
-        let program_info = super::analyze(source, program_inputs);
+        let stack_inputs = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let advice_provider = MemAdviceProvider::default();
+        let program_info = super::analyze(source, stack_inputs, advice_provider);
         let expected_error = "Execution Error: DivideByZero(1)";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);
     }
@@ -254,8 +272,9 @@ mod tests {
     #[test]
     fn analyze_test_assembly_error() {
         let source = "proc.foo.1 loc_store.0 end mem_storew.1 dropw push.17 exec.foo end";
-        let program_inputs = super::ProgramInputs::none();
-        let program_info = super::analyze(source, program_inputs);
+        let stack_inputs = StackInputs::default();
+        let advice_provider = MemAdviceProvider::default();
+        let program_info = super::analyze(source, stack_inputs, advice_provider);
         let expected_error = "Assembly Error: ParsingError(\"unexpected token: expected 'begin' but was 'mem_storew.1'\")";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);
     }

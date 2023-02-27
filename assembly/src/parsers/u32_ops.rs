@@ -316,7 +316,7 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             }
         }
         2 => {
-            let n = parse_checked_param::<u8>(op, 1, 0, MAX_U32_SHIFT_VALUE)?;
+            let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_SHIFT_VALUE)?;
             if checked {
                 Ok(Instruction(U32CheckedShrImm(n)))
             } else {
@@ -347,7 +347,7 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             }
         }
         2 => {
-            let n = parse_checked_param::<u8>(op, 1, 0, MAX_U32_SHIFT_VALUE)?;
+            let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_SHIFT_VALUE)?;
             if checked {
                 Ok(Instruction(U32CheckedShlImm(n)))
             } else {
@@ -378,7 +378,7 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             }
         }
         2 => {
-            let n = parse_checked_param::<u8>(op, 1, 0, MAX_U32_ROTATE_VALUE)?;
+            let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_ROTATE_VALUE)?;
             if checked {
                 Ok(Instruction(U32CheckedRotrImm(n)))
             } else {
@@ -409,7 +409,7 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             }
         }
         2 => {
-            let n = parse_checked_param::<u8>(op, 1, 0, MAX_U32_ROTATE_VALUE)?;
+            let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_ROTATE_VALUE)?;
             if checked {
                 Ok(Instruction(U32CheckedRotlImm(n)))
             } else {

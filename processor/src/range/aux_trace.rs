@@ -84,12 +84,8 @@ impl AuxTraceBuilder {
         aux_column[0] = E::ONE;
 
         // Build the execution trace of the 8-bit running product.
-        for (row_idx, (hint, lookup)) in self
-            .row_flags
-            .iter()
-            .zip(v_col.iter())
-            .enumerate()
-            .take(self.start_16bit)
+        for (row_idx, (hint, lookup)) in
+            self.row_flags.iter().zip(v_col.iter()).enumerate().take(self.start_16bit)
         {
             // This is the 8-bit section, where the running product must be built up.
             aux_column[row_idx + 1] = aux_column[row_idx] * hint.to_value(*lookup, rand_elements);

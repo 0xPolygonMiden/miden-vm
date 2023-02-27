@@ -1,7 +1,5 @@
 use super::data::{InputFile, OutputFile, ProgramFile};
-use crypto::Digest;
-use std::path::PathBuf;
-use std::time::Instant;
+use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -33,27 +31,26 @@ impl RunCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
-        print!(
-            "Executing program with hash {}... ",
-            hex::encode(program.hash().as_bytes())
-        );
+        // fetch the stack and program inputs from the arguments
+        let stack_inputs = input_data.parse_stack_inputs()?;
+        let advice_provider = input_data.parse_advice_provider()?;
+
+        let program_hash: [u8; 32] = program.hash().into();
+        print!("Executing program with hash {}... ", hex::encode(program_hash));
         let now = Instant::now();
 
         // execute program and generate outputs
-        let trace = processor::execute(&program, &input_data.get_program_inputs())
+        let trace = processor::execute(&program, stack_inputs, advice_provider)
             .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
 
-        println!("done ({} ms)", now.elapsed().as_millis());
+        println!("done ({} steps in {} ms)", trace.get_trace_len(), now.elapsed().as_millis());
 
         if let Some(output_path) = &self.output_file {
             // write outputs to file if one was specified
-            OutputFile::write(trace.program_outputs(), output_path)?;
+            OutputFile::write(trace.stack_outputs(), output_path)?;
         } else {
             // write the stack outputs to the screen.
-            println!(
-                "Output: {:?}",
-                trace.program_outputs().stack_outputs(self.num_outputs)
-            );
+            println!("Output: {:?}", trace.stack_outputs().stack_truncated(self.num_outputs));
         }
 
         Ok(())

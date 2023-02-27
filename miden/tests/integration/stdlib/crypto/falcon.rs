@@ -2000,7 +2000,7 @@ fn test_falcon512_vector_squared_norm() {
 
         proc.wrapper.128
             # prepare input polynomial `f`
-            {}
+            {in_str}
 
             # prepare argument ( absolute memory address ) for computing squared norm 
             # of a vector ( read polynomial )
@@ -2010,15 +2010,14 @@ fn test_falcon512_vector_squared_norm() {
 
             # check for functional correctness ( using known answer test )
 
-            push.{}
+            push.{sqrd_norm}
             assert_eq
         end
 
         begin
             exec.wrapper
         end
-    ",
-        in_str, sqrd_norm
+    "
     );
 
     let test = build_test!(source, &[]);
