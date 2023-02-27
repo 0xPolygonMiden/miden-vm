@@ -195,8 +195,8 @@ This group contains operations which require constraints with degree up to $5$.
 | ------------ | :----------: | :-------------: | :-------------------------------------:| :---------: |
 | `MRUPDATE`   | $96$         | `11_00000`      | [Crypto ops](./crypto_ops.md)          | $4$         |
 | `PUSH`       | $100$        | `11_00100`      | [I/O ops](./io_ops.md)                 | $4$         |
-| `<unused>`   | $104$        | `11_01000`      |                                        | $4$         |
-| `<unused>`   | $108$        | `11_01100`      |                                        | $4$         |
+| `SYSCALL`    | $104$        | `11_01000`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `CALL`       | $108$        | `11_01100`      | [Flow control ops](../decoder/main.md) | $4$         |
 | `END`        | $112$        | `11_10000`      | [Flow control ops](../decoder/main.md) | $4$         |
 | `REPEAT`     | $116$        | `11_10100`      | [Flow control ops](../decoder/main.md) | $4$         |
 | `RESPAN`     | $120$        | `11_11000`      | [Flow control ops](../decoder/main.md) | $4$         |
@@ -255,7 +255,7 @@ Thus, similarly to the right-shift flag, we compute the value of the left-shift 
 The control flow flag $f_{ctrl}$ is set to $1$ when a control flow operation is being executed by the VM, and to $0$ otherwise. Naively, this flag can be computed as follows:
 
 $$
-f_{ctrl} = f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{span} + f_{respan} + f_{end} + f_{halt} \text{ | degree} = 6
+f_{ctrl} = f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{span} + f_{respan} + f_{call} + f_{syscall} + f_{end} + f_{halt} \text{ | degree} = 6
 $$
 
 However, this can be computed more efficiently via the common operation prefixes for the two groups of control flow operations as follows.
@@ -269,7 +269,7 @@ f_{end,repeat,respan,halt} = b_6 \cdot b_5 \cdot b_4  \text{ | degree} = 3
 $$
 
 $$
-f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} \text{ | degree} = 4
+f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{call} + f_{syscall} \text{ | degree} = 4
 $$
 
 Note that the degree of $f_{end,repeat,respan,halt}$ can be reduced to degree 2 using the extra column, but this will not affect the degree of the $f_{ctrl}$ constraint.
