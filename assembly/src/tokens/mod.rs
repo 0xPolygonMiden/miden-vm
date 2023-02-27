@@ -1,13 +1,11 @@
 use super::{
-    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,PROCEDURE_LABEL_PARSER,
+    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
+    PROCEDURE_LABEL_PARSER,
 };
-
 use core::fmt;
 
 mod stream;
 pub use stream::TokenStream;
-
-//mod super::{PROCEDURE_LABEL_PARSER};
 
 // TOKEN
 // ================================================================================================
@@ -310,10 +308,6 @@ fn validate_proc_invocation_label<'a>(
 ///
 /// A label is considered valid if it start with a letter and consists only of letters, numbers,
 /// and underscores.
-fn is_valid_label(label: &str) -> bool{
-    match PROCEDURE_LABEL_PARSER.parse_label(label.to_string()) {
-        Ok(_n)  => true,
-        Err(_e) => false,
-    }
-    // PROCEDURE_LABEL_PARSER.parse_label(label.to_string())
+fn is_valid_label(label: &str) -> bool {
+    PROCEDURE_LABEL_PARSER.parse_label(label.to_string()).is_ok()
 }
