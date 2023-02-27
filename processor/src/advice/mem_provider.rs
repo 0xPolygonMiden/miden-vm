@@ -155,15 +155,12 @@ impl AdviceProvider for MemAdviceProvider {
         advice_set
             .update_leaf(index.as_int(), leaf_value)
             .map_err(ExecutionError::AdviceSetLookupFailed)?;
-        println!("advice_set.root().into_bytes() is {:?}",advice_set.root().into_bytes());
         self.sets.insert(advice_set.root().into_bytes(), advice_set);
 
         Ok(path)
     }
 
     fn set_smt_depth(&mut self, root: Word, depth: u32) -> Result<(), ExecutionError> {
-        println!("root at set_smt_depth is {:?}", root.into_bytes());
-        //println!("sets are {:?}", self.sets);
         let set = self.sets.get_mut(&root.into_bytes()).unwrap();
         match set {
             AdviceSet::TieredSMT(ref mut tree) => {

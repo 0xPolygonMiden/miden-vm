@@ -267,7 +267,6 @@ where
         let r0 = self.stack.get(4);
 
         let root = [r0, r1, r2, r3];
-        //let root = [r3, r2, r1, r0];
 
         self.advice_provider.set_smt_depth(root, depth.as_int() as u32)
     }
@@ -294,7 +293,6 @@ where
 
         let root = [r0, r1, r2, r3];
 
-        println!("we are here");
         // In fact we don't need the index and depth as these are computed inside the appropriate
         // insertion procedure. What we need instead is the right combination of flags which depends
         // on the (key, value) we want to insert and the current state of the tiered-smt.
@@ -345,30 +343,14 @@ where
                 tape.reverse();
                 // Flag for complex insertion
                 tape.extend_from_slice(&vec![0]);
-                println!("we are in a complex insertion case");
-                println!("{:?}",tape);
                 tape
             },
             
         };
-
-        //println!("decorator side index {:?} and depth {:?}", index, depth);
-        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(index)))?;
-        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(depth as u64)))?;
-
-        // These are the logical flags for specifying ND the type of insertion
-        // These should be computed by `pre_insert_tiered_smt`
-
         
         for t in tape{
             self.advice_provider.write_tape(AdviceSource::Value(Felt::new(t)))?;
         }
-
-        //// Flag specifying that it is a simple insertion
-        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(0)))?;
-
-        //// Flag specifying that it is a simple insertion at level 16
-        //self.advice_provider.write_tape(AdviceSource::Value(Felt::new(1)))?;
 
         Ok(())
     }

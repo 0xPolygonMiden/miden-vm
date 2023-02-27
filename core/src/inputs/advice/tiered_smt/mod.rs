@@ -574,12 +574,8 @@ impl TieredSmt {
 
             Ok(())
         } else {
-            println!("leaf fetched from buffer has key {:?}", key);
-            println!("root pre insertion is {:?}", self.root().into_bytes());
 
-            println!("root pre insertion problem  {:?}", self.root().into_bytes());
             let root_problematic = self.insert(key, leaf.value).unwrap();
-            println!("root might be problematic {:?}", root_problematic.into_bytes());
 
             Ok(())
         }
