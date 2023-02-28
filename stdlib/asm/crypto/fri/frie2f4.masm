@@ -9,7 +9,7 @@ use.std::crypto::fri::ext2fri
 #! starting from the original domain size.
 export.preprocess.4
     #adv_push.1
-    locaddr.3                   
+    locaddr.3
     adv_push.1                  #[num_layers, layer_ptr, g, ..]
     dup
     neq.0
@@ -26,7 +26,7 @@ export.preprocess.4
         dup movdn.6                     #[ptr+2, d_size, t_depth, a1, a0, num_layers, ptr+2, ..]
         mem_storew dropw                #[num_layers, ptr+2, ..]
         u32wrapping_sub.1 dup           #[num_layers-1, num_layers-1, ptr+2, ..]
-        neq.0                           #[?, num_layers-1, ptr+2, ..]                          
+        neq.0                           #[?, num_layers-1, ptr+2, ..]
     end
 
     #[ptr2n', rem_len, rem_ptr, g, ..]
@@ -34,7 +34,7 @@ export.preprocess.4
     adv_push.1
     dup.1
     add.1
-    swap.2          
+    swap.2
 
 
     # value of the remainder codeword
@@ -56,14 +56,14 @@ export.preprocess.4
 
     # [ptr_(2n+rem_len/2)', rem_ptr, g]
     dropw
-    swap 
+    swap
     drop
-    
+
     # number of queries
     adv_push.1
 
-    # [ptr_(2n+rem_len/2)', num_q, query_start_ptr, rem_ptr, g]    
-    dup.1               
+    # [ptr_(2n+rem_len/2)', num_q, query_start_ptr, rem_ptr, g]
+    dup.1
     add.1
     swap.2
 
@@ -84,16 +84,16 @@ export.preprocess.4
         neq.0
     end
 
-   
-    # [ptr_queries_end, query_start_ptr, rem_ptr, g]    
+
+    # [ptr_queries_end, query_start_ptr, rem_ptr, g]
     dropw
-    swap 
+    swap
     drop
 
     # [ptr_queries_end + 1, query_start_ptr, rem_ptr, g]
     add.1
 
-    # [query_start_ptr, ptr_queries_end + 1, ptr_c_start, rem_ptr, g]  
+    # [query_start_ptr, ptr_queries_end + 1, ptr_c_start, rem_ptr, g]
     locaddr.3
     add.1
     swap.2
@@ -104,10 +104,10 @@ end
 #!
 #! Input:  [layer_ptr, layer_ptr, poe, p, e1, e0, layer_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
 #! Output: [layer_ptr + 2, layer_ptr + 2, poe^4, f_pos, ne1, ne0, layer_ptr + 2, rem_ptr, x, x, x, x, x, x, x, x, ...]
-#! 
+#!
 #! Cycles: 76
 export.verify_query_layer.3
-    
+
     # load layer commitment C as well as [a0, a1, t_depth, d_size] (7 cycles)
     swapdw
     movup.8
@@ -143,16 +143,16 @@ export.verify_query_layer.3
     # => [T2, T1, T0, ptr, V, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ..]
 
     # assert T1 == V (16 cycles)
-    swapw.3                    
-    drop                         
+    swapw.3
+    drop
     movup.3
-    assert_eq                   
+    assert_eq
     movup.2
     assert_eq
     assert_eq
     movup.9
-    assert_eq 
-    
+    assert_eq
+
     # load (v7, ..v0) from memory (8 cycles)
     loc_loadw.1
     swapw
@@ -182,7 +182,7 @@ end
 #! Output: [x, x, x, x, x, x, x, x, x, x, ...]
 #!
 #! - poe is g^p.
-#! - p is a query index at the first layer. 
+#! - p is a query index at the first layer.
 #! - (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
 #! - layer_ptr is the memory address of the layer data (Merkle tree root, alpha etc.) for the next
 #!   layer.
@@ -222,10 +222,10 @@ export.verify_query
     dup.1
     add
     # => [rem_ptr + offset, x, x, x, x, ?, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ..]
-    
+
     mem_loadw
     # => [e1', e0', e1, e0, ?, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ..]
-    
+
     # compare (ne0, ne1) to the appropriate tuple from the remainder word (14 cycles)
     movup.2
     swap
@@ -285,7 +285,7 @@ export.verify.1
     sub
     movdn.5
     # => [query_start_ptr, query_end_ptr, layer_ptr, rem_ptr, g, rem_len]
-    
+
     # compute number of remaining queries to be verified and assert it is not 0
     # (4 cycles)
     swap

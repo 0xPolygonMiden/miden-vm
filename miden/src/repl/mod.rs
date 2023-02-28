@@ -27,7 +27,7 @@ use rustyline::{error::ReadlineError, Editor};
 /// >> push.1
 /// >> push.2
 /// >> push.3
-///  
+///
 ///  >> push.1 push.2 push.3
 ///
 /// In order to execute a control flow operation, one needs to write the entire flow operation in

@@ -6,9 +6,9 @@ use super::build_test;
 #[test]
 fn push_local() {
     let source = "
-        proc.foo.1 
+        proc.foo.1
             loc_load.0
-        end 
+        end
         begin
             exec.foo
         end";
@@ -64,9 +64,9 @@ fn pop_local() {
 #[test]
 fn loadw_local() {
     let source = "
-        proc.foo.1 
+        proc.foo.1
             loc_loadw.0
-        end 
+        end
         begin
             exec.foo
         end";
@@ -87,7 +87,7 @@ fn loadw_local() {
 fn storew_local() {
     // --- test write to local memory -------------------------------------------------------------
     let source = "
-        proc.foo.2 
+        proc.foo.2
             loc_storew.0
             swapw
             loc_storew.1
@@ -96,7 +96,7 @@ fn storew_local() {
             loc_loadw.0
             push.0.0.0.0
             loc_loadw.1
-        end 
+        end
         begin
             exec.foo
         end";
@@ -106,9 +106,9 @@ fn storew_local() {
 
     // --- test existing memory is not affected ---------------------------------------------------
     let source = "
-        proc.foo.1 
+        proc.foo.1
             loc_storew.0
-        end 
+        end
         begin
             mem_storew.0
             dropw
@@ -182,10 +182,10 @@ fn inverse_operations() {
 fn read_after_write() {
     // --- write to memory first, then test read with push --------------------------------------
     let source = "
-        proc.foo.1 
+        proc.foo.1
             loc_storew.0
             loc_load.0
-        end 
+        end
         begin
             exec.foo
         end";
@@ -195,11 +195,11 @@ fn read_after_write() {
 
     // --- write to memory first, then test read with pushw --------------------------------------
     let source = "
-        proc.foo.1 
+        proc.foo.1
             loc_storew.0
             push.0.0.0.0
             loc_loadw.0
-        end 
+        end
         begin
             exec.foo
         end";
@@ -209,11 +209,11 @@ fn read_after_write() {
 
     // --- write to memory first, then test read with loadw --------------------------------------
     let source = "
-        proc.foo.1 
+        proc.foo.1
             loc_storew.0
             dropw
             loc_loadw.0
-        end 
+        end
         begin
             exec.foo
         end";

@@ -1,6 +1,6 @@
 use.std::math::poly512
 
-#! Given an element on stack top, this routine normalizes that element in 
+#! Given an element on stack top, this routine normalizes that element in
 #! interval (-q/2, q/2] | q = 12289
 #!
 #! Imagine, a is the provided element, which needs to be normalized
@@ -14,7 +14,7 @@ use.std::math::poly512
 #! anyway `b` will be squared ( for computing norm of a vector i.e. polynomial, where b is a coefficient ).
 #! That means we can just drop the sign, and that's what is done in this routine.
 #!
-#! To be more concrete, normalization of 12166 ( = a ) should result into -123, but absolute value 
+#! To be more concrete, normalization of 12166 ( = a ) should result into -123, but absolute value
 #! 123 will be kept on stack. While normalization of 21, should result into 21, which has absolute
 #! value 21 --- that's what is kept on stack.
 #!
@@ -51,7 +51,7 @@ proc.normalize
     end
 end
 
-#! Given four elements from Falcon prime field, on stack top, this routine 
+#! Given four elements from Falcon prime field, on stack top, this routine
 #! normalizes each of them, using above defined `normalize()` routine.
 #!
 #! Expected stack state :
@@ -79,8 +79,8 @@ proc.normalize_word
     movdn.3
 end
 
-#! Given a degree 512 polynomial on stack, using its starting (absolute) memory address, 
-#! this routine normalizes each coefficient of the polynomial, using above defined 
+#! Given a degree 512 polynomial on stack, using its starting (absolute) memory address,
+#! this routine normalizes each coefficient of the polynomial, using above defined
 #! `normalize()` routine
 #!
 #! Imagine, f is the given polynomial of degree 512. It can be normalized using
@@ -165,7 +165,7 @@ proc.squared_norm_word
     add
 end
 
-#! Given a degree 512 polynomial in coefficient form, as starting (absolute) memory address 
+#! Given a degree 512 polynomial in coefficient form, as starting (absolute) memory address
 #! on stack, this routine computes squared norm of that vector, using following formula
 #!
 #! Say, f = [a0, a1, a2, ..., a510, a511]
@@ -175,7 +175,7 @@ end
 #!
 #! [f_start_addr, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
 #!
-#! Consecutive 127 addresses on stack can be computed using `INCR` instruction, because memory 
+#! Consecutive 127 addresses on stack can be computed using `INCR` instruction, because memory
 #! addresses are consecutive i.e. monotonically increasing by 1.
 #!
 #! Final stack state :
@@ -205,7 +205,7 @@ end
 
 #! Falcon-512 Digital Signature Verification routine
 #!
-#! Given four degree-511 polynomials, using initial absolute memory addresses on stack, 
+#! Given four degree-511 polynomials, using initial absolute memory addresses on stack,
 #! this routine checks whether it's a valid Falcon signature or not.
 #!
 #! Four degree-511 polynomials, which are provided ( in order )
@@ -215,7 +215,7 @@ end
 #! h = [h0, h1, ..., h510, h511] -> input message hashed using SHAKE256 XOF and converted to polynomial
 #! k = [k0, k1, ..., k510, k511] -> [abs(i) for i in f] | abs(a) = a < 0 ? 0 - a : a
 #!
-#! Each of these polynomials are represented using starting absolute memory address. Contiguous 127 
+#! Each of these polynomials are represented using starting absolute memory address. Contiguous 127
 #! memory addresses can be computed by repeated application of INCR instruction ( read add.1 ) on previous
 #! absolute memory address.
 #!

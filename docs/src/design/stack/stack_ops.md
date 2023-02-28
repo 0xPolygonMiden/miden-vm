@@ -1,5 +1,5 @@
 # Stack Manipulation
-In this section we describe the AIR constraints for Miden VM stack manipulation operations. 
+In this section we describe the AIR constraints for Miden VM stack manipulation operations.
 
 ## PAD
 The `PAD` operation pushes a $0$ onto the stack. The diagram below illustrates this graphically.

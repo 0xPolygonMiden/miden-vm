@@ -52,7 +52,7 @@ fn generate_test_script_ntt512() -> String {
 
     proc.wrapper.128
         # prepare input vector
-        
+
         {polynomial_script}
 
         # place starting absolute memory addresses on stack, where input vector is kept,

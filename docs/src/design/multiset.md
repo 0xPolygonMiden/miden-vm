@@ -36,7 +36,7 @@ Since Miden uses a 64-bit field, each running product column needs to be represe
 
 Virtual tables can be used to store intermediate data which is computed at one cycle and used at a different cycle. When the data is computed, the row is added to the table, and when it is used later, the row is deleted from the table. Thus, all that needs to be proved is the data consistency between the row that was added and the row that was deleted.
 
-The consistency of a virtual table can be proved with a single trace column $p$, which keeps a running product of rows that were inserted into and deleted from the table. This is done by reducing each row to a single value, multiplying the value into $p$ when the row is inserted, and dividing the value out of $p$ when the row is removed. Thus, at any step of the computation, $p$​ will contain a product of all rows currently in the table. 
+The consistency of a virtual table can be proved with a single trace column $p$, which keeps a running product of rows that were inserted into and deleted from the table. This is done by reducing each row to a single value, multiplying the value into $p$ when the row is inserted, and dividing the value out of $p$ when the row is removed. Thus, at any step of the computation, $p$​ will contain a product of all rows currently in the table.
 
 The initial value of $p$​ is set to 1. Thus, if the table is empty by the time Miden VM finishes executing a program (we added and then removed exactly the same set of rows), the final value of $p$​ will also be equal to 1. The initial and final values are enforced via boundary constraints.
 
@@ -85,13 +85,13 @@ One strategy for improving the efficiency of a zero knowledge virtual machine is
 
 These specialized components are designed to prove the internal correctness of the execution of the operations they support. However, in isolation they cannot make any guarantees about the source of the input data or the destination of the output data.
 
-In order to prove that the inputs and outputs specified by the main circuit match the inputs and outputs provably executed in the specialized component, some kind of provable communication bus is needed. 
+In order to prove that the inputs and outputs specified by the main circuit match the inputs and outputs provably executed in the specialized component, some kind of provable communication bus is needed.
 
 This bus is typically implemented as some kind of lookup argument, and in Miden VM in particular we use multiset checks.
 
 ### Implementation
 
-A `bus` can be implemented as a single trace column $b$ where a request can be sent to a specific component and a corresponding response will be sent back by that component. 
+A `bus` can be implemented as a single trace column $b$ where a request can be sent to a specific component and a corresponding response will be sent back by that component.
 
 The values in this column contain a running product of the communication with the component as follows:
 
@@ -106,7 +106,7 @@ Note that the order of the requests and responses does not matter, as long as th
 
 These constraints can be expressed in a general way with the 2 following requirements:
 
-- The lookup value must be computed using random values $\alpha_0, \alpha_1$, etc. that are provided by the verifier after the prover has committed to the main execution trace. 
+- The lookup value must be computed using random values $\alpha_0, \alpha_1$, etc. that are provided by the verifier after the prover has committed to the main execution trace.
 - The lookup value must include all uniquely identifying information for the component/operation and its inputs and outputs.
 
 Given an example operation $op_{ex}$ with inputs $i_0, ..., i_n$ and outputs $o_0, ..., o_m$, the lookup value can be computed as follows:
@@ -121,7 +121,7 @@ The constraint for sending this to the bus as a response would be:
 
 $$b' = b \cdot lookup$$
 
-However, these constraints must be combined, since it's possible that requests and responses both occur during the same cycle. 
+However, these constraints must be combined, since it's possible that requests and responses both occur during the same cycle.
 
 To combine them, let $u_{lookup}$ be the request value and let $v_{lookup}$ be the response value. These values are both computed the same way as shown above, but the data sources are different, since the input/output values used to compute $u_{lookup}$ come from the trace of the component that's "offloading" the computation, while the input/output values used to compute $v_{lookup}$ come from the trace of the specialized component.
 

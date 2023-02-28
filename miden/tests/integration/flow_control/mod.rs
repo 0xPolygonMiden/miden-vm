@@ -79,7 +79,7 @@ fn if_in_loop() {
             dup push.0 movdn.2 neq.0
             while.true
                 dup movup.2 dup.1 eq.5
-                if.true 
+                if.true
                     mul
                 else
                     add
@@ -102,7 +102,7 @@ fn if_in_loop_in_if() {
                 dup push.0 movdn.2 neq.0
                 while.true
                     dup movup.2 dup.1 eq.5
-                    if.true 
+                    if.true
                         mul
                     else
                         add

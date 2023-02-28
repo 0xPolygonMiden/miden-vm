@@ -188,7 +188,7 @@ proc.accumulate_for_even_index
 end
 
 #! Given ω, accumulator ν and τ on stack top, this routine first computes ⍳ , and then accumulates
-#! ⍳ into ν, while consuming <a2, a3>, only when j is odd | j ∈ [0..64), following formula for 
+#! ⍳ into ν, while consuming <a2, a3>, only when j is odd | j ∈ [0..64), following formula for
 #! computing β.
 #!
 #! Expected stack state:
@@ -196,7 +196,7 @@ end
 #! [ω, a3, a2, ν1, ν0, τ1, τ0, q_ptr, ...]
 #!
 #! One computes ⍳ = ω / (τ - ω)
-#! <a2, a3> which was loaded (during the previous iteration i.e. when j was even) from q_ptr 
+#! <a2, a3> which was loaded (during the previous iteration i.e. when j was even) from q_ptr
 #! is consumed into ν.
 #!
 #! Final stack state:
@@ -248,7 +248,7 @@ proc.compute_beta_64
     # for j = 0
     push.1
     exec.accumulate_for_even_index
-    
+
     # for j = 1
     push.549755813888
     exec.accumulate_for_odd_index
@@ -684,7 +684,7 @@ proc.compute_beta_32
     ext2mul
 end
 
-#! Given τ and end memory address of interpolated polynomial p (with degree at max 7, over 
+#! Given τ and end memory address of interpolated polynomial p (with degree at max 7, over
 #! quadratic extension field of Fq) on the top of the stack, this routine computes α.
 #!
 #! Expected stack state:
@@ -769,7 +769,7 @@ proc.compute_alpha_64
     ext2add
 end
 
-#! Given τ and end memory address of interpolated polynomial p (with degree at max 3, over 
+#! Given τ and end memory address of interpolated polynomial p (with degree at max 3, over
 #! quadratic extension field of Fq) on the top of the stack, this routine computes α.
 #!
 #! Expected stack state:
@@ -856,12 +856,12 @@ export.verify_remainder_64.4
 
     # [β1, β0, τ1, τ0, p_ptr, ...]
     #
-    # notice, p_ptr was previously set to locaddr.0, which was used (and dropped) during the 
+    # notice, p_ptr was previously set to locaddr.0, which was used (and dropped) during the
     # computation of τ. Now p_ptr is set to locaddr.3, because it's easier to compute α, by
     # accessing coefficients of the interpolated polynomial p in reverse (i.e. descending) order
     # using Horner's evaluation.
     exec.compute_alpha_64
-    
+
     # assert α == β
     #
     # [α1, α0, β1, β0, ...]
@@ -916,12 +916,12 @@ export.verify_remainder_32.2
 
     # [β1, β0, τ1, τ0, p_ptr, ...]
     #
-    # notice, p_ptr was previously set to locaddr.0, which was used (and dropped) during the 
+    # notice, p_ptr was previously set to locaddr.0, which was used (and dropped) during the
     # computation of τ. Now p_ptr is set to locaddr.1, because it's easier to compute α, by
     # accessing coefficients of the interpolated polynomial p in reverse (i.e. descending) order
     # using Horner's evaluation.
     exec.compute_alpha_32
-    
+
     # assert α == β
     #
     # [α1, α0, β1, β0, ...]

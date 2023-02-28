@@ -41,9 +41,9 @@ fn advice_inject_u64div_repeat() {
     // - reads quotient from advice tape to the stack
     // - push 2_u64 to the stack divided into 2 32 bit limbs
     // Finally the first 2 elements of the stack are removed
-    let source = "begin 
-        repeat.7 
-            adv.u64div 
+    let source = "begin
+        repeat.7
+            adv.u64div
             drop drop
             adv_push.2
             push.2
@@ -122,7 +122,7 @@ fn advice_inject_u64div_conditional_execution() {
 fn advice_inject_mem() {
     let source = "begin
     # stack: [1, 2, 3, 4, 5, 6, 7, 8]
-    
+
     # write to memory and drop first word from stack to use second word as the key for advice map.
     # mem_storew reverses the order of field elements in the word when it's stored in memory.
     mem_storew.2 dropw mem_storew.3
@@ -130,7 +130,7 @@ fn advice_inject_mem() {
     # stack: [5, 6, 7, 8]
     # mem[2]: [4, 3, 2, 1]
     # mem[3]: [8, 7, 6, 5]
-    
+
     # copy from memory to advice map
     # the key used is in the reverse order of the field elements in the word at the top of the
     # stack.

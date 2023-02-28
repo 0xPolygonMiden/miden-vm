@@ -152,9 +152,9 @@ fn test_falcon512_normalize_poly() {
 
             sub.1
         end
-        
+
         drop
-        
+
         # prepare argument ( absolute memory address ) for normalizing given polynomial
 
         locaddr.128 # output
@@ -179,7 +179,7 @@ fn test_falcon512_normalize_poly() {
         push.123
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -193,7 +193,7 @@ fn test_falcon512_normalize_poly() {
         push.18
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -207,7 +207,7 @@ fn test_falcon512_normalize_poly() {
         push.187
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -221,7 +221,7 @@ fn test_falcon512_normalize_poly() {
         push.105
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -235,7 +235,7 @@ fn test_falcon512_normalize_poly() {
         push.122
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -249,7 +249,7 @@ fn test_falcon512_normalize_poly() {
         push.241
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -263,7 +263,7 @@ fn test_falcon512_normalize_poly() {
         push.12
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -277,7 +277,7 @@ fn test_falcon512_normalize_poly() {
         push.142
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -291,7 +291,7 @@ fn test_falcon512_normalize_poly() {
         push.70
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -305,7 +305,7 @@ fn test_falcon512_normalize_poly() {
         push.174
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -319,7 +319,7 @@ fn test_falcon512_normalize_poly() {
         push.439
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -333,7 +333,7 @@ fn test_falcon512_normalize_poly() {
         push.562
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -347,7 +347,7 @@ fn test_falcon512_normalize_poly() {
         push.97
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -361,7 +361,7 @@ fn test_falcon512_normalize_poly() {
         push.17
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -375,7 +375,7 @@ fn test_falcon512_normalize_poly() {
         push.243
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -389,7 +389,7 @@ fn test_falcon512_normalize_poly() {
         push.138
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -403,7 +403,7 @@ fn test_falcon512_normalize_poly() {
         push.145
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -417,7 +417,7 @@ fn test_falcon512_normalize_poly() {
         push.186
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -431,7 +431,7 @@ fn test_falcon512_normalize_poly() {
         push.166
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -445,7 +445,7 @@ fn test_falcon512_normalize_poly() {
         push.89
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -459,7 +459,7 @@ fn test_falcon512_normalize_poly() {
         push.218
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -473,7 +473,7 @@ fn test_falcon512_normalize_poly() {
         push.62
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -487,7 +487,7 @@ fn test_falcon512_normalize_poly() {
         push.107
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -501,7 +501,7 @@ fn test_falcon512_normalize_poly() {
         push.147
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -515,7 +515,7 @@ fn test_falcon512_normalize_poly() {
         push.282
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -529,7 +529,7 @@ fn test_falcon512_normalize_poly() {
         push.76
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -543,7 +543,7 @@ fn test_falcon512_normalize_poly() {
         push.42
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -557,7 +557,7 @@ fn test_falcon512_normalize_poly() {
         push.138
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -571,7 +571,7 @@ fn test_falcon512_normalize_poly() {
         push.40
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -585,7 +585,7 @@ fn test_falcon512_normalize_poly() {
         push.75
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -599,7 +599,7 @@ fn test_falcon512_normalize_poly() {
         push.10
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -613,7 +613,7 @@ fn test_falcon512_normalize_poly() {
         push.250
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -627,7 +627,7 @@ fn test_falcon512_normalize_poly() {
         push.216
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -641,7 +641,7 @@ fn test_falcon512_normalize_poly() {
         push.49
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -655,7 +655,7 @@ fn test_falcon512_normalize_poly() {
         push.13
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -669,7 +669,7 @@ fn test_falcon512_normalize_poly() {
         push.72
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -683,7 +683,7 @@ fn test_falcon512_normalize_poly() {
         push.61
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -697,7 +697,7 @@ fn test_falcon512_normalize_poly() {
         push.184
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -711,7 +711,7 @@ fn test_falcon512_normalize_poly() {
         push.1
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -725,7 +725,7 @@ fn test_falcon512_normalize_poly() {
         push.241
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -739,7 +739,7 @@ fn test_falcon512_normalize_poly() {
         push.169
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -753,7 +753,7 @@ fn test_falcon512_normalize_poly() {
         push.223
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -767,7 +767,7 @@ fn test_falcon512_normalize_poly() {
         push.77
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -781,7 +781,7 @@ fn test_falcon512_normalize_poly() {
         push.61
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -795,7 +795,7 @@ fn test_falcon512_normalize_poly() {
         push.315
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -809,7 +809,7 @@ fn test_falcon512_normalize_poly() {
         push.238
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -823,7 +823,7 @@ fn test_falcon512_normalize_poly() {
         push.52
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -837,7 +837,7 @@ fn test_falcon512_normalize_poly() {
         push.146
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -851,7 +851,7 @@ fn test_falcon512_normalize_poly() {
         push.114
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -865,7 +865,7 @@ fn test_falcon512_normalize_poly() {
         push.244
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -879,7 +879,7 @@ fn test_falcon512_normalize_poly() {
         push.21
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -893,7 +893,7 @@ fn test_falcon512_normalize_poly() {
         push.97
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -907,7 +907,7 @@ fn test_falcon512_normalize_poly() {
         push.203
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -921,7 +921,7 @@ fn test_falcon512_normalize_poly() {
         push.192
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -935,7 +935,7 @@ fn test_falcon512_normalize_poly() {
         push.117
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -949,7 +949,7 @@ fn test_falcon512_normalize_poly() {
         push.224
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -963,7 +963,7 @@ fn test_falcon512_normalize_poly() {
         push.9
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -977,7 +977,7 @@ fn test_falcon512_normalize_poly() {
         push.260
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -991,7 +991,7 @@ fn test_falcon512_normalize_poly() {
         push.236
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1005,7 +1005,7 @@ fn test_falcon512_normalize_poly() {
         push.120
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1019,7 +1019,7 @@ fn test_falcon512_normalize_poly() {
         push.207
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1033,7 +1033,7 @@ fn test_falcon512_normalize_poly() {
         push.20
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1047,7 +1047,7 @@ fn test_falcon512_normalize_poly() {
         push.270
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1061,7 +1061,7 @@ fn test_falcon512_normalize_poly() {
         push.10
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1075,7 +1075,7 @@ fn test_falcon512_normalize_poly() {
         push.35
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1089,7 +1089,7 @@ fn test_falcon512_normalize_poly() {
         push.192
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1103,7 +1103,7 @@ fn test_falcon512_normalize_poly() {
         push.147
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1117,7 +1117,7 @@ fn test_falcon512_normalize_poly() {
         push.45
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1131,7 +1131,7 @@ fn test_falcon512_normalize_poly() {
         push.224
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1145,7 +1145,7 @@ fn test_falcon512_normalize_poly() {
         push.14
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1159,7 +1159,7 @@ fn test_falcon512_normalize_poly() {
         push.135
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1173,7 +1173,7 @@ fn test_falcon512_normalize_poly() {
         push.91
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1187,7 +1187,7 @@ fn test_falcon512_normalize_poly() {
         push.106
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1201,7 +1201,7 @@ fn test_falcon512_normalize_poly() {
         push.128
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1215,7 +1215,7 @@ fn test_falcon512_normalize_poly() {
         push.33
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1229,7 +1229,7 @@ fn test_falcon512_normalize_poly() {
         push.213
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1243,7 +1243,7 @@ fn test_falcon512_normalize_poly() {
         push.82
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1257,7 +1257,7 @@ fn test_falcon512_normalize_poly() {
         push.24
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1271,7 +1271,7 @@ fn test_falcon512_normalize_poly() {
         push.147
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1285,7 +1285,7 @@ fn test_falcon512_normalize_poly() {
         push.14
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1299,7 +1299,7 @@ fn test_falcon512_normalize_poly() {
         push.155
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1313,7 +1313,7 @@ fn test_falcon512_normalize_poly() {
         push.336
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1327,7 +1327,7 @@ fn test_falcon512_normalize_poly() {
         push.129
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1341,7 +1341,7 @@ fn test_falcon512_normalize_poly() {
         push.78
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1355,7 +1355,7 @@ fn test_falcon512_normalize_poly() {
         push.66
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1369,7 +1369,7 @@ fn test_falcon512_normalize_poly() {
         push.57
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1383,7 +1383,7 @@ fn test_falcon512_normalize_poly() {
         push.156
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1397,7 +1397,7 @@ fn test_falcon512_normalize_poly() {
         push.1
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1411,7 +1411,7 @@ fn test_falcon512_normalize_poly() {
         push.330
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1425,7 +1425,7 @@ fn test_falcon512_normalize_poly() {
         push.88
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1439,7 +1439,7 @@ fn test_falcon512_normalize_poly() {
         push.144
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1453,7 +1453,7 @@ fn test_falcon512_normalize_poly() {
         push.254
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1467,7 +1467,7 @@ fn test_falcon512_normalize_poly() {
         push.313
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1481,7 +1481,7 @@ fn test_falcon512_normalize_poly() {
         push.263
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1495,7 +1495,7 @@ fn test_falcon512_normalize_poly() {
         push.171
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1509,7 +1509,7 @@ fn test_falcon512_normalize_poly() {
         push.136
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1523,7 +1523,7 @@ fn test_falcon512_normalize_poly() {
         push.201
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1537,7 +1537,7 @@ fn test_falcon512_normalize_poly() {
         push.56
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1551,7 +1551,7 @@ fn test_falcon512_normalize_poly() {
         push.48
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1565,7 +1565,7 @@ fn test_falcon512_normalize_poly() {
         push.44
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1579,7 +1579,7 @@ fn test_falcon512_normalize_poly() {
         push.133
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1593,7 +1593,7 @@ fn test_falcon512_normalize_poly() {
         push.347
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1607,7 +1607,7 @@ fn test_falcon512_normalize_poly() {
         push.161
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1621,7 +1621,7 @@ fn test_falcon512_normalize_poly() {
         push.279
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1635,7 +1635,7 @@ fn test_falcon512_normalize_poly() {
         push.345
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1649,7 +1649,7 @@ fn test_falcon512_normalize_poly() {
         push.270
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1663,7 +1663,7 @@ fn test_falcon512_normalize_poly() {
         push.171
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1677,7 +1677,7 @@ fn test_falcon512_normalize_poly() {
         push.31
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1691,7 +1691,7 @@ fn test_falcon512_normalize_poly() {
         push.235
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1705,7 +1705,7 @@ fn test_falcon512_normalize_poly() {
         push.138
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1719,7 +1719,7 @@ fn test_falcon512_normalize_poly() {
         push.129
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1733,7 +1733,7 @@ fn test_falcon512_normalize_poly() {
         push.22
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1747,7 +1747,7 @@ fn test_falcon512_normalize_poly() {
         push.94
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1761,7 +1761,7 @@ fn test_falcon512_normalize_poly() {
         push.210
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1775,7 +1775,7 @@ fn test_falcon512_normalize_poly() {
         push.57
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1789,7 +1789,7 @@ fn test_falcon512_normalize_poly() {
         push.165
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1803,7 +1803,7 @@ fn test_falcon512_normalize_poly() {
         push.105
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1817,7 +1817,7 @@ fn test_falcon512_normalize_poly() {
         push.98
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1831,7 +1831,7 @@ fn test_falcon512_normalize_poly() {
         push.154
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1845,7 +1845,7 @@ fn test_falcon512_normalize_poly() {
         push.85
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1859,7 +1859,7 @@ fn test_falcon512_normalize_poly() {
         push.156
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1873,7 +1873,7 @@ fn test_falcon512_normalize_poly() {
         push.193
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1887,7 +1887,7 @@ fn test_falcon512_normalize_poly() {
         push.108
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1901,7 +1901,7 @@ fn test_falcon512_normalize_poly() {
         push.382
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1915,7 +1915,7 @@ fn test_falcon512_normalize_poly() {
         push.82
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1929,7 +1929,7 @@ fn test_falcon512_normalize_poly() {
         push.150
         assert_eq
 		add.1
-    
+
 		dup
 		push.0.0.0.0
 		movup.4
@@ -1943,7 +1943,7 @@ fn test_falcon512_normalize_poly() {
         push.296
         assert_eq
 		add.1
-    
+
 		push.0.0.0.0
 		movup.4
 		mem_loadw
@@ -2002,7 +2002,7 @@ fn test_falcon512_vector_squared_norm() {
             # prepare input polynomial `f`
             {in_str}
 
-            # prepare argument ( absolute memory address ) for computing squared norm 
+            # prepare argument ( absolute memory address ) for computing squared norm
             # of a vector ( read polynomial )
 
             locaddr.0
@@ -2046,7 +2046,7 @@ fn test_falcon512_verify() {
 
             add.1
         end
-        
+
         drop
 
         push.18446744069414584303.128.23.18446744069414584303

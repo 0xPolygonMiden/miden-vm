@@ -121,7 +121,7 @@ proc.maj
     u32checked_xor
 end
 
-#! Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
+#! Given [a, b, c, d, ...] on stack top, this routine reverses order of first
 #! four elements on stack top such that final stack state looks like [d, c, b, a, ...]
 proc.rev_element_order
     swap
@@ -136,7 +136,7 @@ end
 #! t1 = small_sigma_0(c) + d
 #! return t0 + t1
 #!
-#! If to be computed message schedule word has index i ∈ [16, 64), then 
+#! If to be computed message schedule word has index i ∈ [16, 64), then
 #! a, b, c, d will have following indices in message schedule
 #!
 #! a = msg[i - 2]
@@ -153,8 +153,8 @@ proc.compute_message_schedule_word
     u32wrapping_add
 end
 
-#! Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant & 
-#! 32 -bit message word on stack top, this routine consumes constant & message word into 
+#! Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant &
+#! 32 -bit message word on stack top, this routine consumes constant & message word into
 #! hash state.
 #!
 #! Expected stack state looks like
@@ -203,7 +203,7 @@ proc.consume_message_word
     u32wrapping_add
 end
 
-#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input 
+#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input
 #! message ( in terms of 16 SHA256 words ) on stack top, this routine computes
 #! whole message schedule of 64 message words and consumes them into hash state.
 #!
@@ -1079,13 +1079,13 @@ proc.prepare_message_schedule_and_consume.2
     movdn.7
 end
 
-#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message 
+#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message
 #! schedule of padding bytes ( in terms of 64 message words ), this routine consumes
 #! that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
 #!
 #! Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
-#! block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating 
-#! message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here 
+#! block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating
+#! message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here
 #! ( in this routine ) into provided hash state.
 #!
 #! Expected stack state:
@@ -1098,7 +1098,7 @@ end
 #!
 #! Note, each SHA256 word is 32 -bit wide
 #!
-#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop 
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop
 #! body execution when i = 1 i.e. consuming padding bytes )
 proc.consume_padding_message_schedule
     dupw.1
@@ -1534,7 +1534,7 @@ end
 #! [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15, ...] | m[0,16) = 32 -bit word
 #!
 #! Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
-#! As you've 64 -bytes, consider packing 4 consecutive bytes into single word, 
+#! As you've 64 -bytes, consider packing 4 consecutive bytes into single word,
 #! maintaining big endian byte order.
 #!
 #! Final stack state:
@@ -1557,7 +1557,7 @@ end
 #! [m0, m1, m2, m3, m4, m5, m6, m7, ...] | m[0,8) = 32 -bit word
 #!
 #! Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
-#! As you've 32 -bytes, consider packing 4 consecutive bytes into single word, 
+#! As you've 32 -bytes, consider packing 4 consecutive bytes into single word,
 #! maintaining big endian byte order.
 #!
 #! Final stack state:
@@ -1566,7 +1566,7 @@ end
 #!
 #! SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
 export.hash_1to1
-    # apply padding, see padding rule in section 5.1.1 of 
+    # apply padding, see padding rule in section 5.1.1 of
     # https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
     push.256.0.0.0.0.0.0.2147483648
     swapdw

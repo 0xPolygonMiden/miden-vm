@@ -2,8 +2,8 @@ use.std::math::secp256k1::base_field
 use.std::math::secp256k1::scalar_field
 use.std::math::secp256k1::group
 
-#! Given an ECDSA public key ( in projective coordinate system i.e. each secp256k1 curve point 
-#! is represented in terms of X, Y, Z coordinates ), hashed message h ( a 256 -bit element represented 
+#! Given an ECDSA public key ( in projective coordinate system i.e. each secp256k1 curve point
+#! is represented in terms of X, Y, Z coordinates ), hashed message h ( a 256 -bit element represented
 #! in Montgomery form ) and an ECDSA signature, represented in terms of (r, s) s.t. each of them are
 #! represented in Montgomery form, this routine attempts to verify the ECDSA signature.
 #!

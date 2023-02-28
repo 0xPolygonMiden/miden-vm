@@ -381,7 +381,7 @@ fn parse_const_value(op: &Token, const_value: &str) -> Result<u64, ParsingError>
 
     let range = 0..Felt::MODULUS;
     range.contains(&result).then_some(result).ok_or_else(|| ParsingError::invalid_const_value(op, const_value, format!(
-        "constant value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true), 
+        "constant value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true),
         upper_bound = bound_into_included_u64(range.end_bound(), false)
     )
     .as_str(),))
@@ -407,7 +407,7 @@ where
             op,
             param_idx,
             format!(
-                "parameter value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true), 
+                "parameter value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true),
                 upper_bound = bound_into_included_u64(range.end_bound(), false)
             )
             .as_str(),
