@@ -2,7 +2,7 @@
 
 <a href="https://github.com/0xPolygonMiden/miden-vm/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 <img src="https://github.com/0xPolygonMiden/miden-vm/workflows/CI/badge.svg?branch=main">
-<a href="https://crates.io/crates/miden"><img src="https://img.shields.io/crates/v/miden"></a>
+<a href="https://crates.io/crates/miden-vm"><img src="https://img.shields.io/crates/v/miden-vm"></a>
 
 A STARK-based virtual machine.
 
