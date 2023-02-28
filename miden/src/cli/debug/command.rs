@@ -1,7 +1,8 @@
 /// debug commands supported by the debugger
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DebugCommand {
-    PlayAll,
-    Play(usize),
+    Continue,
+    Next(usize),
     RewindAll,
     Rewind(usize),
     PrintState,
@@ -21,68 +22,110 @@ impl DebugCommand {
     ///
     /// # Errors
     /// Returns an error if the command cannot be parsed.
-    pub fn parse(command: &str) -> Result<Self, String> {
-        match command {
-            "!next" => Ok(Self::Play(1)),
-            "!play" => Ok(Self::PlayAll),
-            "!prev" => Ok(Self::Rewind(1)),
-            "!rewind" => Ok(Self::RewindAll),
-            "!print" => Ok(Self::PrintState),
-            "!mem" => Ok(Self::PrintMem),
-            "!stack" => Ok(Self::PrintStack),
-            "!clock" => Ok(Self::Clock),
-            "!quit" => Ok(Self::Quit),
-            "!help" => Ok(Self::Help),
-            x if x.starts_with("!rewind.") => Self::parse_rewind(x),
-            x if x.starts_with("!play.") => Self::parse_play(command),
-            x if x.starts_with("!stack[") && x.ends_with("]") => Self::parse_print_stack(x),
-            x if x.starts_with("!mem[") && x.ends_with(']') => Self::parse_print_memory(x),
+    pub fn parse(command: &str) -> Result<Option<Self>, String> {
+        let mut tokens = command.split_whitespace();
+
+        // fetch the identifier
+        let identifier = match tokens.next() {
+            Some(id) => id,
+            None => return Ok(None),
+        };
+
+        // parse the appropriate command
+        let command = match identifier {
+            "n" | "next" => Self::parse_next(tokens.by_ref())?,
+            "c" | "continue" => Self::Continue,
+            "b" | "back" => Self::parse_back(tokens.by_ref())?,
+            "r" | "rewind" => Self::RewindAll,
+            "p" | "print" => Self::parse_print(tokens.by_ref())?,
+            "l" | "clock" => Self::Clock,
+            "h" | "?" | "help" => Self::Help,
+            "q" | "quit" => Self::Quit,
             _ => {
-                Err(format!("malformed command - does not match any known command: `{}`", command))
+                return Err(format!(
+                    "malformed command - does not match any known command: `{}`",
+                    command
+                ))
             }
+        };
+
+        // command is fully parsed and shouldn't contain further tokens
+        if let Some(t) = tokens.next() {
+            return Err(format!("malformed command - unexpected token `{t}`"));
         }
+
+        Ok(Some(command))
     }
 
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// parse play command - !play.num_cycles
-    fn parse_play(command: &str) -> Result<Self, String> {
-        // parse number of cycles
-        let num_cycles = command[6..].parse::<usize>().map_err(|err| {
-            format!("malformed command - failed to parse number of cycles: `{}` {}", command, err)
-        })?;
-
-        Ok(Self::Play(num_cycles))
+    /// parse next command - next num_cycles
+    fn parse_next<'a, I>(mut tokens: I) -> Result<Self, String>
+    where
+        I: Iterator<Item = &'a str>,
+    {
+        let num_cycles = match tokens.next() {
+            Some(n) => n.parse::<usize>().map_err(|err| {
+                format!(
+                    "malformed `next` command - failed to parse number of cycles: `{}` {}",
+                    n, err
+                )
+            })?,
+            None => return Ok(Self::Next(1)),
+        };
+        Ok(Self::Next(num_cycles))
     }
 
-    /// parse rewind command - !rewind.num_cycles
-    fn parse_rewind(command: &str) -> Result<Self, String> {
-        // parse number of cycles
-        let num_cycles = command[8..].parse::<usize>().map_err(|err| {
-            format!("malformed command - failed to parse number of cycles: `{}` {}", command, err)
-        })?;
-
+    /// parse back command - back num_cycles
+    fn parse_back<'a, I>(mut tokens: I) -> Result<Self, String>
+    where
+        I: Iterator<Item = &'a str>,
+    {
+        let num_cycles = match tokens.next() {
+            Some(n) => n.parse::<usize>().map_err(|err| {
+                format!(
+                    "malformed `back` command - failed to parse number of cycles: `{}` {}",
+                    n, err
+                )
+            })?,
+            None => return Ok(Self::Rewind(1)),
+        };
         Ok(Self::Rewind(num_cycles))
     }
 
-    /// parse print memory command - !mem[address]
-    fn parse_print_memory(command: &str) -> Result<Self, String> {
-        // parse address
-        let address = command[5..command.len() - 1].parse::<u64>().map_err(|err| {
-            format!("malformed command - failed to parse address parameter: `{}`  {}", command, err)
-        })?;
+    /// parse print command - p [m|s] [addr]
+    fn parse_print<'a, I>(mut tokens: I) -> Result<Self, String>
+    where
+        I: Iterator<Item = &'a str>,
+    {
+        let command = match tokens.next() {
+            Some(c) => c,
+            None => return Ok(Self::PrintState),
+        };
 
-        Ok(Self::PrintMemAddress(address))
-    }
+        // match the command variant
+        let command = match command {
+            "m" | "mem" => Self::PrintMem,
+            "s" | "stack" => Self::PrintStack,
+            _ => {
+                return Err(format!(
+                    "malformed `print` command - unexpected subcommand: `{command}`"
+                ))
+            }
+        };
 
-    /// parse print stack command - !stack[index]
-    fn parse_print_stack(command: &str) -> Result<Self, String> {
-        // parse stack index
-        let index = command[7..command.len() - 1].parse::<usize>().map_err(|err| {
-            format!("malformed command - failed to parse stack index: `{}` {}", command, err)
-        })?;
+        // parse the subcommand argument, if present
+        let argument =
+            tokens.next().map(|t| t.parse::<u64>()).transpose().map_err(|err| {
+                format!("malformed command - failed to parse print argument: {err}")
+            })?;
 
-        Ok(Self::PrintStackItem(index))
+        match (command, argument) {
+            (Self::PrintMem, Some(arg)) => Ok(Self::PrintMemAddress(arg)),
+            (Self::PrintStack, Some(arg)) => Ok(Self::PrintStackItem(arg as usize)),
+            (_, Some(_)) => unreachable!("the command was previously parsed within this block"),
+            (_, None) => Ok(command),
+        }
     }
 }

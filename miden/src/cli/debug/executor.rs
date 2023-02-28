@@ -42,13 +42,13 @@ impl DebugExecutor {
     /// executes a debug command against the vm in it's current state.
     pub fn execute(&mut self, command: DebugCommand) -> bool {
         match command {
-            DebugCommand::PlayAll => {
+            DebugCommand::Continue => {
                 while let Some(new_vm_state) = self.next_vm_state() {
                     self.vm_state = new_vm_state;
                 }
                 self.print_vm_state();
             }
-            DebugCommand::Play(cycles) => {
+            DebugCommand::Next(cycles) => {
                 for _cycle in 0..cycles {
                     match self.next_vm_state() {
                         Some(next_vm_state) => {
@@ -180,23 +180,36 @@ impl DebugExecutor {
 
     /// print help message
     fn print_help() {
-        let message = "---------------------------------------------------------\n\
+        let message = "---------------------------------------------------------------------\n\
             Miden Assembly Debug CLI\n\
-            ---------------------------------------------------------\n\
-            !next        steps to the next clock cycle\n\
-            !play        executes program until completion or failure\n\
-            !play.n      executes n clock cycles\n\
-            !prev        steps to the previous clock cycle\n\
-            !rewind      rewinds program until beginning\n\
-            !rewind.n    rewinds n clock cycles\n\
-            !print       displays the complete state of the virtual machine\n\
-            !stack       displays the complete state of the stack\n\
-            !stack[i]    displays the stack element at index i\n\
-            !mem         displays the complete state of memory\n\
-            !mem[i]      displays memory at address i\n\
-            !clock       displays the current clock cycle\n\
-            !quit        quits the debugger\n\
-            !help        displays this message";
+            ---------------------------------------------------------------------\n\
+            next               moves to the next clock cycle\n\
+            next <c>           moves `c` clock cycles forward\n\
+            continue           executes program until completion or failure\n\
+            back               rewinds `1` clock cycles\n\
+            back <c>           rewinds `c` clock cycles\n\
+            rewind             rewinds program until beginning\n\
+            print              displays the complete state of the virtual machine\n\
+            print mem          displays the complete state of memory\n\
+            print mem <i>      displays memory at address `i`\n\
+            print stack        displays the complete state of the stack\n\
+            print stack <i>    displays the stack element at index `i`\n\
+            clock              displays the current clock cycle\n\
+            quit               quits the debugger\n\
+            help               displays this message\n\
+            \n\
+            The following mappings are also available:\n\
+            n -> next\n\
+            c -> continue\n\
+            b -> back\n\
+            r -> rewind\n\
+            p -> print\n\
+            m -> mem\n\
+            s -> stack\n\
+            l -> clock\n\
+            q -> quit\n\
+            h -> help\n\
+            ? -> help";
 
         println!("{}", message);
     }

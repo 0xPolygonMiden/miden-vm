@@ -1,5 +1,5 @@
 use super::data::{InputFile, ProgramFile};
-use rustyline::{Config, EditMode, Editor};
+use rustyline::{error::ReadlineError, Config, EditMode, Editor};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -56,18 +56,29 @@ impl DebugCmd {
         let mut rl =
             Editor::<()>::with_config(rl_config).expect("Readline couldn't be initialized");
 
+        println!("Welcome! Enter `h` for help.");
+
         loop {
             match rl.readline(">> ") {
                 Ok(command) => match DebugCommand::parse(&command) {
-                    Ok(command) => {
+                    Ok(Some(command)) => {
                         if !debug_executor.execute(command) {
                             println!("Debugging complete");
                             break;
                         }
                     }
-                    Err(err) => println!("{err}"),
+                    Ok(None) => (),
+                    Err(err) => eprintln!("{err}"),
                 },
-                Err(err) => println!("malformed command - failed to read user input: {}", err),
+                Err(ReadlineError::Interrupted) => {
+                    // ctrl+c is a transparent interruption and should provide not feedback or
+                    // action.
+                }
+                Err(ReadlineError::Eof) => {
+                    eprintln!("CTRL-D");
+                    break;
+                }
+                Err(err) => eprintln!("malformed command - failed to read user input: {}", err),
             }
         }
 
