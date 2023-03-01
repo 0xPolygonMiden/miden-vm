@@ -311,3 +311,19 @@ impl ops::Deref for CallSet {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::{LabelError, ProcedureName, MAX_LABEL_LEN};
+
+    #[test]
+    fn test_procedure_name_max_len() {
+        assert!(ProcedureName::try_from("a".to_owned()).is_ok());
+
+        let long = "a".repeat(256);
+        assert_eq!(
+            ProcedureName::try_from(long.clone()),
+            Err(LabelError::LabelTooLong(long, MAX_LABEL_LEN))
+        );
+    }
+}
