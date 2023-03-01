@@ -68,7 +68,7 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 const MAX_EXP_BITS: u8 = 64;
 
 /// The maximum length of a constant or procedure's label.
-const MAX_LABEL_LEN: u8 = 100;
+const MAX_LABEL_LEN: usize = 100;
 
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` masm operation without period separators.

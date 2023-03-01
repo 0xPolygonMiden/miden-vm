@@ -525,7 +525,7 @@ pub enum LabelError {
     EmptyLabel,
     InvalidFirstLetter(String),
     InvalidChars(String),
-    LabelTooLong(String, u8),
+    LabelTooLong(String, usize),
     Uppercase(String),
 }
 
@@ -542,7 +542,7 @@ impl LabelError {
         Self::InvalidFirstLetter(label.to_string())
     }
 
-    pub fn label_too_long(label: &str, max_len: u8) -> Self {
+    pub fn label_too_long(label: &str, max_len: usize) -> Self {
         Self::LabelTooLong(label.to_string(), max_len)
     }
 
