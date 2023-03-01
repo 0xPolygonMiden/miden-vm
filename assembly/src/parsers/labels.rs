@@ -25,7 +25,7 @@ pub const PROCEDURE_LABEL_PARSER: LabelParser = LabelParser {
 /// Struct that specifies the rules for parsing labels.
 pub struct LabelParser {
     pub caps: bool,
-    pub max_len: u8,
+    pub max_len: usize,
     pub numbers_letters_underscore: bool,
     pub start_with_letter: bool,
 }
@@ -39,7 +39,7 @@ impl LabelParser {
         if label.is_empty() {
             // label cannot be empty
             return Err(LabelError::empty_label());
-        } else if label.len() > self.max_len as usize {
+        } else if label.len() > self.max_len {
             // label cannot be more than 100 characters long
             return Err(LabelError::label_too_long(&label, self.max_len));
         } else if self.start_with_letter && !label.chars().next().unwrap().is_ascii_alphabetic() {

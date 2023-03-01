@@ -1,6 +1,6 @@
 use super::{
     crypto::hash::Blake3_192, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
-    Deserializable, LabelError, Serializable, SerializationError, String, ToString, MAX_LABEL_LEN,
+    Deserializable, LabelError, Serializable, SerializationError, String, ToString,
     MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
 };
 use core::{
@@ -162,12 +162,14 @@ impl AsRef<str> for ProcedureName {
 impl Serializable for ProcedureName {
     fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
         let name_bytes = self.name.as_bytes();
-        let num_bytes = name_bytes.len() as u8;
-        if num_bytes > MAX_LABEL_LEN {
-            return Err(SerializationError::LengthTooLong);
-        }
+        let num_bytes = name_bytes.len();
 
-        target.write_u8(num_bytes);
+        debug_assert!(
+            PROCEDURE_LABEL_PARSER.parse_label(self.name.clone()).is_ok(),
+            "The constructor should ensure the length is within limits"
+        );
+
+        target.write_u8(num_bytes as u8);
         target.write_bytes(name_bytes);
         Ok(())
     }
@@ -309,5 +311,21 @@ impl ops::Deref for CallSet {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{super::MAX_LABEL_LEN, LabelError, ProcedureName};
+
+    #[test]
+    fn test_procedure_name_max_len() {
+        assert!(ProcedureName::try_from("a".to_owned()).is_ok());
+
+        let long = "a".repeat(256);
+        assert_eq!(
+            ProcedureName::try_from(long.clone()),
+            Err(LabelError::LabelTooLong(long, MAX_LABEL_LEN))
+        );
     }
 }
