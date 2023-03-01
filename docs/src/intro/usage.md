@@ -119,7 +119,7 @@ repeat.20 pow2 end
 
 #### !help
 
-The `!help` command prints out all the available commands in the REPL tool. 
+The `!help` command prints out all the available commands in the REPL tool.
 
 #### !program
 

@@ -4,18 +4,18 @@ use.std::math::ecgfp5::base_field
 #! an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
 #! given point can be successfully decoded or not
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [w0, w1, w2, w3, w4, ...]
 #!
-#! Final stack state 
+#! Final stack state
 #!
 #! [flg, ...]
 #!
 #! If w can be decoded, flg = 1
 #! Else flg = 0
 #!
-#! Note, if w = (0, 0, 0, 0, 0), it can be successfully decoded to point 
+#! Note, if w = (0, 0, 0, 0, 0), it can be successfully decoded to point
 #! at infinity i.e. flg = 1, in that case.
 #!
 #! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
@@ -32,7 +32,7 @@ export.validate
     swap
     sub.1052
     swap # = delta
-    
+
     exec.base_field::legendre
     eq.1
     movdn.5
@@ -52,11 +52,11 @@ end
 #! it into x, y coordinates, along with boolean field element denoting whether it's
 #! point-at-infinity or not.
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [w0, w1, w2, w3, w4, ...]
 #!
-#! Final state state 
+#! Final state state
 #!
 #! [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, flg, ...]
 #!
@@ -174,14 +174,14 @@ export.decode
 end
 
 #! Given an elliptic curve point as Weierstraß coordinates (X, Y) along with
-#! boolean field element `inf`, denoting whether this is point-at-infinity or not, 
+#! boolean field element `inf`, denoting whether this is point-at-infinity or not,
 #! this routine encodes it to a single element ∈ GF(p^5) | p = 2^64 - 2^32 + 1
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
 #!
-#! Final stack state 
+#! Final stack state
 #!
 #! [w0, w1, w2, w3, w4, ...]
 #!
@@ -213,7 +213,7 @@ end
 #! Given two elliptic curve points ( say a, b ) as Weierstraß coordinates (X, Y) on stack,
 #! this routine computes elliptic curve point c, resulting from a + b.
 #!
-#! Following point addition formula is complete and it works when two points are 
+#! Following point addition formula is complete and it works when two points are
 #! same/ different or input operands are point-at-infinity.
 #!
 #! Expected stack state
@@ -585,7 +585,7 @@ end
 #!
 #! Scalar e should be lesser than 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 ( prime number ).
 #! Note, scalar e should be provided as 10 limbs on stack, each of 32 -bit, representing it in radix-2^32 form.
-#! 
+#!
 #! Given a scalar e ( as arbitrary width big integer ), following python code snippet should convert it to desired input form
 #!
 #! [(a >> (32*i)) & 0xffff_ffff for i in range(10)]
@@ -715,15 +715,15 @@ export.mul.10
     loc_loadw.5
 end
 
-#! Given a 319 -bit scalar ( say e ) on stack, this routine computes elliptic curve point 
+#! Given a 319 -bit scalar ( say e ) on stack, this routine computes elliptic curve point
 #! b s.t. b =  e * G, using double-and-add technique | G = conventional group generator point.
 #!
 #! Group generator point https://github.com/pornin/ecgfp5/blob/ce059c6/rust/src/curve.rs#L67-L83
 #!
 #! Scalar e should be lesser than N ( = 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 ).
 #! Note, scalar e should be provided as 10 limbs on stack, each of 32 -bit, representing it in radix-2^32 form.
-#! 
-#! Given a 319 -bit scalar e, following python code snippet should convert it to 
+#!
+#! Given a 319 -bit scalar e, following python code snippet should convert it to
 #! desired input form i.e. radix-2^32 representation, having ten 32 -bit limbs
 #!
 #! [(e >> (32*i)) & 0xffff_ffff for i in range(10)]

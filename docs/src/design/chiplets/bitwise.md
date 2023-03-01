@@ -33,7 +33,7 @@ In the above, the columns have the following meanings:
 Let's illustrate the above table on a concrete example. For simplicity, we'll use 16-bit values, and thus, we'll only need 4 rows to complete the operation (rather than 8 for 32-bit values). Let's say $a = 41851$ (`b1010_0011_0111_1011`) and $b = 40426$ (`b1001_1101_1110_1010`), then $and(a, b) = 33130$ (`b1000_0001_0110_1010`). The table for this computation looks like so:
 
 |   a   |   b   | x0  | x1  | x2  | x3  | y0  | y1  | y2  | y3  |   zp   |   z   |
-| :---: | :---: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :----: | :---: | 
+| :---: | :---: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :----: | :---: |
 |  10   |   9   |  0  |  1  |  0  |  1  |  1  |  0  |  0  |  1  |   0    |   8   |
 |  163  |  157  |  1  |  1  |  0  |  0  |  1  |  0  |  1  |  1  |   8    |  129  |
 | 2615  | 2526  |  1  |  1  |  1  |  0  |  0  |  1  |  1  |  1  |  129   | 2070  |

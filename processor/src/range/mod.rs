@@ -54,7 +54,7 @@ pub struct RangeCheckTraceTable {
 ///
 /// The layout illustrated below.
 ///
-///    t     s0     s1     v  
+///    t     s0     s1     v
 /// ├─────┴──────┴──────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:

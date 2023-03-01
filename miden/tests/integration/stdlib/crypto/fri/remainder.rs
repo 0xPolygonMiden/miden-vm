@@ -34,7 +34,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
             sub.1
         end
         drop
-        
+
         locaddr.0
         push.{}
         push.{}

@@ -30,7 +30,7 @@ const INIT_TRACE_CAPACITY: usize = 128;
 ///
 /// The layout of the table is illustrated below.
 ///
-///    s     a     b      a0     a1     a2     a3     b0     b1     b2     b3    zp     z     
+///    s     a     b      a0     a1     a2     a3     b0     b1     b2     b3    zp     z
 /// ├─────┴─────┴─────┴───────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴─────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:

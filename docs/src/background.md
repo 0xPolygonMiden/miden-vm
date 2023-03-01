@@ -25,4 +25,3 @@ StarkWare's STARK Math blog series:
 
 StarkWare's STARK tutorial:
  * [STARK 101](https://starkware.co/stark-101/)
- 

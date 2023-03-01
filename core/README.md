@@ -1,4 +1,4 @@
-# Miden core 
+# Miden core
 This crate contains core components used by Miden VM. These components include:
 
 * Miden VM instruction set, defined in the [Operation](/../main/core/src/operations/mod.rs) struct.

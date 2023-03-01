@@ -44,7 +44,7 @@ In both case the values must still encode valid field elements.
 ### Random access memory
 
  As mentioned above, there are two ways to access memory in Miden VM. The first way is via memory addresses using the instructions listed below. The addresses are absolute - i.e., they don't depend on the procedure context. Memory addresses can be in the range $[0, 2^{32})$.
- 
+
 Memory is guaranteed to be initialized to zeros. Thus, when reading from memory address which hasn't been written to previously, zero elements will be returned.
 
 | Instruction     | Stack_input | Stack_output | Notes                                      |
@@ -67,4 +67,3 @@ The second way to access memory is via procedure locals using the instructions l
 Unlike regular memory, procedure locals are not guaranteed to be initialized to zeros. Thus, when working with locals, one must assume that before a local memory address has been written to, it contains "garbage".
 
 Internally in the VM, procedure locals are stored at memory offset stating at $2^{30}$. Thus, every procedure local has an absolute address in regular memory. The `locaddr.i` instruction is provided specifically to map an index of a procedure's local to an absolute address so that it can be passed to downstream procedures, when needed.
-

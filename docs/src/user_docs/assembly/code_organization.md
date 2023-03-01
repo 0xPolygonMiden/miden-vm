@@ -119,4 +119,4 @@ export.foo
     push.1
 end
 ```
-Documentation comments must precede a procedure declaration. Using them inside a procedure body is an error. 
+Documentation comments must precede a procedure declaration. Using them inside a procedure body is an error.

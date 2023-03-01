@@ -34,7 +34,7 @@ In the future, other ways of providing public inputs and reading public outputs 
 ### Stack depth restrictions
 For reasons explained [here](../design/stack/main.md), the VM imposes the restriction that the stack depth cannot be smaller than $16$. This has the following effects:
 
-- When initializing a program with fewer than $16$ inputs, the VM will pad the stack with zeros to ensure the depth is $16$ at the beginning of execution. 
+- When initializing a program with fewer than $16$ inputs, the VM will pad the stack with zeros to ensure the depth is $16$ at the beginning of execution.
 - If an operation would result in the stack depth dropping below $16$, the VM will insert a zero at the deep end of the stack to make sure the depth stays at $16$.
 
 ### Nondeterministic inputs

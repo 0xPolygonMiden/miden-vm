@@ -3,7 +3,7 @@ Miden standard library provides a set of procedures which can be used by any Mid
 
 The goals of Miden standard library are:
 * Provide highly-optimized and battle-tested implementations of commonly-used primitives.
-* Reduce the amount of code that needs to be shared between parties for proving and verifying program execution. 
+* Reduce the amount of code that needs to be shared between parties for proving and verifying program execution.
 
 The second goal can be achieved because calls to procedures in the standard library can always be serialized as 32 bytes, regardless of how large the procedure is.
 

@@ -210,7 +210,7 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
     use.std::math::secp256k1::group
 
     # Given two points of secp256k1 elliptic curve ( twice ), this routine first computes
-    # point addition of them in projective coordinate & then asserts each coordinate 
+    # point addition of them in projective coordinate & then asserts each coordinate
     # limb-by-limb for ensuring correctness.
     proc.point_addition_test_wrapper.18
         # push X1 -coordinate to memory
@@ -461,7 +461,7 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         "
     use.std::math::secp256k1::group
 
-    # Given an elliptic curve point ( in projective coordinate system ) and a 256 -bit scalar 
+    # Given an elliptic curve point ( in projective coordinate system ) and a 256 -bit scalar
     # in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), this routine first multiplies
     # the EC point with provided scalar and then asserts for correctness with known answer.
     proc.point_multiplication_test_wrapper.12
@@ -493,7 +493,7 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         push.{}.{}.{}.{}
         loc_storew.3
         dropw
-        
+
         push.{}.{}.{}.{}
         loc_storew.4
         dropw
@@ -669,8 +669,8 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         "
     use.std::math::secp256k1::group
 
-    # Given a 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), 
-    # this routine first multiplies the secp256k1 generator point with provided scalar and 
+    # Given a 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ),
+    # this routine first multiplies the secp256k1 generator point with provided scalar and
     # then asserts for correctness with known answer.
     proc.generator_multiplication_test_wrapper.12
         # resulting point

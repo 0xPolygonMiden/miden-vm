@@ -207,7 +207,7 @@ fn asmop_conditional_execution_test() {
                 push.1 push.2 add
             else
                 push.3 push.4 add
-            end            
+            end
         end";
 
     //if branch

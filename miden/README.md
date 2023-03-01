@@ -163,7 +163,7 @@ let n = 50;
 // instantiate the default assembler and compile the program
 let source = format!(
     "
-    begin 
+    begin
         repeat.{}
             swap dup.1 add
         end

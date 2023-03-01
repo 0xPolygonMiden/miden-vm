@@ -1,7 +1,7 @@
 use.std::math::ntt512
 use.std::math::u64
 
-#! Given two consecutive words on stack, this routine performs 
+#! Given two consecutive words on stack, this routine performs
 #! element wise multiplication, while keeping resulting single
 #! word on stack.
 #!
@@ -33,7 +33,7 @@ proc.mul_word
     movdn.3
 end
 
-#! Given two consecutive words on stack, this routine performs 
+#! Given two consecutive words on stack, this routine performs
 #! element wise addition, while keeping resulting single
 #! word on stack.
 #!
@@ -201,7 +201,7 @@ proc.neg_word
 end
 
 #! Given a field element, this routine does centered reduction using Miden VM
-#! prime ( say Q ) and then reduces it using Falcon Post Quantum Digital 
+#! prime ( say Q ) and then reduces it using Falcon Post Quantum Digital
 #! Signature Algorithm prime ( say Q' )
 #!
 #! Q = 2 ^ 64 - 2 ^ 32 + 1
@@ -300,7 +300,7 @@ end
 #!
 #! [ ... ]
 #!
-#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by
 #! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #!
 #! Note, input memory addresses are considered to be read-only, they are not mutated.
@@ -414,7 +414,7 @@ end
 #!
 #! [ ... ]
 #!
-#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by
 #! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #!
 #! Note, input memory addresses are considered to be read-only, they are not mutated.
@@ -477,7 +477,7 @@ end
 #!
 #! [ ... ]
 #!
-#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by
 #! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #!
 #! Note, input memory addresses are considered to be read-only, they are not mutated.
@@ -527,7 +527,7 @@ end
 #!
 #! [ ... ]
 #!
-#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by
 #! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #!
 #! Note, input memory addresses are considered to be read-only, they are not mutated.
