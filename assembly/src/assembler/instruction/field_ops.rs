@@ -367,6 +367,13 @@ pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     Ok(None)
 }
 
+/// Checks if the top element in the stack is an odd number or not.
+///
+/// Vm cycles: 5
+pub fn is_odd(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.add_ops([U32split, Drop, Pad, Incr, U32and])
+}
+
 // COMPARISON OPERATION HELPER FUNCTIONS
 // ================================================================================================
 
