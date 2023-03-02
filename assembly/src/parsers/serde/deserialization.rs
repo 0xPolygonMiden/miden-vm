@@ -38,6 +38,7 @@ impl Deserializable for Instruction {
         match opcode {
             OpCode::Assert => Ok(Instruction::Assert),
             OpCode::AssertEq => Ok(Instruction::AssertEq),
+            OpCode::AssertEqw => Ok(Instruction::AssertEqw),
             OpCode::Assertz => Ok(Instruction::Assertz),
             OpCode::Add => Ok(Instruction::Add),
             OpCode::AddImm => Ok(Instruction::AddImm(bytes.read_felt()?)),

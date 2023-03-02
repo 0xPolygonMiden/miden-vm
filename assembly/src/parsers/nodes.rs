@@ -20,6 +20,7 @@ pub enum Node {
 pub enum Instruction {
     Assert,
     AssertEq,
+    AssertEqw,
     Assertz,
     Add,
     AddImm(Felt),
@@ -282,6 +283,7 @@ impl fmt::Display for Instruction {
         match self {
             Self::Assert => write!(f, "assert"),
             Self::AssertEq => write!(f, "assert_eq"),
+            Self::AssertEqw => write!(f, "assert_eqw"),
             Self::Assertz => write!(f, "assertz"),
             Self::Add => write!(f, "add"),
             Self::AddImm(value) => write!(f, "add.{value}"),

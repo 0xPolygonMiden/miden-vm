@@ -33,6 +33,7 @@ impl Serializable for Instruction {
         match self {
             Self::Assert => OpCode::Assert.write_into(target)?,
             Self::AssertEq => OpCode::AssertEq.write_into(target)?,
+            Self::AssertEqw => OpCode::AssertEqw.write_into(target)?,
             Self::Assertz => OpCode::Assertz.write_into(target)?,
             Self::Add => OpCode::Add.write_into(target)?,
             Self::AddImm(v) => {

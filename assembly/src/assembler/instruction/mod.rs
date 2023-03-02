@@ -40,6 +40,7 @@ impl Assembler {
         let result = match instruction {
             Instruction::Assert => span.add_op(Assert),
             Instruction::AssertEq => span.add_ops([Eq, Assert]),
+            Instruction::AssertEqw => field_ops::assertw(span),
             Instruction::Assertz => span.add_ops([Eqz, Assert]),
 
             Instruction::Add => span.add_op(Add),
