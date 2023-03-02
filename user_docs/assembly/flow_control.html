@@ -180,6 +180,9 @@ end
 <li><code>instructions</code> can be a sequence of any instructions, including nested control structures.</li>
 <li><code>count</code> is the number of times the <code>instructions</code> sequence should be repeated (e.g. <code>repeat.10</code>). <code>count</code> must be an integer greater than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>.</li>
 </ul>
+<blockquote>
+<p><strong>Note</strong>: During compilation the <code>repeat.&lt;count&gt;</code> blocks are unrolled and expanded into <code>&lt;count&gt;</code> copies of its inner block, there is no additional cost for counting variables in this case.</p>
+</blockquote>
 <h3 id="condition-controlled-loops"><a class="header" href="#condition-controlled-loops">Condition-controlled loops</a></h3>
 <p>Executing a sequence of instructions zero or more times based on some condition can be accomplished with <em>while loop</em> expressions. These expressions look like so:</p>
 <pre><code>while.true
