@@ -358,6 +358,7 @@ impl ParserContext {
             "lte" => simple_instruction(op, Lte),
             "gt" => simple_instruction(op, Gt),
             "gte" => simple_instruction(op, Gte),
+            "is_odd" => simple_instruction(op, IsOdd),
             "eqw" => simple_instruction(op, Eqw),
 
             // ----- ext2 operations -----------------------------------------------------

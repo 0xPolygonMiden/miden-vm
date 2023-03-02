@@ -74,6 +74,7 @@ impl Assembler {
             Instruction::Lte => field_ops::lte(span),
             Instruction::Gt => field_ops::gt(span),
             Instruction::Gte => field_ops::gte(span),
+            Instruction::IsOdd => field_ops::is_odd(span),
 
             // ----- ext2 instructions ------------------------------------------------------------
             Instruction::Ext2Add => ext2_ops::ext2_add(span),

@@ -87,6 +87,7 @@ impl Serializable for Instruction {
             Self::Lte => OpCode::Lte.write_into(target)?,
             Self::Gt => OpCode::Gt.write_into(target)?,
             Self::Gte => OpCode::Gte.write_into(target)?,
+            Self::IsOdd => OpCode::IsOdd.write_into(target)?,
 
             // ----- ext2 operations --------------------------------------------------------------
             Self::Ext2Add => OpCode::Ext2Add.write_into(target)?,

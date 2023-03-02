@@ -68,6 +68,7 @@ impl Deserializable for Instruction {
             OpCode::Lte => Ok(Instruction::Lte),
             OpCode::Gt => Ok(Instruction::Gt),
             OpCode::Gte => Ok(Instruction::Gte),
+            OpCode::IsOdd => Ok(Instruction::IsOdd),
 
             // ----- ext2 operations --------------------------------------------------------------
             OpCode::Ext2Add => Ok(Instruction::Ext2Add),

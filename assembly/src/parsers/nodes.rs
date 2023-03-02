@@ -50,6 +50,7 @@ pub enum Instruction {
     Lte,
     Gt,
     Gte,
+    IsOdd,
 
     // ----- ext2 operations ----------------------------------------------------------------------
     Ext2Add,
@@ -313,6 +314,7 @@ impl fmt::Display for Instruction {
             Self::Lte => write!(f, "lte"),
             Self::Gt => write!(f, "gt"),
             Self::Gte => write!(f, "gte"),
+            Self::IsOdd => write!(f, "is_odd"),
 
             // ----- ext2 operations --------------------------------------------------------------
             Self::Ext2Add => write!(f, "ext2add"),
