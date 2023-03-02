@@ -1,5 +1,10 @@
 # Changelog
 
+## Next
+
+#### Assembly
+- Added new instructions: `is_odd`, `assert_eqw`.
+
 ## 0.4.0 (2023-02-27)
 
 #### Advice provider
