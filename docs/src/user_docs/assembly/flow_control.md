@@ -35,6 +35,8 @@ where:
 * `instructions` can be a sequence of any instructions, including nested control structures.
 * `count` is the number of times the `instructions` sequence should be repeated (e.g. `repeat.10`). `count` must be an integer greater than $0$.
 
+> **Note**: During compilation the `repeat.<count>` blocks are unrolled and expanded into `<count>` copies of its inner block, there is no additional cost for counting variables in this case.
+
 ### Condition-controlled loops
 Executing a sequence of instructions zero or more times based on some condition can be accomplished with *while loop* expressions. These expressions look like so:
 ```
