@@ -335,6 +335,7 @@ impl ParserContext {
             "assert" => simple_instruction(op, Assert),
             "assertz" => simple_instruction(op, Assertz),
             "assert_eq" => simple_instruction(op, AssertEq),
+            "assert_eqw" => simple_instruction(op, AssertEqw),
 
             "add" => field_ops::parse_add(op),
             "sub" => field_ops::parse_sub(op),

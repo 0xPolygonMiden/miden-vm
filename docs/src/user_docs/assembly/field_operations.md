@@ -12,6 +12,7 @@ For instructions where one or more operands can be provided as immediate paramet
 | assert  <br> - *(1 cycle)*          | [a, ...]    | [...]         | If $a = 1$, removes it from the stack. <br> Fails if $a \ne 1$ |
 | assertz <br> - *(2 cycles)*       | [ a, ...] | [...]              | if $a = 0$, removes it from the stack, <br> Fails if $a \ne 0$ |
 | assert_eq <br> - *(2 cycles)*        | [b, a, ...] | [...]         | If $a = b$, removes them from the stack. <br> Fails if $a \ne b$ |
+| assert_eqw <br> - *(11 cycles)*        | [B, A, ...] | [...]         | If $A = B$, removes them from the stack. <br> Fails if $A \ne B$ |
 
 
 ### Arithmetic and Boolean operations

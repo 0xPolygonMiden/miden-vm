@@ -7,6 +7,16 @@ use crate::MAX_EXP_BITS;
 /// Field element representing TWO in the base field of the VM.
 const TWO: Felt = Felt::new(2);
 
+// ASSERTIONS
+// ================================================================================================
+
+/// Asserts that the top two words in the stack are equal.
+///
+/// VM cycles: 11 cycles
+pub fn assertw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.add_ops([MovUp4, Eq, Assert, MovUp3, Eq, Assert, MovUp2, Eq, Assert, Eq, Assert])
+}
+
 // BASIC ARITHMETIC OPERATIONS
 // ================================================================================================
 
