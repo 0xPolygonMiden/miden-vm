@@ -8,29 +8,36 @@ pub use stream::TokenStream;
 
 // TOKEN
 // ================================================================================================
-/// TODO: add comments
+/// Token type used to represent a token in the Miden assembly source.
+///
+/// This struct is intended to be mutated in place by the tokenizer through the `update` method,
+/// which updates the token position and splits the token into its composing parts.
 #[derive(Clone, Debug, Default)]
 pub struct Token<'a> {
+    /// The dot-separated parts of a token, e.g. `push.1` is split into `['push', '1']`.
     parts: Vec<&'a str>,
+    /// The token position in the token stream
     pos: usize,
 }
 
 impl<'a> Token<'a> {
+    // DEFINITION TOKENS
+    // --------------------------------------------------------------------------------------------
     pub const BEGIN: &'static str = "begin";
+    pub const CONST: &'static str = "const";
+    pub const END: &'static str = "end";
+    pub const EXPORT: &'static str = "export";
+    pub const PROC: &'static str = "proc";
+    pub const USE: &'static str = "use";
+
+    // CONTROL FLOW TOKENS
+    // --------------------------------------------------------------------------------------------
     pub const CALL: &'static str = "call";
     pub const ELSE: &'static str = "else";
-    pub const END: &'static str = "end";
     pub const EXEC: &'static str = "exec";
-    pub const EXPORT: &'static str = "export";
     pub const IF: &'static str = "if";
-    pub const PROC: &'static str = "proc";
     pub const REPEAT: &'static str = "repeat";
     pub const SYSCALL: &'static str = "syscall";
-    // CONTROL TOKENS
-    // --------------------------------------------------------------------------------------------
-
-    pub const CONST: &'static str = "const";
-    pub const USE: &'static str = "use";
     pub const WHILE: &'static str = "while";
 
     // CONSTRUCTOR
