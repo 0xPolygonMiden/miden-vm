@@ -2,6 +2,9 @@
 
 ## Next
 
+#### CLI
+- Renamed `ProgramInfo` to `ExecutionDetails` since there is another `ProgramInfo` struct in the source code.
+
 #### Assembly
 - Added new instructions: `is_odd`, `assert_eqw`.
 
