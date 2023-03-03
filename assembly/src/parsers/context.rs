@@ -101,14 +101,14 @@ impl ParserContext {
         // consume the `end` token
         match tokens.read() {
             None => {
-                let token = tokens.read_at(while_start).expect("no if token");
+                let token = tokens.read_at(while_start).expect("no while token");
                 Err(ParsingError::unmatched_while(token))
             }
             Some(token) => match token.parts()[0] {
                 Token::END => token.validate_end(),
                 Token::ELSE => Err(ParsingError::dangling_else(token)),
                 _ => {
-                    let token = tokens.read_at(while_start).expect("no if token");
+                    let token = tokens.read_at(while_start).expect("no while token");
                     Err(ParsingError::unmatched_while(token))
                 }
             },
