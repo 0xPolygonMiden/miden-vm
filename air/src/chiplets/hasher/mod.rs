@@ -22,7 +22,7 @@ pub const NUM_CONSTRAINTS: usize = 31;
 /// The number of periodic columns which are used as selectors to specify a particular row or rows
 /// within the hash cycle.
 pub const NUM_PERIODIC_SELECTOR_COLUMNS: usize = 3;
-/// The total number of periodic columns used by the hash processor, which is the sum of the number
+/// The total number of periodic columns used by the hasher chiplet, which is the sum of the number
 /// of periodic selector columns plus the columns of round constants for the Rescue Prime Optimized
 /// hash permutation.
 pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_COLUMNS;
@@ -30,7 +30,7 @@ pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_
 // PERIODIC COLUMNS
 // ================================================================================================
 
-/// Returns the set of periodic columns required by the Hash processor.
+/// Returns the set of periodic columns required by the hasher chiplet.
 ///
 /// The columns consist of:
 /// - k0 column, which has a repeating pattern of 7 zeros followed by a single one.
