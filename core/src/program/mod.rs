@@ -7,13 +7,16 @@ use super::{
     Felt, FieldElement, Operation,
 };
 use core::fmt;
-use winter_utils::{ByteWriter, Serializable};
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 pub mod blocks;
 use blocks::CodeBlock;
 
 mod info;
 pub use info::ProgramInfo;
+
+#[cfg(test)]
+mod tests;
 
 // PROGRAM
 // ================================================================================================
@@ -162,5 +165,13 @@ impl Serializable for Kernel {
         debug_assert!(self.0.len() <= u16::MAX as usize);
         target.write_u16(self.0.len() as u16);
         Digest::write_batch_into(&self.0, target)
+    }
+}
+
+impl Deserializable for Kernel {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let len = source.read_u16()?;
+        let kernel = (0..len).map(|_| source.read::<Digest>()).collect::<Result<_, _>>()?;
+        Ok(Self(kernel))
     }
 }
