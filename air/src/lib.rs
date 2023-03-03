@@ -4,6 +4,9 @@
 #[macro_use]
 extern crate alloc;
 
+#[cfg(test)]
+mod tests;
+
 use vm_core::{
     utils::{collections::Vec, ByteWriter, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE,
