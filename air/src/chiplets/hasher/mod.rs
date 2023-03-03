@@ -128,7 +128,7 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     );
     let mut index = 1;
 
-    index += enforce_selectors(frame, periodic_values, &mut result[index..], hasher_flag);
+    index += enforce_hasher_selectors(frame, periodic_values, &mut result[index..], hasher_flag);
 
     index += enforce_node_index(frame, periodic_values, &mut result[index..], hasher_flag);
 
@@ -138,14 +138,14 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-/// Enforces that all selectors and selector transitions are valid.
+/// Enforces validity of the internal selectors of the hasher chiplet.
 ///
 /// - All selectors must contain binary values.
 /// - s1 and s2 must be copied to the next row unless f_out is set in the current or next row.
 /// - When a cycle ends by absorbing more elements or a Merkle path node, ensure the next value of
 ///   s0 is always zero. Otherwise, s0 should be unconstrained.
 /// - Prevent an invalid combination of flags where s_0 = 0 and s_1 = 1.
-fn enforce_selectors<E: FieldElement>(
+fn enforce_hasher_selectors<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
