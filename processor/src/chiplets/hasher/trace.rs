@@ -1,6 +1,6 @@
 use super::{Felt, HasherState, Selectors, TraceFragment, Vec, STATE_WIDTH, TRACE_WIDTH, ZERO};
 use core::ops::Range;
-use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS, NUM_SELECTORS};
+use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS};
 // HASHER TRACE
 // ================================================================================================
 
@@ -104,25 +104,19 @@ impl HasherTrace {
     /// Copies section of trace from the given range of start and end rows at the end of the trace.
     /// The hasher state of the last row is copied to the provided state input.
     pub fn copy_trace(&mut self, state: &mut [Felt; STATE_WIDTH], range: Range<usize>) {
-        let mut hasher_state: [Felt; STATE_WIDTH] = Default::default();
-        let mut selectors: [Felt; NUM_SELECTORS] = Default::default();
-
-        for row in range {
-            for (col, selector) in selectors.iter_mut().enumerate() {
-                *selector = self.selectors[col][row];
-            }
-
-            for (col, state) in hasher_state.iter_mut().enumerate() {
-                *state = self.hasher_state[col][row];
-            }
-
-            let node_index = self.node_index[row];
-            self.append_row(selectors, &hasher_state, node_index);
+        for selector in self.selectors.iter_mut() {
+            selector.extend_from_within(range.clone());
         }
 
+        for hasher in self.hasher_state.iter_mut() {
+            hasher.extend_from_within(range.clone());
+        }
+
+        self.node_index.extend_from_within(range.clone());
+
         // copy the latest hasher state to the provided state slice
-        for (state_col, hasher_col) in state.iter_mut().zip(hasher_state.iter()) {
-            *state_col = *hasher_col
+        for (col, hasher) in self.hasher_state.iter().enumerate() {
+            state[col] = hasher[range.end - 1];
         }
     }
 
