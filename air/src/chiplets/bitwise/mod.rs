@@ -432,16 +432,3 @@ pub const BITWISE_K1_MASK: [Felt; OP_CYCLE_LEN] = [
     Felt::ONE,
     Felt::ZERO,
 ];
-
-// TEST HELPERS
-// ================================================================================================
-
-/// Returns the values from the bitwise periodic columns for the specified cycle row.
-#[cfg(test)]
-fn get_periodic_values(cycle_row: usize) -> [Felt; 2] {
-    match cycle_row {
-        0 => [Felt::ONE, Felt::ONE],
-        8 => [Felt::ZERO, Felt::ZERO],
-        _ => [Felt::ZERO, Felt::ONE],
-    }
-}

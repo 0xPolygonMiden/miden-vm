@@ -1,8 +1,7 @@
 use super::{
-    enforce_constraints, get_periodic_values, EvaluationFrame, BITWISE_A_COL_IDX,
-    BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE, BITWISE_OUTPUT_COL_IDX,
-    BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX, NUM_CONSTRAINTS, NUM_DECOMP_BITS,
-    OP_CYCLE_LEN,
+    enforce_constraints, EvaluationFrame, BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE,
+    BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE, BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX,
+    BITWISE_SELECTOR_COL_IDX, NUM_CONSTRAINTS, NUM_DECOMP_BITS, OP_CYCLE_LEN,
 };
 use rand_utils::rand_value;
 use vm_core::{
@@ -292,5 +291,17 @@ fn get_output(operation: Felt, a: u32, b: u32) -> u32 {
         a ^ b
     } else {
         panic!("Test bitwise EvaluationFrame requested for unrecognized operation.");
+    }
+}
+
+// TEST HELPERS
+// ================================================================================================
+
+/// Returns the values from the bitwise periodic columns for the specified cycle row.
+fn get_periodic_values(cycle_row: usize) -> [Felt; 2] {
+    match cycle_row {
+        0 => [Felt::ONE, Felt::ONE],
+        8 => [Felt::ZERO, Felt::ZERO],
+        _ => [Felt::ZERO, Felt::ONE],
     }
 }
