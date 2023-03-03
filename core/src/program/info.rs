@@ -1,4 +1,7 @@
-use super::{ByteWriter, Digest, Kernel, Program, Serializable};
+use super::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Kernel, Program,
+    Serializable,
+};
 
 // PROGRAM INFO
 // ================================================================================================
@@ -64,5 +67,16 @@ impl Serializable for ProgramInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.program_hash.write_into(target);
         <Kernel as Serializable>::write_into(&self.kernel, target);
+    }
+}
+
+impl Deserializable for ProgramInfo {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let program_hash = source.read()?;
+        let kernel = source.read()?;
+        Ok(Self {
+            program_hash,
+            kernel,
+        })
     }
 }
