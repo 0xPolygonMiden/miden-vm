@@ -14,7 +14,6 @@ use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS, NUM_SELECTORS};
 #[derive(Default)]
 pub struct HasherTrace {
     selectors: [Vec<Felt>; 3],
-    row_addr: Vec<Felt>,
     hasher_state: [Vec<Felt>; STATE_WIDTH],
     node_index: Vec<Felt>,
 }
@@ -25,7 +24,7 @@ impl HasherTrace {
 
     /// Returns current length of this execution trace.
     pub fn trace_len(&self) -> usize {
-        self.row_addr.len()
+        self.selectors[0].len()
     }
 
     /// Returns next row address. The address is equal to the current trace length + 1.
@@ -93,7 +92,6 @@ impl HasherTrace {
 
     /// Appends a new row to the execution trace based on the supplied parameters.
     fn append_row(&mut self, selectors: Selectors, state: &HasherState, index: Felt) {
-        self.row_addr.push(self.next_row_addr());
         for (trace_col, selector_val) in self.selectors.iter_mut().zip(selectors) {
             trace_col.push(selector_val);
         }
@@ -136,11 +134,17 @@ impl HasherTrace {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
+        let size: u64 = self.trace_len() as u64;
 
         // collect all trace columns into a single vector
         let mut columns = Vec::new();
         self.selectors.into_iter().for_each(|c| columns.push(c));
-        columns.push(self.row_addr);
+
+        // collects the row_addr column, this column is a strictly monotonically increasing column,
+        // starting at one and going up to the trace length.
+        let row_addr = (1..=size).map(Felt::new).collect();
+        columns.push(row_addr);
+
         self.hasher_state.into_iter().for_each(|c| columns.push(c));
         columns.push(self.node_index);
 
