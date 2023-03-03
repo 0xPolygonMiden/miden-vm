@@ -109,8 +109,8 @@ pub fn get_transition_constraint_count() -> usize {
 
 /// Enforces constraints for the hasher chiplet.
 ///
-/// - The `hasher_flag` is the relevant selector flag for the hasher chiplet, it is set to `0` when
-/// the hasher chiplet is in use
+/// - The `hasher_flag` determines if the hasher chiplet is currently enabled. It should be
+/// computed by the caller and set to `Felt::ONE`
 /// - The `transition_flag` indicates whether this is the last row this chiplet's execution trace,
 /// and therefore the constraints should not be enforced.
 pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
