@@ -17,7 +17,7 @@ impl CompileCmd {
         println!("============================================================");
 
         // load and compile program file
-        let program = ProgramFile::read(&self.assembly_file)?;
+        let program = ProgramFile::read(&self.assembly_file, false)?;
 
         // report program hash to user
         let program_hash: [u8; 32] = program.hash().into();
