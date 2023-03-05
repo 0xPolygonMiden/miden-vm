@@ -48,7 +48,7 @@ impl ProveCmd {
             .init();
 
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file)?;
+        let program = ProgramFile::read(&self.assembly_file, false)?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;

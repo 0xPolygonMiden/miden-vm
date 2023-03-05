@@ -164,7 +164,7 @@ pub struct ProgramFile;
 
 /// Helper methods to interact with masm program file
 impl ProgramFile {
-    pub fn read(path: &PathBuf) -> Result<Program, String> {
+    pub fn read(path: &PathBuf, debug: bool) -> Result<Program, String> {
         println!("Reading program file `{}`", path.display());
 
         // read program file to string
@@ -178,6 +178,7 @@ impl ProgramFile {
         let program = Assembler::default()
             .with_library(&StdLibrary::default())
             .map_err(|err| format!("Failed to load stdlib - {}", err))?
+            .with_debug_mode(debug)
             .compile(&program_file)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 
