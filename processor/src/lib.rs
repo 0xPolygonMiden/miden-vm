@@ -12,7 +12,8 @@ pub use vm_core::{
     },
     errors::InputError,
     utils::DeserializationError,
-    Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
+    AssemblyOp, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs,
+    Word,
 };
 use vm_core::{
     code_blocks::{

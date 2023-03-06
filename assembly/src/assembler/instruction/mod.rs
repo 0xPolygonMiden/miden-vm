@@ -34,7 +34,7 @@ impl Assembler {
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
         if self.in_debug_mode() {
-            span.track_instruction(instruction);
+            span.track_instruction(instruction, ctx);
         }
 
         let result = match instruction {
@@ -306,6 +306,15 @@ impl Assembler {
             Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
             Instruction::CallImported(id) => self.call_imported(id, ctx),
             Instruction::SysCall(id) => self.syscall(id, ctx),
+
+            // ----- debug decorators -------------------------------------------------------------
+            Instruction::Breakpoint => {
+                if self.in_debug_mode() {
+                    span.add_op(Noop)?;
+                    span.track_instruction(instruction, ctx);
+                }
+                Ok(None)
+            }
         };
 
         // compute and update the cycle count of the instruction which just finished executing

@@ -3,8 +3,8 @@
 pub enum DebugCommand {
     Continue,
     Next(usize),
-    RewindAll,
-    Rewind(usize),
+    Rewind,
+    Back(usize),
     PrintState,
     PrintStack,
     PrintStackItem(usize),
@@ -36,7 +36,7 @@ impl DebugCommand {
             "n" | "next" => Self::parse_next(tokens.by_ref())?,
             "c" | "continue" => Self::Continue,
             "b" | "back" => Self::parse_back(tokens.by_ref())?,
-            "r" | "rewind" => Self::RewindAll,
+            "r" | "rewind" => Self::Rewind,
             "p" | "print" => Self::parse_print(tokens.by_ref())?,
             "l" | "clock" => Self::Clock,
             "h" | "?" | "help" => Self::Help,
@@ -89,9 +89,9 @@ impl DebugCommand {
                     n, err
                 )
             })?,
-            None => return Ok(Self::Rewind(1)),
+            None => return Ok(Self::Back(1)),
         };
-        Ok(Self::Rewind(num_cycles))
+        Ok(Self::Back(num_cycles))
     }
 
     /// parse print command - p [m|s] [addr]

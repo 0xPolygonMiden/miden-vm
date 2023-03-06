@@ -511,6 +511,9 @@ impl ParserContext {
             // ----- constant statements ----------------------------------------------------------
             "const" => Err(ParsingError::const_invalid_scope(op)),
 
+            // ----- debug decorators -------------------------------------------------------------
+            "breakpoint" => simple_instruction(op, Breakpoint),
+
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),
         }
