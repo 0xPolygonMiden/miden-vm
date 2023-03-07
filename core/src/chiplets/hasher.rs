@@ -80,44 +80,44 @@ pub const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 2;
 /// executing linear hash computation. These selectors can also be used for a simple 2-to-1 hash
 /// computation.
 pub const LINEAR_HASH: Selectors = [ONE, ZERO, ZERO];
-/// Unique label for the linear hash operation. Computed as 1 more than the binary composition of
-/// the chiplet and operation selectors [0, 1, 0, 0].
-pub const LINEAR_HASH_LABEL: u8 = 3;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// linear_hash selector=[0, 1, 0, 0] rev(selector)=[0, 0, 1, 0] +1=[0, 0, 1, 1]
+pub const LINEAR_HASH_LABEL: u8 = 0b0011;
 
 /// Specifies a start of Merkle path verification computation or absorption of a new path node
 /// into the hasher state.
 pub const MP_VERIFY: Selectors = [ONE, ZERO, ONE];
-/// Unique label for the merkle path verification operation. Computed as 1 more than the binary
-/// composition of the chiplet and operation selectors [0, 1, 0, 1].
-pub const MP_VERIFY_LABEL: u8 = 11;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// mp_verify selector=[0, 1, 0, 1] rev(selector)=[1, 0, 1, 0] +1=[1, 0, 1, 1]
+pub const MP_VERIFY_LABEL: u8 = 0b1011;
 
 /// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
 /// state for the "old" node value during Merkle root update computation.
 pub const MR_UPDATE_OLD: Selectors = [ONE, ONE, ZERO];
-/// Unique label for the merkle path update operation for an "old" node. Computed as 1 more than the
-/// binary composition of the chiplet and operation selectors [0, 1, 1, 0].
-pub const MR_UPDATE_OLD_LABEL: u8 = 7;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// mr_update selector=[0, 1, 1, 0] rev(selector)=[0, 1, 1, 0] +1=[0, 1, 1, 1]
+pub const MR_UPDATE_OLD_LABEL: u8 = 0b0111;
 
 /// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
 /// state for the "new" node value during Merkle root update computation.
 pub const MR_UPDATE_NEW: Selectors = [ONE, ONE, ONE];
-/// Unique label for the merkle path update operation for a "new" node. Computed as 1 more than the
-/// binary composition of the chiplet and operation selectors [0, 1, 1, 1].
-pub const MR_UPDATE_NEW_LABEL: u8 = 15;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// mr_update selector=[0, 1, 1, 1] rev(selector)=[1, 1, 1, 0] +1=[1, 1, 1, 1]
+pub const MR_UPDATE_NEW_LABEL: u8 = 0b1111;
 
 /// Specifies a completion of a computation such that only the hash result (values in h0, h1, h2
 /// h3) is returned.
 pub const RETURN_HASH: Selectors = [ZERO, ZERO, ZERO];
-/// Unique label for specifying the return of a hash result. Computed as 1 more than the binary
-/// composition of the chiplet and operation selectors [0, 0, 0, 0].
-pub const RETURN_HASH_LABEL: u8 = 1;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// return_hash selector=[0, 0, 0, 0] rev(selector)=[0, 0, 0, 0] +1=[0, 0, 0, 1]
+pub const RETURN_HASH_LABEL: u8 = 0b0001;
 
 /// Specifies a completion of a computation such that the entire hasher state (values in h0 through
 /// h11) is returned.
 pub const RETURN_STATE: Selectors = [ZERO, ZERO, ONE];
-/// Unique label for specifying the return of the entire hasher state. Computed as 1 more than the
-/// binary composition of  the chiplet and operation selectors [0, 0, 0, 1]
-pub const RETURN_STATE_LABEL: u8 = 9;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// return_state selector=[0, 0, 0, 1] rev(selector)=[1, 0, 0, 0] +1=[1, 0, 0, 1]
+pub const RETURN_STATE_LABEL: u8 = 0b1001;
 
 // --- Column accessors in the auxiliary trace ----------------------------------------------------
 
