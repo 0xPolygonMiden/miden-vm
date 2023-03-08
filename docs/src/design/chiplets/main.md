@@ -85,7 +85,7 @@ This requires the following adjustments for each chiplet.
 
 Each operation supported by the chiplets is given a unique identifier to ensure that the requests and responses sent to $b_{chip}$ are indeed processed by the intended chiplet for that operation and that chiplets which support more than one operation execute the correct one.
 
-The labels are composed from the flag values of the chiplet selector(s) and internal operation selectors (if applicable). The unique label of the operation is computed as the binary aggregation of the combined selectors plus $1$.
+The labels are composed from the flag values of the chiplet selector(s) and internal operation selectors (if applicable). The unique label of the operation is computed as the binary aggregation of the combined selectors plus $1$, note that the combined flag is represented in big-endian, so the bit representation below is reverted.
 
 | Operation              | Chiplet Selector Flag | Internal Selector Flag | Combined Flag    | Label |
 | ---------------------- | --------------------- | :--------------------: | ---------------- | :---: |

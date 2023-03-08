@@ -25,15 +25,13 @@ pub const MEMORY_COPY_READ: Selectors = [ONE, ONE];
 /// Specifies a memory write operation.
 pub const MEMORY_WRITE: Selectors = [ZERO, ZERO];
 
-/// Unique label for memory read operations. Computed as 1 more than the binary composition of the
-/// chiplet and operation selectors [1, 1, 0, 1], where the memory operation selector is the first
-/// of the memory trace selector columns.
-pub const MEMORY_READ_LABEL: u8 = 12;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// mem_read selector=[1, 1, 0, 1], rev(selector)=[1, 0, 1, 1], +1=[1, 1, 0, 0]
+pub const MEMORY_READ_LABEL: u8 = 0b1100;
 
-/// Unique label for memory write operations. Computed as 1 more than the binary composition of the
-/// chiplet and operation selectors [1, 1, 0, 0], where the memory operation selector is the first
-/// of the memory trace selector columns.
-pub const MEMORY_WRITE_LABEL: u8 = 4;
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// mem_write selector=[1, 1, 0, 0] rev(selector)=[0, 0, 1, 1] +1=[0, 1, 0, 0]
+pub const MEMORY_WRITE_LABEL: u8 = 0b0100;
 
 // --- COLUMN ACCESSOR INDICES WITHIN THE CHIPLET -------------------------------------------------
 
