@@ -201,7 +201,7 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the stack trace state at the specified clock cycle.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "internals"))]
     pub fn get_stack_state_at(&self, clk: u32) -> [Felt; STACK_TOP_SIZE] {
         let mut result = [ZERO; STACK_TOP_SIZE];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {

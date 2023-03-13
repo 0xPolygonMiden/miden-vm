@@ -311,7 +311,7 @@ impl Stack {
 
     /// Returns state of stack item columns at the current clock cycle. This does not include stack
     /// values in the overflow table.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "internals"))]
     pub fn trace_state(&self) -> [Felt; STACK_TOP_SIZE] {
         self.trace.get_stack_state_at(self.clk)
     }

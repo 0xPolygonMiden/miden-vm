@@ -35,13 +35,11 @@ harness = false
 [[test]]
 name = "miden"
 path = "tests/integration/main.rs"
-required-features = ["internals"]
 
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["env_logger", "hex/std", "internals", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
-internals = ["processor/internals"]
+executable = ["env_logger", "hex/std", "processor/internals", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
@@ -66,6 +64,7 @@ criterion = "0.4"
 escargot = "0.5.7"
 num-bigint = "0.4"
 predicates = "2.1.5"
+processor = { package = "miden-processor", path = "../processor", version = "0.5", features = ["internals"], default-features = false }
 proptest = "1.0.0"
 rand-utils = { package = "winter-rand-utils", version = "0.5" }
 sha2 = "0.10"
