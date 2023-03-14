@@ -37,7 +37,7 @@ jobs:
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
-        args: [--release, --doc]
+        args: [--profile test-release, --profile test-release --doc]
     steps:
       - uses: actions/checkout@main
       - name: Install rust

@@ -11,17 +11,22 @@ The above functionality is also exposed via the single [miden](https://crates.io
 ## CLI interface
 
 ### Compiling Miden VM
-To compile Miden VM into a binary, you can run the following command:
+To compile Miden VM into a binary, we have a [Makefile](https://www.gnu.org/software/make/manual/make.html) with the following tasks:
 ```
-cargo build --release --features executable
+make exec
 ```
-This will place `miden` executable in the `./target/release` directory.
-
-By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:
+This will place an optimized, multi-threaded `miden` executable in the `./target/release` directory. It is equivalent to executing:
 ```
-cargo build --release --features "executable concurrent"
+cargo build --profile optimized --features concurrent,executable
 ```
-
+If you would like to enable single-threaded mode, you can compile Miden Vm using the following command:
+```
+cargo build --profile optimized --features executable
+```
+For a faster build, you can compile with less optimizations, replacing `--profile optimized` by `--release`. Example:
+```
+cargo build --release --features concurrent,executable
+```
 ### Controlling parallelism
 Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
 

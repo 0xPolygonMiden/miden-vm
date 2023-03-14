@@ -10,10 +10,13 @@ members = [
   "verifier"
 ]
 
-[profile.release]
+[profile.optimized]
+inherits = "release"
 codegen-units = 1
 lto = true
 
-[profile.bench]
-codegen-units = 1
-lto = true
+[profile.test-release]
+inherits = "release"
+debug = true
+debug-assertions = true
+overflow-checks = true
