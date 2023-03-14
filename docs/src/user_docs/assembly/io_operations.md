@@ -63,6 +63,7 @@ The second way to access memory is via procedure locals using the instructions l
 | loc_loadw.*i*  <br> - *(3-4 cycles)* | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow local[i]$ <br> Reads a word from local memory at index $i$ and overwrites top four stack elements with it. |
 | loc_store.*i* <br> - *(4-5 cycles)*  | [v, ... ] | [ ... ] | $v \rightarrow local[i][0]$ <br> Pops the top element off the stack and stores it as the first element of the word in local memory at index $i$. All other elements of the word are not affected. |
 | loc_storew.*i* <br> - *(3-4 cycles)*  | [A, ... ] | [A, ... ] | $A \rightarrow local[i]$ <br> Stores the top four elements of the stack in local memory at index $i$. |
+| locaddr.*i* <br> - *(2-3 cycles)*  | [ ... ] | [a, ... ] | $a \leftarrow locaddr(i)$ <br> Maps procedure local index $i$ to absolute memory address $a$. |
 
 Unlike regular memory, procedure locals are not guaranteed to be initialized to zeros. Thus, when working with locals, one must assume that before a local memory address has been written to, it contains "garbage".
 
