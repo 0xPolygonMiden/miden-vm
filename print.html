@@ -281,21 +281,49 @@
 <p>This will dump the output of the program into the <code>fib.out</code> file. The output file will contain the state of the stack at the end of the program execution.</p>
 <h2 id="miden-development-tooling"><a class="header" href="#miden-development-tooling">Miden Development Tooling</a></h2>
 <h3 id="miden-debugger"><a class="header" href="#miden-debugger">Miden Debugger</a></h3>
-<p>The Miden debugger is a shell that allow for efficient debugging of miden assembly programs that are sourced from file.  A Miden assembly program file and inputs are specified when the debugger is instantiated.  The debugger allows the user to step through the execution of the program with clock cycle granularity and provides the ability for virtual machine state inspection at each clock cycle.  The Miden debugger supports the following commands:</p>
-<pre><code>!next        steps to the next clock cycle
-!play        executes program until completion or failure
-!play.n      executes n clock cycles
-!prev        steps to the previous clock cycle
-!rewind      rewinds program until beginning
-!rewind.n    rewinds n clock cycles
-!print       displays the complete state of the virtual machine
-!stack       displays the complete state of the stack
-!stack[i]    displays the stack element at index i
-!mem         displays the complete state of memory
-!mem[i]      displays memory at address i
-!clock       displays the current clock cycle
-!quit        quits the debugger
-!help        displays this message
+<p>The Miden debugger is a command-line interface (CLI) application, inspired on <a href="https://sourceware.org/gdb/">GNU gdb</a>, that allows debugging of Miden assembly (MASM) programs. The debugger allows the user to step through the execution of the program, both forward and backward, either per clock cycle tick, or via breakpoints.</p>
+<p>The Miden debugger supports the following commands:</p>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Shortcut</th><th>Arguments</th><th>Description</th></tr></thead><tbody>
+<tr><td>next</td><td>n</td><td>count?</td><td>Steps <code>count</code> clock cycles. Will step <code>1</code> cycle of <code>count</code> is ommitted.</td></tr>
+<tr><td>continue</td><td>c</td><td>-</td><td>Executes the program until completion, failure or a breakpoint.</td></tr>
+<tr><td>back</td><td>b</td><td>count?</td><td>Backward step <code>count</code> clock cycles. Will back-step <code>1</code> cycle of <code>count</code> is ommitted.</td></tr>
+<tr><td>rewind</td><td>r</td><td>-</td><td>Executes the program backwards until the beginning, failure or a breakpoint.</td></tr>
+<tr><td>print</td><td>p</td><td>-</td><td>Displays the complete state of the virtual machine.</td></tr>
+<tr><td>print mem</td><td>p m</td><td>address?</td><td>Displays the memory value at <code>address</code>. If <code>address</code> is ommitted, didisplays all the memory values.</td></tr>
+<tr><td>print stack</td><td>p s</td><td>index?</td><td>Displays the stack value at <code>index</code>. If <code>index</code> is ommitted, displays all the stack values.</td></tr>
+<tr><td>clock</td><td>c</td><td>-</td><td>Displays the current clock cycle.</td></tr>
+<tr><td>quit</td><td>q</td><td>-</td><td>Quits the debugger.</td></tr>
+<tr><td>help</td><td>h</td><td>-</td><td>Displays the help message.</td></tr>
+</tbody></table>
+</div>
+<p>In order to start debugging, the user should provide a <code>MASM</code> program:</p>
+<pre><code class="language-shell">cargo run --features executable -- debug --assembly miden/examples/nprime/nprime.masm
+</code></pre>
+<p>The expected output is:</p>
+<pre><code>============================================================
+Debug program
+============================================================
+Reading program file `miden/examples/nprime/nprime.masm`
+Compiling program... done (16 ms)
+Debugging program with hash 11dbbddff27e26e48be3198133df8cbed6c5875d0fb
+606c9f037c7893fde4118... 
+Reading input file `miden/examples/nprime/nprime.inputs`
+Welcome! Enter `h` for help.
+&gt;&gt; 
+</code></pre>
+<p>In order to add a breakpoint, the user should insert a <code>breakpoint</code> instruction into the MASM file. This will generate a <code>Noop</code> operation that will be decorated with the debug break configuration. This is a provisory solution until the source mapping is implemented.</p>
+<p>The following example will halt on the third instruction of <code>foo</code>:</p>
+<pre><code>proc.foo
+    dup
+    dup.2
+    breakpoint
+    swap
+    add.1
+end
+
+begin
+    exec.foo
+end
 </code></pre>
 <h3 id="repl"><a class="header" href="#repl">REPL</a></h3>
 <p>The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging of Miden assembly. After the REPL gets initialized, you can execute any Miden instruction, undo executed instructions, check the state of the stack and memory at a given point, and do many other useful things! When the REPL is exited, a <code>history.txt</code> file is saved. One thing to note is that all the REPL native commands start with an <code>!</code> to differentiate them from regular assembly instructions. The REPL currently supports the following commands:</p>
