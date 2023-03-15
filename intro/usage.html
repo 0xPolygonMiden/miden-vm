@@ -159,12 +159,17 @@
 <p>The above functionality is also exposed via the single <a href="https://crates.io/crates/miden">miden</a> crate, which also provides a CLI interface for interacting with Miden VM.</p>
 <h2 id="cli-interface"><a class="header" href="#cli-interface">CLI interface</a></h2>
 <h3 id="compiling-miden-vm"><a class="header" href="#compiling-miden-vm">Compiling Miden VM</a></h3>
-<p>To compile Miden VM into a binary, you can run the following command:</p>
-<pre><code>cargo build --release --features executable
+<p>To compile Miden VM into a binary, we have a <a href="https://www.gnu.org/software/make/manual/make.html">Makefile</a> with the following tasks:</p>
+<pre><code>make exec
 </code></pre>
-<p>This will place <code>miden</code> executable in the <code>./target/release</code> directory.</p>
-<p>By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:</p>
-<pre><code>cargo build --release --features &quot;executable concurrent&quot;
+<p>This will place an optimized, multi-threaded <code>miden</code> executable in the <code>./target/release</code> directory. It is equivalent to executing:</p>
+<pre><code>cargo build --profile optimized --features concurrent,executable
+</code></pre>
+<p>If you would like to enable single-threaded mode, you can compile Miden Vm using the following command:</p>
+<pre><code>cargo build --profile optimized --features executable
+</code></pre>
+<p>For a faster build, you can compile with less optimizations, replacing <code>--profile optimized</code> by <code>--release</code>. Example:</p>
+<pre><code>cargo build --release --features concurrent,executable
 </code></pre>
 <h3 id="controlling-parallelism"><a class="header" href="#controlling-parallelism">Controlling parallelism</a></h3>
 <p>Internally, Miden VM uses <a href="https://github.com/rayon-rs/rayon">rayon</a> for parallel computations. To control the number of threads used to generate a STARK proof, you can use <code>RAYON_NUM_THREADS</code> environment variable.</p>
