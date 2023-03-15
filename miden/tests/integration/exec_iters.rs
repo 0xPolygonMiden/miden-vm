@@ -1,6 +1,6 @@
 use super::build_debug_test;
 use processor::{AsmOpInfo, VmState};
-use vm_core::{utils::ToElements, Felt, FieldElement, Operation};
+use vm_core::{utils::ToElements, AssemblyOp, Felt, FieldElement, Operation};
 
 // EXEC ITER TESTS
 // =================================================================
@@ -39,7 +39,10 @@ fn test_exec_iter() {
             clk: 2,
             ctx: 0,
             op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("mem_storew.1".to_string(), 3, 1)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 3, "mem_storew.1".to_string(), false),
+                1,
+            )),
             stack: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp,
             memory: Vec::new(),
@@ -48,7 +51,10 @@ fn test_exec_iter() {
             clk: 3,
             ctx: 0,
             op: Some(Operation::Incr),
-            asmop: Some(AsmOpInfo::new("mem_storew.1".to_string(), 3, 2)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 3, "mem_storew.1".to_string(), false),
+                2,
+            )),
             stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
             fmp,
             memory: Vec::new(),
@@ -57,7 +63,10 @@ fn test_exec_iter() {
             clk: 4,
             ctx: 0,
             op: Some(Operation::MStoreW),
-            asmop: Some(AsmOpInfo::new("mem_storew.1".to_string(), 3, 3)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 3, "mem_storew.1".to_string(), false),
+                3,
+            )),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp,
             memory: mem.clone(),
@@ -66,7 +75,10 @@ fn test_exec_iter() {
             clk: 5,
             ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 1)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
+                1,
+            )),
             stack: [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].to_elements(),
             fmp,
             memory: mem.clone(),
@@ -75,7 +87,10 @@ fn test_exec_iter() {
             clk: 6,
             ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 2)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
+                2,
+            )),
             stack: [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
@@ -84,7 +99,10 @@ fn test_exec_iter() {
             clk: 7,
             ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 3)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
+                3,
+            )),
             stack: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
@@ -93,7 +111,10 @@ fn test_exec_iter() {
             clk: 8,
             ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 4)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
+                4,
+            )),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
@@ -102,7 +123,10 @@ fn test_exec_iter() {
             clk: 9,
             ctx: 0,
             op: Some(Operation::Push(Felt::new(17))),
-            asmop: Some(AsmOpInfo::new("push.17".to_string(), 1, 1)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#main".to_string(), 1, "push.17".to_string(), false),
+                1,
+            )),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
@@ -138,7 +162,10 @@ fn test_exec_iter() {
             clk: 13,
             ctx: 0,
             op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 1)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
+                1,
+            )),
             stack: [0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: mem.clone(),
@@ -147,7 +174,10 @@ fn test_exec_iter() {
             clk: 14,
             ctx: 0,
             op: Some(Operation::FmpAdd),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 2)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
+                2,
+            )),
             stack: [2u64.pow(30) + 1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0]
                 .to_elements(),
             fmp: next_fmp,
@@ -157,7 +187,10 @@ fn test_exec_iter() {
             clk: 15,
             ctx: 0,
             op: Some(Operation::MStore),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 3)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
+                3,
+            )),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
@@ -169,7 +202,10 @@ fn test_exec_iter() {
             clk: 16,
             ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 4)),
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
+                4,
+            )),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![

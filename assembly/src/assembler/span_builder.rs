@@ -1,6 +1,6 @@
 use super::{
-    AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList, Instruction,
-    Operation, ToString, Vec,
+    AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
+    Instruction, Operation, ToString, Vec,
 };
 use vm_core::AssemblyOp;
 
@@ -102,8 +102,12 @@ impl SpanBuilder {
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
-    pub fn track_instruction(&mut self, instruction: &Instruction) {
-        let op = AssemblyOp::new(instruction.to_string(), 0);
+    pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &mut AssemblyContext) {
+        let context_name = ctx.current_context_name().to_string();
+        let num_cycles = 0;
+        let op = instruction.to_string();
+        let should_break = instruction.should_break();
+        let op = AssemblyOp::new(context_name, num_cycles, op, should_break);
         self.push_decorator(Decorator::AsmOp(op));
         self.last_asmop_pos = self.decorators.len() - 1;
     }

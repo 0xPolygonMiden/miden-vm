@@ -45,6 +45,9 @@ impl DebugExecutor {
             DebugCommand::Continue => {
                 while let Some(new_vm_state) = self.next_vm_state() {
                     self.vm_state = new_vm_state;
+                    if self.should_break() {
+                        break;
+                    }
                 }
                 self.print_vm_state();
             }
@@ -53,23 +56,29 @@ impl DebugExecutor {
                     match self.next_vm_state() {
                         Some(next_vm_state) => {
                             self.vm_state = next_vm_state;
+                            if self.should_break() {
+                                break;
+                            }
                         }
                         None => break,
                     }
                 }
                 self.print_vm_state();
             }
-            DebugCommand::RewindAll => {
-                while let Some(new_vm_state) = self.prev_vm_state() {
+            DebugCommand::Rewind => {
+                while let Some(new_vm_state) = self.vm_state_iter.back() {
                     self.vm_state = new_vm_state;
                 }
                 self.print_vm_state();
             }
-            DebugCommand::Rewind(cycles) => {
+            DebugCommand::Back(cycles) => {
                 for _cycle in 0..cycles {
-                    match self.prev_vm_state() {
+                    match self.vm_state_iter.back() {
                         Some(new_vm_state) => {
                             self.vm_state = new_vm_state;
+                            if self.should_break() {
+                                break;
+                            }
                         }
                         None => break,
                     }
@@ -100,17 +109,6 @@ impl DebugExecutor {
             },
             None => {
                 println!("Program execution complete.");
-                None
-            }
-        }
-    }
-
-    /// iterates to the previous clock cycle.
-    fn prev_vm_state(&mut self) -> Option<VmState> {
-        match self.vm_state_iter.next_back() {
-            Some(prev_vm_state_result) => prev_vm_state_result.ok(),
-            None => {
-                println!("At start of program execution.");
                 None
             }
         }
@@ -212,5 +210,10 @@ impl DebugExecutor {
             ? -> help";
 
         println!("{}", message);
+    }
+
+    /// Returns `true` if the current state should break.
+    fn should_break(&self) -> bool {
+        self.vm_state.asmop.as_ref().map(|asm| asm.should_break()).unwrap_or(false)
     }
 }

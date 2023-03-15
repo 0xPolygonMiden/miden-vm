@@ -467,6 +467,11 @@ impl Serializable for Instruction {
                 OpCode::SysCall.write_into(target)?;
                 imported.write_into(target)?
             }
+
+            // ----- debug decorators -------------------------------------------------------------
+            Self::Breakpoint => {
+                // this is a transparent instruction and will not be encoded into the library
+            }
         }
         Ok(())
     }
