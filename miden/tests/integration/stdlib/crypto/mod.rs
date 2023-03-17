@@ -6,4 +6,5 @@ mod ecdsa_secp256k1;
 mod falcon;
 mod fri;
 mod keccak256;
+mod recursive;
 mod sha256;
