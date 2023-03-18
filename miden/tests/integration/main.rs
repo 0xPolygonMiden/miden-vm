@@ -28,15 +28,15 @@ fn multi_output_program() {
 /// specified stack and advice inputs.
 ///
 /// Parameters are expected in the following order:
-/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `merkle_sets` (optional)
+/// `source`, `stack_inputs` (optional), `advice_stack` (optional), `merkle_store` (optional)
 ///
 /// * `source`: a string of one or more operations, e.g. "push.1 push.2".
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
 /// executing the `source`. Stack inputs can be provided independently without any advice inputs.
-/// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
-/// `merkle_sets` are also expected.
-/// * `merkle_sets` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_tape` are also expected.
+/// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
+/// `merkle_store` are also expected.
+/// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
+/// `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_op_test {
     ($op_str:expr) => {{
@@ -53,15 +53,15 @@ macro_rules! build_op_test {
 /// stack and advice inputs.
 ///
 /// Parameters are expected in the following order:
-/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `merkle_sets` (optional)
+/// `source`, `stack_inputs` (optional), `advice_stack` (optional), `merkle_store` (optional)
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
 /// executing the `source`. Stack inputs can be provided independently without any advice inputs.
-/// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
-/// `merkle_sets` are also expected.
-/// * `merkle_sets` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_tape` are also expected.
+/// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
+/// `merkle_store` are also expected.
+/// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
+/// `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_test {
     ($($params:tt)+) => {{
@@ -73,15 +73,15 @@ macro_rules! build_test {
 /// and advice inputs.
 ///
 /// Parameters are expected in the following order:
-/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `merkle_sets` (optional)
+/// `source`, `stack_inputs` (optional), `advice_stack` (optional), `merkle_store` (optional)
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
 /// executing the `source`. Stack inputs can be provided independently without any advice inputs.
-/// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
-/// `merkle_sets` are also expected.
-/// * `merkle_sets` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_tape` are also expected.
+/// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
+/// `merkle_store` are also expected.
+/// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
+/// `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_debug_test {
     ($($params:tt)+) => {{
@@ -117,16 +117,16 @@ macro_rules! build_test_by_mode {
         }
     }};
     (
-        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $merkle_sets:expr
+        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr
     ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
-        let tape_values: Vec<u64> = $advice_tape.to_vec();
+        let stack_values: Vec<u64> = $advice_stack.to_vec();
+        let store = $crate::helpers::MerkleStore::new();
         let advice_inputs = $crate::helpers::AdviceInputs::default()
-            .with_tape_values(tape_values)
+            .with_stack_values(stack_values)
             .unwrap()
-            .with_merkle_sets($merkle_sets)
-            .unwrap();
+            .with_merkle_store(store);
 
         $crate::helpers::Test {
             source: String::from($source),
@@ -136,16 +136,34 @@ macro_rules! build_test_by_mode {
             in_debug_mode: $in_debug_mode,
         }
     }};
-    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr, $advice_map:expr) => {{
+    (
+        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr
+    ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
-        let tape_values: Vec<u64> = $advice_tape.to_vec();
+        let stack_values: Vec<u64> = $advice_stack.to_vec();
         let advice_inputs = $crate::helpers::AdviceInputs::default()
-            .with_tape_values(tape_values)
+            .with_stack_values(stack_values)
             .unwrap()
-            .with_merkle_sets($advice_sets)
+            .with_merkle_store($advice_merkle_store);
+
+        $crate::helpers::Test {
+            source: String::from($source),
+            kernel: None,
+            stack_inputs,
+            advice_inputs,
+            in_debug_mode: $in_debug_mode,
+        }
+    }};
+    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
+        let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
+        let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_values: Vec<u64> = $advice_stack.to_vec();
+        let advice_inputs = $crate::helpers::AdviceInputs::default()
+            .with_stack_values(stack_values)
             .unwrap()
-            .with_values_map($advice_map);
+            .with_merkle_store($advice_merkle_store)
+            .with_map($advice_map);
 
         $crate::helpers::Test {
             source: String::from($source),

@@ -18,7 +18,7 @@ use winter_prover::Trace;
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
     math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, Hasher, InputError,
-    MemAdviceProvider, MerkleError, MerkleSet, Program, StackInputs, StackOutputs, Word,
+    MemAdviceProvider, MerkleError, Program, StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::StarkProof;
 

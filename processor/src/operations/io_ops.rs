@@ -181,10 +181,10 @@ where
         Ok(())
     }
 
-    /// Moves 8 elements from the head of the advice tape to memory via the stack.
+    /// Moves 8 elements from the advice stack to the memory, via the operand stack.
     ///
     /// The operation works as follows:
-    /// - Two words are read from the head of the advice tape.
+    /// - Two words are popped from the top of the advice stack.
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
@@ -196,8 +196,8 @@ where
         let ctx = self.system.ctx();
         let addr = self.stack.get(12);
 
-        // read two words from the advice tape
-        let words = self.advice_provider.read_tape_dw()?;
+        // pop two words from the advice stack
+        let words = self.advice_provider.pop_stack_dword()?;
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
@@ -225,24 +225,24 @@ where
     // ADVICE INPUTS
     // --------------------------------------------------------------------------------------------
 
-    /// Removes the next element from the advice tape and pushes it onto the stack.
+    /// Pops an element from the advice stack and pushes it onto the operand stack.
     ///
     /// # Errors
-    /// Returns an error if the advice tape is empty.
+    /// Returns an error if the advice stack is empty.
     pub(super) fn op_read(&mut self) -> Result<(), ExecutionError> {
-        let value = self.advice_provider.read_tape()?;
+        let value = self.advice_provider.pop_stack()?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
     }
 
-    /// Removes a word (4 elements) from the advice tape and overwrites the top four stack
-    /// elements with it.
+    /// Pops a word (4 elements) from the advice stack and overwrites the top word on the operand
+    /// stack with it.
     ///
     /// # Errors
-    /// Returns an error if the advice tape contains fewer than four elements.
+    /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_readw(&mut self) -> Result<(), ExecutionError> {
-        let word = self.advice_provider.read_tape_w()?;
+        let word = self.advice_provider.pop_stack_word()?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);
@@ -478,21 +478,21 @@ mod tests {
     fn op_pipe() {
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
 
-        // write words to the advice tape
+        // write words to the advice stack
         let word1 = [30, 29, 28, 27];
         let word2 = [26, 25, 24, 23];
         let word1_felts: Word = word1.to_elements().try_into().unwrap();
         let word2_felts: Word = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
-            // reverse the word order, since elements are pushed onto the advice tape.
-            process.advice_provider.write_tape(AdviceSource::Value(element)).unwrap();
+            // reverse the word order, since elements are pushed onto the advice stack.
+            process.advice_provider.write_stack(AdviceSource::Value(element)).unwrap();
         }
 
         // arrange the stack such that:
         // - 101 is at position 13 (to make sure it is not overwritten)
         // - 1 (the address) is at position 12
         // - values 1 - 12 are at positions 0 - 11. Replacing the first 8 of these values with the
-        //   values from the advice tape should result in 30 through 23 in stack order (with 23 at
+        //   values from the advice stack should result in 30 through 23 in stack order (with 23 at
         //   stack[0]).
         process.execute_op(Operation::Push(Felt::new(101))).unwrap();
         process.execute_op(Operation::Push(ONE)).unwrap();
@@ -503,12 +503,12 @@ mod tests {
         // execute the PIPE operation
         process.execute_op(Operation::Pipe).unwrap();
 
-        // check memory state contains the words from the advice tape
+        // check memory state contains the words from the advice stack
         assert_eq!(2, process.chiplets.get_mem_size());
         assert_eq!(word1_felts, process.chiplets.get_mem_value(0, 1).unwrap());
         assert_eq!(word2_felts, process.chiplets.get_mem_value(0, 2).unwrap());
 
-        // the first 8 values should be the values from the advice tape. the next 4 values should
+        // the first 8 values should be the values from the advice stack. the next 4 values should
         // remain unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
         let stack_values = [
             word2[3], word2[2], word2[1], word2[0], word1[3], word1[2], word1[1], word1[0], 4, 3,
@@ -523,21 +523,21 @@ mod tests {
 
     #[test]
     fn op_read() {
-        // reading from tape should push the value onto the stack
-        let mut process = Process::new_dummy_with_advice_tape(&[3]);
+        // reading from stack should push the value onto the stack
+        let mut process = Process::new_dummy_with_advice_stack(&[3]);
         process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Read).unwrap();
         let expected = build_expected_stack(&[3, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // reading again should result in an error because advice tape is empty
+        // reading again should result in an error because advice stack is empty
         assert!(process.execute_op(Operation::Read).is_err());
     }
 
     #[test]
     fn op_readw() {
-        // reading from tape should overwrite top 4 values
-        let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
+        // reading from stack should overwrite top 4 values
+        let mut process = Process::new_dummy_with_advice_stack(&[3, 4, 5, 6]);
         process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
@@ -546,20 +546,6 @@ mod tests {
         process.execute_op(Operation::ReadW).unwrap();
         let expected = build_expected_stack(&[6, 5, 4, 3, 1]);
         assert_eq!(expected, process.stack.trace_state());
-        /*
-
-        // reading again should result in an error because advice tape is empty
-        assert!(process.execute_op(Operation::ReadW).is_err());
-
-        // should not return an error if the stack has fewer than 4 values
-        let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
-        process.execute_op(Operation::Push(ONE)).unwrap();
-        process.execute_op(Operation::Pad).unwrap();
-        process.execute_op(Operation::Pad).unwrap();
-        assert!(process.execute_op(Operation::ReadW).is_ok());
-        let expected = build_expected_stack(&[6, 5, 4, 3]);
-        assert_eq!(expected, process.stack.trace_state());
-        */
     }
 
     // HELPER METHODS

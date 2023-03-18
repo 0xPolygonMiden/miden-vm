@@ -337,20 +337,20 @@ fn generate_trace() {
     let trace = stack.into_trace(16, 1);
     let trace = trace.trace;
 
-    assert_eq!(read_stack_top(&trace, 0), build_stack(&[4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 1), build_stack(&[4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 2), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 0, 4, 3, 2, 1])); // start context
-    assert_eq!(read_stack_top(&trace, 4), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 5), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 6), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 7), build_stack(&[0, 0, 4, 3, 2, 1])); // restore context
-    assert_eq!(read_stack_top(&trace, 8), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 9), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 10), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 11), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 12), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 13), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 0), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 1), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 2), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 3), build_stack(&[0, 0, 4, 3, 2, 1])); // start context
+    assert_eq!(pop_stack_top(&trace, 4), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 5), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 6), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 7), build_stack(&[0, 0, 4, 3, 2, 1])); // restore context
+    assert_eq!(pop_stack_top(&trace, 8), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 9), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 10), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 11), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 12), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(pop_stack_top(&trace, 13), build_stack(&[4, 3, 2, 1]));
 
     assert_eq!(read_helpers(&trace, 0), build_helpers(16, 0));
     assert_eq!(read_helpers(&trace, 1), build_helpers(16, 0));
@@ -403,7 +403,7 @@ fn build_helpers_partial(num_overflow: usize, next_overflow_addr: usize) -> Stac
 }
 
 /// Returns values in stack top columns of the provided trace at the specified row.
-fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackTopState {
+fn pop_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackTopState {
     let mut result = [ZERO; STACK_TOP_SIZE];
     for (value, column) in result.iter_mut().zip(trace) {
         *value = column[row];

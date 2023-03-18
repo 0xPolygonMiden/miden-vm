@@ -6,7 +6,7 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 // ================================================================================================
 
 /// Appends the number of READ operations specified by the instruction's immediate value to the
-/// span. This removes the specified number of elements from the advice tape and pushes them onto
+/// span. This removes the specified number of elements from the advice stack and pushes them onto
 /// the stack.
 ///
 /// # Errors

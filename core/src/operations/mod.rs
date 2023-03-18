@@ -312,10 +312,10 @@ pub enum Operation {
     /// Pushes the immediate value onto the stack.
     Push(Felt),
 
-    /// Removes the next element from the advice tape and pushes it onto the stack.
+    /// Removes the next element from the advice stack and pushes it onto the stack.
     Read,
 
-    /// Removes a word (4 elements) from the advice tape and overwrites the top four stack
+    /// Removes a word (4 elements) from the advice stack and overwrites the top four stack
     /// elements with it.
     ReadW,
 
@@ -348,11 +348,11 @@ pub enum Operation {
     /// - All other stack elements remain the same.
     MStream,
 
-    /// Loads two words from the advice tape, writes them to memory, and replaces the top 8 elements
+    /// Loads two words from the advice stack, writes them to memory, and replaces the top 8 elements
     /// of the stack with them, element-wise, in stack order.
     ///
     /// The operation works as follows:
-    /// - Two words are read from the head of the advice tape.
+    /// - Two words are read from the head of the advice stack.
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
