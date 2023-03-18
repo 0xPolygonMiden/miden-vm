@@ -779,6 +779,7 @@ end
 #   11.[x, _, _, _] where x := offset * lde_domain_generator^query_index
 #   20. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
 #   21. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
+#   22 -> 1999 Empty for now but should hold the public inputs in the future
 #   2000 -> 2015    auxiliary trace random coefficients
 #   2016 -> 2250    constraint composition coefficients
 #   2251    [(z^8)_1, (z^8)_0, z_1, z_0] where z = (z_0, z_1) is the OOD random element
@@ -790,6 +791,17 @@ end
 #   2500 -> ptr_remainder - 1 where ptr_remainder := 2500 + 2 * number_of_layers
 #   ptr_remainder -> ptr_remainder + remainder_length / 2
 #   ptr_remainder + remainder_length / 2 + 1 -> ptr_remainder + remainder_length / 2 + length_of_remainder_polynomial/2
+#================================================
+
+# Note: 
+# 1. The choice of the number of locals is based on an estimate and should be updated  
+# 2. In particular, once the conjugate term in the deep queries has been removed through
+#   the new Winterfell release, the number of deep query coefficients should be reduced by a 1/4.
+#    The current MASM implementation assumes this when computing the sums but not for the number of 
+#    coefficients. This should be updated and aligned.
+# 3. Once `RandomCoin` has been redesigned, the way randomness is generated should be simplified.
+# 4. The periodic values for the OOD evaluation frame are not implemented. This should probably be
+#   delegated to the constraint evaluator.   
 export.verify.4222
 
     # Load the LDE domain size as well as its log2 as [lde_size, log(lde_size), 0, 0]
@@ -2027,24 +2039,5 @@ export.verify.4222
 
     # Call FRI verifier
     # TODO: Fix the FRI verifier and call it to conclude STARK verification
-    
-
-    
-    #sub.2
-    #mem_loadw
-    #loc_loadw.2473
-    #swapw
-    #loc_loadw.2499
-    #push.0.0.0.0
-    #loc_loadw.8
-    #locaddr.2500
-    #sub.27
-    #locaddr.2473
-    #loc_loadw.11
-    
-    # [11070710193385185156, 8192, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14]
-    # [lde_size, log2(lde_size), lde_generator, 0, 0]
-
-    # [BaseElement(422381830528616670), BaseElement(497497533206435066), BaseElement(577902776270966840), BaseElement(2502025270157437730) [0, 0, 1, pow, Seed, 0, 0, 0, 1
 
 end

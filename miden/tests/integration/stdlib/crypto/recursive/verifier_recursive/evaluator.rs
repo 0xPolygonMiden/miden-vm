@@ -16,11 +16,6 @@ pub fn evaluate_constraints<A: Air, E: FieldElement<BaseField = A::BaseField>>(
 ) -> E {
     // 1 ----- evaluate transition constraints ----------------------------------------------------
 
-    //println!("Eval frame current {:?}", main_trace_frame.current().len());
-    //println!("Eval frame next {:?}", main_trace_frame.next().len());
-    //println!("composition_coefficients.transition {:?}", composition_coefficients.transition);
-    //println!("composition_coefficients.boundry {:?}", composition_coefficients.boundary);
-    // initialize a buffer to hold transition constraint evaluations
     let t_constraints = air.get_transition_constraints(&composition_coefficients.transition);
 
     // compute values of periodic columns at x
@@ -33,12 +28,10 @@ pub fn evaluate_constraints<A: Air, E: FieldElement<BaseField = A::BaseField>>(
             polynom::eval(poly, x)
         })
         .collect::<Vec<_>>();
-    println!("number of periodic values {:?}", periodic_values.len());
 
     // evaluate transition constraints for the main trace segment
     let mut t_evaluations1 = E::zeroed_vector(t_constraints.num_main_constraints());
     air.evaluate_transition(main_trace_frame, &periodic_values, &mut t_evaluations1);
-    println!("transition evaluations {:?}", t_evaluations1.len());
 
     // evaluate transition constraints for auxiliary trace segments (if any)
     let mut t_evaluations2 = E::zeroed_vector(t_constraints.num_aux_constraints());
@@ -51,7 +44,6 @@ pub fn evaluate_constraints<A: Air, E: FieldElement<BaseField = A::BaseField>>(
             &mut t_evaluations2,
         );
     }
-    println!("transition aux evaluations {:?}", t_evaluations2.len());
 
     // merge all constraint evaluations into a single value by computing their random linear
     // combination using coefficients drawn from the public coin. this also divides the result
@@ -68,14 +60,6 @@ pub fn evaluate_constraints<A: Air, E: FieldElement<BaseField = A::BaseField>>(
     let mut degree_adjustment = b_constraints.main_constraints()[0].degree_adjustment();
     let mut xp = x.exp_vartime(degree_adjustment.into());
 
-    println!("boundry constraint main {:?}", b_constraints.main_constraints().len());
-    println!("boundry constraint aux {:?}", b_constraints.aux_constraints().len());
-    println!("degree adjustment is {:?}", degree_adjustment);
-    println!("number of comp coef for boundry {:?}", composition_coefficients.boundary.len());
-    println!(
-        "number of comp coef for transition {:?}",
-        composition_coefficients.transition.len()
-    );
     // iterate over boundary constraint groups for the main trace segment (each group has a
     // distinct divisor), evaluate constraints in each group and add their combination to the
     // result
@@ -86,7 +70,6 @@ pub fn evaluate_constraints<A: Air, E: FieldElement<BaseField = A::BaseField>>(
             degree_adjustment = group.degree_adjustment();
             xp = x.exp_vartime(degree_adjustment.into());
         }
-        println!("degree adjustment is {:?}", degree_adjustment);
         // evaluate all constraints in the group, and add the evaluation to the result
         result += group.evaluate_at(main_trace_frame.current(), x, xp);
     }
