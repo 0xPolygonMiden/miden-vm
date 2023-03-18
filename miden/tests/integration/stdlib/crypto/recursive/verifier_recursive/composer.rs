@@ -68,11 +68,9 @@ impl<E: FieldElement> DeepComposer<E> {
         let conjugate_values =
             get_conjugate_values(self.field_extension, ood_main_trace_states[0], self.z[0]);
 
-        println!("number of self.cc.trace {:?}", self.cc.trace);
-        println!("number of self.cc.comp {:?}", self.cc.constraints);
         // compose columns of of the main trace segment
         let mut result = E::zeroed_vector(queried_main_trace_states.num_rows());
-        for (j, ((result, row), &x)) in result
+        for (_j, ((result, row), &x)) in result
             .iter_mut()
             .zip(queried_main_trace_states.rows())
             .zip(&self.x_coordinates)
@@ -96,35 +94,6 @@ impl<E: FieldElement> DeepComposer<E> {
                     let t3 = (value - trace_at_z1_conjugates[i]) / (x - z_conjugate);
                     *result += t3 * self.cc.trace[i].2;
                 }
-                if j == 100 {
-                    println!("i is {:?}", i);
-                    println!("x is {:?}", x);
-                    println!("value is {:?}", value);
-                    println!("z is {:?}", self.z[0]);
-                    println!("gz is {:?}", self.z[1]);
-                    println!("x - z is {:?}", x - self.z[0]);
-                    println!("x - gz is {:?}", x - self.z[1]);
-                    println!("ood_main_trace_states[0][i] is {:?}", ood_main_trace_states[0][i]);
-                    println!("ood_main_trace_states[1][i] is {:?}", ood_main_trace_states[1][i]);
-                    println!(
-                        "(value - ood_main_trace_states[0][i]) is {:?}",
-                        (value - ood_main_trace_states[0][i])
-                    );
-                    println!(
-                        "(value - ood_main_trace_states[1][i]) is {:?}",
-                        (value - ood_main_trace_states[1][i])
-                    );
-                    //println!("self.cc.trace[i].0 is {:?}",self.cc.trace[i].0);
-                    //println!("self.cc.trace[i].1 is {:?}",self.cc.trace[i].1);
-                    println!(
-                        "(value - ood_main_trace_states[0][i]) * alpha is {:?}",
-                        (value - ood_main_trace_states[0][i]) * self.cc.trace[i].0
-                    );
-                    println!(
-                        "(value - ood_main_trace_states[1][i]) * beta is {:?}",
-                        (value - ood_main_trace_states[1][i]) * self.cc.trace[i].1
-                    );
-                }
             }
         }
 
@@ -137,7 +106,7 @@ impl<E: FieldElement> DeepComposer<E> {
             // consumed some number of composition coefficients already.
             let cc_offset = queried_main_trace_states.num_columns();
 
-            for (j, ((result, row), &x)) in result
+            for (_j, ((result, row), &x)) in result
                 .iter_mut()
                 .zip(queried_aux_trace_states.rows())
                 .zip(&self.x_coordinates)
@@ -153,26 +122,6 @@ impl<E: FieldElement> DeepComposer<E> {
                     // composition coefficient, and add the result to T(x)
                     let t2 = (value - ood_aux_trace_states[1][i]) / (x - self.z[1]);
                     *result += t2 * self.cc.trace[cc_offset + i].1;
-                    if j == 100 {
-                        println!("i is {:?}", i);
-                        println!("value is {:?}", value);
-                        println!(
-                            "(ood_aux_trace_states[0][i]) is {:?}",
-                            (ood_aux_trace_states[0][i])
-                        );
-                        println!(
-                            "(ood_aux_trace_states[1][i]) is {:?}",
-                            (ood_aux_trace_states[1][i])
-                        );
-                        println!(
-                            "(value - ood_aux_trace_states[0][i]) is {:?}",
-                            (value - ood_aux_trace_states[0][i])
-                        );
-                        println!(
-                            "(value - ood_aux_trace_states[1][i]) is {:?}",
-                            (value - ood_aux_trace_states[1][i])
-                        );
-                    }
                 }
             }
         }
@@ -204,7 +153,7 @@ impl<E: FieldElement> DeepComposer<E> {
         // compute z^m
         let num_evaluation_columns = ood_evaluations.len() as u32;
         let z_m = self.z[0].exp_vartime(num_evaluation_columns.into());
-        for (j, (query_values, &x)) in
+        for (_j, (query_values, &x)) in
             queried_evaluations.rows().zip(&self.x_coordinates).enumerate()
         {
             let mut composition = E::ZERO;
@@ -213,14 +162,6 @@ impl<E: FieldElement> DeepComposer<E> {
                 let h_i = (evaluation - ood_evaluations[i]) / (x - z_m);
                 // multiply it by a pseudo-random coefficient, and add the result to H(x)
                 composition += h_i * self.cc.constraints[i];
-                if j == 100 {
-                    println!("{i}");
-                    println!("constr poly e {:?}", evaluation);
-                    println!("ood_evaluation[i]{:?}", ood_evaluations[i]);
-                    println!("evaluation ood_evaluation[i]{:?}", evaluation - ood_evaluations[i]);
-                    println!("(z^m){:?}", (z_m));
-                    println!("(x-z^m){:?}", (x - z_m));
-                }
             }
             result.push(composition);
         }
