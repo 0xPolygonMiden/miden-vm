@@ -1,6 +1,6 @@
 use super::{
     AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
-    MerklePath, MerkleSet, NodeIndex, StarkField, Vec, Word,
+    MerklePath, MerkleStore, NodeIndex, Vec, Word,
 };
 
 // MEMORY ADVICE PROVIDER
@@ -14,18 +14,18 @@ pub struct MemAdviceProvider {
     step: u32,
     stack: Vec<Felt>,
     map: BTreeMap<[u8; 32], Vec<Felt>>,
-    sets: BTreeMap<[u8; 32], MerkleSet>,
+    store: MerkleStore,
 }
 
 impl From<AdviceInputs> for MemAdviceProvider {
     fn from(inputs: AdviceInputs) -> Self {
-        let (mut stack, map, sets) = inputs.into_parts();
+        let (mut stack, map, store) = inputs.into_parts();
         stack.reverse();
         Self {
             step: 0,
             stack,
             map,
-            sets,
+            store,
         }
     }
 }
@@ -93,18 +93,9 @@ impl AdviceProvider for MemAdviceProvider {
         depth: &Felt,
         index: &Felt,
     ) -> Result<Word, ExecutionError> {
-        // look up the merkle set and return an error if none is found
-        let merkle_set = self
-            .sets
-            .get(&root.into_bytes())
-            .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?;
-
-        // get the tree node from the merkle set based on depth and index
         let index = NodeIndex::from_elements(depth, index)
-            .map_err(ExecutionError::MerkleSetLookupFailed)?;
-        let node = merkle_set.get_node(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
-
-        Ok(node)
+            .map_err(|_| ExecutionError::MerkleNodeIndex(*depth, *index))?;
+        self.store.get_node(root, index).map_err(ExecutionError::MerkleSetLookupFailed)
     }
 
     fn get_merkle_path(
@@ -113,53 +104,27 @@ impl AdviceProvider for MemAdviceProvider {
         depth: &Felt,
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
-        // look up the merkle set and return an error if none is found
-        let merkle_set = self
-            .sets
-            .get(&root.into_bytes())
-            .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?;
-
-        // get the Merkle path from the merkle set based on depth and index
         let index = NodeIndex::from_elements(depth, index)
-            .map_err(ExecutionError::MerkleSetLookupFailed)?;
-        let path = merkle_set.get_path(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
-
-        Ok(path)
+            .map_err(|_| ExecutionError::MerkleNodeIndex(*depth, *index))?;
+        self.store
+            .get_path(root, index)
+            .map(|value| value.path)
+            .map_err(ExecutionError::MerkleSetLookupFailed)
     }
 
-    fn update_merkle_leaf(
+    fn update_merkle_node(
         &mut self,
         root: Word,
-        index: Felt,
-        leaf_value: Word,
-        update_in_copy: bool,
+        depth: &Felt,
+        index: &Felt,
+        value: Word,
     ) -> Result<MerklePath, ExecutionError> {
-        // look up the merkle set and return error if none is found. if we are updating a copy,
-        // clone the merkle set; otherwise remove it from the map because the root will change,
-        // and we'll re-insert the set later under a different root.
-        let mut merkle_set = if update_in_copy {
-            // look up the merkle set and return an error if none is found
-            self.sets
-                .get(&root.into_bytes())
-                .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?
-                .clone()
-        } else {
-            self.sets
-                .remove(&root.into_bytes())
-                .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?
-        };
-
-        // get the Merkle path from the merkle set for the leaf at the specified index
-        let index = NodeIndex::new(merkle_set.depth(), index.as_int());
-        let path = merkle_set.get_path(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
-
-        // update the merkle set and re-insert it into the map
-        merkle_set
-            .update_leaf(index.value(), leaf_value)
-            .map_err(ExecutionError::MerkleSetLookupFailed)?;
-        self.sets.insert(merkle_set.root().into_bytes(), merkle_set);
-
-        Ok(path)
+        let node_index = NodeIndex::from_elements(depth, index)
+            .map_err(|_| ExecutionError::MerkleNodeIndex(*depth, *index))?;
+        self.store
+            .set_node(root, node_index, value)
+            .map(|root| root.path)
+            .map_err(ExecutionError::MerkleSetLookupFailed)
     }
 
     // CONTEXT MANAGEMENT
@@ -170,13 +135,13 @@ impl AdviceProvider for MemAdviceProvider {
     }
 }
 
-#[cfg(test)]
 impl MemAdviceProvider {
-    // ADVISE SETS
+    // ADVISE SETS TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns true if the merkle set with the specified root is present in this advice provider.
-    pub fn has_merkle_set(&self, root: Word) -> bool {
-        self.sets.contains_key(&root.into_bytes())
+    /// Returns true if the Merkle root exists for the advice provider Merkle store.
+    #[cfg(test)]
+    pub fn has_merkle_root(&self, root: Word) -> bool {
+        self.store.get_node(root, NodeIndex::root()).is_ok()
     }
 }

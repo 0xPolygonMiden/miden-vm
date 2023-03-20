@@ -14,7 +14,7 @@ fn adv_push() {
         final_stack.copy_from_slice(&advice_stack[..n]);
         final_stack.reverse();
 
-        let test = build_op_test!(source, &[], &advice_stack, vec![]);
+        let test = build_op_test!(source, &[], &advice_stack);
         test.expect_stack(&final_stack);
     };
 
@@ -42,7 +42,7 @@ fn adv_loadw() {
     let mut final_stack = advice_stack;
     final_stack.reverse();
 
-    let test = build_op_test!(asm_op, &[8, 7, 6, 5], &advice_stack, vec![]);
+    let test = build_op_test!(asm_op, &[8, 7, 6, 5], &advice_stack);
     test.expect_stack(&final_stack);
 }
 
@@ -82,6 +82,6 @@ fn adv_pipe() {
     final_stack.reverse();
     final_stack.push(2);
 
-    let test = build_test!(source, &[], &advice_stack, vec![]);
+    let test = build_test!(source, &[], &advice_stack);
     test.expect_stack(&final_stack);
 }

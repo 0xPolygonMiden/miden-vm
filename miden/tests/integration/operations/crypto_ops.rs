@@ -1,13 +1,12 @@
-use processor::MerkleSet;
 use rand_utils::rand_vector;
 use vm_core::{
     chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
-    crypto::merkle::NodeIndex,
+    crypto::merkle::{MerkleTree, NodeIndex},
     Felt, FieldElement, StarkField,
 };
 
 use crate::build_op_test;
-use crate::helpers::crypto::{init_merkle_leaf, init_merkle_leaves};
+use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
 
 // TESTS
 // ================================================================================================
@@ -105,8 +104,8 @@ fn mtree_get() {
     let asm_op = "mtree_get";
 
     let index = 3usize;
-    let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),
@@ -128,20 +127,20 @@ fn mtree_get() {
         tree.root()[0].as_int(),
     ];
 
-    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree]);
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
     test.expect_stack(&final_stack);
 }
 
 #[test]
 fn mtree_update() {
     let index = 5usize;
-    let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = MerkleSet::new_merkle_tree(leaves.clone()).unwrap();
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
 
     let new_node = init_merkle_leaf(9);
-    let mut new_leaves = leaves;
+    let mut new_leaves = leaves.clone();
     new_leaves[index] = new_node;
-    let new_tree = MerkleSet::new_merkle_tree(new_leaves).unwrap();
+    let new_tree = MerkleTree::new(new_leaves).unwrap();
 
     let stack_inputs = [
         new_node[0].as_int(),
@@ -176,7 +175,7 @@ fn mtree_update() {
         new_tree.root()[0].as_int(),
     ];
 
-    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree.clone()]);
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store.clone());
     test.expect_stack(&final_stack);
 
     // --- mtree_cwm ----------------------------------------------------------------------
@@ -195,7 +194,7 @@ fn mtree_update() {
         new_tree.root()[0].as_int(),
     ];
 
-    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree]);
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
     test.expect_stack(&final_stack);
 }
 

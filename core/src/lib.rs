@@ -14,7 +14,7 @@ pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
         pub use ::crypto::merkle::{
-            MerkleError, MerklePath, MerklePathSet, MerkleTree, NodeIndex, SimpleSmt,
+            MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree, NodeIndex, SimpleSmt,
         };
     }
 

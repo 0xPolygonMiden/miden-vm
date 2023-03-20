@@ -145,7 +145,7 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span, false)
+    update_mtree(span, true)
 }
 
 /// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as

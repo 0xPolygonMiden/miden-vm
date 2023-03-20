@@ -277,13 +277,17 @@ mod tests {
         super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::{MemAdviceProvider, MerkleSet, StackInputs, Word};
-    use vm_core::{AdviceInjector, Decorator};
+    use crate::{MemAdviceProvider, StackInputs, Word};
+    use vm_core::{
+        crypto::merkle::{MerkleStore, MerkleTree},
+        AdviceInjector, Decorator,
+    };
 
     #[test]
     fn inject_merkle_node() {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
-        let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let tree = MerkleTree::new(leaves.to_vec()).unwrap();
+        let store = MerkleStore::default().with_merkle_tree(leaves).unwrap();
         let stack_inputs = [
             tree.root()[0].as_int(),
             tree.root()[1].as_int(),
@@ -294,7 +298,7 @@ mod tests {
         ];
 
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let advice_inputs = AdviceInputs::default().with_merkle_store(store);
         let advice_provider = MemAdviceProvider::from(advice_inputs);
         let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();

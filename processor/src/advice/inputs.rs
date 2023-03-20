@@ -1,4 +1,4 @@
-use super::{utils::IntoBytes, BTreeMap, Felt, InputError, MerkleSet, Vec};
+use super::{BTreeMap, Felt, InputError, MerkleStore, Vec};
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -18,7 +18,7 @@ use super::{utils::IntoBytes, BTreeMap, Felt, InputError, MerkleSet, Vec};
 pub struct AdviceInputs {
     stack: Vec<Felt>,
     map: BTreeMap<[u8; 32], Vec<Felt>>,
-    merkle_sets: BTreeMap<[u8; 32], MerkleSet>,
+    store: MerkleStore,
 }
 
 impl AdviceInputs {
@@ -61,20 +61,10 @@ impl AdviceInputs {
         self
     }
 
-    /// Attempts to extend the Merkle sets with the given argument, failing if a duplicated root is
-    /// provided.
-    pub fn with_merkle_sets<I>(mut self, iter: I) -> Result<Self, InputError>
-    where
-        I: IntoIterator<Item = MerkleSet>,
-    {
-        for set in iter.into_iter() {
-            let key = set.root().into_bytes();
-            if self.merkle_sets.contains_key(&key) {
-                return Err(InputError::DuplicateAdviceRoot(key));
-            }
-            self.merkle_sets.insert(key, set);
-        }
-        Ok(self)
+    /// Replaces the [MerkleStore] with the provided argument.
+    pub fn with_merkle_store(mut self, store: MerkleStore) -> Self {
+        self.store = store;
+        self
     }
 
     // PUBLIC ACCESSORS
@@ -90,9 +80,9 @@ impl AdviceInputs {
         self.map.get(key).map(Vec::as_slice)
     }
 
-    /// Fetch a Merkle set mapped by the given key.
-    pub fn merkle_set(&self, key: &[u8; 32]) -> Option<&MerkleSet> {
-        self.merkle_sets.get(key)
+    /// Returns the underlying [MerkleStore].
+    pub const fn merkle_store(&self) -> &MerkleStore {
+        &self.store
     }
 
     // DESTRUCTORS
@@ -100,14 +90,8 @@ impl AdviceInputs {
 
     /// Decomposes these `[Self]` into their raw components.
     #[allow(clippy::type_complexity)]
-    pub(crate) fn into_parts(
-        self,
-    ) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, BTreeMap<[u8; 32], MerkleSet>) {
-        let Self {
-            stack,
-            map,
-            merkle_sets,
-        } = self;
-        (stack, map, merkle_sets)
+    pub(crate) fn into_parts(self) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, MerkleStore) {
+        let Self { stack, map, store } = self;
+        (stack, map, store)
     }
 }

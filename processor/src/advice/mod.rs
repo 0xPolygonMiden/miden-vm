@@ -1,11 +1,10 @@
-use super::{utils, ExecutionError, Felt, InputError, Word};
+use super::{ExecutionError, Felt, InputError, Word};
 use vm_core::{
-    crypto::merkle::{MerkleError, MerklePath, MerklePathSet, MerkleTree, NodeIndex, SimpleSmt},
+    crypto::merkle::{MerklePath, MerkleStore, NodeIndex},
     utils::{
         collections::{BTreeMap, Vec},
         IntoBytes,
     },
-    StarkField,
 };
 
 mod inputs;
@@ -13,9 +12,6 @@ pub use inputs::AdviceInputs;
 
 mod mem_provider;
 pub use mem_provider::MemAdviceProvider;
-
-mod merkle_set;
-pub use merkle_set::MerkleSet;
 
 mod source;
 pub use source::AdviceSource;
@@ -47,8 +43,7 @@ pub use source::AdviceSource;
 ///    implementation should error if the user attempts to insert this key again, instead of the
 ///    common behavior of the maps to simply override the previous contents. This is a design
 ///    decision to increase the runtime robustness of the execution.
-/// 3. Provide merkle sets, that are mappings from a Merkle root its tree. The tree should yield
-///    nodes & leaves, and will provide a Merkle path if a leaf is updated.
+/// 3. Provide merkle tree interfaces, backed by a [MerkleStore].
 pub trait AdviceProvider {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
@@ -148,12 +143,12 @@ pub trait AdviceProvider {
     ///   identified by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
-    fn update_merkle_leaf(
+    fn update_merkle_node(
         &mut self,
         root: Word,
-        index: Felt,
-        leaf_value: Word,
-        update_in_copy: bool,
+        depth: &Felt,
+        index: &Felt,
+        value: Word,
     ) -> Result<MerklePath, ExecutionError>;
 
     // CONTEXT MANAGEMENT
@@ -186,8 +181,8 @@ where
         T::push_stack(self, source)
     }
 
-    fn insert_into_map(&mut self, key: Word, map: Vec<Felt>) -> Result<(), ExecutionError> {
-        T::insert_into_map(self, key, map)
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+        T::insert_into_map(self, key, values)
     }
 
     fn get_tree_node(
@@ -208,14 +203,14 @@ where
         T::get_merkle_path(self, root, depth, index)
     }
 
-    fn update_merkle_leaf(
+    fn update_merkle_node(
         &mut self,
         root: Word,
-        index: Felt,
-        leaf_value: Word,
-        update_in_copy: bool,
+        depth: &Felt,
+        index: &Felt,
+        value: Word,
     ) -> Result<MerklePath, ExecutionError> {
-        T::update_merkle_leaf(self, root, index, leaf_value, update_in_copy)
+        T::update_merkle_node(self, root, depth, index, value)
     }
 
     fn advance_clock(&mut self) {

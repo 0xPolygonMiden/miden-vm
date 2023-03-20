@@ -3,7 +3,7 @@ use super::{
     rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation, Trace,
     AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
-use crate::{MerkleSet, StackInputs};
+use crate::StackInputs;
 use core::ops::Range;
 use vm_core::{
     chiplets::{
@@ -17,7 +17,7 @@ use vm_core::{
         HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
     },
     code_blocks::CodeBlock,
-    crypto::merkle::NodeIndex,
+    crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
     utils::{collections::Vec, range},
     StarkField, Word, DECODER_TRACE_OFFSET,
@@ -405,7 +405,7 @@ pub fn b_chip_permutation() {
 fn b_chip_mpverify() {
     let index = 5usize;
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleTree::new(leaves.to_vec()).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),
@@ -420,7 +420,8 @@ fn b_chip_mpverify() {
         leaves[index][3].as_int(),
     ];
     let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-    let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+    let store = MerkleStore::new().with_merkle_tree(leaves.clone()).unwrap();
+    let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     let mut trace =
         build_trace_from_ops_with_inputs(vec![Operation::MpVerify], stack_inputs, advice_inputs);

@@ -47,13 +47,13 @@ fn mem_stream_pipe() {
     // initialize with anything other than zeros, since the stack is set to 0s between the adv_pipe
     // and mem_stream operations in the source script.
     let stack_inputs = [1, 1, 1, 1, 1, 1, 1, 1];
-    let test = build_test!(source, &stack_inputs, &advice_stack, vec![]);
+    let test = build_test!(source, &stack_inputs, &advice_stack);
     let final_stack = test.get_last_stack_state();
     assert_eq!(final_stack[0..4], final_stack[4..8]);
 
     // --- the same stack values should yield the same results from adv_pipe and mem_stream -------
     // initialize with all zeros, just like between the adv_pipe and mem_stream operations above.
-    let test = build_test!(source, &[], &advice_stack, vec![]);
+    let test = build_test!(source, &[], &advice_stack);
     let final_stack = test.get_last_stack_state();
     assert_eq!(final_stack[0..4], final_stack[4..8]);
 

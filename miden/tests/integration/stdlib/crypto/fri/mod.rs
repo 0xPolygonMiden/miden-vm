@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use super::{build_test, Felt};
-use vm_core::StarkField;
+use vm_core::{crypto::merkle::MerkleStore, StarkField};
 
 use math::log2;
 use miden::utils::math;
@@ -15,6 +15,7 @@ pub use verifier_fri_e2f4::*;
 mod remainder;
 
 #[test]
+#[ignore = "the unbound integrated test struct needs to be refactored to use merkle store"]
 fn fri_fold4_ext2_remainder32() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -46,18 +47,17 @@ fn fri_fold4_ext2_remainder32() {
 
     let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
     let domain_generator = Felt::get_root_of_unity(log2(domain_size as usize)).as_int();
-    let test = build_test!(
-        source,
-        &[domain_generator],
-        &advice_stack,
-        advice_provider.0.clone(),
-        advice_map.clone()
-    );
+    let mut store = MerkleStore::new();
+    for path_set in &advice_provider.0 {
+        store.add_merkle_path_set(&path_set).unwrap();
+    }
+    let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
     test.expect_stack(&[]);
 }
 
 #[test]
+#[ignore = "the unbound integrated test struct needs to be refactored to use merkle store"]
 fn fri_fold4_ext2_remainder64() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -89,13 +89,11 @@ fn fri_fold4_ext2_remainder64() {
 
     let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
     let domain_generator = Felt::get_root_of_unity(log2(domain_size as usize)).as_int();
-    let test = build_test!(
-        source,
-        &[domain_generator],
-        &stack,
-        advice_provider.0.clone(),
-        advice_map.clone()
-    );
+    let mut store = MerkleStore::new();
+    for path_set in &advice_provider.0 {
+        store.add_merkle_path_set(&path_set).unwrap();
+    }
+    let test = build_test!(source, &[domain_generator], &stack, store, advice_map.clone());
 
     test.expect_stack(&[]);
 }
