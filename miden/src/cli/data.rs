@@ -20,7 +20,7 @@ use stdlib::StdLibrary;
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
     pub stack_init: Vec<String>,
-    pub advice_tape: Option<Vec<String>>,
+    pub advice_stack: Option<Vec<String>>,
 }
 
 /// Helper methods to interact with the input file
@@ -31,7 +31,7 @@ impl InputFile {
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
             return Ok(Self {
                 stack_init: Vec::new(),
-                advice_tape: Some(Vec::new()),
+                advice_stack: Some(Vec::new()),
             });
         }
 
@@ -56,8 +56,8 @@ impl InputFile {
     }
 
     pub fn parse_advice_provider(&self) -> Result<MemAdviceProvider, String> {
-        let tape = self
-            .advice_tape
+        let stack = self
+            .advice_stack
             .as_ref()
             .map(Vec::as_slice)
             .unwrap_or(&[])
@@ -65,7 +65,7 @@ impl InputFile {
             .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
             .collect::<Result<Vec<_>, _>>()?;
         let advice_inputs =
-            AdviceInputs::default().with_tape_values(tape).map_err(|e| e.to_string())?;
+            AdviceInputs::default().with_stack_values(stack).map_err(|e| e.to_string())?;
         Ok(MemAdviceProvider::from(advice_inputs))
     }
 

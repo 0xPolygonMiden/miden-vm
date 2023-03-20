@@ -10,14 +10,14 @@ use super::{utils::IntoBytes, BTreeMap, Felt, InputError, MerkleSet, Vec};
 ///
 /// There are three types of advice inputs:
 ///
-/// 1. Single advice tape which can contain any number of elements.
-/// 2. Multiple advice tapes that can be appended to the main tape, and are mapped by 32 bytes keys.
+/// 1. Single advice stack which can contain any number of elements.
+/// 2. Key-mapped stacks set that can be pushed onto the operand stack.
 /// 3. Merkle sets list, which are used to provide nondeterministic inputs for instructions that
 ///    operates with Merkle trees.
 #[derive(Clone, Debug, Default)]
 pub struct AdviceInputs {
-    tape: Vec<Felt>,
-    values_map: BTreeMap<[u8; 32], Vec<Felt>>,
+    stack: Vec<Felt>,
+    map: BTreeMap<[u8; 32], Vec<Felt>>,
     merkle_sets: BTreeMap<[u8; 32], MerkleSet>,
 }
 
@@ -25,13 +25,13 @@ impl AdviceInputs {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Attempts to extend the tape values with the given sequence of integers, returning an error
+    /// Attempts to extend the stack values with the given sequence of integers, returning an error
     /// if any of the numbers fails while converting to an element `[Felt]`.
-    pub fn with_tape_values<I>(mut self, iter: I) -> Result<Self, InputError>
+    pub fn with_stack_values<I>(mut self, iter: I) -> Result<Self, InputError>
     where
         I: IntoIterator<Item = u64>,
     {
-        let tape = iter
+        let stack = iter
             .into_iter()
             .map(|v| {
                 Felt::try_from(v).map_err(|_| {
@@ -39,25 +39,25 @@ impl AdviceInputs {
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        self.tape.extend(tape);
+        self.stack.extend(stack);
         Ok(self)
     }
 
-    /// Extends the tape with the given elements.
-    pub fn with_tape<I>(mut self, iter: I) -> Self
+    /// Extends the stack with the given elements.
+    pub fn with_stack<I>(mut self, iter: I) -> Self
     where
         I: IntoIterator<Item = Felt>,
     {
-        self.tape.extend(iter);
+        self.stack.extend(iter);
         self
     }
 
     /// Extends the map of values with the given argument, replacing previously inserted items.
-    pub fn with_values_map<I>(mut self, iter: I) -> Self
+    pub fn with_map<I>(mut self, iter: I) -> Self
     where
         I: IntoIterator<Item = ([u8; 32], Vec<Felt>)>,
     {
-        self.values_map.extend(iter);
+        self.map.extend(iter);
         self
     }
 
@@ -80,14 +80,14 @@ impl AdviceInputs {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a reference to the advice tape.
-    pub fn tape(&self) -> &[Felt] {
-        &self.tape
+    /// Returns a reference to the advice stack.
+    pub fn stack(&self) -> &[Felt] {
+        &self.stack
     }
 
     /// Fetch a values set mapped by the given key.
     pub fn mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
-        self.values_map.get(key).map(Vec::as_slice)
+        self.map.get(key).map(Vec::as_slice)
     }
 
     /// Fetch a Merkle set mapped by the given key.
@@ -104,10 +104,10 @@ impl AdviceInputs {
         self,
     ) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, BTreeMap<[u8; 32], MerkleSet>) {
         let Self {
-            tape,
-            values_map,
+            stack,
+            map,
             merkle_sets,
         } = self;
-        (tape, values_map, merkle_sets)
+        (stack, map, merkle_sets)
     }
 }

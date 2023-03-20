@@ -75,7 +75,7 @@ where
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = self.advice_provider.get_merkle_path(provided_root, depth, index)?;
+        let path = self.advice_provider.get_merkle_path(provided_root, &depth, &index)?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);

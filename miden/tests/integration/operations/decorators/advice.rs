@@ -6,6 +6,7 @@ use rand_utils::rand_value;
 
 #[test]
 fn advice_inject_u64div() {
+    // push a/b onto the advice stack and then move these values onto the operand stack.
     let source = "begin adv.u64div adv_push.4 end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
@@ -27,7 +28,6 @@ fn advice_inject_u64div() {
     let r_hi = r >> 32;
     let r_lo = r as u32 as u64;
 
-    // inject a/b into the advice tape and then read these values from the tape
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);
     let expected = [r_hi, r_lo, q_hi, q_lo, b_hi, b_lo, a_hi, a_lo];
     test.expect_stack(&expected);
@@ -36,9 +36,9 @@ fn advice_inject_u64div() {
 #[test]
 fn advice_inject_u64div_repeat() {
     // This procedure repeats the following steps 7 times:
-    // - pushes quotient and remainder to advice tape
+    // - pushes quotient and remainder to advice stack
     // - drops divisor (top 2 elements of the stack reperesenting 32 bit limbs of divisor)
-    // - reads quotient from advice tape to the stack
+    // - reads quotient from advice stack to the stack
     // - push 2_u64 to the stack divided into 2 32 bit limbs
     // Finally the first 2 elements of the stack are removed
     let source = "begin
@@ -78,6 +78,7 @@ fn advice_inject_u64div_repeat() {
 
 #[test]
 fn advice_inject_u64div_local_procedure() {
+    // push a/b onto the advice stack and then move these values onto the operand stack.
     let source = "proc.foo adv.u64div adv_push.4 end begin exec.foo end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
@@ -99,7 +100,6 @@ fn advice_inject_u64div_local_procedure() {
     let r_hi = r >> 32;
     let r_lo = r as u32 as u64;
 
-    // inject a/b into the advice tape and then read these values from the tape
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);
     let expected = [r_hi, r_lo, q_hi, q_lo, b_hi, b_lo, a_hi, a_lo];
     test.expect_stack(&expected);
@@ -138,30 +138,30 @@ fn advice_inject_mem() {
     # State Transition:
     # advice_map: k: [8, 7, 6, 5], v: [4, 3, 2, 1, 8, 7, 6, 5]
 
-    # copy from advice map to advice tape
+    # copy from advice map to advice stack
     adv.keyval dropw
     # State Transition:
     # stack: [0, 0, 0, 0]
-    # advice_tape: [4, 3, 2, 1, 8, 7, 6, 5]
+    # advice_stack: [4, 3, 2, 1, 8, 7, 6, 5]
 
-    # copy first word from advice tape to stack
+    # copy first word from advice stack to stack
     # adv_loadw copies the word to the stack with elements in the reverse order.
     adv_loadw
     # State Transition:
     # stack: [1, 2, 3, 4, 0, 0, 0, 0]
-    # advice_tape: [8, 7, 6, 5]
+    # advice_stack: [8, 7, 6, 5]
 
     # swap first 2 words on stack
     swapw
     # State Transition:
     # stack: [0, 0, 0, 0, 1, 2, 3, 4]
 
-    # copy next word from advice tape to stack
+    # copy next word from advice stack to stack
     # adv_loadw copies the word to the stack with elements in the reverse order.
     adv_loadw
     # State Transition:
     # stack: [5, 6, 7, 8, 1, 2, 3, 4]
-    # advice_tape: []
+    # advice_stack: []
 
     # swap first 2 words on stack
     swapw

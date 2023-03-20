@@ -15,7 +15,7 @@ use std::error::Error;
 #[derive(Debug)]
 pub enum ExecutionError {
     AdviceKeyNotFound(Word),
-    AdviceTapeReadFailed(u32),
+    AdviceStackReadFailed(u32),
     MerkleSetLookupFailed(MerkleError),
     MerkleSetNotFound([u8; 32]),
     MerkleSetUpdateFailed(MerkleError),
@@ -46,12 +46,12 @@ impl Display for ExecutionError {
         match self {
             AdviceKeyNotFound(key) => {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
-                write!(fmt, "Can't write to advice tape: value for key {hex} not present in the advice map.")
+                write!(fmt, "Can't push values onto the advice stack: value for key {hex} not present in the advice map.")
             }
             MerkleSetLookupFailed(reason) => write!(fmt, "Advice set lookup failed: {reason}"),
             MerkleSetNotFound(root) => write!(fmt, "Advice set with root {root:x?} not found"),
             MerkleSetUpdateFailed(reason) => write!(fmt, "Advice set update failed: {reason}"),
-            AdviceTapeReadFailed(step) => write!(fmt, "Advice tape read failed at step {step}"),
+            AdviceStackReadFailed(step) => write!(fmt, "Advice stack read failed at step {step}"),
             CodeBlockNotFound(digest) => {
                 let hex = to_hex(&digest.as_bytes())?;
                 write!(

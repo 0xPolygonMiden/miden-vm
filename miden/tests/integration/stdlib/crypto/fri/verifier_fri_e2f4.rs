@@ -31,7 +31,7 @@ type QuadExt = QuadExtension<Felt>;
 //  merkle_sets contains the Merkle authentication paths used to authenticate the queries.
 //  advice_maps is used to unhash Merkle nodes to a sequence of field elements representing
 //  the query-values. TODO: Make use of the advice_maps.
-//  2) `advice_tape: Vec<u64>` is how the query values are provided in order to unhash them.
+//  2) `advice_stack: Vec<u64>` is how the query values are provided in order to unhash them.
 //  This should be replaced with the use of advice_maps.
 //  3) `positions: Vec<u64>` a vector of consecutive quadruples of the form (0, p, e1, e0)
 //  where p is index of the query at the first layer and (e1, e0) is its corresponding
@@ -253,12 +253,12 @@ impl FriVerifierFold4Ext2 {
             channel.unbatch::<4, 3>(&positions, self.domain_size(), self.layer_commitments.clone());
 
         let mut d_generator;
-        let mut full_tape = vec![];
+        let mut full_stack = vec![];
         let mut all_alphas = vec![];
         let mut all_position_evaluation = vec![];
         for (index, &position) in positions.iter().enumerate() {
             d_generator = self.domain_generator;
-            let (cur_pos, evaluation, partial_tape, position_evaluation, alphas) =
+            let (cur_pos, evaluation, partial_stack, position_evaluation, alphas) =
                 iterate_query_fold_4_quad_ext(
                     &self.layer_alphas,
                     &advice_provider.0,
@@ -269,7 +269,7 @@ impl FriVerifierFold4Ext2 {
                     &evaluations[index],
                     &mut d_generator,
                 )?;
-            full_tape.extend_from_slice(&partial_tape[..]);
+            full_stack.extend_from_slice(&partial_stack[..]);
             all_position_evaluation.extend_from_slice(&position_evaluation[..]);
             all_alphas = alphas;
 
@@ -288,7 +288,7 @@ impl FriVerifierFold4Ext2 {
             }
         }
 
-        Ok((advice_provider, full_tape, all_position_evaluation, all_alphas))
+        Ok((advice_provider, full_stack, all_position_evaluation, all_alphas))
     }
 }
 

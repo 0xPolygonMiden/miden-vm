@@ -189,11 +189,11 @@ impl Process<super::MemAdviceProvider> {
         Self::new_dummy(stack)
     }
 
-    /// Instantiates a new process with an advice tape for testing purposes.
-    fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
+    /// Instantiates a new process with an advice stack for testing purposes.
+    fn new_dummy_with_advice_stack(advice_stack: &[u64]) -> Self {
         let stack_inputs = super::StackInputs::default();
         let advice_inputs = super::AdviceInputs::default()
-            .with_tape_values(advice_tape.iter().copied())
+            .with_stack_values(advice_stack.iter().copied())
             .unwrap();
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
         let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
