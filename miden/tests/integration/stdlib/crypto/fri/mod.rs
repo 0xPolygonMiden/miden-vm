@@ -76,7 +76,7 @@ fn fri_fold4_ext2_remainder64() {
     let (advice_provider, stack, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
-    let stack = prepare_advice(
+    let advice_stack = prepare_advice(
         depth,
         domain_size,
         num_queries,
@@ -93,7 +93,7 @@ fn fri_fold4_ext2_remainder64() {
     for path_set in &advice_provider.0 {
         store.add_merkle_path_set(&path_set).unwrap();
     }
-    let test = build_test!(source, &[domain_generator], &stack, store, advice_map.clone());
+    let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
     test.expect_stack(&[]);
 }
