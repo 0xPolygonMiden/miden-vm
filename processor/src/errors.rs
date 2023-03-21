@@ -16,11 +16,10 @@ use std::error::Error;
 pub enum ExecutionError {
     AdviceKeyNotFound(Word),
     AdviceStackReadFailed(u32),
-    MerkleNodeIndex(Felt, Felt),
+    InvalidNodeIndex { depth: Felt, value: Felt },
     MerkleUpdateInPlace,
-    MerkleSetLookupFailed(MerkleError),
-    MerkleSetNotFound([u8; 32]),
-    MerkleSetUpdateFailed(MerkleError),
+    MerkleStoreLookupFailed(MerkleError),
+    MerkleStoreUpdateFailed(MerkleError),
     CodeBlockNotFound(Digest),
     CallerNotInSyscall,
     DivideByZero(u32),
@@ -50,11 +49,17 @@ impl Display for ExecutionError {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
                 write!(fmt, "Can't push values onto the advice stack: value for key {hex} not present in the advice map.")
             }
-            MerkleNodeIndex(depth, index) => write!(fmt, "The provided depth {depth} cannot be represented as Merkle index with the value {index}"),
+            InvalidNodeIndex { depth, value } => write!(
+                fmt,
+                "The provided index {value} is out of bounds for a node at depth {depth}"
+            ),
             MerkleUpdateInPlace => write!(fmt, "Update in place is not supported"),
-            MerkleSetLookupFailed(reason) => write!(fmt, "Advice set lookup failed: {reason}"),
-            MerkleSetNotFound(root) => write!(fmt, "Advice set with root {root:x?} not found"),
-            MerkleSetUpdateFailed(reason) => write!(fmt, "Advice set update failed: {reason}"),
+            MerkleStoreLookupFailed(reason) => {
+                write!(fmt, "Advice provider Merkle store backend lookup failed: {reason}")
+            }
+            MerkleStoreUpdateFailed(reason) => {
+                write!(fmt, "Advice provider Merkle store backend update failed: {reason}")
+            }
             AdviceStackReadFailed(step) => write!(fmt, "Advice stack read failed at step {step}"),
             CodeBlockNotFound(digest) => {
                 let hex = to_hex(&digest.as_bytes())?;

@@ -93,9 +93,15 @@ impl AdviceProvider for MemAdviceProvider {
         depth: &Felt,
         index: &Felt,
     ) -> Result<Word, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index)
-            .map_err(|_| ExecutionError::MerkleNodeIndex(*depth, *index))?;
-        self.store.get_node(root, index).map_err(ExecutionError::MerkleSetLookupFailed)
+        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
+            ExecutionError::InvalidNodeIndex {
+                depth: *depth,
+                value: *index,
+            }
+        })?;
+        self.store
+            .get_node(root, index)
+            .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
     fn get_merkle_path(
@@ -104,12 +110,16 @@ impl AdviceProvider for MemAdviceProvider {
         depth: &Felt,
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index)
-            .map_err(|_| ExecutionError::MerkleNodeIndex(*depth, *index))?;
+        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
+            ExecutionError::InvalidNodeIndex {
+                depth: *depth,
+                value: *index,
+            }
+        })?;
         self.store
             .get_path(root, index)
             .map(|value| value.path)
-            .map_err(ExecutionError::MerkleSetLookupFailed)
+            .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
     fn update_merkle_node(
@@ -119,12 +129,16 @@ impl AdviceProvider for MemAdviceProvider {
         index: &Felt,
         value: Word,
     ) -> Result<MerklePath, ExecutionError> {
-        let node_index = NodeIndex::from_elements(depth, index)
-            .map_err(|_| ExecutionError::MerkleNodeIndex(*depth, *index))?;
+        let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
+            ExecutionError::InvalidNodeIndex {
+                depth: *depth,
+                value: *index,
+            }
+        })?;
         self.store
             .set_node(root, node_index, value)
             .map(|root| root.path)
-            .map_err(ExecutionError::MerkleSetLookupFailed)
+            .map_err(ExecutionError::MerkleStoreUpdateFailed)
     }
 
     // CONTEXT MANAGEMENT
