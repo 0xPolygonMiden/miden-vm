@@ -12,72 +12,73 @@ use super::{
 #[derive(Debug, Clone, Default)]
 pub struct MemAdviceProvider {
     step: u32,
-    tape: Vec<Felt>,
-    values: BTreeMap<[u8; 32], Vec<Felt>>,
+    stack: Vec<Felt>,
+    map: BTreeMap<[u8; 32], Vec<Felt>>,
     sets: BTreeMap<[u8; 32], MerkleSet>,
 }
 
 impl From<AdviceInputs> for MemAdviceProvider {
     fn from(inputs: AdviceInputs) -> Self {
-        let (mut tape, values, sets) = inputs.into_parts();
-        tape.reverse();
+        let (mut stack, map, sets) = inputs.into_parts();
+        stack.reverse();
         Self {
             step: 0,
-            tape,
-            values,
+            stack,
+            map,
             sets,
         }
     }
 }
 
 impl AdviceProvider for MemAdviceProvider {
-    // ADVICE TAPE
+    // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
-        self.tape.pop().ok_or(ExecutionError::AdviceTapeReadFailed(self.step))
+    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
+        self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(self.step))
     }
 
-    fn read_tape_w(&mut self) -> Result<Word, ExecutionError> {
-        if self.tape.len() < 4 {
-            return Err(ExecutionError::AdviceTapeReadFailed(self.step));
+    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
+        if self.stack.len() < 4 {
+            return Err(ExecutionError::AdviceStackReadFailed(self.step));
         }
 
-        let idx = self.tape.len() - 4;
-        let result = [self.tape[idx + 3], self.tape[idx + 2], self.tape[idx + 1], self.tape[idx]];
+        let idx = self.stack.len() - 4;
+        let result =
+            [self.stack[idx + 3], self.stack[idx + 2], self.stack[idx + 1], self.stack[idx]];
 
-        self.tape.truncate(idx);
+        self.stack.truncate(idx);
 
         Ok(result)
     }
 
-    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.read_tape_w()?;
-        let word1 = self.read_tape_w()?;
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.pop_stack_word()?;
+        let word1 = self.pop_stack_word()?;
 
         Ok([word0, word1])
     }
 
-    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
         match source {
             AdviceSource::Value(value) => {
-                self.tape.push(value);
+                self.stack.push(value);
                 Ok(())
             }
 
             AdviceSource::Map { key } => {
-                let values = self
-                    .values
+                let map = self
+                    .map
                     .get(&key.into_bytes())
                     .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
-                self.tape.extend(values.iter().rev());
+                self.stack.extend(map.iter().rev());
                 Ok(())
             }
         }
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
-        match self.values.insert(key.into_bytes(), values) {
+        match self.map.insert(key.into_bytes(), values) {
             None => Ok(()),
             Some(_) => Err(ExecutionError::DuplicateAdviceKey(key)),
         }
@@ -86,7 +87,12 @@ impl AdviceProvider for MemAdviceProvider {
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
-    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError> {
+    fn get_tree_node(
+        &self,
+        root: Word,
+        depth: &Felt,
+        index: &Felt,
+    ) -> Result<Word, ExecutionError> {
         // look up the merkle set and return an error if none is found
         let merkle_set = self
             .sets
@@ -94,7 +100,7 @@ impl AdviceProvider for MemAdviceProvider {
             .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?;
 
         // get the tree node from the merkle set based on depth and index
-        let index = NodeIndex::from_elements(&depth, &index)
+        let index = NodeIndex::from_elements(depth, index)
             .map_err(ExecutionError::MerkleSetLookupFailed)?;
         let node = merkle_set.get_node(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
 
@@ -104,8 +110,8 @@ impl AdviceProvider for MemAdviceProvider {
     fn get_merkle_path(
         &self,
         root: Word,
-        depth: Felt,
-        index: Felt,
+        depth: &Felt,
+        index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
         // look up the merkle set and return an error if none is found
         let merkle_set = self
@@ -114,7 +120,7 @@ impl AdviceProvider for MemAdviceProvider {
             .ok_or_else(|| ExecutionError::MerkleSetNotFound(root.into_bytes()))?;
 
         // get the Merkle path from the merkle set based on depth and index
-        let index = NodeIndex::from_elements(&depth, &index)
+        let index = NodeIndex::from_elements(depth, index)
             .map_err(ExecutionError::MerkleSetLookupFailed)?;
         let path = merkle_set.get_path(index).map_err(ExecutionError::MerkleSetLookupFailed)?;
 

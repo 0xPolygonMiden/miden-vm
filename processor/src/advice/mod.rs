@@ -40,10 +40,10 @@ pub use source::AdviceSource;
 ///
 /// An advice provider supplies non-deterministic inputs to the processor.
 ///
-/// 1. Provide a tape functionality that yields elements as a stack (last in, first out). These can
+/// 1. Provide a stack functionality that yields elements as a stack (last in, first out). These can
 ///    be yielded as elements, words or double words.
-/// 2. Provide a map functionality that will store temporary tapes that can be appended to the main
-///    tape. This operation should not allow key overwrite; that is: if a given key exists, the
+/// 2. Provide a map functionality that will store temporary stacks that can be appended to the main
+///    stack. This operation should not allow key overwrite; that is: if a given key exists, the
 ///    implementation should error if the user attempts to insert this key again, instead of the
 ///    common behavior of the maps to simply override the previous contents. This is a design
 ///    decision to increase the runtime robustness of the execution.
@@ -68,37 +68,38 @@ pub trait AdviceProvider {
         self
     }
 
-    // ADVICE TAPE
+    // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    /// Pops an element from the advice tape and returns it.
+    /// Pops an element from the advice stack and returns it.
     ///
     /// # Errors
-    /// Returns an error if the advice tape is empty.
-    fn read_tape(&mut self) -> Result<Felt, ExecutionError>;
+    /// Returns an error if the advice stack is empty.
+    fn pop_stack(&mut self) -> Result<Felt, ExecutionError>;
 
-    /// Pops a word (4 elements) from the advice tape and returns it.
+    /// Pops a word (4 elements) from the advice stack and returns it.
     ///
-    /// Note: a word is always stored as little-endian. A `[...,a,b,c,d]` tape will yield
+    /// Note: a word is always stored as little-endian. A `[...,a,b,c,d]` stack will yield
     /// `[d,c,b,a]`.
     ///
     /// # Errors
-    /// Returns an error if the advice tape does not contain a full word.
-    fn read_tape_w(&mut self) -> Result<Word, ExecutionError>;
+    /// Returns an error if the advice stack does not contain a full word.
+    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError>;
 
-    /// Pops a double word (8 elements) from the advice tape and returns them.
+    /// Pops a double word (8 elements) from the advice stack and returns them.
     ///
-    /// Note: a double word is always stored as little-endian. A `[...,a,b,c,d,e,f,g,h]` tape will
+    /// Note: a double word is always stored as little-endian. A `[...,a,b,c,d,e,f,g,h]` stack will
     /// yield `[h,g,f,e],[,d,c,b,a]`.
     ///
     /// # Errors
-    /// Returns an error if the advice tape does not contain two words.
-    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError>;
+    /// Returns an error if the advice stack does not contain two words.
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError>;
 
-    /// Writes values specified by the source to the head of the advice tape.
-    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
+    /// Writes values specified by the source to the head of the advice stack.
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
 
-    /// Maps a key to a value list to be yielded by `write_tape_from_map`.
+    /// Maps a key to a value list to be yielded by `push_stack` with the [AdviceSource::Map]
+    /// variant.
     ///
     /// # Errors
     /// Returns an error if the key is already present in the advice map.
@@ -115,7 +116,8 @@ pub trait AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError>;
+    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
+        -> Result<Word, ExecutionError>;
 
     /// Returns a path to a node at the specified index in a Merkle tree with the specified root.
     ///
@@ -128,8 +130,8 @@ pub trait AdviceProvider {
     fn get_merkle_path(
         &self,
         root: Word,
-        depth: Felt,
-        index: Felt,
+        depth: &Felt,
+        index: &Felt,
     ) -> Result<MerklePath, ExecutionError>;
 
     /// Updates a leaf at the specified index on an existing Merkle tree with the specified root;
@@ -168,35 +170,40 @@ impl<'a, T> AdviceProvider for &'a mut T
 where
     T: AdviceProvider,
 {
-    fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
-        T::read_tape(self)
+    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
+        T::pop_stack(self)
     }
 
-    fn read_tape_w(&mut self) -> Result<Word, ExecutionError> {
-        T::read_tape_w(self)
+    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
+        T::pop_stack_word(self)
     }
 
-    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError> {
-        T::read_tape_dw(self)
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
+        T::pop_stack_dword(self)
     }
 
-    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
-        T::write_tape(self, source)
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+        T::push_stack(self, source)
     }
 
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
-        T::insert_into_map(self, key, values)
+    fn insert_into_map(&mut self, key: Word, map: Vec<Felt>) -> Result<(), ExecutionError> {
+        T::insert_into_map(self, key, map)
     }
 
-    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError> {
+    fn get_tree_node(
+        &self,
+        root: Word,
+        depth: &Felt,
+        index: &Felt,
+    ) -> Result<Word, ExecutionError> {
         T::get_tree_node(self, root, depth, index)
     }
 
     fn get_merkle_path(
         &self,
         root: Word,
-        depth: Felt,
-        index: Felt,
+        depth: &Felt,
+        index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
         T::get_merkle_path(self, root, depth, index)
     }

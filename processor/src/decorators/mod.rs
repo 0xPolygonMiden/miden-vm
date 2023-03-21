@@ -52,8 +52,8 @@ where
     // INJECTOR HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Injects a node of the Merkle tree specified by the values on the stack at the head of the
-    /// advice tape. The stack is expected to be arranged as follows (from the top):
+    /// Pushes a node of the Merkle tree specified by the word on the top of the operand stack onto
+    /// the advice stack. The operand stack is expected to be arranged as follows (from the top):
     /// - depth of the node, 1 element
     /// - index of the node, 1 element
     /// - root of the tree, 4 elements
@@ -71,26 +71,26 @@ where
         let root = [self.stack.get(5), self.stack.get(4), self.stack.get(3), self.stack.get(2)];
 
         // look up the node in the advice provider
-        let node = self.advice_provider.get_tree_node(root, depth, index)?;
+        let node = self.advice_provider.get_tree_node(root, &depth, &index)?;
 
-        // write the node into the advice tape with first element written last so that it can be
-        // removed first
-        self.advice_provider.write_tape(AdviceSource::Value(node[3]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(node[2]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(node[1]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(node[0]))?;
+        // push the node onto the advice stack with the first element pushed last so that it can
+        // be popped first (i.e. stack behavior for word)
+        self.advice_provider.push_stack(AdviceSource::Value(node[3]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(node[2]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(node[1]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(node[0]))?;
 
         Ok(())
     }
 
-    /// Injects the result of u64 division (both the quotient and the remainder) at the head of
-    /// the advice tape. The stack is expected to be arranged as follows (from the top):
+    /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
+    /// stack. The operand stack is expected to be arranged as follows (from the top):
     /// - divisor split into two 32-bit elements
     /// - dividend split into two 32-bit elements
     ///
-    /// The result is injected into the advice tape as follows: first the remainder is injected,
-    /// then the quotient is injected. This guarantees that when reading values from the advice
-    /// tape, first the quotient will be read, and then the remainder.
+    /// The result is pushed onto the advice stack as follows: the remainder is pushed first, then
+    /// the quotient is pushed. This guarantees that when popping values from the advice stack, the
+    /// quotient will be returned first, and the remainder will be returned next.
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
@@ -113,23 +113,22 @@ where
         let (q_hi, q_lo) = u64_to_u32_elements(quotient);
         let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-        self.advice_provider.write_tape(AdviceSource::Value(r_hi))?;
-        self.advice_provider.write_tape(AdviceSource::Value(r_lo))?;
-        self.advice_provider.write_tape(AdviceSource::Value(q_hi))?;
-        self.advice_provider.write_tape(AdviceSource::Value(q_lo))?;
+        self.advice_provider.push_stack(AdviceSource::Value(r_hi))?;
+        self.advice_provider.push_stack(AdviceSource::Value(r_lo))?;
+        self.advice_provider.push_stack(AdviceSource::Value(q_hi))?;
+        self.advice_provider.push_stack(AdviceSource::Value(q_lo))?;
 
         Ok(())
     }
 
-    /// Injects a list of field elements at the front of the advice tape. The list is looked up in
-    /// the key-value map maintained by the advice provider using the top 4 elements on the stack
-    /// as the key.
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map using the top 4 elements (i.e. word) from the operand stack as the key.
     ///
     /// # Errors
     /// Returns an error if the required key was not found in the key-value map.
     fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
         let top_word = self.stack.get_top_word();
-        self.advice_provider.write_tape(AdviceSource::Map { key: top_word })?;
+        self.advice_provider.push_stack(AdviceSource::Map { key: top_word })?;
 
         Ok(())
     }
@@ -170,7 +169,7 @@ where
     ///
     /// [coeff'_0, coeff'_1, ...]
     ///
-    /// Meaning when a Miden program is going to read it from advice tape, it'll see
+    /// Meaning when a Miden program is going to read it from advice stack, it'll see
     /// coefficient_0 first and then coefficient_1.
     ///
     /// Note, in case input operand is zero, division by zero error is returned, because
@@ -189,18 +188,18 @@ where
         let elm_arr = [inv_elm];
         let coeffs = Ext2Element::as_base_elements(&elm_arr);
 
-        self.advice_provider.write_tape(AdviceSource::Value(coeffs[1]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(coeffs[0]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(coeffs[1]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(coeffs[0]))?;
 
         Ok(())
     }
 
-    /// Given evaluations of a polynomial over some specified domain, this routine
-    /// interpolates the evaluations into a polynomial in coefficient form and writes
-    /// the result into the advice tape. The interpolation is performed using the iNTT
-    /// algorithm. The evaluations are expected to be in the quadratic extension field of
-    /// Z_q and the resulting coefficients are in the quadratic extension field as
-    /// well | q = 2^64 - 2^32 + 1.
+    /// Given evaluations of a polynomial over some specified domain, this routine interpolates the
+    /// evaluations into a polynomial in coefficient form, and pushes the results onto the advice
+    /// stack.
+    ///
+    /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
+    /// in the quadratic extension field | q = 2^64 - 2^32 + 1.
     ///
     /// Input stack state should look like
     ///
@@ -213,7 +212,7 @@ where
     /// remaining `input_eval_len - 2` many evaluations.
     /// - Each memory address holds two evaluations of the polynomial at adjacent points
     ///
-    /// Final advice tape should look like
+    /// Final advice stack should look like
     ///
     /// `[coeff_0, coeff_1, ..., coeff_{n-1}, ...]` | n = output_poly_len
     ///
@@ -253,7 +252,7 @@ where
         fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
 
         for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
-            self.advice_provider.write_tape(AdviceSource::Value(i))?;
+            self.advice_provider.push_stack(AdviceSource::Value(i))?;
         }
 
         Ok(())
@@ -284,7 +283,6 @@ mod tests {
     #[test]
     fn inject_merkle_node() {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
-
         let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
         let stack_inputs = [
             tree.root()[0].as_int(),
@@ -301,12 +299,12 @@ mod tests {
         let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 
-        // inject the node into the advice tape
+        // push the node onto the advice stack
         process
             .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
             .unwrap();
 
-        // read the node from the tape onto the stack
+        // pop the node from the advice stack and push it onto the operand stack
         process.execute_op(Operation::Read).unwrap();
         process.execute_op(Operation::Read).unwrap();
         process.execute_op(Operation::Read).unwrap();

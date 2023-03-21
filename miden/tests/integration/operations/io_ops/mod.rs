@@ -41,24 +41,24 @@ fn mem_stream_pipe() {
             drop
         end";
 
-    let advice_tape = [1, 2, 3, 4, 5, 6, 7, 8];
+    let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
 
     // --- different stack values should yield the same results from adv_pipe and mem_stream ------
     // initialize with anything other than zeros, since the stack is set to 0s between the adv_pipe
     // and mem_stream operations in the source script.
     let stack_inputs = [1, 1, 1, 1, 1, 1, 1, 1];
-    let test = build_test!(source, &stack_inputs, &advice_tape, vec![]);
+    let test = build_test!(source, &stack_inputs, &advice_stack, vec![]);
     let final_stack = test.get_last_stack_state();
     assert_eq!(final_stack[0..4], final_stack[4..8]);
 
     // --- the same stack values should yield the same results from adv_pipe and mem_stream -------
     // initialize with all zeros, just like between the adv_pipe and mem_stream operations above.
-    let test = build_test!(source, &[], &advice_tape, vec![]);
+    let test = build_test!(source, &[], &advice_stack, vec![]);
     let final_stack = test.get_last_stack_state();
     assert_eq!(final_stack[0..4], final_stack[4..8]);
 
     // --- assert that the hashed output values are correct ---------------------------------------
-    // compute the expected result of hashing the elements in the advice tape inputs.
+    // compute the expected result of hashing the elements in the advice stack inputs.
     let mut state: [Felt; 12] =
         [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
     apply_permutation(&mut state);

@@ -113,7 +113,7 @@ pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
 /// This operation takes 9 VM cycles.
 pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // stack: [d, i, R, ...]
-    // inject the node value we're looking for at the head of the advice tape
+    // pops the value of the node we are looking for from the advice stack
     read_mtree_node(span);
     #[rustfmt::skip]
     let ops = [
@@ -194,10 +194,10 @@ fn read_mtree_node(span: &mut SpanBuilder) {
     // the following format: [d, i, R], whereas in the case of `mtree.set` and `mtree.cwm` we
     // would also have the new node value post the tree root: [d, i, R, V_new].
     //
-    // inject the node value we're looking for at the head of the advice tape.
+    // pops the value of the node we are looking for from the advice stack
     span.push_decorator(Decorator::Advice(AdviceInjector::MerkleNode));
 
-    // read old node value from advice tape => MPVERIFY: [V_old, d, i, R, ...]
+    // pops the old node value from advice the stack => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]
     span.push_op_many(Read, 4);
 }
