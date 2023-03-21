@@ -1,5 +1,4 @@
-use miden::MerkleSet;
-use vm_core::{Felt, FieldElement};
+use vm_core::{crypto::merkle::MerklePathSet, Felt, FieldElement};
 use winter_fri::{FriProof, VerifierError};
 
 use winterfell::{
@@ -13,7 +12,7 @@ pub trait UnBatch<E: FieldElement, H: ElementHasher> {
         positions: &[usize],
         domain_size: usize,
         layer_commitments: Vec<<H as HasherTrait>::Digest>,
-    ) -> (Vec<MerkleSet>, Vec<([u8; 32], Vec<Felt>)>);
+    ) -> (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>);
 }
 
 pub struct MidenFriVerifierChannel<E: FieldElement, H: ElementHasher<BaseField = E::BaseField>> {
