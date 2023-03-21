@@ -249,8 +249,8 @@ pub enum OpCode {
     MemStream = 221,
     AdvPipe = 222,
 
-    AdvPush = 223,
-    AdvLoadW = 224,
+    AdvPop = 223,
+    AdvPopW = 224,
 
     AdvU64Div = 225,
     AdvKeyval = 226,

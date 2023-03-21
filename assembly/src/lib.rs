@@ -54,7 +54,7 @@ const MODULE_PATH_DELIM: &str = "::";
 /// The maximum number of constant inputs allowed for the `push` instruction.
 const MAX_PUSH_INPUTS: usize = 16;
 
-/// The maximum number of elements that can be popped from the advice stack in a single `adv_push`
+/// The maximum number of elements that can be popped from the advice stack in a single `adv_pop`
 /// instruction.
 const ADVICE_READ_LIMIT: u8 = 16;
 

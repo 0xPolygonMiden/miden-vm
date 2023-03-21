@@ -80,7 +80,7 @@ export.mod_12289
 
     adv.u64div
 
-    adv_push.2
+    adv_pop.2
     u32assert.2
 
     swap
@@ -92,7 +92,7 @@ export.mod_12289
     u32overflowing_madd
     drop
 
-    adv_push.2
+    adv_pop.2
     drop
     u32assert
 

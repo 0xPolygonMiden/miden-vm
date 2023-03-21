@@ -74,19 +74,19 @@ pub fn parse_locaddr(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns `AdvPush` instruction node.
+/// Returns `AdvPop` instruction node.
 ///
 /// # Errors
 /// Returns an error if the instruction token does not have exactly one parameter, or if the
 /// parameter is smaller than 1 or greater than 16.
-pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "adv_push");
+pub fn parse_adv_pop(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "adv_pop");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
             let num_vals = parse_checked_param(op, 1, 1..=ADVICE_READ_LIMIT)?;
-            Ok(Instruction(AdvPush(num_vals)))
+            Ok(Instruction(AdvPop(num_vals)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }

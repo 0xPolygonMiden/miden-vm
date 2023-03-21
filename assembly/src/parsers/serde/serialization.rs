@@ -429,11 +429,11 @@ impl Serializable for Instruction {
                 target.write_u32(*start_addr);
                 target.write_u32(*num_words);
             }
-            Self::AdvPush(v) => {
-                OpCode::AdvPush.write_into(target)?;
+            Self::AdvPop(v) => {
+                OpCode::AdvPop.write_into(target)?;
                 target.write_u8(*v);
             }
-            Self::AdvLoadW => OpCode::AdvLoadW.write_into(target)?,
+            Self::AdvPopW => OpCode::AdvPopW.write_into(target)?,
             Self::AdvExt2Inv => OpCode::AdvExt2Inv.write_into(target)?,
             Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target)?,
 

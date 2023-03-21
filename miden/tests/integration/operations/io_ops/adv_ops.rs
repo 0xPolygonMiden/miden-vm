@@ -5,8 +5,8 @@ use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, Star
 // ================================================================================================
 
 #[test]
-fn adv_push() {
-    let asm_op = "adv_push";
+fn adv_pop() {
+    let asm_op = "adv_pop";
     let advice_stack = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let test_n = |n: usize| {
         let source = format!("{asm_op}.{n}");
@@ -26,9 +26,9 @@ fn adv_push() {
 }
 
 #[test]
-fn adv_push_invalid() {
+fn adv_pop_invalid() {
     // attempting to read from empty advice stack should throw an error
-    let test = build_op_test!("adv_push.1");
+    let test = build_op_test!("adv_pop.1");
     test.expect_error(TestError::ExecutionError("AdviceStackReadFailed"));
 }
 
@@ -36,8 +36,8 @@ fn adv_push_invalid() {
 // ================================================================================================
 
 #[test]
-fn adv_loadw() {
-    let asm_op = "adv_loadw";
+fn adv_popw() {
+    let asm_op = "adv_popw";
     let advice_stack = [1, 2, 3, 4];
     let mut final_stack = advice_stack;
     final_stack.reverse();
@@ -47,9 +47,9 @@ fn adv_loadw() {
 }
 
 #[test]
-fn adv_loadw_invalid() {
+fn adv_popw_invalid() {
     // attempting to read from empty advice stack should throw an error
-    let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
+    let test = build_op_test!("adv_popw", &[0, 0, 0, 0]);
     test.expect_error(TestError::ExecutionError("AdviceStackReadFailed"));
 }
 

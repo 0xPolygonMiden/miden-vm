@@ -12,7 +12,7 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 /// # Errors
 /// Returns an error if the specified number of values to pushed is smaller than 1 or greater
 /// than 16.
-pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn adv_pop(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
     span.push_op_many(Read, n as usize);
     Ok(None)

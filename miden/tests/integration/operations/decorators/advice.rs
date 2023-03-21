@@ -7,7 +7,7 @@ use rand_utils::rand_value;
 #[test]
 fn advice_inject_u64div() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "begin adv.u64div adv_push.4 end";
+    let source = "begin adv.u64div adv_pop.4 end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -45,7 +45,7 @@ fn advice_inject_u64div_repeat() {
         repeat.7
             adv.u64div
             drop drop
-            adv_push.2
+            adv_pop.2
             push.2
             push.0
         end
@@ -79,7 +79,7 @@ fn advice_inject_u64div_repeat() {
 #[test]
 fn advice_inject_u64div_local_procedure() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "proc.foo adv.u64div adv_push.4 end begin exec.foo end";
+    let source = "proc.foo adv.u64div adv_pop.4 end begin exec.foo end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -107,7 +107,7 @@ fn advice_inject_u64div_local_procedure() {
 
 #[test]
 fn advice_inject_u64div_conditional_execution() {
-    let source = "begin eq if.true adv.u64div adv_push.4 else padw end end";
+    let source = "begin eq if.true adv.u64div adv_pop.4 else padw end end";
 
     // if branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
@@ -145,8 +145,8 @@ fn advice_inject_mem() {
     # advice_stack: [4, 3, 2, 1, 8, 7, 6, 5]
 
     # copy first word from advice stack to stack
-    # adv_loadw copies the word to the stack with elements in the reverse order.
-    adv_loadw
+    # adv_popw copies the word to the stack with elements in the reverse order.
+    adv_popw
     # State Transition:
     # stack: [1, 2, 3, 4, 0, 0, 0, 0]
     # advice_stack: [8, 7, 6, 5]
@@ -157,8 +157,8 @@ fn advice_inject_mem() {
     # stack: [0, 0, 0, 0, 1, 2, 3, 4]
 
     # copy next word from advice stack to stack
-    # adv_loadw copies the word to the stack with elements in the reverse order.
-    adv_loadw
+    # adv_popw copies the word to the stack with elements in the reverse order.
+    adv_popw
     # State Transition:
     # stack: [5, 6, 7, 8, 1, 2, 3, 4]
     # advice_stack: []

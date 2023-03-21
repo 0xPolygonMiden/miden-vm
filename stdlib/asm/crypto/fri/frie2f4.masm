@@ -8,19 +8,18 @@ use.std::crypto::fri::ext2fri
 #! TODO: This processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
 export.preprocess.4
-    #adv_push.1
     locaddr.3
-    adv_push.1                  #[num_layers, layer_ptr, g, ..]
+    adv_pop.1                           #[num_layers, layer_ptr, g, ..]
     dup
     neq.0
     while.true
         push.0.0.0.0
-        adv_loadw                       #[C, num_layers, ptr, ..]
+        adv_popw                        #[C, num_layers, ptr, ..]
         movup.5                         #[ptr, C, num_layers, ..]
         u32wrapping_add.1               #[ptr+1, C, num_layers, ..]
         dup movdn.5                     #[ptr+1, C, ptr+1, num_layers, ..]
         mem_storew                      #[C, ptr+1, num_layers, ..]
-        adv_loadw                       #[d_size, t_depth, a1, a0, ptr+1, num_layers, ..]
+        adv_popw                        #[d_size, t_depth, a1, a0, ptr+1, num_layers, ..]
         movup.4                         #[ptr+1, d_size, t_depth, a1, a0, num_layers, ..]
         u32wrapping_add.1               #[ptr+2, d_size, t_depth, a1, a0, num_layers, ..]
         dup movdn.6                     #[ptr+2, d_size, t_depth, a1, a0, num_layers, ptr+2, ..]
@@ -31,7 +30,7 @@ export.preprocess.4
 
     #[ptr2n', rem_len, rem_ptr, g, ..]
     drop
-    adv_push.1
+    adv_pop.1
     dup.1
     add.1
     swap.2
@@ -41,7 +40,7 @@ export.preprocess.4
     push.0.0.0.0
     push.1
     while.true
-        adv_loadw
+        adv_popw
         movup.4
         add.1
         dup
@@ -60,7 +59,7 @@ export.preprocess.4
     drop
 
     # number of queries
-    adv_push.1
+    adv_pop.1
 
     # [ptr_(2n+rem_len/2)', num_q, query_start_ptr, rem_ptr, g]
     dup.1
@@ -71,7 +70,7 @@ export.preprocess.4
     push.0.0.0.0
     push.1
     while.true
-        adv_loadw
+        adv_popw
         movup.4
         add.1
         dup

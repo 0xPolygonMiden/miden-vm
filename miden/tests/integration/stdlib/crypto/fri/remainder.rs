@@ -46,7 +46,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
 
         repeat.{}
             push.0.0.0.0
-            adv_loadw
+            adv_popw
         end
     end
 

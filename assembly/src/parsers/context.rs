@@ -487,8 +487,8 @@ impl ParserContext {
             "mem_stream" => simple_instruction(op, MemStream),
             "adv_pipe" => simple_instruction(op, AdvPipe),
 
-            "adv_push" => io_ops::parse_adv_push(op),
-            "adv_loadw" => simple_instruction(op, AdvLoadW),
+            "adv_pop" => io_ops::parse_adv_pop(op),
+            "adv_popw" => simple_instruction(op, AdvPopW),
 
             "adv" => adv_ops::parse_adv_inject(op),
 

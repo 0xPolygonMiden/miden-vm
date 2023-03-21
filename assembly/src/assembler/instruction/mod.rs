@@ -266,8 +266,8 @@ impl Assembler {
             Instruction::Caller => env_ops::caller(span, ctx),
             Instruction::Clk => span.add_op(Clk),
             Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
-            Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
-            Instruction::AdvLoadW => span.add_op(ReadW),
+            Instruction::AdvPop(n) => adv_ops::adv_pop(span, *n),
+            Instruction::AdvPopW => span.add_op(ReadW),
 
             Instruction::MemStream => span.add_ops([MStream, HPerm]),
 

@@ -429,7 +429,7 @@ end
 export.unchecked_div
     adv.u64div          # push the quotient and the remainder onto the advice stack
 
-    adv_push.2          # pop the quotient from the advice stack and assert it consists of
+    adv_pop.2           # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -451,7 +451,7 @@ export.unchecked_div
     eq.0
     assert
 
-    adv_push.2          # pop the remainder from the advice stack and assert it consists of
+    adv_pop.2           # pop the remainder from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
@@ -494,7 +494,7 @@ end
 export.unchecked_mod
     adv.u64div          # push the quotient and the remainder onto the advice stack
 
-    adv_push.2          # pop the quotient from the advice stack and assert it consists of
+    adv_pop.2           # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -516,7 +516,7 @@ export.unchecked_mod
     eq.0
     assert
 
-    adv_push.2          # pop the quotient from the advice stack and assert it consists of
+    adv_pop.2           # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     movup.5             # make sure the divisor is greater than the remainder. this also consumes
@@ -559,7 +559,7 @@ end
 export.unchecked_divmod
     adv.u64div          # push the quotient and the remainder onto the advice stack
 
-    adv_push.2          # pop the quotient from the advice stack and assert it consists of
+    adv_pop.2           # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -581,7 +581,7 @@ export.unchecked_divmod
     eq.0
     assert
 
-    adv_push.2          # pop the quotient from the advice stack and assert it consists of
+    adv_pop.2           # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes

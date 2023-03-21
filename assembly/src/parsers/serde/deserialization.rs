@@ -315,8 +315,8 @@ impl Deserializable for Instruction {
                 let num_words = bytes.read_u32()?;
                 Ok(Instruction::AdvMem(start_addr, num_words))
             }
-            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
-            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
+            OpCode::AdvPop => Ok(Instruction::AdvPop(bytes.read_u8()?)),
+            OpCode::AdvPopW => Ok(Instruction::AdvPopW),
             OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),
             OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
 

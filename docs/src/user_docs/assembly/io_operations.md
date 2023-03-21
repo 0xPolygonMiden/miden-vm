@@ -35,11 +35,11 @@ In both case the values must still encode valid field elements.
 
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
-| adv_push.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow stack.pop()$ <br> Pops $n$ values from the advice stack and pushes them onto the operand stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice stack has fewer than $n$ values. |
-| adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow stack.pop(4)$ <br> Pop the next word (4 elements) from the advice stack and pushes them onto the operand stack. <br> Fails if the advice stack has fewer than $4$ values. |
-| adv_pipe <br> - *(2 cycles)*     | [S2, S1, S0, a, ... ] | [T2, T1, T0, b, ... ] | $[T_0, T_1, T_2] \leftarrow permute(S_0, stack.pop(4), stack.pop(4))$ <br> $b \leftarrow a + 2$ <br> Pops the next two words (8 elements) from the advice stack, inserts them into memory at address $a$ sequentially, overwrites these top 8 elements onto the operand stack, and performs a Rescue Prime Optimized permutation to the top 12 elements of the operand stack. At the end of the operation, the address is incremented by $2$. <br> Fails if the advice stack has fewer than $8$ values. |
+| adv_pop.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow stack.pop()$ <br> Pops $n$ values from the advice stack and pushes them onto the operand stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice stack has fewer than $n$ values. |
+| adv_popw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow stack.pop(4)$ <br> Pop the next word (4 elements) from the advice stack and override them onto the top 4 elements of the operand stack. <br> Fails if the advice stack has fewer than $4$ values. |
+| adv_pipe <br> - *(2 cycles)*     | [S2, S1, S0, a, ... ] | [T2, T1, T0, b, ... ] | $[T_0, T_1, T_2] \leftarrow permute(S_0, stack.pop(4), stack.pop(4))$ <br> $b \leftarrow a + 2$ <br> Pops the next two words (8 elements) from the advice stack, inserts them into memory at address $a$ sequentially, pushes these top 8 elements onto the operand stack, and performs a Rescue Prime Optimized permutation to the top 12 elements of the operand stack. At the end of the operation, the address is incremented by $2$. <br> Fails if the advice stack has fewer than $8$ values. |
 
-> **Note**: The opcodes above always push data onto the operand stack so that the first element is placed deepest in the stack. For example, if the data on the stack is `a,b,c,d` and you use the opcode `adv_push.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.
+> **Note**: The opcodes above always push data onto the operand stack so that the first element is placed deepest in the stack. For example, if the data on the stack is `a,b,c,d` and you use the opcode `adv_pop.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.
 
 ### Random access memory
 

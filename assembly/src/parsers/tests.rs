@@ -172,11 +172,11 @@ fn test_ast_parsing_module() {
 
 #[test]
 fn test_ast_parsing_adv_ops() {
-    let source = "begin adv_push.1 adv_loadw end";
+    let source = "begin adv_pop.1 adv_popw end";
     let value = 1_u8;
     let nodes: Vec<Node> = vec![
-        Node::Instruction(Instruction::AdvPush(value)),
-        Node::Instruction(Instruction::AdvLoadW),
+        Node::Instruction(Instruction::AdvPop(value)),
+        Node::Instruction(Instruction::AdvPopW),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);

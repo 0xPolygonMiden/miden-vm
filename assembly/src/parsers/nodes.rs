@@ -253,8 +253,8 @@ pub enum Instruction {
     MemStream,
     AdvPipe,
 
-    AdvPush(u8),
-    AdvLoadW,
+    AdvPop(u8),
+    AdvPopW,
 
     AdvU64Div,
     AdvKeyval,
@@ -528,8 +528,8 @@ impl fmt::Display for Instruction {
             Self::MemStream => write!(f, "mem_stream"),
             Self::AdvPipe => write!(f, "adv_pipe"),
 
-            Self::AdvPush(value) => write!(f, "adv_push.{value}"),
-            Self::AdvLoadW => write!(f, "adv_loadw"),
+            Self::AdvPop(value) => write!(f, "adv_pop.{value}"),
+            Self::AdvPopW => write!(f, "adv_popw"),
 
             Self::AdvU64Div => write!(f, "adv.u64div"),
             Self::AdvKeyval => write!(f, "adv.keyval"),
