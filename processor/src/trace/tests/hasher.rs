@@ -65,7 +65,7 @@ fn hasher_p1_mr_update() {
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     // build execution trace and extract the sibling table column from it
-    let ops = vec![Operation::MrUpdate(true)];
+    let ops = vec![Operation::MrUpdate];
     let mut trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();

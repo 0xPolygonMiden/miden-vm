@@ -11,8 +11,8 @@ use super::{BTreeMap, Felt, InputError, MerkleStore, Vec};
 /// There are three types of advice inputs:
 ///
 /// 1. Single advice stack which can contain any number of elements.
-/// 2. Key-mapped stacks set that can be pushed onto the operand stack.
-/// 3. Merkle sets list, which are used to provide nondeterministic inputs for instructions that
+/// 2. Key-mapped element lists which can be pushed onto the advice stack.
+/// 3. Merkle store, which is used to provide nondeterministic inputs for instructions that
 ///    operates with Merkle trees.
 #[derive(Clone, Debug, Default)]
 pub struct AdviceInputs {

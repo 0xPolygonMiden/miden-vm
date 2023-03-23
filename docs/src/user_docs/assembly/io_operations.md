@@ -3,7 +3,7 @@ Miden assembly provides a set of instructions for moving data between the stack 
 
 * **Program code**: values to be moved onto the stack can be hard-coded in a program's source code.
 * **Environment**: values can be moved onto the stack from environment variables. Currently, the available environment variables are *stack_depth*, which holds the current depth of the stack, and *local_address*, which stores absolute addresses of local variables. In the future, other environment variables may be added.
-* **Advice stack**: values can be moved onto the stack from the advice provider by popping the from the advice stack. There is no limit on the number of values in the advice stack.
+* **Advice stack**: values can be moved onto the stack from the advice provider by popping them from the advice stack. There is no limit on the number of values in the advice stack.
 * **Memory**: values can be moved between the stack and random-access memory. The memory is word-addressable, meaning, four elements are located at each address, and we can read and write elements to/from memory in batches of four. Memory can be accessed via absolute memory references (i.e., via memory addresses) as well as via local procedure references (i.e., local index). The latter approach ensures that a procedure does not access locals of another procedure.
 
 In the future several other sources such as *storage* and *logs* may be added.
@@ -36,7 +36,7 @@ In both case the values must still encode valid field elements.
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
 | adv_push.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow stack.pop()$ <br> Pops $n$ values from the advice stack and pushes them onto the operand stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice stack has fewer than $n$ values. |
-| adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow stack.pop(4)$ <br> Pop the next word (4 elements) from the advice stack and pushes them onto the operand stack. <br> Fails if the advice stack has fewer than $4$ values. |
+| adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow stack.pop(4)$ <br> Pop the next word (4 elements) from the advice stack and overwrites the first word of the operand stack (4 elements) with them. <br> Fails if the advice stack has fewer than $4$ values. |
 | adv_pipe <br> - *(2 cycles)*     | [S2, S1, S0, a, ... ] | [T2, T1, T0, b, ... ] | $[T_0, T_1, T_2] \leftarrow permute(S_0, stack.pop(4), stack.pop(4))$ <br> $b \leftarrow a + 2$ <br> Pops the next two words (8 elements) from the advice stack, inserts them into memory at address $a$ sequentially, overwrites these top 8 elements onto the operand stack, and performs a Rescue Prime Optimized permutation to the top 12 elements of the operand stack. At the end of the operation, the address is incremented by $2$. <br> Fails if the advice stack has fewer than $8$ values. |
 
 > **Note**: The opcodes above always push data onto the operand stack so that the first element is placed deepest in the stack. For example, if the data on the stack is `a,b,c,d` and you use the opcode `adv_push.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.

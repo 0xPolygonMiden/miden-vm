@@ -395,14 +395,13 @@ pub enum Operation {
     /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
-    /// (via merkle sets). At the end of the operation, the old node value is replaced with the
-    /// new root value computed based on the provided path. Everything else on the stack remains the
-    /// same.
+    /// via the advice provider. At the end of the operation, the old node value is replaced with
+    /// the new root value, that is computed based on the provided path. Everything else on the
+    /// stack remains the same.
     ///
-    /// If the boolean parameter is set to false, at the end of the operation the merkle set with
-    /// the specified root will be removed from the advice provider. Otherwise, the advice
-    /// provider will keep track of both, the old and the new merkle sets.
-    MrUpdate(bool),
+    /// The tree will always be copied into a new instance, meaning the advice provider will keep
+    /// track of both the old and new Merkle trees.
+    MrUpdate,
 
     /// TODO: add docs
     FriE2F4,
@@ -512,7 +511,7 @@ impl Operation {
             Self::Split     => 0b0101_1100,
             Self::Loop      => 0b0101_1110,
 
-            Self::MrUpdate(_) => 0b0110_0000,
+            Self::MrUpdate  => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
             Self::SysCall   => 0b0110_1000,
             Self::Call      => 0b0110_1100,
@@ -668,13 +667,7 @@ impl fmt::Display for Operation {
             // ----- cryptographic operations -----------------------------------------------------
             Self::HPerm => write!(f, "hperm"),
             Self::MpVerify => write!(f, "mpverify"),
-            Self::MrUpdate(copy) => {
-                if *copy {
-                    write!(f, "mrupdate(copy)")
-                } else {
-                    write!(f, "mrupdate(move)")
-                }
-            }
+            Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
         }
     }

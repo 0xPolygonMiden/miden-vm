@@ -39,6 +39,7 @@ where
     pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
+            AdviceInjector::MerkleMerge => self.inject_merkle_merge(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
             AdviceInjector::MapValue => self.inject_map_value(),
             AdviceInjector::Memory(start_addr, num_words) => {
@@ -79,6 +80,30 @@ where
         self.advice_provider.push_stack(AdviceSource::Value(node[2]))?;
         self.advice_provider.push_stack(AdviceSource::Value(node[1]))?;
         self.advice_provider.push_stack(AdviceSource::Value(node[0]))?;
+
+        Ok(())
+    }
+
+    /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
+    /// specified roots. The root of the new tree is defined as `hash(left_root, right_root)`.
+    ///
+    /// The operand stack is expected to be arranged as follows:
+    /// - root of the right tree, 4 elements
+    /// - root of the left tree, 4 elements
+    ///
+    /// After the operation, both the original trees and the new tree remains in the advice
+    /// provider (i.e., the input trees are not removed).
+    ///
+    /// # Errors
+    /// Return an error if a Merkle tree for either of the specified roots cannot be found in this
+    /// advice provider.
+    fn inject_merkle_merge(&mut self) -> Result<(), ExecutionError> {
+        // fetch the arguments from the stack
+        let lhs = [self.stack.get(7), self.stack.get(6), self.stack.get(5), self.stack.get(4)];
+        let rhs = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
+
+        // perform the merge
+        self.advice_provider.merge_roots(lhs, rhs)?;
 
         Ok(())
     }

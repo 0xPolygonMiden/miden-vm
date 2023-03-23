@@ -31,14 +31,14 @@ fn fri_fold4_ext2_remainder32() {
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
 
-    let (advice_provider, stack, position_eval, alphas, commitments, remainder, num_queries) =
+    let (advice_provider, advice_stack, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
     let advice_stack = prepare_advice(
         depth,
         domain_size,
         num_queries,
-        stack,
+        advice_stack,
         position_eval,
         alphas,
         commitments,
@@ -73,14 +73,14 @@ fn fri_fold4_ext2_remainder64() {
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
 
-    let (advice_provider, stack, position_eval, alphas, commitments, remainder, num_queries) =
+    let (advice_provider, advice_stack, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
     let advice_stack = prepare_advice(
         depth,
         domain_size,
         num_queries,
-        stack,
+        advice_stack,
         position_eval,
         alphas,
         commitments,

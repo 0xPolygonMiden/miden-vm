@@ -19,7 +19,7 @@ use stdlib::StdLibrary;
 /// Input file struct
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
-    pub stack_init: Vec<String>,
+    pub operand_stack: Vec<String>,
     pub advice_stack: Option<Vec<String>>,
 }
 
@@ -27,10 +27,10 @@ pub struct InputFile {
 impl InputFile {
     pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // if file not specified explicitly and corresponding file with same name as program_path
-        // with '.inputs' extension does't exist, set stack_init to empty vector
+        // with '.inputs' extension does't exist, set operand_stack to empty vector
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
             return Ok(Self {
-                stack_init: Vec::new(),
+                operand_stack: Vec::new(),
                 advice_stack: Some(Vec::new()),
             });
         }
@@ -72,7 +72,7 @@ impl InputFile {
     /// Parse and return the stack inputs for the program.
     pub fn parse_stack_inputs(&self) -> Result<StackInputs, String> {
         let stack_inputs = self
-            .stack_init
+            .operand_stack
             .iter()
             .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
             .collect::<Result<Vec<_>, _>>()?;

@@ -22,7 +22,7 @@ std = ["math/std", "winter-utils/std"]
 [dependencies]
 math = { package = "winter-math", version = "0.5", default-features = false }
 #crypto = { package = "miden-crypto", version = "0.1", default-features = false }
-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
+crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", rev = "75af3d474b0f5aa03ee65708ec3fd9397426f29c", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.5", default-features = false }
 
 [dev-dependencies]
