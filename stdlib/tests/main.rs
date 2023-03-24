@@ -1,4 +1,5 @@
 mod crypto;
+mod math;
 mod mem;
 mod sys;
 
@@ -8,6 +9,13 @@ use processor::{ExecutionError, ExecutionTrace, MemAdviceProvider};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
+
+pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
+
+pub enum TestError<'a> {
+    AssemblyError(&'a str),
+    ExecutionError(&'a str),
+}
 
 pub struct Test {
     pub source: String,
@@ -68,6 +76,29 @@ impl Test {
             stack_inputs: stack,
             advice_inputs: advice,
             in_debug_mode,
+        }
+    }
+
+    /// Asserts that running the test for the expected TestError variant will result in an error
+    /// that contains the TestError's error substring in its error message.
+    pub fn expect_error(&self, error: TestError) {
+        match error {
+            TestError::AssemblyError(substr) => {
+                assert_eq!(
+                    std::panic::catch_unwind(|| self.compile())
+                        .err()
+                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
+                    Some(true)
+                );
+            }
+            TestError::ExecutionError(substr) => {
+                assert_eq!(
+                    std::panic::catch_unwind(|| self.execute().unwrap())
+                        .err()
+                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
+                    Some(true)
+                );
+            }
         }
     }
 

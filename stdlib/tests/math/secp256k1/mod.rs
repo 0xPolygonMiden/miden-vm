@@ -1,4 +1,4 @@
-use super::build_test;
+use super::Test;
 
 mod base_field;
 mod group;

@@ -1,4 +1,4 @@
-use super::build_test;
+use super::Test;
 use std::cmp::PartialEq;
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -333,7 +333,7 @@ fn test_secp256k1_base_field_montgomery_repr() {
     let mut stack = num_u32.map(|v| v as u64);
 
     stack.reverse();
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     stack.reverse();
     test.expect_stack(&stack);
 }
@@ -360,7 +360,7 @@ fn test_secp256k1_base_field_mul() {
     stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
@@ -386,7 +386,7 @@ fn test_secp256k1_base_field_add() {
     stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
@@ -409,7 +409,7 @@ fn test_secp256k1_base_field_neg() {
     stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm1.limbs.map(|v| v as u64));
 }
 
@@ -435,7 +435,7 @@ fn test_secp256k1_base_field_sub() {
     stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
@@ -470,7 +470,7 @@ fn test_secp256k1_base_field_add_then_sub() {
         let elm2 = elm0 + elm1; // c = a + b
 
         stack.reverse();
-        let test = build_test!(source_add, &stack);
+        let test = Test::with_stack(source_add, false, &stack);
         test.expect_stack(&elm2.limbs.map(|v| v as u64));
 
         elm2
@@ -483,7 +483,7 @@ fn test_secp256k1_base_field_add_then_sub() {
         let elm3 = elm2 - elm0; // d = c - a
 
         stack.reverse();
-        let test = build_test!(source_sub, &stack);
+        let test = Test::with_stack(source_sub, false, &stack);
         test.expect_stack(&elm3.limbs.map(|v| v as u64));
 
         elm3
@@ -514,6 +514,6 @@ fn test_secp256k1_base_field_inv() {
     stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm1.limbs.map(|v| v as u64));
 }

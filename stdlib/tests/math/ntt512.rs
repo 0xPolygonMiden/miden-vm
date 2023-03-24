@@ -1,12 +1,12 @@
-use super::build_test;
+use super::Test;
 use std::fmt::Write;
 
 #[test]
 fn test_ntt512() {
     let source = generate_test_script_ntt512();
 
-    let test = build_test!(source, &[]);
-    let _ = test.get_last_stack_state();
+    let test = Test::with_stack(&source, false, &[]);
+    assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_ntt512() -> String {

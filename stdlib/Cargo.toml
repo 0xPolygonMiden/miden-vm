@@ -33,6 +33,7 @@ test-case = "=3.0.0"
 winterfell = { package = "winter-prover", version = "=0.5.1", default-features = false }
 winter-fri = { package = "winter-fri", version = "=0.5.1" }
 proptest = "=1.1.0"
+num-bigint = "=0.4.3"
 
 [build-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.5" }

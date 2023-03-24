@@ -1,4 +1,4 @@
-use super::build_test;
+use super::Test;
 use std::cmp::PartialEq;
 use std::ops::Mul;
 
@@ -276,7 +276,7 @@ fn test_secp256k1_scalar_field_mul() {
     stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
@@ -305,6 +305,6 @@ fn test_secp256k1_scalar_field_inv() {
     stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }

@@ -1,4 +1,4 @@
-use super::build_test;
+use super::Test;
 use test_case::test_case;
 
 // Wrapper types introduced for parameterized testing
@@ -197,8 +197,8 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
         dst.0[2].0[7],
     );
 
-    let test = build_test!(source, &[]);
-    test.execute().unwrap();
+    let test = Test::with_stack(&source, false, &[]);
+    assert!(test.execute().is_ok());
 }
 
 #[test_case(Point([FieldElement([1725045020, 1243934934, 83748696, 1271163719, 2490525753, 3709155749, 1579712529, 1757200845]), FieldElement([258440691, 3022796594, 2607846704, 163567449, 1396660245, 61235791, 73386979, 3569717]), FieldElement([628236075, 1776096883, 1596640373, 1237597377, 2238764922, 2503475385, 3619273576, 3366549089])]), Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]), Point([FieldElement([2309099704, 2158014047, 854312809, 3276656657, 3455091323, 3708360608, 3832958189, 1030676036]), FieldElement([133738327, 3330962811, 3584096721, 299911668, 2650033490, 422639790, 3556231157, 1827621109]), FieldElement([154840996, 2382379548, 82306663, 1374755238, 3331244496, 1158573656, 1766956234, 1263003926])]) ; "0")]
@@ -448,8 +448,8 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
         dst.0[2].0[7],
     );
 
-    let test = build_test!(source, &[]);
-    test.execute().unwrap();
+    let test = Test::with_stack(&source, false, &[]);
+    assert!(test.execute().is_ok());
 }
 
 #[test_case(Point([FieldElement([1725045020, 1243934934, 83748696, 1271163719, 2490525753, 3709155749, 1579712529, 1757200845]), FieldElement([258440691, 3022796594, 2607846704, 163567449, 1396660245, 61235791, 73386979, 3569717]), FieldElement([628236075, 1776096883, 1596640373, 1237597377, 2238764922, 2503475385, 3619273576, 3366549089])]), FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]); "0")]
@@ -658,8 +658,8 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         dst_point.0[2].0[7],
     );
 
-    let test = build_test!(source, &[]);
-    test.execute().unwrap();
+    let test = Test::with_stack(&source, false, &[]);
+    assert!(test.execute().is_ok());
 }
 
 #[test_case(FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([1096602412, 1336778744, 4237851429, 2379704491, 2174658910, 1179196601, 696486755, 2826869248]), FieldElement([3362845704, 129965728, 1311711770, 3674781461, 3620120701, 1257229422, 162674263, 1366999099]), FieldElement([440013615, 548226205, 868197170, 3947728772, 2287684084, 3056380747, 2298699306, 2987928230])]); "0")]
@@ -810,6 +810,6 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         point.0[2].0[7],
     );
 
-    let test = build_test!(source, &[]);
-    test.execute().unwrap();
+    let test = Test::with_stack(&source, false, &[]);
+    assert!(test.execute().is_ok());
 }
