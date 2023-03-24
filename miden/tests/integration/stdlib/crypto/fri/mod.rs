@@ -15,7 +15,6 @@ pub use verifier_fri_e2f4::*;
 mod remainder;
 
 #[test]
-#[ignore = "the unbound integrated test struct needs to be refactored to use merkle store"]
 fn fri_fold4_ext2_remainder32() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -57,7 +56,6 @@ fn fri_fold4_ext2_remainder32() {
 }
 
 #[test]
-#[ignore = "the unbound integrated test struct needs to be refactored to use merkle store"]
 fn fri_fold4_ext2_remainder64() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -122,7 +120,8 @@ fn prepare_advice(
 
         stack.extend_from_slice(&com[(4 * i)..(4 * i + 4)]);
         stack.extend_from_slice(&alphas[(4 * i)..(4 * i + 2)]);
-        stack.extend_from_slice(&vec![current_depth - 1, current_domain_size]);
+        // TODO: explain why "-2" for depth; related to folding factor?
+        stack.extend_from_slice(&vec![current_depth - 2, current_domain_size]);
         current_depth -= 2;
     }
 
