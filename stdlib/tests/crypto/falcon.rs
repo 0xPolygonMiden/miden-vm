@@ -1,4 +1,4 @@
-use super::build_test;
+use super::Test;
 use std::fmt::Write;
 
 #[test]
@@ -1962,8 +1962,8 @@ fn test_falcon512_normalize_poly() {
     end
     ";
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = Test::new(source, false);
+    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -2020,8 +2020,8 @@ fn test_falcon512_vector_squared_norm() {
     "
     );
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = Test::new(&source, false);
+    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -2657,6 +2657,6 @@ fn test_falcon512_verify() {
     end
     ";
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = Test::new(source, false);
+    assert!(test.execute().is_ok());
 }

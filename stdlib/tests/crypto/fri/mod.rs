@@ -1,10 +1,8 @@
+use super::{Felt, Test};
+
+use processor::utils::math::log2;
 use std::collections::BTreeMap;
-
-use super::{build_test, Felt};
 use vm_core::StarkField;
-
-use math::log2;
-use miden::utils::math;
 
 mod channel;
 pub use channel::*;
@@ -46,14 +44,15 @@ fn fri_fold4_ext2_remainder32() {
 
     let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
     let domain_generator = Felt::get_root_of_unity(log2(domain_size as usize)).as_int();
-    let test = build_test!(
+
+    let test = Test::with_advice(
         source,
+        false,
         &[domain_generator],
         &tape,
         advice_provider.0.clone(),
-        advice_map.clone()
+        advice_map.clone(),
     );
-
     test.expect_stack(&[]);
 }
 
@@ -89,14 +88,15 @@ fn fri_fold4_ext2_remainder64() {
 
     let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
     let domain_generator = Felt::get_root_of_unity(log2(domain_size as usize)).as_int();
-    let test = build_test!(
+
+    let test = Test::with_advice(
         source,
+        false,
         &[domain_generator],
         &tape,
         advice_provider.0.clone(),
-        advice_map.clone()
+        advice_map.clone(),
     );
-
     test.expect_stack(&[]);
 }
 

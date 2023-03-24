@@ -1,10 +1,10 @@
 mod crypto;
 
 use miden_stdlib::StdLibrary;
-pub use processor::{AdviceInputs, StackInputs};
+use processor::{AdviceInputs, MerkleSet, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, MemAdviceProvider};
-pub use vm_core::utils::{group_slice_elements, IntoBytes};
-pub use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program, StackOutputs};
+use std::collections::BTreeMap;
+use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
 
 pub struct Test {
     pub source: String,
@@ -37,6 +37,33 @@ impl Test {
             kernel: None,
             stack_inputs: stack,
             advice_inputs: AdviceInputs::default(),
+            in_debug_mode,
+        }
+    }
+
+    /// Creates a new test, with a MASM program source string, initial stack state and
+    /// non-deterministic input via advice provider.
+    pub fn with_advice(
+        source: &str,
+        in_debug_mode: bool,
+        stack_init: &[u64],
+        adv_tape: &[u64],
+        adv_set: Vec<MerkleSet>,
+        adv_map: BTreeMap<[u8; 32], Vec<Felt>>,
+    ) -> Self {
+        let stack = StackInputs::try_from_values(stack_init.to_vec()).unwrap();
+        let advice = AdviceInputs::default()
+            .with_tape_values(adv_tape.to_vec())
+            .unwrap()
+            .with_merkle_sets(adv_set)
+            .unwrap()
+            .with_values_map(adv_map);
+
+        Test {
+            source: String::from(source),
+            kernel: None,
+            stack_inputs: stack,
+            advice_inputs: advice,
             in_debug_mode,
         }
     }

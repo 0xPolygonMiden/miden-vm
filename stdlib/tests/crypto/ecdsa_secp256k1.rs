@@ -1,4 +1,4 @@
-use super::build_test;
+use super::Test;
 use test_case::test_case;
 
 // Wrapper types for ease of writing parameterized test cases
@@ -12,7 +12,7 @@ struct Point([BaseField; 3]);
 /// Because this test is pretty expensive, it's by default ignored. If you're interested in
 /// running this test, issue
 ///
-/// cargo test --release -p miden secp256k1 -- --include-ignored
+/// cargo test --release -p miden-stdlib secp256k1 -- --include-ignored
 ///
 /// from root directory of Miden repository.
 ///
@@ -43,6 +43,6 @@ fn verify(pubkey: Point, h: ScalarField, r: ScalarField, s: ScalarField) {
 
     stack.reverse();
 
-    let test = build_test!(source, &stack);
+    let test = Test::with_stack(source, false, &stack);
     assert!(test.execute().is_ok());
 }

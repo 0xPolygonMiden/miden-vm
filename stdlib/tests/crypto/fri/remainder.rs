@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::{Felt, Test};
 use processor::math::fft;
 use test_case::test_case;
 use vm_core::{FieldElement, QuadExtension, StarkField};
@@ -74,7 +74,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         .map(|v| v.as_int())
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &iu64s);
+    let test = Test::with_stack(&source, false, &iu64s);
     test.expect_stack(&ou64s);
 }
 
@@ -110,9 +110,8 @@ fn test_verify_remainder_64() {
     let ifelts = Ext2Element::as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
-    let test = build_test!(source, &iu64s);
-    let res = test.execute();
-    assert!(res.is_ok());
+    let test = Test::with_stack(source, false, &iu64s);
+    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -147,7 +146,6 @@ fn test_verify_remainder_32() {
     let ifelts = Ext2Element::as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
-    let test = build_test!(source, &iu64s);
-    let res = test.execute();
-    assert!(res.is_ok());
+    let test = Test::with_stack(source, false, &iu64s);
+    assert!(test.execute().is_ok());
 }

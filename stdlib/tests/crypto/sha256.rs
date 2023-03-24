@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::{Felt, Test};
 use sha2::{Digest, Sha256};
 use vm_core::utils::{group_slice_elements, IntoBytes};
 
@@ -33,7 +33,7 @@ fn sha256_2_to_1_hash() {
         .map(|&bytes| u32::from_be_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &ifelts);
+    let test = Test::with_stack(source, false, &ifelts);
     test.expect_stack(&ofelts);
 }
 
@@ -62,6 +62,6 @@ fn sha256_1_to_1_hash() {
         .map(|&bytes| u32::from_be_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &ifelts);
+    let test = Test::with_stack(source, false, &ifelts);
     test.expect_stack(&ofelts);
 }

@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::{Felt, Test};
 use vm_core::utils::{group_slice_elements, IntoBytes};
 
 #[test]
@@ -31,7 +31,7 @@ fn blake3_hash_64_bytes() {
         .map(|&bytes| u32::from_le_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &ifelts);
+    let test = Test::with_stack(source, false, &ifelts);
     test.expect_stack(&ofelts);
 }
 
@@ -59,6 +59,6 @@ fn blake3_hash_32_bytes() {
         .map(|&bytes| u32::from_le_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &ifelts);
+    let test = Test::with_stack(source, false, &ifelts);
     test.expect_stack(&ofelts);
 }

@@ -1,4 +1,4 @@
-use miden::MerkleSet;
+use processor::MerkleSet;
 use vm_core::{Felt, FieldElement};
 use winter_fri::{FriProof, VerifierError};
 

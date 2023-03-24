@@ -1,9 +1,10 @@
 use std::marker::PhantomData;
 use std::mem;
 
-use miden::{math::fft, utils::math::log2, Digest as MidenDigest};
 use processor::Hasher;
-use prover::MerkleSet;
+use processor::MerkleSet;
+use processor::{math::fft, utils::math::log2, Digest as MidenDigest};
+use vm_core::utils::group_vector_elements;
 use vm_core::{
     chiplets::hasher::Hasher as MidenHasher,
     crypto::merkle::{MerklePath, MerklePathSet, NodeIndex},
@@ -13,7 +14,6 @@ use vm_core::{
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
-use winter_utils::group_vector_elements;
 
 use super::channel::{MidenFriVerifierChannel, UnBatch};
 
