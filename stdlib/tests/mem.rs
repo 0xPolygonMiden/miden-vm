@@ -1,6 +1,5 @@
-use miden::MemAdviceProvider;
-use processor::{AdviceInputs, Process, StackInputs};
-use stdlib::StdLibrary;
+use miden_stdlib::StdLibrary;
+use processor::{AdviceInputs, MemAdviceProvider, Process, StackInputs};
 use vm_core::{ONE, ZERO};
 
 #[test]

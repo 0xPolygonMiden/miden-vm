@@ -1,8 +1,11 @@
 mod crypto;
+mod mem;
+mod sys;
 
 use miden_stdlib::StdLibrary;
 use processor::{AdviceInputs, MerkleSet, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, MemAdviceProvider};
+use proptest::prelude::*;
 use std::collections::BTreeMap;
 use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
 
@@ -75,6 +78,21 @@ impl Test {
         let result = self.get_last_stack_state();
 
         assert_eq!(expected, result);
+    }
+
+    /// Asserts that executing the test inside a proptest results in the expected final stack state.
+    /// The proptest will return a test failure instead of panicking if the assertion condition
+    /// fails.
+    pub fn prop_expect_stack(
+        &self,
+        final_stack: &[u64],
+    ) -> Result<(), proptest::test_runner::TestCaseError> {
+        let expected = convert_to_stack(final_stack);
+        let result = self.get_last_stack_state();
+
+        prop_assert_eq!(expected, result);
+
+        Ok(())
     }
 
     // UTILITY METHODS
