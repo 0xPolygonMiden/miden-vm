@@ -10,6 +10,22 @@ use proptest::prelude::*;
 use std::collections::BTreeMap;
 use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
 
+/// Following section suffers from code-duplication, why ?
+///
+/// Test helper routines were originally living in `miden-vm` crate's
+/// integration test helper module ( ../miden/tests/integration/helpers/mod.rs ).
+/// But for addressing issue described in https://github.com/0xPolygonMiden/miden-vm/issues/723
+/// we move standard library related tests out of `miden-vm` crate and put them
+/// here inside `miden-stdlib` crate. But we can't just export test helper routines
+/// from `miden-vm` crate and start using that here by simply importing them - because
+/// `miden-vm` crate is an aggregation of all components of this repository, meaning it's
+/// dependent on `miden-stdlib` ( this crate ) too. Attempting to bring in test helper
+/// routines from `miden-vm` crate results in circular dependency.
+///
+/// I think we can solve this code duplication problem by keeping test helper routines
+/// here in `miden-stdlib` crate and by making them exportable, we ensure that they can
+/// be used in `miden-vm` crate, which anyway imports this crate as development dependency.
+
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 pub enum TestError<'a> {
