@@ -1,102 +1,89 @@
 use.std::crypto::fri::ext2fri
 
-#! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] and [0, p, e1, e0] where:
+#! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] and [poe, p, e1, e0] where:
 #! 1) d_size is the domain size divided by 4 of the domain corresponding to C.
 #! 2) t_depth is the tree depth of the Merkle tree with commitment C.
 #! 3) (a0, a1) is the folding challenge to create the next layer.
-#! 4) p is the query index and (e0, e1) is the evaluation at the first layer.
-#! TODO: This processing function should in fact compute d_size and t_depth for each C
+#! 4) p is the query index and (e0, e1) is the evaluation at the first layer and poe is g^p with 
+#!  g being the initial domain generator.
+#! TODO: This pre-processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
 export.preprocess.4
-    #adv_push.1
     locaddr.3
-    adv_push.1                  #[num_layers, layer_ptr, g, ..]
-    dup
-    neq.0
-    while.true
-        push.0.0.0.0
-        adv_loadw                       #[C, num_layers, ptr, ..]
-        movup.5                         #[ptr, C, num_layers, ..]
-        u32wrapping_add.1               #[ptr+1, C, num_layers, ..]
-        dup movdn.5                     #[ptr+1, C, ptr+1, num_layers, ..]
-        mem_storew                      #[C, ptr+1, num_layers, ..]
-        adv_loadw                       #[d_size, t_depth, a1, a0, ptr+1, num_layers, ..]
-        movup.4                         #[ptr+1, d_size, t_depth, a1, a0, num_layers, ..]
-        u32wrapping_add.1               #[ptr+2, d_size, t_depth, a1, a0, num_layers, ..]
-        dup movdn.6                     #[ptr+2, d_size, t_depth, a1, a0, num_layers, ptr+2, ..]
-        mem_storew dropw                #[num_layers, ptr+2, ..]
-        u32wrapping_sub.1 dup           #[num_layers-1, num_layers-1, ptr+2, ..]
-        neq.0                           #[?, num_layers-1, ptr+2, ..]
-    end
-
-    #[ptr2n', rem_len, rem_ptr, g, ..]
-    drop
-    adv_push.1
-    dup.1
-    add.1
-    swap.2
-
-
-    # value of the remainder codeword
+    adv_push.1                  #[num_queries, query_ptr, g, ..]
+    sub.1
     push.0.0.0.0
     push.1
     while.true
-        adv_loadw
-        movup.4
-        add.1
-        dup
-        movdn.5
-        mem_storew
-        movup.5
-        u32wrapping_sub.1
-        movdn.5
-        dup.5
-        neq.0
+        adv_loadw                       #[Q, num_queries, ptr, ..]
+        dup.5                           #[ptr, Q, num_queries, ptr,..]
+        u32wrapping_add.1               #[ptr+1, Q, num_queries, ptr, ..]
+        swap.6                          #[ptr, Q, num_queries, ptr+1, ..]
+        mem_storew                      #[Q, num_queries, ptr+1, ..]
+        dup.4                           
+        sub.1                           #[num_queries-1, Q, num_queries, ptr+1, ..]
+        swap.5                          #[num_queries, Q, num_queries-1, ptr+1, ..]
+        neq.0                           #[?, Q, num_queries-1, ptr+1, ..]
     end
+    #=> [X, x, layer_ptr, g]
 
-    # [ptr_(2n+rem_len/2)', rem_ptr, g]
-    dropw
-    swap
     drop
+    #=> [X, layer_ptr, g]
+    
+    dup.4
+    movdn.5
+    #=> [X, layer_ptr, layer_ptr, g]
 
-    # number of queries
     adv_push.1
+    mul.2
+    sub.1
+    movdn.4
+    #=> [X, layer_ptr, num_layers, layer_ptr, g]
 
-    # [ptr_(2n+rem_len/2)', num_q, query_start_ptr, rem_ptr, g]
-    dup.1
-    add.1
-    swap.2
-
-    # value of the queries and evaluations
-    push.0.0.0.0
     push.1
     while.true
-        adv_loadw
-        movup.4
-        add.1
-        dup
-        movdn.5
-        mem_storew
-        movup.5
-        u32wrapping_sub.1
-        movdn.5
-        dup.5
-        neq.0
+        adv_loadw                        
+        dup.5                            
+        u32wrapping_add.1                
+        swap.6                          
+        mem_storew                       
+        dup.4                           
+        sub.1                            
+        swap.5                           
+        neq.0                            
     end
+    #=> [X, x, remainder_ptr, layer_ptr, g]
 
-
-    # [ptr_queries_end, query_start_ptr, rem_ptr, g]
-    dropw
-    swap
     drop
+    #=> [X, remainder_ptr, layer_ptr, g]
+    
+    dup.4
+    movdn.5
+    #=> [X, remainder_ptr, remainder_ptr, layer_ptr, g]
 
-    # [ptr_queries_end + 1, query_start_ptr, rem_ptr, g]
-    add.1
+    adv_push.1
+    sub.1
+    movdn.4
+    #=> [X, remainder_ptr, len_remainder/2, remainder_ptr, layer_ptr, g]
 
-    # [query_start_ptr, ptr_queries_end + 1, ptr_c_start, rem_ptr, g]
+    push.1
+    while.true
+        adv_loadw                        
+        dup.5                            
+        u32wrapping_add.1                
+        swap.6                           
+        mem_storew                       
+        dup.4                           
+        sub.1                            
+        swap.5                          
+        neq.0                            
+    end
+    #=> [X, x, x, remainder_ptr, layer_ptr, g]
+    dropw drop drop
+
+    swap
     locaddr.3
-    add.1
-    swap.2
+    #=> [query_ptr, layer_ptr, remainder_ptr, g]
 end
 
 #! Checks that, for a query with index p at layer i, the folding procedure to create layer (i + 1)
@@ -128,6 +115,7 @@ export.verify_query_layer.3
     dup.5
     movup.5             # [t_depth, f_pos, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     mtree_get           # [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
+    adv.keyval
     swapw
     # => [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     # where f_pos = p % d_size and d_seg = p / 4
@@ -243,14 +231,12 @@ end
 #! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
 #! field and layer folding was performed using folding factor 4.
 #!
-#! Input:  [query_start_ptr, query_end_ptr, layer_ptr, rem_ptr, g, ...]
+#! Input:  [query_ptr, layer_ptr, rem_ptr, g, ...]
 #! Output: [...]
 #!
-#! - query_start_ptr is a pointer to a list of tuples of the form (e0, e1, p, 0) where p is a
-#!   query index at the first layer and (e0, e1) is an extension field element corresponding to
-#!   the value of the first layer at index p.
-#! - query_end_ptr is a pointer to the first empty memory address after the last (e0, e1, p, 0)
-#!   tuple.
+#! - query_ptr is a pointer to a list of tuples of the form (e0, e1, p, poe) where poe is equal
+#!   to g^p with g being the initial FRI domain generator. p is the query index at the first layer
+#!   and (e0, e1) is an extension field element corresponding to the value of the first layer at index p.
 #! - layer_ptr is a pointer to the first layer commitment denoted throughout the code by C.
 #!   layer_ptr + 1 points to the first [alpha0, alpha1, t_depth, d_size] where d_size is the size
 #!   of initial domain divided by 4, t_depth is the depth of the Merkle tree commitment to the
@@ -262,82 +248,52 @@ end
 #!
 #! The memory referenced above is used contiguously, as follows:
 #!
-#!   [layer_ptr ... rem_ptr ... query_start_ptr ... query_end_ptr]
+#!   [query_ptr ... layer_ptr ... rem_ptr ...]
 #!
 #! This means for example that:
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
-#! 2. The length of the remainder codeword is 2 * (rem_ptr - query_start_ptr).
+#! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
 #! Cycles: for domains of size 2^n where:
-#! - n is even: 12 + 6 + num_queries * (40 + num_layers * 76 + 69) + 2626
-#! - n is odd:  12 + 6 + num_queries * (40 + num_layers * 76 + 69) + 1356
+#! - n is even: 6 + 7 + num_queries * (40 + num_layers * 76 + 26)
+#! - n is odd:  6 + 7 + num_queries * (40 + num_layers * 76 + 26)
 export.verify.1
 
-    # store [query_start_ptr, query_end_ptr, layer_ptr, rem_ptr] to keep track of all queries
+    # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
     locaddr.0
     mem_storew
 
-    # compute size of remainder divided by 2 to be used in determining the appropriate remainder
-    # verification procedure. (5 cycles)
+    # [(query_ptr == layer_ptr), query_ptr, layer_ptr, rem_ptr, g]
+    # (3 cycles)
     dup
-    dup.4
-    sub
-    movdn.5
-    # => [query_start_ptr, query_end_ptr, layer_ptr, rem_ptr, g, rem_len]
-
-    # compute number of remaining queries to be verified and assert it is not 0
-    # (4 cycles)
-    swap
-    dup.1
+    dup.2
     neq
-    # => [?, query_start_ptr, layer_ptr, rem_ptr, g, rem_len, ...]
 
     while.true
-        # load [e0, e1, p, 0] from memory i.e. next query data (7 cycles)
+        # load [e0, e1, p, poe] from memory i.e. next query data (7 cycles)
         push.0.0.0.0
         movup.4
         mem_loadw
-        drop
-        # => [p, e1, e0, layer_ptr, rem_ptr, g, rem_len, ...]
-
-        # compute poe = g^p (43 cycles)
-        dup.5
-        dup.1
-        exp.u32
-        # => [poe, p, e1, e0, layer_ptr, rem_ptr, rem_len, ...]
+        # => [poe, p, e1, e0, layer_ptr, rem_ptr, g, ...]
 
         # we now have everything to verify query p
         exec.verify_query
 
-        # prepare for next iteration (17 cycles)
-        # => [x, x, x, x, x, x, x, x, x, x, g, rem_len, ...]
-        dropw drop drop
+        # prepare for next iteration (18 cycles)
+        # => [x, x, x, x, x, x, x, x, x, x, g, ...]
+        dropw drop drop drop
         locaddr.0
-        mem_loadw   # load [query_start_ptr, query_end_ptr, layer_ptr, rem_ptr]
+        mem_loadw   # load [query_ptr, layer_ptr, rem_ptr, g]
         add.1
         locaddr.0
-        mem_storew  # store [query_start_ptr + 1, query_end_ptr, layer_ptr, rem_ptr]
-        swap
-        dup.1
+        mem_storew  # store [query_ptr + 1, layer_ptr, rem_ptr, g]
+        dup
+        dup.2
         neq
-        # => [?, query_start_ptr + 1, layer_ptr, rem_ptr, g, rem_len, ...]
+        #=> [?, query_ptr + 1, layer_ptr, rem_ptr, g, ...]
     end
+    #=> [X, ..]
 
-    # verify that remainder corresponds to a low degree polynomial
-
-    # check if remainder is of size 64 (6 cycles)
-    # => [x, x, rem_ptr, g, rem_len, ...]
-    drop drop movdn.2 drop
-    push.32
-    eq
-    # => [?, rem_ptr, ...]
-
-    if.true
-        # cycles 2626
-        exec.ext2fri::verify_remainder_64
-    else
-        # cycles 1356
-        exec.ext2fri::verify_remainder_32
-    end
+    dropw
 end

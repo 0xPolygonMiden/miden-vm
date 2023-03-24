@@ -1,4 +1,5 @@
-use vm_core::{crypto::merkle::MerklePathSet, Felt, FieldElement};
+use miden::math::fft;
+use vm_core::{crypto::merkle::MerklePathSet, Felt, FieldElement, StarkField};
 use winter_fri::{FriProof, VerifierError};
 
 use winterfell::{
@@ -67,11 +68,21 @@ where
 
     pub fn read_remainder<const N: usize>(
         &mut self,
-        _commitment: &<H as HasherTrait>::Digest,
+        expected_commitment: &<H as HasherTrait>::Digest,
     ) -> Result<Vec<E>, VerifierError> {
-        let remainder = self.take_fri_remainder();
+        let poly = self.take_fri_remainder();
+        let commitment = H::hash_elements(&poly);
+        assert_eq!(&commitment, expected_commitment);
 
-        // TODO: Verifiy commitment in the case where the remainder codeword is sent
+        // Compute remainder codeword corresponding to remainder polynomial
+        let twiddles = fft::get_twiddles(poly.len());
+        let remainder = fft::evaluate_poly_with_offset(
+            &poly,
+            &twiddles,
+            <E::BaseField as StarkField>::GENERATOR,
+            8,
+        );
+
         Ok(remainder)
     }
 }

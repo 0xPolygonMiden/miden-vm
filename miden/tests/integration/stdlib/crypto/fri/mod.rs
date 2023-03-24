@@ -15,7 +15,6 @@ pub use verifier_fri_e2f4::*;
 mod remainder;
 
 #[test]
-#[ignore = "enable after new remainder verification is implemented"]
 fn fri_fold4_ext2_remainder32() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -31,14 +30,13 @@ fn fri_fold4_ext2_remainder32() {
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
 
-    let (advice_provider, advice_stack, position_eval, alphas, commitments, remainder, num_queries) =
+    let (advice_provider, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
     let advice_stack = prepare_advice(
         depth,
         domain_size,
         num_queries,
-        advice_stack,
         position_eval,
         alphas,
         commitments,
@@ -57,7 +55,6 @@ fn fri_fold4_ext2_remainder32() {
 }
 
 #[test]
-#[ignore = "enable after new remainder verification is implemented"]
 fn fri_fold4_ext2_remainder64() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -73,14 +70,13 @@ fn fri_fold4_ext2_remainder64() {
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
 
-    let (advice_provider, advice_stack, position_eval, alphas, commitments, remainder, num_queries) =
+    let (advice_provider, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
     let advice_stack = prepare_advice(
         depth,
         domain_size,
         num_queries,
-        advice_stack,
         position_eval,
         alphas,
         commitments,
@@ -102,7 +98,6 @@ fn prepare_advice(
     depth: usize,
     domain_size: u32,
     num_queries: usize,
-    stack_pre: Vec<u64>,
     position_eval: Vec<u64>,
     alphas: Vec<u64>,
     com: Vec<u64>,
@@ -111,6 +106,10 @@ fn prepare_advice(
     let mut stack = vec![];
     let remainder_length = remainder.len() / 2;
     let num_layers = (com.len() / 4) - 1;
+
+    stack.push(num_queries as u64);
+
+    stack.extend_from_slice(&position_eval[..]);
 
     stack.push(num_layers as u64);
 
@@ -122,13 +121,12 @@ fn prepare_advice(
 
         stack.extend_from_slice(&com[(4 * i)..(4 * i + 4)]);
         stack.extend_from_slice(&alphas[(4 * i)..(4 * i + 2)]);
-        // TODO: explain why "-2" for depth; related to folding factor?
+        // - 2 is due to the fact that we are folding by 4
         stack.extend_from_slice(&vec![current_depth - 2, current_domain_size]);
         current_depth -= 2;
     }
 
     stack.push(remainder_length as u64 / 2);
-
     for i in 0..remainder_length / 2 {
         let mut remainder_4 = vec![0; 4];
         remainder_4[0] = remainder[4 * i + 0];
@@ -138,12 +136,6 @@ fn prepare_advice(
 
         stack.extend_from_slice(&remainder_4);
     }
-
-    stack.push(num_queries as u64);
-
-    stack.extend_from_slice(&position_eval[..]);
-
-    stack.extend_from_slice(&stack_pre[..]);
 
     stack
 }
