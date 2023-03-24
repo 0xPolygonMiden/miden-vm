@@ -15,8 +15,18 @@ rust-version = "1.67"
 bench = false
 doctest = false
 
+[[test]]
+name = "stdlib"
+path = "tests/main.rs"
+
 [dependencies]
 assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.5" }
+
+[dev-dependencies]
+processor = { package = "miden-processor", path = "../processor", version = "0.5", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.5", default-features = false }
+rand-utils = { package = "winter-rand-utils", version = "0.5" }
+blake3 = "1.3"
 
 [build-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.5" }
