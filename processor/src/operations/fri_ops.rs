@@ -176,10 +176,10 @@ where
     /// Populates helper registers with intermediate values used in the folding procedure.
     fn set_helper_registers(&mut self, ev: QuadFelt, es: QuadFelt, x: Felt, x_inv: Felt) {
         let ev_arr = [ev];
-        let ev_felts = QuadFelt::as_base_elements(&ev_arr);
+        let ev_felts = QuadFelt::slice_as_base_elements(&ev_arr);
 
         let es_arr = [es];
-        let es_felts = QuadFelt::as_base_elements(&es_arr);
+        let es_felts = QuadFelt::slice_as_base_elements(&es_arr);
 
         let values = [ev_felts[0], ev_felts[1], es_felts[0], es_felts[1], x, x_inv];
         self.decoder.set_user_op_helpers(Operation::FriE2F4, &values);
@@ -367,7 +367,7 @@ mod tests {
         assert_eq!(stack_state[15], end_ptr);
 
         // --- check helper registers -----------------------------------------
-        let mut expected_helpers = QuadFelt::as_base_elements(&[ev, es]).to_vec();
+        let mut expected_helpers = QuadFelt::slice_as_base_elements(&[ev, es]).to_vec();
         expected_helpers.push(x);
         expected_helpers.push(x_inv);
         assert_eq!(expected_helpers, process.decoder.get_user_op_helpers().to_vec());

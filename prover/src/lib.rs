@@ -2,7 +2,13 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
-use processor::{math::Felt, Blake3_192, Blake3_256, ElementHasher, ExecutionTrace, Rpo256};
+use processor::{
+    crypto::{
+        Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, WinterRandomCoin,
+    },
+    math::Felt,
+    ExecutionTrace,
+};
 use winter_prover::{ProofOptions as WinterProofOptions, Prover};
 
 #[cfg(feature = "std")]
@@ -17,8 +23,8 @@ use winter_prover::Trace;
 
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
-    math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, Hasher, InputError,
-    MemAdviceProvider, MerkleError, Program, StackInputs, StackOutputs, Word,
+    crypto, math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
+    MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::StarkProof;
 
@@ -60,18 +66,24 @@ where
 
     // generate STARK proof
     let proof = match hash_fn {
-        HashFunction::Blake3_192 => {
-            ExecutionProver::<Blake3_192>::new(options, stack_inputs, stack_outputs.clone())
-                .prove(trace)
-        }
-        HashFunction::Blake3_256 => {
-            ExecutionProver::<Blake3_256>::new(options, stack_inputs, stack_outputs.clone())
-                .prove(trace)
-        }
-        HashFunction::Rpo256 => {
-            ExecutionProver::<Rpo256>::new(options, stack_inputs, stack_outputs.clone())
-                .prove(trace)
-        }
+        HashFunction::Blake3_192 => ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
+            options,
+            stack_inputs,
+            stack_outputs.clone(),
+        )
+        .prove(trace),
+        HashFunction::Blake3_256 => ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
+            options,
+            stack_inputs,
+            stack_outputs.clone(),
+        )
+        .prove(trace),
+        HashFunction::Rpo256 => ExecutionProver::<Rpo256, RpoRandomCoin>::new(
+            options,
+            stack_inputs,
+            stack_outputs.clone(),
+        )
+        .prove(trace),
     }
     .map_err(ExecutionError::ProverError)?;
     let proof = ExecutionProof::new(proof, hash_fn);
@@ -82,19 +94,21 @@ where
 // PROVER
 // ================================================================================================
 
-struct ExecutionProver<H>
+struct ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,
+    R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
-    hasher: PhantomData<H>,
+    random_coin: PhantomData<R>,
     options: WinterProofOptions,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
 }
 
-impl<H> ExecutionProver<H>
+impl<H, R> ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,
+    R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
     pub fn new(
         options: ProofOptions,
@@ -102,7 +116,7 @@ where
         stack_outputs: StackOutputs,
     ) -> Self {
         Self {
-            hasher: PhantomData,
+            random_coin: PhantomData,
             options: options.into(),
             stack_inputs,
             stack_outputs,
@@ -131,14 +145,16 @@ where
     }
 }
 
-impl<H> Prover for ExecutionProver<H>
+impl<H, R> Prover for ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Sync,
 {
     type Air = ProcessorAir;
     type BaseField = Felt;
     type Trace = ExecutionTrace;
     type HashFn = H;
+    type RandomCoin = R;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options

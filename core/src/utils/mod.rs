@@ -23,8 +23,6 @@ pub use winter_utils::{
     ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
-pub use crypto::{RandomCoin, RandomCoinError};
-
 pub mod math {
     pub use math::{batch_inversion, log2};
 }

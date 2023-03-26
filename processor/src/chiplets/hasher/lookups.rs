@@ -1,17 +1,12 @@
+use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec};
 use core::ops::Range;
-
-use super::{Felt, FieldElement, LookupTableRow, StarkField};
-use crate::Matrix;
-use vm_core::{
-    chiplets::{
-        hasher::{
-            CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH_LABEL, MP_VERIFY_LABEL,
-            MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH_LABEL,
-            RETURN_STATE_LABEL, STATE_WIDTH,
-        },
-        HASHER_RATE_COL_RANGE, HASHER_STATE_COL_RANGE,
+use vm_core::chiplets::{
+    hasher::{
+        CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH_LABEL, MP_VERIFY_LABEL,
+        MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
+        STATE_WIDTH,
     },
-    utils::collections::Vec,
+    HASHER_RATE_COL_RANGE, HASHER_STATE_COL_RANGE,
 };
 
 // CONSTANTS
@@ -82,7 +77,7 @@ impl LookupTableRow for HasherLookup {
     /// at least 16 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let header = self.get_header_value(&alphas[..NUM_HEADER_ALPHAS]);
@@ -167,7 +162,11 @@ fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt
 
 /// Returns the portion of the hasher state at the provided address that is within the provided
 /// column range.
-fn get_hasher_state_at(addr: u32, main_trace: &Matrix<Felt>, col_range: Range<usize>) -> Vec<Felt> {
+fn get_hasher_state_at(
+    addr: u32,
+    main_trace: &ColMatrix<Felt>,
+    col_range: Range<usize>,
+) -> Vec<Felt> {
     let row = get_row_from_addr(addr);
     col_range
         .map(|col| main_trace.get(HASHER_STATE_COL_RANGE.start + col, row))
@@ -177,7 +176,7 @@ fn get_hasher_state_at(addr: u32, main_trace: &Matrix<Felt>, col_range: Range<us
 /// Returns the rate portion of the hasher state for the provided row and the next row.
 fn get_adjacent_hasher_rates(
     addr: u32,
-    main_trace: &Matrix<Felt>,
+    main_trace: &ColMatrix<Felt>,
 ) -> ([Felt; RATE_LEN], [Felt; RATE_LEN]) {
     let row = get_row_from_addr(addr);
 

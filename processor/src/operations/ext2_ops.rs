@@ -32,7 +32,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    type Ext2Element = QuadExtension<Felt>;
+    type QuadFelt = QuadExtension<Felt>;
     use super::{
         super::{Felt, FieldElement, Operation, STACK_TOP_SIZE},
         Process,
@@ -54,10 +54,9 @@ mod tests {
 
         // multiply the top two values
         process.execute_op(Operation::Ext2Mul).unwrap();
-        let a = Ext2Element::new(a0, a1);
-        let b = Ext2Element::new(b0, b1);
-        let c = [b * a];
-        let c = Ext2Element::as_base_elements(&c);
+        let a = QuadFelt::new(a0, a1);
+        let b = QuadFelt::new(b0, b1);
+        let c = (b * a).to_base_elements();
         let expected = build_expected(&[b1, b0, c[1], c[0]]);
 
         assert_eq!(STACK_TOP_SIZE, process.stack.depth());

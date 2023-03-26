@@ -1,7 +1,7 @@
 use super::{
-    super::trace::AuxColumnBuilder, Felt, FieldElement, OverflowTableRow, OverflowTableUpdate, Vec,
+    super::trace::AuxColumnBuilder, ColMatrix, Felt, FieldElement, OverflowTableRow,
+    OverflowTableUpdate, Vec,
 };
-use crate::Matrix;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -26,7 +26,7 @@ impl AuxTraceBuilder {
     /// column p1 describing states of the stack overflow table.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let p1 = self.build_aux_column(main_trace, rand_elements);

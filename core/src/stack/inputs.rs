@@ -1,4 +1,4 @@
-use super::{vec, ByteWriter, Felt, InputError, Serializable, Vec};
+use super::{vec, ByteWriter, Felt, InputError, Serializable, ToElements, Vec};
 use core::slice;
 
 // STACK INPUTS
@@ -75,5 +75,11 @@ impl Serializable for StackInputs {
         debug_assert!(self.values.len() <= u32::MAX as usize);
         target.write_u32(self.values.len() as u32);
         self.values.iter().copied().for_each(|v| target.write(v));
+    }
+}
+
+impl ToElements<Felt> for StackInputs {
+    fn to_elements(&self) -> Vec<Felt> {
+        self.values.to_vec()
     }
 }
