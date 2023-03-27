@@ -2,15 +2,16 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // SPLIT BLOCK
 // ================================================================================================
-/// A code block used to describe conditional execution.
+/// Block for conditional execution.
 ///
-/// When the VM executes a Split bock, either the true branch or the false branch of the block is
-/// executed. Specifically, if the top of the stack is `1`, the true branch is executed, and if
-/// the top of the stack is `0`, the false branch is executed. If the top of the stack is neither
-/// `0` nor `1`, the program fails.
+/// Executes the first branch if the top of the stack is `1` or the second branch if `0`. Fails if
+/// the top of the stack is neither `1` or `0` or if the branch execution fails.
 ///
-/// Hash of a Split block is computed by hashing a concatenation of the true and the false branch
-/// hashes.
+/// The hash of a split block is:
+///
+/// > hash(true_branch_hash || false_branch_hash, domain=SPLIT_DOMAIN)
+///
+/// Where `true_branch_hash` and `false_branch_hash` are 4 field elements (256 bits) each.
 #[derive(Clone, Debug)]
 pub struct Split {
     branches: Box<[CodeBlock; 2]>,
