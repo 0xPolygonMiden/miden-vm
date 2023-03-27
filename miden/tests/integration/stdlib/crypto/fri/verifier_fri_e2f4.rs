@@ -1,13 +1,10 @@
-use std::marker::PhantomData;
-use std::mem;
-
+use core::{marker::PhantomData, mem};
 use miden::{math::fft, utils::math::log2, Digest as MidenDigest};
-use processor::Hasher;
-use prover::MerkleSet;
+use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
 use vm_core::{
     chiplets::hasher::Hasher as MidenHasher,
     crypto::merkle::{MerklePath, MerklePathSet, NodeIndex},
-    utils::{IntoBytes, RandomCoin},
+    utils::IntoBytes,
     Felt, FieldElement, QuadExtension, StarkField, ZERO,
 };
 use winter_fri::{
@@ -27,11 +24,11 @@ type QuadExt = QuadExtension<Felt>;
 //  The main purpose of this function is to build the non-deterministic inputs needed to verify
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
-//  1) `(merkle_sets, advice_maps): (Vec<MerkleSet>, Vec<([u8; 32], Vec<Felt>)>)` where
+//  1) `(merkle_sets, advice_maps): (Vec<MerkleTree>, Vec<([u8; 32], Vec<Felt>)>)` where
 //  merkle_sets contains the Merkle authentication paths used to authenticate the queries.
 //  advice_maps is used to unhash Merkle nodes to a sequence of field elements representing
 //  the query-values. TODO: Make use of the advice_maps.
-//  2) `advice_tape: Vec<u64>` is how the query values are provided in order to unhash them.
+//  2) `advice_stack: Vec<u64>` is how the query values are provided in order to unhash them.
 //  This should be replaced with the use of advice_maps.
 //  3) `positions: Vec<u64>` a vector of consecutive quadruples of the form (0, p, e1, e0)
 //  where p is index of the query at the first layer and (e1, e0) is its corresponding
@@ -45,7 +42,7 @@ pub fn fri_prove_verify_fold4_ext2(
     trace_length_e: usize,
 ) -> Result<
     (
-        (Vec<MerkleSet>, Vec<([u8; 32], Vec<Felt>)>),
+        (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>),
         Vec<u64>,
         Vec<u64>,
         Vec<u64>,
@@ -95,15 +92,23 @@ pub fn fri_prove_verify_fold4_ext2(
 
     let remainder: Vec<QuadExt> = proof.parse_remainder().expect("should return remainder");
 
-    let remainder: Vec<u64> = QuadExt::as_base_elements(&remainder[..])
+    let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&remainder[..])
         .to_owned()
         .iter()
         .map(|a| a.as_int())
         .collect();
 
     match result {
-        Ok(res) => {
-            return Ok((res.0, res.1, res.2, res.3, commitments, remainder, positions.len()))
+        Ok(((merkle_path_set, advice_values), full_stack, all_position_evaluation, all_alphas)) => {
+            return Ok((
+                (merkle_path_set, advice_values),
+                full_stack,
+                all_position_evaluation,
+                all_alphas,
+                commitments,
+                remainder,
+                positions.len(),
+            ));
         }
         Err(err) => return Err(err),
     }
@@ -115,7 +120,7 @@ pub fn fri_prove_verify_fold4_ext2(
 pub fn build_prover_channel(
     trace_length: usize,
     options: &FriOptions,
-) -> DefaultProverChannel<Felt, QuadExt, MidenHasher> {
+) -> DefaultProverChannel<QuadExt, MidenHasher, WinterRandomCoin<MidenHasher>> {
     DefaultProverChannel::new(trace_length * options.blowup_factor(), 32)
 }
 
@@ -142,7 +147,7 @@ fn verify_proof(
     positions: &[usize],
     options: &FriOptions,
 ) -> Result<
-    ((Vec<MerkleSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>, Vec<u64>),
+    ((Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>, Vec<u64>),
     VerifierError,
 > {
     let mut channel = MidenFriVerifierChannel::<QuadExt, MidenHasher>::new(
@@ -152,7 +157,7 @@ fn verify_proof(
         options.folding_factor(),
     )
     .unwrap();
-    let mut coin = RandomCoin::<Felt, _>::new(&[]);
+    let mut coin = WinterRandomCoin::new(&[]);
 
     let miden_verifier =
         FriVerifierFold4Ext2::new(&mut channel, &mut coin, options.clone(), max_degree)?;
@@ -179,7 +184,7 @@ pub struct FriVerifierFold4Ext2 {
 impl FriVerifierFold4Ext2 {
     pub fn new(
         channel: &mut MidenFriVerifierChannel<QuadExt, MidenHasher>,
-        public_coin: &mut RandomCoin<Felt, MidenHasher>,
+        public_coin: &mut WinterRandomCoin<MidenHasher>,
         options: FriOptions,
         max_poly_degree: usize,
     ) -> Result<Self, VerifierError> {
@@ -196,7 +201,7 @@ impl FriVerifierFold4Ext2 {
         let mut max_degree_plus_1 = max_poly_degree + 1;
         for (depth, commitment) in layer_commitments.iter().enumerate() {
             public_coin.reseed(*commitment);
-            let alpha = public_coin.draw().map_err(VerifierError::PublicCoinError)?;
+            let alpha = public_coin.draw().map_err(VerifierError::RandomCoinError)?;
             layer_alphas.push(alpha);
 
             // make sure the degree can be reduced by the folding factor at all layers
@@ -242,7 +247,7 @@ impl FriVerifierFold4Ext2 {
         evaluations: &[QuadExt],
         positions: &[usize],
     ) -> Result<
-        ((Vec<MerkleSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>, Vec<u64>),
+        ((Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>, Vec<u64>),
         VerifierError,
     > {
         // 1 ----- verify the recursive components of the FRI proof -----------------------------------
@@ -253,12 +258,12 @@ impl FriVerifierFold4Ext2 {
             channel.unbatch::<4, 3>(&positions, self.domain_size(), self.layer_commitments.clone());
 
         let mut d_generator;
-        let mut full_tape = vec![];
+        let mut full_stack = vec![];
         let mut all_alphas = vec![];
         let mut all_position_evaluation = vec![];
         for (index, &position) in positions.iter().enumerate() {
             d_generator = self.domain_generator;
-            let (cur_pos, evaluation, partial_tape, position_evaluation, alphas) =
+            let (cur_pos, evaluation, partial_stack, position_evaluation, alphas) =
                 iterate_query_fold_4_quad_ext(
                     &self.layer_alphas,
                     &advice_provider.0,
@@ -269,7 +274,7 @@ impl FriVerifierFold4Ext2 {
                     &evaluations[index],
                     &mut d_generator,
                 )?;
-            full_tape.extend_from_slice(&partial_tape[..]);
+            full_stack.extend_from_slice(&partial_stack[..]);
             all_position_evaluation.extend_from_slice(&position_evaluation[..]);
             all_alphas = alphas;
 
@@ -288,13 +293,13 @@ impl FriVerifierFold4Ext2 {
             }
         }
 
-        Ok((advice_provider, full_tape, all_position_evaluation, all_alphas))
+        Ok((advice_provider, full_stack, all_position_evaluation, all_alphas))
     }
 }
 
 fn iterate_query_fold_4_quad_ext(
     layer_alphas: &Vec<QuadExt>,
-    m_path_sets: &Vec<MerkleSet>,
+    m_path_sets: &Vec<MerklePathSet>,
     key_val_map: &Vec<([u8; 32], Vec<Felt>)>,
     position: usize,
     number_of_layers: usize,
@@ -312,7 +317,7 @@ fn iterate_query_fold_4_quad_ext(
     let mut init_exp = initial_domain_generator.exp((position as u64).into());
 
     let arr = vec![evaluation];
-    let a = QuadExt::as_base_elements(&arr);
+    let a = QuadExt::slice_as_base_elements(&arr);
 
     let mut partial_tap = vec![];
     let position_evaluation = vec![a[0].as_int(), a[1].as_int(), (position as u64).into(), 0];
@@ -326,7 +331,7 @@ fn iterate_query_fold_4_quad_ext(
         // Assumes the num_partitions == 1
         let position_index = folded_pos;
 
-        let tree_depth = log2(target_domain_size) + 1;
+        let tree_depth = log2(target_domain_size);
 
         let query_nodes = m_path_sets[depth]
             .get_node(NodeIndex::new(tree_depth as u8, position_index as u64))
@@ -389,7 +394,7 @@ fn iterate_query_fold_4_quad_ext(
         };
 
         let arr = vec![layer_alphas[depth]];
-        let a = QuadExt::as_base_elements(&arr);
+        let a = QuadExt::slice_as_base_elements(&arr);
         alphas.push(a[0].as_int());
         alphas.push(a[1].as_int());
         alphas.push(0);
@@ -409,7 +414,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
         positions_: &[usize],
         domain_size: usize,
         layer_commitments: Vec<MidenDigest>,
-    ) -> (Vec<MerkleSet>, Vec<([u8; 32], Vec<Felt>)>) {
+    ) -> (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>) {
         let queries = self.layer_queries().clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
@@ -449,7 +454,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
                 })
                 .collect();
 
-            let new_set = MerklePathSet::new((log2(current_domain_size / N) + 1) as u8);
+            let new_set = MerklePathSet::new((log2(current_domain_size / N)) as u8);
 
             let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
             let nodes_tmp = nodes.clone();
@@ -461,14 +466,13 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
             }
 
             let new_set = new_set.with_paths(tmp_vec).expect("should not fail from paths");
-            let new_set = MerkleSet::MerklePathSet(new_set);
             sets.push(new_set);
 
             let _empty: () = nodes
                 .into_iter()
                 .zip(x.iter())
                 .map(|(a, b)| {
-                    let mut value = QuadExt::as_base_elements(b).to_owned();
+                    let mut value = QuadExt::slice_as_base_elements(b).to_owned();
                     value.extend([ZERO; 4]);
                     adv_key_map.push((a.to_owned().into_bytes(), value));
                 })

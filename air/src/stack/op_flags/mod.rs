@@ -839,7 +839,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of MRUPDATE operation.
     #[inline(always)]
     pub fn mrupdate(&self) -> E {
-        self.degree4_op_flags[get_op_index(Operation::MrUpdate(true).op_code())]
+        self.degree4_op_flags[get_op_index(Operation::MrUpdate.op_code())]
     }
 
     /// Operation Flag of PUSH operation.

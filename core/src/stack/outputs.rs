@@ -1,4 +1,6 @@
-use super::{ByteWriter, Felt, Serializable, StackTopState, StarkField, Vec, STACK_TOP_SIZE};
+use super::{
+    ByteWriter, Felt, Serializable, StackTopState, StarkField, ToElements, Vec, STACK_TOP_SIZE,
+};
 
 // STACK OUTPUTS
 // ================================================================================================
@@ -21,7 +23,7 @@ use super::{ByteWriter, Felt, Serializable, StackTopState, StarkField, Vec, STAC
 pub struct StackOutputs {
     /// The elements on the stack at the end of execution.
     stack: Vec<u64>,
-    /// The overflow table row addresse required to reconstruct the final state of the table.
+    /// The overflow table row addresses required to reconstruct the final state of the table.
     overflow_addrs: Vec<u64>,
 }
 
@@ -152,5 +154,19 @@ impl Serializable for StackOutputs {
         debug_assert!(self.overflow_addrs.len() <= u32::MAX as usize);
         target.write_u32(self.overflow_addrs.len() as u32);
         self.overflow_addrs.iter().copied().for_each(|v| target.write_u64(v));
+    }
+}
+
+impl ToElements<Felt> for StackOutputs {
+    fn to_elements(&self) -> Vec<Felt> {
+        // infallible conversion from u64 to Felt is OK here because we check validity of u64
+        // values in the constructor
+        // TODO: change internal data types of self.stack and self.overflow_addrs to Felt?
+        self.stack
+            .iter()
+            .chain(self.overflow_addrs.iter())
+            .cloned()
+            .map(Felt::new)
+            .collect()
     }
 }

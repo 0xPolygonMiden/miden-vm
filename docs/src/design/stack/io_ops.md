@@ -22,7 +22,7 @@ The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ### READ
-Assume $a$ is an element at the head of the advice tape. The `READ` operation removes $a$ from the advice tape and pushes it onto the stack. The diagram below illustrates this graphically.
+Assume $a$ is an element at the head of the advice stack. The `READ` operation removes $a$ from the advice stack and pushes it onto the stack. The diagram below illustrates this graphically.
 
 ![read](../../assets/design/stack/io_ops/READ.png)
 
@@ -32,7 +32,7 @@ The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ### READW
-Assume $a$, $b$, $c$, and $d$, are the elements at the head of the advice tape (with $a$ being on top). The `READW` operation removes these elements from the advice tape and puts them onto the stack by overwriting the top $4$ stack elements. The diagram below illustrates this graphically.
+Assume $a$, $b$, $c$, and $d$, are the elements at the head of the advice stack (with $a$ being on top). The `READW` operation removes these elements from the advice stack and puts them onto the stack by overwriting the top $4$ stack elements. The diagram below illustrates this graphically.
 
 ![readw](../../assets/design/stack/io_ops/READW.png)
 

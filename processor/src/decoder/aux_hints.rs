@@ -1,8 +1,7 @@
 use super::{
-    super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, Felt, FieldElement,
-    StarkField, Vec, Word, ONE, ZERO,
+    super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, ColMatrix, Felt,
+    FieldElement, StarkField, Vec, Word, ONE, ZERO,
 };
-use crate::Matrix;
 
 // AUXILIARY TRACE HINTS
 // ================================================================================================
@@ -343,7 +342,7 @@ impl LookupTableRow for BlockStackTableRow {
     /// at least 12 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let is_loop = if self.is_loop { ONE } else { ZERO };
@@ -429,7 +428,7 @@ impl LookupTableRow for BlockHashTableRow {
     /// at least 8 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let is_first_child = if self.is_first_child { ONE } else { ZERO };
@@ -473,7 +472,7 @@ impl LookupTableRow for OpGroupTableRow {
     /// at least 4 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         alphas[0]

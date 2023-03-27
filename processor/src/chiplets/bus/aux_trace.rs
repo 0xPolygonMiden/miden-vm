@@ -1,7 +1,6 @@
-use super::{ChipletsLookup, ChipletsLookupRow, Felt, FieldElement};
-use crate::{
-    trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
-    Matrix, Vec,
+use super::{
+    build_lookup_table_row_values, AuxColumnBuilder, ChipletsLookup, ChipletsLookupRow, ColMatrix,
+    Felt, FieldElement, LookupTableRow, Vec,
 };
 
 // AUXILIARY TRACE BUILDER
@@ -24,7 +23,7 @@ impl AuxTraceBuilder {
     /// provided by chiplets in the Chiplets module.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let b_chip = self.build_aux_column(main_trace, rand_elements);
@@ -75,7 +74,7 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilde
     /// requests. Since responses are grouped by chiplet, the operation order for the requests and
     /// responses will be permutations of each other rather than sharing the same order. Therefore,
     /// the `row_values` and `inv_row_values` must be built separately.
-    fn build_row_values<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {

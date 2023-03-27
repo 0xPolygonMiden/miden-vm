@@ -1,8 +1,7 @@
 use super::{
-    BTreeMap, ChipletsTrace, Felt, FieldElement, RangeChecker, StarkField, TraceFragment, Vec,
-    Word, CHIPLETS_WIDTH, ONE, ZERO,
+    trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt, FieldElement,
+    RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, ONE, ZERO,
 };
-use crate::{trace::LookupTableRow, ExecutionError};
 use vm_core::{
     chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
     chiplets::{

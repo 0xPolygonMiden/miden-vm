@@ -277,3 +277,12 @@ impl Serializable for PublicInputs {
         self.stack_outputs.write_into(target);
     }
 }
+
+impl vm_core::ToElements<Felt> for PublicInputs {
+    fn to_elements(&self) -> Vec<Felt> {
+        let mut result = self.program_info.to_elements();
+        result.append(&mut self.stack_inputs.to_elements());
+        result.append(&mut self.stack_outputs.to_elements());
+        result
+    }
+}

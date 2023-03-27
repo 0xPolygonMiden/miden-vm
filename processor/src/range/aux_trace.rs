@@ -1,10 +1,8 @@
-use vm_core::{range::V_COL_IDX, utils::uninit_vector};
-
-use super::{BTreeMap, CycleRangeChecks, Felt, FieldElement, RangeCheckFlag, Vec};
-use crate::{
-    trace::{build_lookup_table_row_values, NUM_RAND_ROWS},
-    Matrix,
+use super::{
+    build_lookup_table_row_values, uninit_vector, BTreeMap, ColMatrix, CycleRangeChecks, Felt,
+    FieldElement, RangeCheckFlag, Vec, NUM_RAND_ROWS,
 };
+use vm_core::range::V_COL_IDX;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -60,7 +58,7 @@ impl AuxTraceBuilder {
     ///    `p1`. It contains the product of the lookups performed by the Stack at each row.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let p0 = self.build_aux_col_p0(main_trace, rand_elements);
@@ -73,7 +71,7 @@ impl AuxTraceBuilder {
     /// 16-bit section of the table so that the starting and ending value are both one.
     fn build_aux_col_p0<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         rand_elements: &[E],
     ) -> Vec<E> {
         let mut aux_column = E::zeroed_vector(main_trace.num_rows());
@@ -136,7 +134,7 @@ impl AuxTraceBuilder {
     /// range check lookups performed by user operations match those executed by the Range Checker.
     fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> (Vec<E>, Vec<E>) {
         // compute the inverses for range checks performed by operations.

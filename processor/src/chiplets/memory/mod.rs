@@ -1,11 +1,8 @@
 use super::{
-    BTreeMap, ChipletsBus, Felt, FieldElement, StarkField, TraceFragment, Vec, Word, ONE, ZERO,
-};
-use crate::{
-    range::RangeChecker,
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
-    Matrix,
+    BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
+    Vec, Word, ONE, ZERO,
 };
 use vm_core::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
@@ -337,7 +334,7 @@ impl LookupTableRow for MemoryLookup {
     /// at least 9 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let word_value = self

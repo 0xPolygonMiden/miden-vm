@@ -1,8 +1,7 @@
 use super::{
-    ChipletsBus, ExecutionError, Felt, FieldElement, LookupTableRow, StarkField, TraceFragment,
-    Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL,
+    trace::LookupTableRow, utils::get_trace_len, ChipletsBus, ColMatrix, ExecutionError, Felt,
+    FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL,
 };
-use crate::{utils::get_trace_len, Matrix};
 use vm_core::chiplets::bitwise::{
     A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
     OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
@@ -262,7 +261,7 @@ impl LookupTableRow for BitwiseLookup {
     /// at least 5 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         alphas[0]

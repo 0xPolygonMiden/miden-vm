@@ -10,9 +10,9 @@ use core::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decorator {
-    /// Injects zero or more values at the head of the advice tape as specified by the injector.
-    /// This operation affects only the advice tape, but has no effect on other VM components
-    /// (e.g., stack, memory), and does not advance VM clock.
+    /// Pushes zero or more values onto the advice stack, as specified by the injector. This
+    /// operation affects only the advice stack and has no effect on other VM components (e.g.
+    /// operand stack, memory), and does not advance the VM clock.
     Advice(AdviceInjector),
     /// Adds information about the assembly instruction at a particular index
     /// (only applicable in debug mode)
