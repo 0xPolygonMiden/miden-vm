@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, Matrix, Vec};
+use super::{ColMatrix, Felt, FieldElement, Vec};
 use core::slice;
 use vm_core::utils::uninit_vector;
 
@@ -76,7 +76,7 @@ pub trait LookupTableRow {
     /// computed using the provided random values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         rand_values: &[E],
     ) -> E;
 }
@@ -89,7 +89,7 @@ pub trait LookupTableRow {
 /// computationally infeasible.
 pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
     rows: &[R],
-    main_trace: &Matrix<Felt>,
+    main_trace: &ColMatrix<Felt>,
     rand_values: &[E],
 ) -> (Vec<E>, Vec<E>) {
     let mut row_values = unsafe { uninit_vector(rows.len()) };
@@ -148,7 +148,7 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow, U: HintCycle> {
     // --------------------------------------------------------------------------------------------
 
     /// Builds and returns the auxiliary trace column managed by this builder.
-    fn build_aux_column<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> Vec<E>
+    fn build_aux_column<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E>
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -198,7 +198,7 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow, U: HintCycle> {
 
     /// Builds and returns row values and their inverses for all rows which were added to the
     /// lookup table managed by this column builder.
-    fn build_row_values<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {

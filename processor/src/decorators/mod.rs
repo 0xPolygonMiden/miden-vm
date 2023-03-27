@@ -7,7 +7,7 @@ use winter_prover::math::fft;
 
 // TYPE ALIASES
 // ================================================================================================
-type Ext2Element = QuadExtension<Felt>;
+type QuadFelt = QuadExtension<Felt>;
 
 // DECORATORS
 // ================================================================================================
@@ -203,15 +203,11 @@ where
         let coef0 = self.stack.get(1);
         let coef1 = self.stack.get(0);
 
-        let elm = Ext2Element::new(coef0, coef1);
-        if elm == Ext2Element::ZERO {
+        let elm = QuadFelt::new(coef0, coef1);
+        if elm == QuadFelt::ZERO {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
         }
-
-        let inv_elm = elm.inv();
-
-        let elm_arr = [inv_elm];
-        let coeffs = Ext2Element::as_base_elements(&elm_arr);
+        let coeffs = elm.inv().to_base_elements();
 
         self.advice_provider.push_stack(AdviceSource::Value(coeffs[1]))?;
         self.advice_provider.push_stack(AdviceSource::Value(coeffs[0]))?;
@@ -269,14 +265,14 @@ where
                     ExecutionError::UninitializedMemoryAddress(in_evaluations_addr + i as u64)
                 })?;
 
-            poly.push(Ext2Element::new(word[0], word[1]));
-            poly.push(Ext2Element::new(word[2], word[3]));
+            poly.push(QuadFelt::new(word[0], word[1]));
+            poly.push(QuadFelt::new(word[2], word[3]));
         }
 
         let twiddles = fft::get_inv_twiddles::<Felt>(in_evaluations_len);
-        fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
+        fft::interpolate_poly::<Felt, QuadFelt>(&mut poly, &twiddles);
 
-        for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
+        for i in QuadFelt::slice_as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
             self.advice_provider.push_stack(AdviceSource::Value(i))?;
         }
 

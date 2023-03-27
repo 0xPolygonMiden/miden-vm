@@ -1,8 +1,8 @@
 use super::{
-    hasher::HasherLookup, BTreeMap, BitwiseLookup, Felt, FieldElement, LookupTableRow,
-    MemoryLookup, Vec,
+    hasher::HasherLookup,
+    trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
+    BTreeMap, BitwiseLookup, ColMatrix, Felt, FieldElement, MemoryLookup, Vec,
 };
-use crate::Matrix;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -235,7 +235,7 @@ pub(super) enum ChipletsLookupRow {
 impl LookupTableRow for ChipletsLookupRow {
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         match self {

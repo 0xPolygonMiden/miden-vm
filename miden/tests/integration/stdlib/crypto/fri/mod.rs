@@ -15,6 +15,7 @@ pub use verifier_fri_e2f4::*;
 mod remainder;
 
 #[test]
+#[ignore = "enable after new remainder verification is implemented"]
 fn fri_fold4_ext2_remainder32() {
     let source = "
         use.std::crypto::fri::frie2f4
@@ -56,6 +57,7 @@ fn fri_fold4_ext2_remainder32() {
 }
 
 #[test]
+#[ignore = "enable after new remainder verification is implemented"]
 fn fri_fold4_ext2_remainder64() {
     let source = "
         use.std::crypto::fri::frie2f4

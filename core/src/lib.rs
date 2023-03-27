@@ -25,11 +25,15 @@ pub mod crypto {
             ElementHasher, Hasher,
         };
     }
+
+    pub mod random {
+        pub use crate::random::*;
+    }
 }
 
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
-    polynom, ExtensionOf, FieldElement, StarkField,
+    polynom, ExtensionOf, FieldElement, StarkField, ToElements,
 };
 
 mod program;
@@ -42,6 +46,9 @@ pub use operations::{
 
 pub mod stack;
 pub use stack::{StackInputs, StackOutputs};
+
+// TODO: this should move to miden-crypto crate
+mod random;
 
 pub mod utils;
 use utils::range;

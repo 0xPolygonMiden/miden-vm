@@ -1,16 +1,13 @@
 use super::{
-    Felt, FieldElement, HasherState, LookupTableRow, MerkleRootUpdate, OpBatch, StarkField,
-    TraceFragment, Vec, Word, ZERO,
+    trace::LookupTableRow, BTreeMap, ColMatrix, Felt, FieldElement, HasherState, MerkleRootUpdate,
+    OpBatch, StarkField, TraceFragment, Vec, Word, ZERO,
 };
-use vm_core::{
-    chiplets::hasher::{
-        absorb_into_state, get_digest, init_state, init_state_from_words,
-        init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
-        LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
-        MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
-        RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
-    },
-    utils::collections::BTreeMap,
+use vm_core::chiplets::hasher::{
+    absorb_into_state, get_digest, init_state, init_state_from_words,
+    init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
+    LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
+    MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
+    RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
 };
 
 mod lookups;

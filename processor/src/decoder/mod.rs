@@ -1,6 +1,7 @@
 use super::{
-    AdviceProvider, Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation,
-    Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    AdviceProvider, Call, ColMatrix, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch,
+    Operation, Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
+    ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
