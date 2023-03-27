@@ -109,8 +109,8 @@ impl LookupTableRow for HasherLookup {
                     );
                     // build the leaf value by selecting from the left and right words of the state.
                     // the same alphas must be used in both cases, since whichever word is selected
-                    // by the index bit will be the leaf node, and the value must be computed in the
-                    // same way in both cases.
+                    // by the index bit will be the leaf node, and the value must be computed in
+                    // the same way in both cases.
                     let bit = (self.index.as_int() >> 1) & 1;
                     let left_word = build_value(&alphas[DIGEST_RANGE], &state[..DIGEST_LEN]);
                     let right_word = build_value(&alphas[DIGEST_RANGE], &state[DIGEST_LEN..]);

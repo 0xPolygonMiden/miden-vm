@@ -499,7 +499,7 @@ impl ParserContext {
 
             "mtree_get" => simple_instruction(op, MTreeGet),
             "mtree_set" => simple_instruction(op, MTreeSet),
-            "mtree_cwm" => simple_instruction(op, MTreeCwm),
+            "mtree_merge" => simple_instruction(op, MTreeMerge),
 
             "fri_ext2fold4" => simple_instruction(op, FriExt2Fold4),
 

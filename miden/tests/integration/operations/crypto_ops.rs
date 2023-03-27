@@ -177,25 +177,6 @@ fn mtree_update() {
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], store.clone());
     test.expect_stack(&final_stack);
-
-    // --- mtree_cwm ----------------------------------------------------------------------
-    // update a node value and replace the old root
-    let asm_op = "mtree_cwm";
-
-    // expected state has the old leaf and the new root of the tree
-    let final_stack = [
-        old_node[3].as_int(),
-        old_node[2].as_int(),
-        old_node[1].as_int(),
-        old_node[0].as_int(),
-        new_tree.root()[3].as_int(),
-        new_tree.root()[2].as_int(),
-        new_tree.root()[1].as_int(),
-        new_tree.root()[0].as_int(),
-    ];
-
-    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
-    test.expect_stack(&final_stack);
 }
 
 // HELPER FUNCTIONS

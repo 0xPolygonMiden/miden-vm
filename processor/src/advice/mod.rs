@@ -132,9 +132,7 @@ pub trait AdviceProvider {
     /// Updates a leaf at the specified index on an existing Merkle tree with the specified root;
     /// returns the Merkle path from the updated leaf to the new root.
     ///
-    /// If `update_in_copy` is set to true, retains both the tree prior to the update (i.e. with
-    /// the original root), and the new updated tree. Otherwise, the old merkle set is removed from
-    /// this provider.
+    /// Retains both the tree prior to the update, and the new updated tree.
     ///
     /// # Errors
     /// Returns an error if:
@@ -150,6 +148,17 @@ pub trait AdviceProvider {
         index: &Felt,
         value: Word,
     ) -> Result<MerklePath, ExecutionError>;
+
+    /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
+    /// specified roots. The root of the new tree is defined as `hash(left_root, right_root)`.
+    ///
+    /// After the operation, both the original trees and the new tree remains in the advice
+    /// provider (i.e., the input trees are not removed).
+    ///
+    /// # Errors
+    /// Returns an error if a Merkle tree for either of the specified roots cannot be found in this
+    /// advice provider.
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
 
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
@@ -211,6 +220,10 @@ where
         value: Word,
     ) -> Result<MerklePath, ExecutionError> {
         T::update_merkle_node(self, root, depth, index, value)
+    }
+
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+        T::merge_roots(self, lhs, rhs)
     }
 
     fn advance_clock(&mut self) {

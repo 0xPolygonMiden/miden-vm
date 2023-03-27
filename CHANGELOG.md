@@ -6,7 +6,8 @@
 - Renamed `ProgramInfo` to `ExecutionDetails` since there is another `ProgramInfo` struct in the source code.
 
 #### Assembly
-- Added new instructions: `is_odd`, `assert_eqw`.
+- Added new instructions: `is_odd`, `assert_eqw`, `mtree_merge`.
+- [BREAKING] Removed `mtree_cwm` instruction.
 
 ## 0.4.0 (2023-02-27)
 

@@ -20,6 +20,7 @@ pub enum ExecutionError {
     MerkleUpdateInPlace,
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
+    MerkleStoreMergeFailed(MerkleError),
     CodeBlockNotFound(Digest),
     CallerNotInSyscall,
     DivideByZero(u32),
@@ -59,6 +60,9 @@ impl Display for ExecutionError {
             }
             MerkleStoreUpdateFailed(reason) => {
                 write!(fmt, "Advice provider Merkle store backend update failed: {reason}")
+            }
+            MerkleStoreMergeFailed(reason) => {
+                write!(fmt, "Advice provider Merkle store backend merge failed: {reason}")
             }
             AdviceStackReadFailed(step) => write!(fmt, "Advice stack read failed at step {step}"),
             CodeBlockNotFound(digest) => {

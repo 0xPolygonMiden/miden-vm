@@ -141,6 +141,10 @@ impl AdviceProvider for MemAdviceProvider {
             .map_err(ExecutionError::MerkleStoreUpdateFailed)
     }
 
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+        self.store.merge_roots(lhs, rhs).map_err(ExecutionError::MerkleStoreMergeFailed)
+    }
+
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 

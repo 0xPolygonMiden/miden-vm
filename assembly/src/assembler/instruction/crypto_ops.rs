@@ -145,27 +145,33 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span, true)
+    update_mtree(span)
 }
 
-/// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as
-/// required to copy a Merkle tree with root R and update the node in the copied tree at depth d
-/// and index i to value V. The stack is expected to be arranged as follows (from the top):
-/// - depth of the node, 1 element; this is expected to be the depth of the Merkle tree
-/// - index of the node, 1 element
-/// - current root of the tree, 4 elements
-/// - new value of the node, 4 element
+/// Creates a new Merkle tree in the advice provider by combining trees with the specified roots.
+/// The stack is expected to be arranged as follows (from the top):
+/// - root of the right tree, 4 elements
+/// - root of the left tree, 4 elements
 ///
-/// After the operations are executed, the stack will be arranged as follows:
-/// - old value of the node, 4 elements
-/// - new root of the tree after the update, 4 elements
+/// The operation will merge the Merkle trees with the provided roots, producing a new merged root
+/// with incremented depth. After the operations are executed, the stack will be arranged as
+/// follows:
+/// - merged root, 4 elements
 ///
-/// This operation takes 29 VM cycles.
-pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // stack: [d, i, R_old, V_new, ...]
+/// This operation will fail if either of the input roots doesn't exist as Merkle tree in the
+/// advice provider.
+///
+/// This operation takes 16 VM cycles.
+pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // stack input:  [R_rhs, R_lhs, ...]
+    // stack output: [R_merged, ...]
 
-    // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span, true)
+    // invoke the advice provider function to merge 2 Merkle trees defined by the roots on the top
+    // of the operand stack
+    span.push_decorator(Decorator::Advice(AdviceInjector::MerkleMerge));
+
+    // perform the `hmerge`, updating the operand stack
+    hmerge(span)
 }
 
 // MERKLE TREES - HELPERS
@@ -178,21 +184,21 @@ pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - depth of the node, 1 element
 /// - index of the node, 1 element
 /// - root of the Merkle tree, 4 elements
-/// - new value of the node, 4 elements (only in the case of mtree_set and mtree_cwm)
+/// - new value of the node, 4 elements (only in the case of mtree_set)
 ///
 /// After the operations are executed, the stack will be arranged as follows:
 /// - old value of the node, 4 elements
 /// - depth of the node, 1 element
 /// - index of the node, 1 element
 /// - root of the Merkle tree, 4 elements
-/// - new value of the node, 4 elements (only in the case of mtree_set and mtree_cwm)
+/// - new value of the node, 4 elements (only in the case of mtree_set)
 ///
 /// This operation takes 4 VM cycles.
 fn read_mtree_node(span: &mut SpanBuilder) {
     // The stack should be arranged in the following way: [d, i, R, ...] so that the decorator
     // can fetch the node value from the root. In the `mtree.get` operation we have the stack in
-    // the following format: [d, i, R], whereas in the case of `mtree.set` and `mtree.cwm` we
-    // would also have the new node value post the tree root: [d, i, R, V_new].
+    // the following format: [d, i, R], whereas in the case of `mtree.set` we would also have the
+    // new node value post the tree root: [d, i, R, V_new]
     //
     // pops the value of the node we are looking for from the advice stack
     span.push_decorator(Decorator::Advice(AdviceInjector::MerkleNode));
@@ -202,11 +208,11 @@ fn read_mtree_node(span: &mut SpanBuilder) {
     span.push_op_many(Read, 4);
 }
 
-/// Update a node in the merkle tree. The `copy` flag will be passed as argument of the `MrUpdate`
-/// operation.
+/// Update a node in the merkle tree. This operation will always copy the tree into a new instance,
+/// and perform the mutation on the copied tree.
 ///
 /// This operation takes 29 VM cycles.
-fn update_mtree(span: &mut SpanBuilder, copy: bool) -> Result<Option<CodeBlock>, AssemblyError> {
+fn update_mtree(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // stack: [d, i, R_old, V_new, ...]
     // output: [R_new, R_old, V_new, V_old, ...]
 
@@ -249,10 +255,9 @@ fn update_mtree(span: &mut SpanBuilder, copy: bool) -> Result<Option<CodeBlock>,
         // Update the Merkle tree
         // ========================================================================================
 
-        // Update the node at depth `d` and position `i`. Copy of the Merkle tree depends on the
-        // value of the `copy` flag.
+        // Update the node at depth `d` and position `i`. It will always copy the Merkle tree.
         // stack: [R_new, d, i, R_old, V_new, V_old, ...]
-        MrUpdate(copy),
+        MrUpdate,
 
         // Drop unecessary values
         // ========================================================================================

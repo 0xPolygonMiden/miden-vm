@@ -2,7 +2,10 @@ use crate::build_op_test;
 use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
 use rand_utils::rand_vector;
 use vm_core::{
-    crypto::merkle::{MerkleStore, MerkleTree},
+    crypto::{
+        hash::Rpo256,
+        merkle::{MerkleStore, MerkleTree},
+    },
     StarkField, Word,
 };
 
@@ -53,11 +56,46 @@ fn mtree_set() {
 }
 
 #[test]
-fn mtree_cwm() {
-    let asm_op = "mtree_cwm";
-    let (stack_inputs, store, _leaves) = build_mtree_update_test_inputs();
+fn mtree_merge() {
+    let asm_op = "mtree_merge";
 
-    build_op_test!(asm_op, &stack_inputs, &[], store).prove_and_verify(stack_inputs, false);
+    let leaves_a = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]).0;
+    let leaves_b = init_merkle_store(&[9, 10, 11, 12, 13, 14, 15, 16]).0;
+    let tree_a = MerkleTree::new(leaves_a.clone()).unwrap();
+    let tree_b = MerkleTree::new(leaves_a.clone()).unwrap();
+    let root_a = tree_a.root();
+    let root_b = tree_b.root();
+    let root_merged = Rpo256::merge(&[root_a.into(), root_b.into()]);
+    let store = MerkleStore::new()
+        .with_merkle_tree(leaves_a)
+        .unwrap()
+        .with_merkle_tree(leaves_b)
+        .unwrap();
+
+    let stack_inputs = vec![
+        0xbeef,
+        0xdead,
+        root_a[0].as_int(),
+        root_a[1].as_int(),
+        root_a[2].as_int(),
+        root_a[3].as_int(),
+        root_b[0].as_int(),
+        root_b[1].as_int(),
+        root_b[2].as_int(),
+        root_b[3].as_int(),
+    ];
+
+    let stack_outputs = vec![
+        0xbeef,
+        0xdead,
+        root_merged[0].as_int(),
+        root_merged[1].as_int(),
+        root_merged[2].as_int(),
+        root_merged[3].as_int(),
+    ];
+
+    build_op_test!(asm_op, &stack_inputs, &stack_outputs, store)
+        .prove_and_verify(stack_inputs, false);
 }
 
 /// Helper function that builds a test stack and Merkle tree for testing mtree updates.
