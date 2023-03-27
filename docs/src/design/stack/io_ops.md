@@ -21,24 +21,24 @@ $$
 The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
-### READ
-Assume $a$ is an element at the head of the advice stack. The `READ` operation removes $a$ from the advice stack and pushes it onto the stack. The diagram below illustrates this graphically.
+### ADVPOP
+Assume $a$ is an element at the top of the advice stack. The `ADVPOP` operation removes $a$ from the advice stack and pushes it onto the operand stack. The diagram below illustrates this graphically.
 
-![read](../../assets/design/stack/io_ops/READ.png)
+![advpop](../../assets/design/stack/io_ops/ADVPOP.png)
 
-The `READ` operation does not impose any constraints against the first element of the stack.
+The `ADVPOP` operation does not impose any constraints against the first element of the operand stack.
 
-The effect of this operation on the rest of the stack is:
+The effect of this operation on the rest of the operand stack is:
 * **Right shift** starting from position $0$.
 
-### READW
-Assume $a$, $b$, $c$, and $d$, are the elements at the head of the advice stack (with $a$ being on top). The `READW` operation removes these elements from the advice stack and puts them onto the stack by overwriting the top $4$ stack elements. The diagram below illustrates this graphically.
+### ADVPOPW
+Assume $a$, $b$, $c$, and $d$, are the elements at the top of the advice stack (with $a$ being on top). The `ADVPOPW` operation removes these elements from the advice stack and puts them onto the operand stack by overwriting the top $4$ stack elements. The diagram below illustrates this graphically.
 
-![readw](../../assets/design/stack/io_ops/READW.png)
+![advpopw](../../assets/design/stack/io_ops/ADVPOPW.png)
 
-The `READW` operation does not impose any constraints against the top $4$ elements of the stack.
+The `ADVPOPW` operation does not impose any constraints against the top $4$ elements of the operand stack.
 
-The effect of this operation on the rest of the stack is:
+The effect of this operation on the rest of the operand stack is:
 * **No change** starting from position $4$.
 
 ## Memory access operations

@@ -229,7 +229,7 @@ where
     ///
     /// # Errors
     /// Returns an error if the advice stack is empty.
-    pub(super) fn op_read(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_advpop(&mut self) -> Result<(), ExecutionError> {
         let value = self.advice_provider.pop_stack()?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
@@ -241,7 +241,7 @@ where
     ///
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
-    pub(super) fn op_readw(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_advpopw(&mut self) -> Result<(), ExecutionError> {
         let word = self.advice_provider.pop_stack_word()?;
 
         self.stack.set(0, word[3]);
@@ -522,20 +522,20 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     #[test]
-    fn op_read() {
+    fn op_advpop() {
         // popping from the advice stack should push the value onto the operand stack
         let mut process = Process::new_dummy_with_advice_stack(&[3]);
         process.execute_op(Operation::Push(ONE)).unwrap();
-        process.execute_op(Operation::Read).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
         let expected = build_expected_stack(&[3, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // reading again should result in an error because advice stack is empty
-        assert!(process.execute_op(Operation::Read).is_err());
+        // popping again should result in an error because advice stack is empty
+        assert!(process.execute_op(Operation::AdvPop).is_err());
     }
 
     #[test]
-    fn op_readw() {
+    fn op_advpopw() {
         // popping a word from the advice stack should overwrite top 4 elements of the operand
         // stack
         let mut process = Process::new_dummy_with_advice_stack(&[3, 4, 5, 6]);
@@ -544,7 +544,7 @@ mod tests {
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
-        process.execute_op(Operation::ReadW).unwrap();
+        process.execute_op(Operation::AdvPopW).unwrap();
         let expected = build_expected_stack(&[6, 5, 4, 3, 1]);
         assert_eq!(expected, process.stack.trace_state());
     }
