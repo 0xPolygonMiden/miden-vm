@@ -1,5 +1,5 @@
 ## u32 operations
-Miden assembly provides a set of instructions which can perform operations on regular 32-bit integers. These instructions are described in the tables below.
+Miden assembly provides a set of instructions which can perform operations on regular two-complement 32-bit integers. These instructions are described in the tables below.
 
 Most instructions have _checked_ variants. These variants ensure that input values are 32-bit integers, and fail if that's not the case. All other variants do not perform these checks, and thus, should be used only if the inputs are known to be 32-bit integers. Supplying inputs which are greater than or equal to $2^{32}$ to unchecked operations results in undefined behavior.
 
