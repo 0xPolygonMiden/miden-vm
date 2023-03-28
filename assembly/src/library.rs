@@ -118,6 +118,23 @@ mod use_std {
             })
         }
 
+        /// Read a library from a file.
+        pub fn read_from_file<P>(path: P) -> Result<MaslLibrary, LibraryError>
+        where
+            P: AsRef<Path>,
+        {
+            // convert path to str
+            let path_str = path.as_ref().to_str().unwrap_or("path contains invalid unicode");
+
+            // read bytes from file
+            let contents =
+                fs::read(&path).map_err(|e| LibraryError::file_error(path_str, &e.to_string()))?;
+
+            // read library from bytes
+            Self::read_from_bytes(&contents)
+                .map_err(|e| LibraryError::deserialization_error(path_str, &e.to_string()))
+        }
+
         /// Write the library to a target dir, using its namespace as file name and the appropriate
         /// extension.
         pub fn write_to_dir<P>(&self, dir_path: P) -> io::Result<()>

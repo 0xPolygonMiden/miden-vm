@@ -633,9 +633,11 @@ impl From<LabelError> for SerializationError {
 #[derive(Clone, Debug)]
 pub enum LibraryError {
     ModuleNotFound(String),
+    DeserializationFailed(String, String),
     DuplicateModulePath(String),
     DuplicateNamespace(String),
     EmptyProcedureName,
+    FileIO(String, String),
     ProcedureNameWithDelimiter(String),
     ModulePathStartsWithDelimiter(String),
     ModulePathEndsWithDelimiter(String),
@@ -653,6 +655,14 @@ impl LibraryError {
 
     pub fn duplicate_namespace(namespace: &str) -> Self {
         Self::DuplicateNamespace(namespace.to_string())
+    }
+
+    pub fn file_error(path: &str, message: &str) -> Self {
+        Self::FileIO(path.to_string(), message.to_string())
+    }
+
+    pub fn deserialization_error(path: &str, message: &str) -> Self {
+        Self::DeserializationFailed(path.to_string(), message.to_string())
     }
 
     pub fn procedure_name_with_delimiter(name: &str) -> Self {
@@ -684,9 +694,15 @@ impl fmt::Display for LibraryError {
         use LibraryError::*;
         match self {
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+            DeserializationFailed(path, message) => {
+                write!(f, "library deserialization failed - '{path}': {message}")
+            }
             DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
             DuplicateNamespace(namespace) => write!(f, "duplicate namespace '{namespace}'"),
             EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
+            FileIO(path, message) => {
+                write!(f, "file error - '{path}': {message}")
+            }
             ProcedureNameWithDelimiter(name) => {
                 write!(f, "'{name}' cannot contain a module delimiter")
             }

@@ -1,3 +1,4 @@
+use assembly::{Library, MaslLibrary};
 use miden::{
     utils::{Deserializable, SliceReader},
     AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
@@ -11,6 +12,22 @@ use std::{
     time::Instant,
 };
 use stdlib::StdLibrary;
+
+// HELPERS
+// ================================================================================================
+
+/// Indicates whether debug mode is on or off.
+pub enum Debug {
+    On,
+    Off,
+}
+
+impl Debug {
+    /// Returns true if debug mode is on.
+    fn is_on(&self) -> bool {
+        matches!(self, Self::On)
+    }
+}
 
 // INPUT FILE
 // ================================================================================================
@@ -164,7 +181,11 @@ pub struct ProgramFile;
 
 /// Helper methods to interact with masm program file
 impl ProgramFile {
-    pub fn read(path: &PathBuf, debug: bool) -> Result<Program, String> {
+    pub fn read<I, L>(path: &PathBuf, debug: &Debug, libraries: I) -> Result<Program, String>
+    where
+        I: IntoIterator<Item = L>,
+        L: Library,
+    {
         println!("Reading program file `{}`", path.display());
 
         // read program file to string
@@ -175,10 +196,16 @@ impl ProgramFile {
         let now = Instant::now();
 
         // compile program
-        let program = Assembler::default()
+        let mut assembler = Assembler::default()
+            .with_debug_mode(debug.is_on())
             .with_library(&StdLibrary::default())
-            .map_err(|err| format!("Failed to load stdlib - {}", err))?
-            .with_debug_mode(debug)
+            .map_err(|err| format!("Failed to load stdlib - {}", err))?;
+
+        assembler = assembler
+            .with_libraries(libraries.into_iter())
+            .map_err(|err| format!("Failed to load libraries `{}`", err))?;
+
+        let program = assembler
             .compile(&program_file)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 
@@ -268,5 +295,32 @@ impl ProgramHash {
             .map_err(|err| format!("Failed to deserialize program hash from bytes - {}", err))?;
 
         Ok(program_hash)
+    }
+}
+
+// LIBRARY FILE
+// ================================================================================================
+pub struct Libraries {
+    pub libraries: Vec<MaslLibrary>,
+}
+
+impl Libraries {
+    /// Creates a new instance of [Libraries] from a list of library paths.
+    pub fn new<P, I>(paths: I) -> Result<Self, String>
+    where
+        P: AsRef<Path>,
+        I: IntoIterator<Item = P>,
+    {
+        let mut libraries = Vec::new();
+
+        for path in paths {
+            println!("Reading library file `{}`", path.as_ref().display());
+
+            let library = MaslLibrary::read_from_file(path)
+                .map_err(|e| format!("Failed to read library: {e}"))?;
+            libraries.push(library);
+        }
+
+        Ok(Self { libraries })
     }
 }

@@ -1,4 +1,4 @@
-use super::data::{InputFile, ProgramFile};
+use super::data::{Debug, InputFile, Libraries, ProgramFile};
 use rustyline::{error::ReadlineError, Config, EditMode, Editor};
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -21,6 +21,9 @@ pub struct DebugCmd {
     /// Enable vi edit mode
     #[structopt(short = "vi", long = "vim_edit_mode")]
     vim_edit_mode: Option<String>,
+    /// Paths to .masl library files
+    #[structopt(short = "l", long = "libraries", parse(from_os_str))]
+    library_paths: Vec<PathBuf>,
 }
 
 impl DebugCmd {
@@ -29,8 +32,11 @@ impl DebugCmd {
         println!("Debug program");
         println!("============================================================");
 
+        // load libraries from files
+        let libraries = Libraries::new(&self.library_paths)?;
+
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file, true)?;
+        let program = ProgramFile::read(&self.assembly_file, &Debug::On, libraries.libraries)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}... ", hex::encode(program_hash));
