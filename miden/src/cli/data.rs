@@ -1,3 +1,4 @@
+use assembly::{Library, MaslLibrary};
 use miden::{
     utils::{Deserializable, SliceReader},
     AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
@@ -12,6 +13,22 @@ use std::{
 };
 use stdlib::StdLibrary;
 
+// HELPERS
+// ================================================================================================
+
+/// Indicates whether debug mode is on or off.
+pub enum Debug {
+    On,
+    Off,
+}
+
+impl Debug {
+    /// Returns true if debug mode is on.
+    fn is_on(&self) -> bool {
+        matches!(self, Self::On)
+    }
+}
+
 // INPUT FILE
 // ================================================================================================
 
@@ -19,19 +36,19 @@ use stdlib::StdLibrary;
 /// Input file struct
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
-    pub stack_init: Vec<String>,
-    pub advice_tape: Option<Vec<String>>,
+    pub operand_stack: Vec<String>,
+    pub advice_stack: Option<Vec<String>>,
 }
 
 /// Helper methods to interact with the input file
 impl InputFile {
     pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // if file not specified explicitly and corresponding file with same name as program_path
-        // with '.inputs' extension does't exist, set stack_init to empty vector
+        // with '.inputs' extension does't exist, set operand_stack to empty vector
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
             return Ok(Self {
-                stack_init: Vec::new(),
-                advice_tape: Some(Vec::new()),
+                operand_stack: Vec::new(),
+                advice_stack: Some(Vec::new()),
             });
         }
 
@@ -56,8 +73,8 @@ impl InputFile {
     }
 
     pub fn parse_advice_provider(&self) -> Result<MemAdviceProvider, String> {
-        let tape = self
-            .advice_tape
+        let stack = self
+            .advice_stack
             .as_ref()
             .map(Vec::as_slice)
             .unwrap_or(&[])
@@ -65,14 +82,14 @@ impl InputFile {
             .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
             .collect::<Result<Vec<_>, _>>()?;
         let advice_inputs =
-            AdviceInputs::default().with_tape_values(tape).map_err(|e| e.to_string())?;
+            AdviceInputs::default().with_stack_values(stack).map_err(|e| e.to_string())?;
         Ok(MemAdviceProvider::from(advice_inputs))
     }
 
     /// Parse and return the stack inputs for the program.
     pub fn parse_stack_inputs(&self) -> Result<StackInputs, String> {
         let stack_inputs = self
-            .stack_init
+            .operand_stack
             .iter()
             .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
             .collect::<Result<Vec<_>, _>>()?;
@@ -164,7 +181,11 @@ pub struct ProgramFile;
 
 /// Helper methods to interact with masm program file
 impl ProgramFile {
-    pub fn read(path: &PathBuf, debug: bool) -> Result<Program, String> {
+    pub fn read<I, L>(path: &PathBuf, debug: &Debug, libraries: I) -> Result<Program, String>
+    where
+        I: IntoIterator<Item = L>,
+        L: Library,
+    {
         println!("Reading program file `{}`", path.display());
 
         // read program file to string
@@ -175,10 +196,16 @@ impl ProgramFile {
         let now = Instant::now();
 
         // compile program
-        let program = Assembler::default()
+        let mut assembler = Assembler::default()
+            .with_debug_mode(debug.is_on())
             .with_library(&StdLibrary::default())
-            .map_err(|err| format!("Failed to load stdlib - {}", err))?
-            .with_debug_mode(debug)
+            .map_err(|err| format!("Failed to load stdlib - {}", err))?;
+
+        assembler = assembler
+            .with_libraries(libraries.into_iter())
+            .map_err(|err| format!("Failed to load libraries `{}`", err))?;
+
+        let program = assembler
             .compile(&program_file)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 
@@ -268,5 +295,32 @@ impl ProgramHash {
             .map_err(|err| format!("Failed to deserialize program hash from bytes - {}", err))?;
 
         Ok(program_hash)
+    }
+}
+
+// LIBRARY FILE
+// ================================================================================================
+pub struct Libraries {
+    pub libraries: Vec<MaslLibrary>,
+}
+
+impl Libraries {
+    /// Creates a new instance of [Libraries] from a list of library paths.
+    pub fn new<P, I>(paths: I) -> Result<Self, String>
+    where
+        P: AsRef<Path>,
+        I: IntoIterator<Item = P>,
+    {
+        let mut libraries = Vec::new();
+
+        for path in paths {
+            println!("Reading library file `{}`", path.as_ref().display());
+
+            let library = MaslLibrary::read_from_file(path)
+                .map_err(|e| format!("Failed to read library: {e}"))?;
+            libraries.push(library);
+        }
+
+        Ok(Self { libraries })
     }
 }

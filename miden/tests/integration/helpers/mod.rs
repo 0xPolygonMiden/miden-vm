@@ -3,7 +3,9 @@ pub use processor::{AdviceInputs, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 use stdlib::StdLibrary;
-pub use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program, StackOutputs};
+pub use vm_core::{
+    crypto::merkle::MerkleStore, stack::STACK_TOP_SIZE, Felt, FieldElement, Program, StackOutputs,
+};
 
 pub mod crypto;
 

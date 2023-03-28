@@ -2,7 +2,10 @@
 
 use air::{HashFunction, ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::crypto::hash::{Blake3_192, Blake3_256, Rpo256};
+use vm_core::crypto::{
+    hash::{Blake3_192, Blake3_256, Rpo256},
+    random::{RpoRandomCoin, WinterRandomCoin},
+};
 use winter_verifier::verify as verify_proof;
 
 // EXPORTS
@@ -48,9 +51,15 @@ pub fn verify(
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
     let (hash_fn, proof) = proof.into_parts();
     match hash_fn {
-        HashFunction::Blake3_192 => verify_proof::<ProcessorAir, Blake3_192>(proof, pub_inputs),
-        HashFunction::Blake3_256 => verify_proof::<ProcessorAir, Blake3_256>(proof, pub_inputs),
-        HashFunction::Rpo256 => verify_proof::<ProcessorAir, Rpo256>(proof, pub_inputs),
+        HashFunction::Blake3_192 => {
+            verify_proof::<ProcessorAir, Blake3_192, WinterRandomCoin<_>>(proof, pub_inputs)
+        }
+        HashFunction::Blake3_256 => {
+            verify_proof::<ProcessorAir, Blake3_256, WinterRandomCoin<_>>(proof, pub_inputs)
+        }
+        HashFunction::Rpo256 => {
+            verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin>(proof, pub_inputs)
+        }
     }
     .map_err(VerificationError::VerifierError)?;
 

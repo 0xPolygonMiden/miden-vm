@@ -1,4 +1,4 @@
-use super::{utils::build_lookup_table_row_values, Felt, FieldElement, Matrix, Vec};
+use super::{utils::build_lookup_table_row_values, ColMatrix, Felt, FieldElement, Vec};
 use crate::decoder::{AuxTraceHints, BlockTableUpdate, OpGroupTableUpdate};
 use vm_core::{utils::uninit_vector, DECODER_TRACE_OFFSET};
 
@@ -16,7 +16,7 @@ const ADDR_COL_IDX: usize = DECODER_TRACE_OFFSET + vm_core::decoder::ADDR_COL_ID
 /// Builds and returns decoder auxiliary trace columns p1, p2, and p3 describing states of block
 /// stack, block hash, and op group tables respectively.
 pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
-    main_trace: &Matrix<Felt>,
+    main_trace: &ColMatrix<Felt>,
     aux_trace_hints: &AuxTraceHints,
     rand_elements: &[E],
 ) -> Vec<Vec<E>> {
@@ -32,7 +32,7 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
 /// stack table via multiset checks.
 fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
-    main_trace: &Matrix<Felt>,
+    main_trace: &ColMatrix<Felt>,
     aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
 ) -> Vec<E> {
@@ -116,7 +116,7 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
 /// Builds the execution trace of the decoder's `p2` column which describes the state of the block
 /// hash table via multiset checks.
 fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
-    main_trace: &Matrix<Felt>,
+    main_trace: &ColMatrix<Felt>,
     aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
 ) -> Vec<E> {
@@ -226,7 +226,7 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
 /// Builds the execution trace of the decoder's `p3` column which describes the state of the op
 /// group table via multiset checks.
 fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
-    main_trace: &Matrix<Felt>,
+    main_trace: &ColMatrix<Felt>,
     trace_len: usize,
     aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
@@ -298,6 +298,6 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
 // ================================================================================================
 
 /// Returns the value in the block address column at the specified row.
-fn get_block_addr(main_trace: &Matrix<Felt>, row_idx: u32) -> Felt {
+fn get_block_addr(main_trace: &ColMatrix<Felt>, row_idx: u32) -> Felt {
     main_trace.get(ADDR_COL_IDX, row_idx as usize)
 }

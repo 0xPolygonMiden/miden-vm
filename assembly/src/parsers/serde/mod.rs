@@ -264,7 +264,7 @@ pub enum OpCode {
     HPerm = 232,
     MTreeGet = 233,
     MTreeSet = 234,
-    MTreeCwm = 235,
+    MTreeMerge = 235,
     FriExt2Fold4 = 236,
 
     // ----- exec / call --------------------------------------------------------------------------

@@ -4,11 +4,11 @@ mod mem;
 mod sys;
 
 use miden_stdlib::StdLibrary;
-use processor::{AdviceInputs, MerkleSet, StackInputs};
+use processor::{AdviceInputs, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, MemAdviceProvider};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
-use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
+use vm_core::{crypto::merkle::MerkleStore, stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
 
 /// Following section suffers from code-duplication, why ?
 ///
@@ -75,16 +75,15 @@ impl Test {
         in_debug_mode: bool,
         stack_init: &[u64],
         adv_tape: &[u64],
-        adv_set: Vec<MerkleSet>,
+        adv_set: MerkleStore,
         adv_map: BTreeMap<[u8; 32], Vec<Felt>>,
     ) -> Self {
         let stack = StackInputs::try_from_values(stack_init.to_vec()).unwrap();
         let advice = AdviceInputs::default()
-            .with_tape_values(adv_tape.to_vec())
+            .with_stack_values(adv_tape.to_vec())
             .unwrap()
-            .with_merkle_sets(adv_set)
-            .unwrap()
-            .with_values_map(adv_map);
+            .with_merkle_store(adv_set)
+            .with_map(adv_map);
 
         Test {
             source: String::from(source),
