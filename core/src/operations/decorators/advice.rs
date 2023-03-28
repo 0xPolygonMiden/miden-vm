@@ -50,6 +50,24 @@ pub enum AdviceInjector {
     /// routine interpolates ( using inverse NTT ) the evaluations into a polynomial in
     /// coefficient form and pushes the result into the advice stack.
     Ext2INTT,
+
+    /// Pushes the value and depth flags of a leaf indexed by `key` on a Sparse Merkle tree with
+    /// the provided `root`.
+    ///
+    /// The Sparse Merkle tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    /// The depth flags define the tier on which the leaf is located.
+    ///
+    /// The operand stack is expected to be arranged as follows (from the top):
+    /// - key, 4 elements.
+    /// - root of the Sparse Merkle tree, 4 elements.
+    ///
+    /// After a successful operation, the advice stack will look as follows:
+    /// - boolean flag set to `1` if the depth is `16` or `48`.
+    /// - boolean flag set to `1` if the depth is `16` or `32`.
+    /// - remaining key word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - value word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - boolean flag set to `1` if a remaining key is not zero.
+    SmtGet,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -62,6 +80,7 @@ impl fmt::Display for AdviceInjector {
             Self::Memory => write!(f, "mem"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2INTT => write!(f, "ext2_intt"),
+            Self::SmtGet => write!(f, "smt_get"),
         }
     }
 }

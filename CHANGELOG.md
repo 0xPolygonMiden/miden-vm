@@ -3,8 +3,11 @@
 ## 0.6.0 (TBD)
 
 #### Assembly
-- Added new instruction: `mtree_verify`.
+- Added new instructions: `mtree_verify`, `adv.smtget`.
 - [BREAKING] Refactored `adv.mem` decorator to use parameters from operand stack instead of immediate values.
+
+#### Stdlib
+- Added new module: `collections::smt` with `smt::get`.
 
 ## 0.5.0 (2023-03-29)
 

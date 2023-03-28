@@ -1,6 +1,6 @@
 use super::{
     AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
-    MerklePath, MerkleStore, NodeIndex, Vec, Word,
+    MerklePath, MerkleStore, NodeIndex, StarkField, Vec, Word,
 };
 
 // MEMORY ADVICE PROVIDER
@@ -117,6 +117,19 @@ impl AdviceProvider for MemAdviceProvider {
         self.store
             .get_path(root, index)
             .map(|value| value.path)
+            .map_err(ExecutionError::MerkleStoreLookupFailed)
+    }
+
+    fn get_leaf_depth(
+        &self,
+        root: Word,
+        tree_depth: &Felt,
+        index: &Felt,
+    ) -> Result<u8, ExecutionError> {
+        let tree_depth = u8::try_from(tree_depth.as_int())
+            .map_err(|_| ExecutionError::InvalidTreeDepth { depth: *tree_depth })?;
+        self.store
+            .get_leaf_depth(root, tree_depth, index.as_int())
             .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
