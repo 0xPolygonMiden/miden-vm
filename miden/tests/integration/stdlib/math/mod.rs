@@ -1,5 +1,4 @@
-use super::build_test;
-use crate::helpers::{Felt, TestError};
+use crate::{build_test, Felt};
 
 mod ecgfp5;
 mod ntt512;

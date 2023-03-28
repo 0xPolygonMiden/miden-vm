@@ -1,5 +1,4 @@
-use super::{build_test, TestError};
-use crate::helpers::U32_BOUND;
+use crate::{build_test, TestError, U32_BOUND};
 use proptest::prelude::*;
 use rand_utils::rand_value;
 use std::cmp;

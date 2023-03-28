@@ -6,7 +6,7 @@ use vm_core::{
 };
 
 use crate::build_op_test;
-use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
+use miden_test_utils::crypto::{init_merkle_leaf, init_merkle_store};
 
 // TESTS
 // ================================================================================================

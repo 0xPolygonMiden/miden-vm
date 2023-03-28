@@ -1,4 +1,4 @@
-use crate::{build_op_test, build_test, helpers::Test};
+use crate::{build_op_test, build_test, Test};
 use processor::{AdviceInputs, FMP_MIN};
 use vm_core::{
     code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, StackInputs, StarkField, Word,
