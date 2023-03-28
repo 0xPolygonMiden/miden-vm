@@ -429,31 +429,33 @@ Memory at address 87 is empty
 <h2 id="single-core-prover-performance"><a class="header" href="#single-core-prover-performance">Single-core prover performance</a></h2>
 <p>When executed on a single CPU core, the current version of Miden VM operates at around 10 - 15 KHz. In the benchmarks below, the VM executes a Fibonacci calculator program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.</p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: center">VM cycles</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th><th style="text-align: center">RAM consumed</th><th style="text-align: center">Proof size</th></tr></thead><tbody>
-<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">1 ms</td><td style="text-align: center">80 ms</td><td style="text-align: center">14 MB</td><td style="text-align: center">52 KB</td></tr>
-<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">280 ms</td><td style="text-align: center">43 MB</td><td style="text-align: center">61 KB</td></tr>
-<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">8 ms</td><td style="text-align: center">1.1 sec</td><td style="text-align: center">163 MB</td><td style="text-align: center">71 KB</td></tr>
-<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">28 ms</td><td style="text-align: center">4.4 sec</td><td style="text-align: center">640 MB</td><td style="text-align: center">81 KB</td></tr>
-<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">85 ms</td><td style="text-align: center">19.2 sec</td><td style="text-align: center">2.6 GB</td><td style="text-align: center">92 KB</td></tr>
-<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">320 ms</td><td style="text-align: center">86 sec</td><td style="text-align: center">10 GB</td><td style="text-align: center">104 KB</td></tr>
+<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">1 ms</td><td style="text-align: center">80 ms</td><td style="text-align: center">20 MB</td><td style="text-align: center">47 KB</td></tr>
+<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">260 ms</td><td style="text-align: center">52 MB</td><td style="text-align: center">57 KB</td></tr>
+<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">8 ms</td><td style="text-align: center">0.9 sec</td><td style="text-align: center">240 MB</td><td style="text-align: center">66 KB</td></tr>
+<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">28 ms</td><td style="text-align: center">4.6 sec</td><td style="text-align: center">950 MB</td><td style="text-align: center">77 KB</td></tr>
+<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">85 ms</td><td style="text-align: center">15.5 sec</td><td style="text-align: center">3.7 GB</td><td style="text-align: center">89 KB</td></tr>
+<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">310 ms</td><td style="text-align: center">67 sec</td><td style="text-align: center">14 GB</td><td style="text-align: center">100 KB</td></tr>
 </tbody></table>
 </div>
 <p>As can be seen from the above, proving time roughly doubles with every doubling in the number of cycles, but proof size grows much slower.</p>
 <p>We can also generate proofs at a higher security level. The cost of doing so is roughly doubling of proving time and roughly 40% increase in proof size. In the benchmarks below, the same Fibonacci calculator program was executed on Apple M1 Pro CPU at 128-bit target security level:</p>
 <div class="table-wrapper"><table><thead><tr><th style="text-align: center">VM cycles</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th><th style="text-align: center">RAM consumed</th><th style="text-align: center">Proof size</th></tr></thead><tbody>
-<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">1 ms</td><td style="text-align: center">140 ms</td><td style="text-align: center">26 MB</td><td style="text-align: center">73 KB</td></tr>
-<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">510 ms</td><td style="text-align: center">90 MB</td><td style="text-align: center">87 KB</td></tr>
-<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">8 ms</td><td style="text-align: center">2.1 sec</td><td style="text-align: center">350 MB</td><td style="text-align: center">98 KB</td></tr>
-<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">28 ms</td><td style="text-align: center">7.9 sec</td><td style="text-align: center">1.4 GB</td><td style="text-align: center">115 KB</td></tr>
-<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">85 ms</td><td style="text-align: center">35 sec</td><td style="text-align: center">5.6 GB</td><td style="text-align: center">132 KB</td></tr>
-<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">320 ms</td><td style="text-align: center">151 sec</td><td style="text-align: center">20.3 GB</td><td style="text-align: center">149 KB</td></tr>
+<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">1 ms</td><td style="text-align: center">300 ms</td><td style="text-align: center">30 MB</td><td style="text-align: center">61 KB</td></tr>
+<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">590 ms</td><td style="text-align: center">106 MB</td><td style="text-align: center">78 KB</td></tr>
+<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">8 ms</td><td style="text-align: center">1.7 sec</td><td style="text-align: center">500 MB</td><td style="text-align: center">91 KB</td></tr>
+<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">28 ms</td><td style="text-align: center">6.7 sec</td><td style="text-align: center">2.0 GB</td><td style="text-align: center">106 KB</td></tr>
+<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">85 ms</td><td style="text-align: center">27.5 sec</td><td style="text-align: center">8.0 GB</td><td style="text-align: center">122 KB</td></tr>
+<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">310 ms</td><td style="text-align: center">126 sec</td><td style="text-align: center">24.0 GB</td><td style="text-align: center">138 KB</td></tr>
 </tbody></table>
 </div>
 <h2 id="multi-core-prover-performance"><a class="header" href="#multi-core-prover-performance">Multi-core prover performance</a></h2>
-<p>STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on a high-end 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 80 KHz. And when executed on a high-end 64-core CPU (Amazon Graviton 3), the VM operates at around 320 KHz.</p>
+<p>STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on an 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 100 KHz. And when executed on a 64-core CPU (Amazon Graviton 3), the VM operates at around 250 KHz.</p>
 <p>In the benchmarks below, the VM executes the same Fibonacci calculator program for 2<sup>20</sup> cycles at 96-bit target security level:</p>
-<div class="table-wrapper"><table><thead><tr><th>Machine</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th></tr></thead><tbody>
-<tr><td>Apple M1 Pro (8 threads)</td><td style="text-align: center">320 ms</td><td style="text-align: center">13 sec</td></tr>
-<tr><td>Amazon Graviton 3 (64 threads)</td><td style="text-align: center">390 ms</td><td style="text-align: center">3.3 sec</td></tr>
+<div class="table-wrapper"><table><thead><tr><th>Machine</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th><th style="text-align: center">Execution %</th></tr></thead><tbody>
+<tr><td>Apple M1 Pro (8 threads)</td><td style="text-align: center">310 ms</td><td style="text-align: center">9.8 sec</td><td style="text-align: center">3.1%</td></tr>
+<tr><td>Apple M2 Max (16 threads)</td><td style="text-align: center">290 ms</td><td style="text-align: center">7.7 sec</td><td style="text-align: center">3.6%</td></tr>
+<tr><td>AMD Ryzen 9 5950X (16 threads)</td><td style="text-align: center">270 ms</td><td style="text-align: center">10.7 sec</td><td style="text-align: center">2.6%</td></tr>
+<tr><td>Amazon Graviton 3 (64 threads)</td><td style="text-align: center">330 ms</td><td style="text-align: center">3.7 sec</td><td style="text-align: center">9.0%</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="user-documentation"><a class="header" href="#user-documentation">User Documentation</a></h1>
