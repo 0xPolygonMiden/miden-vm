@@ -33,7 +33,7 @@ fn fri_fold4_ext2_remainder32() {
     let (advice_provider, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
-    let advice_stack = prepare_advice(
+    let advice_stack = prepare_advice_stack(
         depth,
         domain_size,
         num_queries,
@@ -73,7 +73,7 @@ fn fri_fold4_ext2_remainder64() {
     let (advice_provider, position_eval, alphas, commitments, remainder, num_queries) =
         fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
 
-    let advice_stack = prepare_advice(
+    let advice_stack = prepare_advice_stack(
         depth,
         domain_size,
         num_queries,
@@ -94,7 +94,7 @@ fn fri_fold4_ext2_remainder64() {
     test.expect_stack(&[]);
 }
 
-fn prepare_advice(
+fn prepare_advice_stack(
     depth: usize,
     domain_size: u32,
     num_queries: usize,

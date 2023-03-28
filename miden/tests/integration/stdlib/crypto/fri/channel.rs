@@ -76,12 +76,8 @@ where
 
         // Compute remainder codeword corresponding to remainder polynomial
         let twiddles = fft::get_twiddles(poly.len());
-        let remainder = fft::evaluate_poly_with_offset(
-            &poly,
-            &twiddles,
-            <E::BaseField as StarkField>::GENERATOR,
-            8,
-        );
+        let remainder =
+            fft::evaluate_poly_with_offset(&poly, &twiddles, E::BaseField::GENERATOR, 8);
 
         Ok(remainder)
     }

@@ -230,6 +230,8 @@ end
 
 #! Verifies a FRI proof where the proof was generated over the quadratic extension of the base
 #! field and layer folding was performed using folding factor 4.
+#! Note that the check that the remainder codeword corresponds to the remainder polynomial received
+#! by the verifier should now be performed by the calling procedure.
 #!
 #! Input:  [query_ptr, layer_ptr, rem_ptr, g, ...]
 #! Output: [...]
@@ -254,18 +256,15 @@ end
 #! 1. rem_ptr - 1 points to the last (alpha0, alpha1, t_depth, d_size) tuple.
 #! 2. layer_ptr - 1 points to the last (e0, e1, p, poe) tuple.
 #!
-#! Cycles: for domains of size 2^n where:
-#! - n is even: 6 + 7 + num_queries * (40 + num_layers * 76 + 26)
-#! - n is odd:  6 + 7 + num_queries * (40 + num_layers * 76 + 26)
+#! Cycles: 7 + 4 + num_queries * (40 + num_layers * 76 + 26)
 export.verify.1
 
     # store [query_ptr, layer_ptr, rem_ptr, g] to keep track of all queries
     # (3 cycles)
-    locaddr.0
-    mem_storew
+    loc_storew.0
 
     # [(query_ptr == layer_ptr), query_ptr, layer_ptr, rem_ptr, g]
-    # (3 cycles)
+    # (4 cycles)
     dup
     dup.2
     neq
@@ -283,11 +282,9 @@ export.verify.1
         # prepare for next iteration (18 cycles)
         # => [x, x, x, x, x, x, x, x, x, x, g, ...]
         dropw drop drop drop
-        locaddr.0
-        mem_loadw   # load [query_ptr, layer_ptr, rem_ptr, g]
+        loc_loadw.0   # load [query_ptr, layer_ptr, rem_ptr, g]
         add.1
-        locaddr.0
-        mem_storew  # store [query_ptr + 1, layer_ptr, rem_ptr, g]
+        loc_storew.0  # store [query_ptr + 1, layer_ptr, rem_ptr, g]
         dup
         dup.2
         neq
