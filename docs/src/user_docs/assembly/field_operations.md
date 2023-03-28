@@ -42,7 +42,7 @@ For instructions where one or more operands can be provided as immediate paramet
 | lte <br> - *(18 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | gt <br> - *(18 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | gte <br> - *(19 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| is_odd <br> - *(5 cycles)*            | [a, ...] | [b, ...]       | Pushes $1$ to the stack if the number $a$ is an odd number $0$ otherwise |
+| is_odd <br> - *(5 cycles)*            | [a, ...]    | [b, ...]       | $b \leftarrow \begin{cases} 1, & \text{if}\ a \text{ is odd} \\ 0, & \text{otherwise}\ \end{cases}$ |
 | eqw <br> - *(15 cycles)*              | [A, B, ...] | [c, A, B, ...] | $c \leftarrow \begin{cases} 1, & \text{if}\ a_i = b_i \; \forall i \in \{0, 1, 2, 3\} \\ 0, & \text{otherwise}\ \end{cases}$ |
 
 ### Extension Field Operations
