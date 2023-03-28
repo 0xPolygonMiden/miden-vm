@@ -4,6 +4,7 @@ members = [
   "assembly",
   "core",
   "miden",
+  "miden-test-utils",
   "processor",
   "prover",
   "stdlib",
