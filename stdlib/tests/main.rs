@@ -4,11 +4,12 @@ mod mem;
 mod sys;
 
 use miden_stdlib::StdLibrary;
-use processor::{AdviceInputs, StackInputs};
-use processor::{ExecutionError, ExecutionTrace, MemAdviceProvider};
+use processor::{AdviceInputs, ExecutionError, ExecutionTrace, MemAdviceProvider, StackInputs};
 use proptest::prelude::*;
-use std::collections::BTreeMap;
-use vm_core::{crypto::merkle::MerkleStore, stack::STACK_TOP_SIZE, Felt, FieldElement, Program};
+use vm_core::{
+    crypto::merkle::MerkleStore, stack::STACK_TOP_SIZE, utils::collections::BTreeMap, Felt,
+    FieldElement, Program,
+};
 
 /// Following section suffers from code-duplication, why ?
 ///
