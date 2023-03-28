@@ -1,7 +1,11 @@
 pub use vm_core::{stack::STACK_TOP_SIZE, Felt};
 
 pub mod crypto;
-pub mod tester;
+mod tester;
+pub use tester::{
+    convert_to_stack, prop_randw, AdviceInputs, MerkleStore, StackInputs, Test, TestError,
+    U32_BOUND,
+};
 
 // TESTS
 // ================================================================================================
@@ -97,14 +101,14 @@ macro_rules! build_debug_test {
 #[macro_export]
 macro_rules! build_test_by_mode {
     ($in_debug_mode:expr, $source:expr) => {{
-        $crate::tester::Test::new($source, $in_debug_mode)
+        $crate::Test::new($source, $in_debug_mode)
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::tester::StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_inputs = $crate::tester::AdviceInputs::default();
+        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
+        let advice_inputs = $crate::AdviceInputs::default();
 
-        $crate::tester::Test {
+        $crate::Test {
             source: String::from($source),
             kernel: None,
             stack_inputs,
@@ -116,15 +120,15 @@ macro_rules! build_test_by_mode {
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr
     ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::tester::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
-        let store = $crate::tester::MerkleStore::new();
-        let advice_inputs = $crate::tester::AdviceInputs::default()
+        let store = $crate::MerkleStore::new();
+        let advice_inputs = $crate::AdviceInputs::default()
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store(store);
 
-        $crate::tester::Test {
+        $crate::Test {
             source: String::from($source),
             kernel: None,
             stack_inputs,
@@ -136,14 +140,14 @@ macro_rules! build_test_by_mode {
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr
     ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::tester::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
-        let advice_inputs = $crate::tester::AdviceInputs::default()
+        let advice_inputs = $crate::AdviceInputs::default()
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store($advice_merkle_store);
 
-        $crate::tester::Test {
+        $crate::Test {
             source: String::from($source),
             kernel: None,
             stack_inputs,
@@ -153,15 +157,15 @@ macro_rules! build_test_by_mode {
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::tester::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
-        let advice_inputs = $crate::tester::AdviceInputs::default()
+        let advice_inputs = $crate::AdviceInputs::default()
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store($advice_merkle_store)
             .with_map($advice_map);
 
-        $crate::tester::Test {
+        $crate::Test {
             source: String::from($source),
             kernel: None,
             stack_inputs,
