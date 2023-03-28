@@ -312,12 +312,12 @@ pub enum Operation {
     /// Pushes the immediate value onto the stack.
     Push(Felt),
 
-    /// Removes the next element from the advice stack and pushes it onto the stack.
-    Read,
+    /// Removes the next element from the advice stack and pushes it onto the operand stack.
+    AdvPop,
 
-    /// Removes a word (4 elements) from the advice stack and overwrites the top four stack
-    /// elements with it.
-    ReadW,
+    /// Removes a word (4 elements) from the advice stack and overwrites the top four operand
+    /// stack elements with it.
+    AdvPopW,
 
     /// Pops an element off the stack, interprets it as a memory address, and replaces the
     /// remaining 4 elements at the top of the stack with values located at the specified address.
@@ -439,7 +439,7 @@ impl Operation {
             Self::MovDn2    => 0b0000_1011,
             Self::MovUp3    => 0b0000_1100,
             Self::MovDn3    => 0b0000_1101,
-            Self::ReadW     => 0b0000_1110,
+            Self::AdvPopW   => 0b0000_1110,
             Self::Expacc    => 0b0000_1111,
 
             Self::MovUp4    => 0b0001_0000,
@@ -489,7 +489,7 @@ impl Operation {
             Self::Dup11     => 0b0011_1010,
             Self::Dup13     => 0b0011_1011,
             Self::Dup15     => 0b0011_1100,
-            Self::Read      => 0b0011_1101,
+            Self::AdvPop    => 0b0011_1101,
             Self::SDepth    => 0b0011_1110,
             Self::Clk       => 0b0011_1111,
 
@@ -652,8 +652,8 @@ impl fmt::Display for Operation {
             // ----- input / output ---------------------------------------------------------------
             Self::Push(value) => write!(f, "push({value})"),
 
-            Self::Read => write!(f, "read"),
-            Self::ReadW => write!(f, "readw"),
+            Self::AdvPop => write!(f, "advpop"),
+            Self::AdvPopW => write!(f, "advpopw"),
 
             Self::MLoadW => write!(f, "mloadw"),
             Self::MStoreW => write!(f, "mstorew"),

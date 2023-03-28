@@ -267,7 +267,7 @@ impl Assembler {
             Instruction::Clk => span.add_op(Clk),
             Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
-            Instruction::AdvLoadW => span.add_op(ReadW),
+            Instruction::AdvLoadW => span.add_op(AdvPopW),
 
             Instruction::MemStream => span.add_ops([MStream, HPerm]),
 

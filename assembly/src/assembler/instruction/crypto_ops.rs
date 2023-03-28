@@ -205,7 +205,7 @@ fn read_mtree_node(span: &mut SpanBuilder) {
 
     // pops the old node value from advice the stack => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]
-    span.push_op_many(Read, 4);
+    span.push_op_many(AdvPop, 4);
 }
 
 /// Update a node in the merkle tree. This operation will always copy the tree into a new instance,

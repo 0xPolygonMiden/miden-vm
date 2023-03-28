@@ -9,6 +9,9 @@
 - Added new instructions: `is_odd`, `assert_eqw`, `mtree_merge`.
 - [BREAKING] Removed `mtree_cwm` instruction.
 
+#### VM Internals
+- [BREAKING] Renamed `Read/ReadW` operations into `AdvPop/AdvPopW`.
+
 ## 0.4.0 (2023-02-27)
 
 #### Advice provider
