@@ -20,6 +20,7 @@ pub enum Node {
 pub enum Instruction {
     Assert,
     AssertEq,
+    AssertEqw,
     Assertz,
     Add,
     AddImm(Felt),
@@ -49,6 +50,7 @@ pub enum Instruction {
     Lte,
     Gt,
     Gte,
+    IsOdd,
 
     // ----- ext2 operations ----------------------------------------------------------------------
     Ext2Add,
@@ -266,7 +268,7 @@ pub enum Instruction {
     HPerm,
     MTreeGet,
     MTreeSet,
-    MTreeCwm,
+    MTreeMerge,
     FriExt2Fold4,
 
     // ----- exec / call --------------------------------------------------------------------------
@@ -275,6 +277,16 @@ pub enum Instruction {
     CallLocal(u16),
     CallImported(ProcedureId),
     SysCall(ProcedureId),
+
+    // ----- debug decorators ---------------------------------------------------------------------
+    Breakpoint,
+}
+
+impl Instruction {
+    /// Returns true if the instruction should yield a breakpoint.
+    pub const fn should_break(&self) -> bool {
+        matches!(self, Self::Breakpoint)
+    }
 }
 
 impl fmt::Display for Instruction {
@@ -282,6 +294,7 @@ impl fmt::Display for Instruction {
         match self {
             Self::Assert => write!(f, "assert"),
             Self::AssertEq => write!(f, "assert_eq"),
+            Self::AssertEqw => write!(f, "assert_eqw"),
             Self::Assertz => write!(f, "assertz"),
             Self::Add => write!(f, "add"),
             Self::AddImm(value) => write!(f, "add.{value}"),
@@ -311,6 +324,7 @@ impl fmt::Display for Instruction {
             Self::Lte => write!(f, "lte"),
             Self::Gt => write!(f, "gt"),
             Self::Gte => write!(f, "gte"),
+            Self::IsOdd => write!(f, "is_odd"),
 
             // ----- ext2 operations --------------------------------------------------------------
             Self::Ext2Add => write!(f, "ext2add"),
@@ -529,7 +543,7 @@ impl fmt::Display for Instruction {
             Self::HPerm => write!(f, "hperm"),
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
-            Self::MTreeCwm => write!(f, "mtree_cwm"),
+            Self::MTreeMerge => write!(f, "mtree_merge"),
             Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
 
             // ----- exec / call ------------------------------------------------------------------
@@ -539,6 +553,9 @@ impl fmt::Display for Instruction {
             Self::CallLocal(index) => write!(f, "call.{index}"),
             Self::CallImported(proc_id) => write!(f, "call.{proc_id}"),
             Self::SysCall(proc_id) => write!(f, "syscall.{proc_id}"),
+
+            // ----- debug decorators -------------------------------------------------------------
+            Self::Breakpoint => write!(f, "breakpoint"),
         }
     }
 }

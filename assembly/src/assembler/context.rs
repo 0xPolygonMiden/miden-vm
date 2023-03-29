@@ -250,10 +250,17 @@ impl AssemblyContext {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the context of the procedure currently being complied, or None if module or
+    /// Returns the context of the procedure currently being compiled, or None if module or
     /// procedure stacks are empty.
     fn current_proc_context(&self) -> Option<&ProcedureContext> {
         self.module_stack.last().and_then(|m| m.proc_stack.last())
+    }
+
+    /// Returns the name of the current procedure, or the reserved name for the main block.
+    pub(crate) fn current_context_name(&self) -> &str {
+        self.current_proc_context()
+            .map(|p| p.name().as_ref())
+            .expect("library compilation mode is currently not supported!")
     }
 }
 
@@ -476,6 +483,13 @@ impl ProcedureContext {
 
     pub fn is_main(&self) -> bool {
         self.name.is_main()
+    }
+
+    /// Returns the current context name.
+    ///
+    /// Check [AssemblyContext::current_context_name] for reference.
+    pub const fn name(&self) -> &ProcedureName {
+        &self.name
     }
 
     pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> Procedure {

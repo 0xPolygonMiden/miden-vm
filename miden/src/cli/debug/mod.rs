@@ -1,5 +1,5 @@
-use super::data::{InputFile, ProgramFile};
-use rustyline::{Config, EditMode, Editor};
+use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use rustyline::{error::ReadlineError, Config, EditMode, Editor};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -21,6 +21,9 @@ pub struct DebugCmd {
     /// Enable vi edit mode
     #[structopt(short = "vi", long = "vim_edit_mode")]
     vim_edit_mode: Option<String>,
+    /// Paths to .masl library files
+    #[structopt(short = "l", long = "libraries", parse(from_os_str))]
+    library_paths: Vec<PathBuf>,
 }
 
 impl DebugCmd {
@@ -29,8 +32,11 @@ impl DebugCmd {
         println!("Debug program");
         println!("============================================================");
 
+        // load libraries from files
+        let libraries = Libraries::new(&self.library_paths)?;
+
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file)?;
+        let program = ProgramFile::read(&self.assembly_file, &Debug::On, libraries.libraries)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}... ", hex::encode(program_hash));
@@ -56,18 +62,29 @@ impl DebugCmd {
         let mut rl =
             Editor::<()>::with_config(rl_config).expect("Readline couldn't be initialized");
 
+        println!("Welcome! Enter `h` for help.");
+
         loop {
             match rl.readline(">> ") {
                 Ok(command) => match DebugCommand::parse(&command) {
-                    Ok(command) => {
+                    Ok(Some(command)) => {
                         if !debug_executor.execute(command) {
                             println!("Debugging complete");
                             break;
                         }
                     }
-                    Err(err) => println!("{err}"),
+                    Ok(None) => (),
+                    Err(err) => eprintln!("{err}"),
                 },
-                Err(err) => println!("malformed command - failed to read user input: {}", err),
+                Err(ReadlineError::Interrupted) => {
+                    // ctrl+c is a transparent interruption and should provide not feedback or
+                    // action.
+                }
+                Err(ReadlineError::Eof) => {
+                    eprintln!("CTRL-D");
+                    break;
+                }
+                Err(err) => eprintln!("malformed command - failed to read user input: {}", err),
             }
         }
 

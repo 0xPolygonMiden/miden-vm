@@ -19,7 +19,7 @@ We are using [Github Flow](https://docs.github.com/en/get-started/quickstart/git
 ### Branching
 - The current active branch is `next`. Every branch with a fix/feature must be forked from `next`.
 
-- The branch name should contain a short issue/feature description separated with hyphens [(kebab-case)](https://en.wikipedia.org/wiki/Letter_case#Kebab_case). 
+- The branch name should contain a short issue/feature description separated with hyphens [(kebab-case)](https://en.wikipedia.org/wiki/Letter_case#Kebab_case).
 
     For example, if the issue title is `Fix functionality X in component Y` then the branch name will be something like: `fix-x-in-y`.
 

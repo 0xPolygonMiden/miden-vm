@@ -163,7 +163,7 @@ Verifying a Merkle path involves the following steps:
 
 1. Initialize hasher state with the leaf and the first node of the path, setting all capacity elements to $0$s.
    a. Also, initialize the index register to the leaf's index value.
-2. Apply Rescue Prime Optimized permutation. 
+2. Apply Rescue Prime Optimized permutation.
    a. Make sure the index value doesn't change during this step.
 3. Copy the result of the hash to the next row, and absorb the next node of the Merkle path into the hasher state.
    a. Remove a single bit from the index, and use it to determine how to place the copied result and absorbed node in the state.
@@ -343,7 +343,7 @@ When absorbing the next node during Merkle path computation (i.e., $f_{mp} + f_{
 
 >$$
 (f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree} = 6
-$$ 
+$$
 
 Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher state is unconstrained.
 

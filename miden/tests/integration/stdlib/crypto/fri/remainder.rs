@@ -1,9 +1,9 @@
-use super::{build_test, Felt};
+use super::build_test;
 use processor::math::fft;
 use test_case::test_case;
-use vm_core::{FieldElement, QuadExtension, StarkField};
+use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
 
-type Ext2Element = QuadExtension<Felt>;
+type QuadFelt = QuadExtension<Felt>;
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
 #[test_case(8, 2; "poly_8 |> evaluated_16 |> interpolated_8")]
@@ -34,7 +34,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
             sub.1
         end
         drop
-        
+
         locaddr.0
         push.{}
         push.{}
@@ -66,9 +66,9 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, blowup);
 
-    let ifelts = Ext2Element::as_base_elements(&evals);
+    let ifelts = QuadFelt::slice_as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
-    let ou64s = Ext2Element::as_base_elements(&poly)
+    let ou64s = QuadFelt::slice_as_base_elements(&poly)
         .iter()
         .rev()
         .map(|v| v.as_int())
@@ -103,11 +103,11 @@ fn test_verify_remainder_64() {
     end
     ";
 
-    let poly = rand_utils::rand_vector::<Ext2Element>(8);
+    let poly = rand_utils::rand_vector::<QuadFelt>(8);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
 
-    let ifelts = Ext2Element::as_base_elements(&evals);
+    let ifelts = QuadFelt::slice_as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
     let test = build_test!(source, &iu64s);
@@ -140,11 +140,11 @@ fn test_verify_remainder_32() {
     end
     ";
 
-    let poly = rand_utils::rand_vector::<Ext2Element>(4);
+    let poly = rand_utils::rand_vector::<QuadFelt>(4);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
 
-    let ifelts = Ext2Element::as_base_elements(&evals);
+    let ifelts = QuadFelt::slice_as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
     let test = build_test!(source, &iu64s);

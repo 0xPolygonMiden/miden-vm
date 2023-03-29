@@ -1,4 +1,4 @@
-use super::data::{InputFile, OutputFile, ProgramFile};
+use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
 use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -17,6 +17,9 @@ pub struct RunCmd {
     /// Path to output file
     #[structopt(short = "o", long = "output", parse(from_os_str))]
     output_file: Option<PathBuf>,
+    /// Paths to .masl library files
+    #[structopt(short = "l", long = "libraries", parse(from_os_str))]
+    library_paths: Vec<PathBuf>,
 }
 
 impl RunCmd {
@@ -25,8 +28,11 @@ impl RunCmd {
         println!("Run program");
         println!("============================================================");
 
+        // load libraries from files
+        let libraries = Libraries::new(&self.library_paths)?;
+
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file)?;
+        let program = ProgramFile::read(&self.assembly_file, &Debug::Off, libraries.libraries)?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;

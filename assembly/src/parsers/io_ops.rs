@@ -262,7 +262,7 @@ fn parse_param_list(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsi
     build_push_many_instruction(values)
 }
 
-/// Parses a non hexadecimal parameter and returns the value.  Takes as argument a constant map
+/// Parses a non hexadecimal parameter and returns the value. Takes as argument a constant map
 /// for constant lookup.
 fn parse_non_hex_param_with_constants_lookup<R: RangeBounds<u64>>(
     op: &Token,
@@ -353,12 +353,12 @@ fn parse_hex_value(op: &Token, param_str: &str, param_idx: usize) -> Result<u64,
 /// Determines the minimal type appropriate for provided value and returns appropriate instruction
 /// for this value
 fn build_push_one_instruction(value: u64) -> Result<Node, ParsingError> {
-    if value <= u8::MAX as u64 {
-        Ok(Instruction(PushU8(value as u8)))
-    } else if value <= u16::MAX as u64 {
-        Ok(Instruction(PushU16(value as u16)))
-    } else if value <= u32::MAX as u64 {
-        Ok(Instruction(PushU32(value as u32)))
+    if let Ok(data) = u8::try_from(value) {
+        Ok(Instruction(PushU8(data)))
+    } else if let Ok(data) = u16::try_from(value) {
+        Ok(Instruction(PushU16(data)))
+    } else if let Ok(data) = u32::try_from(value) {
+        Ok(Instruction(PushU32(data)))
     } else if value < Felt::MODULUS {
         Ok(Instruction(PushFelt(Felt::new(value))))
     } else {
@@ -374,13 +374,13 @@ where
 {
     assert!(values_iter.len() != 0);
     let max_value = values_iter.clone().try_fold(0, |max, value| Ok(value?.max(max)))?;
-    if max_value <= u8::MAX as u64 {
+    if u8::try_from(max_value).is_ok() {
         let values_u8 = values_iter.map(|v| Ok(v? as u8)).collect::<Result<Vec<u8>, _>>()?;
         Ok(Instruction(PushU8List(values_u8)))
-    } else if max_value <= u16::MAX as u64 {
+    } else if u16::try_from(max_value).is_ok() {
         let values_u16 = values_iter.map(|v| Ok(v? as u16)).collect::<Result<Vec<u16>, _>>()?;
         Ok(Instruction(PushU16List(values_u16)))
-    } else if max_value <= u32::MAX as u64 {
+    } else if u32::try_from(max_value).is_ok() {
         let values_u32 = values_iter.map(|v| Ok(v? as u32)).collect::<Result<Vec<u32>, _>>()?;
         Ok(Instruction(PushU32List(values_u32)))
     } else if max_value < Felt::MODULUS {

@@ -5,14 +5,8 @@
 extern crate alloc;
 
 pub use vm_core::{
-    chiplets::hasher::Digest,
-    crypto::{
-        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256},
-        merkle::MerkleError,
-    },
-    errors::InputError,
-    utils::DeserializationError,
-    Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
+    chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
+    Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -23,7 +17,7 @@ use vm_core::{
     StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
-use winter_prover::Matrix;
+use winter_prover::ColMatrix;
 
 mod decorators;
 mod operations;
@@ -42,7 +36,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, MerkleSet};
+pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -65,6 +59,14 @@ pub use debug::{AsmOpInfo, VmState, VmStateIterator};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
     pub use winter_prover::math::fft;
+}
+
+pub mod crypto {
+    pub use vm_core::crypto::{
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256},
+        merkle::{MerkleError, MerkleStore, MerkleTree, SimpleSmt},
+        random::{RandomCoin, RpoRandomCoin, WinterRandomCoin},
+    };
 }
 
 // TYPE ALIASES

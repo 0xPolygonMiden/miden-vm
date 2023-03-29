@@ -2,10 +2,10 @@ use super::{fmt, Digest};
 
 // PROXY BLOCK
 // ================================================================================================
-/// A code block used to conceal a part of a program.
+/// Block for a unknown function call.
 ///
-/// Proxy blocks cannot be executed by the VM. They are used primarily to verify the integrity of
-/// a program's hash while keeping parts of the program secret.
+/// Proxy blocks are used to verify the integrity of a program's hash while keeping parts
+/// of the program secret. Fails if executed.
 ///
 /// Hash of a proxy block is not computed but is rather defined at instantiation time.
 #[derive(Clone, Debug)]

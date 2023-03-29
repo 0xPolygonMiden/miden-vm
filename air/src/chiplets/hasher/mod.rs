@@ -22,7 +22,7 @@ pub const NUM_CONSTRAINTS: usize = 31;
 /// The number of periodic columns which are used as selectors to specify a particular row or rows
 /// within the hash cycle.
 pub const NUM_PERIODIC_SELECTOR_COLUMNS: usize = 3;
-/// The total number of periodic columns used by the hash processor, which is the sum of the number
+/// The total number of periodic columns used by the hasher chiplet, which is the sum of the number
 /// of periodic selector columns plus the columns of round constants for the Rescue Prime Optimized
 /// hash permutation.
 pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_COLUMNS;
@@ -30,7 +30,7 @@ pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_
 // PERIODIC COLUMNS
 // ================================================================================================
 
-/// Returns the set of periodic columns required by the Hash processor.
+/// Returns the set of periodic columns required by the hasher chiplet.
 ///
 /// The columns consist of:
 /// - k0 column, which has a repeating pattern of 7 zeros followed by a single one.
@@ -107,60 +107,59 @@ pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
 }
 
-/// Enforces constraints for the hash chiplet.
+/// Enforces constraints for the hasher chiplet.
 ///
-/// - The `processor_flag` indicates whether the current row is in the section of the chiplets
-///   module that contains this processor's trace.
-/// - The `transition_flag` indicates whether or not the constraints should be enforced for this
-///   transition. It is expected to be false when the next row will be the last row of this
-///   processor's execution trace.
+/// - The `hasher_flag` determines if the hasher chiplet is currently enabled. It should be
+/// computed by the caller and set to `Felt::ONE`
+/// - The `transition_flag` indicates whether this is the last row this chiplet's execution trace,
+/// and therefore the constraints should not be enforced.
 pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
-    processor_flag: E,
+    hasher_flag: E,
     transition_flag: E,
 ) {
     // Enforce that the row address increases by 1 at each step when the transition flag is set.
     result.agg_constraint(
         0,
-        processor_flag * transition_flag,
+        hasher_flag * transition_flag,
         frame.row_next() - frame.row() - E::ONE,
     );
     let mut index = 1;
 
-    index += enforce_selectors(frame, periodic_values, &mut result[index..], processor_flag);
+    index += enforce_hasher_selectors(frame, periodic_values, &mut result[index..], hasher_flag);
 
-    index += enforce_node_index(frame, periodic_values, &mut result[index..], processor_flag);
+    index += enforce_node_index(frame, periodic_values, &mut result[index..], hasher_flag);
 
-    enforce_hasher_state(frame, periodic_values, &mut result[index..], processor_flag);
+    enforce_hasher_state(frame, periodic_values, &mut result[index..], hasher_flag);
 }
 
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-/// Enforces that all selectors and selector transitions are valid.
+/// Enforces validity of the internal selectors of the hasher chiplet.
 ///
 /// - All selectors must contain binary values.
 /// - s1 and s2 must be copied to the next row unless f_out is set in the current or next row.
 /// - When a cycle ends by absorbing more elements or a Merkle path node, ensure the next value of
 ///   s0 is always zero. Otherwise, s0 should be unconstrained.
 /// - Prevent an invalid combination of flags where s_0 = 0 and s_1 = 1.
-fn enforce_selectors<E: FieldElement>(
+fn enforce_hasher_selectors<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
-    processor_flag: E,
+    hasher_flag: E,
 ) -> usize {
     // Ensure the selectors are all binary values.
     for (idx, result) in result.iter_mut().take(NUM_SELECTORS).enumerate() {
-        *result = processor_flag * is_binary(frame.s(idx));
+        *result = hasher_flag * is_binary(frame.s(idx));
     }
     let mut constraint_offset = NUM_SELECTORS;
 
     // Ensure the values in s1 and s2 in the current row are copied to the next row when f_out != 1
     // and f_out' != 1.
-    let copy_selectors_flag = processor_flag
+    let copy_selectors_flag = hasher_flag
         * binary_not(frame.f_out(periodic_values))
         * binary_not(frame.f_out_next(periodic_values));
     result[constraint_offset] = copy_selectors_flag * (frame.s_next(1) - frame.s(1));
@@ -171,7 +170,7 @@ fn enforce_selectors<E: FieldElement>(
 
     // s0 should be unconstrained except in the last row of the cycle if any of f_abp, f_mpa, f_mva,
     // or f_mua are 1, in which case the next value of s0 must be zero.
-    result[constraint_offset] = processor_flag
+    result[constraint_offset] = hasher_flag
         * periodic_values[0]
         * frame.s_next(0)
         * (frame.f_abp() + frame.f_mpa() + frame.f_mva() + frame.f_mua());
@@ -179,7 +178,7 @@ fn enforce_selectors<E: FieldElement>(
 
     // Prevent an invalid combinations of flags.
     result[constraint_offset] =
-        processor_flag * periodic_values[0] * binary_not(frame.s(0)) * frame.s(1);
+        hasher_flag * periodic_values[0] * binary_not(frame.s(0)) * frame.s(1);
     constraint_offset += 1;
 
     constraint_offset
@@ -197,22 +196,22 @@ fn enforce_node_index<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
-    processor_flag: E,
+    hasher_flag: E,
 ) -> usize {
     let mut constraint_offset = 0;
 
     // Enforce that the node index is 0 when a computation is finished.
-    result[constraint_offset] = processor_flag * frame.f_out(periodic_values) * frame.i();
+    result[constraint_offset] = hasher_flag * frame.f_out(periodic_values) * frame.i();
     constraint_offset += 1;
 
     // When a new node is being absorbed into the hasher state, ensure that the shift to the right
     // was performed correctly by enforcing that the discarded bit is a binary value.
-    result[constraint_offset] = processor_flag * frame.f_an(periodic_values) * is_binary(frame.b());
+    result[constraint_offset] = hasher_flag * frame.f_an(periodic_values) * is_binary(frame.b());
     constraint_offset += 1;
 
     // When we are not absorbing a new row and the computation is not finished, make sure the value
     // of i is copied to the next row.
-    result[constraint_offset] = processor_flag
+    result[constraint_offset] = hasher_flag
         * (E::ONE - frame.f_an(periodic_values) - frame.f_out(periodic_values))
         * (frame.i_next() - frame.i());
     constraint_offset += 1;
@@ -233,13 +232,13 @@ fn enforce_hasher_state<E: FieldElement + From<Felt>>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
-    processor_flag: E,
+    hasher_flag: E,
 ) -> usize {
     let mut constraint_offset = 0;
 
     // Get the constraint flags and the RPO round constants from the periodic values.
-    let hash_flag = processor_flag * binary_not(periodic_values[0]);
-    let last_row = processor_flag * periodic_values[0];
+    let hash_flag = hasher_flag * binary_not(periodic_values[0]);
+    let last_row = hasher_flag * periodic_values[0];
     let ark = &periodic_values[NUM_PERIODIC_SELECTOR_COLUMNS..];
 
     // Enforce the RPO round constraints.

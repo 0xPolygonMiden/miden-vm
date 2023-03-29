@@ -75,7 +75,7 @@ The effect of this operation on the rest of the stack is:
 
 ## MRUPDATE
 The `MRUPDATE` operation computes a new root of a Merkle tree where a node at the specified position is updated to the specified value.
-    
+
 The stack is expected to be arranged as follows (from the top):
 - old value of the node, 4 element ($V$ in the below image)
 - depth of the node, 1 element ($d$ in the below image)

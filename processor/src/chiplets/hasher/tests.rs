@@ -3,10 +3,7 @@ use super::{
     SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
     MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
-use crate::{
-    chiplets::hasher::{lookups::HasherLookupContext, HasherLookup},
-    MerkleSet,
-};
+use crate::chiplets::hasher::{lookups::HasherLookupContext, HasherLookup};
 use rand_utils::rand_array;
 use vm_core::{
     chiplets::hasher::{
@@ -15,7 +12,7 @@ use vm_core::{
         STATE_COL_RANGE,
     },
     code_blocks::CodeBlock,
-    crypto::merkle::NodeIndex,
+    crypto::merkle::{MerkleTree, NodeIndex},
     Operation, StarkField, ONE, ZERO,
 };
 
@@ -119,7 +116,7 @@ fn hasher_build_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2]);
-    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleTree::new(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
@@ -189,7 +186,7 @@ fn hasher_build_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let tree = MerkleTree::new(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
@@ -350,7 +347,7 @@ fn hasher_update_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2]);
-    let mut tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let mut tree = MerkleTree::new(leaves.to_vec()).unwrap();
 
     // initialize the hasher and update both leaves
     let mut hasher = Hasher::default();
@@ -459,7 +456,7 @@ fn hasher_update_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let mut tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+    let mut tree = MerkleTree::new(leaves.to_vec()).unwrap();
 
     // initialize the hasher
     let mut hasher = Hasher::default();

@@ -1,8 +1,5 @@
-use super::{Felt, FieldElement, StarkField, Vec, Word};
-use crate::{
-    trace::{AuxColumnBuilder, LookupTableRow},
-    Matrix,
-};
+use super::{ColMatrix, Felt, FieldElement, StarkField, Vec, Word};
+use crate::trace::{AuxColumnBuilder, LookupTableRow};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -27,7 +24,7 @@ impl AuxTraceBuilder {
     /// computation).
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let p1 = self.build_aux_column(main_trace, rand_elements);
@@ -125,7 +122,7 @@ impl LookupTableRow for SiblingTableRow {
     /// at least 6 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         // when the least significant bit of the index is 0, the sibling will be in the 3rd word

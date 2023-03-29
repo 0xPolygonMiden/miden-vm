@@ -6,24 +6,13 @@ use core::{
 };
 use winter_utils::{collections::Vec, string::String};
 
-// FEATURE BASED RE-EXPORT
-// ================================================================================================
-
-#[cfg(not(feature = "std"))]
-pub use alloc::boxed::Box;
-
-#[cfg(feature = "std")]
-pub use std::boxed::Box;
-
 // RE-EXPORTS
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_slice_elements, group_vector_elements, string, uninit_vector, ByteReader,
-    ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    collections, group_slice_elements, group_vector_elements, string, uninit_vector, Box,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
-
-pub use crypto::{RandomCoin, RandomCoinError};
 
 pub mod math {
     pub use math::{batch_inversion, log2};

@@ -118,7 +118,7 @@ impl ProofOptions {
 
     /// Creates a new preset instance of [ProofOptions] targeting 96-bit security level.
     pub fn with_96_bit_security() -> Self {
-        let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 256);
+        let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
         Self {
             hash_fn: HashFunction::Blake3_192,
             options,
@@ -127,7 +127,7 @@ impl ProofOptions {
 
     /// Creates a new preset instance of [ProofOptions] targeting 128-bit security level.
     pub fn with_128_bit_security() -> Self {
-        let options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 256);
+        let options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
         Self {
             hash_fn: HashFunction::Blake3_256,
             options,

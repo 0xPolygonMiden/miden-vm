@@ -2,11 +2,15 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // JOIN BLOCKS
 // ================================================================================================
-/// A code block used to combine two other code blocks.
+/// Block for sequential execution of two sub-blocks.
 ///
-/// When the VM executes a Join block, it executes joined blocks in sequence one after the other.
+/// Executes left sub-block then the right sub-block. Fails if either of the sub-block execution fails.
 ///
-/// Hash of a Join block is computed by hashing a concatenation of the hashes of joined blocks.
+/// The hash of a join block is computed as:
+///
+/// > hash(left_block_hash || right_block_hash, domain=JOIN_DOMAIN)
+///
+/// Where `left_block_hash` and `right_block_hash` are 4 field elements (256 bits) each.
 #[derive(Clone, Debug)]
 pub struct Join {
     body: Box<[CodeBlock; 2]>,

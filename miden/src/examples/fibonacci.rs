@@ -34,7 +34,7 @@ fn generate_fibonacci_program(n: usize) -> Program {
     // the last operation pops top 2 stack items, adds them, and pushes
     // the result back onto the stack
     let program = format!(
-        "begin 
+        "begin
             repeat.{}
                 swap dup.1 add
             end

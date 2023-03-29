@@ -16,15 +16,15 @@ pub const OP_CYCLE_LEN: usize = 8;
 
 /// Specifies a bitwise AND operation.
 pub const BITWISE_AND: Felt = ZERO;
-/// Unique label for the bitwise AND operation. Computed as 1 more than the binary composition of
-/// the chiplet and operation selectors [1, 0, 0].
-pub const BITWISE_AND_LABEL: Felt = Felt::new(2);
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// bitwise_and selector=[1, 0, 0] rev(selector)=[0, 0, 1] +1=[0, 1, 0]
+pub const BITWISE_AND_LABEL: Felt = Felt::new(0b010);
 
 /// Specifies a bitwise XOR operation.
 pub const BITWISE_XOR: Felt = ONE;
-/// Unique label for the bitwise XOR operation. Computed as 1 more than the binary composition of
-/// the chiplet and operation selectors [1, 0, 1].
-pub const BITWISE_XOR_LABEL: Felt = Felt::new(6);
+/// Unique label computed as 1 plus the full chiplet selector with the bits reversed.
+/// bitwise_xor selector=[1, 0, 1] rev(selector)=[1, 0, 1] +1=[1, 1, 0]
+pub const BITWISE_XOR_LABEL: Felt = Felt::new(0b110);
 
 // --- INPUT DECOMPOSITION ------------------------------------------------------------------------
 

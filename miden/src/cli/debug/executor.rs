@@ -42,34 +42,43 @@ impl DebugExecutor {
     /// executes a debug command against the vm in it's current state.
     pub fn execute(&mut self, command: DebugCommand) -> bool {
         match command {
-            DebugCommand::PlayAll => {
+            DebugCommand::Continue => {
                 while let Some(new_vm_state) = self.next_vm_state() {
                     self.vm_state = new_vm_state;
+                    if self.should_break() {
+                        break;
+                    }
                 }
                 self.print_vm_state();
             }
-            DebugCommand::Play(cycles) => {
+            DebugCommand::Next(cycles) => {
                 for _cycle in 0..cycles {
                     match self.next_vm_state() {
                         Some(next_vm_state) => {
                             self.vm_state = next_vm_state;
+                            if self.should_break() {
+                                break;
+                            }
                         }
                         None => break,
                     }
                 }
                 self.print_vm_state();
             }
-            DebugCommand::RewindAll => {
-                while let Some(new_vm_state) = self.prev_vm_state() {
+            DebugCommand::Rewind => {
+                while let Some(new_vm_state) = self.vm_state_iter.back() {
                     self.vm_state = new_vm_state;
                 }
                 self.print_vm_state();
             }
-            DebugCommand::Rewind(cycles) => {
+            DebugCommand::Back(cycles) => {
                 for _cycle in 0..cycles {
-                    match self.prev_vm_state() {
+                    match self.vm_state_iter.back() {
                         Some(new_vm_state) => {
                             self.vm_state = new_vm_state;
+                            if self.should_break() {
+                                break;
+                            }
                         }
                         None => break,
                     }
@@ -100,17 +109,6 @@ impl DebugExecutor {
             },
             None => {
                 println!("Program execution complete.");
-                None
-            }
-        }
-    }
-
-    /// iterates to the previous clock cycle.
-    fn prev_vm_state(&mut self) -> Option<VmState> {
-        match self.vm_state_iter.next_back() {
-            Some(prev_vm_state_result) => prev_vm_state_result.ok(),
-            None => {
-                println!("At start of program execution.");
                 None
             }
         }
@@ -180,24 +178,42 @@ impl DebugExecutor {
 
     /// print help message
     fn print_help() {
-        let message = "---------------------------------------------------------\n\
+        let message = "---------------------------------------------------------------------\n\
             Miden Assembly Debug CLI\n\
-            ---------------------------------------------------------\n\
-            !next        steps to the next clock cycle\n\
-            !play        executes program until completion or failure\n\
-            !play.n      executes n clock cycles\n\
-            !prev        steps to the previous clock cycle\n\
-            !rewind      rewinds program until beginning\n\
-            !rewind.n    rewinds n clock cycles\n\
-            !print       displays the complete state of the virtual machine\n\
-            !stack       displays the complete state of the stack\n\
-            !stack[i]    displays the stack element at index i\n\
-            !mem         displays the complete state of memory\n\
-            !mem[i]      displays memory at address i\n\
-            !clock       displays the current clock cycle\n\
-            !quit        quits the debugger\n\
-            !help        displays this message";
+            ---------------------------------------------------------------------\n\
+            next               moves to the next clock cycle\n\
+            next <c>           moves `c` clock cycles forward\n\
+            continue           executes program until completion or failure\n\
+            back               rewinds `1` clock cycles\n\
+            back <c>           rewinds `c` clock cycles\n\
+            rewind             rewinds program until beginning\n\
+            print              displays the complete state of the virtual machine\n\
+            print mem          displays the complete state of memory\n\
+            print mem <i>      displays memory at address `i`\n\
+            print stack        displays the complete state of the stack\n\
+            print stack <i>    displays the stack element at index `i`\n\
+            clock              displays the current clock cycle\n\
+            quit               quits the debugger\n\
+            help               displays this message\n\
+            \n\
+            The following mappings are also available:\n\
+            n -> next\n\
+            c -> continue\n\
+            b -> back\n\
+            r -> rewind\n\
+            p -> print\n\
+            m -> mem\n\
+            s -> stack\n\
+            l -> clock\n\
+            q -> quit\n\
+            h -> help\n\
+            ? -> help";
 
         println!("{}", message);
+    }
+
+    /// Returns `true` if the current state should break.
+    fn should_break(&self) -> bool {
+        self.vm_state.asmop.as_ref().map(|asm| asm.should_break()).unwrap_or(false)
     }
 }

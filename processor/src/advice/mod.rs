@@ -1,11 +1,10 @@
-use super::{utils, ExecutionError, Felt, InputError, Word};
+use super::{ExecutionError, Felt, InputError, Word};
 use vm_core::{
-    crypto::merkle::{MerkleError, MerklePath, MerklePathSet, MerkleTree, NodeIndex, SimpleSmt},
+    crypto::merkle::{MerklePath, MerkleStore, NodeIndex},
     utils::{
         collections::{BTreeMap, Vec},
         IntoBytes,
     },
-    StarkField,
 };
 
 mod inputs;
@@ -14,48 +13,35 @@ pub use inputs::AdviceInputs;
 mod mem_provider;
 pub use mem_provider::MemAdviceProvider;
 
-mod merkle_set;
-pub use merkle_set::MerkleSet;
-
 mod source;
 pub use source::AdviceSource;
 
 // ADVICE PROVIDER
 // ================================================================================================
 
-// TODO elaborate on why this is non-deterministic (seems it is a simple state machine).
-
-// TODO the `advance_clock` seems to be an internal of the VM and shouldn't necessarily be here.
-
-// TODO this will likely suffer a breaking change as we introduce a generic storage for big Merkle
-// sets.
-// The purpose of this clock is to keep the feedback of the provided in sync with the execution
-// trace of the VM, but on the other hand the VM can control the calls/traces itself, without the
-// need for the advice provider (or any other external component) to keep track of it. If we
-// delegate this control to the advice provider - especially if it is a trait, the user might
-// implement it incorrectly, creating undefined behavior on the VM side (that expects the counter
-// to incrementally increase).
-
-/// Common behavior of advice providers for program execution.
+/// Defines behavior of an advice provider.
 ///
-/// An advice provider supplies non-deterministic inputs to the processor.
+/// An advice provider is a component through which the VM processor can interact with the host
+/// environment. The processor can request nondeterministic inputs from the advice provider (i.e.,
+/// result of a computation performed outside of the VM), as well as insert new data into the
+/// advice provider.
 ///
-/// 1. Provide a tape functionality that yields elements as a stack (last in, first out). These can
-///    be yielded as elements, words or double words.
-/// 2. Provide a map functionality that will store temporary tapes that can be appended to the main
-///    tape. This operation should not allow key overwrite; that is: if a given key exists, the
-///    implementation should error if the user attempts to insert this key again, instead of the
-///    common behavior of the maps to simply override the previous contents. This is a design
-///    decision to increase the runtime robustness of the execution.
-/// 3. Provide merkle sets, that are mappings from a Merkle root its tree. The tree should yield
-///    nodes & leaves, and will provide a Merkle path if a leaf is updated.
+/// An advice provider consists of the following components:
+/// 1. Advice stack, which is a LIFO data structure. The processor can move the elements from the
+///    advice stack onto the operand stack, as well as push new elements onto the advice stack.
+/// 2. Advice map, which is a key-value map where keys are words (4 field elements) and values are
+///    vectors of field elements. The processor can push the values from the map onto the advice
+///    stack, as well as insert new values into the map.
+/// 3. Merkle store, which contains structured data reducible to Merkle paths. The VM can request
+///    Merkle paths from the store, as well as mutate it by updating or merging nodes contained in
+///    the store.
 pub trait AdviceProvider {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Creates a "by reference" advice provider for this instance.
     ///
-    /// The returned adapter also implements `AdviceProvider` and will simply mutably borrow this
+    /// The returned adapter also implements [AdviceProvider] and will simply mutably borrow this
     /// instance.
     fn by_ref(&mut self) -> &mut Self {
         // this trait follows the same model as
@@ -68,37 +54,41 @@ pub trait AdviceProvider {
         self
     }
 
-    // ADVICE TAPE
+    // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    /// Pops an element from the advice tape and returns it.
+    /// Pops an element from the advice stack and returns it.
     ///
     /// # Errors
-    /// Returns an error if the advice tape is empty.
-    fn read_tape(&mut self) -> Result<Felt, ExecutionError>;
+    /// Returns an error if the advice stack is empty.
+    fn pop_stack(&mut self) -> Result<Felt, ExecutionError>;
 
-    /// Pops a word (4 elements) from the advice tape and returns it.
+    /// Pops a word (4 elements) from the advice stack and returns it.
     ///
-    /// Note: a word is always stored as little-endian. A `[...,a,b,c,d]` tape will yield
-    /// `[d,c,b,a]`.
-    ///
-    /// # Errors
-    /// Returns an error if the advice tape does not contain a full word.
-    fn read_tape_w(&mut self) -> Result<Word, ExecutionError>;
-
-    /// Pops a double word (8 elements) from the advice tape and returns them.
-    ///
-    /// Note: a double word is always stored as little-endian. A `[...,a,b,c,d,e,f,g,h]` tape will
-    /// yield `[h,g,f,e],[,d,c,b,a]`.
+    /// Note: a word is popped off the stack element-by-element. For example, a `[d, c, b, a, ...]`
+    /// stack (i.e., `d` is at the top of the stack) will yield `[d, c, b, a]`.
     ///
     /// # Errors
-    /// Returns an error if the advice tape does not contain two words.
-    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError>;
+    /// Returns an error if the advice stack does not contain a full word.
+    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError>;
 
-    /// Writes values specified by the source to the head of the advice tape.
-    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
+    /// Pops a double word (8 elements) from the advice stack and returns them.
+    ///
+    /// Note: words are popped off the stack element-by-element. For example, a
+    /// `[h, g, f, e, d, c, b, a, ...]` stack (i.e., `h` is at the top of the stack) will yield
+    /// two words: `[h, g, f,e ], [d, c, b, a]`.
+    ///
+    /// # Errors
+    /// Returns an error if the advice stack does not contain two words.
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError>;
 
-    /// Maps a key to a value list to be yielded by `write_tape_from_map`.
+    /// Pushes the value(s) specified by the source onto the advice stack.
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
+
+    /// Inserts the provided value into the advice map under the specified key.
+    ///
+    /// The values in the advice map can be moved onto the advice stack by invoking
+    /// [AdviceProvider::push_stack()] method.
     ///
     /// # Errors
     /// Returns an error if the key is already present in the advice map.
@@ -107,7 +97,7 @@ pub trait AdviceProvider {
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a node/leaf for the given depth and index in a Merkle tree with the given root.
+    /// Returns a node at the specified depth and index in a Merkle tree with the given root.
     ///
     /// # Errors
     /// Returns an error if:
@@ -115,9 +105,11 @@ pub trait AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError>;
+    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
+        -> Result<Word, ExecutionError>;
 
-    /// Returns a path to a node at the specified index in a Merkle tree with the specified root.
+    /// Returns a path to a node at the specified depth and index in a Merkle tree with the
+    /// specified root.
     ///
     /// # Errors
     /// Returns an error if:
@@ -128,16 +120,15 @@ pub trait AdviceProvider {
     fn get_merkle_path(
         &self,
         root: Word,
-        depth: Felt,
-        index: Felt,
+        depth: &Felt,
+        index: &Felt,
     ) -> Result<MerklePath, ExecutionError>;
 
-    /// Updates a leaf at the specified index on an existing Merkle tree with the specified root;
-    /// returns the Merkle path from the updated leaf to the new root.
+    /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
+    /// returns the Merkle path from the updated node to the new root.
     ///
-    /// If `update_in_copy` is set to true, retains both the tree prior to the update (i.e. with
-    /// the original root), and the new updated tree. Otherwise, the old merkle set is removed from
-    /// this provider.
+    /// The tree is cloned prior to the update. Thus, the advice provider retains the original and
+    /// the updated tree.
     ///
     /// # Errors
     /// Returns an error if:
@@ -146,13 +137,24 @@ pub trait AdviceProvider {
     ///   identified by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
-    fn update_merkle_leaf(
+    fn update_merkle_node(
         &mut self,
         root: Word,
-        index: Felt,
-        leaf_value: Word,
-        update_in_copy: bool,
+        depth: &Felt,
+        index: &Felt,
+        value: Word,
     ) -> Result<MerklePath, ExecutionError>;
+
+    /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
+    /// specified roots. The root of the new tree is defined as `hash(left_root, right_root)`.
+    ///
+    /// After the operation, both the original trees and the new tree remains in the advice
+    /// provider (i.e., the input trees are not removed).
+    ///
+    /// # Errors
+    /// Returns an error if a Merkle tree for either of the specified roots cannot be found in this
+    /// advice provider.
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
 
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
@@ -161,6 +163,9 @@ pub trait AdviceProvider {
     ///
     /// This is used to keep the state of the VM in sync with the state of the advice provider, and
     /// should be incrementally updated when called.
+    ///
+    /// TODO: keeping track of the clock cycle is used primarily for attaching clock cycle to error
+    /// messages generated by the advice provider; consider refactoring.
     fn advance_clock(&mut self);
 }
 
@@ -168,47 +173,56 @@ impl<'a, T> AdviceProvider for &'a mut T
 where
     T: AdviceProvider,
 {
-    fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
-        T::read_tape(self)
+    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
+        T::pop_stack(self)
     }
 
-    fn read_tape_w(&mut self) -> Result<Word, ExecutionError> {
-        T::read_tape_w(self)
+    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
+        T::pop_stack_word(self)
     }
 
-    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError> {
-        T::read_tape_dw(self)
+    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
+        T::pop_stack_dword(self)
     }
 
-    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
-        T::write_tape(self, source)
+    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+        T::push_stack(self, source)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         T::insert_into_map(self, key, values)
     }
 
-    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError> {
+    fn get_tree_node(
+        &self,
+        root: Word,
+        depth: &Felt,
+        index: &Felt,
+    ) -> Result<Word, ExecutionError> {
         T::get_tree_node(self, root, depth, index)
     }
 
     fn get_merkle_path(
         &self,
         root: Word,
-        depth: Felt,
-        index: Felt,
+        depth: &Felt,
+        index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
         T::get_merkle_path(self, root, depth, index)
     }
 
-    fn update_merkle_leaf(
+    fn update_merkle_node(
         &mut self,
         root: Word,
-        index: Felt,
-        leaf_value: Word,
-        update_in_copy: bool,
+        depth: &Felt,
+        index: &Felt,
+        value: Word,
     ) -> Result<MerklePath, ExecutionError> {
-        T::update_merkle_leaf(self, root, index, leaf_value, update_in_copy)
+        T::update_merkle_node(self, root, depth, index, value)
+    }
+
+    fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
+        T::merge_roots(self, lhs, rhs)
     }
 
     fn advance_clock(&mut self) {

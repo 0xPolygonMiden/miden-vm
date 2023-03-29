@@ -54,7 +54,7 @@ const MODULE_PATH_DELIM: &str = "::";
 /// The maximum number of constant inputs allowed for the `push` instruction.
 const MAX_PUSH_INPUTS: usize = 16;
 
-/// The maximum number of elements that can be read from the advice tape in a single `adv_push`
+/// The maximum number of elements that can be popped from the advice stack in a single `adv_push`
 /// instruction.
 const ADVICE_READ_LIMIT: u8 = 16;
 
@@ -68,7 +68,7 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 const MAX_EXP_BITS: u8 = 64;
 
 /// The maximum length of a constant or procedure's label.
-const MAX_LABEL_LEN: u8 = 100;
+const MAX_LABEL_LEN: usize = 100;
 
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` masm operation without period separators.

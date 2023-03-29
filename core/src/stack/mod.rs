@@ -1,4 +1,4 @@
-use super::{errors::InputError, range, Felt, Range, StackTopState, StarkField};
+use super::{errors::InputError, range, Felt, Range, StackTopState, StarkField, ToElements};
 use winter_utils::{
     collections::{vec, Vec},
     ByteWriter, Serializable,

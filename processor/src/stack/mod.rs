@@ -1,5 +1,6 @@
 use super::{
-    BTreeMap, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, ColMatrix, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE,
+    STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 use vm_core::stack::STACK_TOP_SIZE;
@@ -311,7 +312,7 @@ impl Stack {
 
     /// Returns state of stack item columns at the current clock cycle. This does not include stack
     /// values in the overflow table.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "internals"))]
     pub fn trace_state(&self) -> [Felt; STACK_TOP_SIZE] {
         self.trace.get_stack_state_at(self.clk)
     }

@@ -71,7 +71,7 @@ end
 
 #! Permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
 #!
-#! Expected stack top: 
+#! Expected stack top:
 #!
 #! [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15]
 #!
@@ -158,7 +158,7 @@ proc.finalize
     movdn.7
 end
 
-#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and
 #! 8 message words ( each of 32 -bit ), this routine performs column-wise mixing
 #! of message words into blake3 hash state.
 #!
@@ -229,7 +229,7 @@ proc.columnar_mixing.1
     dup.4
     u32checked_xor
     u32unchecked_rotr.16
-    
+
     swap
     dup.5
     u32checked_xor
@@ -276,7 +276,7 @@ proc.columnar_mixing.1
     dup.4
     u32checked_xor
     u32unchecked_rotr.12
-    
+
     swap
     dup.5
     u32checked_xor
@@ -331,7 +331,7 @@ proc.columnar_mixing.1
     dup.4
     u32checked_xor
     u32unchecked_rotr.8
-    
+
     swap
     dup.5
     u32checked_xor
@@ -397,7 +397,7 @@ proc.columnar_mixing.1
     movupw.3
 end
 
-#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and
 #! 8 message words ( each of 32 -bit ), this routine performs diagonal-wise mixing
 #! of message words into blake3 hash state.
 #!
@@ -636,7 +636,7 @@ proc.diagonal_mixing.1
     movupw.3
 end
 
-#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and
 #! 16 message words ( each of 32 -bit ), this routine applies single round of mixing
 #! of message words into hash state i.e. msg_word[0..8] are mixed into hash state using
 #! columnar mixing while remaining message words ( msg_word[8..16] ) are mixed into hash state
@@ -656,7 +656,7 @@ end
 #!
 #! [...]
 #!
-#! i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
+#! i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr},
 #! which were provided, on stack top, while invoking this routine.
 proc.round.5
     loc_storew.0
@@ -718,7 +718,7 @@ end
 #!
 #! [...]
 #!
-#! i.e. 7 -round mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
+#! i.e. 7 -round mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr},
 #! which were provided, on stack top, while invoking this routine. So updated state matrix can be read by caller routine, by reading
 #! the content of memory addresses where state was provided as routine input.
 proc.compress.1
@@ -765,8 +765,8 @@ export.hash_2to1.4
 
     exec.initialize_2to1
 
-    # Note, chunk compression routine needs to compress only one chunk with one message 
-    # block ( = 64 -bytes ) because what we're doing here is 2-to-1 hashing i.e. 64 -bytes 
+    # Note, chunk compression routine needs to compress only one chunk with one message
+    # block ( = 64 -bytes ) because what we're doing here is 2-to-1 hashing i.e. 64 -bytes
     # input being converted to 32 -bytes output
 
     locaddr.3

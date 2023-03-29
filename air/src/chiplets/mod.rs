@@ -142,7 +142,7 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// index is a valid selector index.
     fn s_next(&self, idx: usize) -> E;
 
-    // --- Co-processor selector flags ------------------------------------------------------------
+    // --- Chiplet selector flags -----------------------------------------------------------------
 
     /// Flag to indicate whether the frame is in the hasher portion of the Chiplets trace.
     fn hasher_flag(&self) -> E;
@@ -169,7 +169,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.next()[CHIPLETS_OFFSET + idx]
     }
 
-    // --- Co-processor selector flags ------------------------------------------------------------
+    // --- Chiplet selector flags -----------------------------------------------------------------
 
     #[inline(always)]
     fn hasher_flag(&self) -> E {

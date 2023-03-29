@@ -38,6 +38,7 @@ impl Deserializable for Instruction {
         match opcode {
             OpCode::Assert => Ok(Instruction::Assert),
             OpCode::AssertEq => Ok(Instruction::AssertEq),
+            OpCode::AssertEqw => Ok(Instruction::AssertEqw),
             OpCode::Assertz => Ok(Instruction::Assertz),
             OpCode::Add => Ok(Instruction::Add),
             OpCode::AddImm => Ok(Instruction::AddImm(bytes.read_felt()?)),
@@ -67,6 +68,7 @@ impl Deserializable for Instruction {
             OpCode::Lte => Ok(Instruction::Lte),
             OpCode::Gt => Ok(Instruction::Gt),
             OpCode::Gte => Ok(Instruction::Gte),
+            OpCode::IsOdd => Ok(Instruction::IsOdd),
 
             // ----- ext2 operations --------------------------------------------------------------
             OpCode::Ext2Add => Ok(Instruction::Ext2Add),
@@ -324,7 +326,7 @@ impl Deserializable for Instruction {
             OpCode::HPerm => Ok(Instruction::HPerm),
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
-            OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),
+            OpCode::MTreeMerge => Ok(Instruction::MTreeMerge),
             OpCode::FriExt2Fold4 => Ok(Instruction::FriExt2Fold4),
 
             // ----- exec / call ------------------------------------------------------------------

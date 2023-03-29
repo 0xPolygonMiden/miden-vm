@@ -1,9 +1,10 @@
 use super::{
     chiplets::{AuxTraceBuilder as ChipletsAuxTraceBuilder, HasherAuxTraceBuilder},
+    crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder,
-    AdviceProvider, Digest, Felt, FieldElement, Process, StackTopState, Vec,
+    AdviceProvider, ColMatrix, Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -11,7 +12,7 @@ use vm_core::{
     ProgramInfo, StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
     MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
-use winter_prover::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
+use winter_prover::{EvaluationFrame, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
 use vm_core::StarkField;
@@ -29,11 +30,6 @@ mod tests;
 
 /// Number of rows at the end of an execution trace which are injected with random values.
 pub const NUM_RAND_ROWS: usize = 1;
-
-// TYPE ALIASES
-// ================================================================================================
-
-type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::chiplets::hasher::Hasher>;
 
 // VM EXECUTION TRACE
 // ================================================================================================
@@ -56,7 +52,7 @@ pub struct AuxTraceHints {
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
-    main_trace: Matrix<Felt>,
+    main_trace: ColMatrix<Felt>,
     aux_trace_hints: AuxTraceHints,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,
@@ -81,7 +77,7 @@ impl ExecutionTrace {
         // we are using random values only to stabilize constraint degrees, and not to achieve
         // perfect zero knowledge.
         let program_hash: Digest = process.decoder.program_hash().into();
-        let rng = RandomCoin::new(&program_hash.to_bytes());
+        let rng = RpoRandomCoin::new(program_hash.as_elements());
 
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
@@ -91,7 +87,7 @@ impl ExecutionTrace {
         Self {
             meta: Vec::new(),
             layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
-            main_trace: Matrix::new(main_trace),
+            main_trace: ColMatrix::new(main_trace),
             aux_trace_hints,
             program_info,
             stack_outputs,
@@ -174,7 +170,7 @@ impl ExecutionTrace {
     where
         A: AdviceProvider,
     {
-        let rng = RandomCoin::new(&[0; 32]);
+        let rng = RpoRandomCoin::new(&[ZERO; 4]);
         finalize_trace(process, rng)
     }
 }
@@ -197,15 +193,15 @@ impl Trace for ExecutionTrace {
         &self.meta
     }
 
-    fn main_segment(&self) -> &Matrix<Felt> {
+    fn main_segment(&self) -> &ColMatrix<Felt> {
         &self.main_trace
     }
 
     fn build_aux_segment<E: FieldElement<BaseField = Felt>>(
         &mut self,
-        aux_segments: &[Matrix<E>],
+        aux_segments: &[ColMatrix<E>],
         rand_elements: &[E],
-    ) -> Option<Matrix<E>> {
+    ) -> Option<ColMatrix<E>> {
         // we only have one auxiliary segment
         if !aux_segments.is_empty() {
             return None;
@@ -246,14 +242,14 @@ impl Trace for ExecutionTrace {
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
-        let mut rng = RandomCoin::new(&self.program_hash().to_bytes());
+        let mut rng = RpoRandomCoin::new(self.program_hash().as_elements());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 column[i] = rng.draw().expect("failed to draw a random value");
             }
         }
 
-        Some(Matrix::new(aux_columns))
+        Some(ColMatrix::new(aux_columns))
     }
 
     fn read_main_frame(&self, row_idx: usize, frame: &mut EvaluationFrame<Felt>) {
@@ -274,7 +270,7 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<A>(process: Process<A>, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints)
+fn finalize_trace<A>(process: Process<A>, mut rng: RpoRandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints)
 where
     A: AdviceProvider,
 {

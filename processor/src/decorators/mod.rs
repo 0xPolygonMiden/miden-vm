@@ -7,7 +7,7 @@ use winter_prover::math::fft;
 
 // TYPE ALIASES
 // ================================================================================================
-type Ext2Element = QuadExtension<Felt>;
+type QuadFelt = QuadExtension<Felt>;
 
 // DECORATORS
 // ================================================================================================
@@ -39,6 +39,7 @@ where
     pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
+            AdviceInjector::MerkleMerge => self.inject_merkle_merge(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
             AdviceInjector::MapValue => self.inject_map_value(),
             AdviceInjector::Memory(start_addr, num_words) => {
@@ -52,8 +53,8 @@ where
     // INJECTOR HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Injects a node of the Merkle tree specified by the values on the stack at the head of the
-    /// advice tape. The stack is expected to be arranged as follows (from the top):
+    /// Pushes a node of the Merkle tree specified by the word on the top of the operand stack onto
+    /// the advice stack. The operand stack is expected to be arranged as follows (from the top):
     /// - depth of the node, 1 element
     /// - index of the node, 1 element
     /// - root of the tree, 4 elements
@@ -71,26 +72,50 @@ where
         let root = [self.stack.get(5), self.stack.get(4), self.stack.get(3), self.stack.get(2)];
 
         // look up the node in the advice provider
-        let node = self.advice_provider.get_tree_node(root, depth, index)?;
+        let node = self.advice_provider.get_tree_node(root, &depth, &index)?;
 
-        // write the node into the advice tape with first element written last so that it can be
-        // removed first
-        self.advice_provider.write_tape(AdviceSource::Value(node[3]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(node[2]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(node[1]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(node[0]))?;
+        // push the node onto the advice stack with the first element pushed last so that it can
+        // be popped first (i.e. stack behavior for word)
+        self.advice_provider.push_stack(AdviceSource::Value(node[3]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(node[2]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(node[1]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(node[0]))?;
 
         Ok(())
     }
 
-    /// Injects the result of u64 division (both the quotient and the remainder) at the head of
-    /// the advice tape. The stack is expected to be arranged as follows (from the top):
+    /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
+    /// specified roots. The root of the new tree is defined as `hash(left_root, right_root)`.
+    ///
+    /// The operand stack is expected to be arranged as follows:
+    /// - root of the right tree, 4 elements
+    /// - root of the left tree, 4 elements
+    ///
+    /// After the operation, both the original trees and the new tree remains in the advice
+    /// provider (i.e., the input trees are not removed).
+    ///
+    /// # Errors
+    /// Return an error if a Merkle tree for either of the specified roots cannot be found in this
+    /// advice provider.
+    fn inject_merkle_merge(&mut self) -> Result<(), ExecutionError> {
+        // fetch the arguments from the stack
+        let lhs = [self.stack.get(7), self.stack.get(6), self.stack.get(5), self.stack.get(4)];
+        let rhs = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
+
+        // perform the merge
+        self.advice_provider.merge_roots(lhs, rhs)?;
+
+        Ok(())
+    }
+
+    /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
+    /// stack. The operand stack is expected to be arranged as follows (from the top):
     /// - divisor split into two 32-bit elements
     /// - dividend split into two 32-bit elements
     ///
-    /// The result is injected into the advice tape as follows: first the remainder is injected,
-    /// then the quotient is injected. This guarantees that when reading values from the advice
-    /// tape, first the quotient will be read, and then the remainder.
+    /// The result is pushed onto the advice stack as follows: the remainder is pushed first, then
+    /// the quotient is pushed. This guarantees that when popping values from the advice stack, the
+    /// quotient will be returned first, and the remainder will be returned next.
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
@@ -113,23 +138,22 @@ where
         let (q_hi, q_lo) = u64_to_u32_elements(quotient);
         let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-        self.advice_provider.write_tape(AdviceSource::Value(r_hi))?;
-        self.advice_provider.write_tape(AdviceSource::Value(r_lo))?;
-        self.advice_provider.write_tape(AdviceSource::Value(q_hi))?;
-        self.advice_provider.write_tape(AdviceSource::Value(q_lo))?;
+        self.advice_provider.push_stack(AdviceSource::Value(r_hi))?;
+        self.advice_provider.push_stack(AdviceSource::Value(r_lo))?;
+        self.advice_provider.push_stack(AdviceSource::Value(q_hi))?;
+        self.advice_provider.push_stack(AdviceSource::Value(q_lo))?;
 
         Ok(())
     }
 
-    /// Injects a list of field elements at the front of the advice tape. The list is looked up in
-    /// the key-value map maintained by the advice provider using the top 4 elements on the stack
-    /// as the key.
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map using the top 4 elements (i.e. word) from the operand stack as the key.
     ///
     /// # Errors
     /// Returns an error if the required key was not found in the key-value map.
     fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
         let top_word = self.stack.get_top_word();
-        self.advice_provider.write_tape(AdviceSource::Map { key: top_word })?;
+        self.advice_provider.push_stack(AdviceSource::Map { key: top_word })?;
 
         Ok(())
     }
@@ -170,7 +194,7 @@ where
     ///
     /// [coeff'_0, coeff'_1, ...]
     ///
-    /// Meaning when a Miden program is going to read it from advice tape, it'll see
+    /// Meaning when a Miden program is going to read it from advice stack, it'll see
     /// coefficient_0 first and then coefficient_1.
     ///
     /// Note, in case input operand is zero, division by zero error is returned, because
@@ -179,28 +203,24 @@ where
         let coef0 = self.stack.get(1);
         let coef1 = self.stack.get(0);
 
-        let elm = Ext2Element::new(coef0, coef1);
-        if elm == Ext2Element::ZERO {
+        let elm = QuadFelt::new(coef0, coef1);
+        if elm == QuadFelt::ZERO {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
         }
+        let coeffs = elm.inv().to_base_elements();
 
-        let inv_elm = elm.inv();
-
-        let elm_arr = [inv_elm];
-        let coeffs = Ext2Element::as_base_elements(&elm_arr);
-
-        self.advice_provider.write_tape(AdviceSource::Value(coeffs[1]))?;
-        self.advice_provider.write_tape(AdviceSource::Value(coeffs[0]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(coeffs[1]))?;
+        self.advice_provider.push_stack(AdviceSource::Value(coeffs[0]))?;
 
         Ok(())
     }
 
-    /// Given evaluations of a polynomial over some specified domain, this routine
-    /// interpolates the evaluations into a polynomial in coefficient form and writes
-    /// the result into the advice tape. The interpolation is performed using the iNTT
-    /// algorithm. The evaluations are expected to be in the quadratic extension field of
-    /// Z_q and the resulting coefficients are in the quadratic extension field as
-    /// well | q = 2^64 - 2^32 + 1.
+    /// Given evaluations of a polynomial over some specified domain, this routine interpolates the
+    /// evaluations into a polynomial in coefficient form, and pushes the results onto the advice
+    /// stack.
+    ///
+    /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
+    /// in the quadratic extension field | q = 2^64 - 2^32 + 1.
     ///
     /// Input stack state should look like
     ///
@@ -213,7 +233,7 @@ where
     /// remaining `input_eval_len - 2` many evaluations.
     /// - Each memory address holds two evaluations of the polynomial at adjacent points
     ///
-    /// Final advice tape should look like
+    /// Final advice stack should look like
     ///
     /// `[coeff_0, coeff_1, ..., coeff_{n-1}, ...]` | n = output_poly_len
     ///
@@ -245,15 +265,15 @@ where
                     ExecutionError::UninitializedMemoryAddress(in_evaluations_addr + i as u64)
                 })?;
 
-            poly.push(Ext2Element::new(word[0], word[1]));
-            poly.push(Ext2Element::new(word[2], word[3]));
+            poly.push(QuadFelt::new(word[0], word[1]));
+            poly.push(QuadFelt::new(word[2], word[3]));
         }
 
         let twiddles = fft::get_inv_twiddles::<Felt>(in_evaluations_len);
-        fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
+        fft::interpolate_poly::<Felt, QuadFelt>(&mut poly, &twiddles);
 
-        for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
-            self.advice_provider.write_tape(AdviceSource::Value(i))?;
+        for i in QuadFelt::slice_as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
+            self.advice_provider.push_stack(AdviceSource::Value(i))?;
         }
 
         Ok(())
@@ -278,14 +298,17 @@ mod tests {
         super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::{MemAdviceProvider, MerkleSet, StackInputs, Word};
-    use vm_core::{AdviceInjector, Decorator};
+    use crate::{MemAdviceProvider, StackInputs, Word};
+    use vm_core::{
+        crypto::merkle::{MerkleStore, MerkleTree},
+        AdviceInjector, Decorator,
+    };
 
     #[test]
     fn inject_merkle_node() {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
-
-        let tree = MerkleSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let tree = MerkleTree::new(leaves.to_vec()).unwrap();
+        let store = MerkleStore::default().with_merkle_tree(leaves).unwrap();
         let stack_inputs = [
             tree.root()[0].as_int(),
             tree.root()[1].as_int(),
@@ -296,21 +319,21 @@ mod tests {
         ];
 
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let advice_inputs = AdviceInputs::default().with_merkle_store(store);
         let advice_provider = MemAdviceProvider::from(advice_inputs);
         let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 
-        // inject the node into the advice tape
+        // push the node onto the advice stack
         process
             .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
             .unwrap();
 
-        // read the node from the tape onto the stack
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
+        // pop the node from the advice stack and push it onto the operand stack
+        process.execute_op(Operation::AdvPop).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
 
         let expected_stack = build_expected(&[
             leaves[1][3],

@@ -1,6 +1,6 @@
 [package]
 name = "miden-assembly"
-version = "0.4.0"
+version = "0.5.0"
 description = "Miden VM assembly language"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -21,4 +21,4 @@ std = ["vm-core/std"]
 
 [dependencies]
 num_enum = "0.5.10"
-vm-core = { package = "miden-core", path = "../core", version = "0.4", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.5", default-features = false }

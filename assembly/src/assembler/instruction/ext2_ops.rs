@@ -55,14 +55,14 @@ pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
     let ops = [
-        Read,        // [b0', b1, b0, a1, a0, ...]
-        Read,        // [b1', b0', b1, b0, a1, a0, ...]
+        AdvPop,      // [b0', b1, b0, a1, a0, ...]
+        AdvPop,      // [b1', b0', b1, b0, a1, a0, ...]
         Ext2Mul,     // [b1', b0', 0, 1, a1, a0, ...]
         MovUp2,      // [0, b1', b0', 1, a1, a0, ...]
         Eqz,         // [1, b1', b0', 1, a1, a0, ...]
-        Assert,      // [b1', b0', 1, a1, a0, ...] 
-        MovUp2,      // [1, b1', b0', a1, a0, ...]      
-        Assert,      // [b1', b0', a1, a0, ...]      
+        Assert,      // [b1', b0', 1, a1, a0, ...]
+        MovUp2,      // [1, b1', b0', a1, a0, ...]
+        Assert,      // [b1', b0', a1, a0, ...]
         Ext2Mul,     // [b1', b0', a1*b1', a0*b0', ...]
         Drop,        // [b0', a1*b1', a0*b0'...]
         Drop         // [a1*b1', a0*b0'...]
@@ -115,8 +115,8 @@ pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
     let ops = [
-        Read,     // [a0', a1, a0, ...]
-        Read,     // [a1', a0', a1, a0, ...]
+        AdvPop,   // [a0', a1, a0, ...]
+        AdvPop,   // [a1', a0', a1, a0, ...]
         Ext2Mul,  // [a1', a0', 0, 1, ...]
         MovUp2,   // [0, a1', a0', 1, ...]
         Eqz,      // [1, a1', a0', 1, ...]

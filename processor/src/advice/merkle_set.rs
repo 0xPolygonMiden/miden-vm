@@ -30,7 +30,9 @@ impl MerkleSet {
         values: Vec<Word>,
         depth: u8,
     ) -> Result<Self, MerkleError> {
-        SimpleSmt::new(keys.into_iter().zip(values.into_iter()), depth).map(Self::SparseMerkleTree)
+        SimpleSmt::new(depth)?
+            .with_leaves(keys.into_iter().zip(values.into_iter()))
+            .map(Self::SparseMerkleTree)
     }
 
     // PUBLIC ACCESSORS

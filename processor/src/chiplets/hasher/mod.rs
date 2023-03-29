@@ -1,16 +1,13 @@
 use super::{
-    Felt, FieldElement, HasherState, LookupTableRow, MerkleRootUpdate, OpBatch, StarkField,
-    TraceFragment, Vec, Word, ZERO,
+    trace::LookupTableRow, BTreeMap, ColMatrix, Felt, FieldElement, HasherState, MerkleRootUpdate,
+    OpBatch, StarkField, TraceFragment, Vec, Word, ZERO,
 };
-use vm_core::{
-    chiplets::hasher::{
-        absorb_into_state, get_digest, init_state, init_state_from_words,
-        init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
-        LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
-        MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
-        RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
-    },
-    utils::collections::BTreeMap,
+use vm_core::chiplets::hasher::{
+    absorb_into_state, get_digest, init_state, init_state_from_words,
+    init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
+    LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
+    MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
+    RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
 };
 
 mod lookups;
@@ -29,7 +26,7 @@ mod tests;
 // HASH PROCESSOR
 // ================================================================================================
 
-/// Hash processor for the VM.
+/// Hash chiplet for the VM.
 ///
 /// This component is responsible for performing all hash-related computations for the VM, as well
 /// as building an execution trace for these computations. These computations include:
@@ -49,12 +46,10 @@ mod tests;
 ///   column start at 1 and are incremented by one with every subsequent row.
 /// * Hasher state columns h0 through h11 used to hold the hasher state for each round of hash
 ///   computation. The state is laid out as follows:
-///   - The first four columns are reserved for capacity elements of the state. When the state
-///     is initialized for hash computations, h0 should be set to the number of elements to be
-///     hashed. All other capacity elements should be set to 0s.
-///   - The next eight columns are reserved for the rate elements of the state. These are used
-///     to absorb the values to be hashed. Once a permutation is complete, hash output is located
-///     in the first four rate columns (h4, h5, h6, h7).
+///   - The first four columns represent the capacity state of the sponge function.
+///   - The next eight columns represent the rate elements of the state. These are used to absorb
+///     the values to be hashed. Once a permutation is complete, hash output is located in the first
+///     four rate columns (h4, h5, h6, h7).
 /// * Node index column idx used to help with Merkle path verification and Merkle root update
 ///   computations. For all other computations the values in this column are set to 0s.
 ///
@@ -62,7 +57,7 @@ mod tests;
 /// path verification, number of rows added to the trace is 8 * path.len(), and for Merkle root
 /// update it is 16 * path.len(), since we need to perform two path verifications for each update.
 ///
-/// In addition to the execution trace, the hash processor also maintains:
+/// In addition to the execution trace, the hash chiplet also maintains:
 /// - an auxiliary trace builder, which can be used to construct a running product column describing
 ///   the state of the sibling table (used in Merkle root update operations).
 /// - a vector of [HasherLookup]s, each of which specifies the data for one of the lookup rows which

@@ -7,14 +7,14 @@ use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, Star
 #[test]
 fn adv_push() {
     let asm_op = "adv_push";
-    let advice_tape = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    let advice_stack = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let test_n = |n: usize| {
         let source = format!("{asm_op}.{n}");
         let mut final_stack = vec![0; n];
-        final_stack.copy_from_slice(&advice_tape[..n]);
+        final_stack.copy_from_slice(&advice_stack[..n]);
         final_stack.reverse();
 
-        let test = build_op_test!(source, &[], &advice_tape, vec![]);
+        let test = build_op_test!(source, &[], &advice_stack);
         test.expect_stack(&final_stack);
     };
 
@@ -27,9 +27,9 @@ fn adv_push() {
 
 #[test]
 fn adv_push_invalid() {
-    // attempting to read from empty advice tape should throw an error
+    // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    test.expect_error(TestError::ExecutionError("AdviceTapeReadFailed"));
+    test.expect_error(TestError::ExecutionError("AdviceStackReadFailed"));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -38,19 +38,19 @@ fn adv_push_invalid() {
 #[test]
 fn adv_loadw() {
     let asm_op = "adv_loadw";
-    let advice_tape = [1, 2, 3, 4];
-    let mut final_stack = advice_tape;
+    let advice_stack = [1, 2, 3, 4];
+    let mut final_stack = advice_stack;
     final_stack.reverse();
 
-    let test = build_op_test!(asm_op, &[8, 7, 6, 5], &advice_tape, vec![]);
+    let test = build_op_test!(asm_op, &[8, 7, 6, 5], &advice_stack);
     test.expect_stack(&final_stack);
 }
 
 #[test]
 fn adv_loadw_invalid() {
-    // attempting to read from empty advice tape should throw an error
+    // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    test.expect_error(TestError::ExecutionError("AdviceTapeReadFailed"));
+    test.expect_error(TestError::ExecutionError("AdviceStackReadFailed"));
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)
@@ -64,11 +64,11 @@ fn adv_pipe() {
             adv_pipe
         end";
 
-    let advice_tape = [1, 2, 3, 4, 5, 6, 7, 8];
+    let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
 
     // the state of the hasher is the first 12 elements of the stack (in reverse order). the state
     // is built by replacing the values on the top of the stack with the top 8 values from the head
-    // of the advice tape (i.e. values 1 through 8). Thus, the first 8 elements on the stack will be
+    // of the advice stack (i.e. values 1 through 8). Thus, the first 8 elements on the stack will be
     // 1-8 in stack order (stack[0] = 8), and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
     let mut state: [Felt; 12] =
         [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
@@ -82,6 +82,6 @@ fn adv_pipe() {
     final_stack.reverse();
     final_stack.push(2);
 
-    let test = build_test!(source, &[], &advice_tape, vec![]);
+    let test = build_test!(source, &[], &advice_stack);
     test.expect_stack(&final_stack);
 }

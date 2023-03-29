@@ -1,6 +1,6 @@
 [package]
 name = "miden-stdlib"
-version = "0.3.0"
+version = "0.4.0"
 description = "Miden VM standard library"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -16,7 +16,7 @@ bench = false
 doctest = false
 
 [dependencies]
-assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.4" }
+assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.5" }
 
 [build-dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.4" }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.5" }

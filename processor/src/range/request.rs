@@ -1,5 +1,4 @@
-use super::{Felt, FieldElement};
-use crate::{trace::LookupTableRow, Matrix};
+use super::{ColMatrix, Felt, FieldElement, LookupTableRow};
 
 // PROCESSOR RANGE CHECKS
 // ================================================================================================
@@ -55,7 +54,7 @@ impl CycleRangeChecks {
     /// element in the field specified by E.
     pub fn to_stack_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let mut value = E::ONE;
@@ -71,7 +70,7 @@ impl CycleRangeChecks {
     /// element in the field specified by E.
     fn to_mem_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let mut value = E::ONE;
@@ -89,7 +88,7 @@ impl LookupTableRow for CycleRangeChecks {
     /// at least 1 alpha value. Includes all values included at this cycle from all processors.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &Matrix<Felt>,
+        main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let stack_value = self.to_stack_value(main_trace, alphas);
@@ -116,7 +115,7 @@ impl LookupTableRow for RangeCheckRequest {
     /// at least 1 alpha value.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &Matrix<Felt>,
+        _main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         let alpha: E = alphas[0];

@@ -101,14 +101,14 @@ impl ParserContext {
         // consume the `end` token
         match tokens.read() {
             None => {
-                let token = tokens.read_at(while_start).expect("no if token");
+                let token = tokens.read_at(while_start).expect("no while token");
                 Err(ParsingError::unmatched_while(token))
             }
             Some(token) => match token.parts()[0] {
                 Token::END => token.validate_end(),
                 Token::ELSE => Err(ParsingError::dangling_else(token)),
                 _ => {
-                    let token = tokens.read_at(while_start).expect("no if token");
+                    let token = tokens.read_at(while_start).expect("no while token");
                     Err(ParsingError::unmatched_while(token))
                 }
             },
@@ -335,6 +335,7 @@ impl ParserContext {
             "assert" => simple_instruction(op, Assert),
             "assertz" => simple_instruction(op, Assertz),
             "assert_eq" => simple_instruction(op, AssertEq),
+            "assert_eqw" => simple_instruction(op, AssertEqw),
 
             "add" => field_ops::parse_add(op),
             "sub" => field_ops::parse_sub(op),
@@ -357,6 +358,7 @@ impl ParserContext {
             "lte" => simple_instruction(op, Lte),
             "gt" => simple_instruction(op, Gt),
             "gte" => simple_instruction(op, Gte),
+            "is_odd" => simple_instruction(op, IsOdd),
             "eqw" => simple_instruction(op, Eqw),
 
             // ----- ext2 operations -----------------------------------------------------
@@ -497,7 +499,7 @@ impl ParserContext {
 
             "mtree_get" => simple_instruction(op, MTreeGet),
             "mtree_set" => simple_instruction(op, MTreeSet),
-            "mtree_cwm" => simple_instruction(op, MTreeCwm),
+            "mtree_merge" => simple_instruction(op, MTreeMerge),
 
             "fri_ext2fold4" => simple_instruction(op, FriExt2Fold4),
 
@@ -508,6 +510,9 @@ impl ParserContext {
 
             // ----- constant statements ----------------------------------------------------------
             "const" => Err(ParsingError::const_invalid_scope(op)),
+
+            // ----- debug decorators -------------------------------------------------------------
+            "breakpoint" => simple_instruction(op, Breakpoint),
 
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),

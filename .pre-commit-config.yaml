@@ -1,0 +1,43 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v3.2.0
+  hooks:
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: check-yaml
+    - id: check-json
+    - id: check-toml
+    - id: pretty-format-json
+    - id: check-added-large-files
+    - id: check-case-conflict
+    - id: check-executables-have-shebangs
+    - id: check-merge-conflict
+    - id: detect-private-key
+- repo: https://github.com/hackaugusto/pre-commit-cargo
+  rev: v1.0.0
+  hooks:
+    # Allows cargo fmt to modify the source code prior to the commit
+    - id: cargo
+      name: Cargo fmt
+      args: ["+stable", "fmt", "--all"]
+      stages: [commit]
+    # Requires code to be properly formatted prior to pushing upstream
+    - id: cargo
+      name: Cargo fmt --check
+      args: ["+stable", "fmt", "--all", "--check"]
+      stages: [push, manual]
+    - id: cargo
+      name: Cargo check --all-targets
+      args: ["+stable", "check", "--all-targets"]
+    - id: cargo
+      name: Cargo check --all-targets --no-default-features
+      args: ["+stable", "check", "--all-targets", "--no-default-features"]
+    - id: cargo
+      name: Cargo check --all-targets --all-features
+      args: ["+stable", "check", "--all-targets", "--all-features"]
+    # Unlike fmt, clippy will not be automatically applied
+    - id: cargo
+      name: Cargo clippy
+      args: ["+nightly", "clippy", "--workspace", "--", "--deny", "clippy::all", "--deny", "warnings"]

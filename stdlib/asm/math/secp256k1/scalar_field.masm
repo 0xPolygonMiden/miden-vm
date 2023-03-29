@@ -32,7 +32,7 @@ proc.sbb
   u32overflowing_sub
 end
 
-#! Given a secp256k1 scalar field element in radix-2^32 representation ( Montgomery form ) 
+#! Given a secp256k1 scalar field element in radix-2^32 representation ( Montgomery form )
 #! and 32 -bit unsigned integer, this routine computes a 288 -bit number.
 #!
 #! Input via stack is expected in this form
@@ -46,12 +46,12 @@ end
 #! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L65-L83
 proc.u256xu32
   movup.8
-  
+
   push.0
   dup.1
   movup.3
   u32overflowing_madd
-  
+
   dup.2
   movup.4
   u32overflowing_madd
@@ -169,7 +169,7 @@ end
 proc.u288_reduce
   dup
   push.1435021631
-  u32wrapping_mul 
+  u32wrapping_mul
   # q at stack top #
 
   push.0
@@ -231,9 +231,9 @@ proc.u288_reduce
   movup.8
 end
 
-#! Given two 256 -bit numbers ( elements belonging to secp256k1 scalar field ) on stack, 
+#! Given two 256 -bit numbers ( elements belonging to secp256k1 scalar field ) on stack,
 #! where each number is represented in radix-2^32 form ( i.e. each number having eight
-#! 32 -bit limbs ), following function computes modular multiplication of those two 
+#! 32 -bit limbs ), following function computes modular multiplication of those two
 #! operands, computing 256 -bit result, which belongs to secp256k1 scalar field.
 #!
 #! Stack expected as below, holding input
@@ -403,7 +403,7 @@ proc.sqr
   exec.mul
 end
 
-#! Given an element of secp256k1 scalar field, represented in Montgomery form i.e. eight 32 -bit limbs, 
+#! Given an element of secp256k1 scalar field, represented in Montgomery form i.e. eight 32 -bit limbs,
 #! this routine computes radix-2^32 representation of provided u256 number.
 #!
 #! Stack expected as

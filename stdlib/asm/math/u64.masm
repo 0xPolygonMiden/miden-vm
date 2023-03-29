@@ -427,9 +427,9 @@ end
 #! Stack transition looks as follows:
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
 export.unchecked_div
-    adv.u64div          # inject the quotient and the remainder into the advice tape
+    adv.u64div          # push the quotient and the remainder onto the advice stack
 
-    adv_push.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -451,7 +451,7 @@ export.unchecked_div
     eq.0
     assert
 
-    adv_push.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # pop the remainder from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
@@ -492,9 +492,9 @@ end
 #! Stack transition looks as follows:
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
 export.unchecked_mod
-    adv.u64div          # inject the quotient and the remainder into the advice tape
+    adv.u64div          # push the quotient and the remainder onto the advice stack
 
-    adv_push.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -516,7 +516,7 @@ export.unchecked_mod
     eq.0
     assert
 
-    adv_push.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     movup.5             # make sure the divisor is greater than the remainder. this also consumes
@@ -557,9 +557,9 @@ end
 #! Stack transition looks as follows:
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
 export.unchecked_divmod
-    adv.u64div          # inject the quotient and the remainder into the advice tape
+    adv.u64div          # push the quotient and the remainder onto the advice stack
 
-    adv_push.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -581,7 +581,7 @@ export.unchecked_divmod
     eq.0
     assert
 
-    adv_push.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # pop the quotient from the advice stack and assert it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes

@@ -89,12 +89,12 @@ fn test_ast_parsing_program_u32() {
 #[test]
 fn test_ast_parsing_program_proc() {
     let source = "\
-    proc.foo.1 
+    proc.foo.1
         loc_load.0
     end
-    proc.bar.2 
+    proc.bar.2
         padw
-    end  
+    end
     begin
         exec.foo
         exec.bar
@@ -138,7 +138,7 @@ fn test_ast_parsing_program_proc() {
 #[test]
 fn test_ast_parsing_module() {
     let source = "\
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end";
     let mut procedures: LocalProcMap = BTreeMap::new();
@@ -404,7 +404,7 @@ fn test_unterminated_if() {
 fn test_ast_parsing_simple_docs() {
     let source = "\
     #! proc doc
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end";
 
@@ -427,29 +427,29 @@ fn test_ast_parsing_simple_docs() {
 #[test]
 fn test_ast_parsing_module_docs() {
     let source = "\
-#! Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet, 
-#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+#! Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet,
+#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 #! This comment is intentionally longer than 256 characters, since we need to be sure that the size
 #! of the comments is correctly parsed. There was a bug here earlier.
 
-#! Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet, 
-#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+#! Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
+#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 #! This comment is intentionally longer than 256 characters, since we need to be sure that the size
 #! of the comments is correctly parsed. There was a bug here earlier.
-export.foo.1 
+export.foo.1
     loc_load.0
 end
 
-#! Test documenation for internal procedure bar in parsing test. Lorem ipsum dolor sit amet, 
+#! Test documenation for internal procedure bar in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
-#! aliqua. 
-proc.bar.2 
+#! aliqua.
+proc.bar.2
     padw
 end
 
-#! Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet, 
+#! Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
-#! aliqua. 
+#! aliqua.
 export.baz.3
     padw
     push.0
@@ -544,10 +544,10 @@ fn test_ast_parsing_module_docs_fail() {
     #! module doc
 
     #! proc doc
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end
-    
+
     #! malformed doc
     ";
     parse_module(source)
@@ -555,28 +555,10 @@ fn test_ast_parsing_module_docs_fail() {
 
     let source = "\
     #! proc doc
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end
-    
-    #! malformed doc
-    ";
-    parse_module(source)
-        .expect_err("Procedure comment is not immediately followed by a procedure declaration.");
 
-    let source = "\
-    #! module doc
-    
-    #! malformed doc
-    ";
-    parse_module(source)
-        .expect_err("Procedure comment is not immediately followed by a procedure declaration.");
-
-    let source = "\
-    export.foo.1 
-        loc_load.0
-    end
-    
     #! malformed doc
     ";
     parse_module(source)
@@ -585,10 +567,28 @@ fn test_ast_parsing_module_docs_fail() {
     let source = "\
     #! module doc
 
-    export.foo.1 
+    #! malformed doc
+    ";
+    parse_module(source)
+        .expect_err("Procedure comment is not immediately followed by a procedure declaration.");
+
+    let source = "\
+    export.foo.1
         loc_load.0
     end
-    
+
+    #! malformed doc
+    ";
+    parse_module(source)
+        .expect_err("Procedure comment is not immediately followed by a procedure declaration.");
+
+    let source = "\
+    #! module doc
+
+    export.foo.1
+        loc_load.0
+    end
+
     #! malformed doc
     ";
     parse_module(source)
@@ -596,7 +596,7 @@ fn test_ast_parsing_module_docs_fail() {
 
     let source = "\
     #! proc doc
-    export.foo.1 
+    export.foo.1
         #! malformed doc
         loc_load.0
     end
@@ -621,12 +621,12 @@ fn test_ast_program_serde_simple() {
 #[test]
 fn test_ast_program_serde_local_procs() {
     let source = "\
-    proc.foo.1 
+    proc.foo.1
         loc_load.0
     end
-    proc.bar.2 
+    proc.bar.2
         padw
-    end  
+    end
     begin
         exec.foo
         exec.bar
@@ -641,10 +641,10 @@ fn test_ast_program_serde_local_procs() {
 #[test]
 fn test_ast_program_serde_exported_procs() {
     let source = "\
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end
-    export.bar.2 
+    export.bar.2
         padw
     end";
     let module = parse_module(source).unwrap();
@@ -661,7 +661,7 @@ fn test_ast_program_serde_control_flow() {
         repeat.3
             push.1
             push.0.1
-        end 
+        end
 
         if.true
             and
@@ -669,7 +669,7 @@ fn test_ast_program_serde_control_flow() {
         else
             padw
         end
-        
+
         while.true
             push.5.7
             u32checked_add

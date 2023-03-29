@@ -3,14 +3,17 @@ use crate::utils::to_hex;
 
 // CALL BLOCK
 // ================================================================================================
-/// A code block describing a function call.
+/// Block for a function call.
 ///
-/// When the VM executes a Call block, it simply executes the code of the underlying function.
-/// Thus, to execute a function call, the VM must have access to the function's body, otherwise,
-/// the execution fails.
+/// Executes the function referenced by `fn_hash`. Fails if the body is unavailable to the VM, or
+/// if the execution of the call fails.
 ///
-/// Hash of a Call block is computed by hashing a concatenation of the function's body hash with
-/// zero.
+/// The hash of a call block is computed as:
+///
+/// > hash(fn_hash || padding, domain=CALL_DOMAIN)
+/// > hash(fn_hash || padding, domain=SYSCALL_DOMAIN)  # when a syscall is used
+///
+/// Where `fn_hash` is 4 field elements (256 bits), and `padding` is 4 ZERO elements (256 bits).
 #[derive(Clone, Debug)]
 pub struct Call {
     hash: Digest,

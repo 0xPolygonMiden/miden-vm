@@ -2,16 +2,16 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // LOOP BLOCK
 // ================================================================================================
-/// A code block used to describe condition-based iterative execution.
+/// Block for a conditional loop.
 ///
-/// When the VM encounters a Loop block, executes the loop's body if the top of the stack is `1`,
-/// and skips the block if the top of the stack is `0`. If the top of the stack is neither `0` nor
-/// `1`, the program fails. Once the loop body is fully executed, the VM checks the top of the
-/// stack again. If the top of the stack is `1`, the loop is executed again, if it is `0`, the VM
-/// stops executing the loop and moves to the next block. Thus, the body of the loop is executed
-/// while the top of the stack remains `1` at the end of each loop iteration.
+/// Executes the loop body while the value on the top of the stack is `1`, stops when `0`. Fails if
+/// the top of the stack is neither `1` nor `0`, or if the execution of the body fails.
 ///
-/// Hash of a Loop block is computed by hashing a concatenation of the loop's body hash with zero.
+/// The hash of a loop block is:
+///
+/// > hash(body_hash || padding, domain=LOOP_DOMAIN)
+///
+/// Where `body_hash` is 4 field elements (256 bits), and `padding` is 4 ZERO elements (256 bits).
 #[derive(Clone, Debug)]
 pub struct Loop {
     body: Box<CodeBlock>,

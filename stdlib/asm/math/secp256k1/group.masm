@@ -1,11 +1,11 @@
 use.std::math::secp256k1::base_field
 
 #! Given a secp256k1 point in projective coordinate system ( i.e. with x, y, z -coordinates
-#! as secp256k1 prime field elements, represented in Montgomery form ), this routine adds 
-#! that point with self i.e. does point doubling on elliptic curve, using exception-free 
-#! doubling formula from algorithm 9 of https://eprint.iacr.org/2015/1060.pdf, while 
+#! as secp256k1 prime field elements, represented in Montgomery form ), this routine adds
+#! that point with self i.e. does point doubling on elliptic curve, using exception-free
+#! doubling formula from algorithm 9 of https://eprint.iacr.org/2015/1060.pdf, while
 #! following prototype implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L131-L165
-#! 
+#!
 #! Input:
 #!
 #! 12 memory addresses on stack such that first 6 memory addresses are for input point &
@@ -20,7 +20,7 @@ use.std::math::secp256k1::base_field
 #!
 #! Expected stack during invocation of this routine:
 #!
-#!   [x_addr[0..4], x_addr[4..8], y_addr[0..4], y_addr[4..8], z_addr[0..4], z_addr[4..8], 
+#!   [x_addr[0..4], x_addr[4..8], y_addr[0..4], y_addr[4..8], z_addr[0..4], z_addr[4..8],
 #!     x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
 #!
 #! Note, (X, Y, Z)    => input point
@@ -71,7 +71,7 @@ export.double.12
   exec.base_field::add # = z3
 
   loc_storew.2
-  dropw       
+  dropw
   loc_storew.3
   dropw             # cache z3
 
@@ -96,7 +96,7 @@ export.double.12
   exec.base_field::mul # = t1
 
   loc_storew.4
-  dropw       
+  dropw
   loc_storew.5
   dropw             # cache t1
 
@@ -132,7 +132,7 @@ export.double.12
   exec.base_field::mul # = x3
 
   loc_storew.8
-  dropw       
+  dropw
   loc_storew.9
   dropw             # cache x3
 
@@ -149,7 +149,7 @@ export.double.12
   exec.base_field::add # = y3
 
   loc_storew.10
-  dropw       
+  dropw
   loc_storew.11
   dropw           # cache y3
 
@@ -166,7 +166,7 @@ export.double.12
   exec.base_field::mul # = z3
 
   loc_storew.2
-  dropw       
+  dropw
   loc_storew.3
   dropw             # cache z3
 
@@ -214,7 +214,7 @@ export.double.12
   exec.base_field::add # = y3
 
   loc_storew.10
-  dropw       
+  dropw
   loc_storew.11
   dropw            # cache y3
 
@@ -251,7 +251,7 @@ export.double.12
   exec.base_field::add # = x3
 
   loc_storew.8
-  dropw       
+  dropw
   loc_storew.9
   dropw             # cache x3
 
@@ -307,16 +307,16 @@ end
 #! this routine adds those two points on elliptic curve, using exception-free addition formula from
 #! algorithm 7 of https://eprint.iacr.org/2015/1060.pdf, while following prototype
 #! implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L60-L115
-#! 
+#!
 #! Input:
 #!
 #! 18 memory addresses on stack such that first 6 memory addresses are for first input point, next 6
-#! memory addresses holding x, y, z -coordinates of second input point & last 6 addresses are for storing 
+#! memory addresses holding x, y, z -coordinates of second input point & last 6 addresses are for storing
 #! resulting point ( addition of two input points ).
 #!
 #! Expected stack during invocation of this routine:
 #!
-#!   [x1_addr[0..4], x1_addr[4..8], y1_addr[0..4], y1_addr[4..8], z1_addr[0..4], z1_addr[4..8], 
+#!   [x1_addr[0..4], x1_addr[4..8], y1_addr[0..4], y1_addr[4..8], z1_addr[0..4], z1_addr[4..8],
 #!     x2_addr[0..4], x2_addr[4..8], y2_addr[0..4], y2_addr[4..8], z2_addr[0..4], z2_addr[4..8],
 #!       x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
 #!
@@ -359,7 +359,7 @@ export.add.16
   exec.base_field::mul # = t0
 
   loc_storew.0
-  dropw       
+  dropw
   loc_storew.1
   dropw        # cache t0
 
@@ -388,7 +388,7 @@ export.add.16
   exec.base_field::mul # = t1
 
   loc_storew.2
-  dropw       
+  dropw
   loc_storew.3
   dropw        # cache t1
 
@@ -417,7 +417,7 @@ export.add.16
   exec.base_field::mul # = t2
 
   loc_storew.4
-  dropw       
+  dropw
   loc_storew.5
   dropw        # cache t2
 
@@ -446,7 +446,7 @@ export.add.16
   exec.base_field::add # = t3
 
   loc_storew.6
-  dropw       
+  dropw
   loc_storew.7
   dropw        # cache t3
 
@@ -472,7 +472,7 @@ export.add.16
   push.0.0.0.0
   movup.4
   mem_loadw # x2 on stack top
-  
+
   exec.base_field::add # = t4
 
   push.0.0.0.0
@@ -483,7 +483,7 @@ export.add.16
   exec.base_field::mul # = t3
 
   loc_storew.6
-  dropw       
+  dropw
   loc_storew.7
   dropw        # cache t3
 
@@ -507,7 +507,7 @@ export.add.16
   exec.base_field::sub # = t3
 
   loc_storew.6
-  dropw       
+  dropw
   loc_storew.7
   dropw        # cache t3
 
@@ -536,7 +536,7 @@ export.add.16
   exec.base_field::add # = t4
 
   loc_storew.8
-  dropw       
+  dropw
   loc_storew.9
   dropw        # cache t4
 
@@ -575,7 +575,7 @@ export.add.16
   exec.base_field::mul # = t4
 
   loc_storew.8
-  dropw       
+  dropw
   loc_storew.9
   dropw        # cache t4
 
@@ -599,7 +599,7 @@ export.add.16
   exec.base_field::sub # = t4
 
   loc_storew.8
-  dropw       
+  dropw
   loc_storew.9
   dropw        # cache t4
 
@@ -628,7 +628,7 @@ export.add.16
   exec.base_field::add # = x3
 
   loc_storew.10
-  dropw       
+  dropw
   loc_storew.11
   dropw       # cache x3
 
@@ -665,7 +665,7 @@ export.add.16
   exec.base_field::mul # = x3
 
   loc_storew.10
-  dropw       
+  dropw
   loc_storew.11
   dropw       # cache x3
 
@@ -689,7 +689,7 @@ export.add.16
   exec.base_field::sub # = y3
 
   loc_storew.12
-  dropw       
+  dropw
   loc_storew.13
   dropw       # cache y3
 
@@ -716,7 +716,7 @@ export.add.16
   exec.base_field::add # = t0
 
   loc_storew.0
-  dropw       
+  dropw
   loc_storew.1
   dropw        # cache t0
 
@@ -743,7 +743,7 @@ export.add.16
   exec.base_field::add # = z3
 
   loc_storew.14
-  dropw       
+  dropw
   loc_storew.15
   dropw       # cache z3
 
@@ -760,7 +760,7 @@ export.add.16
   exec.base_field::sub # = t1
 
   loc_storew.2
-  dropw       
+  dropw
   loc_storew.3
   dropw        # cache t1
 
@@ -787,7 +787,7 @@ export.add.16
   exec.base_field::mul # = x3
 
   loc_storew.10
-  dropw       
+  dropw
   loc_storew.11
   dropw       # cache x3
 
@@ -812,7 +812,7 @@ export.add.16
   exec.base_field::add # = x3
 
   loc_storew.10
-  dropw       
+  dropw
   loc_storew.11
   dropw       # cache x3
 
@@ -829,7 +829,7 @@ export.add.16
   exec.base_field::mul # = y3
 
   loc_storew.12
-  dropw       
+  dropw
   loc_storew.13
   dropw       # cache y3
 
@@ -853,7 +853,7 @@ export.add.16
   exec.base_field::add # = y3
 
   loc_storew.12
-  dropw       
+  dropw
   loc_storew.13
   dropw       # cache y3
 
@@ -870,7 +870,7 @@ export.add.16
   exec.base_field::mul # = t0
 
   loc_storew.0
-  dropw       
+  dropw
   loc_storew.1
   dropw        # cache t0
 
@@ -894,7 +894,7 @@ export.add.16
   exec.base_field::add # = z3
 
   loc_storew.14
-  dropw       
+  dropw
   loc_storew.15
   dropw       # cache z3
 
@@ -939,11 +939,11 @@ export.add.16
   dropw              # write z3[4..8] to memory
 end
 
-#! Given an elliptic curve point in projective coordinate system ( total 24 field elements 
-#! required for representing x, y, z coordinate values s.t. they are provided by 6 distinct 
-#! memory addresses ) and a 256 -bit scalar, in radix-2^32 representation ( such that it 
-#! takes 8 stack elements to represent whole scalar, where each limb is of 32 -bit width ), 
-#! this routine multiplies elliptic curve point by given scalar, producing another point 
+#! Given an elliptic curve point in projective coordinate system ( total 24 field elements
+#! required for representing x, y, z coordinate values s.t. they are provided by 6 distinct
+#! memory addresses ) and a 256 -bit scalar, in radix-2^32 representation ( such that it
+#! takes 8 stack elements to represent whole scalar, where each limb is of 32 -bit width ),
+#! this routine multiplies elliptic curve point by given scalar, producing another point
 #! on secp256k1 curve, which will also be presented in projective coordinate system.
 #!
 #! Input:
@@ -971,8 +971,8 @@ end
 #! Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
 #!
 #! One interested in resulting point, should read from provided addresses on stack.
-#! 
-#! This routine implements double-and-add algorithm, while following 
+#!
+#! This routine implements double-and-add algorithm, while following
 #! https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186
 #!
 #! If base point being multiplied is secp256k1 curve generator point, one should use `gen_point` routine,
@@ -1137,7 +1137,7 @@ export.mul.18
 
       u32unchecked_shr.1
     end
-  
+
     drop
   end
 
@@ -1199,9 +1199,9 @@ end
 #! Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
 #!
 #! One interested in resulting point, should read from provided address on stack.
-#! 
-#! This routine implements double-and-add algorithm, while following 
-#! https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186 
+#!
+#! This routine implements double-and-add algorithm, while following
+#! https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186
 #!
 #! Note, this routine is a specialised instantiation of secp256k1 point multiplication, where we know what the base
 #! point is, so we enjoy faster computation ( because all point doublings can be precomputed, saving us 256 point doublings ! ).
@@ -1210,29 +1210,29 @@ export.gen_mul.20
   # see https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L40-L45
   push.0.0.0.0
   loc_storew.0
-  dropw       
+  dropw
   push.0.0.0.0
   loc_storew.1
   dropw        # init & cache res_X
 
   push.0.0.1.977
   loc_storew.2
-  dropw       
+  dropw
   push.0.0.0.0
   loc_storew.3
   dropw         # init & cache res_Y
 
   push.0.0.0.0
   loc_storew.4
-  dropw       
+  dropw
   push.0.0.0.0
   loc_storew.5
   dropw         # init & cache res_Z
 
   loc_storew.18
-  dropw       
+  dropw
   loc_storew.19
-  dropw       
+  dropw
 
   # push (2^255)G into stack
   push.1767015067.3527058907.3725831105.456741272
@@ -3293,21 +3293,21 @@ export.gen_mul.20
         movdn.4
         u32unchecked_shr.1
         loc_storew.18
-        dropw       
+        dropw
 
         if.true
           loc_storew.12
-          dropw       
+          dropw
           loc_storew.13
-          dropw       
+          dropw
           loc_storew.14
-          dropw       
+          dropw
           loc_storew.15
-          dropw             
+          dropw
           loc_storew.16
-          dropw       
+          dropw
           loc_storew.17
-          dropw       
+          dropw
 
           locaddr.11
           locaddr.10
@@ -3362,13 +3362,13 @@ export.gen_mul.20
       loc_loadw.18
       movdn.3
       loc_storew.18
-      dropw       
+      dropw
     end
 
     push.0.0.0.0
     loc_loadw.19
     loc_storew.18
-    dropw       
+    dropw
   end
 
   dup

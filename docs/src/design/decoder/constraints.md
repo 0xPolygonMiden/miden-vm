@@ -131,7 +131,7 @@ $$
 f_{ctrli} = f_{join} + f_{split} + f_{loop} +  f_{call} + f_{syscall} \text{ | degree} = 6
 $$
 
-In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$.  
+In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$.
 
 $$
 d = \sum_{b=0}^6(b_i \cdot 2^i)
@@ -461,7 +461,7 @@ When executing `SPAN` or `RESPAN` operations the next value of `op_index` must b
 
 > $$
 (f_{span} + f_{respan}) \cdot ox' = 0 \text{ | degree} = 7
-$$ 
+$$
 
 When starting a new operation group inside a *span* block, the next value of `op_index` must be set to $0$. Note that we multiply by $sp$ to exclude the cases when the group count is decremented because of `SPAN` or `RESPAN` operations:
 
@@ -553,7 +553,7 @@ We also define a flag which is set to $1$ when a group needs to be removed from 
 
 $$
 f_{dg} = sp \cdot \Delta gc
-$$ 
+$$
 
 The above says that we remove groups from the op group table whenever group count is decremented. We multiply by $sp$ to exclude the cases when the group count is decremented due to `SPAN` or `RESPAN` operations.
 

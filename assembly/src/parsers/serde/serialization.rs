@@ -33,6 +33,7 @@ impl Serializable for Instruction {
         match self {
             Self::Assert => OpCode::Assert.write_into(target)?,
             Self::AssertEq => OpCode::AssertEq.write_into(target)?,
+            Self::AssertEqw => OpCode::AssertEqw.write_into(target)?,
             Self::Assertz => OpCode::Assertz.write_into(target)?,
             Self::Add => OpCode::Add.write_into(target)?,
             Self::AddImm(v) => {
@@ -86,6 +87,7 @@ impl Serializable for Instruction {
             Self::Lte => OpCode::Lte.write_into(target)?,
             Self::Gt => OpCode::Gt.write_into(target)?,
             Self::Gte => OpCode::Gte.write_into(target)?,
+            Self::IsOdd => OpCode::IsOdd.write_into(target)?,
 
             // ----- ext2 operations --------------------------------------------------------------
             Self::Ext2Add => OpCode::Ext2Add.write_into(target)?,
@@ -441,7 +443,7 @@ impl Serializable for Instruction {
             Self::HPerm => OpCode::HPerm.write_into(target)?,
             Self::MTreeGet => OpCode::MTreeGet.write_into(target)?,
             Self::MTreeSet => OpCode::MTreeSet.write_into(target)?,
-            Self::MTreeCwm => OpCode::MTreeCwm.write_into(target)?,
+            Self::MTreeMerge => OpCode::MTreeMerge.write_into(target)?,
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target)?,
 
             // ----- exec / call ------------------------------------------------------------------
@@ -464,6 +466,11 @@ impl Serializable for Instruction {
             Self::SysCall(imported) => {
                 OpCode::SysCall.write_into(target)?;
                 imported.write_into(target)?
+            }
+
+            // ----- debug decorators -------------------------------------------------------------
+            Self::Breakpoint => {
+                // this is a transparent instruction and will not be encoded into the library
             }
         }
         Ok(())

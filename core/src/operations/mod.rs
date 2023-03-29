@@ -312,12 +312,12 @@ pub enum Operation {
     /// Pushes the immediate value onto the stack.
     Push(Felt),
 
-    /// Removes the next element from the advice tape and pushes it onto the stack.
-    Read,
+    /// Removes the next element from the advice stack and pushes it onto the operand stack.
+    AdvPop,
 
-    /// Removes a word (4 elements) from the advice tape and overwrites the top four stack
-    /// elements with it.
-    ReadW,
+    /// Removes a word (4 elements) from the advice stack and overwrites the top four operand
+    /// stack elements with it.
+    AdvPopW,
 
     /// Pops an element off the stack, interprets it as a memory address, and replaces the
     /// remaining 4 elements at the top of the stack with values located at the specified address.
@@ -348,11 +348,11 @@ pub enum Operation {
     /// - All other stack elements remain the same.
     MStream,
 
-    /// Loads two words from the advice tape, writes them to memory, and replaces the top 8 elements
+    /// Pops two words from the advice stack, writes them to memory, and replaces the top 8 elements
     /// of the stack with them, element-wise, in stack order.
     ///
     /// The operation works as follows:
-    /// - Two words are read from the head of the advice tape.
+    /// - Two words are popped from the advice stack.
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
@@ -395,14 +395,13 @@ pub enum Operation {
     /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
-    /// (via merkle sets). At the end of the operation, the old node value is replaced with the
-    /// new root value computed based on the provided path. Everything else on the stack remains the
-    /// same.
+    /// via the advice provider. At the end of the operation, the old node value is replaced with
+    /// the new root value, that is computed based on the provided path. Everything else on the
+    /// stack remains the same.
     ///
-    /// If the boolean parameter is set to false, at the end of the operation the merkle set with
-    /// the specified root will be removed from the advice provider. Otherwise, the advice
-    /// provider will keep track of both, the old and the new merkle sets.
-    MrUpdate(bool),
+    /// The tree will always be copied into a new instance, meaning the advice provider will keep
+    /// track of both the old and new Merkle trees.
+    MrUpdate,
 
     /// TODO: add docs
     FriE2F4,
@@ -440,7 +439,7 @@ impl Operation {
             Self::MovDn2    => 0b0000_1011,
             Self::MovUp3    => 0b0000_1100,
             Self::MovDn3    => 0b0000_1101,
-            Self::ReadW     => 0b0000_1110,
+            Self::AdvPopW   => 0b0000_1110,
             Self::Expacc    => 0b0000_1111,
 
             Self::MovUp4    => 0b0001_0000,
@@ -490,7 +489,7 @@ impl Operation {
             Self::Dup11     => 0b0011_1010,
             Self::Dup13     => 0b0011_1011,
             Self::Dup15     => 0b0011_1100,
-            Self::Read      => 0b0011_1101,
+            Self::AdvPop    => 0b0011_1101,
             Self::SDepth    => 0b0011_1110,
             Self::Clk       => 0b0011_1111,
 
@@ -512,7 +511,7 @@ impl Operation {
             Self::Split     => 0b0101_1100,
             Self::Loop      => 0b0101_1110,
 
-            Self::MrUpdate(_) => 0b0110_0000,
+            Self::MrUpdate  => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
             Self::SysCall   => 0b0110_1000,
             Self::Call      => 0b0110_1100,
@@ -653,8 +652,8 @@ impl fmt::Display for Operation {
             // ----- input / output ---------------------------------------------------------------
             Self::Push(value) => write!(f, "push({value})"),
 
-            Self::Read => write!(f, "read"),
-            Self::ReadW => write!(f, "readw"),
+            Self::AdvPop => write!(f, "advpop"),
+            Self::AdvPopW => write!(f, "advpopw"),
 
             Self::MLoadW => write!(f, "mloadw"),
             Self::MStoreW => write!(f, "mstorew"),
@@ -668,13 +667,7 @@ impl fmt::Display for Operation {
             // ----- cryptographic operations -----------------------------------------------------
             Self::HPerm => write!(f, "hperm"),
             Self::MpVerify => write!(f, "mpverify"),
-            Self::MrUpdate(copy) => {
-                if *copy {
-                    write!(f, "mrupdate(copy)")
-                } else {
-                    write!(f, "mrupdate(move)")
-                }
-            }
+            Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
         }
     }

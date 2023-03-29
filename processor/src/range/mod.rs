@@ -1,6 +1,8 @@
-use super::{BTreeMap, Felt, FieldElement, Vec, ONE, ZERO};
-use crate::RangeCheckTrace;
-use vm_core::utils::uninit_vector;
+use super::{
+    trace::{build_lookup_table_row_values, LookupTableRow, NUM_RAND_ROWS},
+    utils::uninit_vector,
+    BTreeMap, ColMatrix, Felt, FieldElement, RangeCheckTrace, Vec, ONE, ZERO,
+};
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -54,7 +56,7 @@ pub struct RangeCheckTraceTable {
 ///
 /// The layout illustrated below.
 ///
-///    t     s0     s1     v  
+///    t     s0     s1     v
 /// ├─────┴──────┴──────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:

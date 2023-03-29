@@ -34,12 +34,13 @@ impl Assembler {
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
         if self.in_debug_mode() {
-            span.track_instruction(instruction);
+            span.track_instruction(instruction, ctx);
         }
 
         let result = match instruction {
             Instruction::Assert => span.add_op(Assert),
             Instruction::AssertEq => span.add_ops([Eq, Assert]),
+            Instruction::AssertEqw => field_ops::assertw(span),
             Instruction::Assertz => span.add_ops([Eqz, Assert]),
 
             Instruction::Add => span.add_op(Add),
@@ -73,6 +74,7 @@ impl Assembler {
             Instruction::Lte => field_ops::lte(span),
             Instruction::Gt => field_ops::gt(span),
             Instruction::Gte => field_ops::gte(span),
+            Instruction::IsOdd => field_ops::is_odd(span),
 
             // ----- ext2 instructions ------------------------------------------------------------
             Instruction::Ext2Add => ext2_ops::ext2_add(span),
@@ -265,7 +267,7 @@ impl Assembler {
             Instruction::Clk => span.add_op(Clk),
             Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
-            Instruction::AdvLoadW => span.add_op(ReadW),
+            Instruction::AdvLoadW => span.add_op(AdvPopW),
 
             Instruction::MemStream => span.add_ops([MStream, HPerm]),
 
@@ -295,7 +297,7 @@ impl Assembler {
             Instruction::HMerge => crypto_ops::hmerge(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
-            Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),
+            Instruction::MTreeMerge => crypto_ops::mtree_merge(span),
             Instruction::FriExt2Fold4 => span.add_op(FriE2F4),
 
             // ----- exec/call instructions -------------------------------------------------------
@@ -304,6 +306,15 @@ impl Assembler {
             Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
             Instruction::CallImported(id) => self.call_imported(id, ctx),
             Instruction::SysCall(id) => self.syscall(id, ctx),
+
+            // ----- debug decorators -------------------------------------------------------------
+            Instruction::Breakpoint => {
+                if self.in_debug_mode() {
+                    span.add_op(Noop)?;
+                    span.track_instruction(instruction, ctx);
+                }
+                Ok(None)
+            }
         };
 
         // compute and update the cycle count of the instruction which just finished executing

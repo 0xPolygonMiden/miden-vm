@@ -11,7 +11,7 @@
 #!
 #! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #!
-#! For reference implementation in high level language, see 
+#! For reference implementation in high level language, see
 #! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
 export.add
     repeat.5
@@ -34,7 +34,7 @@ end
 #!
 #! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #!
-#! For reference implementation in high level language, see 
+#! For reference implementation in high level language, see
 #! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
 export.sub
     repeat.5
@@ -45,7 +45,7 @@ export.sub
 end
 
 #! Given two GF(p^5) elements on stack, this routine computes modular
-#! multiplication ( including reduction by irreducible polynomial ) 
+#! multiplication ( including reduction by irreducible polynomial )
 #! over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
 #!
 #! Expected stack state :
@@ -58,12 +58,12 @@ end
 #!
 #! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #!
-#! For reference implementation in high level language, see 
+#! For reference implementation in high level language, see
 #! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L676-L689
 export.mul
     # compute {c0, c1, c2, c3, c4} - five coefficients of resulting
     # degree-4 polynomial
-    
+
     # compute c4
     dup.9
     dup.1
@@ -90,7 +90,7 @@ export.mul
     dup.6
     dup.6
     mul
-    
+
     add
 
     # compute c3
@@ -101,7 +101,7 @@ export.mul
     dup.9
     dup.4
     mul
-    
+
     add
 
     dup.8
@@ -137,7 +137,7 @@ export.mul
     dup.8
     dup.6
     mul
-    
+
     add
 
     dup.12
@@ -221,7 +221,7 @@ export.mul
 end
 
 #! Given one GF(p^5) element on stack, this routine computes modular
-#! squaring ( including reduction by irreducible polynomial ) 
+#! squaring ( including reduction by irreducible polynomial )
 #! over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
 #!
 #! This routine has same effect as calling mul(a, a) | a ∈ GF(p^5)
@@ -236,7 +236,7 @@ end
 #!
 #! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #!
-#! For reference implementation in high level language, see 
+#! For reference implementation in high level language, see
 #! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L709-L715
 export.square
     # compute {b0, b1, b2, b3, b4} - five coefficients of resulting
@@ -285,7 +285,7 @@ export.square
     dup.3
     dup.4
     mul
-    
+
     dup.5
     dup.4
     mul
@@ -411,7 +411,7 @@ end
 #!
 #! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #!
-#! For reference implementation in high level language, see 
+#! For reference implementation in high level language, see
 #! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L751-L775
 #!
 #! Note, this routine will not panic even when operand `a` is zero.
@@ -508,7 +508,7 @@ end
 #!
 #! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #!
-#! For reference implementation in high level language, see 
+#! For reference implementation in high level language, see
 #! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L777-L781
 export.div
     repeat.5
@@ -1446,7 +1446,7 @@ export.legendre
     movup.5
     mul
     mul.3
-    
+
     add
 
     movup.4
@@ -1473,7 +1473,7 @@ export.legendre
     exec.base_legendre
 end
 
-#! Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
+#! Given an element v ∈ GF(p^5), this routine attempts to compute square root of v,
 #! if that number is a square.
 #!
 #! At beginning stack looks like
@@ -1584,11 +1584,11 @@ end
 #! Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
 #! denoting whether a == b.
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
 #!
-#! Final stack state 
+#! Final stack state
 #!
 #! [r, ...]
 #!
@@ -1628,11 +1628,11 @@ end
 #! Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
 #! denoting whether a != b.
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
 #!
-#! Final stack state 
+#! Final stack state
 #!
 #! [r, ...]
 #!

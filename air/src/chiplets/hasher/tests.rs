@@ -31,7 +31,7 @@ fn hash_round() {
 // TEST HELPER FUNCTIONS
 // ================================================================================================
 
-/// Returns the result of Hash processor's constraint evaluations on the provided frame starting at
+/// Returns the result of hasher chiplet's constraint evaluations on the provided frame starting at
 /// the specified row.
 fn get_constraint_evaluation(
     frame: EvaluationFrame<Felt>,

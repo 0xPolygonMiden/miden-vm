@@ -1,7 +1,7 @@
 #! Performs raw subtraction of scalar element ( say b ) from another one ( say a ),
 #! without any reduction i.e. r = a - b
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ...]
 #!
@@ -131,7 +131,7 @@ proc.sub_inner
     movup.9
     movup.10 # = (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9)
 
-    movup.10 # = c 
+    movup.10 # = c
 end
 
 #! Selects scalar based on value of c i.e. r = c == 0 ? a : b | c ∈ {0, 0xffff_ffff}
@@ -238,11 +238,11 @@ proc.select
 end
 
 #! Montgomery multiplication of two radix-2^32 scalar field elements s.t. each
-#! number can be represented using 10 limbs, each of 32 -bit width, returning 
+#! number can be represented using 10 limbs, each of 32 -bit width, returning
 #!
 #! r = (a * b) / 2^320 (mod N) | N = 319 -bit prime ( See https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L24-L35 )
 #!
-#! Expected stack state 
+#! Expected stack state
 #!
 #! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ...]
 #!
@@ -271,7 +271,7 @@ export.mont_mul.8
     dup
     loc_load.0
     u32wrapping_mul
-    u32wrapping_mul.91978719 # more about this literal constant 
+    u32wrapping_mul.91978719 # more about this literal constant
     loc_store.4              # https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L46-L54
                              # cached f
 
@@ -3744,7 +3744,7 @@ end
 #!
 #! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, ...]
 #!
-#! Final stack state 
+#! Final stack state
 #!
 #! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
 #!
@@ -3761,7 +3761,7 @@ end
 #!
 #! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, ...]
 #!
-#! Final stack state 
+#! Final stack state
 #!
 #! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
 #!
@@ -3785,11 +3785,11 @@ proc.sqr
     repeat.10
         dup.9
     end
-    
+
     exec.mont_mul
 end
 
-#! Given an element ( say a ) of scalar field, this routine computes multiplicative inverse ( say a' ) 
+#! Given an element ( say a ) of scalar field, this routine computes multiplicative inverse ( say a' )
 #! of that element s.t. a * a' = 1 ( mod N ) | N = Scalar field prime
 #!
 #! Expected stack state

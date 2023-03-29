@@ -1,4 +1,8 @@
-use super::{ByteWriter, Digest, Kernel, Program, Serializable};
+use super::{
+    super::{ToElements, WORD_SIZE},
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel, Program,
+    Serializable, Vec,
+};
 
 // PROGRAM INFO
 // ================================================================================================
@@ -60,9 +64,42 @@ impl From<Program> for ProgramInfo {
     }
 }
 
+// SERIALIZATION
+// ------------------------------------------------------------------------------------------------
+
 impl Serializable for ProgramInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.program_hash.write_into(target);
         <Kernel as Serializable>::write_into(&self.kernel, target);
+    }
+}
+
+impl Deserializable for ProgramInfo {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let program_hash = source.read()?;
+        let kernel = source.read()?;
+        Ok(Self {
+            program_hash,
+            kernel,
+        })
+    }
+}
+
+// TO ELEMENTS
+// ------------------------------------------------------------------------------------------------
+
+impl ToElements<Felt> for ProgramInfo {
+    fn to_elements(&self) -> Vec<Felt> {
+        let num_kernel_proc_elements = self.kernel.proc_hashes().len() * WORD_SIZE;
+        let mut result = Vec::with_capacity(WORD_SIZE + num_kernel_proc_elements);
+
+        // append program hash elements
+        result.extend_from_slice(self.program_hash.as_elements());
+
+        // append kernel procedure hash elements
+        for proc_hash in self.kernel.proc_hashes() {
+            result.extend_from_slice(proc_hash.as_elements());
+        }
+        result
     }
 }
