@@ -152,7 +152,7 @@
 <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <p>Miden VM is a zero-knowledge virtual machine written in Rust. For any program executed on Miden VM, a STARK-based proof of execution is automatically generated. This proof can then be used by anyone to verify that the program was executed correctly without the need for re-executing the program or even knowing the contents of the program.</p>
 <h2 id="status-and-features"><a class="header" href="#status-and-features">Status and features</a></h2>
-<p>Miden VM is currently on release v0.4. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.</p>
+<p>Miden VM is currently on release v0.5. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.</p>
 <p>At this point, Miden VM is good enough for experimentation, and even for real-world applications, but it is not yet ready for production use. The codebase has not been audited and contains known and unknown bugs and security flaws.</p>
 <h3 id="feature-highlights"><a class="header" href="#feature-highlights">Feature highlights</a></h3>
 <p>Miden VM is a fully-featured virtual machine. Despite being optimized for zero-knowledge proof generation, it provides all the features one would expect from a regular VM. To highlight a few:</p>
@@ -226,7 +226,7 @@
 <p>The prover initializes the advice provider prior to executing a program, and from that point on the advice provider is manipulated solely by executing operations on the VM.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
-<p>Before you can use Miden VM, you'll need to make sure you have Rust <a href="https://www.rust-lang.org/tools/install">installed</a>. Miden VM v0.4 requires Rust version <strong>1.67</strong> or later.</p>
+<p>Before you can use Miden VM, you'll need to make sure you have Rust <a href="https://www.rust-lang.org/tools/install">installed</a>. Miden VM v0.5 requires Rust version <strong>1.67</strong> or later.</p>
 <p>Miden VM consists of several crates, each of which exposes a small set of functionality. The most notable of these crates are:</p>
 <ul>
 <li><a href="https://crates.io/crates/miden-processor">miden-processor</a>, which can be used to execute Miden VM programs.</li>
