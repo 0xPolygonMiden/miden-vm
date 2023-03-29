@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 (TBD)
+## 0.5.0 (2023-03-29)
 
 #### CLI
 - Renamed `ProgramInfo` to `ExecutionDetails` since there is another `ProgramInfo` struct in the source code.
