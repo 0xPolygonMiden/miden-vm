@@ -1,10 +1,11 @@
+use assembly::Library;
 pub use processor::{
     AdviceInputs, ExecutionError, ExecutionTrace, MemAdviceProvider, Process, ProgramInfo,
     StackInputs, VmStateIterator,
 };
 use proptest::prelude::*;
 pub use prover::{ProofOptions, StarkProof};
-use stdlib::StdLibrary;
+use std::panic::UnwindSafe;
 pub use vm_core::{
     crypto::merkle::MerkleStore, stack::STACK_TOP_SIZE, Felt, FieldElement, Program, StackOutputs,
 };
@@ -66,11 +67,14 @@ impl Test {
 
     /// Asserts that running the test for the expected TestError variant will result in an error
     /// that contains the TestError's error substring in its error message.
-    pub fn expect_error(&self, error: TestError) {
+    pub fn expect_error<L>(&self, error: TestError, libraries: Vec<L>)
+    where
+        L: Library + UnwindSafe,
+    {
         match error {
             TestError::AssemblyError(substr) => {
                 assert_eq!(
-                    std::panic::catch_unwind(|| self.compile())
+                    std::panic::catch_unwind(|| self.compile(libraries))
                         .err()
                         .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
                     Some(true)
@@ -78,7 +82,7 @@ impl Test {
             }
             TestError::ExecutionError(substr) => {
                 assert_eq!(
-                    std::panic::catch_unwind(|| self.execute().unwrap())
+                    std::panic::catch_unwind(|| self.execute(libraries).unwrap())
                         .err()
                         .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
                     Some(true)
@@ -89,9 +93,12 @@ impl Test {
 
     /// Builds a final stack from the provided stack-ordered array and asserts that executing the
     /// test will result in the expected final stack state.
-    pub fn expect_stack(&self, final_stack: &[u64]) {
+    pub fn expect_stack<L>(&self, final_stack: &[u64], libraries: Vec<L>)
+    where
+        L: Library,
+    {
         let expected = convert_to_stack(final_stack);
-        let result = self.get_last_stack_state();
+        let result = self.get_last_stack_state(libraries);
 
         assert_eq!(expected, result);
     }
@@ -99,20 +106,23 @@ impl Test {
     /// Executes the test and validates that the process memory has the elements of `expected_mem`
     /// at address `mem_addr` and that the end of the stack execution trace matches the
     /// `final_stack`.
-    pub fn expect_stack_and_memory(
+    pub fn expect_stack_and_memory<L>(
         &self,
         final_stack: &[u64],
         mem_addr: u64,
         expected_mem: &[u64],
-    ) {
+        libraries: Vec<L>,
+    ) where
+        L: Library,
+    {
         // compile the program
-        let program = self.compile();
+        let program = self.compile(libraries);
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
 
         // execute the test
         let mut process =
             Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
-        process.execute(&program).unwrap();
+        let stack_outputs = process.execute(&program).unwrap();
 
         // validate the memory state
         let mem_state = process.get_memory_value(0, mem_addr).unwrap();
@@ -120,18 +130,22 @@ impl Test {
         assert_eq!(expected_mem, mem_state);
 
         // validate the stack state
-        self.expect_stack(final_stack);
+        assert_eq!(convert_to_stack(final_stack), stack_outputs.stack_top());
     }
 
     /// Asserts that executing the test inside a proptest results in the expected final stack state.
     /// The proptest will return a test failure instead of panicking if the assertion condition
     /// fails.
-    pub fn prop_expect_stack(
+    pub fn prop_expect_stack<L>(
         &self,
         final_stack: &[u64],
-    ) -> Result<(), proptest::test_runner::TestCaseError> {
+        libraries: Vec<L>,
+    ) -> Result<(), proptest::test_runner::TestCaseError>
+    where
+        L: Library,
+    {
         let expected = convert_to_stack(final_stack);
-        let result = self.get_last_stack_state();
+        let result = self.get_last_stack_state(libraries);
 
         prop_assert_eq!(expected, result);
 
@@ -142,10 +156,13 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Compiles a test's source and returns the resulting Program.
-    pub fn compile(&self) -> Program {
+    pub fn compile<L>(&self, libraries: Vec<L>) -> Program
+    where
+        L: Library,
+    {
         let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
-            .with_library(&StdLibrary::default())
+            .with_libraries(libraries.into_iter())
             .expect("failed to load stdlib");
 
         match self.kernel.as_ref() {
@@ -158,8 +175,11 @@ impl Test {
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
-    pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let program = self.compile();
+    pub fn execute<L>(&self, libraries: Vec<L>) -> Result<ExecutionTrace, ExecutionError>
+    where
+        L: Library,
+    {
+        let program = self.compile(libraries);
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
         processor::execute(&program, self.stack_inputs.clone(), advice_provider)
     }
@@ -167,9 +187,12 @@ impl Test {
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
-    pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
+    pub fn prove_and_verify<L>(&self, pub_inputs: Vec<u64>, test_fail: bool, libraries: Vec<L>)
+    where
+        L: Library,
+    {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
-        let program = self.compile();
+        let program = self.compile(libraries);
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
@@ -188,15 +211,21 @@ impl Test {
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
-    pub fn execute_iter(&self) -> VmStateIterator {
-        let program = self.compile();
+    pub fn execute_iter<L>(&self, libraries: Vec<L>) -> VmStateIterator
+    where
+        L: Library,
+    {
+        let program = self.compile(libraries);
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
         processor::execute_iter(&program, self.stack_inputs.clone(), advice_provider)
     }
 
     /// Returns the last state of the stack after executing a test.
-    pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
-        let trace = self.execute().unwrap();
+    pub fn get_last_stack_state<L>(&self, libraries: Vec<L>) -> [Felt; STACK_TOP_SIZE]
+    where
+        L: Library,
+    {
+        let trace = self.execute(libraries).unwrap();
 
         trace.last_stack_state()
     }
