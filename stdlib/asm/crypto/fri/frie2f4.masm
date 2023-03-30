@@ -192,8 +192,9 @@ export.verify_query
     neq
     # => [?, layer_ptr, layer_ptr, poe, p, e1, e0, layer_ptr, rem_ptr, 0, 0, 0, 0, 0, 0, 0, 0, ...]
 
-    # verify correctness of layer folding
+    ## verify correctness of layer folding
     while.true
+    #drop
         exec.verify_query_layer
     end
     # => [rem_ptr, rem_ptr, poe^(2^n), f_pos, ne1, ne0, rem_ptr, rem_ptr, x, x, x, x, x, x, x, x, ...]
