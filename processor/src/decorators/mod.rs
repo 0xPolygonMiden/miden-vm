@@ -330,10 +330,10 @@ mod tests {
             .unwrap();
 
         // pop the node from the advice stack and push it onto the operand stack
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
+        process.execute_op(Operation::AdvPop).unwrap();
 
         let expected_stack = build_expected(&[
             leaves[1][3],

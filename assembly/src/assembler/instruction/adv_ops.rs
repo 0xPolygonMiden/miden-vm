@@ -5,7 +5,7 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================
 
-/// Appends the number of READ operations specified by the instruction's immediate value to the
+/// Appends the number of ADVPOP operations specified by the instruction's immediate value to the
 /// span. This pops the specified number of elements from the advice stack and pushes them onto the
 /// operand stack.
 ///
@@ -14,7 +14,7 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 /// than 16.
 pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
-    span.push_op_many(Read, n as usize);
+    span.push_op_many(AdvPop, n as usize);
     Ok(None)
 }
 

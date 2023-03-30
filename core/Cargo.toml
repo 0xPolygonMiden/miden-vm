@@ -1,6 +1,6 @@
 [package]
 name = "miden-core"
-version = "0.5.0"
+version = "0.6.0"
 description = "Miden VM core components"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -23,7 +23,7 @@ std = ["math/std", "winter-utils/std"]
 math = { package = "winter-math", version = "0.6", default-features = false }
 crypto = { package = "miden-crypto", version = "0.2", default-features = false }
 winter-crypto = { package = "winter-crypto", version = "0.6", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.6", default-features = false }
+winter-utils = { package = "winter-utils", version = "0.6.1", default-features = false }
 
 [dev-dependencies]
 proptest = "1.1"

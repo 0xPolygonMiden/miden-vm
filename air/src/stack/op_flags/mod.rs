@@ -179,7 +179,7 @@ impl<E: FieldElement> OpFlags<E> {
         let mov7_flag = degree7_op_flags[22];
         let mov8_flag = degree7_op_flags[26];
         let swapwx_flag = degree7_op_flags[28];
-        let readw_expacc = degree7_op_flags[14];
+        let adv_popw_expacc = degree7_op_flags[14];
 
         // adding the least significant bit.
         for i in (0..64).step_by(2) {
@@ -247,7 +247,7 @@ impl<E: FieldElement> OpFlags<E> {
         no_shift_flags[3] = no_shift_flags[2] + mov2_flag;
         no_shift_flags[4] = no_shift_flags[3]
             + mov3_flag
-            + readw_expacc
+            + adv_popw_expacc
             + swapwx_flag
             + ext2mul_flag
             + degree4_op_flags[0];
@@ -460,10 +460,10 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree7_op_flags[get_op_index(Operation::MovDn3.op_code())]
     }
 
-    /// Operation Flag of READW operation.
+    /// Operation Flag of ADVPOPW operation.
     #[inline(always)]
-    pub fn readw(&self) -> E {
-        self.degree7_op_flags[get_op_index(Operation::ReadW.op_code())]
+    pub fn advpopw(&self) -> E {
+        self.degree7_op_flags[get_op_index(Operation::AdvPopW.op_code())]
     }
 
     /// Operation Flag of EXPACC operation.
@@ -734,10 +734,10 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree7_op_flags[get_op_index(Operation::Dup15.op_code())]
     }
 
-    /// Operation Flag of READ operation.
+    /// Operation Flag of ADVPOP operation.
     #[inline(always)]
-    pub fn read(&self) -> E {
-        self.degree7_op_flags[get_op_index(Operation::Read.op_code())]
+    pub fn advpop(&self) -> E {
+        self.degree7_op_flags[get_op_index(Operation::AdvPop.op_code())]
     }
 
     /// Operation Flag of SDEPTH operation.

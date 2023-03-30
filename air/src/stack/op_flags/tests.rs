@@ -219,7 +219,7 @@ fn composite_flags() {
 
     // ------ no change 4 ---------------------------------------------------------------------
 
-    let op_no_change_4 = [Operation::MrUpdate, Operation::ReadW, Operation::Ext2Mul];
+    let op_no_change_4 = [Operation::MrUpdate, Operation::AdvPopW, Operation::Ext2Mul];
     for op in op_no_change_4 {
         // frame initialised with an op operation.
         let frame = generate_evaluation_frame(op.op_code().into());

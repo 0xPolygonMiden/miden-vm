@@ -1,5 +1,6 @@
 use super::{
     crypto::hash::{Rpo256, RpoDigest},
+    utils::collections::Vec,
     Felt, FieldElement,
 };
 

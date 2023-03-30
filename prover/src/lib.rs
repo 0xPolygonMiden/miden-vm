@@ -148,7 +148,7 @@ where
 impl<H, R> Prover for ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,
-    R: RandomCoin<BaseField = Felt, Hasher = H> + Sync,
+    R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
     type Air = ProcessorAir;
     type BaseField = Felt;
