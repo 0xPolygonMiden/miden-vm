@@ -2,7 +2,9 @@
 
 - [Introduction](./intro/main.md)
   - [Overview](./intro/overview.md)
-  - [Usage](./intro/usage.md)
+  - [Usage](./intro/usage/main.md)
+    - [CLI](./intro/usage/cli.md)
+    - [Development Tooling](./intro/usage/development_tooling.md)
   - [Performance](./intro/performance.md)
 - [User Documentation](./user_docs/main.md)
   - [Miden Assembly](./user_docs/assembly/main.md)
