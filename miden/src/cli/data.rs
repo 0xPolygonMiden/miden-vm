@@ -4,6 +4,7 @@ use miden::{
     AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
     StackOutputs,
 };
+use miden_stdlib::StdLibrary;
 use serde_derive::{Deserialize, Serialize};
 use std::{
     fs,
@@ -11,7 +12,6 @@ use std::{
     path::{Path, PathBuf},
     time::Instant,
 };
-use stdlib::StdLibrary;
 
 // HELPERS
 // ================================================================================================

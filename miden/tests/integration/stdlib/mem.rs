@@ -1,6 +1,6 @@
+use crate::StdLibrary;
 use miden::MemAdviceProvider;
 use processor::{AdviceInputs, Process, StackInputs};
-use stdlib::StdLibrary;
 use vm_core::{ONE, ZERO};
 
 #[test]

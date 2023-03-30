@@ -1,4 +1,4 @@
-use crate::build_op_test;
+use crate::{build_op_test, StdLibrary};
 use rand_utils::rand_value;
 use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
 
@@ -23,7 +23,7 @@ fn ext2add() {
     let expected = [c1, c0];
 
     let test = build_op_test!(asm_op, &stack_init);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -42,7 +42,7 @@ fn ext2sub() {
     let expected = [c1, c0];
 
     let test = build_op_test!(asm_op, &stack_init);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn ext2mul() {
     let expected = [c1, c0];
 
     let test = build_op_test!(asm_op, &stack_init);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn ext2div() {
     let expected = [c1, c0];
 
     let test = build_op_test!(asm_op, &stack_init);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn ext2neg() {
     let expected = [b1, b0];
 
     let test = build_op_test!(asm_op, &stack_init);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn ext2inv() {
     let expected = [b1, b0];
 
     let test = build_op_test!(asm_op, &stack_init);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 // HELPER FUNCTIONS

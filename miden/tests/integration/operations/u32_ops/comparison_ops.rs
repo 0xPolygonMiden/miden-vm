@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use super::{
     build_op_test, test_inputs_out_of_bounds, test_param_out_of_bounds, test_unchecked_execution,
-    TestError, U32_BOUND,
+    StdLibrary, TestError, U32_BOUND,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -16,29 +16,29 @@ fn u32checked_eq() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
     let test = build_op_test!(asm_op, &[a as u64, a as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a == b { 1 } else { 0 };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected]);
+    test.expect_stack(&[expected], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected, c]);
+    test.expect_stack(&[expected, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -55,29 +55,29 @@ fn u32checked_eq_b() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(0).as_str(), &[1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
     let test = build_op_test!(build_asm_op(a).as_str(), &[a as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a == b { 1 } else { 0 };
 
     let test = build_op_test!(build_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[expected]);
+    test.expect_stack(&[expected], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(build_asm_op(b).as_str(), &[c, a as u64]);
-    test.expect_stack(&[expected, c]);
+    test.expect_stack(&[expected, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn u32checked_eq_b_fail() {
     // should fail when b is a valid parameter but a is out of bounds
     let asm_op = format!("{}.{}", asm_op, 1);
     let test = build_op_test!(&asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -99,29 +99,29 @@ fn u32checked_neq() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
     let test = build_op_test!(asm_op, &[a as u64, a as u64]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a != b { 1 } else { 0 };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected]);
+    test.expect_stack(&[expected], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected, c]);
+    test.expect_stack(&[expected, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -138,29 +138,29 @@ fn u32checked_neq_b() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(0).as_str(), &[1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
     let test = build_op_test!(build_asm_op(a).as_str(), &[a as u64]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a != b { 1 } else { 0 };
 
     let test = build_op_test!(build_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[expected]);
+    test.expect_stack(&[expected], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(build_asm_op(b).as_str(), &[c, a as u64]);
-    test.expect_stack(&[expected, c]);
+    test.expect_stack(&[expected, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn u32checked_neq_b_fail() {
     // should fail when b is a valid parameter but a is out of bounds
     let asm_op = format!("{}.{}", asm_op, 1);
     let test = build_op_test!(&asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -351,12 +351,12 @@ proptest! {
         let expected = if a == b { 1 } else { 0 };
         // b provided via the stack
         let test = build_op_test!(asm_op, &values);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -368,12 +368,12 @@ proptest! {
         let expected = if a != b { 1 } else { 0 };
         // b provided via the stack
         let test = build_op_test!(asm_op, &values);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -387,11 +387,11 @@ proptest! {
 
         // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         let asm_op = "u32unchecked_lt";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -405,11 +405,11 @@ proptest! {
 
         // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         let asm_op = "u32unchecked_lte";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -423,11 +423,11 @@ proptest! {
 
         // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         let asm_op = "u32unchecked_gt";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -441,11 +441,11 @@ proptest! {
 
         // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         let asm_op = "u32unchecked_gte";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -455,11 +455,11 @@ proptest! {
 
         // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
 
         let asm_op = "u32unchecked_min";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -469,11 +469,11 @@ proptest! {
 
         // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
 
         let asm_op = "u32unchecked_max";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 }
 
@@ -486,15 +486,15 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put the expected value on the stack for the less-than case
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[expected_lt]);
+    test.expect_stack(&[expected_lt], vec![StdLibrary::default()]);
 
     // a = b should put the expected value on the stack for the equal-to case
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[expected_eq]);
+    test.expect_stack(&[expected_eq], vec![StdLibrary::default()]);
 
     // a > b should put the expected value on the stack for the greater-than case
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[expected_gt]);
+    test.expect_stack(&[expected_gt], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -506,13 +506,13 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
     };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected]);
+    test.expect_stack(&[expected], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected, c]);
+    test.expect_stack(&[expected, c], vec![StdLibrary::default()]);
 }
 
 /// Tests a u32min assembly operation (u32checked_min or u32unchecked_min) against a number of
@@ -521,15 +521,15 @@ fn test_min(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put a on the stack
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = b should put b on the stack
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a > b should put b on the stack
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u32>();
@@ -541,13 +541,13 @@ fn test_min(asm_op: &str) {
     };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected as u64, c]);
+    test.expect_stack(&[expected as u64, c], vec![StdLibrary::default()]);
 }
 
 /// Tests a u32max assembly operation (u32checked_max or u32unchecked_max) against a number of
@@ -556,15 +556,15 @@ fn test_max(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put b on the stack
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = b should put b on the stack
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a > b should put a on the stack
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u32>();
@@ -576,11 +576,11 @@ fn test_max(asm_op: &str) {
     };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
     let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected as u64, c]);
+    test.expect_stack(&[expected as u64, c], vec![StdLibrary::default()]);
 }

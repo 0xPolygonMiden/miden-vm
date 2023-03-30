@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use std::cmp::PartialEq;
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -335,7 +335,7 @@ fn test_secp256k1_base_field_montgomery_repr() {
     stack.reverse();
     let test = build_test!(source, &stack);
     stack.reverse();
-    test.expect_stack(&stack);
+    test.expect_stack(&stack, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -361,7 +361,7 @@ fn test_secp256k1_base_field_mul() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -387,7 +387,7 @@ fn test_secp256k1_base_field_add() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -410,7 +410,7 @@ fn test_secp256k1_base_field_neg() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm1.limbs.map(|v| v as u64));
+    test.expect_stack(&elm1.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -436,7 +436,7 @@ fn test_secp256k1_base_field_sub() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -471,7 +471,7 @@ fn test_secp256k1_base_field_add_then_sub() {
 
         stack.reverse();
         let test = build_test!(source_add, &stack);
-        test.expect_stack(&elm2.limbs.map(|v| v as u64));
+        test.expect_stack(&elm2.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 
         elm2
     };
@@ -484,7 +484,7 @@ fn test_secp256k1_base_field_add_then_sub() {
 
         stack.reverse();
         let test = build_test!(source_sub, &stack);
-        test.expect_stack(&elm3.limbs.map(|v| v as u64));
+        test.expect_stack(&elm3.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 
         elm3
     };
@@ -515,5 +515,5 @@ fn test_secp256k1_base_field_inv() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm1.limbs.map(|v| v as u64));
+    test.expect_stack(&elm1.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }

@@ -1,7 +1,7 @@
 use proptest::prelude::*;
 use vm_core::{stack::STACK_TOP_SIZE, WORD_SIZE};
 
-use crate::{build_op_test, TestError};
+use crate::{build_op_test, StdLibrary, TestError};
 
 // STACK OPERATIONS TESTS
 // ================================================================================================
@@ -12,7 +12,10 @@ fn drop() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0]);
+    test.expect_stack(
+        &[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -21,7 +24,10 @@ fn dropw() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0]);
+    test.expect_stack(
+        &[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -30,7 +36,10 @@ fn padw() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    test.expect_stack(
+        &[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -39,7 +48,10 @@ fn dup() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    test.expect_stack(
+        &[1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -48,7 +60,10 @@ fn dupn() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    test.expect_stack(
+        &[2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -57,7 +72,7 @@ fn dupn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -66,7 +81,10 @@ fn dupw() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    test.expect_stack(
+        &[1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -75,7 +93,10 @@ fn dupwn() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    test.expect_stack(
+        &[5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -84,7 +105,7 @@ fn dupwn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -93,7 +114,10 @@ fn swap() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -102,7 +126,10 @@ fn swapn() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[3, 2, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[3, 2, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -111,7 +138,7 @@ fn swapn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -120,7 +147,10 @@ fn swapw() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -129,7 +159,10 @@ fn swapwn() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[9, 10, 11, 12, 5, 6, 7, 8, 1, 2, 3, 4, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[9, 10, 11, 12, 5, 6, 7, 8, 1, 2, 3, 4, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -138,7 +171,7 @@ fn swapwn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -147,7 +180,10 @@ fn swapdw() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8]);
+    test.expect_stack(
+        &[9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -155,22 +191,25 @@ fn movup() {
     let asm_op = "movup.2";
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
 fn movup_fail() {
     let asm_op = "movup.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movup.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movup.16";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -178,22 +217,25 @@ fn movupw() {
     let asm_op = "movupw.2";
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
 fn movupw_fail() {
     let asm_op = "movupw.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movupw.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movupw.4";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -201,22 +243,25 @@ fn movdn() {
     let asm_op = "movdn.2";
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
 fn movdn_fail() {
     let asm_op = "movdn.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movdn.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movdn.16";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -224,22 +269,25 @@ fn movdnw() {
     let asm_op = "movdnw.2";
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 13, 14, 15, 16]);
+    test.expect_stack(
+        &[5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 13, 14, 15, 16],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
 fn movdnw_fail() {
     let asm_op = "movdnw.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movdnw.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 
     let asm_op = "movdnw.4";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -247,10 +295,16 @@ fn cswap() {
     let asm_op = "cswap";
     // --- simple cases ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
-    test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
+    test.expect_stack(
+        &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0],
+        vec![StdLibrary::default()],
+    );
 
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
-    test.expect_stack(&[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
+    test.expect_stack(
+        &[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -258,10 +312,16 @@ fn cswapw() {
     let asm_op = "cswapw";
     // --- simple cases ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
-    test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
+    test.expect_stack(
+        &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0],
+        vec![StdLibrary::default()],
+    );
 
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
-    test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0]);
+    test.expect_stack(
+        &[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -269,10 +329,16 @@ fn cdrop() {
     let asm_op = "cdrop";
     // --- simple cases ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
-    test.expect_stack(&[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0]);
+    test.expect_stack(
+        &[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0],
+        vec![StdLibrary::default()],
+    );
 
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
-    test.expect_stack(&[1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0]);
+    test.expect_stack(
+        &[1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0],
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -281,10 +347,16 @@ fn cdropw() {
     // --- simple cases ----------------------------------------------------------------------------
 
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
-    test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0]);
+    test.expect_stack(
+        &[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0],
+        vec![StdLibrary::default()],
+    );
 
     let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
-    test.expect_stack(&[1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0]);
+    test.expect_stack(
+        &[1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0],
+        vec![StdLibrary::default()],
+    );
 }
 
 proptest! {
@@ -296,7 +368,7 @@ proptest! {
         expected_values.remove(STACK_TOP_SIZE - 1);
         expected_values.reverse();
         expected_values.push(0);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -306,7 +378,7 @@ proptest! {
         expected_values.truncate(STACK_TOP_SIZE - WORD_SIZE);
         expected_values.reverse();
         expected_values.append(&mut vec![0; WORD_SIZE]);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -316,7 +388,7 @@ proptest! {
         expected_values.drain(0..WORD_SIZE);
         expected_values.append(&mut vec![0; WORD_SIZE]);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -326,7 +398,7 @@ proptest! {
         expected_values.remove(0);
         expected_values.push(*expected_values.last().unwrap());
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -338,7 +410,7 @@ proptest! {
         expected_values.remove(0);
         expected_values.push(a);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -350,7 +422,7 @@ proptest! {
         let mut a = test_values[dupw_idx..].to_vec();
         expected_values.append(&mut a);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -363,7 +435,7 @@ proptest! {
         let mut a = test_values[start_dupw_idx..end_dupw_idx].to_vec();
         expected_values.append(&mut a);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -372,7 +444,7 @@ proptest! {
         let mut expected_values = test_values.clone();
         expected_values.reverse();
         expected_values.swap(0, 1);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -381,7 +453,7 @@ proptest! {
         let mut expected_values = test_values.clone();
         expected_values.reverse();
         expected_values.swap(0, n);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -393,7 +465,7 @@ proptest! {
         expected_values.append(&mut a);
         expected_values.append(&mut b);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -408,7 +480,7 @@ proptest! {
         expected_values.append(&mut b);
         expected_values.append(&mut a);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -419,7 +491,7 @@ proptest! {
         expected_values.reverse();
         b.reverse();
         expected_values.append(&mut b);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -431,7 +503,7 @@ proptest! {
         expected_values.remove(idx1);
         expected_values.push(movup_value);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -444,7 +516,7 @@ proptest! {
         expected_values.append(&mut test_values[end_movupw_idx..].to_vec());
         expected_values.append(&mut movupw_values);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -456,7 +528,7 @@ proptest! {
         expected_values.remove(idx1);
         expected_values.insert(idx1 - movdn_idx, movdn_value);
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -469,7 +541,7 @@ proptest! {
         expected_values.append(&mut movdnw_values);
         expected_values.append(&mut test_values[idx1..movdnw_idx].to_vec());
         expected_values.reverse();
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -483,7 +555,7 @@ proptest! {
         };
         expected_values.remove(0);
         expected_values.push(0);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -501,7 +573,7 @@ proptest! {
             expected_values = a;
         }
         expected_values.push(0);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -518,7 +590,7 @@ proptest! {
         expected_values.remove(0);
         expected_values.push(0);
         expected_values.push(0);
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -539,7 +611,7 @@ proptest! {
             expected_values.append(&mut vec![0; WORD_SIZE]);
             expected_values.push(0);
         }
-        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values)?;
+        build_op_test!(asm_op, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 
 }

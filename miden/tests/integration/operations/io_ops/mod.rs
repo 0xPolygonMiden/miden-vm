@@ -1,4 +1,4 @@
-use crate::{build_op_test, build_test, TestError};
+use crate::{build_op_test, build_test, StdLibrary, TestError};
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
 
 mod adv_ops;
@@ -47,13 +47,13 @@ fn mem_stream_pipe() {
     // and mem_stream operations in the source script.
     let stack_inputs = [1, 1, 1, 1, 1, 1, 1, 1];
     let test = build_test!(source, &stack_inputs, &advice_stack);
-    let final_stack = test.get_last_stack_state();
+    let final_stack = test.get_last_stack_state(vec![StdLibrary::default()]);
     assert_eq!(final_stack[0..4], final_stack[4..8]);
 
     // --- the same stack values should yield the same results from adv_pipe and mem_stream -------
     // initialize with all zeros, just like between the adv_pipe and mem_stream operations above.
     let test = build_test!(source, &[], &advice_stack);
-    let final_stack = test.get_last_stack_state();
+    let final_stack = test.get_last_stack_state(vec![StdLibrary::default()]);
     assert_eq!(final_stack[0..4], final_stack[4..8]);
 
     // --- assert that the hashed output values are correct ---------------------------------------
@@ -72,5 +72,5 @@ fn mem_stream_pipe() {
         .collect::<Vec<u64>>();
     final_stack.reverse();
 
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }

@@ -2,7 +2,7 @@ use proptest::prelude::*;
 use rand_utils::rand_value;
 use vm_core::{Felt, FieldElement, StarkField, WORD_SIZE};
 
-use crate::{build_op_test, prop_randw, TestError};
+use crate::{build_op_test, prop_randw, StdLibrary, TestError};
 
 // FIELD OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================
@@ -12,7 +12,7 @@ fn assert() {
     let asm_op = "assert";
 
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[]);
+    test.expect_stack(&[], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -20,7 +20,7 @@ fn assert_fail() {
     let asm_op = "assert";
 
     let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -28,10 +28,10 @@ fn assert_eq() {
     let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[]);
+    test.expect_stack(&[], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[3, 3]);
-    test.expect_stack(&[]);
+    test.expect_stack(&[], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -39,10 +39,10 @@ fn assert_eq_fail() {
     let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 4]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 }
 
 // FIELD OPS ARITHMETIC - MANUAL TESTS
@@ -54,19 +54,19 @@ fn add() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 2]);
-    test.expect_stack(&[3]);
+    test.expect_stack(&[3], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[5, 8]);
-    test.expect_stack(&[13]);
+    test.expect_stack(&[13], vec![StdLibrary::default()]);
 
     // --- test overflow --------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[Felt::MODULUS, 8]);
-    test.expect_stack(&[8]);
+    test.expect_stack(&[8], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[c, 5, 2]);
-    test.expect_stack(&[7, c]);
+    test.expect_stack(&[7, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -75,25 +75,25 @@ fn add_b() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[1]);
-    test.expect_stack(&[3]);
+    test.expect_stack(&[3], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(0), &[28]);
-    test.expect_stack(&[28]);
+    test.expect_stack(&[28], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(1), &[32]);
-    test.expect_stack(&[33]);
+    test.expect_stack(&[33], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(8), &[5]);
-    test.expect_stack(&[13]);
+    test.expect_stack(&[13], vec![StdLibrary::default()]);
 
     // --- test overflow --------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(8), &[Felt::MODULUS]);
-    test.expect_stack(&[8]);
+    test.expect_stack(&[8], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(build_asm_op(2), &[c, 5]);
-    test.expect_stack(&[7, c]);
+    test.expect_stack(&[7, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -102,19 +102,19 @@ fn sub() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[3, 2]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[10, 7]);
-    test.expect_stack(&[3]);
+    test.expect_stack(&[3], vec![StdLibrary::default()]);
 
     // --- test underflow -------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[Felt::MODULUS - 1]);
+    test.expect_stack(&[Felt::MODULUS - 1], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[c, 2, 2]);
-    test.expect_stack(&[0, c]);
+    test.expect_stack(&[0, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -123,19 +123,19 @@ fn sub_b() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[3]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(7), &[10]);
-    test.expect_stack(&[3]);
+    test.expect_stack(&[3], vec![StdLibrary::default()]);
 
     // --- test underflow -------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1), &[0]);
-    test.expect_stack(&[Felt::MODULUS - 1]);
+    test.expect_stack(&[Felt::MODULUS - 1], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(build_asm_op(2), &[c, 2]);
-    test.expect_stack(&[0, c]);
+    test.expect_stack(&[0, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -144,21 +144,21 @@ fn mul() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 5]);
-    test.expect_stack(&[5]);
+    test.expect_stack(&[5], vec![StdLibrary::default()]);
 
     // --- test overflow --------------------------------------------------------------------------
     let high_number = Felt::MODULUS - 1;
     let test = build_op_test!(asm_op, &[high_number, 2]);
     let expected = high_number as u128 * 2_u128 % Felt::MODULUS as u128;
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[c, 2, 2]);
-    test.expect_stack(&[4, c]);
+    test.expect_stack(&[4, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -167,24 +167,24 @@ fn mul_b() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(0), &[1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(1), &[5]);
-    test.expect_stack(&[5]);
+    test.expect_stack(&[5], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(2), &[5]);
-    test.expect_stack(&[10]);
+    test.expect_stack(&[10], vec![StdLibrary::default()]);
 
     // --- test overflow --------------------------------------------------------------------------
     let high_number = Felt::MODULUS - 1;
     let test = build_op_test!(build_asm_op(2), &[high_number]);
     let expected = high_number as u128 * 2_u128 % Felt::MODULUS as u128;
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(build_asm_op(2), &[c, 2]);
-    test.expect_stack(&[4, c]);
+    test.expect_stack(&[4, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -193,20 +193,20 @@ fn div() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_stack(&[2]);
+    test.expect_stack(&[2], vec![StdLibrary::default()]);
 
     // --- test remainder -------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[5, 2]);
     let expected = (Felt::new(2).inv().as_int() as u128 * 5_u128) % Felt::MODULUS as u128;
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[c, 10, 5]);
-    test.expect_stack(&[2, c]);
+    test.expect_stack(&[2, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -215,26 +215,26 @@ fn div_b() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1), &[0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(1), &[77]);
-    test.expect_stack(&[77]);
+    test.expect_stack(&[77], vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(0), &[14]);
-    test.expect_error(TestError::AssemblyError("division by zero"));
+    test.expect_error(TestError::AssemblyError("division by zero"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(build_asm_op(2), &[4]);
-    test.expect_stack(&[2]);
+    test.expect_stack(&[2], vec![StdLibrary::default()]);
 
     // --- test remainder -------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[5]);
     let expected = (Felt::new(2).inv().as_int() as u128 * 5_u128) % Felt::MODULUS as u128;
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(build_asm_op(5), &[c, 10]);
-    test.expect_stack(&[2, c]);
+    test.expect_stack(&[2, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -243,7 +243,7 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError("DivideByZero"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -252,18 +252,18 @@ fn neg() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[Felt::MODULUS - 1]);
+    test.expect_stack(&[Felt::MODULUS - 1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[64]);
-    test.expect_stack(&[Felt::MODULUS - 64]);
+    test.expect_stack(&[Felt::MODULUS - 64], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[c, 5]);
-    test.expect_stack(&[Felt::MODULUS - 5, c]);
+    test.expect_stack(&[Felt::MODULUS - 5, c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -272,7 +272,7 @@ fn neg_fail() {
 
     // --- test illegal argument -------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_error(TestError::AssemblyError("neg"));
+    test.expect_error(TestError::AssemblyError("neg"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -281,15 +281,15 @@ fn inv() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[Felt::new(1).inv().as_int()]);
+    test.expect_stack(&[Felt::new(1).inv().as_int()], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[64]);
-    test.expect_stack(&[Felt::new(64).inv().as_int()]);
+    test.expect_stack(&[Felt::new(64).inv().as_int()], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(asm_op, &[c, 5]);
-    test.expect_stack(&[Felt::new(5).inv().as_int(), c]);
+    test.expect_stack(&[Felt::new(5).inv().as_int(), c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -298,22 +298,22 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError("DivideByZero"), vec![StdLibrary::default()]);
 
     let asm_op = "inv.1";
 
     // --- test illegal argument -----------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_error(TestError::AssemblyError("inv"));
+    test.expect_error(TestError::AssemblyError("inv"), vec![StdLibrary::default()]);
 }
 
 #[test]
 fn pow2() {
     let asm_op = "pow2";
 
-    build_op_test!(asm_op, &[0]).expect_stack(&[1]);
-    build_op_test!(asm_op, &[31]).expect_stack(&[1 << 31]);
-    build_op_test!(asm_op, &[63]).expect_stack(&[1 << 63]);
+    build_op_test!(asm_op, &[0]).expect_stack(&[1], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[31]).expect_stack(&[1 << 31], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[63]).expect_stack(&[1 << 63], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -325,7 +325,8 @@ fn pow2_fail() {
     let mut value = rand_value::<u32>() as u64;
     value += (u32::MAX as u64) + 1;
 
-    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError("FailedAssertion"));
+    build_op_test!(asm_op, &[value])
+        .expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -339,7 +340,7 @@ fn exp_bits_length() {
     let expected = Felt::new(base).exp(pow);
 
     let test = build_op_test!(build_asm_op(10), &[base, pow]);
-    test.expect_stack(&[expected.as_int()]);
+    test.expect_stack(&[expected.as_int()], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -352,7 +353,7 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     build_op_test!(build_asm_op(9), &[base, pow])
-        .expect_error(TestError::ExecutionError("FailedAssertion"));
+        .expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 
     //---------------------- exp containing more than 64 bits -------------------------------------
 
@@ -360,7 +361,7 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     let test = build_op_test!(build_asm_op(65), &[base, pow]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -372,7 +373,7 @@ fn exp_small_pow() {
     let expected = Felt::new(base).exp(pow);
 
     let test = build_op_test!(build_asm_op(pow), &[base]);
-    test.expect_stack(&[expected.as_int()]);
+    test.expect_stack(&[expected.as_int()], vec![StdLibrary::default()]);
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS
@@ -383,10 +384,10 @@ fn not() {
     let asm_op = "not";
 
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -395,7 +396,7 @@ fn not_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -403,16 +404,16 @@ fn and() {
     let asm_op = "and";
 
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -421,13 +422,13 @@ fn and_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -435,16 +436,16 @@ fn or() {
     let asm_op = "or";
 
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -453,13 +454,13 @@ fn or_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -467,16 +468,16 @@ fn xor() {
     let asm_op = "xor";
 
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -485,13 +486,13 @@ fn xor_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"), vec![StdLibrary::default()]);
 }
 
 // FIELD OPS COMPARISON - MANUAL TESTS
@@ -503,17 +504,17 @@ fn eq() {
 
     // --- test when two elements are equal ------------------------------------------------------
     let test = build_op_test!(asm_op, &[100, 100]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- test when two elements are unequal ----------------------------------------------------
     let test = build_op_test!(asm_op, &[25, 100]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- test when two u64s are unequal but their felts are equal ------------------------------
     let a = Felt::MODULUS + 1;
     let b = 1;
     let test = build_op_test!(asm_op, &[a, b]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -528,7 +529,7 @@ fn eqw() {
     // put it in stack order
     expected.reverse();
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- test when top two words are not equal --------------------------------------------------
     let values = vec![8, 7, 6, 5, 4, 3, 2, 1];
@@ -538,7 +539,7 @@ fn eqw() {
     // put it in stack order
     expected.reverse();
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -578,12 +579,12 @@ proptest! {
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -601,21 +602,21 @@ proptest! {
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         // underflow by a provided via the stack
         let test = build_op_test!(asm_op, &[b, a]);
-        test.prop_expect_stack(&[Felt::MODULUS - expected])?;
+        test.prop_expect_stack(&[Felt::MODULUS - expected], vec![StdLibrary::default()])?;
 
         // b provided as a parameter
         let asm_op_b = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op_b, &[a]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
 
         // underflow by a provided as a parameter
         let asm_op_b = format!("{asm_op}.{a}");
         let test = build_op_test!(asm_op_b, &[b]);
-        test.prop_expect_stack(&[Felt::MODULUS - expected])?;
+        test.prop_expect_stack(&[Felt::MODULUS - expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -627,12 +628,12 @@ proptest! {
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -644,12 +645,12 @@ proptest! {
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -663,7 +664,7 @@ proptest! {
         };
 
         let test = build_op_test!(asm_op, &[a]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -673,7 +674,7 @@ proptest! {
         let expected = Felt::new(a).inv().as_int();
 
         let test = build_op_test!(asm_op, &[a]);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -681,7 +682,7 @@ proptest! {
         let asm_op = "pow2";
         let expected = 2_u64.wrapping_pow(b);
 
-        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected])?;
+        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -695,7 +696,7 @@ proptest! {
         let expected = Felt::new(base).exp(pow);
 
         let test = build_op_test!(asm_op, &[base, pow]);
-        test.expect_stack(&[expected.as_int()]);
+        test.expect_stack(&[expected.as_int()], vec![StdLibrary::default()]);
 
         //----------------------- exp with parameter containing pow ----------------
 
@@ -705,7 +706,7 @@ proptest! {
         let expected = Felt::new(base).exp(pow);
 
         let test = build_op_test!(build_asm_op(pow), &[base]);
-        test.expect_stack(&[expected.as_int()]);
+        test.expect_stack(&[expected.as_int()], vec![StdLibrary::default()]);
 
     }
 
@@ -722,7 +723,7 @@ proptest! {
         let expected_result = if a % Felt::MODULUS == b % Felt::MODULUS { 1 } else { 0 };
 
         let test = build_op_test!(asm_op, &[a,b]);
-        test.prop_expect_stack(&[expected_result])?;
+        test.prop_expect_stack(&[expected_result], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -752,7 +753,7 @@ proptest! {
         values.push(expected_result);
         values.reverse();
 
-        test.prop_expect_stack(&values)?;
+        test.prop_expect_stack(&values, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -763,7 +764,7 @@ proptest! {
         let expected_result = if a % Felt::MODULUS < b % Felt::MODULUS { 1 } else { 0 };
 
         let test = build_op_test!(asm_op, &[a,b]);
-        test.prop_expect_stack(&[expected_result])?;
+        test.prop_expect_stack(&[expected_result], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -774,7 +775,7 @@ proptest! {
         let expected_result = if a % Felt::MODULUS <= b % Felt::MODULUS { 1 } else { 0 };
 
         let test = build_op_test!(asm_op, &[a,b]);
-        test.prop_expect_stack(&[expected_result])?;
+        test.prop_expect_stack(&[expected_result], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -785,7 +786,7 @@ proptest! {
         let expected_result = if a % Felt::MODULUS > b % Felt::MODULUS { 1 } else { 0 };
 
         let test = build_op_test!(asm_op, &[a,b]);
-        test.prop_expect_stack(&[expected_result])?;
+        test.prop_expect_stack(&[expected_result], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -796,7 +797,7 @@ proptest! {
         let expected_result = if a % Felt::MODULUS >= b % Felt::MODULUS { 1 } else { 0 };
 
         let test = build_op_test!(asm_op, &[a,b]);
-        test.prop_expect_stack(&[expected_result])?;
+        test.prop_expect_stack(&[expected_result], vec![StdLibrary::default()])?;
     }
 }
 
@@ -836,43 +837,43 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
     // --- a < b ----------------------------------------------------------------------------------
     // a is smaller in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
-    test.expect_stack(&[expect_if_lt]);
+    test.expect_stack(&[expect_if_lt], vec![StdLibrary::default()]);
 
     // a is smaller in the high bits and equal in the low bits
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_eq]);
-    test.expect_stack(&[expect_if_lt]);
+    test.expect_stack(&[expect_if_lt], vec![StdLibrary::default()]);
 
     // a is smaller in the high bits but bigger in the low bits
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
-    test.expect_stack(&[expect_if_lt]);
+    test.expect_stack(&[expect_if_lt], vec![StdLibrary::default()]);
 
     // compare values above and below the field modulus
     let test = build_op_test!(asm_op, &[a_mod, a + 1]);
-    test.expect_stack(&[expect_if_lt]);
+    test.expect_stack(&[expect_if_lt], vec![StdLibrary::default()]);
 
     // --- a = b ----------------------------------------------------------------------------------
     // high and low bits are both set
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
-    test.expect_stack(&[expect_if_eq]);
+    test.expect_stack(&[expect_if_eq], vec![StdLibrary::default()]);
 
     // compare values above and below the field modulus
     let test = build_op_test!(asm_op, &[a_mod, a]);
-    test.expect_stack(&[expect_if_eq]);
+    test.expect_stack(&[expect_if_eq], vec![StdLibrary::default()]);
 
     // --- a > b ----------------------------------------------------------------------------------
     // a is bigger in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[hi_eq_lo_gt, smaller]);
-    test.expect_stack(&[expect_if_gt]);
+    test.expect_stack(&[expect_if_gt], vec![StdLibrary::default()]);
 
     // a is bigger in the high bits and equal in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, smaller]);
-    test.expect_stack(&[expect_if_gt]);
+    test.expect_stack(&[expect_if_gt], vec![StdLibrary::default()]);
 
     // a is bigger in the high bits but smaller in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
-    test.expect_stack(&[expect_if_gt]);
+    test.expect_stack(&[expect_if_gt], vec![StdLibrary::default()]);
 
     // compare values above and below the field modulus
     let test = build_op_test!(asm_op, &[a_mod + 1, a]);
-    test.expect_stack(&[expect_if_gt]);
+    test.expect_stack(&[expect_if_gt], vec![StdLibrary::default()]);
 }

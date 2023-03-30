@@ -1,4 +1,6 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, StarkField, ToElements};
+use super::{
+    apply_permutation, build_op_test, build_test, Felt, StarkField, StdLibrary, ToElements,
+};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
@@ -10,16 +12,16 @@ fn mem_load() {
 
     // --- read from uninitialized memory - address provided via the stack ------------------------
     let test = build_op_test!(asm_op, &[addr]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- read from uninitialized memory - address provided as a parameter -----------------------
     let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- the rest of the stack is unchanged -----------------------------------------------------
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
-    test.expect_stack(&[0, 4, 3, 2, 1]);
+    test.expect_stack(&[0, 4, 3, 2, 1], vec![StdLibrary::default()]);
 }
 
 // SAVING A SINGLE ELEMENT INTO MEMORY (MSTORE)
@@ -32,12 +34,12 @@ fn mem_store() {
 
     // --- address provided via the stack ---------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
-    test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
+    test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0], vec![StdLibrary::default()]);
 
     // --- address provided as a parameter --------------------------------------------------------
     let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
-    test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
+    test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0], vec![StdLibrary::default()]);
 }
 
 // LOADING A WORD FROM MEMORY (MLOADW)
@@ -50,18 +52,18 @@ fn mem_loadw() {
 
     // --- read from uninitialized memory - address provided via the stack ------------------------
     let test = build_op_test!(asm_op, &[addr, 5, 6, 7, 8]);
-    test.expect_stack(&[0, 0, 0, 0]);
+    test.expect_stack(&[0, 0, 0, 0], vec![StdLibrary::default()]);
 
     // --- read from uninitialized memory - address provided as a parameter -----------------------
     let asm_op = format!("{asm_op}.{addr}");
 
     let test = build_op_test!(asm_op, &[5, 6, 7, 8]);
-    test.expect_stack(&[0, 0, 0, 0]);
+    test.expect_stack(&[0, 0, 0, 0], vec![StdLibrary::default()]);
 
     // --- the rest of the stack is unchanged -----------------------------------------------------
 
     let test = build_op_test!(asm_op, &[1, 2, 3, 4, 5, 6, 7, 8]);
-    test.expect_stack(&[0, 0, 0, 0, 4, 3, 2, 1]);
+    test.expect_stack(&[0, 0, 0, 0, 4, 3, 2, 1], vec![StdLibrary::default()]);
 }
 
 // SAVING A WORD INTO MEMORY (MSTOREW)
@@ -74,16 +76,21 @@ fn mem_storew() {
 
     // --- address provided via the stack ---------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
-    test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
+    test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4], vec![StdLibrary::default()]);
 
     // --- address provided as a parameter --------------------------------------------------------
     let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
-    test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
+    test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4], vec![StdLibrary::default()]);
 
     // --- the rest of the stack is unchanged -----------------------------------------------------
     let test = build_op_test!(&asm_op, &[0, 1, 2, 3, 4]);
-    test.expect_stack_and_memory(&[4, 3, 2, 1, 0], addr, &[1, 2, 3, 4]);
+    test.expect_stack_and_memory(
+        &[4, 3, 2, 1, 0],
+        addr,
+        &[1, 2, 3, 4],
+        vec![StdLibrary::default()],
+    );
 }
 
 // STREAMING ELEMENTS FROM MEMORY (MSTREAM)
@@ -122,7 +129,7 @@ fn mem_stream() {
     final_stack.push(2);
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 // PAIRED OPERATIONS
@@ -146,7 +153,7 @@ fn inverse_operations() {
     final_stack.reverse();
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 
     // --- storew and loadw are inverse operations, so the stack should be left unchanged ---------
     let source = "
@@ -164,20 +171,20 @@ fn inverse_operations() {
     final_stack.reverse();
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 #[test]
 fn read_after_write() {
     // --- write to memory first, then test read with push --------------------------------------
     let test = build_op_test!("mem_storew.0 mem_load.0", &[1, 2, 3, 4]);
-    test.expect_stack(&[1, 4, 3, 2, 1]);
+    test.expect_stack(&[1, 4, 3, 2, 1], vec![StdLibrary::default()]);
 
     // --- write to memory first, then test read with pushw --------------------------------------
     let test = build_op_test!("mem_storew.0 push.0.0.0.0 mem_loadw.0", &[1, 2, 3, 4]);
-    test.expect_stack(&[4, 3, 2, 1, 4, 3, 2, 1]);
+    test.expect_stack(&[4, 3, 2, 1, 4, 3, 2, 1], vec![StdLibrary::default()]);
 
     // --- write to memory first, then test read with loadw --------------------------------------
     let test = build_op_test!("mem_storew.0 dropw mem_loadw.0", &[1, 2, 3, 4, 5, 6, 7, 8]);
-    test.expect_stack(&[8, 7, 6, 5]);
+    test.expect_stack(&[8, 7, 6, 5], vec![StdLibrary::default()]);
 }

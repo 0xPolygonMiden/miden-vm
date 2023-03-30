@@ -1,4 +1,4 @@
-use crate::build_test;
+use crate::{build_test, StdLibrary};
 use rand_utils::rand_value;
 
 // ADVICE INJECTION
@@ -30,7 +30,7 @@ fn advice_inject_u64div() {
 
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);
     let expected = [r_hi, r_lo, q_hi, q_lo, b_hi, b_lo, a_hi, a_lo];
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn advice_inject_u64div_repeat() {
     expected.reverse();
 
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -102,7 +102,7 @@ fn advice_inject_u64div_local_procedure() {
 
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);
     let expected = [r_hi, r_lo, q_hi, q_lo, b_hi, b_lo, a_hi, a_lo];
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -111,11 +111,11 @@ fn advice_inject_u64div_conditional_execution() {
 
     // if branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
-    test.expect_stack(&[0, 0, 0, 2, 0, 4, 0, 8]);
+    test.expect_stack(&[0, 0, 0, 2, 0, 4, 0, 8], vec![StdLibrary::default()]);
 
     // else branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 0]);
-    test.expect_stack(&[0, 0, 0, 0, 0, 4, 0, 8]);
+    test.expect_stack(&[0, 0, 0, 0, 0, 4, 0, 8], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -171,5 +171,5 @@ fn advice_inject_mem() {
     end";
     let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);
-    test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8], vec![StdLibrary::default()]);
 }

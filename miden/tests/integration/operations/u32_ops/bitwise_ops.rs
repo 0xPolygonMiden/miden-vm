@@ -1,5 +1,6 @@
 use super::{
-    build_op_test, test_input_out_of_bounds, test_param_out_of_bounds, TestError, U32_BOUND,
+    build_op_test, test_input_out_of_bounds, test_param_out_of_bounds, StdLibrary, TestError,
+    U32_BOUND,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -13,30 +14,30 @@ fn u32checked_and() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[(a & b) as u64]);
+    test.expect_stack(&[(a & b) as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u32>();
     let d = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[c as u64, d as u64, a as u64, b as u64]);
-    test.expect_stack(&[(a & b) as u64, d as u64, c as u64]);
+    test.expect_stack(&[(a & b) as u64, d as u64, c as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -44,10 +45,10 @@ fn u32checked_and_fail() {
     let asm_op = "u32checked_and";
 
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -56,30 +57,30 @@ fn u32checked_or() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[(a | b) as u64]);
+    test.expect_stack(&[(a | b) as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u32>();
     let d = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[c as u64, d as u64, a as u64, b as u64]);
-    test.expect_stack(&[(a | b) as u64, d as u64, c as u64]);
+    test.expect_stack(&[(a | b) as u64, d as u64, c as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -87,10 +88,10 @@ fn u32checked_or_fail() {
     let asm_op = "u32checked_or";
 
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -99,29 +100,29 @@ fn u32checked_xor() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, 0]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[(a ^ b) as u64]);
+    test.expect_stack(&[(a ^ b) as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u32>();
     let d = rand_value::<u32>();
     let test = build_op_test!(asm_op, &[c as u64, d as u64, a as u64, b as u64]);
-    test.expect_stack(&[(a ^ b) as u64, d as u64, c as u64]);
+    test.expect_stack(&[(a ^ b) as u64, d as u64, c as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -129,10 +130,10 @@ fn u32checked_xor_fail() {
     let asm_op = "u32checked_xor";
 
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -141,22 +142,22 @@ fn u32checked_not() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND - 1]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_stack(&[U32_BOUND - 1]);
+    test.expect_stack(&[U32_BOUND - 1], vec![StdLibrary::default()]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[a as u64]);
-    test.expect_stack(&[!a as u64]);
+    test.expect_stack(&[!a as u64], vec![StdLibrary::default()]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let b = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[b as u64, a as u64]);
-    test.expect_stack(&[!a as u64, b as u64]);
+    test.expect_stack(&[!a as u64, b as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -174,28 +175,28 @@ fn u32checked_shl() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -204,12 +205,12 @@ fn u32checked_shl_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 
     // should fail if b >= 32
     let test = build_op_test!(asm_op, &[1, 32]);
     // if b >= 32, 2^b >= 2^32 or not a u32
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -222,28 +223,28 @@ fn u32checked_shl_b() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -263,32 +264,32 @@ fn u32unchecked_shl() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test out of bounds input (should not fail) --------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }
 
 #[test]
@@ -301,33 +302,33 @@ fn u32unchecked_shl_b() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shl(b) as u64]);
+    test.expect_stack(&[a.wrapping_shl(b) as u64], vec![StdLibrary::default()]);
 
     // --- test out of bounds input (should not fail) --------------------------------------------
     let b = 1;
     let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }
 
 #[test]
@@ -339,28 +340,28 @@ fn u32checked_shr() {
     let a = 4_u32;
     let b = 2_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -369,11 +370,11 @@ fn u32checked_shr_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 
     // should fail if b >= 32
     let test = build_op_test!(asm_op, &[1, 32]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -386,28 +387,28 @@ fn u32checked_shr_b() {
     let a = 4_u32;
     let b = 2_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -427,32 +428,32 @@ fn u32unchecked_shr() {
     let a = 4_u32;
     let b = 2_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test out of bounds inputs (should not fail) --------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }
 
 #[test]
@@ -465,33 +466,33 @@ fn u32unchecked_shr_b() {
     let a = 4_u32;
     let b = 2_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.wrapping_shr(b) as u64]);
+    test.expect_stack(&[a.wrapping_shr(b) as u64], vec![StdLibrary::default()]);
 
     // --- test out of bounds inputs (should not fail) --------------------------------------------
     let b = 1;
     let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }
 
 #[test]
@@ -503,39 +504,39 @@ fn u32checked_rotl() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test simple wraparound case with large a -----------------------------------------------
     let a = (1_u64 << 31) as u32;
     let b: u32 = 1;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 2_u32;
     let b: u32 = 31;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a as u64]);
+    test.expect_stack(&[a as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_left(b) as u64]);
+    test.expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_left(b) as u64]);
+    test.expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -548,39 +549,39 @@ fn u32checked_rotl_b() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test simple wraparound case with large a -----------------------------------------------
     let a = (1_u64 << 31) as u32;
     let b: u32 = 1;
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 2_u32;
     let b: u32 = 31;
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a as u64]);
+    test.expect_stack(&[a as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.rotate_left(b) as u64]);
+    test.expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.rotate_left(b) as u64]);
+    test.expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -600,43 +601,43 @@ fn u32unchecked_rotl() {
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[2, 5]);
+    test.expect_stack(&[2, 5], vec![StdLibrary::default()]);
 
     // --- test simple wraparound case with large a -----------------------------------------------
     let a = (1_u64 << 31) as u32;
     let b: u32 = 1;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 2_u32;
     let b: u32 = 31;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a as u64]);
+    test.expect_stack(&[a as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_left(b) as u64]);
+    test.expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_left(b) as u64]);
+    test.expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()]);
 
     // --- test out of bounds inputs (should not fail) --------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }
 
 #[test]
@@ -648,39 +649,39 @@ fn u32checked_rotr() {
     let a = 2_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test simple wraparound case with small a -----------------------------------------------
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[U32_BOUND >> 1]);
+    test.expect_stack(&[U32_BOUND >> 1], vec![StdLibrary::default()]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 1_u32;
     let b: u32 = 31;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[2]);
+    test.expect_stack(&[2], vec![StdLibrary::default()]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a as u64]);
+    test.expect_stack(&[a as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_right(b) as u64]);
+    test.expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_right(b) as u64]);
+    test.expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -689,11 +690,11 @@ fn u32checked_rotr_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 
     // should fail if b >= 32
     let test = build_op_test!(asm_op, &[1, 32]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -706,39 +707,39 @@ fn u32checked_rotr_b() {
     let a = 2_u32;
     let b = 1_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test simple wraparound case with small a -----------------------------------------------
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[U32_BOUND >> 1]);
+    test.expect_stack(&[U32_BOUND >> 1], vec![StdLibrary::default()]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 1_u32;
     let b: u32 = 31;
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[2]);
+    test.expect_stack(&[2], vec![StdLibrary::default()]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a as u64]);
+    test.expect_stack(&[a as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.rotate_right(b) as u64]);
+    test.expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[a.rotate_right(b) as u64]);
+    test.expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -758,71 +759,72 @@ fn u32unchecked_rotr() {
     let a = 2_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     // --- test simple wraparound case with small a -----------------------------------------------
     let a = 1_u32;
     let b = 1_u32;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[U32_BOUND >> 1]);
+    test.expect_stack(&[U32_BOUND >> 1], vec![StdLibrary::default()]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 1_u32;
     let b: u32 = 31;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[2]);
+    test.expect_stack(&[2], vec![StdLibrary::default()]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a as u64]);
+    test.expect_stack(&[a as u64], vec![StdLibrary::default()]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = 0;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_right(b) as u64]);
+    test.expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()]);
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u32>();
     let b = rand_value::<u32>() % 32;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[a.rotate_right(b) as u64]);
+    test.expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()]);
 
     // --- test out of bounds inputs (should not fail) --------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }
 
 #[test]
 fn u32checked_popcnt() {
     let asm_op = "u32checked_popcnt";
-    build_op_test!(asm_op, &[0]).expect_stack(&[0]);
-    build_op_test!(asm_op, &[1]).expect_stack(&[1]);
-    build_op_test!(asm_op, &[555]).expect_stack(&[5]);
-    build_op_test!(asm_op, &[65536]).expect_stack(&[1]);
-    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
+    build_op_test!(asm_op, &[0]).expect_stack(&[0], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[1], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[555]).expect_stack(&[5], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[65536]).expect_stack(&[1], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32], vec![StdLibrary::default()]);
 }
 
 #[test]
 fn u32checked_popcnt_fail() {
     let asm_op = "u32checked_popcnt";
-    build_op_test!(asm_op, &[4294967296]).expect_error(TestError::ExecutionError("NotU32Value"));
+    build_op_test!(asm_op, &[4294967296])
+        .expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
     build_op_test!(asm_op, &[281474976710655])
-        .expect_error(TestError::ExecutionError("NotU32Value"));
+        .expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
 fn u32unchecked_popcnt() {
     let asm_op = "u32unchecked_popcnt";
-    build_op_test!(asm_op, &[0]).expect_stack(&[0]);
-    build_op_test!(asm_op, &[1]).expect_stack(&[1]);
-    build_op_test!(asm_op, &[555]).expect_stack(&[5]);
-    build_op_test!(asm_op, &[65536]).expect_stack(&[1]);
-    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
+    build_op_test!(asm_op, &[0]).expect_stack(&[0], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[1], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[555]).expect_stack(&[5], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[65536]).expect_stack(&[1], vec![StdLibrary::default()]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32], vec![StdLibrary::default()]);
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - BITWISE OPERATIONS
@@ -837,7 +839,7 @@ proptest! {
         let expected = (a & b) as u64;
 
         let test = build_op_test!(asm_opcode, &values);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -848,7 +850,7 @@ proptest! {
         let expected = (a | b) as u64;
 
         let test = build_op_test!(asm_opcode, &values);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -859,7 +861,7 @@ proptest! {
         let expected = (a ^ b) as u64;
 
         let test = build_op_test!(asm_opcode, &values);
-        test.prop_expect_stack(&[expected])?;
+        test.prop_expect_stack(&[expected], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -868,7 +870,7 @@ proptest! {
 
         // should result in bitwise NOT
         let test = build_op_test!(asm_opcode, &[value as u64]);
-        test.prop_expect_stack(&[!value as u64])?;
+        test.prop_expect_stack(&[!value as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -878,7 +880,7 @@ proptest! {
         // should execute left shift
         let expected = a << b;
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -888,7 +890,7 @@ proptest! {
         // should execute left shift
         let expected = a << b;
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -898,7 +900,7 @@ proptest! {
         // should execute left shift
         let c = a.wrapping_shl(b);
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[c as u64])?;
+        test.prop_expect_stack(&[c as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -908,7 +910,7 @@ proptest! {
         // should execute left shift
         let c = a.wrapping_shl(b);
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[c as u64])?;
+        test.prop_expect_stack(&[c as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -918,7 +920,7 @@ proptest! {
         // should execute right shift
         let expected = a >> b;
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -928,7 +930,7 @@ proptest! {
         // should execute right shift
         let expected = a >> b;
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -937,7 +939,7 @@ proptest! {
 
         // should execute left bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[a.rotate_left(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -947,7 +949,7 @@ proptest! {
 
         // should execute left bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[a.rotate_left(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -956,7 +958,7 @@ proptest! {
 
         // should execute left bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[a.rotate_left(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -966,7 +968,7 @@ proptest! {
 
         // should execute left bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[a.rotate_left(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_left(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -975,7 +977,7 @@ proptest! {
 
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[a.rotate_right(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -985,7 +987,7 @@ proptest! {
 
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[a.rotate_right(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -994,7 +996,7 @@ proptest! {
 
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[a.rotate_right(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1004,7 +1006,7 @@ proptest! {
 
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[a.rotate_right(b) as u64])?;
+        test.prop_expect_stack(&[a.rotate_right(b) as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1012,7 +1014,7 @@ proptest! {
         let asm_opcode = "u32checked_popcnt";
         let expected = a.count_ones();
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1020,6 +1022,6 @@ proptest! {
         let asm_opcode = "u32unchecked_popcnt";
         let expected = a.count_ones();
         let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected as u64], vec![StdLibrary::default()])?;
     }
 }

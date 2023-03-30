@@ -1,4 +1,4 @@
-use super::{build_test, Felt, STACK_TOP_SIZE};
+use super::{build_test, Felt, StdLibrary, STACK_TOP_SIZE};
 use sha3::{Digest, Keccak256};
 use vm_core::utils::IntoBytes;
 
@@ -20,7 +20,7 @@ fn keccak256_bit_interleaving() {
     let low = word as u32 as u64;
 
     let test = build_test!(source, &[low, high]);
-    let stack = test.get_last_stack_state();
+    let stack = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(stack[0], Felt::new(high));
     assert_eq!(stack[1], Felt::new(low));
@@ -64,7 +64,7 @@ fn keccak256_2_to_1_hash() {
     in_stack.reverse();
 
     let test = build_test!(source, &in_stack);
-    test.expect_stack(&expected_stack);
+    test.expect_stack(&expected_stack, vec![StdLibrary::default()]);
 }
 
 /// Given N -many bytes ( such that N % 8 == 0 ), this function considers

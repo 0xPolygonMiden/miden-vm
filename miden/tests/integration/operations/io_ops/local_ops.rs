@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -19,7 +19,7 @@ fn push_local() {
     // but in this case since no other operations are executed, we do know it will push a ZERO.
     let final_stack = [0, 4, 3, 2, 1];
 
-    build_test!(source, &inputs).expect_stack(&final_stack);
+    build_test!(source, &inputs).expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 // REMOVING VALUES FROM THE STACK (POP)
@@ -40,7 +40,7 @@ fn pop_local() {
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack(&[3, 4, 2, 1]);
+    test.expect_stack(&[3, 4, 2, 1], vec![StdLibrary::default()]);
 
     // --- test existing memory is not affected ---------------------------------------------------
     let source = "
@@ -55,7 +55,7 @@ fn pop_local() {
     let mem_addr = 1;
 
     let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack_and_memory(&[1], mem_addr, &[3, 0, 0, 0]);
+    test.expect_stack_and_memory(&[1], mem_addr, &[3, 0, 0, 0], vec![StdLibrary::default()]);
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -77,7 +77,7 @@ fn loadw_local() {
     // but in this case since no other operations are executed, we do know it will load ZEROs.
     let final_stack = [0, 0, 0, 0, 4, 3, 2, 1];
 
-    build_test!(source, &inputs).expect_stack(&final_stack);
+    build_test!(source, &inputs).expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 // SAVING STACK VALUES WITHOUT REMOVING THEM (STORE)
@@ -102,7 +102,10 @@ fn storew_local() {
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8]);
-    test.expect_stack(&[4, 3, 2, 1, 8, 7, 6, 5, 8, 7, 6, 5, 4, 3, 2, 1]);
+    test.expect_stack(
+        &[4, 3, 2, 1, 8, 7, 6, 5, 8, 7, 6, 5, 4, 3, 2, 1],
+        vec![StdLibrary::default()],
+    );
 
     // --- test existing memory is not affected ---------------------------------------------------
     let source = "
@@ -119,7 +122,12 @@ fn storew_local() {
     let mem_addr = 1;
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    test.expect_stack_and_memory(&[4, 3, 2, 1], mem_addr, &[5, 6, 7, 8]);
+    test.expect_stack_and_memory(
+        &[4, 3, 2, 1],
+        mem_addr,
+        &[5, 6, 7, 8],
+        vec![StdLibrary::default()],
+    );
 }
 
 // NESTED PROCEDURES & PAIRED OPERATIONS (push/pop, pushw/popw, loadw/storew)
@@ -141,7 +149,7 @@ fn inverse_operations() {
     final_stack.reverse();
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 
     // --- popw and pushw are inverse operations, so the stack should be left unchanged -----------
     let source = "
@@ -159,7 +167,7 @@ fn inverse_operations() {
     final_stack.reverse();
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 
     // --- storew and loadw are inverse operations, so the stack should be left unchanged ---------
     let source = "
@@ -175,7 +183,7 @@ fn inverse_operations() {
     final_stack.reverse();
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -191,7 +199,7 @@ fn read_after_write() {
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack(&[1, 4, 3, 2, 1]);
+    test.expect_stack(&[1, 4, 3, 2, 1], vec![StdLibrary::default()]);
 
     // --- write to memory first, then test read with pushw --------------------------------------
     let source = "
@@ -205,7 +213,7 @@ fn read_after_write() {
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack(&[4, 3, 2, 1, 4, 3, 2, 1]);
+    test.expect_stack(&[4, 3, 2, 1, 4, 3, 2, 1], vec![StdLibrary::default()]);
 
     // --- write to memory first, then test read with loadw --------------------------------------
     let source = "
@@ -219,7 +227,7 @@ fn read_after_write() {
         end";
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8]);
-    test.expect_stack(&[8, 7, 6, 5]);
+    test.expect_stack(&[8, 7, 6, 5], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -240,7 +248,7 @@ fn nested_procedures() {
     let inputs = [0, 1, 2, 3];
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&[3, 1, 0]);
+    test.expect_stack(&[3, 1, 0], vec![StdLibrary::default()]);
 
     // --- test nested procedures - popw/pushw ----------------------------------------------------
     let source = "
@@ -261,7 +269,7 @@ fn nested_procedures() {
     let inputs = [0, 1, 2, 3, 4, 5, 6, 7];
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&[7, 6, 5, 4]);
+    test.expect_stack(&[7, 6, 5, 4], vec![StdLibrary::default()]);
 
     // --- test nested procedures - storew/loadw --------------------------------------------------
     let source = "
@@ -280,7 +288,7 @@ fn nested_procedures() {
     let inputs = [0, 1, 2, 3];
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&[3, 2, 1, 0, 1, 0]);
+    test.expect_stack(&[3, 2, 1, 0, 1, 0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -305,5 +313,5 @@ fn free_memory_pointer() {
     let inputs = [1, 2, 3, 4, 5, 6, 7];
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&[7, 6, 5, 4, 1]);
+    test.expect_stack(&[7, 6, 5, 4, 1], vec![StdLibrary::default()]);
 }

@@ -1,4 +1,4 @@
-use crate::{build_test, AdviceInputs, Test, TestError};
+use crate::{build_test, AdviceInputs, StdLibrary, Test, TestError};
 use vm_core::StackInputs;
 
 // SIMPLE FLOW CONTROL TESTS
@@ -10,19 +10,19 @@ fn conditional_execution() {
     let source = "begin dup.1 dup.1 eq if.true add end end";
 
     let test = build_test!(source, &[1, 2]);
-    test.expect_stack(&[2, 1]);
+    test.expect_stack(&[2, 1], vec![StdLibrary::default()]);
 
     let test = build_test!(source, &[3, 3]);
-    test.expect_stack(&[6]);
+    test.expect_stack(&[6], vec![StdLibrary::default()]);
 
     // --- if with else ------------------------------------------------------------------------
     let source = "begin dup.1 dup.1 eq if.true add else mul end end";
 
     let test = build_test!(source, &[2, 3]);
-    test.expect_stack(&[6]);
+    test.expect_stack(&[6], vec![StdLibrary::default()]);
 
     let test = build_test!(source, &[3, 3]);
-    test.expect_stack(&[6]);
+    test.expect_stack(&[6], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -39,13 +39,13 @@ fn conditional_loop() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[55]);
+    test.expect_stack(&[55], vec![StdLibrary::default()]);
 
     // --- skipping the loop ----------------------------------------------------------------------
     let source = "begin dup eq.0 while.true add end end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[10]);
+    test.expect_stack(&[10], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn counter_controlled_loop() {
         end";
 
     let test = build_test!(source);
-    test.expect_stack(&[1024]);
+    test.expect_stack(&[1024], vec![StdLibrary::default()]);
 }
 
 // NESTED CONTROL FLOW
@@ -87,7 +87,7 @@ fn if_in_loop() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[210]);
+    test.expect_stack(&[210], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -113,10 +113,10 @@ fn if_in_loop_in_if() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[210]);
+    test.expect_stack(&[210], vec![StdLibrary::default()]);
 
     let test = build_test!(source, &[11]);
-    test.expect_stack(&[121]);
+    test.expect_stack(&[121], vec![StdLibrary::default()]);
 }
 
 // FUNCTION CALLS
@@ -135,7 +135,7 @@ fn local_fn_call() {
         end";
 
     let expected_err = TestError::ExecutionError("InvalidStackDepthOnReturn(17)");
-    build_test!(source, &[1, 2]).expect_error(expected_err);
+    build_test!(source, &[1, 2]).expect_error(expected_err, vec![StdLibrary::default()]);
 
     // dropping values from the stack in the current execution context should not affect values
     // in the overflow table from the parent execution context
@@ -157,9 +157,9 @@ fn local_fn_call() {
     let inputs = (1_u64..18).collect::<Vec<_>>();
 
     let test = build_test!(source, &inputs);
-    test.expect_stack(&[2, 1]);
+    test.expect_stack(&[2, 1], vec![StdLibrary::default()]);
 
-    test.prove_and_verify(inputs, false);
+    test.prove_and_verify(inputs, false, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -179,9 +179,9 @@ fn local_fn_call_with_mem_access() {
         end";
 
     let test = build_test!(source, &[3, 7]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
-    test.prove_and_verify(vec![3, 7], false);
+    test.prove_and_verify(vec![3, 7], false, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -205,7 +205,7 @@ fn simple_syscall() {
         advice_inputs: AdviceInputs::default(),
         in_debug_mode: false,
     };
-    test.expect_stack(&[3]);
+    test.expect_stack(&[3], vec![StdLibrary::default()]);
 
-    test.prove_and_verify(vec![1, 2], false);
+    test.prove_and_verify(vec![1, 2], false, vec![StdLibrary::default()]);
 }

@@ -1,4 +1,4 @@
-use super::build_op_test;
+use super::{build_op_test, StdLibrary};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -10,17 +10,17 @@ fn push_one() {
     // --- test zero ------------------------------------------------------------------------------
     let asm_op = format!("{}.{}", asm_op_base, "0");
     let test = build_op_test!(&asm_op);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- single decimal input -------------------------------------------------------------------
     let asm_op = format!("{}.{}", asm_op_base, "5");
     let test = build_op_test!(&asm_op);
-    test.expect_stack(&[5]);
+    test.expect_stack(&[5], vec![StdLibrary::default()]);
 
     // --- single hexadecimal input ---------------------------------------------------------------
     let asm_op = format!("{}.{}", asm_op_base, "0xAF");
     let test = build_op_test!(&asm_op);
-    test.expect_stack(&[175]);
+    test.expect_stack(&[175], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn push_many() {
     // --- multiple values with separators --------------------------------------------------------
     let asm_op = format!("{base_op}.17.0x13.23");
     let test = build_op_test!(asm_op);
-    test.expect_stack(&[23, 19, 17]);
+    test.expect_stack(&[23, 19, 17], vec![StdLibrary::default()]);
 
     // --- push the maximum number of decimal values (16) -------------------------------------
     let asm_op = format!("{base_op}.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31");
@@ -40,7 +40,7 @@ fn push_many() {
     }
 
     let test = build_op_test!(asm_op);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- push hexadecimal values with period separators between values ----------------------
     let asm_op = format!("{base_op}.0x0A.0x64.0x03E8.0x2710.0x0186A0");
@@ -50,7 +50,7 @@ fn push_many() {
     }
 
     let test = build_op_test!(asm_op);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- push a mixture of decimal and single-element hexadecimal values --------------------
     let asm_op = format!("{base_op}.2.4.8.0x10.0x20.0x40.128.0x0100");
@@ -60,7 +60,7 @@ fn push_many() {
     }
 
     let test = build_op_test!(asm_op);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn push_without_separator() {
     let asm_op = format!("{base_op}.0x0000000000004321000000000000dcba");
 
     let test = build_op_test!(asm_op);
-    test.expect_stack(&[56506, 17185]);
+    test.expect_stack(&[56506, 17185], vec![StdLibrary::default()]);
 
     // --- push the maximum number of hexadecimal values without separators (16) ------------------
     let asm_op =    format!("{base_op}.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F");
@@ -81,5 +81,5 @@ fn push_without_separator() {
     }
 
     let test = build_op_test!(asm_op);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }

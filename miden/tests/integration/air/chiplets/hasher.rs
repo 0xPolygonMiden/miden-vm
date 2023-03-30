@@ -1,5 +1,5 @@
-use crate::build_op_test;
-use miden_test_utils::crypto::{init_merkle_leaf, init_merkle_store};
+use crate::{build_op_test, StdLibrary};
+use miden_test::crypto::{init_merkle_leaf, init_merkle_store};
 use rand_utils::rand_vector;
 use vm_core::{
     crypto::{
@@ -14,7 +14,11 @@ fn hperm() {
     let asm_op = "hperm";
     let pub_inputs = rand_vector::<u64>(8);
 
-    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
+    build_op_test!(asm_op, &pub_inputs).prove_and_verify(
+        pub_inputs,
+        false,
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -22,7 +26,11 @@ fn hmerge() {
     let asm_op = "hmerge";
     let pub_inputs = rand_vector::<u64>(8);
 
-    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
+    build_op_test!(asm_op, &pub_inputs).prove_and_verify(
+        pub_inputs,
+        false,
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -42,8 +50,11 @@ fn mtree_get() {
         tree.depth() as u64,
     ];
 
-    build_op_test!(asm_op, &stack_inputs, &[], store)
-        .prove_and_verify(stack_inputs.to_vec(), false);
+    build_op_test!(asm_op, &stack_inputs, &[], store).prove_and_verify(
+        stack_inputs.to_vec(),
+        false,
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -51,8 +62,11 @@ fn mtree_set() {
     let asm_op = "mtree_set";
     let (stack_inputs, store, _leaves) = build_mtree_update_test_inputs();
 
-    build_op_test!(asm_op, &stack_inputs, &[], store)
-        .prove_and_verify(stack_inputs.to_vec(), false);
+    build_op_test!(asm_op, &stack_inputs, &[], store).prove_and_verify(
+        stack_inputs.to_vec(),
+        false,
+        vec![StdLibrary::default()],
+    );
 }
 
 #[test]
@@ -94,8 +108,11 @@ fn mtree_merge() {
         root_merged[3].as_int(),
     ];
 
-    build_op_test!(asm_op, &stack_inputs, &stack_outputs, store)
-        .prove_and_verify(stack_inputs, false);
+    build_op_test!(asm_op, &stack_inputs, &stack_outputs, store).prove_and_verify(
+        stack_inputs,
+        false,
+        vec![StdLibrary::default()],
+    );
 }
 
 /// Helper function that builds a test stack and Merkle tree for testing mtree updates.

@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use std::cmp::PartialEq;
 use std::ops::Mul;
 
@@ -277,7 +277,7 @@ fn test_secp256k1_scalar_field_mul() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -306,5 +306,5 @@ fn test_secp256k1_scalar_field_inv() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| v as u64), vec![StdLibrary::default()]);
 }

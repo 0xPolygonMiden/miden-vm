@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use proptest::prelude::*;
 use rand_utils::rand_vector;
 use vm_core::stack::STACK_TOP_SIZE;
@@ -7,7 +7,10 @@ use vm_core::stack::STACK_TOP_SIZE;
 fn truncate_stack() {
     let source = "use.std::sys begin repeat.12 push.0 end exec.sys::truncate_stack end";
     let test = build_test!(source, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_stack(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4]);
+    test.expect_stack(
+        &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4],
+        vec![StdLibrary::default()],
+    );
 }
 
 proptest! {
@@ -26,6 +29,6 @@ proptest! {
         expected_values.append(&mut push_values);
         expected_values.reverse();
         expected_values.truncate(STACK_TOP_SIZE);
-        build_test!(source, &test_values).prop_expect_stack(&expected_values)?;
+        build_test!(source, &test_values).prop_expect_stack(&expected_values, vec![StdLibrary::default()])?;
     }
 }

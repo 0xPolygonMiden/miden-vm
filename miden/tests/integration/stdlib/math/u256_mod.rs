@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use num_bigint::BigUint;
 use rand_utils::rand_vector;
 
@@ -30,7 +30,7 @@ fn mul_unsafe() {
         .rev()
         .collect::<Vec<_>>();
 
-    build_test!(source, &operands).expect_stack(&result);
+    build_test!(source, &operands).expect_stack(&result, vec![StdLibrary::default()]);
 }
 
 // HELPER FUNCTIONS

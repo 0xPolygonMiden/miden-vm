@@ -1,4 +1,4 @@
-use crate::build_test;
+use crate::{build_test, StdLibrary};
 use rand_utils::rand_array;
 use vm_core::{Felt, FieldElement, StarkField};
 
@@ -30,7 +30,7 @@ fn fri_ext2fold4() {
 
     // check some items in the state transition; full state transition is checked in the
     // processor tests
-    let stack_state = test.get_last_stack_state();
+    let stack_state = test.get_last_stack_state(vec![StdLibrary::default()]);
     assert_eq!(stack_state[8], Felt::new(poe).square());
     assert_eq!(stack_state[10], Felt::new(layer_ptr + 2));
     assert_eq!(stack_state[11], Felt::new(poe).exp(4));
@@ -38,5 +38,5 @@ fn fri_ext2fold4() {
     assert_eq!(stack_state[15], Felt::new(end_ptr));
 
     // make sure STARK proof can be generated and verified
-    test.prove_and_verify(inputs, false);
+    test.prove_and_verify(inputs, false, vec![StdLibrary::default()]);
 }

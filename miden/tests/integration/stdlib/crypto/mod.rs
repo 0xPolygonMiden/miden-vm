@@ -1,4 +1,4 @@
-use crate::{build_test, Felt, STACK_TOP_SIZE};
+use crate::{build_test, Felt, StdLibrary, STACK_TOP_SIZE};
 
 mod blake3;
 mod ecdsa_secp256k1;

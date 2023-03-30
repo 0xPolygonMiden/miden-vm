@@ -1,4 +1,4 @@
-use crate::{build_test, Felt};
+use crate::{build_test, Felt, StdLibrary};
 
 mod ecgfp5;
 mod ntt512;

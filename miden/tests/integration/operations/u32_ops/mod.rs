@@ -1,4 +1,4 @@
-use crate::{build_op_test, prop_randw, TestError, U32_BOUND};
+use crate::{build_op_test, prop_randw, StdLibrary, TestError, U32_BOUND};
 use vm_core::WORD_SIZE;
 
 mod arithmetic_ops;
@@ -13,7 +13,7 @@ mod conversion_ops;
 /// ensure that it fails when the input is >= 2^32.
 pub fn test_input_out_of_bounds(asm_op: &str) {
     let test = build_op_test!(asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 /// This helper function tests a provided u32 assembly operation, which takes multiple inputs, to
@@ -27,7 +27,7 @@ pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
         i_inputs[i] = U32_BOUND;
 
         let test = build_op_test!(asm_op, &i_inputs);
-        test.expect_error(TestError::ExecutionError("NotU32Value"));
+        test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
     }
 }
 
@@ -36,7 +36,7 @@ pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
 pub fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
     let asm_op = format!("{asm_op_base}.{gt_max_value}");
     let test = build_op_test!(&asm_op);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 /// This helper function tests that when the given u32 assembly instruction is executed on
@@ -50,6 +50,6 @@ pub fn test_unchecked_execution(asm_op: &str, input_count: usize) {
         i_values[i] = U32_BOUND;
 
         let test = build_op_test!(asm_op, &i_values);
-        assert!(test.execute().is_ok());
+        assert!(test.execute(vec![StdLibrary::default()]).is_ok());
     }
 }

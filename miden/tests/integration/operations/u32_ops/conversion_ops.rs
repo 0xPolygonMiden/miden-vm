@@ -2,7 +2,8 @@ use proptest::prelude::*;
 use rand_utils::rand_value;
 
 use super::{
-    build_op_test, prop_randw, test_inputs_out_of_bounds, TestError, U32_BOUND, WORD_SIZE,
+    build_op_test, prop_randw, test_inputs_out_of_bounds, StdLibrary, TestError, U32_BOUND,
+    WORD_SIZE,
 };
 use vm_core::{Felt, StarkField};
 
@@ -21,15 +22,15 @@ fn u32test() {
 
     // --- a < 2^32 -------------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[smaller]);
-    test.expect_stack(&[1, smaller]);
+    test.expect_stack(&[1, smaller], vec![StdLibrary::default()]);
 
     // --- a = 2^32 -------------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[equal]);
-    test.expect_stack(&[0, equal]);
+    test.expect_stack(&[0, equal], vec![StdLibrary::default()]);
 
     // --- a > 2^32 -------------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[larger]);
-    test.expect_stack(&[0, larger]);
+    test.expect_stack(&[0, larger], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -41,42 +42,42 @@ fn u32testw() {
     let expected = [1, 1, 1, 1, 1];
 
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- 1st element >= 2^32 --------------------------------------------------------------------
     let values = [U32_BOUND, 0, 0, 0];
     let expected = [0, 0, 0, 0, U32_BOUND];
 
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- 2nd element >= 2^32 --------------------------------------------------------------------
     let values = [0, U32_BOUND, 0, 0];
     let expected = [0, 0, 0, U32_BOUND, 0];
 
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- 3rd element >= 2^32 --------------------------------------------------------------------
     let values = [0, 0, U32_BOUND, 0];
     let expected = [0, 0, U32_BOUND, 0, 0];
 
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- 4th element >= 2^32 --------------------------------------------------------------------
     let values = [0, 0, 0, U32_BOUND];
     let expected = [0, U32_BOUND, 0, 0, 0];
 
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 
     // --- all elements out of range --------------------------------------------------------------
     let values = [U32_BOUND, U32_BOUND, U32_BOUND, U32_BOUND];
     let expected = [0, U32_BOUND, U32_BOUND, U32_BOUND, U32_BOUND];
 
     let test = build_op_test!(asm_op, &values);
-    test.expect_stack(&expected);
+    test.expect_stack(&expected, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -87,10 +88,10 @@ fn u32assert() {
 
     let value = 1_u64;
     let test = build_op_test!(asm_op, &[value]);
-    test.expect_stack(&[value]);
+    test.expect_stack(&[value], vec![StdLibrary::default()]);
 
     let test = build_op_test!(asm_op_1, &[value]);
-    test.expect_stack(&[value]);
+    test.expect_stack(&[value], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -106,17 +107,17 @@ fn u32assert_fail() {
 
     // --- test when a = 2^32 ---------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[equal]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 
     let test_1 = build_op_test!(asm_op_1, &[equal]);
-    test_1.expect_error(TestError::ExecutionError(err));
+    test_1.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 
     // --- test when a > 2^32 ---------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[larger]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 
     let test_1 = build_op_test!(asm_op_1, &[larger]);
-    test_1.expect_error(TestError::ExecutionError(err));
+    test_1.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -126,12 +127,12 @@ fn u32assert2() {
     let value_a = 1_u64;
     let value_b = 2_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_stack(&[value_b, value_a]);
+    test.expect_stack(&[value_b, value_a], vec![StdLibrary::default()]);
 
     let value_a = rand_value::<u32>() as u64;
     let value_b = rand_value::<u32>() as u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_stack(&[value_b, value_a]);
+    test.expect_stack(&[value_b, value_a], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -144,19 +145,19 @@ fn u32assert2_fail() {
     let value_a = (1_u64 << 32) + 1;
     let value_b = value_a + 2;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 
     // -------- Case 2: a > 2^32 and b < 2^32 ---------------------------------------------------
     let value_a = (1_u64 << 32) + 1;
     let value_b = 1_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 
     // --------- Case 3: a < 2^32 and b > 2^32 --------------------------------------------------
     let value_b = (1_u64 << 32) + 1;
     let value_a = 1_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -164,7 +165,7 @@ fn u32assertn_fail() {
     let asm_op = "u32assert.3";
 
     let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("parameter"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -173,7 +174,7 @@ fn u32assertw() {
     let asm_op = "u32assertw";
 
     let test = build_op_test!(asm_op, &[2, 3, 4, 5]);
-    test.expect_stack(&[5, 4, 3, 2]);
+    test.expect_stack(&[5, 4, 3, 2], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -187,7 +188,7 @@ fn u32assertw_fail() {
 
     // --- all elements out of range --------------------------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND; WORD_SIZE]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(err), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -196,18 +197,18 @@ fn u32cast() {
 
     // --- a < 2^32 -------------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     // --- a > 2^32 -------------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND]);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[0], vec![StdLibrary::default()]);
 
     // --- rest of stack isn't affected -----------------------------------------------------------
     let a = rand_value();
     let b = rand_value();
 
     let test = build_op_test!(asm_op, &[a, b]);
-    test.expect_stack(&[b % U32_BOUND, a]);
+    test.expect_stack(&[b % U32_BOUND, a], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -216,15 +217,15 @@ fn u32split() {
 
     // --- low bits set, no high bits set ---------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[0, 1]);
+    test.expect_stack(&[0, 1], vec![StdLibrary::default()]);
 
     // --- high bits set, no low bits set ---------------------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND]);
-    test.expect_stack(&[1, 0]);
+    test.expect_stack(&[1, 0], vec![StdLibrary::default()]);
 
     // --- high bits and low bits set -------------------------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND + 1]);
-    test.expect_stack(&[1, 1]);
+    test.expect_stack(&[1, 1], vec![StdLibrary::default()]);
 
     // --- rest of stack isn't affected -----------------------------------------------------------
     let a = rand_value();
@@ -233,7 +234,7 @@ fn u32split() {
     let expected_lo = b % U32_BOUND;
 
     let test = build_op_test!(asm_op, &[a, b]);
-    test.expect_stack(&[expected_hi, expected_lo, a]);
+    test.expect_stack(&[expected_hi, expected_lo, a], vec![StdLibrary::default()]);
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - CONVERSIONS AND TESTS
@@ -247,7 +248,7 @@ proptest! {
         let expected_result = if value % Felt::MODULUS < U32_BOUND { 1 } else { 0 };
 
         let test = build_op_test!(asm_op, &[value]);
-        test.prop_expect_stack(&[expected_result, value])?;
+        test.prop_expect_stack(&[expected_result, value], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -263,7 +264,7 @@ proptest! {
         expected.reverse();
 
         let test = build_op_test!(asm_op, &values);
-        test.prop_expect_stack(&expected)?;
+        test.prop_expect_stack(&expected, vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -272,7 +273,7 @@ proptest! {
 
         // assertion passes and leaves the stack unchanged if a < 2^32
         let test = build_op_test!(asm_op, &[value as u64]);
-        test.prop_expect_stack(&[value as u64])?;
+        test.prop_expect_stack(&[value as u64], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -286,7 +287,7 @@ proptest! {
         expected.reverse();
 
         let test = build_op_test!(asm_op, &values);
-        test.prop_expect_stack(&expected)?;
+        test.prop_expect_stack(&expected, vec![StdLibrary::default()])?;
 }
 
     #[test]
@@ -298,7 +299,7 @@ proptest! {
         let expected_result = value % Felt::MODULUS % U32_BOUND;
 
         let test = build_op_test!(asm_op, &[value]);
-        test.prop_expect_stack(&[expected_result])?;
+        test.prop_expect_stack(&[expected_result], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -312,6 +313,6 @@ proptest! {
         let expected_c = felt_value as u32 as u64;
 
         let test = build_op_test!(asm_op, &[value, value]);
-        test.prop_expect_stack(&[expected_b, expected_c, value])?;
+        test.prop_expect_stack(&[expected_b, expected_c, value], vec![StdLibrary::default()])?;
     }
 }

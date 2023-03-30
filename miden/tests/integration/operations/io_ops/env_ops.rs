@@ -1,4 +1,4 @@
-use crate::{build_op_test, build_test, Test};
+use crate::{build_op_test, build_test, StdLibrary, Test};
 use processor::{AdviceInputs, FMP_MIN};
 use vm_core::{
     code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, StackInputs, StarkField, Word,
@@ -13,17 +13,20 @@ fn sdepth() {
 
     // --- empty stack ----------------------------------------------------------------------------
     let test = build_op_test!(test_op);
-    test.expect_stack(&[STACK_TOP_SIZE as u64]);
+    test.expect_stack(&[STACK_TOP_SIZE as u64], vec![StdLibrary::default()]);
 
     // --- multi-element stack --------------------------------------------------------------------
     let test = build_op_test!(test_op, &[2, 4, 6, 8, 10]);
-    test.expect_stack(&[STACK_TOP_SIZE as u64, 10, 8, 6, 4, 2]);
+    test.expect_stack(&[STACK_TOP_SIZE as u64, 10, 8, 6, 4, 2], vec![StdLibrary::default()]);
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
     let source = format!("begin push.1 push.1 {test_op} end");
     let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
-    test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
+    test.expect_stack(
+        &[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3],
+        vec![StdLibrary::default()],
+    );
 }
 
 // LOCADDR INSTRUCTION
@@ -42,7 +45,7 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[FMP_MIN + 2, FMP_MIN + 1, 10]);
+    test.expect_stack(&[FMP_MIN + 2, FMP_MIN + 1, 10], vec![StdLibrary::default()]);
 
     // --- accessing mem via locaddr updates the correct variables --------------------------------
     let source = "
@@ -61,7 +64,7 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5]);
-    test.expect_stack(&[4, 3, 2, 1, 5, 10]);
+    test.expect_stack(&[4, 3, 2, 1, 5, 10], vec![StdLibrary::default()]);
 
     // --- locaddr returns expected addresses in nested procedures --------------------------------
     let source = "
@@ -81,17 +84,20 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[
-        FMP_MIN + 3,
-        FMP_MIN + 2,
-        FMP_MIN + 1,
-        FMP_MIN + 2,
-        FMP_MIN + 5,
-        FMP_MIN + 4,
-        FMP_MIN + 3,
-        FMP_MIN + 1,
-        10,
-    ]);
+    test.expect_stack(
+        &[
+            FMP_MIN + 3,
+            FMP_MIN + 2,
+            FMP_MIN + 1,
+            FMP_MIN + 2,
+            FMP_MIN + 5,
+            FMP_MIN + 4,
+            FMP_MIN + 3,
+            FMP_MIN + 1,
+            10,
+        ],
+        vec![StdLibrary::default()],
+    );
 
     // --- accessing mem via locaddr in nested procedures updates the correct variables -----------
     let source = "
@@ -119,7 +125,7 @@ fn locaddr() {
         end";
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5, 6, 7]);
-    test.expect_stack(&[7, 6, 5, 4, 3, 2, 1, 10]);
+    test.expect_stack(&[7, 6, 5, 4, 3, 2, 1, 10], vec![StdLibrary::default()]);
 }
 
 // CALLER INSTRUCTION
@@ -153,9 +159,12 @@ fn caller() {
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
     // element should remain untouched
     let bar_hash = build_bar_hash();
-    test.expect_stack(&[bar_hash[3], bar_hash[2], bar_hash[1], bar_hash[0], 1]);
+    test.expect_stack(
+        &[bar_hash[3], bar_hash[2], bar_hash[1], bar_hash[0], 1],
+        vec![StdLibrary::default()],
+    );
 
-    test.prove_and_verify(vec![1, 2, 3, 4, 5], false);
+    test.prove_and_verify(vec![1, 2, 3, 4, 5], false, vec![StdLibrary::default()]);
 }
 
 fn build_bar_hash() -> [u64; 4] {
@@ -176,7 +185,7 @@ fn build_bar_hash() -> [u64; 4] {
 #[test]
 fn clk() {
     let test = build_op_test!("clk");
-    test.expect_stack(&[1]);
+    test.expect_stack(&[1], vec![StdLibrary::default()]);
 
     let source = "
         proc.foo
@@ -189,5 +198,5 @@ fn clk() {
         end";
 
     let test = build_test!(source, &[]);
-    test.expect_stack(&[3, 4, 5]);
+    test.expect_stack(&[3, 4, 5], vec![StdLibrary::default()]);
 }

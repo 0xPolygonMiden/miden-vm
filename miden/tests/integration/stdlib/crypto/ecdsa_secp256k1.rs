@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use test_case::test_case;
 
 // Wrapper types for ease of writing parameterized test cases
@@ -44,5 +44,5 @@ fn verify(pubkey: Point, h: ScalarField, r: ScalarField, s: ScalarField) {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    assert!(test.execute().is_ok());
+    assert!(test.execute(vec![StdLibrary::default()]).is_ok());
 }

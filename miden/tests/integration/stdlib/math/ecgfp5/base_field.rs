@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::{build_test, Felt, StdLibrary};
 use std::{
     cmp::PartialEq,
     ops::{Add, Div, Mul, Neg, Sub},
@@ -399,7 +399,7 @@ fn test_ext5_add() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], c.a0);
     assert_eq!(strace[1], c.a1);
@@ -436,7 +436,7 @@ fn test_ext5_sub() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], c.a0);
     assert_eq!(strace[1], c.a1);
@@ -473,7 +473,7 @@ fn test_ext5_mul() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], c.a0);
     assert_eq!(strace[1], c.a1);
@@ -498,7 +498,7 @@ fn test_ext5_square() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], b.a0);
     assert_eq!(strace[1], b.a1);
@@ -523,7 +523,7 @@ fn test_ext5_inv() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], b.a0);
     assert_eq!(strace[1], b.a1);
@@ -560,7 +560,7 @@ fn test_ext5_div() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], c.a0);
     assert_eq!(strace[1], c.a1);
@@ -585,7 +585,7 @@ fn test_ext5_legendre() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], b);
 }
@@ -606,7 +606,7 @@ fn test_ext5_sqrt() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], b.a0);
     assert_eq!(strace[1], b.a1);

@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use std::fmt::Write;
 
 #[test]
@@ -6,7 +6,7 @@ fn test_ntt512() {
     let source = generate_test_script_ntt512();
 
     let test = build_test!(source, &[]);
-    let _ = test.get_last_stack_state();
+    let _ = test.get_last_stack_state(vec![StdLibrary::default()]);
 }
 
 fn generate_test_script_ntt512() -> String {

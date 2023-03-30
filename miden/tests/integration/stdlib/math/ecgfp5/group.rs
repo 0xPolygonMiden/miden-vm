@@ -1,5 +1,5 @@
 use super::base_field::{bv_or, Ext5};
-use super::{build_test, Felt};
+use super::{build_test, Felt, StdLibrary};
 use std::ops::Add;
 use test_case::test_case;
 use vm_core::{FieldElement, StarkField};
@@ -229,7 +229,7 @@ fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, shou
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], flg);
     assert_eq!(strace[0], Felt::new(should_validate as u64));
@@ -265,7 +265,7 @@ fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], point.x.a0);
     assert_eq!(strace[1], point.x.a1);
@@ -324,7 +324,7 @@ fn test_ec_ext5_point_encode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], w_prime.a0);
     assert_eq!(strace[1], w_prime.a1);
@@ -401,7 +401,7 @@ fn test_ec_ext5_point_addition(
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], q2.x.a0);
     assert_eq!(strace[1], q2.x.a1);
@@ -463,7 +463,7 @@ fn test_ec_ext5_point_doubling(
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], q1.x.a0);
     assert_eq!(strace[1], q1.x.a1);
@@ -550,7 +550,7 @@ fn test_ec_ext5_point_multiplication() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], p1.x.a0);
     assert_eq!(strace[1], p1.x.a1);
@@ -632,7 +632,7 @@ fn test_ec_ext5_gen_multiplication() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(strace[0], res.x.a0);
     assert_eq!(strace[1], res.x.a1);

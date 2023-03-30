@@ -1,4 +1,5 @@
-use miden_test_utils::{
+use miden_stdlib::StdLibrary;
+use miden_test::{
     build_debug_test, build_op_test, build_test, prop_randw, AdviceInputs, Felt, Test, TestError,
     STACK_TOP_SIZE, U32_BOUND,
 };

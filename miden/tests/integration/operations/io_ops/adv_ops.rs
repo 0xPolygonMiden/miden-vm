@@ -1,4 +1,4 @@
-use super::{build_op_test, build_test, TestError};
+use super::{build_op_test, build_test, StdLibrary, TestError};
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
@@ -15,7 +15,7 @@ fn adv_push() {
         final_stack.reverse();
 
         let test = build_op_test!(source, &[], &advice_stack);
-        test.expect_stack(&final_stack);
+        test.expect_stack(&final_stack, vec![StdLibrary::default()]);
     };
 
     // --- push 1 ---------------------------------------------------------------------------------
@@ -29,7 +29,10 @@ fn adv_push() {
 fn adv_push_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    test.expect_error(TestError::ExecutionError("AdviceStackReadFailed"));
+    test.expect_error(
+        TestError::ExecutionError("AdviceStackReadFailed"),
+        vec![StdLibrary::default()],
+    );
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -43,14 +46,17 @@ fn adv_loadw() {
     final_stack.reverse();
 
     let test = build_op_test!(asm_op, &[8, 7, 6, 5], &advice_stack);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 #[test]
 fn adv_loadw_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    test.expect_error(TestError::ExecutionError("AdviceStackReadFailed"));
+    test.expect_error(
+        TestError::ExecutionError("AdviceStackReadFailed"),
+        vec![StdLibrary::default()],
+    );
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)
@@ -83,5 +89,5 @@ fn adv_pipe() {
     final_stack.push(2);
 
     let test = build_test!(source, &[], &advice_stack);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }

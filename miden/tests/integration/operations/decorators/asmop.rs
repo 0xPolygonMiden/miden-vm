@@ -1,4 +1,4 @@
-use crate::build_debug_test;
+use crate::{build_debug_test, StdLibrary};
 use processor::{AsmOpInfo, VmStateIterator};
 use vm_core::{AssemblyOp, Felt, Operation};
 
@@ -6,7 +6,7 @@ use vm_core::{AssemblyOp, Felt, Operation};
 fn asmop_one_span_block_test() {
     let source = "begin push.1 push.2 add end";
     let test = build_debug_test!(source);
-    let vm_state_iterator = test.execute_iter();
+    let vm_state_iterator = test.execute_iter(vec![StdLibrary::default()]);
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
@@ -64,7 +64,7 @@ fn asmop_one_span_block_test() {
 fn asmop_with_one_procedure() {
     let source = "proc.foo push.1 push.2 add end begin exec.foo end";
     let test = build_debug_test!(source);
-    let vm_state_iterator = test.execute_iter();
+    let vm_state_iterator = test.execute_iter(vec![StdLibrary::default()]);
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
@@ -126,7 +126,7 @@ fn asmop_repeat_test() {
             end
         end";
     let test = build_debug_test!(source);
-    let vm_state_iterator = test.execute_iter();
+    let vm_state_iterator = test.execute_iter(vec![StdLibrary::default()]);
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
@@ -272,7 +272,7 @@ fn asmop_conditional_execution_test() {
 
     //if branch
     let test = build_debug_test!(source, &[1, 1]);
-    let vm_state_iterator = test.execute_iter();
+    let vm_state_iterator = test.execute_iter(vec![StdLibrary::default()]);
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
@@ -365,7 +365,7 @@ fn asmop_conditional_execution_test() {
 
     //else branch
     let test = build_debug_test!(source, &[1, 0]);
-    let vm_state_iterator = test.execute_iter();
+    let vm_state_iterator = test.execute_iter(vec![StdLibrary::default()]);
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,

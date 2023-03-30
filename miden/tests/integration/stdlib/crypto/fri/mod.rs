@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::{build_test, Felt};
+use super::{build_test, Felt, StdLibrary};
 use vm_core::{crypto::merkle::MerkleStore, StarkField};
 
 use math::log2;
@@ -53,7 +53,7 @@ fn fri_fold4_ext2_remainder32() {
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
-    test.expect_stack(&[]);
+    test.expect_stack(&[], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn fri_fold4_ext2_remainder64() {
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
-    test.expect_stack(&[]);
+    test.expect_stack(&[], vec![StdLibrary::default()]);
 }
 
 fn prepare_advice(

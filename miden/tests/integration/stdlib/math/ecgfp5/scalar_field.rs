@@ -1,4 +1,4 @@
-use super::build_test;
+use super::{build_test, StdLibrary};
 use std::{cmp::PartialEq, ops::Mul};
 use vm_core::StarkField;
 
@@ -269,7 +269,7 @@ fn test_ec_ext5_scalar_mont_mul() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     for i in 0..10 {
         assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
@@ -312,7 +312,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     for i in 0..10 {
         assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
@@ -351,7 +351,7 @@ fn test_ec_ext5_scalar_inv() {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let strace = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     for i in 0..10 {
         assert_eq!(strace[i].as_int(), b.limbs[i] as u64);

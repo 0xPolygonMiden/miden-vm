@@ -1,9 +1,9 @@
 use super::{cli::InputFile, ProgramError};
 use core::fmt;
 use miden::{utils::collections::Vec, AdviceProvider, Assembler, Operation, StackInputs};
+use miden_stdlib::StdLibrary;
 use processor::AsmOpInfo;
 use std::{fs, path::PathBuf};
-use stdlib::StdLibrary;
 use structopt::StructOpt;
 
 // CLI

@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::{build_test, Felt, StdLibrary};
 
 mod base_field;
 mod group;

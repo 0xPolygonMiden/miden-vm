@@ -5,8 +5,8 @@ use vm_core::{
     Felt, FieldElement, StarkField,
 };
 
-use crate::build_op_test;
-use miden_test_utils::crypto::{init_merkle_leaf, init_merkle_store};
+use crate::{build_op_test, StdLibrary};
+use miden_test::crypto::{init_merkle_leaf, init_merkle_store};
 
 // TESTS
 // ================================================================================================
@@ -20,7 +20,7 @@ fn hash() {
     let expected = build_expected_hash(&random_values);
 
     let test = build_op_test!(asm_op, &random_values);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected, &last_state[..4]);
 }
@@ -36,7 +36,7 @@ fn hperm() {
     let expected = build_expected_perm(&values);
 
     let test = build_op_test!(asm_op, &values);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected, &last_state[0..12]);
 
@@ -45,7 +45,7 @@ fn hperm() {
     let expected = build_expected_perm(&values);
 
     let test = build_op_test!(asm_op, &values);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected, &last_state[0..12]);
 
@@ -58,7 +58,7 @@ fn hperm() {
     stack_inputs.extend_from_slice(&values_to_hash);
 
     let test = build_op_test!(asm_op, &stack_inputs);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected_stack_slice, &last_state[12..16]);
 }
@@ -72,7 +72,7 @@ fn hmerge() {
     let expected = build_expected_hash(&values);
 
     let test = build_op_test!(asm_op, &values);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected, &last_state[..4]);
 
@@ -81,7 +81,7 @@ fn hmerge() {
     let expected = build_expected_hash(&values);
 
     let test = build_op_test!(asm_op, &values);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected, &last_state[..4]);
 
@@ -94,7 +94,7 @@ fn hmerge() {
     stack_inputs.extend_from_slice(&values_to_hash);
 
     let test = build_op_test!(asm_op, &stack_inputs);
-    let last_state = test.get_last_stack_state();
+    let last_state = test.get_last_stack_state(vec![StdLibrary::default()]);
 
     assert_eq!(expected_stack_slice, &last_state[4..8]);
 }
@@ -128,7 +128,7 @@ fn mtree_get() {
     ];
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], store);
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -176,7 +176,7 @@ fn mtree_update() {
     ];
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], store.clone());
-    test.expect_stack(&final_stack);
+    test.expect_stack(&final_stack, vec![StdLibrary::default()]);
 }
 
 // HELPER FUNCTIONS

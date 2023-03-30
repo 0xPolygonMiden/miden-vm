@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden::{execute, Assembler, MemAdviceProvider, StackInputs};
+use miden_stdlib::StdLibrary;
 use std::time::Duration;
-use stdlib::StdLibrary;
 
 fn program_execution(c: &mut Criterion) {
     let mut group = c.benchmark_group("program_execution");

@@ -1,4 +1,4 @@
-use crate::{build_test, TestError, U32_BOUND};
+use crate::{build_test, StdLibrary, TestError, U32_BOUND};
 use proptest::prelude::*;
 use rand_utils::rand_value;
 use std::cmp;
@@ -23,7 +23,7 @@ fn wrapping_add() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn checked_add() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack(&[6, 4]);
+    test.expect_stack(&[6, 4], vec![StdLibrary::default()]);
 
     // --- random values --------------------------------------------------------------------------
     // test using u16 values to ensure there's no overflow so the result is valid
@@ -48,7 +48,7 @@ fn checked_add() {
     let c1 = a1 + b1;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn checked_add_fail() {
     let b1 = u32::MAX as u64;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 
     // u32 limb assertion failure
     let a0 = rand_value::<u64>();
@@ -75,7 +75,7 @@ fn checked_add_fail() {
     let b1 = U32_BOUND;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn overflowing_add() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[0, c1, c0]);
+    test.expect_stack(&[0, c1, c0], vec![StdLibrary::default()]);
 
     let a = u64::MAX;
     let b = rand_value::<u64>();
@@ -106,7 +106,7 @@ fn overflowing_add() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[1, c1, c0]);
+    test.expect_stack(&[1, c1, c0], vec![StdLibrary::default()]);
 }
 
 // SUBTRACTION
@@ -129,7 +129,7 @@ fn wrapping_sub() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -142,7 +142,7 @@ fn checked_sub() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_test!(source, &[3, 4, 1, 2]);
-    test.expect_stack(&[2, 2]);
+    test.expect_stack(&[2, 2], vec![StdLibrary::default()]);
 
     // --- random values --------------------------------------------------------------------------
     let common = rand_value::<u64>();
@@ -157,7 +157,7 @@ fn checked_sub() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -175,7 +175,7 @@ fn checked_sub_fail() {
     let b1 = u32::MAX as u64;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 
     // u32 limb assertion failure
     let a0 = rand_value::<u64>();
@@ -184,7 +184,7 @@ fn checked_sub_fail() {
     let b1 = U32_BOUND;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -204,7 +204,7 @@ fn overflowing_sub() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[flag as u64, c1, c0]);
+    test.expect_stack(&[flag as u64, c1, c0], vec![StdLibrary::default()]);
 
     let base = rand_value::<u64>() as u32 as u64;
     let diff = rand_value::<u64>() as u32 as u64;
@@ -218,7 +218,7 @@ fn overflowing_sub() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[1, c1, c0]);
+    test.expect_stack(&[1, c1, c0], vec![StdLibrary::default()]);
 
     let base = rand_value::<u64>() as u32 as u64;
     let diff = rand_value::<u64>() as u32 as u64;
@@ -232,7 +232,7 @@ fn overflowing_sub() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[0, c1, c0]);
+    test.expect_stack(&[0, c1, c0], vec![StdLibrary::default()]);
 }
 
 // MULTIPLICATION
@@ -255,7 +255,7 @@ fn wrapping_mul() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -268,16 +268,16 @@ fn checked_mul() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_test!(source, &[1, 2, 0, 0]);
-    test.expect_stack(&[0, 0]);
+    test.expect_stack(&[0, 0], vec![StdLibrary::default()]);
 
     let test = build_test!(source, &[0, 0, 1, 2]);
-    test.expect_stack(&[0, 0]);
+    test.expect_stack(&[0, 0], vec![StdLibrary::default()]);
 
     let test = build_test!(source, &[5, 1, 1, 0]);
-    test.expect_stack(&[1, 5]);
+    test.expect_stack(&[1, 5], vec![StdLibrary::default()]);
 
     let test = build_test!(source, &[5, 2, 2, 0]);
-    test.expect_stack(&[4, 10]);
+    test.expect_stack(&[4, 10], vec![StdLibrary::default()]);
 
     // --- random values --------------------------------------------------------------------------
     let a0 = rand_value::<u64>() as u16 as u64;
@@ -288,7 +288,7 @@ fn checked_mul() {
     let c1 = a1 * b0;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -304,7 +304,7 @@ fn checked_mul_fail() {
         let mut stack_init = [1, 2, 3, 4];
         stack_init[i] = U32_BOUND;
         let test = build_test!(source, &stack_init);
-        test.expect_error(TestError::ExecutionError("NotU32Value"));
+        test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
     }
 
     // Higher bits assertion failure (a_hi * b_hi != 0)
@@ -315,7 +315,7 @@ fn checked_mul_fail() {
     let b1 = 3u64;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 
     // result overflow
     let a0 = rand_value::<u64>() as u32 as u64;
@@ -324,7 +324,7 @@ fn checked_mul_fail() {
     let b1 = 0u64;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("FailedAssertion"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -347,7 +347,7 @@ fn overflowing_mul() {
     let (c3, c2, c1, c0) = split_u128(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c3, c2, c1, c0]);
+    test.expect_stack(&[c3, c2, c1, c0], vec![StdLibrary::default()]);
 
     let a = rand_value::<u64>() as u128;
     let b = rand_value::<u64>() as u128;
@@ -361,7 +361,7 @@ fn overflowing_mul() {
     let (c3, c2, c1, c0) = split_u128(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c3, c2, c1, c0]);
+    test.expect_stack(&[c3, c2, c1, c0], vec![StdLibrary::default()]);
 }
 
 // COMPARISONS
@@ -377,13 +377,13 @@ fn unchecked_lt() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = 0, b = 1
-    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 1, b = 0
-    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0]);
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -395,13 +395,13 @@ fn unchecked_lte() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 0, b = 1
-    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 1, b = 0
-    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0]);
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // randomized test
     let a: u64 = rand_value();
@@ -410,7 +410,7 @@ fn unchecked_lte() {
 
     let (a1, a0) = split_u64(a);
     let (b1, b0) = split_u64(b);
-    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -423,13 +423,13 @@ fn unchecked_gt() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = 0, b = 1
-    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0]);
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = 1, b = 0
-    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1]);
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -441,13 +441,13 @@ fn unchecked_gte() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 0, b = 1
-    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0]);
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = 1, b = 0
-    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1]);
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // randomized test
     let a: u64 = rand_value();
@@ -456,7 +456,7 @@ fn unchecked_gte() {
 
     let (a1, a0) = split_u64(a);
     let (b1, b0) = split_u64(b);
-    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -469,13 +469,13 @@ fn unchecked_min() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0, 0]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0, 0], vec![StdLibrary::default()]);
 
     // a = 1, b = 2
-    build_test!(source, &[1, 0, 2, 0]).expect_stack(&[0, 1]);
+    build_test!(source, &[1, 0, 2, 0]).expect_stack(&[0, 1], vec![StdLibrary::default()]);
 
     // a = 3, b = 2
-    build_test!(source, &[3, 0, 2, 0]).expect_stack(&[0, 2]);
+    build_test!(source, &[3, 0, 2, 0]).expect_stack(&[0, 2], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -488,13 +488,13 @@ fn unchecked_max() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0, 0]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0, 0], vec![StdLibrary::default()]);
 
     // a = 1, b = 2
-    build_test!(source, &[1, 0, 2, 0]).expect_stack(&[0, 2]);
+    build_test!(source, &[1, 0, 2, 0]).expect_stack(&[0, 2], vec![StdLibrary::default()]);
 
     // a = 3, b = 2
-    build_test!(source, &[3, 0, 2, 0]).expect_stack(&[0, 3]);
+    build_test!(source, &[3, 0, 2, 0]).expect_stack(&[0, 3], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -506,13 +506,13 @@ fn unchecked_eq() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 0, b = 1
-    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0]);
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = 1, b = 0
-    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0]);
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // randomized test
     let a: u64 = rand_value();
@@ -521,7 +521,7 @@ fn unchecked_eq() {
 
     let (a1, a0) = split_u64(a);
     let (b1, b0) = split_u64(b);
-    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -533,13 +533,13 @@ fn unchecked_neq() {
         end";
 
     // a = 0, b = 0
-    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0]);
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // a = 0, b = 1
-    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 1, b = 0
-    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1]);
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // randomized test
     let a: u64 = rand_value();
@@ -548,7 +548,7 @@ fn unchecked_neq() {
 
     let (a1, a0) = split_u64(a);
     let (b1, b0) = split_u64(b);
-    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -560,17 +560,17 @@ fn unchecked_eqz() {
         end";
 
     // a = 0
-    build_test!(source, &[0, 0]).expect_stack(&[1]);
+    build_test!(source, &[0, 0]).expect_stack(&[1], vec![StdLibrary::default()]);
 
     // a = 1
-    build_test!(source, &[1, 0]).expect_stack(&[0]);
+    build_test!(source, &[1, 0]).expect_stack(&[0], vec![StdLibrary::default()]);
 
     // randomized test
     let a: u64 = rand_value();
     let c = (a == 0) as u64;
 
     let (a1, a0) = split_u64(a);
-    build_test!(source, &[a0, a1]).expect_stack(&[c]);
+    build_test!(source, &[a0, a1]).expect_stack(&[c], vec![StdLibrary::default()]);
 }
 
 // DIVISION
@@ -593,13 +593,13 @@ fn unchecked_div() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 
     let d = a / b0;
     let (d1, d0) = split_u64(d);
 
     let test = build_test!(source, &[a0, a1, b0, 0]);
-    test.expect_stack(&[d1, d0]);
+    test.expect_stack(&[d1, d0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -615,7 +615,7 @@ fn checked_div_fail() {
         let mut stack_init = [1, 2, 3, 4];
         stack_init[i] = U32_BOUND;
         let test = build_test!(source, &stack_init);
-        test.expect_error(TestError::ExecutionError("NotU32Value"));
+        test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
     }
 }
 
@@ -639,13 +639,13 @@ fn unchecked_mod() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 
     let d = a % b0;
     let (d1, d0) = split_u64(d);
 
     let test = build_test!(source, &[a0, a1, b0, 0]);
-    test.expect_stack(&[d1, d0]);
+    test.expect_stack(&[d1, d0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -661,7 +661,7 @@ fn checked_mod_fail() {
         let mut stack_init = [1, 2, 3, 4];
         stack_init[i] = U32_BOUND;
         let test = build_test!(source, &stack_init);
-        test.expect_error(TestError::ExecutionError("NotU32Value"));
+        test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
     }
 }
 
@@ -687,7 +687,7 @@ fn unchecked_divmod() {
     let (r1, r0) = split_u64(r);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[r1, r0, q1, q0]);
+    test.expect_stack(&[r1, r0, q1, q0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -703,7 +703,7 @@ fn checked_divmod_fail() {
         let mut stack_init = [1, 2, 3, 4];
         stack_init[i] = U32_BOUND;
         let test = build_test!(source, &stack_init);
-        test.expect_error(TestError::ExecutionError("NotU32Value"));
+        test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
     }
 }
 
@@ -727,7 +727,7 @@ fn checked_and() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -745,7 +745,7 @@ fn checked_and_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -765,7 +765,7 @@ fn checked_or() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -783,7 +783,7 @@ fn checked_or_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -803,7 +803,7 @@ fn checked_xor() {
     let (c1, c0) = split_u64(c);
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
+    test.expect_stack(&[c1, c0], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -821,7 +821,7 @@ fn checked_xor_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"), vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -837,14 +837,16 @@ fn unchecked_shl() {
     let (a1, a0) = split_u64(a);
     let b: u32 = 0;
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[a1, a0, 5], vec![StdLibrary::default()]);
 
     // shift by 31 (max lower limb of b)
     let b: u32 = 31;
     let c = a.wrapping_shl(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 32 (min for upper limb of b)
     let a = 1_u64;
@@ -853,7 +855,8 @@ fn unchecked_shl() {
     let c = a.wrapping_shl(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 33
     let a = 1_u64;
@@ -862,7 +865,8 @@ fn unchecked_shl() {
     let c = a.wrapping_shl(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift 64 by 58
     let a = 64_u64;
@@ -871,7 +875,8 @@ fn unchecked_shl() {
     let c = a.wrapping_shl(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -887,20 +892,24 @@ fn unchecked_shr() {
     let (a1, a0) = split_u64(a);
     let b: u32 = 0;
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[a1, a0, 5], vec![StdLibrary::default()]);
 
     // simple right shift
-    build_test!(source, &[5, 1, 1, 1]).expect_stack(&[0, 2_u64.pow(31), 5]);
+    build_test!(source, &[5, 1, 1, 1])
+        .expect_stack(&[0, 2_u64.pow(31), 5], vec![StdLibrary::default()]);
 
     // simple right shift
-    build_test!(source, &[5, 3, 3, 1]).expect_stack(&[1, 2_u64.pow(31) + 1, 5]);
+    build_test!(source, &[5, 3, 3, 1])
+        .expect_stack(&[1, 2_u64.pow(31) + 1, 5], vec![StdLibrary::default()]);
 
     // shift by 31 (max lower limb of b)
     let b: u32 = 31;
     let c = a.wrapping_shr(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 32 (min for upper limb of b)
     let a = 1_u64;
@@ -909,7 +918,8 @@ fn unchecked_shr() {
     let c = a.wrapping_shr(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 33
     let a = 1_u64;
@@ -918,7 +928,8 @@ fn unchecked_shr() {
     let c = a.wrapping_shr(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift 4294967296 by 2
     let a = 4294967296;
@@ -927,7 +938,8 @@ fn unchecked_shr() {
     let c = a.wrapping_shr(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -949,14 +961,16 @@ fn overflowing_shl() {
     let c = shl_to_u128(a, b);
     let (d1, d0, c1, c0) = split_u128(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 31 (max lower limb of b)
     let b: u32 = 31;
     let c = shl_to_u128(a, b);
     let (d1, d0, c1, c0) = split_u128(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 32 (min for upper limb of b)
     let a = 1_u64;
@@ -965,7 +979,8 @@ fn overflowing_shl() {
     let c = shl_to_u128(a, b);
     let (d1, d0, c1, c0) = split_u128(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 33
     let a = 1_u64;
@@ -974,7 +989,8 @@ fn overflowing_shl() {
     let c = shl_to_u128(a, b);
     let (d1, d0, c1, c0) = split_u128(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift 64 by 58
     let a = 64_u64;
@@ -983,7 +999,8 @@ fn overflowing_shl() {
     let c = shl_to_u128(a, b);
     let (d1, d0, c1, c0) = split_u128(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -1013,7 +1030,8 @@ fn overflowing_shr() {
     let d = bits_shifted_out(a, b);
     let (d1, d0) = split_u64(d);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 31 (max lower limb of b)
     let b: u32 = 31;
@@ -1023,7 +1041,8 @@ fn overflowing_shr() {
     let d = bits_shifted_out(a, b);
     let (d1, d0) = split_u64(d);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 32 (min for upper limb of b)
     let a = 1_u64;
@@ -1034,7 +1053,8 @@ fn overflowing_shr() {
     let d = bits_shifted_out(a, b);
     let (d1, d0) = split_u64(d);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 33
     let a = 1_u64;
@@ -1045,7 +1065,8 @@ fn overflowing_shr() {
     let d = bits_shifted_out(a, b);
     let (d1, d0) = split_u64(d);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift 64 by 58
     let a = 64_u64;
@@ -1056,7 +1077,8 @@ fn overflowing_shr() {
     let d = bits_shifted_out(a, b);
     let (d1, d0) = split_u64(d);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[d1, d0, c1, c0, 5], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -1072,14 +1094,16 @@ fn unchecked_rotl() {
     let (a1, a0) = split_u64(a);
     let b: u32 = 0;
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[a1, a0, 5], vec![StdLibrary::default()]);
 
     // shift by 31 (max lower limb of b)
     let b: u32 = 31;
     let c = a.rotate_left(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 32 (min for upper limb of b)
     let a = 1_u64;
@@ -1088,7 +1112,8 @@ fn unchecked_rotl() {
     let c = a.rotate_left(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 33
     let a = 1_u64;
@@ -1097,7 +1122,8 @@ fn unchecked_rotl() {
     let c = a.rotate_left(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift 64 by 58
     let a = 64_u64;
@@ -1106,7 +1132,8 @@ fn unchecked_rotl() {
     let c = a.rotate_left(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 }
 
 #[test]
@@ -1122,14 +1149,16 @@ fn unchecked_rotr() {
     let (a1, a0) = split_u64(a);
     let b: u32 = 0;
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[a1, a0, 5], vec![StdLibrary::default()]);
 
     // shift by 31 (max lower limb of b)
     let b: u32 = 31;
     let c = a.rotate_right(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 32 (min for upper limb of b)
     let a = 1_u64;
@@ -1138,7 +1167,8 @@ fn unchecked_rotr() {
     let c = a.rotate_right(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift by 33
     let a = 1_u64;
@@ -1147,7 +1177,8 @@ fn unchecked_rotr() {
     let c = a.rotate_right(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 
     // shift 64 by 58
     let a = 64_u64;
@@ -1156,7 +1187,8 @@ fn unchecked_rotr() {
     let c = a.rotate_right(b);
     let (c1, c0) = split_u64(c);
 
-    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+    build_test!(source, &[5, a0, a1, b as u64])
+        .expect_stack(&[c1, c0, 5], vec![StdLibrary::default()]);
 }
 
 // RANDOMIZED TESTS
@@ -1176,7 +1208,7 @@ proptest! {
                 exec.u64::unchecked_lt
             end";
 
-        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1192,7 +1224,7 @@ proptest! {
                 exec.u64::unchecked_gt
             end";
 
-        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1208,7 +1240,7 @@ proptest! {
                 exec.u64::unchecked_min
             end";
 
-        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1224,7 +1256,7 @@ proptest! {
                 exec.u64::unchecked_max
             end";
 
-        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1242,7 +1274,7 @@ proptest! {
                 exec.u64::unchecked_div
             end";
 
-        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1260,7 +1292,7 @@ proptest! {
                 exec.u64::unchecked_mod
             end";
 
-        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0], vec![StdLibrary::default()])?;
     }
 
     fn shl_proptest(a in any::<u64>(), b in 0_u32..64) {
@@ -1276,7 +1308,7 @@ proptest! {
             exec.u64::unchecked_shl
         end";
 
-        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1293,7 +1325,7 @@ proptest! {
             exec.u64::unchecked_shr
         end";
 
-        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1310,7 +1342,7 @@ proptest! {
             exec.u64::unchecked_rotl
         end";
 
-        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5], vec![StdLibrary::default()])?;
     }
 
     #[test]
@@ -1327,7 +1359,7 @@ proptest! {
             exec.u64::unchecked_rotr
         end";
 
-        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5], vec![StdLibrary::default()])?;
     }
 }
 

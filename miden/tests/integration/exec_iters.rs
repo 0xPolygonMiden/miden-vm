@@ -1,4 +1,4 @@
-use super::build_debug_test;
+use super::{build_debug_test, StdLibrary};
 use processor::{AsmOpInfo, VmState};
 use vm_core::{utils::ToElements, AssemblyOp, Felt, FieldElement, Operation};
 
@@ -12,7 +12,7 @@ fn test_exec_iter() {
         init_stack.push(i);
     });
     let test = build_debug_test!(source, &init_stack);
-    let traces = test.execute_iter();
+    let traces = test.execute_iter(vec![StdLibrary::default()]);
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + Felt::ONE;
     let mem = vec![(1_u64, slice_to_word(&[13, 14, 15, 16]))];
