@@ -66,3 +66,7 @@ predicates = "3.0"
 test-utils = { package = "miden-test-utils", path = "../test-utils", version = "0.1" }
 vm-core = { package = "miden-core", path = "../core", version = "0.6" }
 winter-fri = { package = "winter-fri", version = "0.6" }
+winter-utils = { package = "winter-utils", version = "0.6" }
+winter-air = { package = "winter-air", version = "0.6" }
+miden-air = { package = "miden-air", path = "../air", version = "0.6", default-features = false }
+serde_json = "1.0.94"
