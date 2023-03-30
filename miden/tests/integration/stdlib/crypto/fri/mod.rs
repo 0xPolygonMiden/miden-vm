@@ -25,7 +25,7 @@ fn fri_fold4_ext2_remainder32() {
         end
         ";
 
-    let trace_len_e = 12;
+    let trace_len_e = 14;
     let blowup_exp = 3;
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
@@ -51,7 +51,7 @@ fn fri_fold4_ext2_remainder32() {
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
-    test.expect_stack(&[0; 16]);
+    test.expect_stack(&[]);
 }
 
 #[test]

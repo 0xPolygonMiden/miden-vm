@@ -1,23 +1,23 @@
 // VERIFIER CHANNEL
 // ================================================================================================
 
-use std::vec;
+use std::{mem, vec};
 
 use super::VerifierError;
-use miden::{Digest, MerkleSet, Rpo256};
-use miden_air::{Felt, ProcessorAir};
+use miden::{crypto::Rpo256, utils::IntoBytes, Digest};
+use miden_air::{Felt, FieldElement, ProcessorAir};
 use vm_core::{
     crypto::merkle::{MerklePath, MerklePathSet},
-    QuadExtension,
+    QuadExtension, ZERO,
 };
 use winter_air::{
     proof::{Queries, StarkProof, Table},
     Air, EvaluationFrame,
 };
-use winter_fri::VerifierChannel as FriVerifierChannel;
-use winter_utils::{collections::Vec, string::ToString};
-use winterfell::crypto::BatchMerkleProof;
+use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
+use winter_utils::{collections::Vec, group_vector_elements, string::ToString};
 use winterfell::math::StarkField;
+use winterfell::{crypto::BatchMerkleProof, math::log2};
 
 pub type QuadExt = QuadExtension<Felt>;
 /// A view into a [StarkProof] for a computation structured to simulate an "interactive" channel.
@@ -75,7 +75,6 @@ impl VerifierChannel {
         let (trace_roots, constraint_root, fri_roots) = commitments
             .parse::<Rpo256>(num_trace_segments, fri_options.num_fri_layers(lde_domain_size))
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
-
         // --- parse trace and constraint queries -------------------------------------------------
         let trace_queries = TraceQueries::new(trace_queries, air)?;
         let constraint_queries = ConstraintQueries::new(constraint_queries, air)?;
@@ -166,18 +165,28 @@ impl VerifierChannel {
     pub fn read_queried_trace_states(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Table<Felt>, Option<Table<QuadExt>>, Vec<MerkleSet>), VerifierError> {
+    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, Vec<MerklePathSet>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
         let mut sets = vec![];
-        for (_root, proof) in self.trace_roots.iter().zip(queries.query_proofs.into_iter()) {
-            let positions = positions.to_vec();
-            let (new_set, _leaves) = unbatch_to_path_set(positions, proof);
-            let new_set = MerkleSet::MerklePathSet(new_set);
 
-            sets.push(new_set);
-        }
-
-        Ok((queries.main_states, queries.aux_states, sets))
+        let proofs: Vec<_> = queries.query_proofs.into_iter().collect();
+        let main_queries = queries.main_states;
+        let aux_queries = queries.aux_states;
+        let main_queries_vec: Vec<Vec<Felt>> = main_queries.rows().map(|a| a.to_owned()).collect();
+        let aux_queries_vec: Vec<Vec<Felt>> = aux_queries
+            .as_ref()
+            .unwrap()
+            .rows()
+            .map(|a| QuadExt::slice_as_base_elements(a).to_vec())
+            .collect();
+        let (main_trace_set, mut main_trace_adv_map) =
+            unbatch_to_path_set(positions.to_vec(), main_queries_vec, proofs[0].clone());
+        let (aux_trace_set, mut aux_trace_adv_map) =
+            unbatch_to_path_set(positions.to_vec(), aux_queries_vec, proofs[1].clone());
+        sets.push(main_trace_set);
+        sets.push(aux_trace_set);
+        main_trace_adv_map.append(&mut aux_trace_adv_map);
+        Ok((main_trace_adv_map, sets))
     }
 
     /// Returns constraint evaluations at the specified positions of the LDE domain. This also
@@ -186,16 +195,19 @@ impl VerifierChannel {
     pub fn read_constraint_evaluations(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Table<QuadExt>, MerkleSet), VerifierError> {
+    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, MerklePathSet), VerifierError> {
         let queries = self.constraint_queries.take().expect("already read");
+        let proof = queries.query_proofs;
 
-        //MerkleTree::verify_batch(&self.constraint_root, positions, &queries.query_proofs)
-        //.map_err(|_| VerifierError::ConstraintQueryDoesNotMatchCommitment)?;
-        let positions = positions.to_vec();
-        let (set, _nodes) = unbatch_to_path_set(positions, queries.query_proofs);
-        let set = MerkleSet::MerklePathSet(set);
+        let queries_: Vec<Vec<Felt>> = queries
+            .evaluations
+            .rows()
+            .map(|a| a.iter().flat_map(|x| QuadExt::to_base_elements(*x).to_owned()).collect())
+            .collect();
+        let (constraint_set, constraint_adv_map) =
+            unbatch_to_path_set(positions.to_vec(), queries_, proof);
 
-        Ok((queries.evaluations, set))
+        Ok((constraint_adv_map, constraint_set))
     }
 
     // Get the FRI layer challenges alpha
@@ -206,6 +218,87 @@ impl VerifierChannel {
     // Get remainder codeword
     pub fn fri_remainder(&self) -> Vec<QuadExt> {
         self.fri_remainder.clone().unwrap()
+    }
+    //
+    pub fn layer_proofs(&self) -> Vec<BatchMerkleProof<Rpo256>> {
+        self.fri_layer_proofs.clone()
+    }
+
+    pub fn unbatch<const N: usize, const W: usize>(
+        &mut self,
+        positions_: &[usize],
+        domain_size: usize,
+        layer_commitments: Vec<Digest>,
+    ) -> (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>) {
+        let queries = self.fri_layer_queries.clone();
+        let mut current_domain_size = domain_size;
+        let mut positions = positions_.to_vec();
+        let depth = layer_commitments.len() - 1;
+
+        let mut adv_key_map = vec![];
+        let mut sets = vec![];
+        let mut layer_proofs = self.layer_proofs();
+        for i in 0..depth {
+            let mut folded_positions = fold_positions(&positions, current_domain_size, N);
+
+            let layer_proof = layer_proofs.remove(0);
+
+            let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
+            let x = group_vector_elements::<QuadExt, N>(queries[i].clone());
+            assert_eq!(x.len(), unbatched_proof.len());
+
+            let nodes: Vec<[Felt; 4]> = unbatched_proof
+                .iter_mut()
+                .map(|list| {
+                    let node = list.remove(0);
+                    let node = node.as_elements().to_owned();
+                    [node[0], node[1], node[2], node[3]]
+                })
+                .collect();
+
+            let paths: Vec<MerklePath> = unbatched_proof
+                .iter()
+                .map(|list| {
+                    list.iter()
+                        .map(|digest| {
+                            let node = digest.as_elements();
+                            let node = [node[0], node[1], node[2], node[3]];
+                            node
+                        })
+                        .collect()
+                })
+                .collect();
+
+            let new_set = MerklePathSet::new((log2(current_domain_size / N)) as u8);
+
+            let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
+            let nodes_tmp = nodes.clone();
+            let iter_nodes = nodes_tmp.iter();
+            let iter_paths = paths.into_iter();
+            let mut tmp_vec = vec![];
+            for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
+                tmp_vec.push((p, *node, path));
+            }
+
+            let new_set = new_set.with_paths(tmp_vec).expect("should not fail from paths");
+            sets.push(new_set);
+
+            let _empty: () = nodes
+                .into_iter()
+                .zip(x.iter())
+                .map(|(a, b)| {
+                    let mut value = QuadExt::slice_as_base_elements(b).to_owned();
+                    value.extend([ZERO; 4]);
+
+                    adv_key_map.push((a.to_owned().into_bytes(), value));
+                })
+                .collect();
+
+            mem::swap(&mut positions, &mut folded_positions);
+            current_domain_size = current_domain_size / N;
+        }
+
+        (sets, adv_key_map)
     }
 }
 
@@ -366,11 +459,12 @@ impl TraceOodFrame {
 // Helper
 pub fn unbatch_to_path_set(
     mut positions: Vec<usize>,
+    queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
-) -> (MerklePathSet, Vec<[Felt; 4]>) {
+) -> (MerklePathSet, Vec<([u8; 32], Vec<Felt>)>) {
     let mut unbatched_proof = proof.into_paths(&positions).unwrap();
     let depth = unbatched_proof[0].len() as u8;
-    //let mut adv_key_map = vec![];
+    let mut adv_key_map = vec![];
     let nodes: Vec<[Felt; 4]> = unbatched_proof
         .iter_mut()
         .map(|list| {
@@ -393,7 +487,7 @@ pub fn unbatch_to_path_set(
         })
         .collect();
 
-    let new_set = MerklePathSet::new(depth);
+    let new_set = MerklePathSet::new(depth - 1);
 
     let iter_pos = positions.iter_mut().map(|a| *a as u64);
     let nodes_tmp = nodes.clone();
@@ -404,5 +498,14 @@ pub fn unbatch_to_path_set(
         tmp_vec.push((p, *node, path));
     }
 
-    (new_set.with_paths(tmp_vec).expect("should not fail from paths"), nodes_tmp)
+    let _empty: () = nodes
+        .into_iter()
+        .zip(queries.iter())
+        .map(|(a, b)| {
+            let data = b.to_owned();
+            adv_key_map.push((a.to_owned().into_bytes(), data));
+        })
+        .collect();
+
+    (new_set.with_paths(tmp_vec).expect("should not fail from paths"), adv_key_map)
 }
