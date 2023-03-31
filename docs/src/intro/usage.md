@@ -55,6 +55,21 @@ For example:
 ./target/optimized/miden prove --help
 ```
 
+To execute a program using the Miden VM there need to be a `masm` file containing the Miden Assembly code and an `inputs` file containing the inputs. 
+
+As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs) the Miden VM can consume public and secret inputs. 
+
+* Public inputs - `operand_stack` - can be supplied to the VM by initializing the stack with desired values before a program starts executing. Up to 16 stack items can be initialized in this way.
+* Secret (or nondeterministic) inputs:
+  * `advice_stack` - can be supplied to the VM. There is no limit on how much data the advice provider can hold. This is provided as a string array where each
+  string entry represents a field element.
+  * `advice_map` - is supplied as a map of 64 character long hex keys mapped to an array of numbers.  The hex keys are interpreted as 4 field elements and the 
+  array of numbers is interpreted as an array of field elements.
+  * `merkle_store` - the merkle store is container that allows the user to define `merkle_tree` and `sparse_merkle_tree` data structures.
+    * `merkle_tree` - is supplied as an array of 64 character long hex values where each value represents a leaf (4 elements) in the tree.
+    * `sparse_merkle_tree` - is supplied an an array of tuples of (number, 64 character hex string).  The number represents the leaf index and the hex string 
+    represents the leaf value (4 elements).  
+
 ## Fibonacci example
 In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 ```
