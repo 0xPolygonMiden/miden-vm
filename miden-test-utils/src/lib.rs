@@ -1,11 +1,19 @@
-pub use vm_core::{stack::STACK_TOP_SIZE, Felt};
-
 pub mod crypto;
 mod tester;
+
+pub use processor;
+pub use proptest;
+pub use prover;
+pub use rand_utils;
+pub use test_case::test_case;
 pub use tester::{
     convert_to_stack, prop_randw, AdviceInputs, MerkleStore, StackInputs, Test, TestError,
     U32_BOUND,
 };
+pub use verifier;
+pub use vm_core;
+pub use vm_core::{stack::STACK_TOP_SIZE, Felt};
+pub use winterfell;
 
 // MACROS TO BUILD TESTS
 // ================================================================================================
