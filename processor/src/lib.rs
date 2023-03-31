@@ -64,7 +64,7 @@ pub mod math {
 pub mod crypto {
     pub use vm_core::crypto::{
         hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256},
-        merkle::{MerkleError, MerkleStore, MerkleTree, SimpleSmt},
+        merkle::{MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree, SimpleSmt},
         random::{RandomCoin, RpoRandomCoin, WinterRandomCoin},
     };
 }
