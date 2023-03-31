@@ -55,6 +55,26 @@ For example:
 ./target/optimized/miden prove --help
 ```
 
+To execute a program using the Miden VM there needs to be a `.masm` file containing the Miden Assembly code and a `.inputs` file containing the inputs. 
+
+### Inputs
+
+As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs) the Miden VM can consume public and secret inputs. 
+
+* Public inputs:
+  * `operand_stack` - can be supplied to the VM to initialize the stack with the desired values before a program starts executing. There is no limit on the number of stack inputs that can be initialized in this way, although increasing the number of public inputs increases the cost to the verifier.
+* Secret (or nondeterministic) inputs:
+  * `advice_stack` - can be supplied to the VM. There is no limit on how much data the advice provider can hold. This is provided as a string array where each string entry represents a field element.
+  * `advice_map` - is supplied as a map of 64-character hex keys, each mapped to an array of numbers.  The hex keys are interpreted as 4 field elements and the arrays of numbers are interpreted as arrays of field elements.
+  * `merkle_store` - the Merkle store is container that allows the user to define `merkle_tree` and `sparse_merkle_tree` data structures.
+    * `merkle_tree` - is supplied as an array of 64-character hex values where each value represents a leaf (4 elements) in the tree.
+    * `sparse_merkle_tree` - is supplied an an array of tuples of the form (number, 64-character hex string).  The number represents the leaf index and the hex string 
+    represents the leaf value (4 elements). 
+
+*Check out the [comparison example](https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm) to see how secret inputs work.*
+
+After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (`overflow_addrs`) that are required to reconstruct the [stack overflow table](../design/stack/main.md#overflow-table).
+
 ## Fibonacci example
 In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 ```
