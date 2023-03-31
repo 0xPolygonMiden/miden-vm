@@ -1,0 +1,291 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>REPL - Polygon Miden VM</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../intro/main.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../intro/overview.html"><strong aria-hidden="true">1.1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../intro/usage.html"><strong aria-hidden="true">1.2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="../intro/performance.html"><strong aria-hidden="true">1.3.</strong> Performance</a></li></ol></li><li class="chapter-item expanded "><a href="../tools/main.html"><strong aria-hidden="true">2.</strong> Development tooling</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../tools/debugger.html"><strong aria-hidden="true">2.1.</strong> Debugger</a></li><li class="chapter-item expanded "><a href="../tools/repl.html" class="active"><strong aria-hidden="true">2.2.</strong> REPL</a></li></ol></li><li class="chapter-item expanded "><a href="../user_docs/main.html"><strong aria-hidden="true">3.</strong> User Documentation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../user_docs/assembly/main.html"><strong aria-hidden="true">3.1.</strong> Miden Assembly</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../user_docs/assembly/code_organization.html"><strong aria-hidden="true">3.1.1.</strong> Code Organization</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/execution_contexts.html"><strong aria-hidden="true">3.1.2.</strong> Execution contexts</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/flow_control.html"><strong aria-hidden="true">3.1.3.</strong> Flow Control</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/field_operations.html"><strong aria-hidden="true">3.1.4.</strong> Field Operations</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/u32_operations.html"><strong aria-hidden="true">3.1.5.</strong> u32 Operations</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/stack_manipulation.html"><strong aria-hidden="true">3.1.6.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/io_operations.html"><strong aria-hidden="true">3.1.7.</strong> Input / Output Operations</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/cryptographic_operations.html"><strong aria-hidden="true">3.1.8.</strong> Cryptographic Operations</a></li></ol></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/main.html"><strong aria-hidden="true">3.2.</strong> Miden Standard Library</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../user_docs/stdlib/crypto/fri.html"><strong aria-hidden="true">3.2.1.</strong> std::crypto::fri</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/crypto/hashes.html"><strong aria-hidden="true">3.2.2.</strong> std::crypto::hashes</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/math/u64.html"><strong aria-hidden="true">3.2.3.</strong> std::math::u64</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/mem.html"><strong aria-hidden="true">3.2.4.</strong> std::mem</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/sys.html"><strong aria-hidden="true">3.2.5.</strong> std:sys</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../design/main.html"><strong aria-hidden="true">4.</strong> Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/programs.html"><strong aria-hidden="true">4.1.</strong> Programs</a></li><li class="chapter-item expanded "><a href="../design/decoder/main.html"><strong aria-hidden="true">4.2.</strong> Program decoder</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/decoder/constraints.html"><strong aria-hidden="true">4.2.1.</strong> Decoder constraints</a></li></ol></li><li class="chapter-item expanded "><a href="../design/stack/main.html"><strong aria-hidden="true">4.3.</strong> Operand stack</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/stack/op_constraints.html"><strong aria-hidden="true">4.3.1.</strong> Operation constraints</a></li><li class="chapter-item expanded "><a href="../design/stack/system_ops.html"><strong aria-hidden="true">4.3.2.</strong> System operations</a></li><li class="chapter-item expanded "><a href="../design/stack/field_ops.html"><strong aria-hidden="true">4.3.3.</strong> Field operations</a></li><li class="chapter-item expanded "><a href="../design/stack/u32_ops.html"><strong aria-hidden="true">4.3.4.</strong> u32 operations</a></li><li class="chapter-item expanded "><a href="../design/stack/stack_ops.html"><strong aria-hidden="true">4.3.5.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../design/stack/io_ops.html"><strong aria-hidden="true">4.3.6.</strong> Input / output operations</a></li><li class="chapter-item expanded "><a href="../design/stack/crypto_ops.html"><strong aria-hidden="true">4.3.7.</strong> Cryptographic operations</a></li></ol></li><li class="chapter-item expanded "><a href="../design/range.html"><strong aria-hidden="true">4.4.</strong> Range Checker</a></li><li class="chapter-item expanded "><a href="../design/chiplets/main.html"><strong aria-hidden="true">4.5.</strong> Chiplets</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/chiplets/hasher.html"><strong aria-hidden="true">4.5.1.</strong> Hash Chiplet</a></li><li class="chapter-item expanded "><a href="../design/chiplets/bitwise.html"><strong aria-hidden="true">4.5.2.</strong> Bitwise Chiplet</a></li><li class="chapter-item expanded "><a href="../design/chiplets/memory.html"><strong aria-hidden="true">4.5.3.</strong> Memory Chiplet</a></li></ol></li><li class="chapter-item expanded "><a href="../design/multiset.html"><strong aria-hidden="true">4.6.</strong> Multiset checks</a></li></ol></li><li class="chapter-item expanded "><a href="../background.html"><strong aria-hidden="true">5.</strong> Background Material</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Polygon Miden VM</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/0xPolygonMiden/miden-vm/" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<h1 id="miden-repl"><a class="header" href="#miden-repl">Miden REPL</a></h1>
+<p>The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging of Miden assembly. After the REPL gets initialized, you can execute any Miden instruction, undo executed instructions, check the state of the stack and memory at a given point, and do many other useful things! When the REPL is exited, a <code>history.txt</code> file is saved. One thing to note is that all the REPL native commands start with an <code>!</code> to differentiate them from regular assembly instructions.</p>
+<p>Miden REPL can be started via the CLI <a href="../intro/usage.html#cli-interface">repl</a> command like so:</p>
+<pre><code class="language-Shell">./target/optimized/miden repl
+</code></pre>
+<h3 id="miden-assembly-instruction"><a class="header" href="#miden-assembly-instruction">Miden assembly instruction</a></h3>
+<p>All Miden instructions mentioned in the <a href="../user_docs/assembly/main.html">Miden Assembly sections</a> are valid. One can either input instructions one by one or multiple instructions in one input.</p>
+<p>For example, the below two commands will result in the same output.</p>
+<pre><code>&gt;&gt; push.1
+&gt;&gt; push.2
+&gt;&gt; push.3
+</code></pre>
+<pre><code>push.1 push.2 push.3
+</code></pre>
+<p>To execute a control flow operation, one must write the entire statement in a single line with spaces between individual operations.</p>
+<pre><code>repeat.20
+    pow2
+end
+</code></pre>
+<p>The above example should be written as follows in the REPL tool:</p>
+<pre><code>repeat.20 pow2 end
+</code></pre>
+<h3 id="help"><a class="header" href="#help">!help</a></h3>
+<p>The <code>!help</code> command prints out all the available commands in the REPL tool.</p>
+<h3 id="program"><a class="header" href="#program">!program</a></h3>
+<p>The <code>!program</code> command prints out the entire Miden program being executed. E.g., in the below scenario:</p>
+<pre><code>&gt;&gt; push.1.2.3.4
+&gt;&gt; repeat.16 pow2 end
+&gt;&gt; u32checked_add
+
+&gt;&gt; !program
+begin
+    push.1.2.3.4
+    repeat.16 pow2 end
+    u32checked_add
+end
+</code></pre>
+<h3 id="stack"><a class="header" href="#stack">!stack</a></h3>
+<p>The <code>!stack</code> command prints out the state of the stack at the last executed instruction. Since the stack always contains at least 16 elements, 16 or more elements will be printed out (even if all of them are zeros).</p>
+<pre><code>&gt;&gt; push.1 push.2 push.3 push.4 push.5
+&gt;&gt; exp
+&gt;&gt; u32checked_mul
+&gt;&gt; swap
+&gt;&gt; eq.2
+&gt;&gt; assert
+</code></pre>
+<p>The <code>!stack</code> command will print out the following state of the stack:</p>
+<pre><code>&gt;&gt; !stack
+3072 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+</code></pre>
+<h3 id="mem"><a class="header" href="#mem">!mem</a></h3>
+<p>The <code>!mem</code> command prints out the contents of all initialized memory locations. For each such location, the address, along with its memory values, is printed. Recall that four elements are stored at each memory address.</p>
+<p>If the memory has at least one value that has been initialized:</p>
+<pre><code>&gt;&gt; !mem
+7: [1, 2, 0, 3]
+8: [5, 7, 3, 32]
+9: [9, 10, 2, 0]
+</code></pre>
+<p>If the memory is not yet been initialized:</p>
+<pre><code>&gt;&gt; !mem
+The memory has not been initialized yet
+</code></pre>
+<h3 id="memaddr"><a class="header" href="#memaddr">!mem[addr]</a></h3>
+<p>The <code>!mem[addr]</code> command prints out memory contents at the address specified by <code>addr</code>.</p>
+<p>If the <code>addr</code> has been initialized:</p>
+<pre><code>&gt;&gt; !mem[9]
+9: [9, 10, 2, 0]
+</code></pre>
+<p>If the <code>addr</code> has not been initialized:</p>
+<pre><code>&gt;&gt; !mem[87]
+Memory at address 87 is empty
+</code></pre>
+<h3 id="undo"><a class="header" href="#undo">!undo</a></h3>
+<p>The <code>!undo</code> command reverts to the previous state of the stack and memory by dropping off the last executed assembly instruction from the program. One could use <code>!undo</code> as often as they want to restore the state of a stack and memory <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> instructions ago (provided there are <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> instructions in the program). The <code>!undo</code> command will result in an error if no remaining instructions are left in the Miden program.</p>
+<pre><code>&gt;&gt; push.1 push.2 push.3
+&gt;&gt; push.4
+&gt;&gt; !stack
+4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+
+&gt;&gt; push.5
+&gt;&gt; !stack
+5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0
+
+&gt;&gt; !undo
+4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+
+&gt;&gt; !undo
+3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../tools/debugger.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../user_docs/main.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../tools/debugger.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../user_docs/main.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

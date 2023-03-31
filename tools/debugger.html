@@ -1,0 +1,247 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Debugger - Polygon Miden VM</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../intro/main.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../intro/overview.html"><strong aria-hidden="true">1.1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../intro/usage.html"><strong aria-hidden="true">1.2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="../intro/performance.html"><strong aria-hidden="true">1.3.</strong> Performance</a></li></ol></li><li class="chapter-item expanded "><a href="../tools/main.html"><strong aria-hidden="true">2.</strong> Development tooling</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../tools/debugger.html" class="active"><strong aria-hidden="true">2.1.</strong> Debugger</a></li><li class="chapter-item expanded "><a href="../tools/repl.html"><strong aria-hidden="true">2.2.</strong> REPL</a></li></ol></li><li class="chapter-item expanded "><a href="../user_docs/main.html"><strong aria-hidden="true">3.</strong> User Documentation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../user_docs/assembly/main.html"><strong aria-hidden="true">3.1.</strong> Miden Assembly</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../user_docs/assembly/code_organization.html"><strong aria-hidden="true">3.1.1.</strong> Code Organization</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/execution_contexts.html"><strong aria-hidden="true">3.1.2.</strong> Execution contexts</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/flow_control.html"><strong aria-hidden="true">3.1.3.</strong> Flow Control</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/field_operations.html"><strong aria-hidden="true">3.1.4.</strong> Field Operations</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/u32_operations.html"><strong aria-hidden="true">3.1.5.</strong> u32 Operations</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/stack_manipulation.html"><strong aria-hidden="true">3.1.6.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/io_operations.html"><strong aria-hidden="true">3.1.7.</strong> Input / Output Operations</a></li><li class="chapter-item expanded "><a href="../user_docs/assembly/cryptographic_operations.html"><strong aria-hidden="true">3.1.8.</strong> Cryptographic Operations</a></li></ol></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/main.html"><strong aria-hidden="true">3.2.</strong> Miden Standard Library</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../user_docs/stdlib/crypto/fri.html"><strong aria-hidden="true">3.2.1.</strong> std::crypto::fri</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/crypto/hashes.html"><strong aria-hidden="true">3.2.2.</strong> std::crypto::hashes</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/math/u64.html"><strong aria-hidden="true">3.2.3.</strong> std::math::u64</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/mem.html"><strong aria-hidden="true">3.2.4.</strong> std::mem</a></li><li class="chapter-item expanded "><a href="../user_docs/stdlib/sys.html"><strong aria-hidden="true">3.2.5.</strong> std:sys</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../design/main.html"><strong aria-hidden="true">4.</strong> Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/programs.html"><strong aria-hidden="true">4.1.</strong> Programs</a></li><li class="chapter-item expanded "><a href="../design/decoder/main.html"><strong aria-hidden="true">4.2.</strong> Program decoder</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/decoder/constraints.html"><strong aria-hidden="true">4.2.1.</strong> Decoder constraints</a></li></ol></li><li class="chapter-item expanded "><a href="../design/stack/main.html"><strong aria-hidden="true">4.3.</strong> Operand stack</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/stack/op_constraints.html"><strong aria-hidden="true">4.3.1.</strong> Operation constraints</a></li><li class="chapter-item expanded "><a href="../design/stack/system_ops.html"><strong aria-hidden="true">4.3.2.</strong> System operations</a></li><li class="chapter-item expanded "><a href="../design/stack/field_ops.html"><strong aria-hidden="true">4.3.3.</strong> Field operations</a></li><li class="chapter-item expanded "><a href="../design/stack/u32_ops.html"><strong aria-hidden="true">4.3.4.</strong> u32 operations</a></li><li class="chapter-item expanded "><a href="../design/stack/stack_ops.html"><strong aria-hidden="true">4.3.5.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../design/stack/io_ops.html"><strong aria-hidden="true">4.3.6.</strong> Input / output operations</a></li><li class="chapter-item expanded "><a href="../design/stack/crypto_ops.html"><strong aria-hidden="true">4.3.7.</strong> Cryptographic operations</a></li></ol></li><li class="chapter-item expanded "><a href="../design/range.html"><strong aria-hidden="true">4.4.</strong> Range Checker</a></li><li class="chapter-item expanded "><a href="../design/chiplets/main.html"><strong aria-hidden="true">4.5.</strong> Chiplets</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../design/chiplets/hasher.html"><strong aria-hidden="true">4.5.1.</strong> Hash Chiplet</a></li><li class="chapter-item expanded "><a href="../design/chiplets/bitwise.html"><strong aria-hidden="true">4.5.2.</strong> Bitwise Chiplet</a></li><li class="chapter-item expanded "><a href="../design/chiplets/memory.html"><strong aria-hidden="true">4.5.3.</strong> Memory Chiplet</a></li></ol></li><li class="chapter-item expanded "><a href="../design/multiset.html"><strong aria-hidden="true">4.6.</strong> Multiset checks</a></li></ol></li><li class="chapter-item expanded "><a href="../background.html"><strong aria-hidden="true">5.</strong> Background Material</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Polygon Miden VM</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/0xPolygonMiden/miden-vm/" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<h1 id="miden-debugger"><a class="header" href="#miden-debugger">Miden Debugger</a></h1>
+<p>The Miden debugger is a command-line interface (CLI) application, inspired by <a href="https://sourceware.org/gdb/">GNU gdb</a>, which allows debugging of Miden assembly (MASM) programs. The debugger allows the user to step through the execution of the program, both forward and backward, either per clock cycle tick, or via breakpoints.</p>
+<p>The Miden debugger supports the following commands:</p>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Shortcut</th><th>Arguments</th><th>Description</th></tr></thead><tbody>
+<tr><td>next</td><td>n</td><td>count?</td><td>Steps <code>count</code> clock cycles. Will step <code>1</code> cycle of <code>count</code> is ommitted.</td></tr>
+<tr><td>continue</td><td>c</td><td>-</td><td>Executes the program until completion, failure or a breakpoint.</td></tr>
+<tr><td>back</td><td>b</td><td>count?</td><td>Backward step <code>count</code> clock cycles. Will back-step <code>1</code> cycle of <code>count</code> is ommitted.</td></tr>
+<tr><td>rewind</td><td>r</td><td>-</td><td>Executes the program backwards until the beginning, failure or a breakpoint.</td></tr>
+<tr><td>print</td><td>p</td><td>-</td><td>Displays the complete state of the virtual machine.</td></tr>
+<tr><td>print mem</td><td>p m</td><td>address?</td><td>Displays the memory value at <code>address</code>. If <code>address</code> is ommitted, didisplays all the memory values.</td></tr>
+<tr><td>print stack</td><td>p s</td><td>index?</td><td>Displays the stack value at <code>index</code>. If <code>index</code> is ommitted, displays all the stack values.</td></tr>
+<tr><td>clock</td><td>c</td><td>-</td><td>Displays the current clock cycle.</td></tr>
+<tr><td>quit</td><td>q</td><td>-</td><td>Quits the debugger.</td></tr>
+<tr><td>help</td><td>h</td><td>-</td><td>Displays the help message.</td></tr>
+</tbody></table>
+</div>
+<p>In order to start debugging, the user should provide a <code>MASM</code> program:</p>
+<pre><code class="language-shell">cargo run --features executable -- debug --assembly miden/examples/nprime/nprime.masm
+</code></pre>
+<p>The expected output is:</p>
+<pre><code>============================================================
+Debug program
+============================================================
+Reading program file `miden/examples/nprime/nprime.masm`
+Compiling program... done (16 ms)
+Debugging program with hash 11dbbddff27e26e48be3198133df8cbed6c5875d0fb
+606c9f037c7893fde4118... 
+Reading input file `miden/examples/nprime/nprime.inputs`
+Welcome! Enter `h` for help.
+&gt;&gt; 
+</code></pre>
+<p>In order to add a breakpoint, the user should insert a <code>breakpoint</code> instruction into the MASM file. This will generate a <code>Noop</code> operation that will be decorated with the debug break configuration. This is a provisory solution until the source mapping is implemented.</p>
+<p>The following example will halt on the third instruction of <code>foo</code>:</p>
+<pre><code>proc.foo
+    dup
+    dup.2
+    breakpoint
+    swap
+    add.1
+end
+
+begin
+    exec.foo
+end
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../tools/main.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../tools/repl.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../tools/main.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../tools/repl.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
