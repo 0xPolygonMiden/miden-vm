@@ -1,4 +1,5 @@
 use super::{build_test, StdLibrary};
+use miden_test::rand_utils;
 use std::fmt::Write;
 
 #[test]

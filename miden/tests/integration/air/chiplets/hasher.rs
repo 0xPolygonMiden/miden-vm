@@ -1,7 +1,7 @@
 use crate::{build_op_test, StdLibrary};
 use miden_test::crypto::{init_merkle_leaf, init_merkle_store};
-use rand_utils::rand_vector;
-use vm_core::{
+use miden_test::rand_utils::rand_vector;
+use miden_test::vm_core::{
     crypto::{
         hash::Rpo256,
         merkle::{MerkleStore, MerkleTree},

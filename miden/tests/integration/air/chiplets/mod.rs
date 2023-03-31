@@ -1,5 +1,5 @@
 use crate::{build_test, StdLibrary};
-use rand_utils::rand_vector;
+use miden_test::rand_utils::rand_vector;
 
 mod bitwise;
 mod hasher;

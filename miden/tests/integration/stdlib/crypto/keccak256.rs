@@ -1,6 +1,7 @@
 use super::{build_test, Felt, StdLibrary, STACK_TOP_SIZE};
+use miden_test::rand_utils;
+use miden_test::vm_core::utils::IntoBytes;
 use sha3::{Digest, Keccak256};
-use vm_core::utils::IntoBytes;
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
 #[test]

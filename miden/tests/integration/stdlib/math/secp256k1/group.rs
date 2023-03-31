@@ -1,5 +1,5 @@
 use super::{build_test, StdLibrary};
-use test_case::test_case;
+use miden_test::test_case;
 
 // Wrapper types introduced for parameterized testing
 struct FieldElement([u32; 8]);

@@ -1,6 +1,6 @@
 use crate::{build_op_test, StdLibrary};
-use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
+use miden_test::rand_utils::rand_value;
+use miden_test::vm_core::{Felt, FieldElement, QuadExtension, StarkField};
 
 type QuadFelt = QuadExtension<Felt>;
 

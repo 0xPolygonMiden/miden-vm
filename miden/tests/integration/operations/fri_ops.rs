@@ -1,6 +1,6 @@
 use crate::{build_test, StdLibrary};
-use rand_utils::rand_array;
-use vm_core::{Felt, FieldElement, StarkField};
+use miden_test::rand_utils::rand_array;
+use miden_test::vm_core::{Felt, FieldElement, StarkField};
 
 // FRI_EXT2FOLD4
 // ================================================================================================

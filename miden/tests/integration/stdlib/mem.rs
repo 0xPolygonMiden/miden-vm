@@ -1,7 +1,7 @@
 use crate::StdLibrary;
 use miden::MemAdviceProvider;
+use miden_test::vm_core::{ONE, ZERO};
 use processor::{AdviceInputs, Process, StackInputs};
-use vm_core::{ONE, ZERO};
 
 #[test]
 fn memcopy() {

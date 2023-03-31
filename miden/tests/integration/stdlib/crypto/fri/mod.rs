@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use super::{build_test, Felt, StdLibrary};
-use vm_core::{crypto::merkle::MerkleStore, StarkField};
+use miden_test::vm_core::{crypto::merkle::MerkleStore, StarkField};
 
 use math::log2;
 use miden::utils::math;

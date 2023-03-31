@@ -1,4 +1,5 @@
 use super::{build_test, StdLibrary};
+use miden_test::rand_utils::rand_array;
 use std::fmt::Write;
 
 #[test]
@@ -14,7 +15,7 @@ fn generate_test_script_ntt512() -> String {
     const WORDS: usize = 128;
     const Q: u64 = (((1u64 << 32) - 1) << 32) + 1; // Miden Field Prime
 
-    let polynomial = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| v % Q);
+    let polynomial = rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
     let mut polynomial_script = String::new();
     let mut check_result_script = String::new();

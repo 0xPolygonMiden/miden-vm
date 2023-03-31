@@ -1,5 +1,6 @@
 use super::{build_test, Felt, StdLibrary};
-use vm_core::utils::{group_slice_elements, IntoBytes};
+use miden_test::rand_utils;
+use miden_test::vm_core::utils::{group_slice_elements, IntoBytes};
 
 #[test]
 fn blake3_hash_64_bytes() {

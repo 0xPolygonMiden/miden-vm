@@ -1,6 +1,6 @@
 use super::{build_test, StdLibrary};
+use miden_test::rand_utils::rand_vector;
 use num_bigint::BigUint;
-use rand_utils::rand_vector;
 
 // MULTIPLICATION
 // ================================================================================================

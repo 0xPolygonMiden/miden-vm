@@ -1,7 +1,8 @@
 use super::{build_test, StdLibrary};
+use miden_test::rand_utils;
+use miden_test::test_case;
+use miden_test::vm_core::{Felt, FieldElement, QuadExtension, StarkField};
 use processor::math::fft;
-use test_case::test_case;
-use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
 
 type QuadFelt = QuadExtension<Felt>;
 

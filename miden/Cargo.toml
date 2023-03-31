@@ -65,13 +65,7 @@ escargot = "0.5.7"
 miden-test = { package = "miden-test-utils", path = "../miden-test-utils", version = "0.1" }
 num-bigint = "0.4"
 predicates = "2.1.5"
-processor = { package = "miden-processor", path = "../processor", version = "0.6", features = ["internals"], default-features = false }
-proptest = "1.1"
-rand-utils = { package = "winter-rand-utils", version = "0.6" }
 sha2 = "0.10"
 sha3 = "0.10"
-test-case = "3.0.0"
-vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
-winterfell = { package = "winter-prover", version = "0.6", default-features = false }
 winter-fri = { package = "winter-fri", version = "0.6" }
 winter-utils = { package = "winter-utils", version = "0.6" }

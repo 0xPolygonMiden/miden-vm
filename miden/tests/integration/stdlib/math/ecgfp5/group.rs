@@ -1,8 +1,8 @@
 use super::base_field::{bv_or, Ext5};
 use super::{build_test, Felt, StdLibrary};
+use miden_test::test_case;
+use miden_test::vm_core::{FieldElement, StarkField};
 use std::ops::Add;
-use test_case::test_case;
-use vm_core::{FieldElement, StarkField};
 
 #[derive(Copy, Clone, Debug)]
 struct ECExt5 {

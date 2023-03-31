@@ -1,5 +1,5 @@
 use crate::{build_op_test, prop_randw, StdLibrary, TestError, U32_BOUND};
-use vm_core::WORD_SIZE;
+use miden_test::vm_core::WORD_SIZE;
 
 mod arithmetic_ops;
 mod bitwise_ops;

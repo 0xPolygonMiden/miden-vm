@@ -1,5 +1,7 @@
 use crate::{build_op_test, build_test, StdLibrary, TestError};
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
+use miden_test::vm_core::{
+    chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField,
+};
 
 mod adv_ops;
 mod constant_ops;

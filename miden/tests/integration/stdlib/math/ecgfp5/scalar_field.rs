@@ -1,6 +1,7 @@
 use super::{build_test, StdLibrary};
+use miden_test::rand_utils;
+use miden_test::vm_core::StarkField;
 use std::{cmp::PartialEq, ops::Mul};
-use vm_core::StarkField;
 
 #[derive(Copy, Clone, Debug)]
 struct Scalar {

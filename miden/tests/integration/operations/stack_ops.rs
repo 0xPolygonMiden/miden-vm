@@ -1,5 +1,5 @@
-use proptest::prelude::*;
-use vm_core::{stack::STACK_TOP_SIZE, WORD_SIZE};
+use miden_test::proptest::prelude::*;
+use miden_test::vm_core::{stack::STACK_TOP_SIZE, WORD_SIZE};
 
 use crate::{build_op_test, StdLibrary, TestError};
 

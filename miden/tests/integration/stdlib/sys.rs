@@ -1,7 +1,7 @@
 use super::{build_test, StdLibrary};
-use proptest::prelude::*;
-use rand_utils::rand_vector;
-use vm_core::stack::STACK_TOP_SIZE;
+use miden_test::proptest::prelude::*;
+use miden_test::rand_utils::rand_vector;
+use miden_test::vm_core::stack::STACK_TOP_SIZE;
 
 #[test]
 fn truncate_stack() {

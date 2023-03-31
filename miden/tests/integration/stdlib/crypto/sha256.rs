@@ -1,6 +1,7 @@
 use super::{build_test, Felt, StdLibrary};
+use miden_test::rand_utils;
+use miden_test::vm_core::utils::{group_slice_elements, IntoBytes};
 use sha2::{Digest, Sha256};
-use vm_core::utils::{group_slice_elements, IntoBytes};
 
 #[test]
 fn sha256_2_to_1_hash() {

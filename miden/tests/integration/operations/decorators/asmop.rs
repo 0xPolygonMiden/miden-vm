@@ -1,6 +1,6 @@
 use crate::{build_debug_test, StdLibrary};
-use processor::{AsmOpInfo, VmStateIterator};
-use vm_core::{AssemblyOp, Felt, Operation};
+use miden_test::processor::{AsmOpInfo, VmStateIterator};
+use miden_test::vm_core::{AssemblyOp, Felt, Operation};
 
 #[test]
 fn asmop_one_span_block_test() {

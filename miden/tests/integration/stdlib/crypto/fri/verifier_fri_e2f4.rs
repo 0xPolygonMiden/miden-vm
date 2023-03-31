@@ -1,12 +1,12 @@
 use core::{marker::PhantomData, mem};
 use miden::{math::fft, utils::math::log2, Digest as MidenDigest};
-use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
-use vm_core::{
+use miden_test::vm_core::{
     chiplets::hasher::Hasher as MidenHasher,
     crypto::merkle::{MerklePath, MerklePathSet, NodeIndex},
     utils::IntoBytes,
     Felt, FieldElement, QuadExtension, StarkField, ZERO,
 };
+use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };

@@ -1,5 +1,5 @@
 use crate::{build_test, AdviceInputs, StdLibrary, Test, TestError};
-use vm_core::StackInputs;
+use miden_test::vm_core::StackInputs;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================

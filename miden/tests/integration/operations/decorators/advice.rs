@@ -1,5 +1,5 @@
 use crate::{build_test, StdLibrary};
-use rand_utils::rand_value;
+use miden_test::rand_utils::rand_value;
 
 // ADVICE INJECTION
 // ================================================================================================

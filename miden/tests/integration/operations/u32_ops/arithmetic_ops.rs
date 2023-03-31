@@ -2,8 +2,8 @@ use super::{
     build_op_test, test_param_out_of_bounds, test_unchecked_execution, StdLibrary, TestError,
     U32_BOUND,
 };
-use proptest::prelude::*;
-use rand_utils::rand_value;
+use miden_test::proptest::prelude::*;
+use miden_test::rand_utils::rand_value;
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
 // ================================================================================================

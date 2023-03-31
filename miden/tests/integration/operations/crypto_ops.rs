@@ -1,5 +1,5 @@
-use rand_utils::rand_vector;
-use vm_core::{
+use miden_test::rand_utils::rand_vector;
+use miden_test::vm_core::{
     chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
     crypto::merkle::{MerkleTree, NodeIndex},
     Felt, FieldElement, StarkField,

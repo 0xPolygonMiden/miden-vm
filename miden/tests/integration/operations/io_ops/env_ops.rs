@@ -1,8 +1,8 @@
 use crate::{build_op_test, build_test, StdLibrary, Test};
-use processor::{AdviceInputs, FMP_MIN};
-use vm_core::{
+use miden_test::vm_core::{
     code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, StackInputs, StarkField, Word,
 };
+use processor::{AdviceInputs, FMP_MIN};
 
 // SDEPTH INSTRUCTION
 // ================================================================================================

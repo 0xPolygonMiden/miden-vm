@@ -1,8 +1,8 @@
 use miden::math::fft;
-use vm_core::{crypto::merkle::MerklePathSet, Felt, FieldElement, StarkField};
+use miden_test::vm_core::{crypto::merkle::MerklePathSet, Felt, FieldElement, StarkField};
 use winter_fri::{FriProof, VerifierError};
 
-use winterfell::{
+use miden_test::winterfell::{
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait},
     DeserializationError,
 };

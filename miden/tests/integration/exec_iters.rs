@@ -1,6 +1,6 @@
 use super::{build_debug_test, StdLibrary};
+use miden_test::vm_core::{utils::ToElements, AssemblyOp, Felt, FieldElement, Operation};
 use processor::{AsmOpInfo, VmState};
-use vm_core::{utils::ToElements, AssemblyOp, Felt, FieldElement, Operation};
 
 // EXEC ITER TESTS
 // =================================================================

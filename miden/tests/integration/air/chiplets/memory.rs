@@ -1,5 +1,5 @@
 use crate::{build_op_test, build_test, StdLibrary};
-use vm_core::utils::ToElements;
+use miden_test::vm_core::utils::ToElements;
 
 #[test]
 fn mem_load() {

@@ -1,6 +1,6 @@
 use crate::{build_test, StdLibrary, TestError, U32_BOUND};
-use proptest::prelude::*;
-use rand_utils::rand_value;
+use miden_test::proptest::prelude::*;
+use miden_test::rand_utils::rand_value;
 use std::cmp;
 
 // ADDITION

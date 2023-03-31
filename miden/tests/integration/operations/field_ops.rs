@@ -1,6 +1,6 @@
-use proptest::prelude::*;
-use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, StarkField, WORD_SIZE};
+use miden_test::proptest::prelude::*;
+use miden_test::rand_utils::rand_value;
+use miden_test::vm_core::{Felt, FieldElement, StarkField, WORD_SIZE};
 
 use crate::{build_op_test, prop_randw, StdLibrary, TestError};
 
