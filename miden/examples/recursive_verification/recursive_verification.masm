@@ -1,3 +1,20 @@
+# More information about recursive verification can be found by referring to this test:
+# https://github.com/0xPolygonMiden/miden-vm/blob/recursive-verification/miden/tests/integration/stdlib/crypto/recursive/mod.rs
+#
+# This example verifies the following program. The output data and proof of the program are 
+# provided in the `recursive_verification.inputs` file in the required format for the `verify` 
+# function.
+#
+# --- THE PROGRAM BEING VERIFIED ------------------------------------------------------------------
+#
+# inputs: { "operand_stack": [ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0 ] }
+#
+# begin
+#     repeat.32
+#         swap dup.1 add
+#     end
+# end
+
 use.std::crypto::stark
 
 begin
