@@ -1,6 +1,5 @@
-use crate::{build_debug_test, build_test, helpers::crypto::init_merkle_leaves};
-use vm_core::{
-    crypto::merkle::{MerkleError, MerkleStore, NodeIndex},
+use test_utils::{
+    crypto::{init_merkle_leaves, MerkleError, MerkleStore, NodeIndex},
     StarkField,
 };
 
@@ -89,7 +88,7 @@ fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
             pos = pos,
         );
 
-        let test = build_debug_test!(source, &[], advice_stack, merkle_store.clone());
+        let test = build_test!(source, &[], advice_stack, merkle_store.clone());
         let leaf = merkle_store.get_node(merkle_root, NodeIndex::new(2, pos))?;
 
         // the stack should be first the leaf followed by the tree root
@@ -143,7 +142,7 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
             pos = absolute_pos,
         );
 
-        let test = build_debug_test!(source, &[], advice_stack, merkle_store.clone());
+        let test = build_test!(source, &[], advice_stack, merkle_store.clone());
 
         // the stack should be first the leaf element followed by the tree root
         let stack: Vec<u64> = leaf.iter().map(StarkField::as_int).rev().collect();
@@ -184,7 +183,7 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
         num_leaves = leaves3.len(),
         pos = 0,
     );
-    let test = build_debug_test!(source, &[], advice_stack, merkle_store.clone());
+    let test = build_test!(source, &[], advice_stack, merkle_store.clone());
     test.expect_stack(&stack);
 
     // Test case for the single element tree in a MMR with multiple trees
@@ -209,7 +208,7 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
         num_leaves = num_leaves,
         pos = num_leaves - 1,
     );
-    let test = build_debug_test!(source, &[], advice_stack, merkle_store.clone());
+    let test = build_test!(source, &[], advice_stack, merkle_store.clone());
     test.expect_stack(&stack);
 
     Ok(())

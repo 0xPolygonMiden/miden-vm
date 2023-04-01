@@ -1,7 +1,4 @@
-use super::build_test;
-use proptest::prelude::*;
-use rand_utils::rand_vector;
-use vm_core::stack::STACK_TOP_SIZE;
+use test_utils::{proptest::prelude::*, rand::rand_vector, STACK_TOP_SIZE};
 
 #[test]
 fn truncate_stack() {

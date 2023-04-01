@@ -1,8 +1,4 @@
-use crate::build_op_test;
-use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
-
-type QuadFelt = QuadExtension<Felt>;
+use test_utils::{build_op_test, rand::rand_value, FieldElement, QuadFelt, StarkField};
 
 // EXT2 OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================

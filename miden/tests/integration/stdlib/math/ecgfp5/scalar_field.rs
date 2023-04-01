@@ -1,6 +1,5 @@
-use super::build_test;
 use std::{cmp::PartialEq, ops::Mul};
-use vm_core::StarkField;
+use test_utils::{rand::rand_value, StarkField};
 
 #[derive(Copy, Clone, Debug)]
 struct Scalar {
@@ -204,16 +203,16 @@ impl PartialEq for Scalar {
 fn test_ec_ext5_scalar_arithmetic() {
     let a = Scalar {
         limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
         ],
     };
     let b = a.inv();
@@ -233,30 +232,30 @@ fn test_ec_ext5_scalar_mont_mul() {
 
     let a = Scalar {
         limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
         ],
     };
     let b = Scalar {
         limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
         ],
     };
     let c = a.mont_mul(&b);
@@ -288,16 +287,16 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 
     let a = Scalar {
         limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
         ],
     };
     let b = a.to_mont();
@@ -330,16 +329,16 @@ fn test_ec_ext5_scalar_inv() {
 
     let a = Scalar {
         limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
+            rand_value::<u32>() >> 1,
         ],
     };
     let b = a.inv();

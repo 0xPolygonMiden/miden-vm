@@ -1,20 +1,14 @@
+use super::channel::{MidenFriVerifierChannel, UnBatch};
 use core::{marker::PhantomData, mem};
 use miden::{math::fft, utils::math::log2, Digest as MidenDigest};
 use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
-use vm_core::{
-    chiplets::hasher::Hasher as MidenHasher,
-    crypto::merkle::{MerklePath, MerklePathSet, NodeIndex},
-    utils::IntoBytes,
-    Felt, FieldElement, QuadExtension, StarkField, ZERO,
+use test_utils::{
+    crypto::{MerklePath, MerklePathSet, NodeIndex, Rpo256 as MidenHasher},
+    group_vector_elements, Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, ZERO,
 };
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
-use winter_utils::group_vector_elements;
-
-use super::channel::{MidenFriVerifierChannel, UnBatch};
-
-type QuadExt = QuadExtension<Felt>;
 
 // This function proves and then verifies a FRI proof with the following fixed parameters:
 //  1) Max remainder codeword (1 << 6).
@@ -297,7 +291,7 @@ fn iterate_query_fold_4_quad_ext(
     initial_domain_size: usize,
     evaluation: &QuadExt,
     domain_generator: &mut Felt,
-) -> Result<(usize, QuadExtension<Felt>, Vec<u64>, Vec<u64>), VerifierError> {
+) -> Result<(usize, QuadExt, Vec<u64>, Vec<u64>), VerifierError> {
     let mut cur_pos = position;
     let mut evaluation = *evaluation;
     let mut domain_size = initial_domain_size;

@@ -1,5 +1,4 @@
-use crate::build_test;
-use rand_utils::rand_vector;
+use test_utils::{build_test, rand::rand_vector};
 
 mod bitwise;
 mod hasher;

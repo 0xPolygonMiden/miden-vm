@@ -1,5 +1,4 @@
-use super::build_test;
-use test_case::test_case;
+use test_utils::test_case;
 
 // Wrapper types for ease of writing parameterized test cases
 struct FieldElement([u32; 8]);

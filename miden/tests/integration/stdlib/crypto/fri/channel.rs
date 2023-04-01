@@ -1,11 +1,10 @@
 use miden::math::fft;
-use vm_core::{crypto::merkle::MerklePathSet, Felt, FieldElement, StarkField};
-use winter_fri::{FriProof, VerifierError};
-
-use winterfell::{
-    crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait},
-    DeserializationError,
+use test_utils::{
+    crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, MerklePathSet},
+    serde::DeserializationError,
+    Felt, FieldElement, StarkField,
 };
+use winter_fri::{FriProof, VerifierError};
 
 pub trait UnBatch<E: FieldElement, H: ElementHasher> {
     fn unbatch<const N: usize, const W: usize>(

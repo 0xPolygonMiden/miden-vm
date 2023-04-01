@@ -1,5 +1,4 @@
-use crate::{build_op_test, build_test};
-use vm_core::utils::ToElements;
+use test_utils::{build_op_test, build_test, ToElements};
 
 #[test]
 fn mem_load() {

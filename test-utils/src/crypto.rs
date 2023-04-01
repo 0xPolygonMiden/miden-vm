@@ -1,5 +1,14 @@
-use super::Felt;
-use vm_core::{crypto::merkle::MerkleStore, FieldElement, Word};
+use super::{Felt, FieldElement, Vec, Word};
+
+// RE-EXPORTS
+// ================================================================================================
+
+pub use vm_core::crypto::{
+    hash::Rpo256,
+    merkle::{MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree, NodeIndex},
+};
+
+pub use winter_prover::crypto::{BatchMerkleProof, ElementHasher, Hasher};
 
 // CRYPTO HELPER FUNCTIONS
 // ================================================================================================

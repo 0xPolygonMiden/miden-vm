@@ -1,10 +1,6 @@
-use std::collections::BTreeMap;
-
-use super::{build_test, Felt};
-use vm_core::{crypto::merkle::MerkleStore, StarkField};
-
 use math::log2;
 use miden::utils::math;
+use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
 
 mod channel;
 pub use channel::*;

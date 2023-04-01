@@ -1,9 +1,5 @@
-use super::build_test;
 use processor::math::fft;
-use test_case::test_case;
-use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
-
-type QuadFelt = QuadExtension<Felt>;
+use test_utils::{rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField};
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
 #[test_case(8, 2; "poly_8 |> evaluated_16 |> interpolated_8")]
@@ -62,7 +58,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         out_mem_req
     );
 
-    let poly = rand_utils::rand_vector::<QuadExtension<Felt>>(in_poly_len);
+    let poly = rand_vector::<QuadFelt>(in_poly_len);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, blowup);
 
@@ -103,7 +99,7 @@ fn test_verify_remainder_64() {
     end
     ";
 
-    let poly = rand_utils::rand_vector::<QuadFelt>(8);
+    let poly = rand_vector::<QuadFelt>(8);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
 
@@ -140,7 +136,7 @@ fn test_verify_remainder_32() {
     end
     ";
 
-    let poly = rand_utils::rand_vector::<QuadFelt>(4);
+    let poly = rand_vector::<QuadFelt>(4);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
 
