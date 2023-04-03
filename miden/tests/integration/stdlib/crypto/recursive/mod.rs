@@ -31,10 +31,10 @@ fn stark_verifier_e2f4() {
 
     // Verify inside Miden VM
     let source = "
-        use.std::crypto::stark
+        use.std::crypto::stark::verifier
 
         begin
-            exec.stark::verify
+            exec.verifier::verify
         end
         ";
     let initial_stack = program_root;

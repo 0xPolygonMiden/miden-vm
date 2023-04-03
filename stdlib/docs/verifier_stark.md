@@ -1,4 +1,4 @@
 
-## std::crypto::stark
+## std::crypto::stark::verifier
 | Procedure | Description |
 | ----------- | ------------- |

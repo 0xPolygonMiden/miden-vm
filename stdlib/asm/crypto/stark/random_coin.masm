@@ -1,0 +1,99 @@
+# Input: [Seed, Data]
+# Ouput: [Seed_n, X, Y]
+export.reseed
+    push.0.0.0.0
+    swapw.2
+    hperm
+    swapw
+end
+
+# Input: [Seed, 1, ptr] where G is the seed
+# Output: [X, 2, ptr + 1]
+export.generate_next_extfelt
+    movup.4         # [Seed, 1, ptr]
+    dup
+    add.1
+    movdn.5             
+    push.1.0.0
+    #movup.3
+    push.1.0.0.0
+    swapw.2
+    swapw           # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 2, ptr]
+    hperm
+    dropw swapw dropw # [r1, r0, x, x, 2, ptr]
+    dup.5
+    add.1
+    swap.6          
+    mem_storew      # [x, x, r1, r0, 2, ptr + 1]
+end
+
+
+# Input: [Seed, 1, ptr] where G is the seed
+# Output: [X, 3, ptr + 1]
+export.generate_next_extfelt_tuple
+    dupw
+    dup.8
+    # => [1, Seed, Seed, 1, ptr]   
+    
+    push.1.0.0
+    push.1.0.0.0                    # [0, 0, 0, 1, 0, 0, 1, 1, Seed, Seed, 1, ptr]  
+    swapw.2
+    swapw                           # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 1, ptr]
+    hperm                           # [X, R, Y, Seed, 1, ptr]
+    dropw swapw dropw               # [x, x, r1, r0, Seed, 1, ptr]
+    drop drop                       # [r1, r0, Seed, 1, ptr]
+    movdn.6
+    movdn.6             
+    # => [ Seed, 1, r1,r0, ptr]
+    
+    movup.4
+    dup
+    add.2
+    movdn.7
+    add.1      
+    # => [ 2, Seed, r1,r0, 3, ptr]
+
+    push.1.0.0
+    push.1.0.0.0          
+    swapw.2
+    swapw           
+    hperm           
+    dropw swapw dropw
+    drop drop           
+    # => [r1, r0, r1, r0,  3, ptr]
+
+    dup.5
+    add.1
+    swap.6          
+    mem_storew
+    # => [r1, r0, r1, r0, 3, ptr + 1]
+end
+
+# Input: [Seed, 1, ptr, mask, depth] where G is the seed
+# Output: [X, 2, ptr + 1, depth]
+export.generate_next_integer
+    movup.4         
+    dup
+    add.1
+    movdn.5             
+    push.1.0.0
+    #movup.3
+    push.1.0.0.0
+    swapw.2
+    swapw               # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 2, ptr]
+    hperm
+    dropw swapw dropw   # [x, x, r1, r0, 2, ptr, mask, depth]
+    drop  drop         
+    swap                # [r0, r1, 2, ptr, mask] 
+    u32split            
+    swap                # [r0_low, x, r1, 2, ptr, mask]
+    dup.5
+    u32checked_and      # [query, x, r1, 2, ptr, mask, depth]
+    dup.6
+    swap                # [query, depth, x, r1, 2, ptr, mask, depth]
+
+    dup.5
+    add.1
+    swap.6          
+    mem_storew          # [query, depth, x, r1, 2, ptr + 1, mask, depth]
+end

@@ -1,650 +1,10 @@
 use.std::crypto::fri::frie2f4
 use.std::crypto::fri::ext2fri
 
-#<= [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,       Z]
-#=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,       Z]
-export.deep_query_aux_1
-
-    # Get T_i(z), T_i(gz)
-    swapw
-    dup.6
-    mem_loadw
-    push.0.0
-    dup.8 
-    add.41
-    mem_loadw
-    drop drop
-    #=> [T_i(gz)1, T_i(gz)0, T_i(z)1, T_i(z)0, value_{i}1, value_{i}0, p1, p2, Y, Acc,      Z ]
-
-    # Compute the numerators
-    swapw
-    dup.1
-    dup.1
-    movup.9
-    movup.9
-    ext2sub
-    #=> [value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, value_{i}1, value_{i}0, p1, p2, T_i(gz)1, T_i(gz)0, Y, Acc,      Z ]
-
-    movdn.7
-    movdn.7
-    dup.1
-    dup.1
-    movup.7
-    movup.7
-    ext2sub
-    movdn.5
-    movdn.5
-    #=> [value_{i}1, value_{i}0, p1, p2, value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, Y, Acc,      Z ]
-    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc,      Z ] 
-    # where T := [value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0]
-
-    # Multiply by randomness
-    ## Get [alpha1, alpha0, beta1, beta0]
-    movupw.2
-    dup.7
-    add.1
-    swap.8
-    mem_loadw
-    #=> [[alpha1, alpha0, beta1, beta0], value_{i}1, value_{i}0, p1, p2, T, Acc,      Z ]
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [[beta1, beta0, alpha1, alpha0], value_{i}1, value_{i}0, p1, p2, T, Acc,      Z]
-    swapdw
-    movupw.2
-    #=> [[beta1, beta0, alpha1, alpha0], T, Acc, value_{i}1, value_{i}0, p1, p2,     Z]
-
-    ## Multiply the shifted term
-    dup.7
-    dup.7
-    ext2mul
-    #=> [prod1_g, prod0_g, beta1, beta0, T, Acc, value_{i}1, value_{i}0, p1, p2,      Z]
-    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha 
-
-    ## Multiply the non-shifted term
-    swap
-    swap.3
-    swap
-    swap.2    
-    swapw
-    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_{i}1, value_{i}0, p1, p2,      Z]
-    dup.5
-    dup.5
-    ext2mul
-    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3,      Z]
-    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
-
-    ## Shuffle stack to prepare for accumulating
-    movup.7
-    movup.7  
-    #=> [prod1_g, prod0_g, prod1, prod0, ..]
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [prod1, prod0, prod1_g, prod0_g, ..]
-    dupw.2
-    #=> [Acc, prod1_g, prod0_g, prod1, prod0, Y, Acc, value_{i}1, value_{i}0, p2, p3,      Z]
-
-    # Accumulate
-    movup.7
-    movup.7
-    ext2add
-    movdn.5
-    movdn.5
-    ext2add
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [Acc3+prod1, Acc2+prod0, Acc1+prod1_g, Acc0+prod0_g, Y, Acc, value_{i}1, value_{i}0, p2, p3,      Z]           Acc = [Tz, Tz, Tgz, Tgz]
-    #=> [Acc, Y, Y, P,      Z]
-    swapw.3
-    #=> [P, Y, Y, Acc,       Z]
-end
-
-#<= [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,       Z]
-#=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,       Z]
-export.deep_query_aux_2
-
-    # Get T_i(z), T_i(gz)
-    swapw
-    dup.6
-    add.1
-    swap.7
-    mem_loadw
-    movup.3
-    movup.3
-    push.0.0
-    dup.8 
-    add.40          #   40 instead of 41 because we added 1 a few lines above
-    mem_loadw
-    movup.2 drop
-    movup.2 drop
-    #=> [T_i(gz)1, T_i(gz)0, T_i(z)1, T_i(z)0, value_{i}1, value_{i}0, p1, p2, Y, Acc,      Z ]
-
-    # Compute the numerators
-    swapw
-    dup.1
-    dup.1
-    movup.9
-    movup.9
-    ext2sub
-    #=> [value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, value_{i}1, value_{i}0, p1, p2, T_i(gz)1, T_i(gz)0, Y, Acc,      Z ]
-    movdn.7
-    movdn.7
-    dup.1
-    dup.1
-    movup.7
-    movup.7
-    ext2sub
-    movdn.5
-    movdn.5
-    #=> [value_{i}1, value_{i}0, p1, p2, value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, Y, Acc,      Z ]
-    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc,      Z ] 
-    # where T := [value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0]
-
-    # Multiply by randomness
-    ## Get [alpha1, alpha0, beta1, beta0]
-    movupw.2
-    #=> [Y, value_{i}1, value_{i}0, p1, p2, T, Acc,      Z ]
-    dup.7
-    add.1
-    swap.8
-    mem_loadw
-    #=> [[alpha1, alpha0, beta1, beta0], value_{i}1, value_{i}0, p1, p2, T, Acc,      Z]
-    swapdw
-    movupw.2
-    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_{i}1, value_{i}0, p1, p2,     Z]
-
-    ## Shuffle the random coefficients
-    ## TODO: remove need for this
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [[beta1, beta0, alpha1, alpha0], T, Acc, value_{i}1, value_{i}0, p1, p2,     Z]
-  
-    ## Multiply the shifted term
-    dup.7
-    dup.7
-    ext2mul
-    #=> [prod1_g, prod0_g, beta1, beta0, T, Acc, value_{i}1, value_{i}0, p1, p2,      Z]
-    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha 
-
-    ## Multiply the non-shifted term
-    swap
-    swap.3
-    swap
-    swap.2    
-    swapw
-    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_{i}1, value_{i}0, p1, p2,      Z]
-    dup.5
-    dup.5
-    ext2mul
-    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2, p3,      Z]
-    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
-
-    # Permute the two products in order to align with the accumulator
-    movup.7
-    movup.7
-    #=> [prod1_g, prod0_g, prod1, prod0, ..]
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [prod1, prod0, prod1_g, prod0_g, ..]
-    dupw.2
-    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1,p2, p3,      Z]
-
-    # Accumulate
-    movup.7
-    movup.7
-    ext2add
-    movdn.5
-    movdn.5
-    ext2add
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1,p2, p3,      Z]
-    #=> [Acc, Y, Y, P,      Z]
-    # where Acc = [Tz, Tz, Tgz, Tgz]
-
-    # Shuffle stack in case of further iterations
-    swapw.3
-    #=> [P, Y, Y, Acc,       Z]
-end
+use.std::crypto::stark::deep_queries
+use.std::crypto::stark::random_coin
 
 
-#=> [Y, P, Y, Acc,      Z]
-#<= [Y, P, Y, Acc,      Z]
-export.deep_query_1
-
-    # Get value_i := T_i(x)
-    dup.7
-    mem_loadw
-    movup.4
-    #=> [Y, value_i, p1, p2, p3, Y, Acc,      Z ]
-
-    # Get T_i(z), T_i(gz)
-    dup.5
-    mem_loadw
-    push.0.0
-    dup.7 add.41
-    mem_loadw
-    drop drop
-    neg 
-    swap.2
-    neg
-    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc,      Z ]
-
-    # Compute numerator
-    swapw
-    dup
-    movup.6
-    sub
-    #=> [value_i - T_i(gz)_0, value_i, p1,p2,p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc,      Z ]
-    movdn.7
-    swapw
-    dup.4
-    movup.3
-    sub
-    swap
-    swapw.2
-    #=> [Y, value_i, p1,p2,p3, T, Acc,      Z]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
-
-    # Multiply by randomness
-    ## Get [alpha1, alpha0, beta1, beta0]
-    dup.6
-    add.1
-    swap.7
-    mem_loadw
-    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1,p2,p3, T, Acc,      Z]
-    swapdw
-    movupw.2
-    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1,p2,p3,      Z]
-
-    ## Multiply the shifted term
-    dup.7
-    dup.7
-    ext2mul
-    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1,p2,p3,      Z]
-    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
-
-    ## Multiply the non-shifted term
-    swap
-    swap.3
-    swap
-    swap.2    
-    swapw
-    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-    dup.5
-    dup.5
-    ext2mul
-    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
-    movup.7
-    movup.7
-    dupw.2
-    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]
-
-    # Accumulate
-    movup.7
-    movup.7
-    ext2add
-    movdn.5
-    movdn.5
-    ext2add
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]           Acc = [Tz, Tz, Tgz, Tgz]
-    #=> [Acc, Y, Y, P,      Z]
-
-    # Prepare for next iteration, if any
-    swapw.3
-    swapw
-    #=> [Y, P, Y, Acc,      Z]
-end
-
-
-#=> [Y, P, Y, Acc,      Z]
-export.deep_query_2
-
-    # Get value_i := T_i(x)
-    dup.7
-    mem_loadw
-    swap.2
-    swap.4
-    #=> [Y, value_i, p1,p2,p3, Y, Acc,      Z ]
-
-    # Get T_i(z), T_i(gz)
-    dup.5
-    mem_loadw
-    movup.3
-    movup.3
-    push.0.0
-    dup.7 add.41
-    mem_loadw
-    movup.3
-    movup.3
-    drop drop
-    neg 
-    swap.2
-    neg
-    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc,      Z ]
-
-    # Update p1
-    movup.5
-    add.1
-    movdn.5
-
-
-    # Compute numerator
-    swapw
-    dup
-    movup.6
-    sub
-    #=> [value_i - T_i(gz)_0, value_i, p1,p2,p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc,      Z ]
-    movdn.7
-    swapw
-    dup.4
-    movup.3
-    sub
-    swap
-    swapw.2
-    #=> [Y, value_i, p1,p2,p3, T, Acc,      Z]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
-
-    # Multiply by random coefficients
-    ## Get [alpha1, alpha0, beta1, beta0]
-    dup.6
-    add.1
-    swap.7
-    mem_loadw
-    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1,p2,p3, T, Acc,      Z]
-    swapdw
-    movupw.2
-    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1,p2,p3,      Z]
-
-    ## Multiply shifted term
-    dup.7
-    dup.7
-    ext2mul
-    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1,p2,p3,      Z]
-    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
-
-    ## Multiply the non shifted term
-    swap
-    swap.3
-    swap
-    swap.2    
-    swapw
-    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-    dup.5
-    dup.5
-    ext2mul
-    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
-    movup.7
-    movup.7
-    dupw.2
-    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]
-
-    # Accumulate
-    movup.7
-    movup.7
-    ext2add
-    movdn.5
-    movdn.5
-    ext2add
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]           Acc = [Tz, Tz, Tgz, Tgz]
-    #=> [Acc, Y, Y, P,      Z]
-
-    # Prepare for next iteration, if any
-    swapw.3
-    swapw
-    #=> [Y, P, Y, Acc,      Z]
-end
-
-
-#=> [Y, P, Y, Acc,      Z]
-export.deep_query_3
-
-    # Get value_i := T_i(x)
-    dup.7
-    mem_loadw
-    #=> [x, value_i, x, x, x, p1, p2, p3, Y, Acc,      Z ]
-    swap
-    swap.4
-    #=> [y, y, y, y, value_i, p1, p2, p3, Y, Acc,      Z ]
-    
-
-    # Get T_i(z), T_i(gz)
-    dup.5
-    mem_loadw
-    push.0.0
-    dup.7 add.41
-    mem_loadw
-    drop drop
-    neg 
-    swap.2
-    neg
-    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc,      Z ]
-
-    # Compute numerator
-    swapw
-    dup
-    movup.6
-    sub
-    #=> [value_i - T_i(gz)_0, value_i, p1,p2,p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc,      Z ]
-    movdn.7
-    swapw
-    dup.4
-    movup.3
-    sub
-    swap
-    swapw.2
-    #=> [Y, value_i, p1,p2,p3, T, Acc,      Z]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
-
-    # Multiply by random coefficients
-    ## Get [alpha1, alpha0, beta1, beta0]
-    dup.6
-    add.1
-    swap.7
-    mem_loadw
-    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1,p2,p3, T, Acc,      Z]
-    swapdw
-    movupw.2
-    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1,p2,p3,      Z]
-
-    ## Multiply the shifted term
-    dup.7
-    dup.7
-    ext2mul
-    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1,p2,p3,      Z]
-    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
-    swap
-    swap.3
-    swap
-    swap.2    
-    swapw
-    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-
-    ## Multiply the non-shifted term
-    dup.5
-    dup.5
-    ext2mul
-    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
-    movup.7
-    movup.7
-    dupw.2
-    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]
-
-    # Accumulate
-    movup.7
-    movup.7
-    ext2add
-    movdn.5
-    movdn.5
-    ext2add
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]           Acc = [Tz, Tz, Tgz, Tgz]
-    #=> [Acc, Y, Y, P,      Z]
-
-    # Prepare for next iteration, if any
-    swapw.3
-    swapw
-    #=> [Y, P, Y, Acc,      Z]
-end
-
-#=> [Y, P, Y, Acc,      Z]
-export.deep_query_4
-
-    # Get value_i := T_i(x)
-    ## update pointer for potential next iteration
-    dup.7
-    add.1
-    swap.8
-    ## Load correct value
-    mem_loadw
-    #=> [value_i, x, x , x, x, p1,p2,p3, Y, Acc,      Z ]
-    swap.4
-    #=> [Y, value_i, p1,p2,p3, Y, Acc,      Z ]
-    
-
-    # Get T_i(z), T_i(gz)
-    dup.5
-    mem_loadw
-    movup.3
-    movup.3
-    push.0.0
-    dup.7 add.41
-    mem_loadw
-    movup.3
-    movup.3
-    drop drop
-    neg 
-    swap.2
-    neg
-    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc,      Z ]
-
-    # Update p1 (since `deep_query_4` is the last `deep_query_X` procedure in the 4-procedure cycle)
-    movup.5
-    add.1
-    movdn.5
-
-
-    # Compute numerator
-    swapw
-    dup
-    movup.6
-    sub
-    #=> [value_i - T_i(gz)_0, value_i, p1,p2,p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc,      Z ]
-    movdn.7
-    swapw
-    dup.4
-    movup.3
-    sub
-    swap
-    swapw.2
-    #=> [Y, value_i, p1,p2,p3, T, Acc,      Z]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
-
-    # Multiply by randomness
-    ## Get [alpha1, alpha0, beta1, beta0]
-    dup.6
-    add.1
-    swap.7
-    mem_loadw
-    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1,p2,p3, T, Acc,      Z]
-    swapdw
-    movupw.2
-    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1,p2,p3,      Z]
-
-    ## Multiply shifted term
-    dup.7
-    dup.7
-    ext2mul
-    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1,p2,p3,      Z]
-    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
-    swap
-    swap.3
-    swap
-    swap.2    
-    swapw
-    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-
-    ## Multiply non-shifted term
-    dup.5
-    dup.5
-    ext2mul
-    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2,p3,      Z]
-    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
-    movup.7
-    movup.7
-    dupw.2
-    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]
-
-    # Accumulate
-    movup.7
-    movup.7
-    ext2add
-    movdn.5
-    movdn.5
-    ext2add
-    swap
-    swap.3
-    swap
-    swap.2
-    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1,p2,p3,      Z]           Acc = [Tz, Tz, Tgz, Tgz]
-    #=> [Acc, Y, Y, P,      Z]
-
-    # Prepare for next cycle, if any
-    swapw.3
-    swapw
-    #=> [Y, P, Y, Acc,      Z]
-end
-
-
-# Input: [Seed, Data]
-# Ouput: [Seed_n, X, Y]
-export.reseed
-    push.0.0.0.0
-    swapw.2
-    hperm
-    swapw
-end
-
-# Input: [Seed, 1, ptr] where G is the seed
-# Output: [X, 2, ptr + 1]
-export.generate_next_extfelt
-    movup.4         # [Seed, 1, ptr]
-    dup
-    add.1
-    movdn.5             
-    push.1.0.0
-    #movup.3
-    push.1.0.0.0
-    swapw.2
-    swapw           # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 2, ptr]
-    hperm
-    dropw swapw dropw # [r1, r0, x, x, 2, ptr]
-    dup.5
-    add.1
-    swap.6          
-    mem_storew      # [x, x, r1, r0, 2, ptr + 1]
-end
 
 # <= [log2(domain_size), ..]
 # => [domain_gen, ..]
@@ -684,76 +44,6 @@ export.get_num_fri_layers
         u32unchecked_gt
     end
     drop
-end
-
-# Input: [Seed, 1, ptr] where G is the seed
-# Output: [X, 3, ptr + 1]
-export.generate_next_extfelt_tuple
-    dupw
-    dup.8
-    # => [1, Seed, Seed, 1, ptr]   
-    
-    push.1.0.0
-    push.1.0.0.0                    # [0, 0, 0, 1, 0, 0, 1, 1, Seed, Seed, 1, ptr]  
-    swapw.2
-    swapw                           # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 1, ptr]
-    hperm                           # [X, R, Y, Seed, 1, ptr]
-    dropw swapw dropw               # [x, x, r1, r0, Seed, 1, ptr]
-    drop drop                       # [r1, r0, Seed, 1, ptr]
-    movdn.6
-    movdn.6             
-    # => [ Seed, 1, r1,r0, ptr]
-    
-    movup.4
-    dup
-    add.2
-    movdn.7
-    add.1      
-    # => [ 2, Seed, r1,r0, 3, ptr]
-
-    push.1.0.0
-    push.1.0.0.0          
-    swapw.2
-    swapw           
-    hperm           
-    dropw swapw dropw
-    drop drop           
-    # => [r1, r0, r1, r0,  3, ptr]
-
-    dup.5
-    add.1
-    swap.6          
-    mem_storew
-    # => [r1, r0, r1, r0, 3, ptr + 1]
-end
-
-# Input: [Seed, 1, ptr, mask, depth] where G is the seed
-# Output: [X, 2, ptr + 1, depth]
-export.generate_next_integer
-    movup.4         
-    dup
-    add.1
-    movdn.5             
-    push.1.0.0
-    #movup.3
-    push.1.0.0.0
-    swapw.2
-    swapw               # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 2, ptr]
-    hperm
-    dropw swapw dropw   # [x, x, r1, r0, 2, ptr, mask, depth]
-    drop  drop         
-    swap                # [r0, r1, 2, ptr, mask] 
-    u32split            
-    swap                # [r0_low, x, r1, 2, ptr, mask]
-    dup.5
-    u32checked_and      # [query, x, r1, 2, ptr, mask, depth]
-    dup.6
-    swap                # [query, depth, x, r1, 2, ptr, mask, depth]
-
-    dup.5
-    add.1
-    swap.6          
-    mem_storew          # [query, depth, x, r1, 2, ptr + 1, mask, depth]
 end
 
 #<= [a, ..]
@@ -808,7 +98,7 @@ end
 #   2293 -> 2333    next row of the OOD evaluation frame 
 #   2334 -> 2337    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
 #   2338 -> 2463    Deep query coefficients
-#   2473 -> 2499    [poe, query, evaluation_1, evaluation_0] for the 27 FRI queries
+#   2473 -> 2499    [0, query, evaluation_1, evaluation_0] for the 27 FRI queries
 #   2500 -> ptr_remainder - 1 where ptr_remainder := 2500 + 2 * number_of_layers
 #   ptr_remainder -> ptr_remainder + remainder_length / 2
 #   ptr_remainder + remainder_length / 2 + 1 -> ptr_remainder + remainder_length / 2 + length_of_remainder_polynomial/2
@@ -816,14 +106,10 @@ end
 
 # Notes: 
 # 1. The choice of the number of locals is based on an estimate and should be updated  
-# 2. In particular, once the conjugate term in the deep queries has been removed through
-#   the new Winterfell release, the number of deep query coefficients should be reduced by a 1/4.
-#    The current MASM implementation assumes this when computing the sums but not for the number of 
-#    coefficients. This should be updated and aligned.
-# 3. Once `RandomCoin` has been redesigned, the way randomness is generated should be simplified.
-# 4. The periodic values for the OOD evaluation frame are not implemented. This should probably be
+# 2. Once `RandomCoin` has been redesigned, the way randomness is generated should be simplified.
+# 3. The periodic values for the OOD evaluation frame are not implemented. This should probably be
 #   delegated to the constraint evaluator.  
-# 5. Unless otherwise stated, `x`, `X`, `y` and `Y` denote "garbage" values on the stack. When computing
+# 4. Unless otherwise stated, `x`, `X`, `y` and `Y` denote "garbage" values on the stack. When computing
 #   the deep evaluation queries, `x` will denote `offset * g^index`.  
 export.verify.4222
 
@@ -885,7 +171,7 @@ export.verify.4222
     adv_loadw           #=> [main_trace_commitment, Seed]
     loc_storew.2
     swapw
-    exec.reseed         
+    exec.random_coin::reseed         
     locaddr.0
     mem_storew          
     # => [Seed_n, X, Y]
@@ -899,7 +185,7 @@ export.verify.4222
     # => [Seed, 1, ptr_rand_cstr_coef]
 
     repeat.16
-        exec.generate_next_extfelt
+        exec.random_coin::generate_next_extfelt
         loc_loadw.0
         # => [Seed, 2, ptr + 1, X, Y]
     end
@@ -910,7 +196,7 @@ export.verify.4222
     adv_loadw
     loc_storew.3
     swapw               #[Seed, AuxCom, x, x, Y, Y]
-    exec.reseed         #[Seed_n, Y, Y, x, x, Y, Y]
+    exec.random_coin::reseed         #[Seed_n, Y, Y, x, x, Y, Y]
     loc_storew.0
 
     # TODO: make use of these
@@ -932,7 +218,7 @@ export.verify.4222
     # => [Seed, 1, ptr_compos_coef]
 
     repeat.235
-        exec.generate_next_extfelt_tuple
+        exec.random_coin::generate_next_extfelt_tuple
         loc_loadw.0
         # => [Seed, 2, ptr + 1]
     end
@@ -944,7 +230,7 @@ export.verify.4222
     adv_loadw
     loc_storew.4
     swapw
-    exec.reseed
+    exec.random_coin::reseed
     loc_storew.0
     #=> [Seed_n, X, Y, ]
 
@@ -1004,7 +290,7 @@ export.verify.4222
 
     # Reseed
     loc_loadw.0
-    exec.reseed
+    exec.random_coin::reseed
     loc_storew.0
     # => [Seed_n, X, X, X, ptr]
     
@@ -1039,7 +325,7 @@ export.verify.4222
 
     # Reseed
     loc_loadw.0
-    exec.reseed
+    exec.random_coin::reseed
     loc_storew.0
     # => [Seed_n, X, X, X, ptr]
 
@@ -1055,7 +341,7 @@ export.verify.4222
 
     # Reseed
     loc_loadw.0
-    exec.reseed
+    exec.random_coin::reseed
     loc_storew.0
     # => [Seed_n, X, X, X, ptr]
 
@@ -1115,7 +401,7 @@ export.verify.4222
     ## 2 Felt for degree correction.
     ## Total: 172 tuples of type (Felt, Felt)
     repeat.86
-        exec.generate_next_extfelt_tuple
+        exec.random_coin::generate_next_extfelt_tuple
         loc_loadw.0
         # => [Seed, 3, ptr + 1]
     end
@@ -1198,7 +484,7 @@ export.verify.4222
         # Reseed
         movupw.2
         loc_loadw.0         # [Seed, Com, num_layers, ptr_layer + 1, x, x, X]
-        exec.reseed
+        exec.random_coin::reseed
         loc_storew.0
         # => [Seed_n, X, Y, num_layers, ptr_layer + 1, x, x, X]
 
@@ -1258,7 +544,7 @@ export.verify.4222
     # Reseed with remainder commitment
     swapw
     loc_loadw.0
-    exec.reseed
+    exec.random_coin::reseed
     loc_storew.0
     # => [Seed_n, X, X, X, ptr_remainder, 0, x, x,     x, x]
 
@@ -1439,10 +725,10 @@ export.verify.4222
 
     ## Draw the random queries
     ## TODO: the case of duplicate queries 
-    exec.generate_next_integer
+    exec.random_coin::generate_next_integer
     repeat.26
         loc_loadw.0
-        exec.generate_next_integer
+        exec.random_coin::generate_next_integer
     end
     # => [X, X, X, X, x, x]
 
@@ -1642,10 +928,10 @@ export.verify.4222
         # locations at a memory location. To avoid expensive pointer arithmetic we opted to have
         # one implementation for each of the 4 possiblities.
         repeat.18
-        exec.deep_query_1
-        exec.deep_query_2
-        exec.deep_query_3
-        exec.deep_query_4
+        exec.deep_queries::deep_query_1
+        exec.deep_queries::deep_query_2
+        exec.deep_queries::deep_query_3
+        exec.deep_queries::deep_query_4
         end
 
         # Next is the auxiliary columns. Since the aux trace has elements in the extension field we need
@@ -1665,7 +951,7 @@ export.verify.4222
         #=> [value_{i+1}1, value_{i+1}0, value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
         drop drop
         #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
-        exec.deep_query_aux_1
+        exec.deep_queries::deep_query_aux_1
 
         # Load the 2nd out of 9, auxiliary trace values 
         push.0.0
@@ -1674,52 +960,52 @@ export.verify.4222
         movup.2 drop
         movup.2 drop
         #=> [value_{i+1}1, value_{i+1}0, p1, p2, Y, Y, Acc,      Z ]
-        exec.deep_query_aux_2
+        exec.deep_queries::deep_query_aux_2
 
         # Load the 3rd out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2819
         drop drop
-        exec.deep_query_aux_1
+        exec.deep_queries::deep_query_aux_1
 
         # Load the 4th out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2819
         movup.2 drop
         movup.2 drop
-        exec.deep_query_aux_2
+        exec.deep_queries::deep_query_aux_2
 
         # Load the 5th out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2820
         drop drop
-        exec.deep_query_aux_1
+        exec.deep_queries::deep_query_aux_1
 
         # Load the 6th out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2820
         movup.2 drop
         movup.2 drop
-        exec.deep_query_aux_2
+        exec.deep_queries::deep_query_aux_2
 
         # Load the 7th out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2821
         drop drop
-        exec.deep_query_aux_1
+        exec.deep_queries::deep_query_aux_1
 
         # Load the 8th out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2821
         movup.2 drop
         movup.2 drop
-        exec.deep_query_aux_2
+        exec.deep_queries::deep_query_aux_2
 
         # Load the 9th out of 9, auxiliary trace values 
         push.0.0
         loc_loadw.2822
         drop drop
-        exec.deep_query_aux_1
+        exec.deep_queries::deep_query_aux_1
         #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
 
         # Move p2, the pointer to constraint random coefficients, further up the stack and prepare 
