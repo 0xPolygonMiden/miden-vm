@@ -1,5 +1,5 @@
-use super::Test;
-use test_case::test_case;
+use crate::build_test;
+use test_utils::test_case;
 
 // Wrapper types introduced for parameterized testing
 struct FieldElement([u32; 8]);
@@ -197,7 +197,7 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
         dst.0[2].0[7],
     );
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
@@ -448,7 +448,7 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
         dst.0[2].0[7],
     );
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
@@ -658,7 +658,7 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         dst_point.0[2].0[7],
     );
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
@@ -810,6 +810,6 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         point.0[2].0[7],
     );
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }

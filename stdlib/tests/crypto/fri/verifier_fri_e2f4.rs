@@ -1,22 +1,19 @@
-use std::marker::PhantomData;
-use std::mem;
-
-use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
-use processor::{math::fft, utils::math::log2, Digest as MidenDigest};
-use vm_core::utils::group_vector_elements;
-use vm_core::{
-    chiplets::hasher::Hasher as MidenHasher,
-    crypto::merkle::{MerklePath, MerklePathSet, NodeIndex},
-    utils::IntoBytes,
-    Felt, FieldElement, QuadExtension, StarkField, ZERO,
+use super::channel::{MidenFriVerifierChannel, UnBatch};
+use core::{marker::PhantomData, mem};
+use processor::{
+    crypto::{Hasher, RandomCoin, WinterRandomCoin},
+    Digest as MidenDigest,
+};
+use test_utils::{
+    crypto::{MerklePath, MerklePathSet, NodeIndex, Rpo256 as MidenHasher},
+    group_vector_elements,
+    math::fft,
+    Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, ZERO,
 };
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
-
-use super::channel::{MidenFriVerifierChannel, UnBatch};
-
-type QuadExt = QuadExtension<Felt>;
+use winterfell::math::log2;
 
 // This function proves and then verifies a FRI proof with the following fixed parameters:
 //  1) Max remainder codeword (1 << 6).
@@ -30,16 +27,14 @@ type QuadExt = QuadExtension<Felt>;
 //  merkle_sets contains the Merkle authentication paths used to authenticate the queries.
 //  advice_maps is used to unhash Merkle nodes to a sequence of field elements representing
 //  the query-values. TODO: Make use of the advice_maps.
-//  2) `advice_stack: Vec<u64>` is how the query values are provided in order to unhash them.
-//  This should be replaced with the use of advice_maps.
-//  3) `positions: Vec<u64>` a vector of consecutive quadruples of the form (0, p, e1, e0)
+//  2) `positions: Vec<u64>` a vector of consecutive quadruples of the form (poe, p, e1, e0)
 //  where p is index of the query at the first layer and (e1, e0) is its corresponding
-//  evaluation.
-//  4) `alphas: Vec<u64>` is a vector of tuples representing the folding challenges.
-//  5) `commitments: Vec<u64>` is a vector of consecutive quadruples (c3, c2, c1, c0)
+//  evaluation and poe is g^p with g being the initial domain generator.
+//  3) `alphas: Vec<u64>` is a vector of tuples representing the folding challenges.
+//  4) `commitments: Vec<u64>` is a vector of consecutive quadruples (c3, c2, c1, c0)
 //  representing the Merkle tree layer commitments.
-//  6)  `remainder: Vec<u64>` is the remainder codeword as consecutive (r0, r1).
-//  7)  `num_queries: usize` is the number of queries contained in the current FRI proof.
+//  5)  `remainder: Vec<u64>` is the remainder codeword as consecutive (r0, r1).
+//  6)  `num_queries: usize` is the number of queries contained in the current FRI proof.
 pub fn fri_prove_verify_fold4_ext2(
     trace_length_e: usize,
 ) -> Result<
@@ -49,12 +44,11 @@ pub fn fri_prove_verify_fold4_ext2(
         Vec<u64>,
         Vec<u64>,
         Vec<u64>,
-        Vec<u64>,
         usize,
     ),
     VerifierError,
 > {
-    let max_remainder_size_e = 6;
+    let max_remainder_size_e = 3;
     let folding_factor_e = 2;
     let trace_length = 1 << trace_length_e;
     let lde_blowup = 1 << 3;
@@ -92,7 +86,10 @@ pub fn fri_prove_verify_fold4_ext2(
         .flatten()
         .collect();
 
-    let remainder: Vec<QuadExt> = proof.parse_remainder().expect("should return remainder");
+    let remainder_poly: Vec<QuadExt> =
+        proof.parse_remainder().expect("should return remainder polynomial");
+    let twiddles = fft::get_twiddles(remainder_poly.len());
+    let remainder = fft::evaluate_poly_with_offset(&remainder_poly, &twiddles, Felt::GENERATOR, 8);
 
     let remainder: Vec<u64> = QuadExt::slice_as_base_elements(&remainder[..])
         .to_owned()
@@ -101,10 +98,9 @@ pub fn fri_prove_verify_fold4_ext2(
         .collect();
 
     match result {
-        Ok(((merkle_path_set, advice_values), full_stack, all_position_evaluation, all_alphas)) => {
+        Ok(((merkle_path_set, advice_values), all_position_evaluation, all_alphas)) => {
             return Ok((
                 (merkle_path_set, advice_values),
-                full_stack,
                 all_position_evaluation,
                 all_alphas,
                 commitments,
@@ -148,10 +144,7 @@ fn verify_proof(
     domain_size: usize,
     positions: &[usize],
     options: &FriOptions,
-) -> Result<
-    ((Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>, Vec<u64>),
-    VerifierError,
-> {
+) -> Result<((Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>), VerifierError> {
     let mut channel = MidenFriVerifierChannel::<QuadExt, MidenHasher>::new(
         proof,
         commitments.clone(),
@@ -248,10 +241,8 @@ impl FriVerifierFold4Ext2 {
         channel: &mut MidenFriVerifierChannel<QuadExt, MidenHasher>,
         evaluations: &[QuadExt],
         positions: &[usize],
-    ) -> Result<
-        ((Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>, Vec<u64>),
-        VerifierError,
-    > {
+    ) -> Result<((Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>), VerifierError>
+    {
         // 1 ----- verify the recursive components of the FRI proof -----------------------------------
         let positions = positions.to_vec();
         let evaluations = evaluations.to_vec();
@@ -260,23 +251,20 @@ impl FriVerifierFold4Ext2 {
             channel.unbatch::<4, 3>(&positions, self.domain_size(), self.layer_commitments.clone());
 
         let mut d_generator;
-        let mut full_stack = vec![];
         let mut all_alphas = vec![];
         let mut all_position_evaluation = vec![];
         for (index, &position) in positions.iter().enumerate() {
             d_generator = self.domain_generator;
-            let (cur_pos, evaluation, partial_stack, position_evaluation, alphas) =
-                iterate_query_fold_4_quad_ext(
-                    &self.layer_alphas,
-                    &advice_provider.0,
-                    &advice_provider.1,
-                    position,
-                    self.options.num_fri_layers(self.domain_size()),
-                    self.domain_size(),
-                    &evaluations[index],
-                    &mut d_generator,
-                )?;
-            full_stack.extend_from_slice(&partial_stack[..]);
+            let (cur_pos, evaluation, position_evaluation, alphas) = iterate_query_fold_4_quad_ext(
+                &self.layer_alphas,
+                &advice_provider.0,
+                &advice_provider.1,
+                position,
+                self.options.num_fri_layers(self.domain_size()),
+                self.domain_size(),
+                &evaluations[index],
+                &mut d_generator,
+            )?;
             all_position_evaluation.extend_from_slice(&position_evaluation[..]);
             all_alphas = alphas;
 
@@ -295,7 +283,7 @@ impl FriVerifierFold4Ext2 {
             }
         }
 
-        Ok((advice_provider, full_stack, all_position_evaluation, all_alphas))
+        Ok((advice_provider, all_position_evaluation, all_alphas))
     }
 }
 
@@ -308,7 +296,7 @@ fn iterate_query_fold_4_quad_ext(
     initial_domain_size: usize,
     evaluation: &QuadExt,
     domain_generator: &mut Felt,
-) -> Result<(usize, QuadExtension<Felt>, Vec<u64>, Vec<u64>, Vec<u64>), VerifierError> {
+) -> Result<(usize, QuadExt, Vec<u64>, Vec<u64>), VerifierError> {
     let mut cur_pos = position;
     let mut evaluation = *evaluation;
     let mut domain_size = initial_domain_size;
@@ -321,8 +309,8 @@ fn iterate_query_fold_4_quad_ext(
     let arr = vec![evaluation];
     let a = QuadExt::slice_as_base_elements(&arr);
 
-    let mut partial_tap = vec![];
-    let position_evaluation = vec![a[0].as_int(), a[1].as_int(), (position as u64).into(), 0];
+    let position_evaluation =
+        vec![a[0].as_int(), a[1].as_int(), (position as u64).into(), init_exp.as_int()];
 
     let mut alphas = vec![];
     for depth in 0..number_of_layers {
@@ -344,17 +332,6 @@ fn iterate_query_fold_4_quad_ext(
             .next()
             .expect("must contain the leaf values")
             .1;
-        let tmp_query = vec![
-            query_values[0].as_int(),
-            query_values[1].as_int(),
-            query_values[2].as_int(),
-            query_values[3].as_int(),
-            query_values[4].as_int(),
-            query_values[5].as_int(),
-            query_values[6].as_int(),
-            query_values[7].as_int(),
-        ];
-        partial_tap.extend(&tmp_query);
 
         let query_values = [
             QuadExt::new(query_values[0], query_values[1]),
@@ -407,7 +384,7 @@ fn iterate_query_fold_4_quad_ext(
         domain_size /= 4;
     }
 
-    Ok((cur_pos, evaluation, partial_tap, position_evaluation, alphas))
+    Ok((cur_pos, evaluation, position_evaluation, alphas))
 }
 
 impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHasher> {

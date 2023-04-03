@@ -1,13 +1,26 @@
 # Changelog
 
-## Next
+## 0.6.0 (TBD)
+
+## 0.5.0 (2023-03-29)
 
 #### CLI
 - Renamed `ProgramInfo` to `ExecutionDetails` since there is another `ProgramInfo` struct in the source code.
+- [BREAKING] renamed `stack_init` and `advice_tape` to `operand_stack` and `advice_stack` in input files.
+- Enabled specifying additional advice provider inputs (i.e., advice map and Merkle store) via the input files.
 
 #### Assembly
 - Added new instructions: `is_odd`, `assert_eqw`, `mtree_merge`.
 - [BREAKING] Removed `mtree_cwm` instruction.
+- Added `breakpoint` instruction to help with debugging.
+
+#### VM Internals
+- [BREAKING] Renamed `Read`, `ReadW` operations into `AdvPop`, `AdvPopW`.
+- [BREAKING] Replaced `AdviceSet` with `MerkleStore`.
+- Updated Winterfell dependency to v0.6.0.
+
+#### VM Internals
+- [BREAKING] Renamed `Read/ReadW` operations into `AdvPop/AdvPopW`.
 
 ## 0.4.0 (2023-02-27)
 

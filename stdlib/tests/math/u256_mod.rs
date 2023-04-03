@@ -1,6 +1,6 @@
-use super::Test;
+use crate::build_test;
 use num_bigint::BigUint;
-use rand_utils::rand_vector;
+use test_utils::rand::rand_vector;
 
 // MULTIPLICATION
 // ================================================================================================
@@ -30,7 +30,7 @@ fn mul_unsafe() {
         .rev()
         .collect::<Vec<_>>();
 
-    Test::with_stack(source, false, &operands).expect_stack(&result);
+    build_test!(source, &operands).expect_stack(&result);
 }
 
 // HELPER FUNCTIONS

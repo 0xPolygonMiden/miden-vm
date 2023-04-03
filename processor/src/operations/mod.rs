@@ -130,8 +130,8 @@ where
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::Read => self.op_read()?,
-            Operation::ReadW => self.op_readw()?,
+            Operation::AdvPop => self.op_advpop()?,
+            Operation::AdvPopW => self.op_advpopw()?,
 
             Operation::MLoadW => self.op_mloadw()?,
             Operation::MStoreW => self.op_mstorew()?,

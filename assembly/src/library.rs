@@ -55,6 +55,22 @@ impl Library for MaslLibrary {
     }
 }
 
+impl Library for &MaslLibrary {
+    type ModuleIterator<'a> = Iter<'a, Module>  where Self: 'a;
+
+    fn root_ns(&self) -> &LibraryNamespace {
+        &self.namespace
+    }
+
+    fn version(&self) -> &Version {
+        &self.version
+    }
+
+    fn modules(&self) -> Self::ModuleIterator<'_> {
+        self.modules.iter()
+    }
+}
+
 impl MaslLibrary {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------

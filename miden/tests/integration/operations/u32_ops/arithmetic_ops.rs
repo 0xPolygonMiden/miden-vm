@@ -1,8 +1,5 @@
-use super::{
-    build_op_test, test_param_out_of_bounds, test_unchecked_execution, TestError, U32_BOUND,
-};
-use proptest::prelude::*;
-use rand_utils::rand_value;
+use super::{test_param_out_of_bounds, test_unchecked_execution};
+use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
 // ================================================================================================

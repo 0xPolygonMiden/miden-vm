@@ -1,9 +1,9 @@
-use super::{Felt, Test};
-use std::{
+use crate::build_test;
+use core::{
     cmp::PartialEq,
     ops::{Add, Div, Mul, Neg, Sub},
 };
-use vm_core::{FieldElement, StarkField};
+use test_utils::{rand::rand_value, Felt, FieldElement, StarkField};
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings
@@ -152,11 +152,11 @@ impl Ext5 {
 
     pub fn rand() -> Self {
         Self {
-            a0: rand_utils::rand_value::<Felt>(),
-            a1: rand_utils::rand_value::<Felt>(),
-            a2: rand_utils::rand_value::<Felt>(),
-            a3: rand_utils::rand_value::<Felt>(),
-            a4: rand_utils::rand_value::<Felt>(),
+            a0: rand_value::<Felt>(),
+            a1: rand_value::<Felt>(),
+            a2: rand_value::<Felt>(),
+            a3: rand_value::<Felt>(),
+            a4: rand_value::<Felt>(),
         }
     }
 
@@ -398,7 +398,7 @@ fn test_ext5_add() {
     ];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], c.a0);
@@ -435,7 +435,7 @@ fn test_ext5_sub() {
     ];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], c.a0);
@@ -472,7 +472,7 @@ fn test_ext5_mul() {
     ];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], c.a0);
@@ -497,7 +497,7 @@ fn test_ext5_square() {
     let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], b.a0);
@@ -522,7 +522,7 @@ fn test_ext5_inv() {
     let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], b.a0);
@@ -559,7 +559,7 @@ fn test_ext5_div() {
     ];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], c.a0);
@@ -584,7 +584,7 @@ fn test_ext5_legendre() {
     let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], b);
@@ -605,7 +605,7 @@ fn test_ext5_sqrt() {
     let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], b.a0);

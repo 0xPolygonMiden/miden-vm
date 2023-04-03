@@ -1,11 +1,6 @@
-use std::cmp::Ordering;
-
-use super::{
-    build_op_test, test_inputs_out_of_bounds, test_param_out_of_bounds, test_unchecked_execution,
-    TestError, U32_BOUND,
-};
-use proptest::prelude::*;
-use rand_utils::rand_value;
+use super::{test_inputs_out_of_bounds, test_param_out_of_bounds, test_unchecked_execution};
+use core::cmp::Ordering;
+use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
 
 // U32 OPERATIONS TESTS - MANUAL - COMPARISON OPERATIONS
 // ================================================================================================

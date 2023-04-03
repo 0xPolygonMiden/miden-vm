@@ -1,9 +1,7 @@
-use super::{Felt, Test};
-use processor::math::fft;
-use test_case::test_case;
-use vm_core::{FieldElement, QuadExtension, StarkField};
-
-type QuadFelt = QuadExtension<Felt>;
+use crate::build_test;
+use test_utils::{
+    math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField,
+};
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
 #[test_case(8, 2; "poly_8 |> evaluated_16 |> interpolated_8")]
@@ -62,7 +60,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         out_mem_req
     );
 
-    let poly = rand_utils::rand_vector::<QuadExtension<Felt>>(in_poly_len);
+    let poly = rand_vector::<QuadFelt>(in_poly_len);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, blowup);
 
@@ -74,7 +72,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         .map(|v| v.as_int())
         .collect::<Vec<u64>>();
 
-    let test = Test::with_stack(&source, false, &iu64s);
+    let test = build_test!(&source, &iu64s);
     test.expect_stack(&ou64s);
 }
 
@@ -103,14 +101,14 @@ fn test_verify_remainder_64() {
     end
     ";
 
-    let poly = rand_utils::rand_vector::<QuadFelt>(8);
+    let poly = rand_vector::<QuadFelt>(8);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
 
     let ifelts = QuadFelt::slice_as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
-    let test = Test::with_stack(source, false, &iu64s);
+    let test = build_test!(source, &iu64s);
     assert!(test.execute().is_ok());
 }
 
@@ -139,13 +137,13 @@ fn test_verify_remainder_32() {
     end
     ";
 
-    let poly = rand_utils::rand_vector::<QuadFelt>(4);
+    let poly = rand_vector::<QuadFelt>(4);
     let twiddles = fft::get_twiddles(poly.len());
     let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
 
     let ifelts = QuadFelt::slice_as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
-    let test = Test::with_stack(source, false, &iu64s);
+    let test = build_test!(source, &iu64s);
     assert!(test.execute().is_ok());
 }

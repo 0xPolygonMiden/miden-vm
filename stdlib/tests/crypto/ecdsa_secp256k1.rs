@@ -1,5 +1,5 @@
-use super::Test;
-use test_case::test_case;
+use crate::build_test;
+use test_utils::test_case;
 
 // Wrapper types for ease of writing parameterized test cases
 struct FieldElement([u32; 8]);
@@ -43,6 +43,6 @@ fn verify(pubkey: Point, h: ScalarField, r: ScalarField, s: ScalarField) {
 
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     assert!(test.execute().is_ok());
 }

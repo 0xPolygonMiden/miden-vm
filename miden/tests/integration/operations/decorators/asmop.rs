@@ -1,5 +1,5 @@
-use crate::build_debug_test;
 use processor::{AsmOpInfo, VmStateIterator};
+use test_utils::build_debug_test;
 use vm_core::{AssemblyOp, Felt, Operation};
 
 #[test]

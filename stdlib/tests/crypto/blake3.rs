@@ -1,5 +1,5 @@
-use super::{Felt, Test};
-use vm_core::utils::{group_slice_elements, IntoBytes};
+use crate::build_test;
+use test_utils::{group_slice_elements, rand::rand_array, Felt, IntoBytes};
 
 #[test]
 fn blake3_hash_64_bytes() {
@@ -11,8 +11,8 @@ fn blake3_hash_64_bytes() {
     end
     ";
 
-    let input0 = rand_utils::rand_array::<Felt, 4>().into_bytes();
-    let input1 = rand_utils::rand_array::<Felt, 4>().into_bytes();
+    let input0 = rand_array::<Felt, 4>().into_bytes();
+    let input1 = rand_array::<Felt, 4>().into_bytes();
 
     let mut ibytes = [0u8; 64];
     ibytes[..32].copy_from_slice(&input0);
@@ -31,7 +31,7 @@ fn blake3_hash_64_bytes() {
         .map(|&bytes| u32::from_le_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = Test::with_stack(source, false, &ifelts);
+    let test = build_test!(source, &ifelts);
     test.expect_stack(&ofelts);
 }
 
@@ -45,7 +45,7 @@ fn blake3_hash_32_bytes() {
     end
     ";
 
-    let ibytes = rand_utils::rand_array::<Felt, 4>().into_bytes();
+    let ibytes = rand_array::<Felt, 4>().into_bytes();
     let ifelts = group_slice_elements::<u8, 4>(&ibytes)
         .iter()
         .map(|&bytes| u32::from_le_bytes(bytes) as u64)
@@ -59,6 +59,6 @@ fn blake3_hash_32_bytes() {
         .map(|&bytes| u32::from_le_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = Test::with_stack(source, false, &ifelts);
+    let test = build_test!(source, &ifelts);
     test.expect_stack(&ofelts);
 }

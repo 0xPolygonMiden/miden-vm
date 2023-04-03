@@ -1,10 +1,8 @@
-use proptest::prelude::*;
-use rand_utils::rand_value;
-
-use super::{
-    build_op_test, prop_randw, test_inputs_out_of_bounds, TestError, U32_BOUND, WORD_SIZE,
+use super::{prop_randw, test_inputs_out_of_bounds};
+use test_utils::{
+    build_op_test, proptest::prelude::*, rand::rand_value, Felt, StarkField, TestError, U32_BOUND,
+    WORD_SIZE,
 };
-use vm_core::{Felt, StarkField};
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
 // ================================================================================================

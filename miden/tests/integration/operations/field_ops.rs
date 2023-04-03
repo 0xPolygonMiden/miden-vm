@@ -1,9 +1,7 @@
-use proptest::prelude::*;
-use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, StarkField, WORD_SIZE};
-
-use crate::build_op_test;
-use crate::helpers::{prop_randw, TestError};
+use test_utils::{
+    build_op_test, prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement,
+    StarkField, TestError, WORD_SIZE,
+};
 
 // FIELD OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================

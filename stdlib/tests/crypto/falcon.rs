@@ -1,5 +1,6 @@
-use super::Test;
-use std::fmt::Write;
+use crate::build_test;
+use core::fmt::Write;
+use test_utils::rand::rand_array;
 
 #[test]
 fn test_falcon512_normalize_poly() {
@@ -1962,7 +1963,7 @@ fn test_falcon512_normalize_poly() {
     end
     ";
 
-    let test = Test::new(source, false);
+    let test = build_test!(source, &[]);
     assert!(test.execute().is_ok());
 }
 
@@ -1974,7 +1975,7 @@ fn test_falcon512_vector_squared_norm() {
     const MIDEN_PRIME: u64 = 18446744069414584321;
 
     let mut in_str = String::new();
-    let in_vec = rand_utils::rand_array::<u64, COEFFICIENTS>().map(|v| v % FALCON_PRIME);
+    let in_vec = rand_array::<u64, COEFFICIENTS>().map(|v| v % FALCON_PRIME);
 
     let sqrd_norm = (0..COEFFICIENTS)
         .map(|i| in_vec[i] * in_vec[i])
@@ -2020,7 +2021,7 @@ fn test_falcon512_vector_squared_norm() {
     "
     );
 
-    let test = Test::new(&source, false);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
@@ -2657,6 +2658,6 @@ fn test_falcon512_verify() {
     end
     ";
 
-    let test = Test::new(source, false);
+    let test = build_test!(source, &[]);
     assert!(test.execute().is_ok());
 }

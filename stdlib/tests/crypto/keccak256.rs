@@ -1,6 +1,9 @@
-use super::{Felt, Test, STACK_TOP_SIZE};
+use crate::build_test;
 use sha3::{Digest, Keccak256};
-use vm_core::utils::IntoBytes;
+use test_utils::{
+    rand::{rand_array, rand_value},
+    Felt, IntoBytes, STACK_TOP_SIZE,
+};
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
 #[test]
@@ -14,12 +17,12 @@ fn keccak256_bit_interleaving() {
     end
     ";
 
-    let word = rand_utils::rand_value::<u64>();
+    let word = rand_value::<u64>();
 
     let high = (word >> 32) as u32 as u64;
     let low = word as u32 as u64;
 
-    let test = Test::with_stack(source, false, &[low, high]);
+    let test = build_test!(source, &[low, high]);
     let stack = test.get_last_stack_state();
 
     assert_eq!(stack[0], Felt::new(high));
@@ -37,8 +40,8 @@ fn keccak256_2_to_1_hash() {
     ";
 
     // prepare random input byte array
-    let i_digest_0: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
-    let i_digest_1: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
+    let i_digest_0: [u8; 32] = rand_array::<Felt, 4>().into_bytes();
+    let i_digest_1: [u8; 32] = rand_array::<Felt, 4>().into_bytes();
 
     // 64 -bytes wide concatenated input digest
     let mut i_digest = [0u8; 64];
@@ -63,7 +66,7 @@ fn keccak256_2_to_1_hash() {
     to_stack(&i_digest, &mut in_stack);
     in_stack.reverse();
 
-    let test = Test::with_stack(source, false, &in_stack);
+    let test = build_test!(source, &in_stack);
     test.expect_stack(&expected_stack);
 }
 

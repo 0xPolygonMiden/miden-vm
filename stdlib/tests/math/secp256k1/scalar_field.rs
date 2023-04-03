@@ -1,6 +1,7 @@
-use super::Test;
-use std::cmp::PartialEq;
-use std::ops::Mul;
+use crate::build_test;
+use core::cmp::PartialEq;
+use core::ops::Mul;
+use test_utils::rand::rand_array;
 
 /// Secp256k1 scalar field element, kept in Montgomery form
 #[derive(Copy, Clone, Debug)]
@@ -264,10 +265,10 @@ fn test_secp256k1_scalar_field_mul() {
     end";
 
     let elm0 = ScalarField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = ScalarField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm2 = elm0 * elm1;
 
@@ -276,7 +277,7 @@ fn test_secp256k1_scalar_field_mul() {
     stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
@@ -294,7 +295,7 @@ fn test_secp256k1_scalar_field_inv() {
     end";
 
     let elm0 = ScalarField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = elm0.inv();
 
@@ -305,6 +306,6 @@ fn test_secp256k1_scalar_field_inv() {
     stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
     stack.reverse();
 
-    let test = Test::with_stack(source, false, &stack);
+    let test = build_test!(source, &stack);
     test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }

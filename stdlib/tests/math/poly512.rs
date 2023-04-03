@@ -1,6 +1,6 @@
-use super::Test;
-use std::fmt::Write;
-use vm_core::{polynom, Felt, StarkField};
+use crate::build_test;
+use core::fmt::Write;
+use test_utils::{math::polynom, rand::rand_array, Felt, StarkField};
 
 const POLYNOMIAL_LENGTH: usize = 512;
 const WORDS: usize = 128;
@@ -10,13 +10,13 @@ const Q: u32 = 12289; // Prime Number
 fn test_poly512_add_zq() {
     let source = generate_test_script_add_zq();
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_add_zq() -> String {
-    let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
-    let polynomial_2 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
+    let polynomial_1 = rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
+    let polynomial_2 = rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
     let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH)
         .map(|i| (polynomial_1[i] + polynomial_2[i]) % Q)
@@ -96,12 +96,12 @@ fn generate_test_script_add_zq() -> String {
 fn test_poly512_neg_zq() {
     let source = generate_test_script_neg_zq();
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_neg_zq() -> String {
-    let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
+    let polynomial_1 = rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
     let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH).map(|i| Q - polynomial_1[i]).collect();
 
@@ -162,13 +162,13 @@ fn generate_test_script_neg_zq() -> String {
 fn test_poly512_sub_zq() {
     let source = generate_test_script_sub_zq();
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_sub_zq() -> String {
-    let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
-    let polynomial_2 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
+    let polynomial_1 = rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
+    let polynomial_2 = rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
     let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH)
         .map(|i| (polynomial_1[i] + Q - polynomial_2[i]) % Q)
@@ -248,15 +248,15 @@ fn generate_test_script_sub_zq() -> String {
 fn test_poly512_mul_zq() {
     let source = generate_test_script_mul_zq();
 
-    let test = Test::with_stack(&source, false, &[]);
+    let test = build_test!(&source, &[]);
     assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_mul_zq() -> String {
     const Q: u64 = 12289; // Prime Number
 
-    let polynomial_1 = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
-    let polynomial_2 = rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
+    let polynomial_1 = rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
+    let polynomial_2 = rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| Felt::new(v % Q));
 
     let result_polynomial: Vec<u64> = polynom::mul(&polynomial_1, &polynomial_2)
         .iter()

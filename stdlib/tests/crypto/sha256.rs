@@ -1,6 +1,6 @@
-use super::{Felt, Test};
+use crate::build_test;
 use sha2::{Digest, Sha256};
-use vm_core::utils::{group_slice_elements, IntoBytes};
+use test_utils::{group_slice_elements, rand::rand_array, Felt, IntoBytes};
 
 #[test]
 fn sha256_2_to_1_hash() {
@@ -11,8 +11,8 @@ fn sha256_2_to_1_hash() {
         exec.sha256::hash_2to1
     end";
 
-    let input0 = rand_utils::rand_array::<Felt, 4>().into_bytes();
-    let input1 = rand_utils::rand_array::<Felt, 4>().into_bytes();
+    let input0 = rand_array::<Felt, 4>().into_bytes();
+    let input1 = rand_array::<Felt, 4>().into_bytes();
 
     let mut ibytes = [0u8; 64];
     ibytes[..32].copy_from_slice(&input0);
@@ -33,7 +33,7 @@ fn sha256_2_to_1_hash() {
         .map(|&bytes| u32::from_be_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = Test::with_stack(source, false, &ifelts);
+    let test = build_test!(source, &ifelts);
     test.expect_stack(&ofelts);
 }
 
@@ -46,7 +46,7 @@ fn sha256_1_to_1_hash() {
         exec.sha256::hash_1to1
     end";
 
-    let ibytes = rand_utils::rand_array::<Felt, 4>().into_bytes();
+    let ibytes = rand_array::<Felt, 4>().into_bytes();
     let ifelts = group_slice_elements::<u8, 4>(&ibytes)
         .iter()
         .map(|&bytes| u32::from_be_bytes(bytes) as u64)
@@ -62,6 +62,6 @@ fn sha256_1_to_1_hash() {
         .map(|&bytes| u32::from_be_bytes(bytes) as u64)
         .collect::<Vec<u64>>();
 
-    let test = Test::with_stack(source, false, &ifelts);
+    let test = build_test!(source, &ifelts);
     test.expect_stack(&ofelts);
 }

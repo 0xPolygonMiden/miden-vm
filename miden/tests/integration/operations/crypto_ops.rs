@@ -1,12 +1,10 @@
-use rand_utils::rand_vector;
-use vm_core::{
-    chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
-    crypto::merkle::{MerkleTree, NodeIndex},
+use test_utils::{
+    build_op_test,
+    crypto::{init_merkle_leaf, init_merkle_store, MerkleTree, NodeIndex},
+    rand::rand_vector,
     Felt, FieldElement, StarkField,
 };
-
-use crate::build_op_test;
-use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
+use vm_core::chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH};
 
 // TESTS
 // ================================================================================================

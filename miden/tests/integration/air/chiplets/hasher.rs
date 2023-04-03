@@ -1,11 +1,7 @@
-use crate::build_op_test;
-use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
-use rand_utils::rand_vector;
-use vm_core::{
-    crypto::{
-        hash::Rpo256,
-        merkle::{MerkleStore, MerkleTree},
-    },
+use test_utils::{
+    build_op_test,
+    crypto::{init_merkle_leaf, init_merkle_store, MerkleStore, MerkleTree, Rpo256},
+    rand::rand_vector,
     StarkField, Word,
 };
 

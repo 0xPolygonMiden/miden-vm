@@ -79,7 +79,7 @@ This group contains $32$ operations which do not shift the stack (this is almost
 | `MOVDN2`     | $11$         | `000_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVUP3`     | $12$         | `000_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN3`     | $13$         | `000_1101`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `READW`      | $14$         | `000_1110`      | [I/O ops](./io_ops.md)        | $7$         |
+| `ADVPOPW`    | $14$         | `000_1110`      | [I/O ops](./io_ops.md)        | $7$         |
 | `EXPACC`     | $15$         | `000_1111`      | [Field ops](./field_ops.md)   | $7$         |
 | `MOVUP4`     | $16$         | `001_0000`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN4`     | $17$         | `001_0001`      | [Stack ops](./stack_ops.md)   | $7$         |
@@ -138,7 +138,7 @@ This group contains $16$ operations which shift the stack to the right (i.e., pu
 | `DUP11`      | $58$         | `011_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `DUP13`      | $59$         | `011_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `DUP15`      | $60$         | `011_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `READ`       | $61$         | `011_1101`      | [Stack ops](./stack_ops.md)   | $7$         |
+| `ADVPOP`     | $61$         | `011_1101`      | [Stack ops](./io_ops.md)      | $7$         |
 | `SDEPTH`     | $62$         | `011_1110`      | [I/O ops](./io_ops.md)        | $7$         |
 | `CLK`        | $63$         | `011_1111`      | [System ops](./system_ops.md) | $7$         |
 

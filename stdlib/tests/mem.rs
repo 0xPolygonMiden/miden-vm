@@ -1,6 +1,5 @@
 use miden_stdlib::StdLibrary;
-use processor::{AdviceInputs, MemAdviceProvider, Process, StackInputs};
-use vm_core::{ONE, ZERO};
+use test_utils::{AdviceInputs, MemAdviceProvider, Process, StackInputs, ONE, ZERO};
 
 #[test]
 fn memcopy() {
