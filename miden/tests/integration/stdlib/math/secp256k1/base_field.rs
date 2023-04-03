@@ -1,6 +1,6 @@
-use super::build_test;
-use std::cmp::PartialEq;
-use std::ops::{Add, Mul, Neg, Sub};
+use core::cmp::PartialEq;
+use core::ops::{Add, Mul, Neg, Sub};
+use test_utils::rand::rand_array;
 
 /// Secp256k1 base field element, kept in Montgomery form
 #[derive(Copy, Clone, Debug)]
@@ -329,7 +329,7 @@ fn test_secp256k1_base_field_montgomery_repr() {
         exec.base_field::from_mont
     end";
 
-    let num_u32 = rand_utils::rand_array::<u32, 8>();
+    let num_u32 = rand_array::<u32, 8>();
     let mut stack = num_u32.map(|v| v as u64);
 
     stack.reverse();
@@ -348,10 +348,10 @@ fn test_secp256k1_base_field_mul() {
     end";
 
     let elm0 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm2 = elm0 * elm1;
 
@@ -374,10 +374,10 @@ fn test_secp256k1_base_field_add() {
     end";
 
     let elm0 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm2 = elm0 + elm1;
 
@@ -401,7 +401,7 @@ fn test_secp256k1_base_field_neg() {
     end";
 
     let elm0 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = -elm0;
 
@@ -423,10 +423,10 @@ fn test_secp256k1_base_field_sub() {
     end";
 
     let elm0 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm2 = elm0 - elm1;
 
@@ -456,10 +456,10 @@ fn test_secp256k1_base_field_add_then_sub() {
     end";
 
     let elm0 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     }; // a
     let elm1 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     }; // b
 
     let mut stack = [0u64; 16];
@@ -506,7 +506,7 @@ fn test_secp256k1_base_field_inv() {
     end";
 
     let elm0 = BaseField {
-        limbs: rand_utils::rand_array::<u32, 8>(),
+        limbs: rand_array::<u32, 8>(),
     };
     let elm1 = BaseField::one();
 

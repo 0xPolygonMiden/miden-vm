@@ -1,6 +1,4 @@
-use crate::build_test;
-use rand_utils::rand_array;
-use vm_core::{Felt, FieldElement, StarkField};
+use test_utils::{build_test, rand::rand_array, Felt, FieldElement, StarkField};
 
 // FRI_EXT2FOLD4
 // ================================================================================================

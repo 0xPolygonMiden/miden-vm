@@ -1,9 +1,8 @@
-use super::{build_test, Felt};
-use std::{
+use core::{
     cmp::PartialEq,
     ops::{Add, Div, Mul, Neg, Sub},
 };
-use vm_core::{FieldElement, StarkField};
+use test_utils::{rand::rand_value, Felt, FieldElement, StarkField};
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings
@@ -152,11 +151,11 @@ impl Ext5 {
 
     pub fn rand() -> Self {
         Self {
-            a0: rand_utils::rand_value::<Felt>(),
-            a1: rand_utils::rand_value::<Felt>(),
-            a2: rand_utils::rand_value::<Felt>(),
-            a3: rand_utils::rand_value::<Felt>(),
-            a4: rand_utils::rand_value::<Felt>(),
+            a0: rand_value::<Felt>(),
+            a1: rand_value::<Felt>(),
+            a2: rand_value::<Felt>(),
+            a3: rand_value::<Felt>(),
+            a4: rand_value::<Felt>(),
         }
     }
 

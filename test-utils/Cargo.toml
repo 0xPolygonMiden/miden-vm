@@ -1,0 +1,29 @@
+[package]
+name = "miden-test-utils"
+version = "0.1.0"
+description = "Test utilities for Miden VM programs"
+authors = ["miden contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/0xPolygonMiden/miden-vm"
+categories = ["development-tools::testing", "no-std"]
+keywords = ["miden", "test", "virtual-machine"]
+edition = "2021"
+rust-version = "1.67"
+
+[features]
+default = ["std"]
+std = ["assembly/std", "processor/std", "prover/std", "verifier/std", "vm-core/std", "winter-prover/std"]
+
+[dependencies]
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.6", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.6", features = ["internals"], default-features = false }
+prover = { package = "miden-prover", path = "../prover", version = "0.6", default-features = false }
+test-case = "3.0.0"
+verifier = { package = "miden-verifier", path = "../verifier", version = "0.6", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+proptest = { version = "1.1"  }
+rand-utils = { package = "winter-rand-utils", version = "0.6" }

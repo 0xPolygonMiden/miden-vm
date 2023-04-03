@@ -1,5 +1,5 @@
-use super::build_test;
-use std::fmt::Write;
+use core::fmt::Write;
+use test_utils::rand::rand_array;
 
 #[test]
 fn test_falcon512_normalize_poly() {
@@ -1974,7 +1974,7 @@ fn test_falcon512_vector_squared_norm() {
     const MIDEN_PRIME: u64 = 18446744069414584321;
 
     let mut in_str = String::new();
-    let in_vec = rand_utils::rand_array::<u64, COEFFICIENTS>().map(|v| v % FALCON_PRIME);
+    let in_vec = rand_array::<u64, COEFFICIENTS>().map(|v| v % FALCON_PRIME);
 
     let sqrd_norm = (0..COEFFICIENTS)
         .map(|i| in_vec[i] * in_vec[i])

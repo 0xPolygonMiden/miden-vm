@@ -1,6 +1,5 @@
-use crate::helpers::TestError;
-use crate::{build_op_test, build_test};
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
+use test_utils::{build_op_test, build_test, Felt, StarkField, TestError, ToElements};
+use vm_core::chiplets::hasher::apply_permutation;
 
 mod adv_ops;
 mod constant_ops;

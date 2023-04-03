@@ -1,6 +1,6 @@
-use super::build_debug_test;
 use processor::{AsmOpInfo, VmState};
-use vm_core::{utils::ToElements, AssemblyOp, Felt, FieldElement, Operation};
+use test_utils::{build_debug_test, Felt, FieldElement, ToElements};
+use vm_core::{AssemblyOp, Operation};
 
 // EXEC ITER TESTS
 // =================================================================

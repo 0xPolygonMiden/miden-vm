@@ -1,6 +1,5 @@
-use super::build_test;
 use num_bigint::BigUint;
-use rand_utils::rand_vector;
+use test_utils::rand::rand_vector;
 
 // MULTIPLICATION
 // ================================================================================================

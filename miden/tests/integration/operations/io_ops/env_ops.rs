@@ -1,8 +1,8 @@
-use crate::{build_op_test, build_test, helpers::Test};
-use processor::{AdviceInputs, FMP_MIN};
-use vm_core::{
-    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, StackInputs, StarkField, Word,
+use processor::FMP_MIN;
+use test_utils::{
+    build_op_test, build_test, AdviceInputs, StackInputs, StarkField, Test, Word, STACK_TOP_SIZE,
 };
+use vm_core::{code_blocks::CodeBlock, Operation};
 
 // SDEPTH INSTRUCTION
 // ================================================================================================
@@ -149,6 +149,7 @@ fn caller() {
         stack_inputs: StackInputs::try_from_values([1, 2, 3, 4, 5]).unwrap(),
         advice_inputs: AdviceInputs::default(),
         in_debug_mode: false,
+        libraries: Vec::default(),
     };
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
     // element should remain untouched
