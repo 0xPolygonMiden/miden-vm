@@ -26,11 +26,8 @@ assembly = { package = "miden-assembly", default-features = false, path = "../as
 blake3 = "1.3.3"
 num-bigint = "0.4.3"
 processor = { package = "miden-processor", path = "../processor", version = "0.6", features = ["internals"], default-features = false }
-proptest = "1.1.0"
-rand-utils = { package = "winter-rand-utils", version = "0.6" }
 sha2 = "0.10.6"
 sha3 = "0.10.6"
-test-case = "3.0.0"
 winterfell = { package = "winter-prover", version = "0.6", default-features = false }
 winter-fri = { package = "winter-fri", version = "0.6" }
 test-utils = { package = "miden-test-utils", path = "../test-utils", version = "0.1" }
