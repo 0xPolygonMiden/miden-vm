@@ -215,6 +215,14 @@ impl ParsingError {
         }
     }
 
+    pub fn const_coversion_failed(token: &Token, type_name: &str) -> Self {
+        ParsingError {
+            message: format!("failed to convert u64 constant used in `{token}` to required type {type_name}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     // INVALID / MALFORMED INSTRUCTIONS
     // --------------------------------------------------------------------------------------------
 

@@ -473,7 +473,7 @@ impl ParserContext {
             "clk" => simple_instruction(op, Clk),
 
             "mem_load" => io_ops::parse_mem_load(op),
-            "loc_load" => io_ops::parse_loc_load(op),
+            "loc_load" => io_ops::parse_loc_load(op, &self.local_constants),
 
             "mem_loadw" => io_ops::parse_mem_loadw(op),
             "loc_loadw" => io_ops::parse_loc_loadw(op),

@@ -6,7 +6,7 @@ use super::{
     ParsingError, ToString, Token, Vec, CONSTANT_LABEL_PARSER,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
-use core::ops::RangeBounds;
+use core::{ops::RangeBounds, convert::TryFrom};
 use vm_core::WORD_SIZE;
 
 // CONSTANTS
@@ -116,13 +116,13 @@ pub fn parse_mem_load(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_load(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_loc_load(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_load");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let index = parse_param::<u16>(op, 1)?;
+            let index = parse_mem_lookup_immediate_value::<u16>(op, constants)?;
             Ok(Instruction(LocLoad(index)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -260,6 +260,29 @@ fn parse_param_list(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsi
         });
 
     build_push_many_instruction(values)
+}
+
+/// Parses immediate value for memory lookup. Takes as argument a constant map for consant lookup.
+fn parse_mem_lookup_immediate_value<R>(
+    op: &Token,
+    constants: &LocalConstMap,
+) -> Result<R, ParsingError>
+where
+    R: TryFrom<u64> + core::str::FromStr,
+{
+    let param_str = op.parts()[1];
+    match CONSTANT_LABEL_PARSER.parse_label(param_str.to_string()) {
+        Ok(_) => {
+            let constant = constants
+                .get(param_str)
+                .cloned()
+                .ok_or_else(|| ParsingError::const_not_found(op))?;
+            constant
+                .try_into()
+                .map_err(|_| ParsingError::const_coversion_failed(op, core::any::type_name::<R>()))
+        }
+        Err(_) => parse_param::<R>(op, 1),
+    }
 }
 
 /// Parses a non hexadecimal parameter and returns the value. Takes as argument a constant map
