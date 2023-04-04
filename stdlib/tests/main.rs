@@ -8,6 +8,7 @@ macro_rules! build_test {
     }}
 }
 
+mod collections;
 mod crypto;
 mod math;
 mod mem;

@@ -24,6 +24,30 @@ pub trait Library {
     fn modules(&self) -> Self::ModuleIterator<'_>;
 }
 
+impl<T> Library for &T
+where
+    T: Library,
+{
+    type ModuleIterator<'a> = T::ModuleIterator<'a>
+    where
+        Self: 'a;
+
+    fn root_ns(&self) -> &LibraryNamespace {
+        T::root_ns(self)
+    }
+
+    fn version(&self) -> &Version {
+        T::version(self)
+    }
+
+    fn modules(&self) -> Self::ModuleIterator<'_> {
+        T::modules(self)
+    }
+}
+
+// LIBRARY IMPLEMENTATION FOR MASL FILES
+// ================================================================================================
+
 /// A concrete implementation of the Library trait. Contains the minimal attributes of a functional
 /// library.
 ///
@@ -41,22 +65,6 @@ pub struct MaslLibrary {
 
 impl Library for MaslLibrary {
     type ModuleIterator<'a> = Iter<'a, Module>;
-
-    fn root_ns(&self) -> &LibraryNamespace {
-        &self.namespace
-    }
-
-    fn version(&self) -> &Version {
-        &self.version
-    }
-
-    fn modules(&self) -> Self::ModuleIterator<'_> {
-        self.modules.iter()
-    }
-}
-
-impl Library for &MaslLibrary {
-    type ModuleIterator<'a> = Iter<'a, Module>  where Self: 'a;
 
     fn root_ns(&self) -> &LibraryNamespace {
         &self.namespace
