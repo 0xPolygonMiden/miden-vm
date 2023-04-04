@@ -532,7 +532,7 @@ of the comments is correctly parsed. There was a bug here earlier."
             proc
         );
     }
-    let module_serialized = module.to_bytes().unwrap();
+    let module_serialized = module.to_bytes();
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
     assert_eq!(module, module_deserialized);
@@ -612,7 +612,7 @@ fn test_ast_parsing_module_docs_fail() {
 fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
     let program = parse_program(source).unwrap();
-    let program_serialized = program.to_bytes().unwrap();
+    let program_serialized = program.to_bytes();
     let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);
@@ -632,7 +632,7 @@ fn test_ast_program_serde_local_procs() {
         exec.bar
     end";
     let program = parse_program(source).unwrap();
-    let program_serialized = program.to_bytes().unwrap();
+    let program_serialized = program.to_bytes();
     let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);
@@ -648,7 +648,7 @@ fn test_ast_program_serde_exported_procs() {
         padw
     end";
     let module = parse_module(source).unwrap();
-    let module_serialized = module.to_bytes().unwrap();
+    let module_serialized = module.to_bytes();
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
     assert_eq!(module, module_deserialized);
@@ -685,7 +685,7 @@ fn test_ast_program_serde_control_flow() {
     end";
 
     let program = parse_program(source).unwrap();
-    let program_serialized = program.to_bytes().unwrap();
+    let program_serialized = program.to_bytes();
     let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);

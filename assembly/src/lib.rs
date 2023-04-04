@@ -163,8 +163,8 @@ impl AsRef<str> for AbsolutePath {
 }
 
 impl Serializable for AbsolutePath {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_str(&self.path)
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_str(&self.path);
     }
 }
 
@@ -234,8 +234,8 @@ impl AsRef<str> for LibraryNamespace {
 }
 
 impl Serializable for LibraryNamespace {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_str(&self.name)
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_str(&self.name);
     }
 }
 
@@ -349,8 +349,8 @@ impl AsRef<str> for ModulePath {
 }
 
 impl Serializable for ModulePath {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_str(&self.path)
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_str(&self.path);
     }
 }
 

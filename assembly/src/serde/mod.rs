@@ -33,22 +33,13 @@ impl ByteWriter {
         self.0.extend(val.to_le_bytes());
     }
 
-    pub fn write_len(&mut self, val: usize) -> Result<(), SerializationError> {
-        if val > u16::MAX as usize {
-            return Err(SerializationError::LengthTooLong);
-        }
-        self.write_u16(val as u16);
-        Ok(())
-    }
-
     pub fn write_felt(&mut self, val: Felt) {
         self.write_u64(val.as_int());
     }
 
-    pub fn write_str(&mut self, val: &str) -> Result<(), SerializationError> {
-        self.write_len(val.len())?;
+    pub fn write_str(&mut self, val: &str) {
+        self.write_u64(val.len() as u64);
         self.0.extend(val.as_bytes());
-        Ok(())
     }
 
     pub fn write_bytes(&mut self, val: &[u8]) {
@@ -69,30 +60,28 @@ impl ByteWriter {
 
 /// Converts `self` into bytes and writes them to the provided `ByteWriter` struct
 pub trait Serializable: Sized {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError>;
+    fn write_into(&self, target: &mut ByteWriter);
 
-    fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut target = ByteWriter::default();
-        self.write_into(&mut target)?;
-        Ok(target.into_bytes())
+        self.write_into(&mut target);
+        target.into_bytes()
     }
 }
 
 impl Serializable for () {
-    fn write_into(&self, _target: &mut ByteWriter) -> Result<(), SerializationError> {
-        Ok(())
-    }
+    fn write_into(&self, _target: &mut ByteWriter) {}
 }
 
 impl Serializable for &'_ str {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_str(self)
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_str(self);
     }
 }
 
 impl Serializable for String {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_str(self)
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_str(self);
     }
 }
 
@@ -100,9 +89,9 @@ impl<T> Serializable for Vec<T>
 where
     T: Serializable,
 {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_len(self.len())?;
-        self.iter().try_for_each(|t| t.write_into(target))
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_u64(self.len() as u64);
+        self.iter().for_each(|t| t.write_into(target));
     }
 }
 
@@ -110,15 +99,14 @@ impl<T> Serializable for Option<T>
 where
     T: Serializable,
 {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+    fn write_into(&self, target: &mut ByteWriter) {
         match self {
             Some(t) => {
                 target.write_bool(true);
-                t.write_into(target)
+                t.write_into(target);
             }
             None => {
                 target.write_bool(false);
-                Ok(())
             }
         }
     }
@@ -179,10 +167,6 @@ impl<'a> ByteReader<'a> {
         Ok(u64::from_le_bytes(result.try_into().expect("u64 conversion failure")))
     }
 
-    pub fn read_len(&mut self) -> Result<usize, SerializationError> {
-        self.read_u16().map(|l| l as usize)
-    }
-
     pub fn read_felt(&mut self) -> Result<Felt, SerializationError> {
         let value = self.read_u64()?;
         if value >= Felt::MODULUS {
@@ -193,7 +177,7 @@ impl<'a> ByteReader<'a> {
     }
 
     pub fn read_str(&mut self) -> Result<&str, SerializationError> {
-        let len = self.read_u16()? as usize;
+        let len = self.read_u64()? as usize;
         self.check_eor(len)?;
         let string = &self.bytes[self.pos..self.pos + len];
         self.pos += len;
@@ -248,7 +232,7 @@ where
     T: Deserializable,
 {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let len = bytes.read_len()?;
+        let len = bytes.read_u64()?;
         (0..len).map(|_| T::read_from(bytes)).collect()
     }
 }

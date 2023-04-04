@@ -160,7 +160,7 @@ impl AsRef<str> for ProcedureName {
 }
 
 impl Serializable for ProcedureName {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+    fn write_into(&self, target: &mut ByteWriter) {
         let name_bytes = self.name.as_bytes();
         let num_bytes = name_bytes.len();
 
@@ -171,7 +171,6 @@ impl Serializable for ProcedureName {
 
         target.write_u8(num_bytes as u8);
         target.write_bytes(name_bytes);
-        Ok(())
     }
 }
 
@@ -268,9 +267,8 @@ impl fmt::Display for ProcedureId {
 }
 
 impl Serializable for ProcedureId {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+    fn write_into(&self, target: &mut ByteWriter) {
         target.write_bytes(&self.0);
-        Ok(())
     }
 }
 

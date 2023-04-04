@@ -43,18 +43,18 @@ pub struct ProgramAst {
 
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
-    pub fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut byte_writer = ByteWriter::default();
 
         // local procedures
         byte_writer.write_u16(self.local_procs.len() as u16);
 
-        self.local_procs.iter().try_for_each(|proc| proc.write_into(&mut byte_writer))?;
+        self.local_procs.iter().for_each(|proc| proc.write_into(&mut byte_writer));
 
         // body
-        self.body.write_into(&mut byte_writer)?;
+        self.body.write_into(&mut byte_writer);
 
-        Ok(byte_writer.into_bytes())
+        byte_writer.into_bytes()
     }
 
     /// Returns a `ProgramAst` struct by its byte representation.
@@ -85,16 +85,16 @@ pub struct ModuleAst {
 
 impl ModuleAst {
     /// Returns byte representation of the `ModuleAst`.
-    pub fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut byte_writer = ByteWriter::default();
 
         // docs
-        self.docs.write_into(&mut byte_writer)?;
+        self.docs.write_into(&mut byte_writer);
 
         // local procedures
-        self.local_procs.write_into(&mut byte_writer)?;
+        self.local_procs.write_into(&mut byte_writer);
 
-        Ok(byte_writer.into_bytes())
+        byte_writer.into_bytes()
     }
 
     /// Returns a `ModuleAst` struct by its byte representation.
@@ -112,10 +112,9 @@ impl ModuleAst {
 }
 
 impl Serializable for ModuleAst {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        self.docs.write_into(target)?;
-        self.local_procs.write_into(target)?;
-        Ok(())
+    fn write_into(&self, target: &mut ByteWriter) {
+        self.docs.write_into(target);
+        self.local_procs.write_into(target);
     }
 }
 
@@ -143,13 +142,12 @@ pub struct ProcedureAst {
 
 impl Serializable for ProcedureAst {
     /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        self.name.write_into(target)?;
-        self.docs.write_into(target)?;
+    fn write_into(&self, target: &mut ByteWriter) {
+        self.name.write_into(target);
+        self.docs.write_into(target);
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
-        self.body.write_into(target)?;
-        Ok(())
+        self.body.write_into(target);
     }
 }
 

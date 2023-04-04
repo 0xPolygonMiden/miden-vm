@@ -281,9 +281,8 @@ pub enum OpCode {
 }
 
 impl Serializable for OpCode {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+    fn write_into(&self, target: &mut ByteWriter) {
         target.write_u8(*self as u8);
-        Ok(())
     }
 }
 

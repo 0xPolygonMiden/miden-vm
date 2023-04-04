@@ -169,7 +169,7 @@ mod use_std {
             let mut path = dir_path.as_ref().join(self.namespace.as_str());
             path.set_extension(Self::LIBRARY_EXTENSION);
 
-            let bytes = self.to_bytes()?;
+            let bytes = self.to_bytes();
             fs::write(path, bytes)
         }
     }
@@ -230,16 +230,15 @@ mod use_std {
 }
 
 impl Serializable for MaslLibrary {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        self.namespace.write_into(target)?;
-        self.version.write_into(target)?;
+    fn write_into(&self, target: &mut ByteWriter) {
+        self.namespace.write_into(target);
+        self.version.write_into(target);
 
-        let mut modules = self.modules();
-        target.write_len(modules.len())?;
-        modules.try_for_each(|module| {
-            ModulePath::strip_namespace(&module.path).write_into(target)?;
-            module.ast.write_into(target)?;
-            Ok(())
+        let modules = self.modules();
+        target.write_u64(modules.len() as u64);
+        modules.for_each(|module| {
+            ModulePath::strip_namespace(&module.path).write_into(target);
+            module.ast.write_into(target);
         })
     }
 }
@@ -249,7 +248,7 @@ impl Deserializable for MaslLibrary {
         let namespace = LibraryNamespace::read_from(bytes)?;
         let version = Version::read_from(bytes)?;
 
-        let len = bytes.read_len()?;
+        let len = bytes.read_u64()?;
         let modules = (0..len)
             .map(|_| {
                 ModulePath::read_from(bytes)
@@ -320,10 +319,9 @@ impl Ord for Module {
 }
 
 impl Serializable for Module {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        self.path.write_into(target)?;
-        self.ast.write_into(target)?;
-        Ok(())
+    fn write_into(&self, target: &mut ByteWriter) {
+        self.path.write_into(target);
+        self.ast.write_into(target);
     }
 }
 
@@ -420,11 +418,10 @@ impl Default for Version {
 }
 
 impl Serializable for Version {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+    fn write_into(&self, target: &mut ByteWriter) {
         target.write_u16(self.major);
         target.write_u16(self.minor);
         target.write_u16(self.patch);
-        Ok(())
     }
 }
 
