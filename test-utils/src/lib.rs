@@ -8,6 +8,7 @@ extern crate alloc;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
+use vm_core::chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH};
 use vm_core::utils::{collections::Vec, string::String};
 
 // EXPORTS
@@ -268,4 +269,23 @@ pub fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
 pub fn prop_randw<T: Arbitrary>() -> impl Strategy<Value = Vec<T>> {
     use proptest::prelude::{any, prop};
     prop::collection::vec(any::<T>(), 4)
+}
+
+pub fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
+    let mut expected = [Felt::ZERO; STATE_WIDTH];
+    for (&value, result) in values.iter().zip(expected.iter_mut()) {
+        *result = Felt::new(value);
+    }
+    apply_permutation(&mut expected);
+    expected.reverse();
+
+    expected
+}
+
+pub fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
+    let digest = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
+    let mut expected: [Felt; 4] = digest.into();
+    expected.reverse();
+
+    expected
 }
