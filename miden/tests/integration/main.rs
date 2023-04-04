@@ -5,7 +5,6 @@ mod cli;
 mod exec_iters;
 mod flow_control;
 mod operations;
-mod stdlib;
 
 // TESTS
 // ================================================================================================

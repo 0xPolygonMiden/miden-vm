@@ -1,3 +1,4 @@
+use crate::build_test;
 use core::fmt::Write;
 use test_utils::{math::polynom, rand::rand_array, Felt, StarkField};
 
@@ -9,8 +10,8 @@ const Q: u32 = 12289; // Prime Number
 fn test_poly512_add_zq() {
     let source = generate_test_script_add_zq();
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = build_test!(&source, &[]);
+    assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_add_zq() -> String {
@@ -95,8 +96,8 @@ fn generate_test_script_add_zq() -> String {
 fn test_poly512_neg_zq() {
     let source = generate_test_script_neg_zq();
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = build_test!(&source, &[]);
+    assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_neg_zq() -> String {
@@ -161,8 +162,8 @@ fn generate_test_script_neg_zq() -> String {
 fn test_poly512_sub_zq() {
     let source = generate_test_script_sub_zq();
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = build_test!(&source, &[]);
+    assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_sub_zq() -> String {
@@ -247,8 +248,8 @@ fn generate_test_script_sub_zq() -> String {
 fn test_poly512_mul_zq() {
     let source = generate_test_script_mul_zq();
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = build_test!(&source, &[]);
+    assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_mul_zq() -> String {

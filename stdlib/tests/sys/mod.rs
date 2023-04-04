@@ -1,3 +1,4 @@
+use crate::build_test;
 use test_utils::{proptest::prelude::*, rand::rand_vector, STACK_TOP_SIZE};
 
 #[test]
@@ -23,6 +24,6 @@ proptest! {
         expected_values.append(&mut push_values);
         expected_values.reverse();
         expected_values.truncate(STACK_TOP_SIZE);
-        build_test!(source, &test_values).prop_expect_stack(&expected_values)?;
+        build_test!(&source, &test_values).prop_expect_stack(&expected_values)?;
     }
 }

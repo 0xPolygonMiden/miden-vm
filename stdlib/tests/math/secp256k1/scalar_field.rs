@@ -1,3 +1,4 @@
+use crate::build_test;
 use core::cmp::PartialEq;
 use core::ops::Mul;
 use test_utils::rand::rand_array;

@@ -1,14 +1,19 @@
 use super::channel::{MidenFriVerifierChannel, UnBatch};
 use core::{marker::PhantomData, mem};
-use miden::{math::fft, utils::math::log2, Digest as MidenDigest};
-use processor::crypto::{Hasher, RandomCoin, WinterRandomCoin};
+use processor::{
+    crypto::{Hasher, RandomCoin, WinterRandomCoin},
+    Digest as MidenDigest,
+};
 use test_utils::{
     crypto::{MerklePath, MerklePathSet, NodeIndex, Rpo256 as MidenHasher},
-    group_vector_elements, Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, ZERO,
+    group_vector_elements,
+    math::fft,
+    Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, ZERO,
 };
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
+use winterfell::math::log2;
 
 // This function proves and then verifies a FRI proof with the following fixed parameters:
 //  1) Max remainder codeword (1 << 6).

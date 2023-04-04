@@ -1,6 +1,6 @@
-use miden::math::fft;
 use test_utils::{
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, MerklePathSet},
+    math::fft,
     serde::DeserializationError,
     Felt, FieldElement, StarkField,
 };

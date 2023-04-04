@@ -1,10 +1,9 @@
 use test_utils::{
-    build_op_test,
+    build_expected_hash, build_expected_perm, build_op_test,
     crypto::{init_merkle_leaf, init_merkle_store, MerkleTree, NodeIndex},
     rand::rand_vector,
-    Felt, FieldElement, StarkField,
+    Felt, StarkField,
 };
-use vm_core::chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH};
 
 // TESTS
 // ================================================================================================
@@ -175,26 +174,4 @@ fn mtree_update() {
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], store.clone());
     test.expect_stack(&final_stack);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
-    let mut expected = [Felt::ZERO; STATE_WIDTH];
-    for (&value, result) in values.iter().zip(expected.iter_mut()) {
-        *result = Felt::new(value);
-    }
-    apply_permutation(&mut expected);
-    expected.reverse();
-
-    expected
-}
-
-fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
-    let digest = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
-    let mut expected: [Felt; 4] = digest.into();
-    expected.reverse();
-
-    expected
 }
