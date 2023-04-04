@@ -1,4 +1,5 @@
 use super::base_field::{bv_or, Ext5};
+use crate::build_test;
 use std::ops::Add;
 use test_utils::{test_case, Felt, FieldElement, StarkField};
 

@@ -1,3 +1,4 @@
+use crate::build_test;
 use test_utils::test_case;
 
 // Wrapper types for ease of writing parameterized test cases
@@ -11,7 +12,7 @@ struct Point([BaseField; 3]);
 /// Because this test is pretty expensive, it's by default ignored. If you're interested in
 /// running this test, issue
 ///
-/// cargo test --release -p miden secp256k1 -- --include-ignored
+/// cargo test --release -p miden-stdlib secp256k1 -- --include-ignored
 ///
 /// from root directory of Miden repository.
 ///

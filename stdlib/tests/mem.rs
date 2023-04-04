@@ -1,4 +1,4 @@
-use stdlib::StdLibrary;
+use miden_stdlib::StdLibrary;
 use test_utils::{AdviceInputs, MemAdviceProvider, Process, StackInputs, ONE, ZERO};
 
 #[test]

@@ -1,3 +1,4 @@
+use crate::build_test;
 use core::fmt::Write;
 use test_utils::rand::rand_array;
 
@@ -5,8 +6,8 @@ use test_utils::rand::rand_array;
 fn test_ntt512() {
     let source = generate_test_script_ntt512();
 
-    let test = build_test!(source, &[]);
-    let _ = test.get_last_stack_state();
+    let test = build_test!(&source, &[]);
+    assert!(test.execute().is_ok());
 }
 
 fn generate_test_script_ntt512() -> String {

@@ -1,3 +1,4 @@
+use crate::build_test;
 use core::fmt::Write;
 use test_utils::rand::rand_array;
 
@@ -1963,7 +1964,7 @@ fn test_falcon512_normalize_poly() {
     ";
 
     let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -2020,8 +2021,8 @@ fn test_falcon512_vector_squared_norm() {
     "
     );
 
-    let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    let test = build_test!(&source, &[]);
+    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -2658,5 +2659,5 @@ fn test_falcon512_verify() {
     ";
 
     let test = build_test!(source, &[]);
-    test.get_last_stack_state();
+    assert!(test.execute().is_ok());
 }

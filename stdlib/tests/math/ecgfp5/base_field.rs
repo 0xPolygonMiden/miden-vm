@@ -1,3 +1,4 @@
+use crate::build_test;
 use core::{
     cmp::PartialEq,
     ops::{Add, Div, Mul, Neg, Sub},

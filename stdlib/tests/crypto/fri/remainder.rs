@@ -1,5 +1,7 @@
-use processor::math::fft;
-use test_utils::{rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField};
+use crate::build_test;
+use test_utils::{
+    math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField,
+};
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
 #[test_case(8, 2; "poly_8 |> evaluated_16 |> interpolated_8")]
@@ -70,7 +72,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         .map(|v| v.as_int())
         .collect::<Vec<u64>>();
 
-    let test = build_test!(source, &iu64s);
+    let test = build_test!(&source, &iu64s);
     test.expect_stack(&ou64s);
 }
 
@@ -107,8 +109,7 @@ fn test_verify_remainder_64() {
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
     let test = build_test!(source, &iu64s);
-    let res = test.execute();
-    assert!(res.is_ok());
+    assert!(test.execute().is_ok());
 }
 
 #[test]
@@ -144,6 +145,5 @@ fn test_verify_remainder_32() {
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
     let test = build_test!(source, &iu64s);
-    let res = test.execute();
-    assert!(res.is_ok());
+    assert!(test.execute().is_ok());
 }
