@@ -232,6 +232,49 @@ fn constant_not_found() {
     assert_eq!(expected_error, err.to_string());
 }
 
+#[test]
+fn loc_addr_constant() {
+    let assembler = super::Assembler::default();
+    let source = "\
+    const.PROC_LOC_STORE_PTR=0
+    const.PROC_LOC_LOAD_PTR=1
+    const.PROC_LOC_STOREW_PTR=2
+    const.PROC_LOC_LOADW_PTR=3
+    const.GLOBAL_STORE_PTR=4
+    const.GLOBAL_LOAD_PTR=5
+    const.GLOBAL_STOREW_PTR=6
+    const.GLOBAL_LOADW_PTR=7
+    
+    proc.test_const_loc.4
+        # constant should resolve using locaddr operation
+        locaddr.PROC_LOC_STORE_PTR
+
+        # constant should resolve using loc_store operation
+        loc_store.PROC_LOC_STORE_PTR
+
+        # constant should resolve using loc_load operation
+        loc_load.PROC_LOC_LOAD_PTR
+
+        # constant should resolve using loc_storew operation
+        loc_storew.PROC_LOC_STOREW_PTR
+
+        # constant should resolve using loc_loadw opeartion
+        loc_loadw.PROC_LOC_LOADW_PTR
+    end
+
+    begin
+        # inline procedure
+        exec.test_const_loc
+
+        # constant should resolve 
+        mem_store.GLOBAL_STORE_PTR
+    end
+    ";
+    let program = assembler.compile(source).unwrap();
+    println!("{program}");
+
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 

@@ -468,21 +468,21 @@ impl ParserContext {
             "push" => io_ops::parse_push(op, &self.local_constants),
 
             "sdepth" => simple_instruction(op, Sdepth),
-            "locaddr" => io_ops::parse_locaddr(op),
+            "locaddr" => io_ops::parse_locaddr(op, &self.local_constants),
             "caller" => simple_instruction(op, Caller), // TODO: error if not in SYSCALL (issue #551)
             "clk" => simple_instruction(op, Clk),
 
-            "mem_load" => io_ops::parse_mem_load(op),
+            "mem_load" => io_ops::parse_mem_load(op, &self.local_constants),
             "loc_load" => io_ops::parse_loc_load(op, &self.local_constants),
 
-            "mem_loadw" => io_ops::parse_mem_loadw(op),
-            "loc_loadw" => io_ops::parse_loc_loadw(op),
+            "mem_loadw" => io_ops::parse_mem_loadw(op, &self.local_constants),
+            "loc_loadw" => io_ops::parse_loc_loadw(op, &self.local_constants),
 
-            "mem_store" => io_ops::parse_mem_store(op),
-            "loc_store" => io_ops::parse_loc_store(op),
+            "mem_store" => io_ops::parse_mem_store(op, &self.local_constants),
+            "loc_store" => io_ops::parse_loc_store(op, &self.local_constants),
 
-            "mem_storew" => io_ops::parse_mem_storew(op),
-            "loc_storew" => io_ops::parse_loc_storew(op),
+            "mem_storew" => io_ops::parse_mem_storew(op, &self.local_constants),
+            "loc_storew" => io_ops::parse_loc_storew(op, &self.local_constants),
 
             "mem_stream" => simple_instruction(op, MemStream),
             "adv_pipe" => simple_instruction(op, AdvPipe),
