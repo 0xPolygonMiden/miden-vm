@@ -8,11 +8,13 @@ extern crate alloc;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
-use vm_core::chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH};
+use vm_core::chiplets::hasher::{apply_permutation, STATE_WIDTH};
 use vm_core::utils::{collections::Vec, string::String};
 
 // EXPORTS
 // ================================================================================================
+
+pub use vm_core::chiplets::hasher::hash_elements;
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
@@ -23,6 +25,7 @@ pub use prover::{MemAdviceProvider, ProofOptions};
 pub use test_case::test_case;
 pub use verifier::ProgramInfo;
 pub use vm_core::{
+    crypto::hash::RpoDigest,
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
     Felt, FieldElement, Program, StarkField, Word, ONE, WORD_SIZE, ZERO,
@@ -163,9 +166,12 @@ impl Test {
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
-            let mem_state = process.get_memory_value(0, mem_start_addr).unwrap();
-            let expected_mem: Vec<Felt> = data.iter().map(|&v| Felt::new(v)).collect();
-            assert_eq!(expected_mem, mem_state);
+            let mem_state = stack_to_ints(&process.get_memory_value(0, mem_start_addr).unwrap());
+            assert_eq!(
+                data, mem_state,
+                "Expected memory [{}] => {:?}, found {:?}",
+                mem_start_addr, data, mem_state
+            );
             mem_start_addr += 1;
         }
 

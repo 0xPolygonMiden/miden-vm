@@ -1,3 +1,5 @@
+use.std::mem
+
 #! Computes the `ilog2(number)` and `2^(ilog2(number))`.
 #!
 #! number must be non-zero, otherwise this will error
@@ -103,4 +105,73 @@ export.get
      swapw dropw
      # stack: [leaf, ...]
   end
+end
+
+#! Load the MMR peak data based on its hash.
+#!
+#! Input: [HASH, mmr_ptr, ...]
+#! Output: [...]
+#!
+#! Where:
+#!  - HASH: is the MMR peak hash, the hash is expected to be padded to an even
+#!    length and to have a minimum size of 16 elements
+#!  - The advice map must contain a key with HASH, and its value is
+#!    `number_of_leaves || hash_data`, and hash_data is the data used to computed `HASH`
+#!  - mmt_ptr: the memory location where the MMR data will be written to,
+#!    starting with the MMR forest (its total leaves count) followed by its peaks
+#!
+#! Cycles: 156 + 9 * extra_peak_pair cycles
+#!    where `extra_peak` is the number of peak pairs in addition to the first
+#!    16, i.e. `round_up((num_of_peaks - 16) / 2)`
+export.unpack
+  # load the number_of_leaves and peaks to the advice_stack (0 cycles)
+  adv.keyval
+  # operand_stack => [HASH, mmr_ptr, ...]
+  # advice_stack => [number_of_leaves, peaks*, ...]
+
+  # load the size from the advice stack (1 cycles)
+  adv_push.1
+  # operand_stack => [forest, HASH, mmr_ptr, ...]
+  # advice_stack => [peaks*, ...]
+
+  # save the forest to memory (4 cycles)
+  dup dup.6 mem_store
+  # => [forest, HASH, mmr_ptr, ...]
+
+  # count number of peaks (69 cycles)
+  u32split u32unchecked_popcnt swap u32unchecked_popcnt add
+  # => [count, HASH, mmr_ptr, ...]
+
+  # the peaks are padded to a minimum length of 16 (10 cycles)
+  push.16 u32unchecked_max
+  # => [count_min, HASH, mmr_ptr, ...]
+
+  # when the number of peaks is greater than 16, then they are padded to an even number (7 cycles)
+  dup is_odd add
+  # => [even_count_min, HASH, mmr_ptr, ...]
+
+  # compute the end address including the padding data and forest (3 cycles)
+  dup.5 add add.1
+  # => [mmt_ptr_end, HASH, mmr_ptr, ...]
+
+  # update the mmr_ptr to account for the size (2 cycles)
+  movup.5 add.1
+  # => [mmr_ptr+1, mmt_ptr_end, HASH, ...]
+
+  # hash the first 16 words (28 cycles)
+  padw padw padw
+  adv_pipe adv_pipe adv_pipe adv_pipe
+  adv_pipe adv_pipe adv_pipe adv_pipe
+  # => [C, B, A, mmr_ptr+17, mmt_ptr_end, HASH, ...]
+
+  # handle MMR with more than 16 elements (10 + 9 * words cycles)
+  exec.mem::pipe_double_words_to_memory
+  # => [C, B, A, mmr_ptr+17, HASH, ...]
+
+  # drop anything but the hash result, word B (11 cycles)
+  dropw swapw dropw movup.4 drop
+  # => [B, HASH, ...]
+
+  # assert on the resulting hash (11 cycles)
+  assert_eqw
 end
