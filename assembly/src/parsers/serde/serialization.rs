@@ -4,21 +4,29 @@ use super::{ByteWriter, Instruction, Node, OpCode, Serializable};
 // ================================================================================================
 
 impl Serializable for Node {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
             Self::Instruction(i) => i.write_into(target),
             Self::IfElse(if_clause, else_clause) => {
                 OpCode::IfElse.write_into(target);
+
+                target.write_u64(if_clause.len() as u64);
                 if_clause.write_into(target);
+
+                target.write_u64(else_clause.len() as u64);
                 else_clause.write_into(target);
             }
             Self::Repeat(times, nodes) => {
                 OpCode::Repeat.write_into(target);
                 target.write_u32(*times);
+
+                target.write_u64(nodes.len() as u64);
                 nodes.write_into(target);
             }
             Self::While(nodes) => {
                 OpCode::While.write_into(target);
+
+                target.write_u64(nodes.len() as u64);
                 nodes.write_into(target);
             }
         }
@@ -29,7 +37,7 @@ impl Serializable for Node {
 // ================================================================================================
 
 impl Serializable for Instruction {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
             Self::Assert => OpCode::Assert.write_into(target),
             Self::AssertEq => OpCode::AssertEq.write_into(target),
@@ -38,22 +46,22 @@ impl Serializable for Instruction {
             Self::Add => OpCode::Add.write_into(target),
             Self::AddImm(v) => {
                 OpCode::AddImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::Sub => OpCode::Sub.write_into(target),
             Self::SubImm(v) => {
                 OpCode::SubImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::Mul => OpCode::Mul.write_into(target),
             Self::MulImm(v) => {
                 OpCode::MulImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::Div => OpCode::Div.write_into(target),
             Self::DivImm(v) => {
                 OpCode::DivImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::Neg => OpCode::Neg.write_into(target),
             Self::Inv => OpCode::Inv.write_into(target),
@@ -62,7 +70,7 @@ impl Serializable for Instruction {
             Self::Exp => OpCode::Exp.write_into(target),
             Self::ExpImm(v) => {
                 OpCode::ExpImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::ExpBitLength(v) => {
                 OpCode::ExpBitLength.write_into(target);
@@ -75,12 +83,12 @@ impl Serializable for Instruction {
             Self::Eq => OpCode::Eq.write_into(target),
             Self::EqImm(v) => {
                 OpCode::EqImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::Neq => OpCode::Neq.write_into(target),
             Self::NeqImm(v) => {
                 OpCode::NeqImm.write_into(target);
-                target.write_felt(*v);
+                v.write_into(target);
             }
             Self::Eqw => OpCode::Eqw.write_into(target),
             Self::Lt => OpCode::Lt.write_into(target),
@@ -348,11 +356,11 @@ impl Serializable for Instruction {
             }
             Self::PushFelt(value) => {
                 OpCode::PushFelt.write_into(target);
-                target.write_felt(*value);
+                value.write_into(target);
             }
             Self::PushWord(values) => {
                 OpCode::PushWord.write_into(target);
-                values.iter().for_each(|&v| target.write_felt(v));
+                values.iter().for_each(|&v| v.write_into(target));
             }
             Self::PushU8List(values) => {
                 OpCode::PushU8List.write_into(target);
@@ -372,7 +380,7 @@ impl Serializable for Instruction {
             Self::PushFeltList(values) => {
                 OpCode::PushFeltList.write_into(target);
                 target.write_u8(values.len() as u8);
-                values.iter().for_each(|&v| target.write_felt(v));
+                values.iter().for_each(|&v| v.write_into(target));
             }
             Self::Locaddr(v) => {
                 OpCode::Locaddr.write_into(target);

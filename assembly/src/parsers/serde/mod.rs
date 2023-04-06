@@ -1,6 +1,6 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, Instruction, Node, ProcedureId, Serializable,
-    SerializationError,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Instruction, Node,
+    ProcedureId, Serializable,
 };
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;
@@ -281,14 +281,18 @@ pub enum OpCode {
 }
 
 impl Serializable for OpCode {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u8(*self as u8);
     }
 }
 
 impl Deserializable for OpCode {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let value = bytes.read_u8()?;
-        Self::try_from(value).map_err(|_| SerializationError::InvalidOpCode)
+    fn read_from<R: ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, winter_utils::DeserializationError> {
+        let value = source.read_u8()?;
+        Self::try_from(value).map_err(|_| {
+            DeserializationError::InvalidValue("could not read a valid opcode".to_string())
+        })
     }
 }

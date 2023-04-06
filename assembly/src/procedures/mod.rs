@@ -1,6 +1,6 @@
 use super::{
     crypto::hash::Blake3_192, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
-    Deserializable, LabelError, Serializable, SerializationError, String, ToString,
+    Deserializable, DeserializationError, LabelError, Serializable, String, ToString,
     MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
 };
 use core::{
@@ -160,26 +160,25 @@ impl AsRef<str> for ProcedureName {
 }
 
 impl Serializable for ProcedureName {
-    fn write_into(&self, target: &mut ByteWriter) {
-        let name_bytes = self.name.as_bytes();
-        let num_bytes = name_bytes.len();
-
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         debug_assert!(
             PROCEDURE_LABEL_PARSER.parse_label(self.name.clone()).is_ok(),
             "The constructor should ensure the length is within limits"
         );
 
-        target.write_u8(num_bytes as u8);
-        target.write_bytes(name_bytes);
+        target.write_u8(self.name.len() as u8);
+        target.write_bytes(self.name.as_bytes());
     }
 }
 
 impl Deserializable for ProcedureName {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let num_bytes = bytes.read_u8()?;
-        let name_bytes = bytes.read_bytes(num_bytes.into())?;
-        let name = from_utf8(name_bytes).map_err(|_| SerializationError::InvalidUtf8)?;
-        let name = ProcedureName::try_from(name.to_string())?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let nlen = source.read_u8()? as usize;
+        let name = source.read_vec(nlen)?;
+        let name =
+            from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+        let name = ProcedureName::try_from(name.to_string())
+            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         Ok(name)
     }
 }
@@ -267,15 +266,14 @@ impl fmt::Display for ProcedureId {
 }
 
 impl Serializable for ProcedureId {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_bytes(&self.0);
     }
 }
 
 impl Deserializable for ProcedureId {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let proc_id_bytes = bytes.read_bytes(Self::SIZE)?;
-        let proc_id = proc_id_bytes.try_into().expect("to array conversion failed");
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let proc_id = source.read_array::<{ Self::SIZE }>()?;
         Ok(Self(proc_id))
     }
 }

@@ -1,5 +1,5 @@
 use super::{
-    ByteReader, Deserializable, Instruction, Node, OpCode, ProcedureId, SerializationError,
+    ByteReader, Deserializable, DeserializationError, Felt, Instruction, Node, OpCode, ProcedureId,
     MAX_PUSH_INPUTS,
 };
 
@@ -7,23 +7,37 @@ use super::{
 // ================================================================================================
 
 impl Deserializable for Node {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let first_byte = bytes.peek_u8()?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let first_byte = source.peek_u8()?;
 
         if first_byte == OpCode::IfElse as u8 {
-            bytes.read_u8()?;
-            Ok(Node::IfElse(
-                Deserializable::read_from(bytes)?,
-                Deserializable::read_from(bytes)?,
-            ))
+            source.read_u8()?;
+
+            let if_block_len = source.read_u64()? as usize;
+            let if_block = Deserializable::read_batch_from(source, if_block_len)?;
+
+            let else_block_len = source.read_u64()? as usize;
+            let else_block = Deserializable::read_batch_from(source, else_block_len)?;
+
+            Ok(Node::IfElse(if_block, else_block))
         } else if first_byte == OpCode::Repeat as u8 {
-            bytes.read_u8()?;
-            Ok(Node::Repeat(bytes.read_u32()?, Deserializable::read_from(bytes)?))
+            source.read_u8()?;
+
+            let repeat_count = source.read_u32()?;
+
+            let nodes_len = source.read_u64()? as usize;
+            let nodes = Deserializable::read_batch_from(source, nodes_len)?;
+
+            Ok(Node::Repeat(repeat_count, nodes))
         } else if first_byte == OpCode::While as u8 {
-            bytes.read_u8()?;
-            Ok(Node::While(Deserializable::read_from(bytes)?))
+            source.read_u8()?;
+
+            let nodes_len = source.read_u64()? as usize;
+            let nodes = Deserializable::read_batch_from(source, nodes_len)?;
+
+            Ok(Node::While(nodes))
         } else {
-            Ok(Node::Instruction(Deserializable::read_from(bytes)?))
+            Ok(Node::Instruction(Deserializable::read_from(source)?))
         }
     }
 }
@@ -32,8 +46,8 @@ impl Deserializable for Node {
 // ================================================================================================
 
 impl Deserializable for Instruction {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let opcode = OpCode::read_from(bytes)?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let opcode = OpCode::read_from(source)?;
 
         match opcode {
             OpCode::Assert => Ok(Instruction::Assert),
@@ -41,28 +55,28 @@ impl Deserializable for Instruction {
             OpCode::AssertEqw => Ok(Instruction::AssertEqw),
             OpCode::Assertz => Ok(Instruction::Assertz),
             OpCode::Add => Ok(Instruction::Add),
-            OpCode::AddImm => Ok(Instruction::AddImm(bytes.read_felt()?)),
+            OpCode::AddImm => Ok(Instruction::AddImm(Felt::read_from(source)?)),
             OpCode::Sub => Ok(Instruction::Sub),
-            OpCode::SubImm => Ok(Instruction::SubImm(bytes.read_felt()?)),
+            OpCode::SubImm => Ok(Instruction::SubImm(Felt::read_from(source)?)),
             OpCode::Mul => Ok(Instruction::Mul),
-            OpCode::MulImm => Ok(Instruction::MulImm(bytes.read_felt()?)),
+            OpCode::MulImm => Ok(Instruction::MulImm(Felt::read_from(source)?)),
             OpCode::Div => Ok(Instruction::Div),
-            OpCode::DivImm => Ok(Instruction::DivImm(bytes.read_felt()?)),
+            OpCode::DivImm => Ok(Instruction::DivImm(Felt::read_from(source)?)),
             OpCode::Neg => Ok(Instruction::Neg),
             OpCode::Inv => Ok(Instruction::Inv),
             OpCode::Incr => Ok(Instruction::Incr),
             OpCode::Pow2 => Ok(Instruction::Pow2),
             OpCode::Exp => Ok(Instruction::Exp),
-            OpCode::ExpImm => Ok(Instruction::ExpImm(bytes.read_felt()?)),
-            OpCode::ExpBitLength => Ok(Instruction::ExpBitLength(bytes.read_u8()?)),
+            OpCode::ExpImm => Ok(Instruction::ExpImm(Felt::read_from(source)?)),
+            OpCode::ExpBitLength => Ok(Instruction::ExpBitLength(source.read_u8()?)),
             OpCode::Not => Ok(Instruction::Not),
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),
             OpCode::Xor => Ok(Instruction::Xor),
             OpCode::Eq => Ok(Instruction::Eq),
-            OpCode::EqImm => Ok(Instruction::EqImm(bytes.read_felt()?)),
+            OpCode::EqImm => Ok(Instruction::EqImm(Felt::read_from(source)?)),
             OpCode::Neq => Ok(Instruction::Neq),
-            OpCode::NeqImm => Ok(Instruction::NeqImm(bytes.read_felt()?)),
+            OpCode::NeqImm => Ok(Instruction::NeqImm(Felt::read_from(source)?)),
             OpCode::Eqw => Ok(Instruction::Eqw),
             OpCode::Lt => Ok(Instruction::Lt),
             OpCode::Lte => Ok(Instruction::Lte),
@@ -87,73 +101,73 @@ impl Deserializable for Instruction {
             OpCode::U32Split => Ok(Instruction::U32Split),
             OpCode::U32Cast => Ok(Instruction::U32Cast),
             OpCode::U32CheckedAdd => Ok(Instruction::U32CheckedAdd),
-            OpCode::U32CheckedAddImm => Ok(Instruction::U32CheckedAddImm(bytes.read_u32()?)),
+            OpCode::U32CheckedAddImm => Ok(Instruction::U32CheckedAddImm(source.read_u32()?)),
             OpCode::U32WrappingAdd => Ok(Instruction::U32WrappingAdd),
-            OpCode::U32WrappingAddImm => Ok(Instruction::U32WrappingAddImm(bytes.read_u32()?)),
+            OpCode::U32WrappingAddImm => Ok(Instruction::U32WrappingAddImm(source.read_u32()?)),
             OpCode::U32OverflowingAdd => Ok(Instruction::U32OverflowingAdd),
             OpCode::U32OverflowingAddImm => {
-                Ok(Instruction::U32OverflowingAddImm(bytes.read_u32()?))
+                Ok(Instruction::U32OverflowingAddImm(source.read_u32()?))
             }
             OpCode::U32OverflowingAdd3 => Ok(Instruction::U32OverflowingAdd3),
             OpCode::U32WrappingAdd3 => Ok(Instruction::U32WrappingAdd3),
             OpCode::U32CheckedSub => Ok(Instruction::U32CheckedSub),
-            OpCode::U32CheckedSubImm => Ok(Instruction::U32CheckedSubImm(bytes.read_u32()?)),
+            OpCode::U32CheckedSubImm => Ok(Instruction::U32CheckedSubImm(source.read_u32()?)),
             OpCode::U32WrappingSub => Ok(Instruction::U32WrappingSub),
-            OpCode::U32WrappingSubImm => Ok(Instruction::U32WrappingSubImm(bytes.read_u32()?)),
+            OpCode::U32WrappingSubImm => Ok(Instruction::U32WrappingSubImm(source.read_u32()?)),
             OpCode::U32OverflowingSub => Ok(Instruction::U32OverflowingSub),
             OpCode::U32OverflowingSubImm => {
-                Ok(Instruction::U32OverflowingSubImm(bytes.read_u32()?))
+                Ok(Instruction::U32OverflowingSubImm(source.read_u32()?))
             }
             OpCode::U32CheckedMul => Ok(Instruction::U32CheckedMul),
-            OpCode::U32CheckedMulImm => Ok(Instruction::U32CheckedMulImm(bytes.read_u32()?)),
+            OpCode::U32CheckedMulImm => Ok(Instruction::U32CheckedMulImm(source.read_u32()?)),
             OpCode::U32WrappingMul => Ok(Instruction::U32WrappingMul),
-            OpCode::U32WrappingMulImm => Ok(Instruction::U32WrappingMulImm(bytes.read_u32()?)),
+            OpCode::U32WrappingMulImm => Ok(Instruction::U32WrappingMulImm(source.read_u32()?)),
             OpCode::U32OverflowingMul => Ok(Instruction::U32OverflowingMul),
             OpCode::U32OverflowingMulImm => {
-                Ok(Instruction::U32OverflowingMulImm(bytes.read_u32()?))
+                Ok(Instruction::U32OverflowingMulImm(source.read_u32()?))
             }
             OpCode::U32OverflowingMadd => Ok(Instruction::U32OverflowingMadd),
             OpCode::U32WrappingMadd => Ok(Instruction::U32WrappingMadd),
             OpCode::U32CheckedDiv => Ok(Instruction::U32CheckedDiv),
-            OpCode::U32CheckedDivImm => Ok(Instruction::U32CheckedDivImm(bytes.read_u32()?)),
+            OpCode::U32CheckedDivImm => Ok(Instruction::U32CheckedDivImm(source.read_u32()?)),
             OpCode::U32UncheckedDiv => Ok(Instruction::U32UncheckedDiv),
-            OpCode::U32UncheckedDivImm => Ok(Instruction::U32UncheckedDivImm(bytes.read_u32()?)),
+            OpCode::U32UncheckedDivImm => Ok(Instruction::U32UncheckedDivImm(source.read_u32()?)),
             OpCode::U32CheckedMod => Ok(Instruction::U32CheckedMod),
-            OpCode::U32CheckedModImm => Ok(Instruction::U32CheckedModImm(bytes.read_u32()?)),
+            OpCode::U32CheckedModImm => Ok(Instruction::U32CheckedModImm(source.read_u32()?)),
             OpCode::U32UncheckedMod => Ok(Instruction::U32UncheckedMod),
-            OpCode::U32UncheckedModImm => Ok(Instruction::U32UncheckedModImm(bytes.read_u32()?)),
+            OpCode::U32UncheckedModImm => Ok(Instruction::U32UncheckedModImm(source.read_u32()?)),
             OpCode::U32CheckedDivMod => Ok(Instruction::U32CheckedDivMod),
-            OpCode::U32CheckedDivModImm => Ok(Instruction::U32CheckedDivModImm(bytes.read_u32()?)),
+            OpCode::U32CheckedDivModImm => Ok(Instruction::U32CheckedDivModImm(source.read_u32()?)),
             OpCode::U32UncheckedDivMod => Ok(Instruction::U32UncheckedDivMod),
             OpCode::U32UncheckedDivModImm => {
-                Ok(Instruction::U32UncheckedDivModImm(bytes.read_u32()?))
+                Ok(Instruction::U32UncheckedDivModImm(source.read_u32()?))
             }
             OpCode::U32CheckedAnd => Ok(Instruction::U32CheckedAnd),
             OpCode::U32CheckedOr => Ok(Instruction::U32CheckedOr),
             OpCode::U32CheckedXor => Ok(Instruction::U32CheckedXor),
             OpCode::U32CheckedNot => Ok(Instruction::U32CheckedNot),
             OpCode::U32CheckedShr => Ok(Instruction::U32CheckedShr),
-            OpCode::U32CheckedShrImm => Ok(Instruction::U32CheckedShrImm(bytes.read_u8()?)),
+            OpCode::U32CheckedShrImm => Ok(Instruction::U32CheckedShrImm(source.read_u8()?)),
             OpCode::U32UncheckedShr => Ok(Instruction::U32UncheckedShr),
-            OpCode::U32UncheckedShrImm => Ok(Instruction::U32UncheckedShrImm(bytes.read_u8()?)),
+            OpCode::U32UncheckedShrImm => Ok(Instruction::U32UncheckedShrImm(source.read_u8()?)),
             OpCode::U32CheckedShl => Ok(Instruction::U32CheckedShl),
-            OpCode::U32CheckedShlImm => Ok(Instruction::U32CheckedShlImm(bytes.read_u8()?)),
+            OpCode::U32CheckedShlImm => Ok(Instruction::U32CheckedShlImm(source.read_u8()?)),
             OpCode::U32UncheckedShl => Ok(Instruction::U32UncheckedShl),
-            OpCode::U32UncheckedShlImm => Ok(Instruction::U32UncheckedShlImm(bytes.read_u8()?)),
+            OpCode::U32UncheckedShlImm => Ok(Instruction::U32UncheckedShlImm(source.read_u8()?)),
             OpCode::U32CheckedRotr => Ok(Instruction::U32CheckedRotr),
-            OpCode::U32CheckedRotrImm => Ok(Instruction::U32CheckedRotrImm(bytes.read_u8()?)),
+            OpCode::U32CheckedRotrImm => Ok(Instruction::U32CheckedRotrImm(source.read_u8()?)),
             OpCode::U32UncheckedRotr => Ok(Instruction::U32UncheckedRotr),
-            OpCode::U32UncheckedRotrImm => Ok(Instruction::U32UncheckedRotrImm(bytes.read_u8()?)),
+            OpCode::U32UncheckedRotrImm => Ok(Instruction::U32UncheckedRotrImm(source.read_u8()?)),
             OpCode::U32CheckedRotl => Ok(Instruction::U32CheckedRotl),
-            OpCode::U32CheckedRotlImm => Ok(Instruction::U32CheckedRotlImm(bytes.read_u8()?)),
+            OpCode::U32CheckedRotlImm => Ok(Instruction::U32CheckedRotlImm(source.read_u8()?)),
             OpCode::U32UncheckedRotl => Ok(Instruction::U32UncheckedRotl),
-            OpCode::U32UncheckedRotlImm => Ok(Instruction::U32UncheckedRotlImm(bytes.read_u8()?)),
+            OpCode::U32UncheckedRotlImm => Ok(Instruction::U32UncheckedRotlImm(source.read_u8()?)),
             OpCode::U32CheckedPopcnt => Ok(Instruction::U32CheckedPopcnt),
             OpCode::U32UncheckedPopcnt => Ok(Instruction::U32UncheckedPopcnt),
             OpCode::U32CheckedEq => Ok(Instruction::U32CheckedEq),
-            OpCode::U32CheckedEqImm => Ok(Instruction::U32CheckedEqImm(bytes.read_u32()?)),
+            OpCode::U32CheckedEqImm => Ok(Instruction::U32CheckedEqImm(source.read_u32()?)),
             OpCode::U32CheckedNeq => Ok(Instruction::U32CheckedNeq),
-            OpCode::U32CheckedNeqImm => Ok(Instruction::U32CheckedNeqImm(bytes.read_u32()?)),
+            OpCode::U32CheckedNeqImm => Ok(Instruction::U32CheckedNeqImm(source.read_u32()?)),
             OpCode::U32CheckedLt => Ok(Instruction::U32CheckedLt),
             OpCode::U32UncheckedLt => Ok(Instruction::U32UncheckedLt),
             OpCode::U32CheckedLte => Ok(Instruction::U32CheckedLte),
@@ -248,62 +262,62 @@ impl Deserializable for Instruction {
             OpCode::CDropW => Ok(Instruction::CDropW),
 
             // ----- input / output operations ----------------------------------------------------
-            OpCode::PushU8 => Ok(Instruction::PushU8(bytes.read_u8()?)),
-            OpCode::PushU16 => Ok(Instruction::PushU16(bytes.read_u16()?)),
-            OpCode::PushU32 => Ok(Instruction::PushU32(bytes.read_u32()?)),
-            OpCode::PushFelt => Ok(Instruction::PushFelt(bytes.read_felt()?)),
+            OpCode::PushU8 => Ok(Instruction::PushU8(source.read_u8()?)),
+            OpCode::PushU16 => Ok(Instruction::PushU16(source.read_u16()?)),
+            OpCode::PushU32 => Ok(Instruction::PushU32(source.read_u32()?)),
+            OpCode::PushFelt => Ok(Instruction::PushFelt(Felt::read_from(source)?)),
             OpCode::PushWord => Ok(Instruction::PushWord([
-                bytes.read_felt()?,
-                bytes.read_felt()?,
-                bytes.read_felt()?,
-                bytes.read_felt()?,
+                Felt::read_from(source)?,
+                Felt::read_from(source)?,
+                Felt::read_from(source)?,
+                Felt::read_from(source)?,
             ])),
             OpCode::PushU8List => {
-                let length = parse_num_push_params(bytes)?;
+                let length = parse_num_push_params(source)?;
                 (0..length)
-                    .map(|_| bytes.read_u8())
+                    .map(|_| source.read_u8())
                     .collect::<Result<_, _>>()
                     .map(Instruction::PushU8List)
             }
             OpCode::PushU16List => {
-                let length = parse_num_push_params(bytes)?;
+                let length = parse_num_push_params(source)?;
                 (0..length)
-                    .map(|_| bytes.read_u16())
+                    .map(|_| source.read_u16())
                     .collect::<Result<_, _>>()
                     .map(Instruction::PushU16List)
             }
             OpCode::PushU32List => {
-                let length = parse_num_push_params(bytes)?;
+                let length = parse_num_push_params(source)?;
                 (0..length)
-                    .map(|_| bytes.read_u32())
+                    .map(|_| source.read_u32())
                     .collect::<Result<_, _>>()
                     .map(Instruction::PushU32List)
             }
             OpCode::PushFeltList => {
-                let length = parse_num_push_params(bytes)?;
+                let length = parse_num_push_params(source)?;
                 (0..length)
-                    .map(|_| bytes.read_felt())
+                    .map(|_| Felt::read_from(source))
                     .collect::<Result<_, _>>()
                     .map(Instruction::PushFeltList)
             }
 
-            OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_u16()?)),
+            OpCode::Locaddr => Ok(Instruction::Locaddr(source.read_u16()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
             OpCode::Caller => Ok(Instruction::Caller),
             OpCode::Clk => Ok(Instruction::Clk),
 
             OpCode::MemLoad => Ok(Instruction::MemLoad),
-            OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_u32()?)),
+            OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(source.read_u32()?)),
             OpCode::MemLoadW => Ok(Instruction::MemLoadW),
-            OpCode::MemLoadWImm => Ok(Instruction::MemLoadWImm(bytes.read_u32()?)),
-            OpCode::LocLoad => Ok(Instruction::LocLoad(bytes.read_u16()?)),
-            OpCode::LocLoadW => Ok(Instruction::LocLoadW(bytes.read_u16()?)),
+            OpCode::MemLoadWImm => Ok(Instruction::MemLoadWImm(source.read_u32()?)),
+            OpCode::LocLoad => Ok(Instruction::LocLoad(source.read_u16()?)),
+            OpCode::LocLoadW => Ok(Instruction::LocLoadW(source.read_u16()?)),
             OpCode::MemStore => Ok(Instruction::MemStore),
-            OpCode::MemStoreImm => Ok(Instruction::MemStoreImm(bytes.read_u32()?)),
-            OpCode::LocStore => Ok(Instruction::LocStore(bytes.read_u16()?)),
+            OpCode::MemStoreImm => Ok(Instruction::MemStoreImm(source.read_u32()?)),
+            OpCode::LocStore => Ok(Instruction::LocStore(source.read_u16()?)),
             OpCode::MemStoreW => Ok(Instruction::MemStoreW),
-            OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_u32()?)),
-            OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_u16()?)),
+            OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(source.read_u32()?)),
+            OpCode::LocStoreW => Ok(Instruction::LocStoreW(source.read_u16()?)),
 
             OpCode::MemStream => Ok(Instruction::MemStream),
             OpCode::AdvPipe => Ok(Instruction::AdvPipe),
@@ -311,11 +325,11 @@ impl Deserializable for Instruction {
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
             OpCode::AdvKeyval => Ok(Instruction::AdvKeyval),
             OpCode::AdvMem => {
-                let start_addr = bytes.read_u32()?;
-                let num_words = bytes.read_u32()?;
+                let start_addr = source.read_u32()?;
+                let num_words = source.read_u32()?;
                 Ok(Instruction::AdvMem(start_addr, num_words))
             }
-            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
+            OpCode::AdvPush => Ok(Instruction::AdvPush(source.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
             OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),
             OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
@@ -330,11 +344,11 @@ impl Deserializable for Instruction {
             OpCode::FriExt2Fold4 => Ok(Instruction::FriExt2Fold4),
 
             // ----- exec / call ------------------------------------------------------------------
-            OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),
-            OpCode::ExecImported => Ok(Instruction::ExecImported(ProcedureId::read_from(bytes)?)),
-            OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
-            OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(bytes)?)),
-            OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(bytes)?)),
+            OpCode::ExecLocal => Ok(Instruction::ExecLocal(source.read_u16()?)),
+            OpCode::ExecImported => Ok(Instruction::ExecImported(ProcedureId::read_from(source)?)),
+            OpCode::CallLocal => Ok(Instruction::CallLocal(source.read_u16()?)),
+            OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(source)?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(source)?)),
 
             // ----- control flow -----------------------------------------------------------------
             // control flow instructions should be parsed as a part of Node::read_from() and we
@@ -349,12 +363,10 @@ impl Deserializable for Instruction {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Returns an error if parsed value is smaller than or equal to min or greater than or
-/// equal to max. Otherwise, returns parsed value.
-fn parse_num_push_params(bytes: &mut ByteReader) -> Result<u8, SerializationError> {
-    let length = bytes.read_u8()? as usize;
+fn parse_num_push_params<R: ByteReader>(source: &mut R) -> Result<u8, DeserializationError> {
+    let length = source.read_u8()? as usize;
     if !(1..=MAX_PUSH_INPUTS).contains(&length) {
-        Err(SerializationError::InvalidNumOfPushValues)
+        Err(DeserializationError::InvalidValue("invalid push values argument".to_string()))
     } else {
         Ok(length as u8)
     }

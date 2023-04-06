@@ -1,9 +1,9 @@
 use super::{
-    AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable, Felt, LabelError, ParsingError,
-    ProcedureId, ProcedureName, Serializable, SerializationError, StarkField, String, ToString,
-    Token, TokenStream, Vec, MAX_LABEL_LEN,
+    AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
+    LabelError, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader, StarkField,
+    String, ToString, Token, TokenStream, Vec, MAX_LABEL_LEN,
 };
-use core::{fmt::Display, ops::RangeBounds};
+use core::{fmt::Display, ops::RangeBounds, str::from_utf8};
 
 mod nodes;
 use crate::utils::bound_into_included_u64;
@@ -44,30 +44,26 @@ pub struct ProgramAst {
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut byte_writer = ByteWriter::default();
+        let mut target = Vec::<u8>::default();
 
-        // local procedures
-        byte_writer.write_u16(self.local_procs.len() as u16);
+        target.write_u16(self.local_procs.len() as u16);
+        self.local_procs.write_into(&mut target);
 
-        self.local_procs.iter().for_each(|proc| proc.write_into(&mut byte_writer));
+        target.write_u64(self.body.len() as u64);
+        self.body.write_into(&mut target);
 
-        // body
-        self.body.write_into(&mut byte_writer);
-
-        byte_writer.into_bytes()
+        target
     }
 
     /// Returns a `ProgramAst` struct by its byte representation.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
-        let mut byte_reader = ByteReader::new(bytes);
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
+        let mut source = SliceReader::new(bytes);
 
-        let num_local_procs = byte_reader.read_u16()?;
+        let num_local_procs = source.read_u16()?;
+        let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
 
-        let local_procs = (0..num_local_procs)
-            .map(|_| ProcedureAst::read_from(&mut byte_reader))
-            .collect::<Result<_, _>>()?;
-
-        let body = Deserializable::read_from(&mut byte_reader)?;
+        let body_len = source.read_u64()? as usize;
+        let body = Deserializable::read_batch_from(&mut source, body_len)?;
 
         Ok(ProgramAst { local_procs, body })
     }
@@ -86,42 +82,52 @@ pub struct ModuleAst {
 impl ModuleAst {
     /// Returns byte representation of the `ModuleAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut byte_writer = ByteWriter::default();
-
-        // docs
-        self.docs.write_into(&mut byte_writer);
-
-        // local procedures
-        self.local_procs.write_into(&mut byte_writer);
-
-        byte_writer.into_bytes()
+        let mut target = Vec::<u8>::default();
+        self.write_into(&mut target);
+        target
     }
 
     /// Returns a `ModuleAst` struct by its byte representation.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
-        let mut byte_reader = ByteReader::new(bytes);
-
-        // docs
-        let docs = Deserializable::read_from(&mut byte_reader)?;
-
-        // local procedures
-        let local_procs = Deserializable::read_from(&mut byte_reader)?;
-
-        Ok(ModuleAst { docs, local_procs })
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
+        let mut source = SliceReader::new(bytes);
+        Self::read_from(&mut source)
     }
 }
 
 impl Serializable for ModuleAst {
-    fn write_into(&self, target: &mut ByteWriter) {
-        self.docs.write_into(target);
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match &self.docs {
+            Some(t) => {
+                target.write_bool(true);
+                target.write_u64(t.len() as u64);
+                target.write_bytes(t.as_bytes());
+            }
+            None => {
+                target.write_bool(false);
+            }
+        }
+        target.write_u64(self.local_procs.len() as u64);
         self.local_procs.write_into(target);
     }
 }
 
 impl Deserializable for ModuleAst {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let docs = Deserializable::read_from(bytes)?;
-        let local_procs = Deserializable::read_from(bytes)?;
+    fn read_from<R: ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, winter_utils::DeserializationError> {
+        let flg = source.read_bool()?;
+        let docs = match flg {
+            true => {
+                let slen = source.read_u64()? as usize;
+                let str = source.read_vec(slen)?;
+                let str = from_utf8(&str)
+                    .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+                Some(str.to_string())
+            }
+            false => None,
+        };
+        let num_elements = source.read_u64()? as usize;
+        let local_procs = Deserializable::read_batch_from(source, num_elements)?;
         Ok(Self { docs, local_procs })
     }
 }
@@ -141,25 +147,47 @@ pub struct ProcedureAst {
 }
 
 impl Serializable for ProcedureAst {
-    /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.name.write_into(target);
-        self.docs.write_into(target);
+        match &self.docs {
+            Some(t) => {
+                target.write_bool(true);
+                target.write_u64(t.len() as u64);
+                target.write_bytes(t.as_bytes());
+            }
+            None => {
+                target.write_bool(false);
+            }
+        }
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
+        target.write_u64(self.body.len() as u64);
         self.body.write_into(target);
     }
 }
 
 impl Deserializable for ProcedureAst {
-    /// Returns a `ProcedureAst` from its byte representation stored in provided `ByteReader` struct.
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let name = ProcedureName::read_from(bytes)?;
-        let docs = Deserializable::read_from(bytes)?;
-        let is_export = bytes.read_bool()?;
-        let num_locals = bytes.read_u16()?;
-        let body = Deserializable::read_from(bytes)?;
-        Ok(ProcedureAst {
+    fn read_from<R: ByteReader>(
+        source: &mut R,
+    ) -> Result<Self, winter_utils::DeserializationError> {
+        let name = ProcedureName::read_from(source)?;
+        let flg = source.read_bool()?;
+        let docs = match flg {
+            true => {
+                let slen = source.read_u64()? as usize;
+                let str = source.read_vec(slen)?;
+                let str = from_utf8(&str)
+                    .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+                Some(str.to_string())
+            }
+            false => None,
+        };
+
+        let is_export = source.read_bool()?;
+        let num_locals = source.read_u16()?;
+        let body_len = source.read_u64()? as usize;
+        let body = Deserializable::read_batch_from(source, body_len)?;
+        Ok(Self {
             name,
             docs,
             num_locals,

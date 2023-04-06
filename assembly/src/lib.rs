@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
-use core::ops::Deref;
+use core::{ops::Deref, str::from_utf8};
 use vm_core::{
     code_blocks::CodeBlock,
     crypto,
@@ -26,8 +26,9 @@ mod parsers;
 use parsers::PROCEDURE_LABEL_PARSER;
 pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
 
-mod serde;
-pub use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
+pub use winter_utils::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+};
 
 mod tokens;
 use tokens::{Token, TokenStream};
@@ -163,18 +164,22 @@ impl AsRef<str> for AbsolutePath {
 }
 
 impl Serializable for AbsolutePath {
-    fn write_into(&self, target: &mut ByteWriter) {
-        target.write_str(&self.path);
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u64(self.len() as u64);
+        target.write_bytes(self.as_bytes());
     }
 }
 
 impl Deserializable for AbsolutePath {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        // TODO add name validation
-        // https://github.com/maticnetwork/miden/issues/583
-        let path = bytes.read_str()?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let plen = source.read_u64()? as usize;
+        let path = source.read_vec(plen)?;
+        let path =
+            from_utf8(&path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         if !path.contains(MODULE_PATH_DELIM) {
-            return Err(SerializationError::InvalidPathNoDelimiter);
+            return Err(DeserializationError::InvalidValue(
+                "a path must contain a delimiter".to_string(),
+            ));
         }
         Ok(Self {
             path: path.to_string(),
@@ -234,15 +239,19 @@ impl AsRef<str> for LibraryNamespace {
 }
 
 impl Serializable for LibraryNamespace {
-    fn write_into(&self, target: &mut ByteWriter) {
-        target.write_str(&self.name);
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u64(self.name.len() as u64);
+        target.write_bytes(self.name.as_bytes());
     }
 }
 
 impl Deserializable for LibraryNamespace {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let name = bytes.read_str()?;
-        Self::validate(name).map_err(|_| SerializationError::InvalidNamespace)?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let nlen = source.read_u64()? as usize;
+        let name = source.read_vec(nlen)?;
+        let name =
+            from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+        Self::validate(name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         Ok(Self {
             name: name.to_string(),
         })
@@ -349,15 +358,19 @@ impl AsRef<str> for ModulePath {
 }
 
 impl Serializable for ModulePath {
-    fn write_into(&self, target: &mut ByteWriter) {
-        target.write_str(&self.path);
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u64(self.path.len() as u64);
+        target.write_bytes(self.path.as_bytes());
     }
 }
 
 impl Deserializable for ModulePath {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let path = bytes.read_str()?;
-        Self::validate(path).map_err(|_| SerializationError::InvalidModulePath)?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let plen = source.read_u64()? as usize;
+        let path = source.read_vec(plen)?;
+        let path =
+            from_utf8(&path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+        Self::validate(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         Ok(Self {
             path: path.to_string(),
         })
