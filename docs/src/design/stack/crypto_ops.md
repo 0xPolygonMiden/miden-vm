@@ -15,11 +15,11 @@ In the above, $r$ (located in the helper register $h_0$) is the row address from
 For the `HPERM` operation, we define input and output values as follows:
 
 $$
-v_{input} = \alpha_0 + \alpha_1 \cdot op_{linhash} + \alpha_2 \cdot h_0 + \sum_{j=0}^{11} (\alpha_{j+4} \cdot s_{11-i})
+v_{input} = \alpha_0 + \alpha_1 \cdot op_{linhash} + \alpha_2 \cdot h_0 + \sum_{j=0}^{11} (\alpha_{j+4} \cdot s_{11-j})
 $$
 
 $$
-v_{output} = \alpha_0 + \alpha_1 \cdot op_{retstate} + \alpha_2 \cdot (h_0 + 7) + \sum_{j=0}^{11} (\alpha_{i+4} \cdot s_{11-i}')
+v_{output} = \alpha_0 + \alpha_1 \cdot op_{retstate} + \alpha_2 \cdot (h_0 + 7) + \sum_{j=0}^{11} (\alpha_{j+4} \cdot s_{11-j}')
 $$
 
 In the above, $op_{linhash}$ and $op_{retstate}$ are the unique [operation labels](../chiplets/main.md#operation-labels) for initiating a linear hash and reading the full state of the hasher respectively. Also note that the term for $\alpha_3$ is missing from the above expressions because for Rescue Prime Optimized permutation computation the index column is expected to be set to $0$.

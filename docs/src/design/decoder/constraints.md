@@ -245,8 +245,8 @@ Adding and removing entries to/from the block hash table is accomplished as foll
 To simplify constraint descriptions, we define values representing left and right children of a block as follows:
 
 $$
-ch_1 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(a_{i+2} \cdot h_i) \text{ | degree} = 1 \\
-ch_2 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(a_{i+2} \cdot h_{i+4}) \text{ | degree} = 1
+ch_1 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(\alpha_{i+2} \cdot h_i) \text{ | degree} = 1 \\
+ch_2 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(\alpha_{i+2} \cdot h_{i+4}) \text{ | degree} = 1
 $$
 
 Graphically, this looks like so:
@@ -266,7 +266,7 @@ Using the above variables, we define row values to be added to and removed from 
 When `JOIN` operation is executed, hashes of both child nodes are added to the block hash table. We add $\alpha_6$ term to the first child value to differentiate it from the second child (i.e., this sets `is_first_child` to $1$):
 
 $$
-v_{join} = f_{join} \cdot (ch_1 + \alpha^6) \cdot ch_2  \text{ | degree} = 8
+v_{join} = f_{join} \cdot (ch_1 + \alpha_6) \cdot ch_2  \text{ | degree} = 8
 $$
 
 When `SPLIT` operation is executed and the top of the stack is $1$, hash of the *true* branch is added to the block hash table, but when the top of the stack is $0$, hash of the *false* branch is added to the block hash table:
@@ -310,12 +310,12 @@ In addition to the above transition constraint, we also need to set the followin
 Span block constraints ensure proper decoding of span blocks. In addition to the block stack table constraints and block hash table constraints described previously, decoding of span blocks requires constraints described below.
 
 ### In-span column constraints
-The `in_span` column (denoted as $sp$) is used to identify rows which execute non-control flow operations. The values in this column are set as follows:
+The `is_span` column (denoted as $sp$) is used to identify rows which execute non-control flow operations. The values in this column are set as follows:
 
-* Executing a `SPAN` operation sets the value of `in_span` column to $1$.
+* Executing a `SPAN` operation sets the value of `is_span` column to $1$.
 * The value remains $1$ until the `END` operation is executed.
-* If `RESPAN` operation is executed between `SPAN` and `END` operations, in the row at which `RESPAN` operation is executed `in_span` is set to $0$. It is then reset to $1$ in the following row.
-* In all other cases, value in the `in_span` column should be $0$.
+* If `RESPAN` operation is executed between `SPAN` and `END` operations, in the row at which `RESPAN` operation is executed `is_span` is set to $0$. It is then reset to $1$ in the following row.
+* In all other cases, value in the `is_span` column should be $0$.
 
 The picture below illustrates the above rules.
 
@@ -544,7 +544,7 @@ Where $i \in 1..7$. Thus, $v_1$ defines row value for group in $h_1$, $v_2$ defi
 We compute the value of the row to be removed from the op group table as follows:
 
 $$
-u = \alpha_0 + \alpha_1 \cdot a + \alpha^2 \cdot gc + \alpha_3 \cdot ((h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}) \text{ | degree} = 5
+u = \alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot gc + \alpha_3 \cdot ((h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}) \text{ | degree} = 5
 $$
 
 In the above, the value of the group is computed as $(h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}$. This basically says that when we execute a `PUSH` operation we need to remove the immediate value from the table. This value is at the top of the stack (column $s_0$) in the next row. However, when we are not executing a `PUSH` operation, the value to be removed is an op group value which is a combination of values in $h_0$ and `op_bits` columns (also in the next row). Note also that value for batch address comes from the current value in the block address column ($a$), and the group position comes from the current value of the group count column ($gc$).
