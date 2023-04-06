@@ -337,6 +337,31 @@ fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
     procedures.into_iter().map(|(_idx, proc)| proc).collect()
 }
 
+/// Parses a param from the op token with the specified type and index. If the param is a constant
+/// label, it will be looked up in the provided constant map.
+fn parse_param_with_constant_lookup<R>(
+    op: &Token,
+    param_idx: usize,
+    constants: &LocalConstMap,
+) -> Result<R, ParsingError>
+where
+    R: TryFrom<u64> + core::str::FromStr,
+{
+    let param_str = op.parts()[param_idx];
+    match CONSTANT_LABEL_PARSER.parse_label(param_str.to_string()) {
+        Ok(_) => {
+            let constant = constants
+                .get(param_str)
+                .cloned()
+                .ok_or_else(|| ParsingError::const_not_found(op))?;
+            constant
+                .try_into()
+                .map_err(|_| ParsingError::const_conversion_failed(op, core::any::type_name::<R>()))
+        }
+        Err(_) => parse_param::<R>(op, param_idx),
+    }
+}
+
 /// Parses a param from the op token with the specified type.
 fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I, ParsingError> {
     let param_value = op.parts()[param_idx];

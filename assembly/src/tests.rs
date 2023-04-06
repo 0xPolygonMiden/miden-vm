@@ -232,6 +232,160 @@ fn constant_not_found() {
     assert_eq!(expected_error, err.to_string());
 }
 
+#[test]
+fn mem_operations_with_constants() {
+    let assembler = super::Assembler::default();
+
+    // Define constant values
+    const PROC_LOC_STORE_PTR: u64 = 0;
+    const PROC_LOC_LOAD_PTR: u64 = 1;
+    const PROC_LOC_STOREW_PTR: u64 = 2;
+    const PROC_LOC_LOADW_PTR: u64 = 3;
+    const GLOBAL_STORE_PTR: u64 = 4;
+    const GLOBAL_LOAD_PTR: u64 = 5;
+    const GLOBAL_STOREW_PTR: u64 = 6;
+    const GLOBAL_LOADW_PTR: u64 = 7;
+
+    let source = format!(
+        "\
+    const.PROC_LOC_STORE_PTR={PROC_LOC_STORE_PTR}
+    const.PROC_LOC_LOAD_PTR={PROC_LOC_LOAD_PTR}
+    const.PROC_LOC_STOREW_PTR={PROC_LOC_STOREW_PTR}
+    const.PROC_LOC_LOADW_PTR={PROC_LOC_LOADW_PTR}
+    const.GLOBAL_STORE_PTR={GLOBAL_STORE_PTR}
+    const.GLOBAL_LOAD_PTR={GLOBAL_LOAD_PTR}
+    const.GLOBAL_STOREW_PTR={GLOBAL_STOREW_PTR}
+    const.GLOBAL_LOADW_PTR={GLOBAL_LOADW_PTR}
+
+    proc.test_const_loc.4
+        # constant should resolve using locaddr operation
+        locaddr.PROC_LOC_STORE_PTR
+
+        # constant should resolve using loc_store operation
+        loc_store.PROC_LOC_STORE_PTR
+
+        # constant should resolve using loc_load operation
+        loc_load.PROC_LOC_LOAD_PTR
+
+        # constant should resolve using loc_storew operation
+        loc_storew.PROC_LOC_STOREW_PTR
+
+        # constant should resolve using loc_loadw opeartion
+        loc_loadw.PROC_LOC_LOADW_PTR
+    end
+
+    begin
+        # inline procedure
+        exec.test_const_loc
+
+        # constant should resolve using mem_store operation
+        mem_store.GLOBAL_STORE_PTR
+
+        # constant should resolve using mem_load operation
+        mem_load.GLOBAL_LOAD_PTR
+
+        # constant should resolve using mem_storew operation
+        mem_storew.GLOBAL_STOREW_PTR
+
+        # constant should resolve using mem_loadw operation
+        mem_loadw.GLOBAL_LOADW_PTR
+    end
+    "
+    );
+    let program = assembler.compile(source).unwrap();
+
+    // Define expected
+    let expected = format!(
+        "\
+    proc.test_const_loc.4
+        # constant should resolve using locaddr operation
+        locaddr.{PROC_LOC_STORE_PTR}
+
+        # constant should resolve using loc_store operation
+        loc_store.{PROC_LOC_STORE_PTR}
+
+        # constant should resolve using loc_load operation
+        loc_load.{PROC_LOC_LOAD_PTR}
+
+        # constant should resolve using loc_storew operation
+        loc_storew.{PROC_LOC_STOREW_PTR}
+
+        # constant should resolve using loc_loadw opeartion
+        loc_loadw.{PROC_LOC_LOADW_PTR}
+    end
+
+    begin
+        # inline procedure
+        exec.test_const_loc
+
+        # constant should resolve using mem_store operation
+        mem_store.{GLOBAL_STORE_PTR}
+
+        # constant should resolve using mem_load operation
+        mem_load.{GLOBAL_LOAD_PTR}
+
+        # constant should resolve using mem_storew operation
+        mem_storew.{GLOBAL_STOREW_PTR}
+
+        # constant should resolve using mem_loadw operation
+        mem_loadw.{GLOBAL_LOADW_PTR}
+    end
+    "
+    );
+    let expected_program = assembler.compile(expected).unwrap();
+    assert_eq!(expected_program.to_string(), program.to_string());
+}
+
+#[test]
+fn const_conversion_failed_to_u16() {
+    // Define constant value greater than u16::MAX
+    let constant_value: u64 = u16::MAX as u64 + 1;
+
+    let source = format!(
+        "\
+    const.CONSTANT={constant_value}
+
+    proc.test_constant_overflow.1
+        loc_load.CONSTANT
+    end
+
+    begin
+        exec.test_constant_overflow
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error =
+        "failed to convert u64 constant used in `loc_load.CONSTANT` to required type u16";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn const_conversion_failed_to_u32() {
+    // Define constant value greater than u16::MAX
+    let constant_value: u64 = u32::MAX as u64 + 1;
+
+    let source = format!(
+        "\
+    const.CONSTANT={constant_value}
+
+    begin
+        mem_load.CONSTANT
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error =
+        "failed to convert u64 constant used in `mem_load.CONSTANT` to required type u32";
+    assert_eq!(expected_error, err.to_string());
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 

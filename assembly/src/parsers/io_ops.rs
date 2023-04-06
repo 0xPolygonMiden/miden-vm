@@ -1,12 +1,12 @@
 use super::{
-    parse_checked_param, parse_param, Felt,
+    parse_checked_param, parse_param_with_constant_lookup, Felt,
     Instruction::*,
     LocalConstMap,
     Node::{self, Instruction},
     ParsingError, ToString, Token, Vec, CONSTANT_LABEL_PARSER,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
-use core::ops::RangeBounds;
+use core::{convert::TryFrom, ops::RangeBounds};
 use vm_core::WORD_SIZE;
 
 // CONSTANTS
@@ -61,13 +61,13 @@ pub fn parse_push(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsing
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_locaddr(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_locaddr(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "locaddr");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let index = parse_param::<u16>(op, 1)?;
+            let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(Locaddr(index)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -98,13 +98,13 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_load(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_mem_load(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_load");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(MemLoad)),
         2 => {
-            let address = parse_param::<u32>(op, 1)?;
+            let address = parse_param_with_constant_lookup::<u32>(op, 1, constants)?;
             Ok(Instruction(MemLoadImm(address)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -116,13 +116,13 @@ pub fn parse_mem_load(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_load(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_loc_load(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_load");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let index = parse_param::<u16>(op, 1)?;
+            let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocLoad(index)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -135,13 +135,13 @@ pub fn parse_loc_load(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_loadw(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_mem_loadw(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_loadw");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(MemLoadW)),
         2 => {
-            let address = parse_param::<u32>(op, 1)?;
+            let address = parse_param_with_constant_lookup::<u32>(op, 1, constants)?;
             Ok(Instruction(MemLoadWImm(address)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -153,13 +153,13 @@ pub fn parse_mem_loadw(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_loadw(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_loc_loadw(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_loadw");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let index = parse_param::<u16>(op, 1)?;
+            let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocLoadW(index)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -172,13 +172,13 @@ pub fn parse_loc_loadw(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_store(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_mem_store(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_store");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(MemStore)),
         2 => {
-            let address = parse_param::<u32>(op, 1)?;
+            let address = parse_param_with_constant_lookup::<u32>(op, 1, constants)?;
             Ok(Instruction(MemStoreImm(address)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -190,13 +190,13 @@ pub fn parse_mem_store(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_store(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_loc_store(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_store");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let index = parse_param::<u16>(op, 1)?;
+            let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocStore(index)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -209,13 +209,13 @@ pub fn parse_loc_store(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_storew(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_mem_storew(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_storew");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(MemStoreW)),
         2 => {
-            let address = parse_param::<u32>(op, 1)?;
+            let address = parse_param_with_constant_lookup::<u32>(op, 1, constants)?;
             Ok(Instruction(MemStoreWImm(address)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -227,13 +227,13 @@ pub fn parse_mem_storew(op: &Token) -> Result<Node, ParsingError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_storew(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_loc_storew(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_storew");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let index = parse_param::<u16>(op, 1)?;
+            let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocStoreW(index)))
         }
         _ => Err(ParsingError::extra_param(op)),
