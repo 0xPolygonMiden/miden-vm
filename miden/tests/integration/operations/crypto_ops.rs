@@ -38,7 +38,12 @@ fn hperm() {
     assert_eq!(expected, &last_state[0..12]);
 
     // --- test hashing # of values that's not a multiple of the rate: [ONE, ONE] -----------------
-    let values: Vec<u64> = vec![1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0];
+    #[rustfmt::skip]
+    let values: Vec<u64> = vec![
+        1, 0, 0, 0,      // capacity: first element set to 1 because padding is used
+        1, 1,            // data: [ONE, ONE]
+        1, 0, 0, 0, 0, 0 // padding: ONE followed by the necessary ZEROs
+    ];
     let expected = build_expected_perm(&values);
 
     let test = build_op_test!(asm_op, &values);

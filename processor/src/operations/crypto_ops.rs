@@ -184,7 +184,12 @@ mod tests {
     #[test]
     fn op_hperm() {
         // --- test hashing [ONE, ONE] ------------------------------------------------------------
-        let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+        #[rustfmt::skip]
+        let inputs: [u64; STATE_WIDTH] = [
+            1, 0, 0, 0,      // capacity: first element set to 1 because padding is used
+            1, 1,            // data: [ONE, ONE]
+            1, 0, 0, 0, 0, 0 // padding: ONE followed by the necessary ZEROs
+        ];
         let stack = StackInputs::try_from_values(inputs).unwrap();
         let mut process = Process::new_dummy(stack);
 

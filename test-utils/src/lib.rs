@@ -268,6 +268,13 @@ pub fn prop_randw<T: Arbitrary>() -> impl Strategy<Value = Vec<T>> {
     prop::collection::vec(any::<T>(), 4)
 }
 
+/// Given a hasher state, perform one permutation.
+///
+/// The values of `values` should be:
+/// - 0..4 the capacity
+/// - 4..12 the rate
+///
+/// Return the result of the permutation in stack order.
 pub fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
     let mut expected = [Felt::ZERO; STATE_WIDTH];
     for (&value, result) in values.iter().zip(expected.iter_mut()) {
