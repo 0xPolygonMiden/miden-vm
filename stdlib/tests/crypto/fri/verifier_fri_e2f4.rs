@@ -324,7 +324,7 @@ fn iterate_query_fold_4_quad_ext(
         let tree_depth = log2(target_domain_size);
 
         let query_nodes = m_path_sets[depth]
-            .get_node(NodeIndex::new(tree_depth as u8, position_index as u64))
+            .get_node(NodeIndex::new(tree_depth as u8, position_index as u64).unwrap())
             .unwrap();
         let query_values = &key_val_map
             .iter()

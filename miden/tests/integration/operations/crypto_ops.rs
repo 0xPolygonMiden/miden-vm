@@ -162,7 +162,7 @@ fn mtree_update() {
     let asm_op = "mtree_set";
 
     let old_node = tree
-        .get_node(NodeIndex::new(tree.depth(), index as u64))
+        .get_node(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("Value should have been set on initialization");
 
     // expected state has the new leaf and the new root of the tree

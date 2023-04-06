@@ -450,7 +450,7 @@ fn b_chip_mpverify() {
     // at cycle 1 a merkle path verification is executed and the initialization and result of the
     // hash are both requested by the stack.
     let path = tree
-        .get_path(NodeIndex::new(tree.depth(), index as u64))
+        .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
         &[path[0][0], path[0][1], path[0][2], path[0][3]],

@@ -47,7 +47,7 @@ pub enum MerkleData {
     /// vector of tuples where each tuple consists of a u64 node index and a 32 byte hex string
     /// representing the value of the node.
     #[serde(rename = "sparse_merkle_tree")]
-    SparseMerkleTree(Vec<(u64, String)>),
+    SparseMerkleTree(u8, Vec<(u64, String)>),
 }
 
 // INPUT FILE
@@ -195,9 +195,9 @@ impl InputFile {
                         .add_merkle_tree(leaves)
                         .map_err(|e| format!("failed to add merkle tree to merkle store - {e}"))?;
                 }
-                MerkleData::SparseMerkleTree(data) => {
+                MerkleData::SparseMerkleTree(depth, data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
-                    merkle_store.add_sparse_merkle_tree(entries).map_err(|e| {
+                    merkle_store.add_sparse_merkle_tree(*depth, entries).map_err(|e| {
                         format!("failed to add sparse merkle tree to merkle store - {e}")
                     })?;
                 }
