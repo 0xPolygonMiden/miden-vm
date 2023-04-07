@@ -143,12 +143,12 @@ impl Test {
     }
 
     /// Executes the test and validates that the process memory has the elements of `expected_mem`
-    /// at address `mem_addr` and that the end of the stack execution trace matches the
+    /// at address `mem_start_addr` and that the end of the stack execution trace matches the
     /// `final_stack`.
     pub fn expect_stack_and_memory(
         &self,
         final_stack: &[u64],
-        mem_addr: u64,
+        mut mem_start_addr: u64,
         expected_mem: &[u64],
     ) {
         // compile the program
@@ -161,9 +161,12 @@ impl Test {
         process.execute(&program).unwrap();
 
         // validate the memory state
-        let mem_state = process.get_memory_value(0, mem_addr).unwrap();
-        let expected_mem: Vec<Felt> = expected_mem.iter().map(|&v| Felt::new(v)).collect();
-        assert_eq!(expected_mem, mem_state);
+        for data in expected_mem.chunks(WORD_SIZE) {
+            let mem_state = process.get_memory_value(0, mem_start_addr).unwrap();
+            let expected_mem: Vec<Felt> = data.iter().map(|&v| Felt::new(v)).collect();
+            assert_eq!(expected_mem, mem_state);
+            mem_start_addr += 1;
+        }
 
         // validate the stack state
         self.expect_stack(final_stack);
