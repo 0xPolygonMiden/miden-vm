@@ -5,3 +5,4 @@ mod fri;
 mod keccak256;
 mod native;
 mod sha256;
+mod stark;

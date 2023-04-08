@@ -4,20 +4,25 @@
 use std::{mem, vec};
 
 use super::VerifierError;
-use miden::{crypto::Rpo256, utils::IntoBytes, Digest};
-use miden_air::{Felt, FieldElement, ProcessorAir};
-use vm_core::{
-    crypto::merkle::{MerklePath, MerklePathSet},
-    QuadExtension, ZERO,
+use miden_air::{Felt, FieldElement, ProcessorAir, StarkField};
+use processor::{crypto::Rpo256, Digest, QuadExtension};
+//use miden::{crypto::Rpo256, utils::{IntoBytes, math::log2}, Digest};
+//use miden_air::{Felt, FieldElement, ProcessorAir, StarkField};
+use test_utils::{
+    crypto::{BatchMerkleProof, MerklePath, MerklePathSet},
+    IntoBytes, ZERO,
 };
+//use vm_core::{
+//crypto::merkle::{MerklePath, MerklePathSet},
+//QuadExtension, ZERO,
+//};
 use winter_air::{
     proof::{Queries, StarkProof, Table},
     Air, EvaluationFrame,
 };
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
 use winter_utils::{collections::Vec, group_vector_elements, string::ToString};
-use winterfell::math::StarkField;
-use winterfell::{crypto::BatchMerkleProof, math::log2};
+use winterfell::math::log2;
 
 pub type QuadExt = QuadExtension<Felt>;
 /// A view into a [StarkProof] for a computation structured to simulate an "interactive" channel.

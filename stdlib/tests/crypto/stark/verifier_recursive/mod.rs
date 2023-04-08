@@ -1,10 +1,9 @@
-use miden::{
+use miden_air::{Felt, FieldElement, ProcessorAir, StarkField};
+use processor::{
     crypto::{MerkleStore, RandomCoin, Rpo256, WinterRandomCoin},
     math::fft,
-    Digest,
+    Digest, QuadExtension,
 };
-use miden_air::{Felt, ProcessorAir, StarkField};
-use vm_core::{FieldElement, QuadExtension, ToElements};
 use winter_air::{proof::StarkProof, Air, AuxTraceRandElements};
 
 use winter_utils::collections::Vec;
@@ -17,30 +16,32 @@ use channel::VerifierChannel;
 
 mod errors;
 pub use errors::VerifierError;
-use winterfell::math::log2;
+use winterfell::math::{log2, ToElements};
 
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
 
-#[rustfmt::skip]
 pub fn generate_advice_inputs(
     proof: StarkProof,
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
-    
-) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> 
- {
+) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> {
     //// build a seed for the public coin; the initial seed is the hash of public inputs and proof
     //// context, but as the protocol progresses, the coin will be reseeded with the info received
     //// from the prover
     let mut public_coin_seed = proof.context.to_elements();
     let trace_len: Felt = public_coin_seed[7];
-    let  stack = vec![public_coin_seed[4].as_int(), log2(public_coin_seed[5].as_int() as usize) as u64, public_coin_seed[6].as_int(), log2(trace_len.as_int() as usize) as u64];
+    let stack = vec![
+        public_coin_seed[4].as_int(),
+        log2(public_coin_seed[5].as_int() as usize) as u64,
+        public_coin_seed[6].as_int(),
+        log2(trace_len.as_int() as usize) as u64,
+    ];
 
     let mut tape = vec![];
     public_coin_seed.append(&mut pub_inputs.to_elements());
 
-    let pub_inputs_int:Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    tape.extend_from_slice(&pub_inputs_int[..]); 
+    let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
+    tape.extend_from_slice(&pub_inputs_int[..]);
 
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.get_trace_info(), pub_inputs, proof.options().clone());
@@ -48,7 +49,6 @@ pub fn generate_advice_inputs(
     let mut public_coin: WinterRandomCoin<Rpo256> = WinterRandomCoin::new(&public_coin_seed);
     let mut channel = VerifierChannel::new(&air, proof)?;
 
-     
     // 1 ----- trace commitment -------------------------------------------------------------------
     let trace_commitments = channel.read_trace_commitments();
 
@@ -66,7 +66,6 @@ pub fn generate_advice_inputs(
         public_coin.reseed(*commitment);
     }
 
-
     // 2 ----- constraint commitment --------------------------------------------------------------
     let constraint_commitment = channel.read_constraint_commitment();
     tape.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
@@ -74,7 +73,6 @@ pub fn generate_advice_inputs(
 
     // 3 ----- OOD frames --------------------------------------------------------------
     let (ood_main_trace_frame, ood_aux_trace_frame) = channel.read_ood_trace_frame();
-
 
     if let Some(ref aux_trace_frame) = ood_aux_trace_frame {
         // when the trace contains auxiliary segments, append auxiliary trace elements at the
@@ -105,21 +103,16 @@ pub fn generate_advice_inputs(
     let fri_commitments_digests = channel.fri_layer_commitments().unwrap();
     let poly = channel.fri_remainder();
     let twiddles = fft::get_twiddles(poly.len());
-        let fri_remainder = fft::evaluate_poly_with_offset(
-            &poly,
-            &twiddles,
-            Felt::GENERATOR,
-            BLOWUP_FACTOR,
-        );
+    let fri_remainder =
+        fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, BLOWUP_FACTOR);
 
     let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_digests);
     tape.extend_from_slice(&fri_commitments);
 
-    tape.extend_from_slice(&to_int_vec(& poly));
+    tape.extend_from_slice(&to_int_vec(&poly));
     tape.extend_from_slice(&to_int_vec(&fri_remainder));
 
-
-        // Reseed with FRI layer commitments
+    // Reseed with FRI layer commitments
     let layer_commitments = fri_commitments_digests.clone();
     for commitment in layer_commitments.iter() {
         public_coin.reseed(*commitment);
@@ -137,16 +130,17 @@ pub fn generate_advice_inputs(
         return Err(VerifierError::QuerySeedProofOfWorkVerificationFailed);
     }
 
-    // draw pseudo-random query positions for the LDE domain from the public coin. 
+    // draw pseudo-random query positions for the LDE domain from the public coin.
     // this is needed in order to construct Merkle path sets
     let query_positions = public_coin
         .draw_integers(air.options().num_queries(), air.lde_domain_size())
         .map_err(|_| VerifierError::RandomCoinError)?;
-    
+
     // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
-    let (mut adv_map_traces,mut m_path_sets_traces) =
+    let (mut adv_map_traces, mut m_path_sets_traces) =
         channel.read_queried_trace_states(&query_positions)?;
-    let (mut adv_map_constraint, m_path_set_constraint) = channel.read_constraint_evaluations(&query_positions)?;
+    let (mut adv_map_constraint, m_path_set_constraint) =
+        channel.read_constraint_evaluations(&query_positions)?;
 
     let domain_size = (air.trace_poly_degree() + 1) * BLOWUP_FACTOR;
     let mut ress = channel.unbatch::<4, 3>(&query_positions, domain_size, fri_commitments_digests);

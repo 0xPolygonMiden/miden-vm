@@ -1,16 +1,11 @@
-use miden::{
-    crypto::MerkleStore, Assembler, MemAdviceProvider, ProgramInfo,
-    ProofOptions as MidenProofOptions,
-};
-use miden_air::{Felt, HashFunction, PublicInputs};
-
-use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
-
 mod verifier_recursive;
 
-use verifier_recursive::VerifierError;
-
 use crate::build_test;
+use assembly::Assembler;
+use miden_air::{Felt, FieldExtension, HashFunction, ProofOptions, PublicInputs};
+use processor::{crypto::MerkleStore, AdviceInputs, MemAdviceProvider, ProgramInfo, StackInputs};
+use test_utils::prove;
+use verifier_recursive::VerifierError;
 
 #[test]
 fn stark_verifier_e2f4() {
@@ -49,17 +44,15 @@ pub fn generate_recursive_verifier_data(
     stack_inputs: Vec<u64>,
 ) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> {
     let program = Assembler::default().compile(&source).unwrap();
-    let stack_inputs = crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
-    let advice_inputs = crate::helpers::AdviceInputs::default();
+    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
 
-    let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
-    let proof_options = MidenProofOptions {
-        hash_fn: HashFunction::Rpo256,
-        options,
-    };
+    let options =
+        ProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
+
     let (stack_outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), advice_provider, proof_options).unwrap();
+        prove(&program, stack_inputs.clone(), advice_provider, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 

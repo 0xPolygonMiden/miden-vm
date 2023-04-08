@@ -21,7 +21,7 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ExecutionError, ExecutionTrace, Process, StackInputs,
     VmStateIterator,
 };
-pub use prover::{MemAdviceProvider, ProofOptions};
+pub use prover::{prove, MemAdviceProvider, ProofOptions};
 pub use test_case::test_case;
 pub use verifier::ProgramInfo;
 pub use vm_core::{
