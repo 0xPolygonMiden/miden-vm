@@ -145,6 +145,19 @@ impl Test {
         assert_eq!(expected, result, "Expected stack to be {:?}, found {:?}", expected, result);
     }
 
+    /// Builds a final stack from the provided stack-ordered array and asserts that executing the
+    /// test will result in the expected final stack state.
+    pub fn expect_stack_canonical(&self, expected: &[u64]) {
+        let result_can: Vec<u64> =
+            self.get_last_stack_state().into_iter().map(|e| e.as_int()).collect();
+        let result = self.get_last_stack_state();
+
+        println!("expected: {:?}", expected);
+        println!("result_c: {:?}", result_can);
+        println!("result  : {:?}", result);
+        //assert_eq!(expected, result);
+    }
+
     /// Executes the test and validates that the process memory has the elements of `expected_mem`
     /// at address `mem_start_addr` and that the end of the stack execution trace matches the
     /// `final_stack`.

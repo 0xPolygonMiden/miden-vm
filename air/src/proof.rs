@@ -14,8 +14,8 @@ use winter_air::{proof::StarkProof, FieldExtension, ProofOptions as WinterProofO
 /// proof. However, the proof does not contain public inputs needed to verify the proof.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionProof {
-    proof: StarkProof,
-    hash_fn: HashFunction,
+    pub proof: StarkProof,
+    pub hash_fn: HashFunction,
 }
 
 impl ExecutionProof {
@@ -87,8 +87,8 @@ impl ExecutionProof {
 /// A set of parameters specifying how Miden VM execution proofs are to be generated.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProofOptions {
-    options: WinterProofOptions,
-    hash_fn: HashFunction,
+    pub options: WinterProofOptions,
+    pub hash_fn: HashFunction,
 }
 
 impl ProofOptions {
