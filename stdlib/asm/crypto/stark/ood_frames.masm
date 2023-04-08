@@ -1,0 +1,99 @@
+# Input: [Y, Y, 1, 0, 0, 0, ood_frame_current_ptr]
+# Output: [A, B, C, ood_frame_next_ptr] 
+#       where ood_frame_next_ptr:= ood_frame_current_ptr + 41
+export.load_ood_eval_frame_current
+    repeat.20
+        adv_pipe
+    end
+
+    # adv_pipe the last two elements
+    # TODO: avoid one of the dropw using
+    # mem_loadw.4294967295
+    dropw dropw
+    adv_push.1
+    adv_push.1
+    push.1
+    push.0
+    #=> [B, C, ptr]
+    dup.8
+    add.1
+    swap.9
+    mem_storew
+    push.0.0.0.0
+    hperm
+end
+
+# Input: [X, X, 1, 0, 0, 0, ood_frame_next_ptr]
+# Output: [A, B, C, ood_constraint_evals_ptr] where C is the hash of [ood_main_trace_frame.next(), aux_trace_frame.next()]
+#    and `ood_constraint_evals_ptr := ood_frame_next_ptr + 41`
+export.load_ood_eval_frame_next
+    repeat.20
+        adv_pipe
+    end
+
+    # adv_pipe the last two elements
+    dropw dropw
+    adv_push.1
+    adv_push.1
+    push.1
+    push.0
+    dup.8
+    add.1
+    swap.9
+    mem_storew
+    push.0.0.0.0
+    hperm
+end
+
+# Input: [X, X, X, ood_constraint_evals_ptr + 4]
+# Output: [res1, res0, y, y, y, ...]    where y are "garbage" values
+export.compute_Hz
+    # Compute `H(z)`
+    ## Load `value_i`'s
+    
+    dup.12
+    sub.4
+    mem_loadw
+    swapw.2
+
+    dup.12
+    sub.3
+    mem_loadw
+    swapw
+
+    dup.12
+    sub.2
+    mem_loadw
+
+    movup.12
+    sub.1
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    ## Load z
+    push.0.0.0.0
+    mem_loadw.4294967291
+    drop drop
+    # => [z1, z0, value_7, ... ,value_0]
+
+    # Horner evaluation
+    # TODO: maybe can be done faster in another way
+    repeat.6
+        dup
+        movdn.6
+        dup.1
+        movdn.7
+        # => [z1, z0, value_7, value_6, z1, z0, value_5, ... ,value_0]
+
+        ext2mul
+        ext2add
+        # => [acc1, acc0, z1, z0, value_5, ... ,value_0]
+
+        movup.3
+        movup.3
+        # => [z1, z0, acc1, acc0, value_5, ... ,value_0]
+    end
+    ext2mul
+    ext2add
+end

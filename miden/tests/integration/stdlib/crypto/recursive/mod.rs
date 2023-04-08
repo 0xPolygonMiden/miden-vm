@@ -2,8 +2,8 @@ use miden::{
     crypto::MerkleStore, Assembler, MemAdviceProvider, ProgramInfo,
     ProofOptions as MidenProofOptions,
 };
-use miden_air::{Felt, HashFunction, PublicInputs, StarkField};
-use vm_core::{crypto::merkle::MerklePathSet, ToElements};
+use miden_air::{Felt, HashFunction, PublicInputs};
+
 use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
 
 mod verifier_recursive;
@@ -26,7 +26,7 @@ fn stark_verifier_e2f4() {
     stack_inputs[15] = 0;
     stack_inputs[14] = 1;
 
-    let (program_root, (tape, advice_sets, advice_map)) =
+    let (initial_stack, tape, store, advice_map) =
         generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
 
     // Verify inside Miden VM
@@ -37,11 +37,7 @@ fn stark_verifier_e2f4() {
             exec.verifier::verify
         end
         ";
-    let initial_stack = program_root;
-    let mut store = MerkleStore::new();
-    for path_set in &advice_sets {
-        store.add_merkle_path_set(&path_set).unwrap();
-    }
+
     let test = build_test!(source, &initial_stack, &tape, store, advice_map);
 
     test.expect_stack(&[]);
@@ -51,7 +47,7 @@ fn stark_verifier_e2f4() {
 pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
-) -> Result<(Vec<u64>, (Vec<u64>, Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>)), VerifierError> {
+) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> {
     let program = Assembler::default().compile(&source).unwrap();
     let stack_inputs = crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
     let advice_inputs = crate::helpers::AdviceInputs::default();
@@ -70,10 +66,5 @@ pub fn generate_recursive_verifier_data(
     // build public inputs and generate the advice data needed for recursive proof verification
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
     let (_, proof) = proof.into_parts();
-    let pub_inputs_elem: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    let program_root = pub_inputs_elem[..4].to_owned();
-    Ok((
-        program_root,
-        verifier_recursive::generate_advice_inputs(proof, pub_inputs).unwrap(),
-    ))
+    Ok(verifier_recursive::generate_advice_inputs(proof, pub_inputs).unwrap())
 }

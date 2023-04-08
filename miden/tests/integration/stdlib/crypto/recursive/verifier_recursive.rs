@@ -1,10 +1,10 @@
 use miden::{
-    crypto::{RandomCoin, Rpo256, WinterRandomCoin},
+    crypto::{MerkleStore, RandomCoin, Rpo256, WinterRandomCoin},
     math::fft,
     Digest,
 };
 use miden_air::{Felt, ProcessorAir, StarkField};
-use vm_core::{crypto::merkle::MerklePathSet, FieldElement, QuadExtension, ToElements};
+use vm_core::{FieldElement, QuadExtension, ToElements};
 use winter_air::{proof::StarkProof, Air, AuxTraceRandElements};
 
 use winter_utils::collections::Vec;
@@ -17,6 +17,7 @@ use channel::VerifierChannel;
 
 mod errors;
 pub use errors::VerifierError;
+use winterfell::math::log2;
 
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
@@ -26,19 +27,20 @@ pub fn generate_advice_inputs(
     proof: StarkProof,
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
     
-) -> Result<(Vec<u64>, Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>), VerifierError> 
+) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> 
  {
     //// build a seed for the public coin; the initial seed is the hash of public inputs and proof
     //// context, but as the protocol progresses, the coin will be reseeded with the info received
     //// from the prover
     let mut public_coin_seed = proof.context.to_elements();
     let trace_len: Felt = public_coin_seed[7];
-    let mut  tape = vec![trace_len.as_int()];
+    let  stack = vec![public_coin_seed[4].as_int(), log2(public_coin_seed[5].as_int() as usize) as u64, public_coin_seed[6].as_int(), log2(trace_len.as_int() as usize) as u64];
 
+    let mut tape = vec![];
     public_coin_seed.append(&mut pub_inputs.to_elements());
 
     let pub_inputs_int:Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    tape.extend_from_slice(&pub_inputs_int[4..]); //exclude Program hash
+    tape.extend_from_slice(&pub_inputs_int[..]); 
 
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.get_trace_info(), pub_inputs, proof.options().clone());
@@ -154,7 +156,11 @@ pub fn generate_advice_inputs(
     let mut m_path_sets_fri = ress.0;
     m_path_sets_fri.append(&mut m_path_sets_traces);
     m_path_sets_fri.push(m_path_set_constraint);
-    Ok((tape, m_path_sets_fri, adv_map_traces))
+    let mut store = MerkleStore::new();
+    for path_set in &m_path_sets_fri {
+        store.add_merkle_path_set(&path_set).unwrap();
+    }
+    Ok((stack, tape, store, adv_map_traces))
 }
 
 // Helpers

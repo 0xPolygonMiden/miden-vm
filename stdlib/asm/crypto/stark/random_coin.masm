@@ -7,6 +7,17 @@ export.reseed
     swapw
 end
 
+# Input: [Y, Data]
+# Ouput: [Seed_n, X, Y]
+export.reseed_load_save
+    mem_loadw.4294967293
+    push.0.0.0.0
+    swapw.2
+    hperm
+    swapw
+    mem_storew.4294967293
+end
+
 # Input: [Seed, 1, ptr] where G is the seed
 # Output: [X, 2, ptr + 1]
 export.generate_next_extfelt
@@ -15,7 +26,6 @@ export.generate_next_extfelt
     add.1
     movdn.5             
     push.1.0.0
-    #movup.3
     push.1.0.0.0
     swapw.2
     swapw           # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 2, ptr]
@@ -34,7 +44,7 @@ export.generate_next_extfelt_tuple
     dupw
     dup.8
     # => [1, Seed, Seed, 1, ptr]   
-    
+
     push.1.0.0
     push.1.0.0.0                    # [0, 0, 0, 1, 0, 0, 1, 1, Seed, Seed, 1, ptr]  
     swapw.2
@@ -77,7 +87,6 @@ export.generate_next_integer
     add.1
     movdn.5             
     push.1.0.0
-    #movup.3
     push.1.0.0.0
     swapw.2
     swapw               # [0, 0, 1, 1, Seed, 0, 0, 0, 1, 2, ptr]
