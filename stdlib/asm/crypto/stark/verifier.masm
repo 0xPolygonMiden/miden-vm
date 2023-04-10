@@ -5,6 +5,23 @@ use.std::crypto::stark::deep_queries
 use.std::crypto::stark::random_coin
 use.std::crypto::stark::ood_frames
 
+# Global memory
+const.ZERO_ZERO_ZERO_ONE=4294967294
+const.ZERO_WORD=4294967295
+const.SEED=4294967293
+const.LDE_SIZE=4294967292
+const.Z=4294967291
+
+# Local memory
+const.MAIN_TRACE_COM=2
+const.AUX_TRACE_COM=3
+const.COMPOSITION_POLY_COM=4
+const.AUX_RAND_ELEM=2000
+const.COMPOSITION_COEF=2016
+const.OOD_TRACE_CURRENT=2252
+const.DEEP_RAND_CC=2338
+const.FRI_QUERIES=2473
+const.FRI_COM=2500
 
 
 # <= [log2(domain_size), ..]
@@ -20,32 +37,6 @@ export.compute_lde_generator
     # => [domain_gen, ..]
 end
 
-# <= [lde_size, 1, ..]
-# => [remainder_size, lde_size, num_fri_layers,..]
-export.get_num_fri_layers
-    dup
-    push.4
-    u32checked_divmod
-
-    dup.1
-    push.0
-    neq
-
-    while.true
-        drop
-        movup.2
-        add.1
-        movdn.2
-
-        push.4
-        u32checked_divmod
-
-        dup.1
-        push.64
-        u32unchecked_gt
-    end
-    drop
-end
 
 #<= [trace_length, num_queries, blowup, grinding, ...]
 #=> [A, B, C]
@@ -81,14 +72,14 @@ export.hash_proof_context
     movdn.2
     push.0
     movdn.2
-    mem_storew.4294967292
-    dropw
+    mem_storew.LDE_SIZE
     #=> [lde_domain_length, log(lde_domain_length), 0, 0, trace_length, num_queries, blowup, grinding]
 
     # Construct the proof context
+    dropw
     push.1208027408
     push.1
-    push.4294967295
+    push.ZERO_WORD
     push.132103
     swapw
     
@@ -112,7 +103,7 @@ export.load_pub_inputs
     # Unhash the public inputs from the advice provider.
     # The following assumes that the public inputs contain only the input and output states
     # of the operand stack and both are of length exactly 16. 
-    # TODO: generalize to any public inputs supported by the VM.
+    # TODO: generalize to any number of public inputs supported by the VM.
     repeat.4
         adv_loadw
         swapw
@@ -122,9 +113,10 @@ export.load_pub_inputs
     adv_loadw
     swapw
     # Pad with [1, 0, 0, 0]
-    mem_loadw.4294967294
+    mem_loadw.ZERO_ZERO_ZERO_ONE
     hperm
 end
+
 
 
 #================================================
@@ -134,7 +126,7 @@ end
 #   4294967295. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
 #   4294967293. Seed
 #   4294967292: [lde_size, log2(lde_size), 0, 0]
-#   4294967291: [z8_1, z8_0, z1, z0]
+#   4294967291: [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
 #   II) Local:
 #   2. Main trace commitment
 #   3. Aux trace commitment
@@ -146,10 +138,9 @@ end
 #   9. [lde_size, log2(lde_size), lde_domain_generator, 0] (same as 5 but for a different purpose)
 #   10.[gz1, gz0, z1, z0]
 #   11.[x, _, _, _] where x := offset * lde_domain_generator^query_index
-#   22 -> 1999 Empty for now but should hold the public inputs in the future
+#   20 -> 1999 Empty for now but should hold the public inputs in the future
 #   2000 -> 2015    auxiliary trace random coefficients
 #   2016 -> 2250    constraint composition coefficients
-#   2251    [(z^8)_1, (z^8)_0, z_1, z_0] where z = (z_0, z_1) is the OOD random element
 #   2252 -> 2292    current row of the OOD evaluation frame 
 #   2293 -> 2333    next row of the OOD evaluation frame 
 #   2334 -> 2337    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
@@ -177,11 +168,11 @@ export.verify.4222
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout 
     # the `verify` procedure.
     push.0.0.0.0
-    mem_storew.4294967295
+    mem_storew.ZERO_WORD
     drop
     push.1
     swap.3
-    mem_storew.4294967294
+    mem_storew.ZERO_ZERO_ZERO_ONE
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -206,15 +197,15 @@ export.verify.4222
     swapw
     adv_loadw           
     #=> [main_trace_commitment, Seed]
-    loc_storew.2
+    loc_storew.MAIN_TRACE_COM
     swapw
     exec.random_coin::reseed         
-    mem_storew.4294967293          
+    mem_storew.SEED          
     # => [Seed_n, X, Y]
 
     # Draw random ExtFelt for the auxiliary trace
-    # From locaddr.2000 to 2015 we have the aux randomness
-    locaddr.2000
+    # From locaddr.AUX_RAND_ELEM to locaddr.AUX_RAND_ELEM + 16 - 1 we have the aux randomness
+    locaddr.AUX_RAND_ELEM
     movdn.4
     push.1
     movdn.4         
@@ -222,7 +213,7 @@ export.verify.4222
 
     repeat.16
         exec.random_coin::generate_next_extfelt
-        mem_loadw.4294967293
+        mem_loadw.SEED
     end
     # => [Seed, 16, ptr + 16, X, Y]
 
@@ -230,11 +221,11 @@ export.verify.4222
     # Reseed with auxiliary trace commitment
     swapw
     adv_loadw
-    loc_storew.3
+    loc_storew.AUX_TRACE_COM
     swapw               
     #=> [Seed, aux_trace_commitment, y, y, Y]
     exec.random_coin::reseed         
-    mem_storew.4294967293
+    mem_storew.SEED
     #=> [Seed_n, Y, Y, y, y, Y]
 
     # TODO: make use of these
@@ -246,12 +237,12 @@ export.verify.4222
     #==============================================================================================
 
     # Draw constraint composition coefficients
-    # From `compos_coef_ptr = locaddr.2016` to 2250 (inclusive) we have the constraint 
+    # From `compos_coef_ptr = locaddr.COMPOSITION_COEF` to locaddr.COMPOSITION_COEF + 235 - 1 (inclusive) we have the constraint 
     # composition random coefficients.
     # They are ordered in increasing index order and when loaded into the stack ordered as
     # (r1_1, r1_0, r0_1, r0_0)
-    mem_loadw.4294967293
-    locaddr.2016
+    mem_loadw.SEED
+    locaddr.COMPOSITION_COEF
     movdn.4
     push.1
     movdn.4         
@@ -259,7 +250,7 @@ export.verify.4222
 
     repeat.235
         exec.random_coin::generate_next_extfelt_tuple
-        mem_loadw.4294967293
+        mem_loadw.SEED
         # => [Seed, 2, ptr + 1, ..]
     end
     # => [Seed, y, y, Y]
@@ -272,15 +263,15 @@ export.verify.4222
     # Reseed with constraint composition polynomial commitment
     swapw
     adv_loadw
-    loc_storew.4
+    loc_storew.COMPOSITION_POLY_COM
     swapw
     exec.random_coin::reseed
-    mem_storew.4294967293
+    mem_storew.SEED
     #=> [Seed_n, X, Y, y, y]
 
     # Draw OOD z
     swapw
-    mem_loadw.4294967294
+    mem_loadw.ZERO_ZERO_ZERO_ONE
     swapw.2
     dropw
     push.1.1.0.0
@@ -299,23 +290,24 @@ export.verify.4222
         dup.1
         ext2mul
     end
-    mem_storew.4294967291
+    mem_storew.Z
     # => [X, Y, Y, x, x, 0, 0]
     
     #==============================================================================================
     #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
-    #           of the H over the LDE domain.
+    #           of H over the LDE domain.
     #==============================================================================================
 
     # Read [ood_main_trace_frame.current(), aux_trace_frame.current()]
     # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
     # 162 = 20 * 8 + 2
-    # [ood_main_trace_frame.current(), aux_trace_frame.current()] is stored in locaddr.2252 to locaddr.2292.
-    # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for locaddr.2292
-    # which is stored from the stack as (a1, a0, 1, 0)
-    locaddr.2252
+    # [ood_main_trace_frame.current(), aux_trace_frame.current()] is stored in
+    # locaddr.OOD_TRACE_CURRENT to locaddr.OOD_TRACE_CURRENT + 41 - 1.
+    # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for
+    # locaddr.OOD_TRACE_CURRENT + 40 which is stored from the stack as (a1, a0, 1, 0)
+    locaddr.OOD_TRACE_CURRENT
     movdn.12
-    mem_loadw.4294967294
+    mem_loadw.ZERO_ZERO_ZERO_ONE
     swapw.2
     #=> [Y, Y, 1, 0, 0, 0, ood_frame_current_ptr]
 
@@ -331,10 +323,11 @@ export.verify.4222
     # Read [ood_main_trace_frame.next(), aux_trace_frame.next()]
     # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
     # 162 = 20 * 8 + 2
-    # [ood_main_trace_frame.next(), aux_trace_frame.next()] is stored in locaddr.2293 to locaddr.2333.
+    # [ood_main_trace_frame.next(), aux_trace_frame.next()] is stored in locaddr.OOD_TRACE_CURRENT + 41
+    # to locaddr.OOD_TRACE_CURRENT + 2 * 41 - 1.
     # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for locaddr.2333
     # which is stored from the stack as (a1, a0, 1, 0)
-    mem_loadw.4294967294
+    mem_loadw.ZERO_ZERO_ZERO_ONE
     swapw.2
     #=> [X, X, 1, 0, 0, 0, ood_frame_next_ptr]
 
@@ -349,7 +342,7 @@ export.verify.4222
     # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of
     # constraint evaluation function at `z` `H(z)` equals `\sum_0^7 z^i value_i`.
     # The values are stored from locaddr.2334 to locaddr.2337
-    mem_loadw.4294967295
+    mem_loadw.ZERO_WORD
     swapw.2
     adv_pipe
     adv_pipe
@@ -380,8 +373,8 @@ export.verify.4222
     #============================================
     # Draw deep composition polynomial coefficients
     ## Load Seed and prepare for drawing
-    mem_loadw.4294967293
-    locaddr.2338
+    mem_loadw.SEED
+    locaddr.DEEP_RAND_CC
     movdn.4
     push.1
     movdn.4
@@ -395,7 +388,7 @@ export.verify.4222
     ## Total: 172 tuples of type (Felt, Felt)
     repeat.86
         exec.random_coin::generate_next_extfelt_tuple
-        mem_loadw.4294967293
+        mem_loadw.SEED
         # => [Seed, 3, ptr + 1]
     end
     # => [Seed, 172, ptr + 1, ..]
@@ -412,7 +405,7 @@ export.verify.4222
 
     # Load  FRI verifier data:
     # [lde_domain_length, log(lde_domain_length), 0, 0]
-    mem_loadw.4294967292
+    mem_loadw.LDE_SIZE
 
     # Compute lde_domain generator
     dup.1
@@ -425,7 +418,7 @@ export.verify.4222
     # Compute [gz1, gz0, z1, z0] using domain generator
     # TODO: move to somewhere else
     push.0.0.0.0
-    mem_loadw.4294967291
+    mem_loadw.Z
     drop drop
     dup.1
     dup.1
@@ -475,7 +468,7 @@ export.verify.4222
     #============================================
 
     # Get FRI layer commitments and reseed to draw folding challenges i.e. alphas
-    locaddr.2500    # Address containing the first layer commitment
+    locaddr.FRI_COM    # Address containing the first layer commitment
     swap.2 drop     
     # => [num_layers, ptr_layer, Y, Y] 
     
@@ -500,7 +493,7 @@ export.verify.4222
         swapw.2
         dropw
         # Load [0, 0, 0, 1]
-        mem_loadw.4294967294
+        mem_loadw.ZERO_ZERO_ZERO_ONE
         swapw
         push.1.1.0.0
         # => [0, 0, 1, 1, Seed, 0, 0, 0, 1, num_layers, ptr_layer + 1, x, x]
@@ -567,7 +560,7 @@ export.verify.4222
     ## Get the length of remainder
     loc_loadw.6
     ## Compute the correct remainder pointer using length of remainder
-    locaddr.2500
+    locaddr.FRI_COM
     swap
     mul.2
     add
@@ -582,7 +575,7 @@ export.verify.4222
         # Remainder length equal to 32
         swapw.3
         # load [0, 0, 0, 0] from memory
-        mem_loadw.4294967295
+        mem_loadw.ZERO_WORD
         swapw.2
         # => [X, X, 0, 0, 0, 0 ptr_remainder, remainder_size, x, x]
         
@@ -625,7 +618,7 @@ export.verify.4222
     else
         # Remainder length equal to 64
         swapw.3
-        mem_loadw.4294967295    # load [0, 0, 0, 0] from memory
+        mem_loadw.ZERO_WORD    # load [0, 0, 0, 0] from memory
         swapw.2
         # => [X, X, 0, 0, 0, 0 ptr_remainder, remainder_size, x, x]
         
@@ -709,14 +702,14 @@ export.verify.4222
 
     # Check PoW nonce
     ## Load Seed
-    mem_loadw.4294967293
+    mem_loadw.SEED
     push.1.0.0.0
     swapw
     adv_push.1
     push.1.0.0
     hperm
     swapw
-    mem_storew.4294967293
+    mem_storew.SEED
     # => [Seed, Y, Y, Y]
 
     ## Get the leading field element of the digest
@@ -739,7 +732,7 @@ export.verify.4222
     ## Put the pointer to the integers on the stack
     ## TODO: avoid this by changing the loop over the query indices
     drop 
-    locaddr.2473
+    locaddr.FRI_QUERIES
     swap.3
     swapw.3
     push.0
@@ -749,26 +742,20 @@ export.verify.4222
     loc_loadw.9
     sub.1
 
-    ## Get address holding the integers
-    locaddr.2473
+    ## Get address holding the integers (this will later hold the FRI queries)
+    locaddr.FRI_QUERIES
     push.1
     swapw
-    mem_loadw.4294967293
-    # => [Seed, 1, ptr_integers, mask, depth, Y, Y,    y, y, ptr_integers] where depth = log(lde_size)
+    # => [Y, 1, ptr_integers, mask, depth, Y, Y,    y, y, ptr_integers] where depth = log(lde_size)
 
     ## Draw the random queries
-    ## TODO: the case of duplicate queries 
-    exec.random_coin::generate_next_integer
-    repeat.26
-        mem_loadw.4294967293
-        exec.random_coin::generate_next_integer
-    end
-    # => [Y, Y, Y, Y, y, y, ptr_integers]
+    exec.random_coin::generate_list_indices
+    # => [Y, Y, Y, Y,    y, y, ptr_integers]
     
 
     # Note: From now on, only Y and y denote garbage values.
     push.1.1
-    locaddr.2473
+    locaddr.FRI_QUERIES
     #=>[ptr_query, Y, Y, Y, Y, Y, ptr_query]
   
     repeat.27       
@@ -779,7 +766,7 @@ export.verify.4222
         #=> [query, depth, y, y, ..]
         ## Get main trace commitment and use it to get the leaf
         swapw
-        loc_loadw.2
+        loc_loadw.MAIN_TRACE_COM
         swapw
         loc_storew.14
         movup.2 drop
@@ -795,7 +782,7 @@ export.verify.4222
         locaddr.2800
         swapw.3
         #=> [Y, Y, Y, ptr, y, y, y ]
-        mem_loadw.4294967295
+        mem_loadw.ZERO_WORD
         swapw.2
         #=> [Y, Y, 0, 0, 0, 0, ptr, y, y, y]
         repeat.9
@@ -827,7 +814,7 @@ export.verify.4222
         
         # Aux trace part
         ## Load aux trace commitment and get leaf
-        loc_loadw.3
+        loc_loadw.AUX_TRACE_COM
         dup.5
         dup.7
         mtree_get
@@ -836,7 +823,7 @@ export.verify.4222
         #=> [L, R, ptr, pos, depth, 0, ]
 
         ## Prepare for adv_pipe aux trace row
-        mem_loadw.4294967294
+        mem_loadw.ZERO_ZERO_ZERO_ONE
         swapw
         push.0.0.0.0
         adv_pipe
@@ -848,7 +835,7 @@ export.verify.4222
         push.0
         loc_storew.2822
         swapw
-        mem_loadw.4294967295
+        mem_loadw.ZERO_WORD
         hperm
         #=> [Y, L, Y, ptr, pos, depth, y]
         loc_loadw.13
@@ -869,14 +856,14 @@ export.verify.4222
 
         # Constraint composition trace part
         ## Load commitment constraint trace and get leaf
-        loc_loadw.4
+        loc_loadw.COMPOSITION_POLY_COM
         dup.5
         dup.7
         mtree_get
         adv.keyval
         loc_storew.13
         #=>[L, R, ptr, pos, depth, y]
-        mem_loadw.4294967295
+        mem_loadw.ZERO_WORD
         swapw
         push.0.0.0.0
         adv_pipe
@@ -942,8 +929,8 @@ export.verify.4222
 
         # Get pointers
         locaddr.2800    # p3 := ptr_trace
-        locaddr.2338    # p2 := ptr_coef
-        locaddr.2252    # p1 := ptr_ood_frame current. Next is 2293 i.e. 41 words offset
+        locaddr.DEEP_RAND_CC    # p2 := ptr_coef
+        locaddr.OOD_TRACE_CURRENT    # p1 := ptr_ood_frame current. Next is 2293 i.e. 41 words offset
         push.0
         #=> [P, x, lde_size, depth, 0, pos, y, y, y, Y, ]
 
@@ -1344,7 +1331,7 @@ export.verify.4222
         loc_loadw.11
         movdn.3
         push.0
-        mem_loadw.4294967291
+        mem_loadw.Z
         #=> [z^8_1, z^8_0, z1, z0, x, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
 
         ## Compute the denominator
@@ -1465,10 +1452,10 @@ export.verify.4222
     #=>[ptr_remainder, g]
 
     ## Get the pointer to the first layer commitment
-    locaddr.2500
+    locaddr.FRI_COM
 
     ## Get the pointer to the first FRI query
-    locaddr.2473
+    locaddr.FRI_QUERIES
     #=> [ptr_query, ptr_layer, ptr_remainder, domain_gen]
 
     ## Call FRI verifier

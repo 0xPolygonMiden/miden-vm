@@ -1,3 +1,5 @@
+const.SEED=4294967293
+
 # Input: [Seed, Data]
 # Ouput: [Seed_n, X, Y]
 export.reseed
@@ -105,4 +107,15 @@ export.generate_next_integer
     add.1
     swap.6          
     mem_storew          # [query, depth, x, r1, 2, ptr + 1, mask, depth]
+end
+
+# Input: [Y, 1, ptr_integers, mask, depth, ..]
+# Output: [Y, Y, ..]
+export.generate_list_indices
+    # TODO: the case of duplicate queries
+    # TODO: generalize to any number of queries
+    repeat.27
+        mem_loadw.SEED
+        exec.generate_next_integer
+    end
 end
