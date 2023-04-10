@@ -7,7 +7,7 @@ Most operations described below require some number of 16-bit range checks (i.e.
 To perform these range checks, the prover puts the values to be range-checked into helper registers $h_0, ..., h_3$, and then divides the range checker bus column $b_{range}$ by a randomized product of these values. This operation is enforced via the following constraint:
 
 >$$
-b_{range}' \cdot (\alpha_0 + h_0) \cdot (\alpha_1 + h_1) \cdot (\alpha_2 + h_2) \cdot (\alpha_3 + h_3) = b_{range} \text{ | degree} = 5
+b_{range}' \cdot (\alpha_0 + h_0) \cdot (\alpha_0 + h_1) \cdot (\alpha_0 + h_2) \cdot (\alpha_0 + h_3) = b_{range} \text{ | degree} = 5
 $$
 
 The above is just a partial constraint as it does not show the range checker's part of the constraint, which multiplies the required values into the bus column. It also omits the [selector flag](./op_constraints.md#operation-flags) which is used to turn this constraint on only when executing relevant operations.

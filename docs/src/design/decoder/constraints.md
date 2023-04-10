@@ -86,7 +86,7 @@ Values in `op_bits` columns must be binary (i.e., either $1$ or $0$):
 b_i^2 - b_i = 0 \text{ for } i \in 0..6 \text{ | degree} = 2
 $$
 
-When the value in `is_span` column is set to $1$, control flow operations cannot be executed on the VM, but when `is_span` flag is $0$, only control flow operations can be executed on the VM:
+When the value in `in_span` column is set to $1$, control flow operations cannot be executed on the VM, but when `in_span` flag is $0$, only control flow operations can be executed on the VM:
 
 > $$
 1 - sp - f_{ctrl} = 0 \text{ | degree} = 4
@@ -310,12 +310,12 @@ In addition to the above transition constraint, we also need to set the followin
 Span block constraints ensure proper decoding of span blocks. In addition to the block stack table constraints and block hash table constraints described previously, decoding of span blocks requires constraints described below.
 
 ### In-span column constraints
-The `is_span` column (denoted as $sp$) is used to identify rows which execute non-control flow operations. The values in this column are set as follows:
+The `in_span` column (denoted as $sp$) is used to identify rows which execute non-control flow operations. The values in this column are set as follows:
 
-* Executing a `SPAN` operation sets the value of `is_span` column to $1$.
+* Executing a `SPAN` operation sets the value of `in_span` column to $1$.
 * The value remains $1$ until the `END` operation is executed.
-* If `RESPAN` operation is executed between `SPAN` and `END` operations, in the row at which `RESPAN` operation is executed `is_span` is set to $0$. It is then reset to $1$ in the following row.
-* In all other cases, value in the `is_span` column should be $0$.
+* If `RESPAN` operation is executed between `SPAN` and `END` operations, in the row at which `RESPAN` operation is executed `in_span` is set to $0$. It is then reset to $1$ in the following row.
+* In all other cases, value in the `in_span` column should be $0$.
 
 The picture below illustrates the above rules.
 
