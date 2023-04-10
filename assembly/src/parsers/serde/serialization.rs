@@ -4,29 +4,31 @@ use super::{ByteWriter, Instruction, Node, OpCode, Serializable};
 // ================================================================================================
 
 impl Serializable for Node {
+    /// TODO
+    /// Enforce that we don't allow \# -of nodes in body of conditional/ loop blocks to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
             Self::Instruction(i) => i.write_into(target),
             Self::IfElse(if_clause, else_clause) => {
                 OpCode::IfElse.write_into(target);
 
-                target.write_u64(if_clause.len() as u64);
+                target.write_u16(if_clause.len() as u16);
                 if_clause.write_into(target);
 
-                target.write_u64(else_clause.len() as u64);
+                target.write_u16(else_clause.len() as u16);
                 else_clause.write_into(target);
             }
             Self::Repeat(times, nodes) => {
                 OpCode::Repeat.write_into(target);
                 target.write_u32(*times);
 
-                target.write_u64(nodes.len() as u64);
+                target.write_u16(nodes.len() as u16);
                 nodes.write_into(target);
             }
             Self::While(nodes) => {
                 OpCode::While.write_into(target);
 
-                target.write_u64(nodes.len() as u64);
+                target.write_u16(nodes.len() as u16);
                 nodes.write_into(target);
             }
         }

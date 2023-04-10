@@ -43,26 +43,32 @@ pub struct ProgramAst {
 
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
+    ///
+    /// TODO
+    /// Enforce that we don't allow \# -of nodes in program body to exceed (2^16 - 1).
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut target = Vec::<u8>::default();
 
         target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(&mut target);
 
-        target.write_u64(self.body.len() as u64);
+        target.write_u16(self.body.len() as u16);
         self.body.write_into(&mut target);
 
         target
     }
 
     /// Returns a `ProgramAst` struct by its byte representation.
+    ///
+    /// TODO
+    /// Enforce that we don't allow \# -of nodes in program body to exceed (2^16 - 1).
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
 
         let num_local_procs = source.read_u16()?;
         let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
 
-        let body_len = source.read_u64()? as usize;
+        let body_len = source.read_u16()? as usize;
         let body = Deserializable::read_batch_from(&mut source, body_len)?;
 
         Ok(ProgramAst { local_procs, body })
@@ -95,28 +101,34 @@ impl ModuleAst {
 }
 
 impl Serializable for ModuleAst {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in module documentation and \# -of procedures
+    /// in module, to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match &self.docs {
             Some(t) => {
                 target.write_bool(true);
-                target.write_u64(t.len() as u64);
+                target.write_u16(t.len() as u16);
                 target.write_bytes(t.as_bytes());
             }
             None => {
                 target.write_bool(false);
             }
         }
-        target.write_u64(self.local_procs.len() as u64);
+        target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(target);
     }
 }
 
 impl Deserializable for ModuleAst {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in module documentation and \# -of procedures
+    /// in module, to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let flg = source.read_bool()?;
         let docs = match flg {
             true => {
-                let slen = source.read_u64()? as usize;
+                let slen = source.read_u16()? as usize;
                 let str = source.read_vec(slen)?;
                 let str = from_utf8(&str)
                     .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
@@ -124,7 +136,7 @@ impl Deserializable for ModuleAst {
             }
             false => None,
         };
-        let num_elements = source.read_u64()? as usize;
+        let num_elements = source.read_u16()? as usize;
         let local_procs = Deserializable::read_batch_from(source, num_elements)?;
         Ok(Self { docs, local_procs })
     }
@@ -145,12 +157,14 @@ pub struct ProcedureAst {
 }
 
 impl Serializable for ProcedureAst {
+    /// TODO
+    /// Enforce that we don't allow procedure doc string and body byte length to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.name.write_into(target);
         match &self.docs {
             Some(t) => {
                 target.write_bool(true);
-                target.write_u64(t.len() as u64);
+                target.write_u16(t.len() as u16);
                 target.write_bytes(t.as_bytes());
             }
             None => {
@@ -159,18 +173,20 @@ impl Serializable for ProcedureAst {
         }
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
-        target.write_u64(self.body.len() as u64);
+        target.write_u16(self.body.len() as u16);
         self.body.write_into(target);
     }
 }
 
 impl Deserializable for ProcedureAst {
+    /// TODO
+    /// Enforce that we don't allow procedure doc string and body byte length to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from(source)?;
         let flg = source.read_bool()?;
         let docs = match flg {
             true => {
-                let slen = source.read_u64()? as usize;
+                let slen = source.read_u16()? as usize;
                 let str = source.read_vec(slen)?;
                 let str = from_utf8(&str)
                     .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
@@ -181,7 +197,7 @@ impl Deserializable for ProcedureAst {
 
         let is_export = source.read_bool()?;
         let num_locals = source.read_u16()?;
-        let body_len = source.read_u64()? as usize;
+        let body_len = source.read_u16()? as usize;
         let body = Deserializable::read_batch_from(source, body_len)?;
         Ok(Self {
             name,

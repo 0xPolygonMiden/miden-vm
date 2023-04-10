@@ -230,12 +230,14 @@ mod use_std {
 }
 
 impl Serializable for MaslLibrary {
+    /// TODO
+    /// Enforce that we don't allow \# -of modules in library to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.namespace.write_into(target);
         self.version.write_into(target);
 
         let modules = self.modules();
-        target.write_u64(modules.len() as u64);
+        target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
             ModulePath::strip_namespace(&module.path).write_into(target);
             module.ast.write_into(target);
@@ -244,11 +246,13 @@ impl Serializable for MaslLibrary {
 }
 
 impl Deserializable for MaslLibrary {
+    /// TODO
+    /// Enforce that we don't allow \# -of modules in library to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let namespace = LibraryNamespace::read_from(source)?;
         let version = Version::read_from(source)?;
 
-        let len = source.read_u64()? as usize;
+        let len = source.read_u16()? as usize;
         let modules = (0..len)
             .map(|_| {
                 ModulePath::read_from(source)

@@ -7,16 +7,18 @@ use super::{
 // ================================================================================================
 
 impl Deserializable for Node {
+    /// TODO
+    /// Enforce that we don't allow \# -of nodes in body of conditional/ loop blocks to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let first_byte = source.peek_u8()?;
 
         if first_byte == OpCode::IfElse as u8 {
             source.read_u8()?;
 
-            let if_block_len = source.read_u64()? as usize;
+            let if_block_len = source.read_u16()? as usize;
             let if_block = Deserializable::read_batch_from(source, if_block_len)?;
 
-            let else_block_len = source.read_u64()? as usize;
+            let else_block_len = source.read_u16()? as usize;
             let else_block = Deserializable::read_batch_from(source, else_block_len)?;
 
             Ok(Node::IfElse(if_block, else_block))
@@ -25,14 +27,14 @@ impl Deserializable for Node {
 
             let repeat_count = source.read_u32()?;
 
-            let nodes_len = source.read_u64()? as usize;
+            let nodes_len = source.read_u16()? as usize;
             let nodes = Deserializable::read_batch_from(source, nodes_len)?;
 
             Ok(Node::Repeat(repeat_count, nodes))
         } else if first_byte == OpCode::While as u8 {
             source.read_u8()?;
 
-            let nodes_len = source.read_u64()? as usize;
+            let nodes_len = source.read_u16()? as usize;
             let nodes = Deserializable::read_batch_from(source, nodes_len)?;
 
             Ok(Node::While(nodes))

@@ -164,15 +164,19 @@ impl AsRef<str> for AbsolutePath {
 }
 
 impl Serializable for AbsolutePath {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in absolute path to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u64(self.len() as u64);
+        target.write_u16(self.len() as u16);
         target.write_bytes(self.as_bytes());
     }
 }
 
 impl Deserializable for AbsolutePath {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in absolute path to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let plen = source.read_u64()? as usize;
+        let plen = source.read_u16()? as usize;
         let path = source.read_vec(plen)?;
         let path =
             from_utf8(&path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
@@ -239,15 +243,19 @@ impl AsRef<str> for LibraryNamespace {
 }
 
 impl Serializable for LibraryNamespace {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in library namespace to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u64(self.name.len() as u64);
+        target.write_u16(self.name.len() as u16);
         target.write_bytes(self.name.as_bytes());
     }
 }
 
 impl Deserializable for LibraryNamespace {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in library namespace to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let nlen = source.read_u64()? as usize;
+        let nlen = source.read_u16()? as usize;
         let name = source.read_vec(nlen)?;
         let name =
             from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
@@ -358,15 +366,19 @@ impl AsRef<str> for ModulePath {
 }
 
 impl Serializable for ModulePath {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in module path name to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write_u64(self.path.len() as u64);
+        target.write_u16(self.path.len() as u16);
         target.write_bytes(self.path.as_bytes());
     }
 }
 
 impl Deserializable for ModulePath {
+    /// TODO
+    /// Enforce that we don't allow \# -of bytes in module path name to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let plen = source.read_u64()? as usize;
+        let plen = source.read_u16()? as usize;
         let path = source.read_vec(plen)?;
         let path =
             from_utf8(&path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
