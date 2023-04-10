@@ -287,9 +287,7 @@ impl Serializable for OpCode {
 }
 
 impl Deserializable for OpCode {
-    fn read_from<R: ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, winter_utils::DeserializationError> {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let value = source.read_u8()?;
         Self::try_from(value).map_err(|_| {
             DeserializationError::InvalidValue("could not read a valid opcode".to_string())

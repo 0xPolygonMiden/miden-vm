@@ -326,9 +326,7 @@ impl Serializable for Module {
 }
 
 impl Deserializable for Module {
-    fn read_from<R: ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, winter_utils::DeserializationError> {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let path = AbsolutePath::read_from(source)?;
         let ast = ModuleAst::read_from(source)?;
         Ok(Self { path, ast })
@@ -428,9 +426,7 @@ impl Serializable for Version {
 }
 
 impl Deserializable for Version {
-    fn read_from<R: ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, winter_utils::DeserializationError> {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let major = source.read_u16()?;
         let minor = source.read_u16()?;
         let patch = source.read_u16()?;

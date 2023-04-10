@@ -22,4 +22,3 @@ std = ["vm-core/std"]
 [dependencies]
 num_enum = "0.5.10"
 vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.6", default-features = false }

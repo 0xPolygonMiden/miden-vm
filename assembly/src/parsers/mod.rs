@@ -112,9 +112,7 @@ impl Serializable for ModuleAst {
 }
 
 impl Deserializable for ModuleAst {
-    fn read_from<R: ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, winter_utils::DeserializationError> {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let flg = source.read_bool()?;
         let docs = match flg {
             true => {
@@ -167,9 +165,7 @@ impl Serializable for ProcedureAst {
 }
 
 impl Deserializable for ProcedureAst {
-    fn read_from<R: ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, winter_utils::DeserializationError> {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from(source)?;
         let flg = source.read_bool()?;
         let docs = match flg {

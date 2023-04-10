@@ -26,7 +26,7 @@ mod parsers;
 use parsers::PROCEDURE_LABEL_PARSER;
 pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
 
-pub use winter_utils::{
+pub use vm_core::utils::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
