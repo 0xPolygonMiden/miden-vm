@@ -287,9 +287,9 @@ In the above diagram, `blk` is the ID of the *split* block which is about to be 
 When the VM executes a `SPLIT` operation, it does the following:
 
 1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
-2. Pops the stack and:
-   a. If the popped value is $1$, adds a tuple `(blk, true_branch_hash, 0, 0)` to the block hash table.
-   b. If the popped value is $0$, adds a tuple `(blk, false_branch_hash, 0, 0)` to the block hash table.
+2. Pops the stack and:\
+   a. If the popped value is $1$, adds a tuple `(blk, true_branch_hash, 0, 0)` to the block hash table.\
+   b. If the popped value is $0$, adds a tuple `(blk, false_branch_hash, 0, 0)` to the block hash table.\
    c. If the popped value is neither $1$ nor $0$, the execution fails.
 3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 
@@ -303,9 +303,9 @@ In the above diagram, `blk` is the ID of the *loop* block which is about to be e
 
 When the VM executes a `LOOP` operation, it does the following:
 
-1. Pops the stack and:
-   a. If the popped value is $1$ adds a tuple `(blk, prnt, 1)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.
-   b. If the popped value is $0$, adds `(blk, prnt, 0)` to the block stack table. In this case, nothing is added to the block hash table.
+1. Pops the stack and:\
+   a. If the popped value is $1$ adds a tuple `(blk, prnt, 1)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.\
+   b. If the popped value is $0$, adds `(blk, prnt, 0)` to the block stack table. In this case, nothing is added to the block hash table.\
    c. If the popped value is neither $1$ nor $0$, the execution fails.
 2. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
 

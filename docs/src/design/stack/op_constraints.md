@@ -138,7 +138,7 @@ This group contains $16$ operations which shift the stack to the right (i.e., pu
 | `DUP11`      | $58$         | `011_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `DUP13`      | $59$         | `011_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `DUP15`      | $60$         | `011_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `ADVPOP`     | $61$         | `011_1101`      | [Stack ops](./io_ops.md)      | $7$         |
+| `ADVPOP`     | $61$         | `011_1101`      | [I/O ops](./io_ops.md)        | $7$         |
 | `SDEPTH`     | $62$         | `011_1110`      | [I/O ops](./io_ops.md)        | $7$         |
 | `CLK`        | $63$         | `011_1111`      | [System ops](./system_ops.md) | $7$         |
 

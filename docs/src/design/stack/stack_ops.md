@@ -165,7 +165,7 @@ $$
 where $n$ is the depth to which the top stack element is moved.
 
 The effect of this operation on the rest of the stack is:
-* **Right shift** for elements between $0$ and $n-1$.
+* **Left shift** for elements between $1$ and $n$.
 * **No change** starting from position $n+1$.
 
 ## CSWAP
@@ -216,7 +216,7 @@ s_i' - s_0 \cdot s_{i+5} - (1-s_0) \cdot s_{i+1} = 0 \text{ for } i \in \{0..3\}
 $$
 
 >$$
-s_{i+4}' - s_0 \cdot s_{i+1} + (1-s_0) \cdot s_{i+5} = 0 \text{ for } i \in \{0..3\} \text{ | degree} = 2
+s_{i+4}' - s_0 \cdot s_{i+1} - (1-s_0) \cdot s_{i+5} = 0 \text{ for } i \in \{0..3\} \text{ | degree} = 2
 $$
 
 We also need to enforce that the value in $s_0$ is binary. This can be done with the following constraint:
