@@ -177,9 +177,8 @@ impl Deserializable for ProcedureName {
         let name = source.read_vec(nlen)?;
         let name =
             from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        let name = ProcedureName::try_from(name.to_string())
-            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        Ok(name)
+        ProcedureName::try_from(name.to_string())
+            .map_err(|e| DeserializationError::InvalidValue(e.to_string()))
     }
 }
 
