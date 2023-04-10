@@ -1,6 +1,6 @@
 use super::{
-    AbsolutePath, ByteReader, ByteWriter, Deserializable, LibraryError, LibraryNamespace,
-    ModuleAst, ModulePath, Serializable, SerializationError, Vec,
+    AbsolutePath, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError,
+    LibraryNamespace, ModuleAst, ModulePath, Serializable, SerializationError, Vec,
 };
 use core::{cmp::Ordering, fmt, slice::Iter};
 
@@ -169,7 +169,7 @@ mod use_std {
             let mut path = dir_path.as_ref().join(self.namespace.as_str());
             path.set_extension(Self::LIBRARY_EXTENSION);
 
-            let bytes = self.to_bytes()?;
+            let bytes = self.to_bytes();
             fs::write(path, bytes)
         }
     }
@@ -230,31 +230,34 @@ mod use_std {
 }
 
 impl Serializable for MaslLibrary {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        self.namespace.write_into(target)?;
-        self.version.write_into(target)?;
+    /// TODO
+    /// Enforce that we don't allow \# -of modules in library to exceed (2^16 - 1).
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.namespace.write_into(target);
+        self.version.write_into(target);
 
-        let mut modules = self.modules();
-        target.write_len(modules.len())?;
-        modules.try_for_each(|module| {
-            ModulePath::strip_namespace(&module.path).write_into(target)?;
-            module.ast.write_into(target)?;
-            Ok(())
-        })
+        let modules = self.modules();
+        target.write_u16(modules.len() as u16);
+        modules.for_each(|module| {
+            ModulePath::strip_namespace(&module.path).write_into(target);
+            module.ast.write_into(target);
+        });
     }
 }
 
 impl Deserializable for MaslLibrary {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let namespace = LibraryNamespace::read_from(bytes)?;
-        let version = Version::read_from(bytes)?;
+    /// TODO
+    /// Enforce that we don't allow \# -of modules in library to exceed (2^16 - 1).
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let namespace = LibraryNamespace::read_from(source)?;
+        let version = Version::read_from(source)?;
 
-        let len = bytes.read_len()?;
+        let len = source.read_u16()? as usize;
         let modules = (0..len)
             .map(|_| {
-                ModulePath::read_from(bytes)
+                ModulePath::read_from(source)
                     .map(|path| path.to_absolute(&namespace))
-                    .and_then(|path| ModuleAst::read_from(bytes).map(|ast| (path, ast)))
+                    .and_then(|path| ModuleAst::read_from(source).map(|ast| (path, ast)))
                     .map(|(path, ast)| Module { path, ast })
             })
             .collect::<Result<_, _>>()?;
@@ -320,17 +323,16 @@ impl Ord for Module {
 }
 
 impl Serializable for Module {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        self.path.write_into(target)?;
-        self.ast.write_into(target)?;
-        Ok(())
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.path.write_into(target);
+        self.ast.write_into(target);
     }
 }
 
 impl Deserializable for Module {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let path = AbsolutePath::read_from(bytes)?;
-        let ast = ModuleAst::read_from(bytes)?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let path = AbsolutePath::read_from(source)?;
+        let ast = ModuleAst::read_from(source)?;
         Ok(Self { path, ast })
     }
 }
@@ -420,19 +422,18 @@ impl Default for Version {
 }
 
 impl Serializable for Version {
-    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u16(self.major);
         target.write_u16(self.minor);
         target.write_u16(self.patch);
-        Ok(())
     }
 }
 
 impl Deserializable for Version {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let major = bytes.read_u16()?;
-        let minor = bytes.read_u16()?;
-        let patch = bytes.read_u16()?;
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let major = source.read_u16()?;
+        let minor = source.read_u16()?;
+        let patch = source.read_u16()?;
         Ok(Self {
             major,
             minor,
