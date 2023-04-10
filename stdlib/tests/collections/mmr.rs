@@ -89,7 +89,7 @@ fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
         );
 
         let test = build_test!(source, &[], advice_stack, merkle_store.clone());
-        let leaf = merkle_store.get_node(merkle_root, NodeIndex::new(2, pos))?;
+        let leaf = merkle_store.get_node(merkle_root, NodeIndex::new(2, pos)?)?;
 
         // the stack should be first the leaf followed by the tree root
         let stack: Vec<u64> = leaf.iter().map(StarkField::as_int).rev().collect();
@@ -118,13 +118,13 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
 
     let examples = [
         // absolute_pos, leaf
-        (0, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 0u64))?),
-        (1, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 1u64))?),
-        (2, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 2u64))?),
-        (3, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 3u64))?),
-        (7, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 7u64))?),
-        (8, merkle_store.get_node(merkle_root2, NodeIndex::new(1u8, 0u64))?),
-        (9, merkle_store.get_node(merkle_root2, NodeIndex::new(1u8, 1u64))?),
+        (0, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 0u64)?)?),
+        (1, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 1u64)?)?),
+        (2, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 2u64)?)?),
+        (3, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 3u64)?)?),
+        (7, merkle_store.get_node(merkle_root1, NodeIndex::new(3u8, 7u64)?)?),
+        (8, merkle_store.get_node(merkle_root2, NodeIndex::new(1u8, 0u64)?)?),
+        (9, merkle_store.get_node(merkle_root2, NodeIndex::new(1u8, 1u64)?)?),
     ];
 
     for (absolute_pos, leaf) in examples {

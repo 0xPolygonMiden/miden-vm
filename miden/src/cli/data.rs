@@ -197,7 +197,7 @@ impl InputFile {
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
-                    merkle_store.add_sparse_merkle_tree(entries).map_err(|e| {
+                    merkle_store.add_sparse_merkle_tree(u64::BITS as u8, entries).map_err(|e| {
                         format!("failed to add sparse merkle tree to merkle store - {e}")
                     })?;
                 }

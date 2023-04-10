@@ -18,7 +18,7 @@ use vm_core::{
 fn hasher_p1_mp_verify() {
     let (tree, leaves) = build_merkle_tree();
     let store = MerkleStore::new().with_merkle_tree(leaves).unwrap();
-    let node = tree.get_node(NodeIndex::new(3, 1)).unwrap();
+    let node = tree.get_node(NodeIndex::new(3, 1).unwrap()).unwrap();
 
     // build program inputs
     let mut init_stack = vec![];
@@ -48,9 +48,9 @@ fn hasher_p1_mp_verify() {
 fn hasher_p1_mr_update() {
     let (tree, leaves) = build_merkle_tree();
     let index = 5_u64;
-    let old_node = tree.get_node(NodeIndex::new(3, index)).unwrap();
+    let old_node = tree.get_node(NodeIndex::new(3, index).unwrap()).unwrap();
     let new_node = init_leaf(11);
-    let path = tree.get_path(NodeIndex::new(3, index)).unwrap();
+    let path = tree.get_path(NodeIndex::new(3, index).unwrap()).unwrap();
 
     // build program inputs
     let mut init_stack = vec![];

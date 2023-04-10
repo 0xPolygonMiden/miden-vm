@@ -387,7 +387,10 @@ impl Hasher {
         lookups: &mut Vec<HasherLookup>,
     ) -> Word {
         assert!(!path.is_empty(), "path is empty");
-        assert!(index >> path.len() == 0, "invalid index for the path");
+        assert!(
+            index.checked_shr(path.len() as u32).unwrap_or(0) == 0,
+            "invalid index for the path"
+        );
         let mut root = value;
         let mut depth = path.len() - 1;
 

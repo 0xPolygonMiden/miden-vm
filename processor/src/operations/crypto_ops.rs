@@ -350,7 +350,7 @@ mod tests {
         // fetch the node to be replaced
         let replaced_root = tree_a.root();
         let replaced_node = store
-            .get_node(replaced_root, NodeIndex::new(target_depth as u8, target_index))
+            .get_node(replaced_root, NodeIndex::new(target_depth as u8, target_index).unwrap())
             .unwrap();
 
         // setup the process
