@@ -595,8 +595,8 @@ fn test_instruction_display() {
     );
     assert_eq!("push.3.4.8.9", instruction);
 
-    let hash = [7; 24];
+    let hash = [7; 20];
     let proc_id = ProcedureId::from(hash);
     let instruction = format!("{}", Instruction::ExecImported(proc_id));
-    assert_eq!("exec.0x070707070707070707070707070707070707070707070707", instruction);
+    assert_eq!("exec.0x0707070707070707070707070707070707070707", instruction);
 }

@@ -1,5 +1,5 @@
 use super::{
-    crypto::hash::Blake3_192, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
+    crypto::hash::Blake3_160, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
     Deserializable, DeserializationError, LabelError, Serializable, String, ToString,
     MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
 };
@@ -192,7 +192,7 @@ pub struct ProcedureId(pub [u8; Self::SIZE]);
 
 impl ProcedureId {
     /// Truncated length of the id
-    pub const SIZE: usize = 24;
+    pub const SIZE: usize = 20;
 
     /// Creates a new procedure id from its path, composed by module path + name identifier.
     ///
@@ -202,7 +202,7 @@ impl ProcedureId {
         L: AsRef<str>,
     {
         let mut digest = [0u8; Self::SIZE];
-        let hash = Blake3_192::hash(path.as_ref().as_bytes());
+        let hash = Blake3_160::hash(path.as_ref().as_bytes());
         digest.copy_from_slice(&(*hash)[..Self::SIZE]);
         Self(digest)
     }
