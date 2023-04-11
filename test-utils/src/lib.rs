@@ -138,8 +138,9 @@ impl Test {
     /// Builds a final stack from the provided stack-ordered array and asserts that executing the
     /// test will result in the expected final stack state.
     pub fn expect_stack(&self, final_stack: &[u64]) {
-        let result = self.get_last_stack_state();
-        assert_eq!(stack_to_top_ints(final_stack), stack_to_ints(&result));
+        let result = stack_to_ints(&self.get_last_stack_state());
+        let expected = stack_top_to_ints(final_stack);
+        assert_eq!(expected, result, "Expected stack to be {:?}, found {:?}", expected, result);
     }
 
     /// Executes the test and validates that the process memory has the elements of `expected_mem`
@@ -181,7 +182,7 @@ impl Test {
         final_stack: &[u64],
     ) -> Result<(), proptest::prelude::TestCaseError> {
         let result = self.get_last_stack_state();
-        proptest::prop_assert_eq!(stack_to_top_ints(final_stack), stack_to_ints(&result));
+        proptest::prop_assert_eq!(stack_top_to_ints(final_stack), stack_to_ints(&result));
 
         Ok(())
     }
@@ -258,7 +259,7 @@ pub fn stack_to_ints(values: &[Felt]) -> Vec<u64> {
     values.iter().map(|e| (*e).as_int()).collect()
 }
 
-pub fn stack_to_top_ints(values: &[u64]) -> Vec<u64> {
+pub fn stack_top_to_ints(values: &[u64]) -> Vec<u64> {
     let mut result: Vec<u64> = values.to_vec();
     result.resize(STACK_TOP_SIZE, 0);
     result
