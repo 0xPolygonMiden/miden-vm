@@ -1,6 +1,6 @@
 use test_utils::{
     crypto::{init_merkle_leaves, MerkleError, MerkleStore, NodeIndex},
-    StarkField,
+    hash_elements, stack_to_ints, Felt, StarkField, ZERO,
 };
 
 #[test]
@@ -212,4 +212,206 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
     test.expect_stack(&stack);
 
     Ok(())
+}
+
+#[test]
+fn test_mmr_unpack() {
+    let number_of_leaves: u64 = 0b10101; // 3 peaks, 21 leaves
+
+    // The hash data is not the same as the peaks, it is padded to 16 elements
+    let hash_data: [[Felt; 4]; 16] = [
+        // 3 peaks. These hashes are invalid, we can't produce data for any of these peaks (only
+        // for testing)
+        [ZERO, ZERO, ZERO, Felt::new(1)],
+        [ZERO, ZERO, ZERO, Felt::new(2)],
+        [ZERO, ZERO, ZERO, Felt::new(3)],
+        // Padding, the MMR is padded to a minimum length o 16
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+    ];
+    let hash = hash_elements(&hash_data.concat());
+
+    // Set up the VM stack with the MMR hash, and its target address
+    let mut stack = stack_to_ints(&*hash);
+    let mmr_ptr = 1000;
+    stack.insert(0, mmr_ptr);
+
+    // both the advice stack and merkle store start empty (data is available in
+    // the map and pushed to the advice stack by the MASM code)
+    let advice_stack = &[];
+    let store = MerkleStore::new();
+
+    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
+    map_data.push(number_of_leaves.into());
+    map_data.extend_from_slice(&hash_data.as_slice().concat());
+
+    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+        // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
+        (hash.as_bytes(), map_data),
+    ];
+
+    let source = "
+        use.std::collections::mmr
+        begin exec.mmr::unpack end
+    ";
+    let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
+
+    #[rustfmt::skip]
+    let expect_memory = [
+        number_of_leaves, 0, 0, 0, // MMR leaves (only one Felt is used)
+        0, 0, 0, 1,                // first peak
+        0, 0, 0, 2,                // second peak
+        0, 0, 0, 3,                // third peak
+    ];
+    test.expect_stack(&[]);
+    test.expect_stack_and_memory(&[], mmr_ptr, &expect_memory);
+}
+
+#[test]
+fn test_mmr_unpack_invalid_hash() {
+    // The hash data is not the same as the peaks, it is padded to 16 elements
+    let mut hash_data: [[Felt; 4]; 16] = [
+        // 3 peaks. These hashes are invalid, we can't produce data for any of these peaks (only
+        // for testing)
+        [ZERO, ZERO, ZERO, Felt::new(1)],
+        [ZERO, ZERO, ZERO, Felt::new(2)],
+        [ZERO, ZERO, ZERO, Felt::new(3)],
+        // Padding, the MMR is padded to a minimum length o 16
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+        [ZERO, ZERO, ZERO, ZERO],
+    ];
+    let hash = hash_elements(&hash_data.concat());
+
+    // Set up the VM stack with the MMR hash, and its target address
+    let mut stack = stack_to_ints(&*hash);
+    let mmr_ptr = 1000;
+    stack.insert(0, mmr_ptr);
+
+    // both the advice stack and merkle store start empty (data is available in
+    // the map and pushed to the advice stack by the MASM code)
+    let advice_stack = &[];
+    let store = MerkleStore::new();
+
+    // corrupt the data, this changes the hash and the commitment check must fail
+    hash_data[0][0] = hash_data[0][0] + Felt::new(1);
+
+    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
+    map_data.push(Felt::new(0b10101)); // 3 peaks, 21 leaves
+    map_data.extend_from_slice(&hash_data.as_slice().concat());
+
+    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+        // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
+        (hash.as_bytes(), map_data),
+    ];
+
+    let source = "
+        use.std::collections::mmr
+        begin exec.mmr::unpack end
+    ";
+    let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
+
+    assert!(test.execute().is_err());
+}
+
+/// Tests the case of an MMR with more than 16 peaks
+#[test]
+fn test_mmr_unpack_large_mmr() {
+    let number_of_leaves: u64 = 0b11111111111111111; // 17 peaks
+
+    // The hash data is not the same as the peaks, it is padded to 16 elements
+    let hash_data: [[Felt; 4]; 18] = [
+        // These hashes are invalid, we can't produce data for any of these peaks (only for
+        // testing)
+        [ZERO, ZERO, ZERO, Felt::new(1)],
+        [ZERO, ZERO, ZERO, Felt::new(2)],
+        [ZERO, ZERO, ZERO, Felt::new(3)],
+        [ZERO, ZERO, ZERO, Felt::new(4)],
+        [ZERO, ZERO, ZERO, Felt::new(5)],
+        [ZERO, ZERO, ZERO, Felt::new(6)],
+        [ZERO, ZERO, ZERO, Felt::new(7)],
+        [ZERO, ZERO, ZERO, Felt::new(8)],
+        [ZERO, ZERO, ZERO, Felt::new(9)],
+        [ZERO, ZERO, ZERO, Felt::new(10)],
+        [ZERO, ZERO, ZERO, Felt::new(11)],
+        [ZERO, ZERO, ZERO, Felt::new(12)],
+        [ZERO, ZERO, ZERO, Felt::new(13)],
+        [ZERO, ZERO, ZERO, Felt::new(14)],
+        [ZERO, ZERO, ZERO, Felt::new(15)],
+        [ZERO, ZERO, ZERO, Felt::new(16)],
+        // Padding, peaks greater than 16 are padded to an even number
+        [ZERO, ZERO, ZERO, Felt::new(17)],
+        [ZERO, ZERO, ZERO, ZERO],
+    ];
+    let hash = hash_elements(&hash_data.concat());
+
+    // Set up the VM stack with the MMR hash, and its target address
+    let mut stack = stack_to_ints(&*hash);
+    let mmr_ptr = 1000;
+    stack.insert(0, mmr_ptr);
+
+    // both the advice stack and merkle store start empty (data is available in
+    // the map and pushed to the advice stack by the MASM code)
+    let advice_stack = &[];
+    let store = MerkleStore::new();
+
+    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
+    map_data.push(number_of_leaves.into());
+    map_data.extend_from_slice(&hash_data.as_slice().concat());
+
+    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+        // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
+        (hash.as_bytes(), map_data),
+    ];
+
+    let source = "
+        use.std::collections::mmr
+        begin exec.mmr::unpack end
+    ";
+    let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
+
+    #[rustfmt::skip]
+    let expect_memory = [
+        number_of_leaves, 0, 0, 0, // MMR leaves (only one Felt is used)
+        0, 0, 0, 1,                // peaks
+        0, 0, 0, 2,
+        0, 0, 0, 3,
+        0, 0, 0, 4,
+        0, 0, 0, 5,
+        0, 0, 0, 6,
+        0, 0, 0, 7,
+        0, 0, 0, 8,
+        0, 0, 0, 9,
+        0, 0, 0, 10,
+        0, 0, 0, 11,
+        0, 0, 0, 12,
+        0, 0, 0, 13,
+        0, 0, 0, 14,
+        0, 0, 0, 15,
+        0, 0, 0, 16,
+        0, 0, 0, 17,
+    ];
+    test.expect_stack(&[]);
+    test.expect_stack_and_memory(&[], mmr_ptr, &expect_memory);
 }
