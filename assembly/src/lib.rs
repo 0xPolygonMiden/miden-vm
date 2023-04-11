@@ -150,6 +150,19 @@ impl From<&AbsolutePath> for ProcedureId {
     }
 }
 
+impl TryFrom<String> for AbsolutePath {
+    type Error = LabelError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let parsed = PROCEDURE_LABEL_PARSER.parse_label(&value);
+        if parsed.is_ok() {
+            Ok(Self { path: value })
+        } else {
+            Err(parsed.unwrap_err())
+        }
+    }
+}
+
 impl Deref for AbsolutePath {
     type Target = String;
 

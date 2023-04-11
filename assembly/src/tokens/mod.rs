@@ -254,8 +254,6 @@ impl<'a> fmt::Display for Token<'a> {
 /// - Path limbs must be separated by double-colons ("::").
 /// - Each limb must start with an ASCII letter.
 /// - Each limb can contain only ASCII letters, numbers, underscores, or colons.
-///
-/// TODO: this validation should happen in AbsolutePath::try_from().
 fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, ParsingError> {
     // a path cannot be empty
     if path.is_empty() {
@@ -265,7 +263,7 @@ fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, Parsi
     // path limbs must be separated by "::"
     for limb in path.split(MODULE_PATH_DELIM) {
         // each limb must be a valid label
-        if PROCEDURE_LABEL_PARSER.parse_label(limb).is_err() {
+        if AbsolutePath::try_from(limb.to_string()).is_err() {
             return Err(ParsingError::invalid_module_path(token, path));
         }
     }
