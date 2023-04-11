@@ -155,10 +155,10 @@ impl TryFrom<String> for AbsolutePath {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let parsed = PROCEDURE_LABEL_PARSER.parse_label(&value);
-        if parsed.is_ok() {
-            Ok(Self { path: value })
+        if let Err(err) = parsed {
+            Err(err)
         } else {
-            Err(parsed.unwrap_err())
+            Ok(Self { path: value })
         }
     }
 }
