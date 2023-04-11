@@ -387,7 +387,7 @@ where
     R: TryFrom<u64> + core::str::FromStr,
 {
     let param_str = op.parts()[param_idx];
-    match CONSTANT_LABEL_PARSER.parse_label(param_str.to_string()) {
+    match CONSTANT_LABEL_PARSER.parse_label(param_str) {
         Ok(_) => {
             let constant = constants
                 .get(param_str)
@@ -425,10 +425,10 @@ pub fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
                 1 => Err(ParsingError::missing_param(token)),
                 2 => {
                     let name = CONSTANT_LABEL_PARSER
-                        .parse_label(const_declaration[0].to_string())
+                        .parse_label(const_declaration[0])
                         .map_err(|err| ParsingError::invalid_const_name(token, err))?;
                     let value = parse_const_value(token, const_declaration[1])?;
-                    Ok((name, value))
+                    Ok((name.to_string(), value))
                 }
                 _ => Err(ParsingError::extra_param(token)),
             }

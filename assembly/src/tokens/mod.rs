@@ -1,5 +1,6 @@
 use super::{
     AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
+    PROCEDURE_LABEL_PARSER,
 };
 use core::fmt;
 
@@ -264,7 +265,7 @@ fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, Parsi
     // path limbs must be separated by "::"
     for limb in path.split(MODULE_PATH_DELIM) {
         // each limb must be a valid label
-        if !is_valid_label(limb) {
+        if PROCEDURE_LABEL_PARSER.parse_label(limb).is_err() {
             return Err(ParsingError::invalid_module_path(token, path));
         }
     }
@@ -307,13 +308,15 @@ fn validate_proc_invocation_label<'a>(
     let (proc_name, module_name) = match (parts.next(), parts.next()) {
         (None, _) => return Err(ParsingError::invalid_proc_invocation(token, label)),
         (Some(proc_name), None) => {
-            if !is_valid_label(proc_name) {
+            if PROCEDURE_LABEL_PARSER.parse_label(proc_name).is_err() {
                 return Err(ParsingError::invalid_proc_invocation(token, label));
             }
             (proc_name, None)
         }
         (Some(module_name), Some(proc_name)) => {
-            if !is_valid_label(proc_name) || !is_valid_label(module_name) || parts.next().is_some()
+            if PROCEDURE_LABEL_PARSER.parse_label(proc_name).is_err()
+                || PROCEDURE_LABEL_PARSER.parse_label(module_name).is_err()
+                || parts.next().is_some()
             {
                 return Err(ParsingError::invalid_proc_invocation(token, label));
             }
@@ -322,22 +325,4 @@ fn validate_proc_invocation_label<'a>(
     };
 
     Ok((proc_name, module_name))
-}
-
-/// Returns true if the provided label is valid and false otherwise.
-///
-/// A label is considered valid if it start with a letter and consists only of letters, numbers,
-/// and underscores.
-fn is_valid_label(label: &str) -> bool {
-    // a label must start with a letter
-    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return false;
-    }
-
-    // a label can contain only letters, numbers, or underscores
-    if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return false;
-    }
-
-    true
 }

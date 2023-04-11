@@ -1,4 +1,4 @@
-use super::{LabelError, String, MAX_LABEL_LEN};
+use super::{LabelError, MAX_LABEL_LEN};
 
 // LABEL PARSERS
 // ================================================================================================
@@ -35,7 +35,7 @@ impl LabelParser {
     /// This is used for procedures and constants.
     ///
     /// Returns an error if label violates the rules.
-    pub fn parse_label(&self, label: String) -> Result<String, LabelError> {
+    pub fn parse_label<'a>(&'a self, label: &'a str) -> Result<&str, LabelError> {
         if label.is_empty() {
             // label cannot be empty
             return Err(LabelError::empty_label());

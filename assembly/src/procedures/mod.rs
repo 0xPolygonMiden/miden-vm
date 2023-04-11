@@ -140,7 +140,7 @@ impl TryFrom<String> for ProcedureName {
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: PROCEDURE_LABEL_PARSER.parse_label(name)?,
+            name: (PROCEDURE_LABEL_PARSER.parse_label(&name)?).to_string(),
         })
     }
 }
@@ -162,7 +162,7 @@ impl AsRef<str> for ProcedureName {
 impl Serializable for ProcedureName {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         debug_assert!(
-            PROCEDURE_LABEL_PARSER.parse_label(self.name.clone()).is_ok(),
+            PROCEDURE_LABEL_PARSER.parse_label(&self.name).is_ok(),
             "The constructor should ensure the length is within limits"
         );
 
