@@ -9,6 +9,7 @@ use super::{
 /// An in-memory `[AdviceProvider]` implementation to support program execution.
 ///
 /// Uses `[BTreeMap]` as backend.
+#[cfg(not(any(test, feature = "internals")))]
 #[derive(Debug, Clone, Default)]
 pub struct MemAdviceProvider {
     step: u32,
@@ -173,4 +174,16 @@ impl MemAdviceProvider {
     pub fn has_merkle_root(&self, root: Word) -> bool {
         self.store.get_node(root, NodeIndex::root()).is_ok()
     }
+}
+
+// INTERNALS
+// ================================================================================================
+
+#[cfg(any(test, feature = "internals"))]
+#[derive(Debug, Clone, Default)]
+pub struct MemAdviceProvider {
+    pub step: u32,
+    pub stack: Vec<Felt>,
+    pub map: BTreeMap<[u8; 32], Vec<Felt>>,
+    pub store: MerkleStore,
 }

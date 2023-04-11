@@ -1,4 +1,5 @@
 use.std::mem
+use.std::crypto::hashes::native
 
 #! Computes the `ilog2(number)` and `2^(ilog2(number))`.
 #!
@@ -107,6 +108,33 @@ export.get
   end
 end
 
+#! Given the num_leaves of a MMR returns the num_peaks.
+#!
+#! Input: [num_leaves, ...]
+#! Output: [num_peaks, ...]
+#! Cycles: 69
+export.num_leaves_to_num_peaks
+  # count number of peaks (69 cycles)
+  u32split u32unchecked_popcnt swap u32unchecked_popcnt add
+  # => [count, ...]
+end
+
+#! Given the num_peaks of a MMR, returns the hasher state size after accounting
+#! for the required padding.
+#!
+#! Input: [num_peaks, ...]
+#! Output: [len, ...]
+#! Cycles: 17
+export.num_peaks_to_message_size
+  # the peaks are padded to a minimum length of 16 (10 cycles)
+  push.16 u32unchecked_max
+  # => [count_min, ...]
+
+  # when the number of peaks is greater than 16, then they are padded to an even number (7 cycles)
+  dup is_odd add
+  # => [even_count_min, ...]
+end
+
 #! Load the MMR peak data based on its hash.
 #!
 #! Input: [HASH, mmr_ptr, ...]
@@ -116,39 +144,32 @@ end
 #!  - HASH: is the MMR peak hash, the hash is expected to be padded to an even
 #!    length and to have a minimum size of 16 elements
 #!  - The advice map must contain a key with HASH, and its value is
-#!    `number_of_leaves || hash_data`, and hash_data is the data used to computed `HASH`
+#!    `num_leaves || hash_data`, and hash_data is the data used to computed `HASH`
 #!  - mmt_ptr: the memory location where the MMR data will be written to,
 #!    starting with the MMR forest (its total leaves count) followed by its peaks
 #!
-#! Cycles: 156 + 9 * extra_peak_pair cycles
+#! Cycles: 162 + 9 * extra_peak_pair cycles
 #!    where `extra_peak` is the number of peak pairs in addition to the first
 #!    16, i.e. `round_up((num_of_peaks - 16) / 2)`
 export.unpack
-  # load the number_of_leaves and peaks to the advice_stack (0 cycles)
+  # load the num_leaves and peaks to the advice_stack (0 cycles)
   adv.keyval
   # operand_stack => [HASH, mmr_ptr, ...]
-  # advice_stack => [number_of_leaves, peaks*, ...]
+  # advice_stack => [NUM_LEAVES, peaks*, ...]
 
-  # load the size from the advice stack (1 cycles)
-  adv_push.1
-  # operand_stack => [forest, HASH, mmr_ptr, ...]
+  # load the size from the advice stack (7 cycles)
+  adv_push.4 drop drop drop
+  # operand_stack => [num_leaves, HASH, mmr_ptr, ...]
   # advice_stack => [peaks*, ...]
 
   # save the forest to memory (4 cycles)
   dup dup.6 mem_store
-  # => [forest, HASH, mmr_ptr, ...]
+  # => [num_leaves, HASH, mmr_ptr, ...]
 
-  # count number of peaks (69 cycles)
-  u32split u32unchecked_popcnt swap u32unchecked_popcnt add
-  # => [count, HASH, mmr_ptr, ...]
-
-  # the peaks are padded to a minimum length of 16 (10 cycles)
-  push.16 u32unchecked_max
-  # => [count_min, HASH, mmr_ptr, ...]
-
-  # when the number of peaks is greater than 16, then they are padded to an even number (7 cycles)
-  dup is_odd add
-  # => [even_count_min, HASH, mmr_ptr, ...]
+  # find the hasher state size, this is how many words will be read from the advice_stack
+  exec.num_leaves_to_num_peaks
+  exec.num_peaks_to_message_size
+  # => [state_size, HASH, mmr_ptr, ...]
 
   # compute the end address including the padding data and forest (3 cycles)
   dup.5 add add.1
@@ -174,4 +195,44 @@ export.unpack
 
   # assert on the resulting hash (11 cycles)
   assert_eqw
+end
+
+#! Computes the hash of the given MMR and copies it to the Advice Map using its hash as a key.
+#!
+#! Input: [mmr_ptr, ...]
+#! Output: [HASH, ...]
+#! Cycles: 128 + 3 * num_peaks
+export.pack
+  # load num_leaves (2 cycles)
+  dup mem_load
+  # => [num_leaves, mmr_ptr, ...]
+
+  # compute num_peaks (69 cycles)
+  exec.num_leaves_to_num_peaks
+  # => [num_peaks, mmr_ptr, ...]
+
+  # compute the message size (18 cycles)
+  exec.num_peaks_to_message_size
+  # => [message_size, mmr_ptr, ...]
+
+  # compute peaks_start and peaks_end (6 cycles)
+  dup.1 add.1 swap dup.1 add swap
+  # => [peaks_start, peaks_end, mmr_ptr, ...]
+
+  # hash the memory contents (25 + 3 * num_peaks)
+  padw padw padw
+  exec.native::hash_memory_even
+  exec.native::state_to_digest
+  # => [HASH, peaks_end, peaks_end, mmr_ptr, ...]
+
+  # prepare stack for adv.mem (4 cycles)
+  movup.4 drop movup.4 movdn.5
+  # => [HASH, mmr_ptr, peaks_end, ...]
+
+  # copy the data to advice map
+  adv.mem
+
+  # drop the extra addresses (4 cycles)
+  movup.4 drop movup.4 drop
+  # => [HASH, ...]
 end

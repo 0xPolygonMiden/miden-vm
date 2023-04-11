@@ -1,3 +1,20 @@
+#! Given the hasher state, returns the hash output
+#!
+#! Input: [C, B, A, ...]
+#! Ouptut: [HASH, ...]
+#! Where: For the native RPO hasher HASH is B.
+#! Cycles: 9
+export.state_to_digest
+  # drop the first rate word (4 cycles)
+  dropw
+
+  # save the hash result (1 cycles)
+  swapw
+
+  # drop the capacity word (4 cycles)
+  dropw
+end
+
 #! Hashes the memory `start_addr` to `end_addr`.
 #!
 #! This requires that `end_addr=start_addr + 2n + 1`, otherwise the procedure will enter an infinite
@@ -9,7 +26,7 @@
 #! Cycles: 4 + 3 * words, where `words` is the `start_addr - end_addr - 1`
 #!
 #! Where `A` is the capacity word that will be used by the hashing function, and `B'` the hash output.
-proc.hash_even_memory_addresses
+export.hash_memory_even
   dup.13 dup.13 neq  # (4 cycles )
   while.true
     mem_stream # (2 cycles)
@@ -48,14 +65,14 @@ export.hash_memory
   # stack: [C, B, A, start_addr, end_addr, is_odd, ...]
 
   # (4 + 3 * words cycles)
-  exec.hash_even_memory_addresses
+  exec.hash_memory_even
 
   # (1 cycles)
   movup.14
 
   # handle the odd element, if any (12 cycles)
   if.true
-    # start_addr and end_addr are equal after calling `hash_even_memory_addresses`, and both point
+    # start_addr and end_addr are equal after calling `hash_memory_even`, and both point
     # to the last element. Load the last word (2 cycles)
     dup.13 mem_loadw
 
@@ -66,14 +83,7 @@ export.hash_memory
     hperm
   end
 
-  # drop the first rate word (4 cycles)
-  dropw
-
-  # save the hash result (1 cycles)
-  swapw
-
-  # drop the capacity word (4 cycles)
-  dropw
+  exec.state_to_digest
 
   # drop start_addr/end_addr (4 cycles)
   movup.4 drop movup.4 drop

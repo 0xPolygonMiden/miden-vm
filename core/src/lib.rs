@@ -15,7 +15,7 @@ pub mod crypto {
     pub mod merkle {
         pub use ::crypto::merkle::{
             EmptySubtreeRoots, MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree,
-            NodeIndex, SimpleSmt,
+            Mmr, MmrPeaks, NodeIndex, SimpleSmt,
         };
     }
 

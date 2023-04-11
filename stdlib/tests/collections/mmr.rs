@@ -1,6 +1,8 @@
 use test_utils::{
-    crypto::{init_merkle_leaves, MerkleError, MerkleStore, NodeIndex},
-    hash_elements, stack_to_ints, Felt, StarkField, ZERO,
+    crypto::{
+        init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, Mmr, NodeIndex, RpoDigest,
+    },
+    hash_elements, stack_to_ints, Felt, StarkField, WORD_SIZE, ZERO,
 };
 
 #[test]
@@ -64,6 +66,56 @@ fn test_ilog2() {
 
     let test = build_test!(one, &[]);
     test.expect_stack(&[0, 1 << 0]);
+}
+
+#[test]
+fn test_num_leaves_to_num_peaks() {
+    let hash_size = "
+    use.std::collections::mmr
+
+    begin
+      exec.mmr::num_leaves_to_num_peaks
+    end
+    ";
+
+    build_test!(hash_size, &[0b0000]).expect_stack(&[0]);
+    build_test!(hash_size, &[0b0001]).expect_stack(&[1]);
+    build_test!(hash_size, &[0b0011]).expect_stack(&[2]);
+    build_test!(hash_size, &[0b0011]).expect_stack(&[2]);
+    build_test!(hash_size, &[0b1100]).expect_stack(&[2]);
+    build_test!(hash_size, &[0b1000_0000_0000_0000]).expect_stack(&[1]);
+    build_test!(hash_size, &[0b1010_1100_0011_1001]).expect_stack(&[8]);
+    build_test!(hash_size, &[0b1111_1111_1111_1111]).expect_stack(&[16]);
+    build_test!(hash_size, &[0b1111_1111_1111_1111_0000]).expect_stack(&[16]);
+    build_test!(hash_size, &[0b0001_1111_1111_1111_1111]).expect_stack(&[17]);
+}
+
+#[test]
+fn test_num_peaks_to_message_size() {
+    let hash_size = "
+    use.std::collections::mmr
+
+    begin
+      exec.mmr::num_peaks_to_message_size
+    end
+    ";
+
+    // minimum size is 16
+    build_test!(hash_size, &[1]).expect_stack(&[16]);
+    build_test!(hash_size, &[2]).expect_stack(&[16]);
+    build_test!(hash_size, &[3]).expect_stack(&[16]);
+    build_test!(hash_size, &[4]).expect_stack(&[16]);
+    build_test!(hash_size, &[7]).expect_stack(&[16]);
+    build_test!(hash_size, &[11]).expect_stack(&[16]);
+    build_test!(hash_size, &[16]).expect_stack(&[16]);
+
+    // after that, size is round to the next even number
+    build_test!(hash_size, &[17]).expect_stack(&[18]);
+    build_test!(hash_size, &[18]).expect_stack(&[18]);
+    build_test!(hash_size, &[19]).expect_stack(&[20]);
+    build_test!(hash_size, &[20]).expect_stack(&[20]);
+    build_test!(hash_size, &[21]).expect_stack(&[22]);
+    build_test!(hash_size, &[22]).expect_stack(&[22]);
 }
 
 #[test]
@@ -253,7 +305,7 @@ fn test_mmr_unpack() {
     let store = MerkleStore::new();
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.push(number_of_leaves.into());
+    map_data.extend_from_slice(&[number_of_leaves.into(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
@@ -318,7 +370,7 @@ fn test_mmr_unpack_invalid_hash() {
     hash_data[0][0] = hash_data[0][0] + Felt::new(1);
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.push(Felt::new(0b10101)); // 3 peaks, 21 leaves
+    map_data.extend_from_slice(&[Felt::new(0b10101), ZERO, ZERO, ZERO]); // 3 peaks, 21 leaves
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
@@ -377,7 +429,7 @@ fn test_mmr_unpack_large_mmr() {
     let store = MerkleStore::new();
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.push(number_of_leaves.into());
+    map_data.extend_from_slice(&[number_of_leaves.into(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
@@ -414,4 +466,100 @@ fn test_mmr_unpack_large_mmr() {
     ];
     test.expect_stack(&[]);
     test.expect_stack_and_memory(&[], mmr_ptr, &expect_memory);
+}
+
+#[test]
+fn test_mmr_pack_roundtrip() {
+    let mut mmr = Mmr::new();
+    mmr.add(init_merkle_leaf(1));
+    mmr.add(init_merkle_leaf(2));
+    mmr.add(init_merkle_leaf(3));
+
+    let accumulator = mmr.accumulator();
+    let hash = accumulator.hash_peaks();
+
+    // Set up the VM stack with the MMR hash, and its target address
+    let mut stack = stack_to_ints(&hash);
+    let mmr_ptr = 1000;
+    stack.insert(0, mmr_ptr); // first value is used by unpack, to load data to memory
+    stack.insert(0, mmr_ptr); // second is used by pack, to load data from memory
+
+    // both the advice stack and merkle store start empty (data is available in
+    // the map and pushed to the advice stack by the MASM code)
+    let advice_stack = &[];
+    let store = MerkleStore::new();
+
+    let mut hash_data = accumulator.peaks.clone();
+    hash_data.resize(16, [ZERO; WORD_SIZE]);
+    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
+    map_data.extend_from_slice(&[
+        Felt::new(accumulator.num_leaves.try_into().unwrap()),
+        ZERO,
+        ZERO,
+        ZERO,
+    ]);
+    map_data.extend_from_slice(&hash_data.as_slice().concat());
+
+    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+        // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
+        (RpoDigest::new(hash).as_bytes(), map_data),
+    ];
+
+    let source = "
+        use.std::collections::mmr
+        begin
+            exec.mmr::unpack
+            exec.mmr::pack
+        end
+    ";
+    let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
+    let expected_stack: Vec<u64> = hash.iter().rev().map(|e| e.as_int()).collect();
+
+    let mut expect_memory: Vec<u64> = Vec::new();
+
+    // first the number of leaves
+    expect_memory.extend_from_slice(&[accumulator.num_leaves as u64, 0, 0, 0]);
+    // followed by the peaks
+    expect_memory.extend(accumulator.peaks.iter().flatten().map(|v| v.as_int()));
+    // followed by padding data
+    let size = 4 + 16 * 4;
+    expect_memory.resize(size, 0);
+
+    test.expect_stack_and_memory(&expected_stack, 1000, &expect_memory);
+}
+
+#[test]
+fn test_mmr_pack() {
+    let source = "
+        use.std::collections::mmr
+
+        begin
+            push.3.1000 mem_store  # num_leaves, 2 peaks
+            push.1.1001 mem_store  # peak1
+            push.2.1002 mem_store  # peak2
+
+            push.1000 exec.mmr::pack
+        end
+    ";
+
+    let mut hash_data: Vec<Felt> = Vec::new();
+
+    #[rustfmt::skip]
+    hash_data.extend_from_slice( &[
+        Felt::new(1), ZERO, ZERO, ZERO, // peak1
+        Felt::new(2), ZERO, ZERO, ZERO, // peak2
+    ]);
+    hash_data.resize(16 * 4, ZERO); // padding data
+
+    let hash = hash_elements(&hash_data);
+    let hash_u8 = hash.as_bytes();
+
+    let mut expect_data: Vec<Felt> = Vec::new();
+    expect_data.extend_from_slice(&[Felt::new(3), ZERO, ZERO, ZERO]); // num_leaves
+    expect_data.extend_from_slice(&hash_data);
+
+    let process = build_test!(source).execute_process().unwrap();
+
+    let advice_data = process.advice_provider.map.get(&hash_u8).unwrap();
+    assert_eq!(stack_to_ints(advice_data), stack_to_ints(&expect_data));
 }
