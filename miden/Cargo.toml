@@ -39,7 +39,7 @@ path = "tests/integration/main.rs"
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["env_logger", "hex/std", "processor/internals", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
+executable = ["env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]

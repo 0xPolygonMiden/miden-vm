@@ -168,6 +168,10 @@ impl VmStateIterator {
 
         result
     }
+
+    pub fn into_parts(self) -> (System, Decoder, Stack, Chiplets) {
+        (self.system, self.decoder, self.stack, self.chiplets)
+    }
 }
 
 impl Iterator for VmStateIterator {
