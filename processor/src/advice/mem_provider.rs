@@ -78,10 +78,8 @@ impl AdviceProvider for MemAdviceProvider {
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
-        match self.map.insert(key.into_bytes(), values) {
-            None => Ok(()),
-            Some(_) => Err(ExecutionError::DuplicateAdviceKey(key)),
-        }
+        self.map.insert(key.into_bytes(), values);
+        Ok(())
     }
 
     // ADVISE SETS

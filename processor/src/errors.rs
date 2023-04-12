@@ -25,7 +25,6 @@ pub enum ExecutionError {
     CodeBlockNotFound(Digest),
     CallerNotInSyscall,
     DivideByZero(u32),
-    DuplicateAdviceKey(Word),
     FailedAssertion(u32),
     UninitializedMemoryAddress(u64),
     InvalidFmpValue(Felt, Felt),
@@ -80,10 +79,6 @@ impl Display for ExecutionError {
                 )
             }
             DivideByZero(clk) => write!(fmt, "Division by zero at clock cycle {clk}"),
-            DuplicateAdviceKey(key) => {
-                let hex = to_hex(Felt::elements_as_bytes(key))?;
-                write!(fmt, "Insertion into advice map failed because {hex} already exists")
-            }
             FailedAssertion(clk) => write!(fmt, "Assertion failed at clock cycle {clk}"),
             UninitializedMemoryAddress(address) => {
                 write!(fmt, "Ext2INTT referenced unintialized memory at address {address}")

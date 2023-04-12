@@ -21,16 +21,8 @@ pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, Asse
 // ADVICE INJECTORS
 // ================================================================================================
 
-/// Appends adv.mem.a.n advice injector to the span. This operation copies n number of words from
+/// Appends adv.mem advice injector to the span. This operation copies n number of words from
 /// memory the starting at address a into the advice provider's key-value map.
-///
-/// # Errors
-/// Returns an error is start_addr + num_words > u32::MAX.
-pub fn adv_mem(
-    span: &mut SpanBuilder,
-    start_addr: u32,
-    num_words: u32,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    validate_param(num_words, 0..=(u32::MAX - start_addr))?;
-    span.add_decorator(Decorator::Advice(AdviceInjector::Memory(start_addr, num_words)))
+pub fn adv_mem(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.add_decorator(Decorator::Advice(AdviceInjector::Memory))
 }

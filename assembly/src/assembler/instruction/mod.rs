@@ -287,7 +287,7 @@ impl Assembler {
 
             Instruction::AdvU64Div => span.add_decorator(Decorator::Advice(DivResultU64)),
             Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
-            Instruction::AdvMem(a, n) => adv_ops::adv_mem(span, *a, *n),
+            Instruction::AdvMem => adv_ops::adv_mem(span),
             Instruction::AdvExt2Inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
             Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
 

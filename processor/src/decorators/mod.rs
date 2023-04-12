@@ -42,9 +42,7 @@ where
             AdviceInjector::MerkleMerge => self.inject_merkle_merge(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
             AdviceInjector::MapValue => self.inject_map_value(),
-            AdviceInjector::Memory(start_addr, num_words) => {
-                self.inject_mem_values(*start_addr, *num_words)
-            }
+            AdviceInjector::Memory => self.inject_mem_values(),
             AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
             AdviceInjector::Ext2INTT => self.inject_ext2_intt_result(),
         }
@@ -165,14 +163,15 @@ where
     ///
     /// # Errors
     /// Returns an error if the key is already present in the advice map.
-    fn inject_mem_values(&mut self, start_addr: u32, num_words: u32) -> Result<(), ExecutionError> {
+    fn inject_mem_values(&mut self) -> Result<(), ExecutionError> {
+        let start_addr = self.stack.get(4).as_int();
+        let end_addr = self.stack.get(5).as_int();
+        let len = end_addr - start_addr;
         let ctx = self.system.ctx();
-        let mut values = Vec::with_capacity(num_words as usize * WORD_SIZE);
-        for i in 0..num_words {
-            let mem_value = self
-                .chiplets
-                .get_mem_value(ctx, (start_addr + i) as u64)
-                .unwrap_or([ZERO; WORD_SIZE]);
+        let mut values = Vec::with_capacity((len as usize) * WORD_SIZE);
+        for i in 0u64..len {
+            let mem_value =
+                self.chiplets.get_mem_value(ctx, start_addr + i).unwrap_or([ZERO; WORD_SIZE]);
             values.extend_from_slice(&mem_value);
         }
         let top_word = self.stack.get_top_word();

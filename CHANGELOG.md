@@ -4,6 +4,7 @@
 
 #### Assembly
 - Added new instruction: `mtree_verify`.
+- [BREAKING] Refactored `adv.mem` decorator to use parameters from operand stack instead of immediate values.
 
 ## 0.5.0 (2023-03-29)
 
