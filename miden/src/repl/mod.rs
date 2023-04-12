@@ -270,7 +270,10 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     let advice_provider = MemAdviceProvider::default();
 
     let state_iter = processor::execute_iter(&program, stack_inputs, advice_provider);
-    let (system, _, stack, chiplets) = state_iter.into_parts();
+    let (system, _, stack, chiplets, err) = state_iter.into_parts();
+    if let Some(err) = err {
+        return Err(ProgramError::ExecutionError(err));
+    }
 
     // loads the memory at the latest clock cycle.
     let mem_state = chiplets.get_mem_state_at(0, system.clk());
