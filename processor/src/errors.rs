@@ -17,7 +17,15 @@ use std::error::Error;
 pub enum ExecutionError {
     AdviceKeyNotFound(Word),
     AdviceStackReadFailed(u32),
-    InvalidNodeIndex { depth: Felt, value: Felt },
+    AdviceNodeNotFound {
+        root: Word,
+        depth: Felt,
+        value: Felt,
+    },
+    InvalidNodeIndex {
+        depth: Felt,
+        value: Felt,
+    },
     MerkleUpdateInPlace,
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
@@ -50,6 +58,13 @@ impl Display for ExecutionError {
             AdviceKeyNotFound(key) => {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
                 write!(fmt, "Can't push values onto the advice stack: value for key {hex} not present in the advice map.")
+            }
+            AdviceNodeNotFound { root, depth, value } => {
+                let hex = to_hex(&Digest::from(*root).as_bytes())?;
+                write!(
+                    fmt,
+                    "An advice node was not found for root {hex}, depth {depth}, and index {value}"
+                )
             }
             InvalidNodeIndex { depth, value } => write!(
                 fmt,

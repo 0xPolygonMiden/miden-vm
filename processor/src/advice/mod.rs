@@ -1,6 +1,6 @@
 use super::{ExecutionError, Felt, InputError, Word};
 use vm_core::{
-    crypto::merkle::{MerklePath, MerkleStore, NodeIndex},
+    crypto::merkle::{MerkleError, MerklePath, MerkleStore, NodeIndex},
     utils::{
         collections::{BTreeMap, Vec},
         IntoBytes,
@@ -105,8 +105,12 @@ pub trait AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
-        -> Result<Word, ExecutionError>;
+    fn get_tree_node(
+        &self,
+        root: Word,
+        depth: &Felt,
+        index: &Felt,
+    ) -> Result<Option<Word>, ExecutionError>;
 
     /// Returns a path to a node at the specified depth and index in a Merkle tree with the
     /// specified root.
@@ -122,7 +126,7 @@ pub trait AdviceProvider {
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<MerklePath, ExecutionError>;
+    ) -> Result<Option<MerklePath>, ExecutionError>;
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root.
@@ -198,7 +202,7 @@ where
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<Word, ExecutionError> {
+    ) -> Result<Option<Word>, ExecutionError> {
         T::get_tree_node(self, root, depth, index)
     }
 
@@ -207,7 +211,7 @@ where
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<MerklePath, ExecutionError> {
+    ) -> Result<Option<MerklePath>, ExecutionError> {
         T::get_merkle_path(self, root, depth, index)
     }
 

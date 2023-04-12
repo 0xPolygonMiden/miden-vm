@@ -1,6 +1,6 @@
 use super::{
     AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
-    MerklePath, MerkleStore, NodeIndex, Vec, Word,
+    MerkleError, MerklePath, MerkleStore, NodeIndex, Vec, Word,
 };
 
 // MEMORY ADVICE PROVIDER
@@ -92,16 +92,18 @@ impl AdviceProvider for MemAdviceProvider {
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<Word, ExecutionError> {
+    ) -> Result<Option<Word>, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
             ExecutionError::InvalidNodeIndex {
                 depth: *depth,
                 value: *index,
             }
         })?;
-        self.store
-            .get_node(root, index)
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+        match self.store.get_node(root, index) {
+            Ok(node) => Ok(Some(node)),
+            Err(MerkleError::NodeNotInStore(_, _)) => Ok(None),
+            Err(e) => Err(ExecutionError::MerkleStoreLookupFailed(e)),
+        }
     }
 
     fn get_merkle_path(
@@ -109,17 +111,18 @@ impl AdviceProvider for MemAdviceProvider {
         root: Word,
         depth: &Felt,
         index: &Felt,
-    ) -> Result<MerklePath, ExecutionError> {
+    ) -> Result<Option<MerklePath>, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
             ExecutionError::InvalidNodeIndex {
                 depth: *depth,
                 value: *index,
             }
         })?;
-        self.store
-            .get_path(root, index)
-            .map(|value| value.path)
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+        match self.store.get_path(root, index) {
+            Ok(value) => Ok(Some(value.path)),
+            Err(MerkleError::NodeNotInStore(_, _)) => Ok(None),
+            Err(e) => Err(ExecutionError::MerkleStoreLookupFailed(e)),
+        }
     }
 
     fn update_merkle_node(

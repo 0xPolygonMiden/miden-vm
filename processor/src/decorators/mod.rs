@@ -72,7 +72,13 @@ where
         let root = [self.stack.get(5), self.stack.get(4), self.stack.get(3), self.stack.get(2)];
 
         // look up the node in the advice provider
-        let node = self.advice_provider.get_tree_node(root, &depth, &index)?;
+        let node = self.advice_provider.get_tree_node(root, &depth, &index)?.ok_or(
+            ExecutionError::AdviceNodeNotFound {
+                root,
+                depth,
+                value: index,
+            },
+        )?;
 
         // push the node onto the advice stack with the first element pushed last so that it can
         // be popped first (i.e. stack behavior for word)
