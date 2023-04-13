@@ -174,6 +174,21 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, A
     hmerge(span)
 }
 
+/// Verifies if the node value `V`, on depth `d` and index `i` opens to the root `R` of a Merkle
+/// tree by appending a [Operation::MpVerify]. The stack is expected to be arranged as follows
+/// (from the top):
+/// - node value `V`, 4 elements
+/// - depth of the node `d`, 1 element
+/// - index of the node `i`, 1 element
+/// - root of the tree `R`, 4 elements
+///
+/// After the operation is executed, the stack remains unchanged.
+///
+/// This operation takes 1 VM cycle.
+pub(super) fn mtree_verify(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.add_op(MpVerify)
+}
+
 // MERKLE TREES - HELPERS
 // ================================================================================================
 

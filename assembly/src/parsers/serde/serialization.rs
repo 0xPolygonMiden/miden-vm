@@ -454,6 +454,7 @@ impl Serializable for Instruction {
             Self::MTreeGet => OpCode::MTreeGet.write_into(target),
             Self::MTreeSet => OpCode::MTreeSet.write_into(target),
             Self::MTreeMerge => OpCode::MTreeMerge.write_into(target),
+            Self::MTreeVerify => OpCode::MTreeVerify.write_into(target),
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),
 
             // ----- exec / call ------------------------------------------------------------------
