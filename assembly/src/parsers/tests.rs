@@ -184,11 +184,11 @@ fn test_ast_parsing_adv_ops() {
 
 #[test]
 fn test_ast_parsing_adv_injection() {
-    let source = "begin adv.u64div adv.keyval adv.mem.1.1 end";
+    let source = "begin adv.u64div adv.keyval adv.mem end";
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::AdvU64Div),
         Node::Instruction(Instruction::AdvKeyval),
-        Node::Instruction(Instruction::AdvMem(1, 1)),
+        Node::Instruction(Instruction::AdvMem),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);

@@ -133,7 +133,8 @@ fn advice_inject_mem() {
     # copy from memory to advice map
     # the key used is in the reverse order of the field elements in the word at the top of the
     # stack.
-    adv.mem.2.2
+    push.2.4 movdn.4 movdn.4
+    adv.mem
     # State Transition:
     # advice_map: k: [8, 7, 6, 5], v: [4, 3, 2, 1, 8, 7, 6, 5]
 

@@ -258,7 +258,7 @@ pub enum Instruction {
 
     AdvU64Div,
     AdvKeyval,
-    AdvMem(u32, u32),
+    AdvMem,
     AdvExt2Inv,
     AdvExt2INTT,
 
@@ -534,7 +534,7 @@ impl fmt::Display for Instruction {
 
             Self::AdvU64Div => write!(f, "adv.u64div"),
             Self::AdvKeyval => write!(f, "adv.keyval"),
-            Self::AdvMem(start_addr, num_words) => write!(f, "adv.mem.{start_addr}.{num_words}"),
+            Self::AdvMem => write!(f, "adv.mem"),
             Self::AdvExt2Inv => write!(f, "adv.ext2inv"),
             Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
 

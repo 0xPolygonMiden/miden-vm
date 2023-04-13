@@ -326,11 +326,7 @@ impl Deserializable for Instruction {
 
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
             OpCode::AdvKeyval => Ok(Instruction::AdvKeyval),
-            OpCode::AdvMem => {
-                let start_addr = source.read_u32()?;
-                let num_words = source.read_u32()?;
-                Ok(Instruction::AdvMem(start_addr, num_words))
-            }
+            OpCode::AdvMem => Ok(Instruction::AdvMem),
             OpCode::AdvPush => Ok(Instruction::AdvPush(source.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
             OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),

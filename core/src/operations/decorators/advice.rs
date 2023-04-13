@@ -36,12 +36,11 @@ pub enum AdviceInjector {
     /// stack as key.
     MapValue,
 
-    /// Inserts a list of words that are read from VM memory into the advice map under the key
-    /// specified by the word at the top of the operand stack.
+    /// Reads words from memory range `start_addr .. start_addr + num_words` and insert into the
+    /// advice map under the key `WORD`.
     ///
-    /// The first internal u32 specifies the starting address of the memory region, and the second
-    /// specifies the number of words to be read.
-    Memory(u32, u32),
+    /// Expects the operand stack to be [WORD, start_addr, num_words, ...].
+    Memory,
 
     /// Given an element of quadratic extension field, it computes multiplicative inverse and
     /// push the result into the advice stack.
@@ -60,7 +59,7 @@ impl fmt::Display for AdviceInjector {
             Self::MerkleMerge => write!(f, "merkle_merge"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
             Self::MapValue => write!(f, "map_value"),
-            Self::Memory(start_addr, num_words) => write!(f, "mem({start_addr}, {num_words})"),
+            Self::Memory => write!(f, "mem"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2INTT => write!(f, "ext2_intt"),
         }

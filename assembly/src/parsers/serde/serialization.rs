@@ -434,11 +434,7 @@ impl Serializable for Instruction {
 
             Self::AdvU64Div => OpCode::AdvU64Div.write_into(target),
             Self::AdvKeyval => OpCode::AdvKeyval.write_into(target),
-            Self::AdvMem(start_addr, num_words) => {
-                OpCode::AdvMem.write_into(target);
-                target.write_u32(*start_addr);
-                target.write_u32(*num_words);
-            }
+            Self::AdvMem => OpCode::AdvMem.write_into(target),
             Self::AdvPush(v) => {
                 OpCode::AdvPush.write_into(target);
                 target.write_u8(*v);

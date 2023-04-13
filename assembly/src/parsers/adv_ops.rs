@@ -1,5 +1,4 @@
 use super::{
-    parse_checked_param, parse_param,
     Instruction::*,
     Node::{self, Instruction},
     ParsingError, Token,
@@ -13,7 +12,6 @@ use super::{
 /// # Errors
 /// Returns an error if:
 /// - Any of the instructions have a wrong number of parameters.
-/// - adv.mem.a.n has a + n > u32::MAX.
 pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv");
     if op.num_parts() < 2 {
@@ -33,16 +31,12 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             }
             Ok(Instruction(AdvKeyval))
         }
-        "mem" => match op.num_parts() {
-            0 | 1 => unreachable!(),
-            2 | 3 => Err(ParsingError::missing_param(op)),
-            4 => {
-                let start_addr = parse_param(op, 2)?;
-                let num_words = parse_checked_param(op, 3, 1..=(u32::MAX - start_addr))?;
-                Ok(Instruction(AdvMem(start_addr, num_words)))
+        "mem" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
             }
-            _ => Err(ParsingError::extra_param(op)),
-        },
+            Ok(Instruction(AdvMem))
+        }
         "ext2inv" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
