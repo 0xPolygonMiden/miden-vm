@@ -134,6 +134,84 @@ fn mtree_get() {
 }
 
 #[test]
+fn mtree_verify() {
+    let asm_op = "mtree_verify";
+
+    let index = 3_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        index as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let final_stack = [
+        leaves[index][3].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][0].as_int(),
+        tree.depth() as u64,
+        index as u64,
+        tree.root()[3].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[0].as_int(),
+    ];
+
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
+#[should_panic]
+fn mtree_verify_negative() {
+    let asm_op = "mtree_verify";
+
+    let index = 3_usize;
+    let tampered_index = 2_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        tampered_index as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let final_stack = [
+        leaves[index][3].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][0].as_int(),
+        tree.depth() as u64,
+        index as u64,
+        tree.root()[3].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[0].as_int(),
+    ];
+
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
 fn mtree_update() {
     let index = 5usize;
     let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);

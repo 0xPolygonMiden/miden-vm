@@ -343,6 +343,7 @@ impl Deserializable for Instruction {
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
             OpCode::MTreeMerge => Ok(Instruction::MTreeMerge),
+            OpCode::MTreeVerify => Ok(Instruction::MTreeVerify),
             OpCode::FriExt2Fold4 => Ok(Instruction::FriExt2Fold4),
 
             // ----- exec / call ------------------------------------------------------------------

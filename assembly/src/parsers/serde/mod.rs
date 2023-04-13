@@ -265,14 +265,15 @@ pub enum OpCode {
     MTreeGet = 233,
     MTreeSet = 234,
     MTreeMerge = 235,
-    FriExt2Fold4 = 236,
+    MTreeVerify = 236,
+    FriExt2Fold4 = 237,
 
     // ----- exec / call --------------------------------------------------------------------------
-    ExecLocal = 237,
-    ExecImported = 238,
-    CallLocal = 239,
-    CallImported = 240,
-    SysCall = 241,
+    ExecLocal = 238,
+    ExecImported = 239,
+    CallLocal = 240,
+    CallImported = 241,
+    SysCall = 242,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,

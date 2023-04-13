@@ -2,6 +2,9 @@
 
 ## 0.6.0 (TBD)
 
+#### Assembly
+- Added new instruction: `mtree_verify`.
+
 ## 0.5.0 (2023-03-29)
 
 #### CLI

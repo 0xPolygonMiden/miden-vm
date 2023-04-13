@@ -298,6 +298,7 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeMerge => crypto_ops::mtree_merge(span),
+            Instruction::MTreeVerify => crypto_ops::mtree_verify(span),
             Instruction::FriExt2Fold4 => span.add_op(FriE2F4),
 
             // ----- exec/call instructions -------------------------------------------------------

@@ -269,6 +269,7 @@ pub enum Instruction {
     MTreeGet,
     MTreeSet,
     MTreeMerge,
+    MTreeVerify,
     FriExt2Fold4,
 
     // ----- exec / call --------------------------------------------------------------------------
@@ -544,6 +545,7 @@ impl fmt::Display for Instruction {
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeMerge => write!(f, "mtree_merge"),
+            Self::MTreeVerify => write!(f, "mtree_verify"),
             Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
 
             // ----- exec / call ------------------------------------------------------------------
