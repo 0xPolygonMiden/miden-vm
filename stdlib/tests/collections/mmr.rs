@@ -69,6 +69,62 @@ fn test_ilog2() {
 }
 
 #[test]
+fn test_u32unchecked_trailing_ones() {
+    let trailing_ones = "
+    use.std::collections::mmr
+
+    begin
+        exec.mmr::u32unchecked_trailing_ones
+    end
+    ";
+
+    build_test!(trailing_ones, &[0b0000]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b0001]).expect_stack(&[1]);
+    build_test!(trailing_ones, &[0b0011]).expect_stack(&[2]);
+    build_test!(trailing_ones, &[0b0111]).expect_stack(&[3]);
+    build_test!(trailing_ones, &[0b1111]).expect_stack(&[4]);
+    build_test!(trailing_ones, &[0b1111_1111]).expect_stack(&[8]);
+    build_test!(trailing_ones, &[0b1111_1111_1111]).expect_stack(&[12]);
+    build_test!(trailing_ones, &[0b1111_1111_1111_1111]).expect_stack(&[16]);
+    build_test!(trailing_ones, &[0b1111_1111_1111_1111_1111_1111_1111_1111]).expect_stack(&[32]);
+
+    build_test!(trailing_ones, &[0b0000]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b0010]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b0100]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1000]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1110]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1111_0000]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1111_1110]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1111_1111_1111_1110]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1111_1111_0000_0000]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1111_1111_1111_1111_1111_1111_1111_1110]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[0b1000_0000_0000_0000_0000_0000_0000_0000]).expect_stack(&[0]);
+}
+
+#[test]
+fn test_trailing_ones() {
+    let trailing_ones = "
+    use.std::collections::mmr
+
+    begin
+        exec.mmr::trailing_ones
+    end
+    ";
+
+    build_test!(trailing_ones, &[2u64.pow(1)]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[2u64.pow(2)]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[2u64.pow(32)]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[2u64.pow(33)]).expect_stack(&[0]);
+    build_test!(trailing_ones, &[2u64.pow(63)]).expect_stack(&[0]);
+
+    build_test!(trailing_ones, &[2u64.pow(1) - 1]).expect_stack(&[1]);
+    build_test!(trailing_ones, &[2u64.pow(2) - 1]).expect_stack(&[2]);
+    build_test!(trailing_ones, &[2u64.pow(32) - 1]).expect_stack(&[32]);
+    build_test!(trailing_ones, &[2u64.pow(33) - 1]).expect_stack(&[33]);
+    build_test!(trailing_ones, &[2u64.pow(63) - 1]).expect_stack(&[63]);
+}
+
+#[test]
 fn test_num_leaves_to_num_peaks() {
     let hash_size = "
     use.std::collections::mmr
@@ -562,4 +618,171 @@ fn test_mmr_pack() {
 
     let advice_data = process.advice_provider.map.get(&hash_u8).unwrap();
     assert_eq!(stack_to_ints(advice_data), stack_to_ints(&expect_data));
+}
+
+#[test]
+fn test_mmr_add_single() {
+    let mmr_ptr = 1000;
+    let source = format!(
+        "
+        use.std::collections::mmr
+
+        begin
+            push.{mmr_ptr} # the address of the mmr
+            push.1.2.3.4   # the new peak
+            exec.mmr::add  # add the element
+        end
+    "
+    );
+
+    // when there is a single element, there is nothing to merge with, so the data is just in the
+    // MMR
+    #[rustfmt::skip]
+    let expect_data = &[
+        1, 0, 0, 0, // num_leaves
+        1, 2, 3, 4, // peak
+    ];
+    build_test!(&source).expect_stack_and_memory(&[], mmr_ptr, expect_data);
+}
+
+#[test]
+fn test_mmr_two() {
+    let mmr_ptr = 1000;
+    let source = format!(
+        "
+        use.std::collections::mmr
+
+        begin
+            push.{mmr_ptr} # first peak
+            push.1.2.3.4
+            exec.mmr::add
+
+            push.{mmr_ptr} # second peak
+            push.5.6.7.8
+            exec.mmr::add
+        end
+    "
+    );
+
+    let mut mmr = Mmr::new();
+    mmr.add([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
+    mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
+
+    let accumulator = mmr.accumulator();
+    let peak = accumulator.peaks[0];
+
+    let num_leaves = accumulator.num_leaves.try_into().unwrap();
+    let mut expected_memory = vec![num_leaves, 0, 0, 0];
+    expected_memory.extend(peak.iter().map(|v| v.as_int()));
+
+    build_test!(&source).expect_stack_and_memory(&[], mmr_ptr, &expected_memory);
+}
+
+#[test]
+fn test_mmr_large() {
+    let mmr_ptr = 1000;
+    let source = format!(
+        "
+        use.std::collections::mmr
+
+        begin
+            push.{mmr_ptr}.0.0.0.1 exec.mmr::add
+            push.{mmr_ptr}.0.0.0.2 exec.mmr::add
+            push.{mmr_ptr}.0.0.0.3 exec.mmr::add
+            push.{mmr_ptr}.0.0.0.4 exec.mmr::add
+            push.{mmr_ptr}.0.0.0.5 exec.mmr::add
+            push.{mmr_ptr}.0.0.0.6 exec.mmr::add
+            push.{mmr_ptr}.0.0.0.7 exec.mmr::add
+
+            push.{mmr_ptr} exec.mmr::pack
+        end
+    "
+    );
+
+    let mut mmr = Mmr::new();
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)]);
+
+    let accumulator = mmr.accumulator();
+
+    let num_leaves = accumulator.num_leaves.try_into().unwrap();
+    let mut expected_memory = vec![num_leaves, 0, 0, 0];
+    expected_memory.extend(accumulator.peaks.iter().flatten().map(|v| v.as_int()));
+
+    let expect_stack: Vec<u64> =
+        accumulator.hash_peaks().iter().rev().map(|v| v.as_int()).collect();
+    build_test!(&source).expect_stack_and_memory(&expect_stack, mmr_ptr, &expected_memory);
+}
+
+#[test]
+fn test_mmr_large_add_roundtrip() {
+    let mmr_ptr = 1000;
+
+    let mut mmr: Mmr = Mmr::from([
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)],
+    ]);
+
+    let old_accumulator = mmr.accumulator();
+    let hash = old_accumulator.hash_peaks();
+
+    // Set up the VM stack with the MMR hash, and its target address
+    let mut stack = stack_to_ints(&hash);
+    stack.insert(0, mmr_ptr);
+
+    // both the advice stack and merkle store start empty (data is available in
+    // the map and pushed to the advice stack by the MASM code)
+    let advice_stack = &[];
+    let store = MerkleStore::new();
+
+    let mut hash_data = old_accumulator.peaks.clone();
+    hash_data.resize(16, [ZERO, ZERO, ZERO, ZERO]);
+
+    let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
+    let num_leaves: u64 = old_accumulator.num_leaves as u64;
+    map_data.extend_from_slice(&[Felt::from(num_leaves), ZERO, ZERO, ZERO]);
+    map_data.extend_from_slice(&hash_data.as_slice().concat());
+
+    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+        // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
+        (RpoDigest::new(hash).as_bytes(), map_data),
+    ];
+
+    let source = format!(
+        "
+        use.std::collections::mmr
+
+        begin
+            exec.mmr::unpack
+            push.{mmr_ptr}.0.0.0.8 exec.mmr::add
+            push.{mmr_ptr} exec.mmr::pack
+        end
+    "
+    );
+
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(8)]);
+
+    let new_accumulator = mmr.accumulator();
+    let num_leaves = new_accumulator.num_leaves.try_into().unwrap();
+    let mut expected_memory = vec![num_leaves, 0, 0, 0];
+    let mut new_peaks = new_accumulator.peaks.clone();
+    // make sure the old peaks are zeroed
+    new_peaks.resize(16, [ZERO, ZERO, ZERO, ZERO]);
+    expected_memory.extend(new_peaks.iter().flatten().map(|v| v.as_int()));
+
+    let expect_stack: Vec<u64> =
+        new_accumulator.hash_peaks().iter().rev().map(|v| v.as_int()).collect();
+
+    let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
+    test.expect_stack_and_memory(&expect_stack, mmr_ptr, &expected_memory);
 }

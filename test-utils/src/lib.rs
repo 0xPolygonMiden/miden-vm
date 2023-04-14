@@ -169,7 +169,10 @@ impl Test {
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
-            let mem_state = stack_to_ints(&process.get_memory_value(0, mem_start_addr).unwrap());
+            // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing easier
+            let mem_state = process.get_memory_value(0, mem_start_addr).unwrap_or([ZERO; 4]);
+
+            let mem_state = stack_to_ints(&mem_state);
             assert_eq!(
                 data, mem_state,
                 "Expected memory [{}] => {:?}, found {:?}",
