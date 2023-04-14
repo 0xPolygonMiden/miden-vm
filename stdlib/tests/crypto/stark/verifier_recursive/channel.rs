@@ -4,25 +4,16 @@
 use std::{mem, vec};
 
 use super::VerifierError;
-use miden_air::{Felt, FieldElement, ProcessorAir, StarkField};
-use processor::{crypto::Rpo256, Digest, QuadExtension};
-//use miden::{crypto::Rpo256, utils::{IntoBytes, math::log2}, Digest};
-//use miden_air::{Felt, FieldElement, ProcessorAir, StarkField};
 use test_utils::{
+    collections::Vec,
+    crypto::Rpo256,
     crypto::{BatchMerkleProof, MerklePath, MerklePathSet},
-    IntoBytes, ZERO,
-};
-//use vm_core::{
-//crypto::merkle::{MerklePath, MerklePathSet},
-//QuadExtension, ZERO,
-//};
-use winter_air::{
-    proof::{Queries, StarkProof, Table},
-    Air, EvaluationFrame,
+    group_vector_elements,
+    math::log2,
+    Air, Digest, EvaluationFrame, Felt, FieldElement, IntoBytes, ProcessorAir, QuadExtension,
+    StarkField, StarkProof, ZERO, {Queries, Table},
 };
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
-use winter_utils::{collections::Vec, group_vector_elements, string::ToString};
-use winterfell::math::log2;
 
 pub type QuadExt = QuadExtension<Felt>;
 /// A view into a [StarkProof] for a computation structured to simulate an "interactive" channel.
@@ -175,8 +166,8 @@ impl VerifierChannel {
         let mut sets = vec![];
 
         let proofs: Vec<_> = queries.query_proofs.into_iter().collect();
-        let main_queries = queries.main_states;
-        let aux_queries = queries.aux_states;
+        let main_queries = queries.main_states.clone();
+        let aux_queries = queries.aux_states.clone();
         let main_queries_vec: Vec<Vec<Felt>> = main_queries.rows().map(|a| a.to_owned()).collect();
         let aux_queries_vec: Vec<Vec<Felt>> = aux_queries
             .as_ref()

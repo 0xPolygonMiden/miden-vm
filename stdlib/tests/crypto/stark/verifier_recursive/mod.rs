@@ -1,22 +1,13 @@
-use miden_air::{Felt, FieldElement, ProcessorAir, StarkField};
-use processor::{
-    crypto::{MerkleStore, RandomCoin, Rpo256, WinterRandomCoin},
+use test_utils::{
+    collections::Vec,
     math::fft,
-    Digest, QuadExtension,
-};
-use winter_air::{proof::StarkProof, Air, AuxTraceRandElements};
-
-use winter_utils::collections::Vec;
-pub use winter_utils::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    math::{log2, ToElements},
+    Air, AuxTraceRandElements, Digest, Felt, FieldElement, MerkleStore, ProcessorAir,
+    QuadExtension, RandomCoin, Rpo256, StarkField, StarkProof, VerifierError, WinterRandomCoin,
 };
 
 mod channel;
 use channel::VerifierChannel;
-
-mod errors;
-pub use errors::VerifierError;
-use winterfell::math::{log2, ToElements};
 
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
@@ -112,6 +103,9 @@ pub fn generate_advice_inputs(
     tape.extend_from_slice(&to_int_vec(&poly));
     tape.extend_from_slice(&to_int_vec(&fri_remainder));
 
+    let _deep_coefficients = air
+        .get_deep_composition_coefficients::<QuadExt, WinterRandomCoin<Rpo256>>(&mut public_coin)
+        .map_err(|_| VerifierError::RandomCoinError)?;
     // Reseed with FRI layer commitments
     let layer_commitments = fri_commitments_digests.clone();
     for commitment in layer_commitments.iter() {

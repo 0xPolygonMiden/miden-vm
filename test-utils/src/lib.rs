@@ -18,12 +18,15 @@ pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
-    AdviceInputs, AdviceProvider, ExecutionError, ExecutionTrace, Process, StackInputs,
-    VmStateIterator,
+    crypto::{MerkleStore, RandomCoin, Rpo256, WinterRandomCoin},
+    math::fft,
+    AdviceInputs, AdviceProvider, Digest, ExecutionError, ExecutionTrace, Process, QuadExtension,
+    StackInputs, VmStateIterator,
 };
 pub use prover::{prove, MemAdviceProvider, ProofOptions};
 pub use test_case::test_case;
 pub use verifier::ProgramInfo;
+pub use verifier::VerifierError;
 pub use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
@@ -32,12 +35,21 @@ pub use vm_core::{
 
 pub mod math {
     pub use winter_prover::math::{fft, polynom};
+    pub use winter_prover::math::{log2, ToElements};
 }
 
 pub mod serde {
-    pub use vm_core::utils::{Deserializable, DeserializationError, Serializable, SliceReader};
+    pub use vm_core::utils::{
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    };
 }
 
+pub use miden_air::{FieldExtension, HashFunction, ProcessorAir, PublicInputs};
+pub use winter_air::{
+    proof::{Queries, Table},
+    EvaluationFrame,
+};
+pub use winter_prover::{Air, AuxTraceRandElements, StarkProof};
 pub mod crypto;
 
 #[cfg(not(target_family = "wasm"))]

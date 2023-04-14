@@ -1,12 +1,11 @@
+mod verifier_recursive;
+
 use crate::build_test;
 use assembly::Assembler;
-use miden_air::{Felt, FieldExtension, HashFunction, ProofOptions, PublicInputs};
-use processor::{crypto::MerkleStore, AdviceInputs, MemAdviceProvider, ProgramInfo, StackInputs};
-use test_utils::prove;
-
-use self::verifier_recursive::VerifierError;
-
-mod verifier_recursive;
+use test_utils::{
+    crypto::MerkleStore, prove, AdviceInputs, Felt, FieldExtension, HashFunction,
+    MemAdviceProvider, ProgramInfo, ProofOptions, PublicInputs, StackInputs, VerifierError,
+};
 
 #[test]
 fn stark_verifier_e2f4() {

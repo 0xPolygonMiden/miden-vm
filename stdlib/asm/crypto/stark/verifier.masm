@@ -5,41 +5,65 @@ use.std::crypto::stark::deep_queries
 use.std::crypto::stark::random_coin
 use.std::crypto::stark::ood_frames
 
+# Constants
+const.ROOT_UNITY=7277203076849721926
+
 # Global memory
 const.ZERO_ZERO_ZERO_ONE=4294967294
 const.ZERO_WORD=4294967295
-const.SEED=4294967293
+const.SEED_PTR=4294967293
 const.LDE_SIZE=4294967292
 const.Z=4294967291
 
-# Local memory
-const.MAIN_TRACE_COM=2
-const.AUX_TRACE_COM=3
-const.COMPOSITION_POLY_COM=4
-const.AUX_RAND_ELEM=2000
-const.COMPOSITION_COEF=2016
-const.OOD_TRACE_CURRENT=2252
-const.DEEP_RAND_CC=2338
-const.FRI_QUERIES=2473
-const.FRI_COM=2500
+const.MAIN_TRACE_COM_PTR=4294967290
+const.AUX_TRACE_COM_PTR=4294967289
+const.COMPOSITION_POLY_COM_PTR=4294967288
 
+const.TMP0=4294967287
+const.TMP1=4294967286
+const.TMP2=4294967285
+const.TMP3=4294967284
+const.TMP4=4294967283
+const.TMP5=4294967282
+const.TMP6=4294967281
+const.TMP7=4294967280
+const.TMP8=4294967279
 
-# <= [log2(domain_size), ..]
-# => [domain_gen, ..]
+const.OOD_TRACE_CURRENT_PTR=4294965000
+const.OOD_TRACE_NEXT_PTR=4294965041
+const.OOD_CONSTRAINT_EVALS_PTR=4294965082
+
+const.AUX_RAND_ELEM_PTR=4294966000
+const.COMPOSITION_COEF_PTR=4294966016
+const.DEEP_RAND_CC_PTR=4294966338
+const.FRI_QUERIES_PTR=4294966473
+const.FRI_COM_PTR=4294966500
+
+const.CURRENT_TRACE_ROW_PTR=4294964000
+const.PUBLIC_INPUTS_PTR=4294960000
+
+# Compute the LDE domain generator from the log2 of its size.
+#
+# Input: [log2(domain_size), ..]
+# Output: [domain_gen, ..]
 export.compute_lde_generator
     push.32
     swap
     sub
     pow2
-    push.7277203076849721926
+    push.ROOT_UNITY
     swap
     exp.u32
     # => [domain_gen, ..]
 end
 
-
-#<= [trace_length, num_queries, blowup, grinding, ...]
-#=> [A, B, C]
+# Compute the hash of the proof context using the trace length, number of queries, logarithm of
+# blowup factor and the number of bits of grinding. Currently, this part, as well as the rest of
+# the STARK verifier has the blowup factor fixed to 8, number of queries to 27.
+# The ouput of this procedure is the capacity portion of the state after applying `hperm`.
+#
+# Input: [trace_length, num_queries, blowup, grinding, ...]
+# Output: [C]
 export.hash_proof_context
 
     # Create the initial seed for randomness generation from proof context
@@ -57,7 +81,7 @@ export.hash_proof_context
     push.3
     assert_eq
 
-    ## Compute log(lde_domain_length) and lde_domain_length and store them
+    ## Compute log(lde_size) and lde_size and store them
     add
     swap
     movup.3
@@ -73,7 +97,7 @@ export.hash_proof_context
     push.0
     movdn.2
     mem_storew.LDE_SIZE
-    #=> [lde_domain_length, log(lde_domain_length), 0, 0, trace_length, num_queries, blowup, grinding]
+    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
 
     # Construct the proof context
     dropw
@@ -90,11 +114,17 @@ export.hash_proof_context
     swapw
     #=> [B, A, 0, 0, 0, 1, ..]
     hperm
+    dropw
+    dropw
+    #=> [C]
 end
 
-
-# Input: [public_inputs_ptr, Y, Y, C,]
-# Output: [A, B, C] where B is the Seed for the random coin
+# Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
+# In parallel, compute the hash of the public inputs being loaded. The hashing starts with
+# capacity registers of the hash function set to `C` resulting from hashing the proof context.
+#
+# Input: [public_inputs_ptr, C]
+# Output: [...] 
 export.load_pub_inputs
     
     # TODO: load the public inputs using public_inputs_ptr
@@ -104,6 +134,8 @@ export.load_pub_inputs
     # The following assumes that the public inputs contain only the input and output states
     # of the operand stack and both are of length exactly 16. 
     # TODO: generalize to any number of public inputs supported by the VM.
+    push.0.0.0.0
+    push.0.0.0.0
     repeat.4
         adv_loadw
         swapw
@@ -112,308 +144,67 @@ export.load_pub_inputs
     end
     adv_loadw
     swapw
-    # Pad with [1, 0, 0, 0]
     mem_loadw.ZERO_ZERO_ZERO_ONE
     hperm
+    dropw
+    mem_storew.SEED_PTR
+    dropw
+    dropw
 end
 
-
-
-#================================================
-#   Memory layout:
-#   I) Global:
-#   4294967294. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
-#   4294967295. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
-#   4294967293. Seed
-#   4294967292: [lde_size, log2(lde_size), 0, 0]
-#   4294967291: [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
-#   II) Local:
-#   2. Main trace commitment
-#   3. Aux trace commitment
-#   4. Constraint polynomial columns trace commitment
-#   5. [lde_size, log2(lde_size), lde_domain_generator, 0]
-#   6. [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
-#   7. Remainder commitment
-#   8. [ptr_remainder, remainder_size, lde_size, lde_size]
-#   9. [lde_size, log2(lde_size), lde_domain_generator, 0] (same as 5 but for a different purpose)
-#   10.[gz1, gz0, z1, z0]
-#   11.[x, _, _, _] where x := offset * lde_domain_generator^query_index
-#   20 -> 1999 Empty for now but should hold the public inputs in the future
-#   2000 -> 2015    auxiliary trace random coefficients
-#   2016 -> 2250    constraint composition coefficients
-#   2252 -> 2292    current row of the OOD evaluation frame 
-#   2293 -> 2333    next row of the OOD evaluation frame 
-#   2334 -> 2337    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
-#   2338 -> 2463    Deep query coefficients
-#   2473 -> 2499    [0, query, evaluation_1, evaluation_0] for the 27 FRI queries
-#   2500 -> ptr_remainder - 1 where ptr_remainder := 2500 + 2 * number_of_layers
-#   ptr_remainder -> ptr_remainder + remainder_length / 2
-#   ptr_remainder + remainder_length / 2 + 1 -> ptr_remainder + remainder_length / 2 + length_of_remainder_polynomial/2
-#================================================
-
-# Notes: 
-# 1. The choice of the number of locals is based on an estimate and should be updated  
-# 2. Once `RandomCoin` has been redesigned, the way randomness is generated should be simplified.
-# 3. The periodic values for the OOD evaluation frame are not implemented. This should probably be
-#   delegated to the constraint evaluator.  
-# 4. Unless otherwise stated, `x`, `X`, `y` and `Y` denote "garbage" values on the stack. When computing
-#   the deep evaluation queries, `x` will denote `offset * g^index`.  
-
-# Input: [log(trace_length), num_queries, log(blowup), grinding]
-# Output: []
-export.verify.4222
-
-    # Pre-load constants used by hperm into memory
-    # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
-    # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout 
-    # the `verify` procedure.
+# Check that the Proof-of-Work contained in the current `SEED` is equal to the required number
+# of bits prescribed by grinding bits. Currently the grinding factor is fixed to 16 bits.
+#
+# Input: [...]
+# Output: [...]
+export.check_pow
+    # Check PoW nonce
+    ## Load Seed
     push.0.0.0.0
-    mem_storew.ZERO_WORD
-    drop
-    push.1
-    swap.3
-    mem_storew.ZERO_ZERO_ZERO_ONE
-    dropw
-    #=> [log(trace_length), num_queries, log(blowup), grinding]
-
-    #==============================================================================================
-    #       I)  Hash proof context and hash-&-load public inputs
-    #==============================================================================================
-
-    # Initialize the seed using proof context
-    exec.hash_proof_context
-    
-    # Load public inputs
-    locaddr.20
-    exec.load_pub_inputs
-    #=> [A, B, C] where B is the new Seed for the random coin
-
-    #==============================================================================================
-    #       II) Generate the auxiliary trace random elements
-    #==============================================================================================
-
-    # Load main trace commitment and re-seed with it
-    dropw
+    mem_loadw.SEED_PTR
+    push.1.0.0.0
     swapw
-    adv_loadw           
-    #=> [main_trace_commitment, Seed]
-    loc_storew.MAIN_TRACE_COM
-    swapw
-    exec.random_coin::reseed         
-    mem_storew.SEED          
-    # => [Seed_n, X, Y]
-
-    # Draw random ExtFelt for the auxiliary trace
-    # From locaddr.AUX_RAND_ELEM to locaddr.AUX_RAND_ELEM + 16 - 1 we have the aux randomness
-    locaddr.AUX_RAND_ELEM
-    movdn.4
-    push.1
-    movdn.4         
-    # => [Seed, 1, rand_cstr_coef_ptr, X, Y]
-
-    repeat.16
-        exec.random_coin::generate_next_extfelt
-        mem_loadw.SEED
-    end
-    # => [Seed, 16, ptr + 16, X, Y]
-
-
-    # Reseed with auxiliary trace commitment
-    swapw
-    adv_loadw
-    loc_storew.AUX_TRACE_COM
-    swapw               
-    #=> [Seed, aux_trace_commitment, y, y, Y]
-    exec.random_coin::reseed         
-    mem_storew.SEED
-    #=> [Seed_n, Y, Y, y, y, Y]
-
-    # TODO: make use of these
-    dropw dropw drop drop  
-    #=> [Y, Y]
-    
-    #==============================================================================================
-    #       III) Draw constraint composition coefficients
-    #==============================================================================================
-
-    # Draw constraint composition coefficients
-    # From `compos_coef_ptr = locaddr.COMPOSITION_COEF` to locaddr.COMPOSITION_COEF + 235 - 1 (inclusive) we have the constraint 
-    # composition random coefficients.
-    # They are ordered in increasing index order and when loaded into the stack ordered as
-    # (r1_1, r1_0, r0_1, r0_0)
-    mem_loadw.SEED
-    locaddr.COMPOSITION_COEF
-    movdn.4
-    push.1
-    movdn.4         
-    # => [Seed, 1, compos_coef_ptr, Y]
-
-    repeat.235
-        exec.random_coin::generate_next_extfelt_tuple
-        mem_loadw.SEED
-        # => [Seed, 2, ptr + 1, ..]
-    end
-    # => [Seed, y, y, Y]
-   
-    #==============================================================================================
-    #       IV) Reseed with commitment to constraint composition polynomial H evaluations over LDE
-    #          and generate the Out-of-Domain (OOD) challenge z 
-    #==============================================================================================
-
-    # Reseed with constraint composition polynomial commitment
-    swapw
-    adv_loadw
-    loc_storew.COMPOSITION_POLY_COM
-    swapw
-    exec.random_coin::reseed
-    mem_storew.SEED
-    #=> [Seed_n, X, Y, y, y]
-
-    # Draw OOD z
-    swapw
-    mem_loadw.ZERO_ZERO_ZERO_ONE
-    swapw.2
-    dropw
-    push.1.1.0.0
+    adv_push.1
+    push.1.0.0
     hperm
     swapw
-    drop drop
-    #=> [z1, z0, A, C, y, y]
+    mem_storew.SEED_PTR
+    # => [Seed, Y, Y, Y]
 
-    # TODO: Reseed with z
+    ## Get the leading field element of the digest
+    swap.3
 
-    # Store OOD challenge z and z^8 as [z^8_1, z^8_0, z1, z0]
-    dup.1
-    dup.1
-    repeat.3
-        dup.1
-        dup.1
-        ext2mul
-    end
-    mem_storew.Z
-    # => [X, Y, Y, x, x, 0, 0]
-    
-    #==============================================================================================
-    #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
-    #           of H over the LDE domain.
-    #==============================================================================================
+    ## Make sure the lower 16 bits are zero
+    u32split
+    swap
+    push.0xFFFF
+    u32checked_and
+    assertz
+    # => [Y, Y, Y]
+    repeat.3 dropw end
+    #=> [...]
+end
 
-    # Read [ood_main_trace_frame.current(), aux_trace_frame.current()]
-    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
-    # 162 = 20 * 8 + 2
-    # [ood_main_trace_frame.current(), aux_trace_frame.current()] is stored in
-    # locaddr.OOD_TRACE_CURRENT to locaddr.OOD_TRACE_CURRENT + 41 - 1.
-    # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for
-    # locaddr.OOD_TRACE_CURRENT + 40 which is stored from the stack as (a1, a0, 1, 0)
-    locaddr.OOD_TRACE_CURRENT
-    movdn.12
-    mem_loadw.ZERO_ZERO_ZERO_ONE
-    swapw.2
-    #=> [Y, Y, 1, 0, 0, 0, ood_frame_current_ptr]
-
-    exec.ood_frames::load_ood_eval_frame_current
-    # => [A, B, C, ood_frame_next_ptr] where B is the hash of [ood_main_trace_frame.current(), aux_trace_frame.current()]
-    #   and `ood_frame_next_ptr := ood_frame_current_ptr + 41`
-
-    exec.random_coin::reseed_load_save
-    dropw
-    # => [X, X, X, ood_frame_next_ptr]
-
-
-    # Read [ood_main_trace_frame.next(), aux_trace_frame.next()]
-    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
-    # 162 = 20 * 8 + 2
-    # [ood_main_trace_frame.next(), aux_trace_frame.next()] is stored in locaddr.OOD_TRACE_CURRENT + 41
-    # to locaddr.OOD_TRACE_CURRENT + 2 * 41 - 1.
-    # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for locaddr.2333
-    # which is stored from the stack as (a1, a0, 1, 0)
-    mem_loadw.ZERO_ZERO_ZERO_ONE
-    swapw.2
-    #=> [X, X, 1, 0, 0, 0, ood_frame_next_ptr]
-
-    exec.ood_frames::load_ood_eval_frame_next
-    #=> [A, B, C, ood_constraint_evals_ptr] where B is the hash of [ood_main_trace_frame.next(), aux_trace_frame.next()]
-
-    exec.random_coin::reseed_load_save
-    dropw
-    # => [X, X, X, ood_constraint_evals_ptr]
-
-
-    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of
-    # constraint evaluation function at `z` `H(z)` equals `\sum_0^7 z^i value_i`.
-    # The values are stored from locaddr.2334 to locaddr.2337
-    mem_loadw.ZERO_WORD
-    swapw.2
-    adv_pipe
-    adv_pipe
-    # => [A, B, C, ood_constraint_evals_ptr + 4]
-
-    exec.random_coin::reseed_load_save
-    dropw
-    # => [X, X, X, ood_constraint_evals_ptr + 4]
-
-    # Compute `H(z)`
-    exec.ood_frames::compute_Hz
-    # => [res1, res0, y, y, ...]
-
-
-    #==============================================================================================
-    #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
-    #==============================================================================================
-    # TODO: Compare with the evaluation of the constraints on the EvaluationFrame
-
-
-    #==============================================================================================
-    #       VI) FRI
-    #==============================================================================================
-
-    #============================================
-    #   1) Draw random coefficients for computing
-    #       DEEP composition polynomial.
-    #============================================
-    # Draw deep composition polynomial coefficients
-    ## Load Seed and prepare for drawing
-    mem_loadw.SEED
-    locaddr.DEEP_RAND_CC
-    movdn.4
-    push.1
-    movdn.4
-    # => [Seed, 1, ptr, ..]
-    
-    ## Draw the random coefficients
-    ## The number of coefficients is equal to:
-    ## (72 + 9) * 4 Felt for the trace.
-    ## 8 * 2 Felt for constraint polynomial.
-    ## 2 Felt for degree correction.
-    ## Total: 172 tuples of type (Felt, Felt)
-    repeat.86
-        exec.random_coin::generate_next_extfelt_tuple
-        mem_loadw.SEED
-        # => [Seed, 3, ptr + 1]
-    end
-    # => [Seed, 172, ptr + 1, ..]
-
-  
-    #============================================
-    #   2) Compute constants needed for computing
-    #       FRI queries. These are:
-    #       -   LDE domain generator.
-    #       -   Trace domain generator `g`.
-    #       -   `gz`.
-    #       -   Number of FRI layers. 
-    #============================================
-
+# Compute the number of FRI layers given log2 of the size of LDE domain. It also computes the
+# LDE domain generator and, from it, the trace generator and store these for later use.
+#
+# Input: [...]
+# Output: [num_fri_layers, ...]
+export.generate_fri_parameters
     # Load  FRI verifier data:
-    # [lde_domain_length, log(lde_domain_length), 0, 0]
+    # [lde_size, log(lde_size), 0, 0]
+    push.0.0.0.0
     mem_loadw.LDE_SIZE
 
     # Compute lde_domain generator
     dup.1
     exec.compute_lde_generator
-    #=> [g, lde_size, log2(lde_size), 0, 0, y, y]
+    #=> [g, lde_size, log2(lde_size), 0, ...]
     movdn.2
-    #=> [lde_size, log2(lde_size), g, 0, 0, y, y]
-    loc_storew.5
+    #=> [lde_size, log2(lde_size), g, 0, ...]
+    
+    # Store in `TMP5` in order to use it for fri layer loading
+    mem_storew.TMP5
 
     # Compute [gz1, gz0, z1, z0] using domain generator
     # TODO: move to somewhere else
@@ -433,13 +224,13 @@ export.verify.4222
     mul
     swap.2
     mul
-    loc_storew.10
+    mem_storew.TMP1
     dropw
 
-    # TODO: remove the need for this
-    loc_storew.9
-    # => [lde_size, log2(lde_size), lde_generator, 0, 0]
-
+    # This is the same as the word referenced by `TMP5` but is immutable.
+    mem_storew.TMP0
+    # => [lde_size, log2(lde_size), lde_generator, 0]
+    
     # Compute the number of FRI layers
     dup
     dup.2
@@ -456,65 +247,70 @@ export.verify.4222
         sub.6
         div.2
     end
-    # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, 0, y, y]
+    # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, ...]
  
     # Save [num_fri_layers, remainder_size, lde_size, lde_size] in memory
-    loc_storew.6
+    mem_storew.TMP6
+    swap.5
+    dropw
+    drop
+end
 
-    #============================================
-    #   3) Reseed with FRI layer commitments and
-    #      draw the folding challenges for computing 
-    #      the degree respecting projection
-    #============================================
-
-    # Get FRI layer commitments and reseed to draw folding challenges i.e. alphas
-    locaddr.FRI_COM    # Address containing the first layer commitment
-    swap.2 drop     
-    # => [num_layers, ptr_layer, Y, Y] 
-    
+# Get FRI layer commitments and reseed with them in order to draw folding challenges i.e. alphas.
+#
+# Input: [ptr_layer, num_layers, ...]
+# Output: [...]
+export.load_fri_layer_commitments
+    # Address containing the first layer commitment
+    push.0.0
+    movup.3
+    movup.3
+    swap
+    push.0.0.0.0
+    swapw     
+    # => [num_layers, ptr_layer, y, y, Y, ...] 
+   
     dup
     push.0
     neq
     while.true
-        swapw               # [X, num_layers, ptr_layer, x, x, X]
-        adv_loadw           # [Com, num_layers, ptr_layer, x, x, X]
+        swapw               # [Y, num_layers, ptr_layer, y, y, ...]
+        adv_loadw           # [Com, num_layers, ptr_layer, y, y, ...]
 
-        # Save commitment
+        # Save FRI layer commitment
         dup.5
         add.1
         swap.6
         mem_storew
+        #=> [Com, num_layers, ptr_layer + 1, y, y, ...]
 
         # Reseed
-        movupw.2
-        exec.random_coin::reseed_load_save
-        # => [Seed_n, X, Y, num_layers, ptr_layer + 1, x, x]
+        exec.random_coin::reseed
+        # => [num_layers, ptr_layer + 1, y, y, ...]
 
-        swapw.2
-        dropw
-        # Load [0, 0, 0, 1]
-        mem_loadw.ZERO_ZERO_ZERO_ONE
-        swapw
+        push.1.0.0.0
+        push.0.0.0.0
+        mem_loadw.SEED_PTR
         push.1.1.0.0
-        # => [0, 0, 1, 1, Seed, 0, 0, 0, 1, num_layers, ptr_layer + 1, x, x]
-        hperm                  #[X, Res, Y,  num_layers, ptr_layer + 1, x, x]
+        # => [0, 0, 1, 1, Seed, 0, 0, 0, 1, num_layers, ptr_layer + 1, y, y, ...]
+        hperm
         drop drop
-        loc_loadw.5
-        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 1, x, x]
+        mem_loadw.TMP5
+        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 1, y, y, ...]
 
         # Compute and save to memory new lde_size and its new logarithm
         div.4
         swap
         sub.2
         swap
-        loc_storew.5
+        mem_storew.TMP5
 
         # Move the pointer higher up the stack
         movup.2 drop
         movup.2 drop
         swapw
-        movdnw.2
-        # => [lde_size, log2(lde_size), a1, a0, num_layers, ptr_layer + 1, x, x, Y]
+        dropw
+        # => [lde_size, log2(lde_size), a1, a0, num_layers, ptr_layer + 1, y, y, Y, ...]
 
         # Save [lde_size, log2(lde_size), a1, a0] in memory next to the layer commitment
         dup.5
@@ -522,7 +318,7 @@ export.verify.4222
         swap.6
         mem_storew
         swapw
-        # => [num_layers, ptr_layer + 1, x, x, lde_size, log2(lde_size), a1, a0, Y]
+        # => [num_layers, ptr_layer + 2, y, y, lde_size, log2(lde_size), a1, a0, Y]
 
         # Decrement the FRI layer counter
         sub.1
@@ -530,54 +326,52 @@ export.verify.4222
         push.0
         neq
     end
-    # => [0, ptr_layer + 2*num_layers, y, y, Y, Y]
-    # => [0, ptr_remainder, y, y, Y, Y] where ptr_remainder := ptr_layer + 2*num_layers
+    # => [Y, Y]
+    dropw
+    dropw
+    #=> [...]
+end
 
-    #============================================
-    #   4) Remainder verification:
-    #       a) Check commitment to remainder polynomial
-    #            coefficients.
-    #       b) Load the NTT of remainder polynomial
-    #            into memory.
-    #       c) Check the NTT relationship.
-    #============================================
-
-    # Shuffle the stack 
-    swap
-    swapw.2
-    # => [Y, Y, ptr_remainder, 0, y, y]
-
-    # Load remainder commitment and save it at locaddr.7
+# Load the remainder polynomial from the advice provider and check that its hash corresponds
+# to its commitment and reseed with the latter.
+# Load the remainder code word, i.e. the NTT of the remainder polynomial, and use its hash, together,
+# with the hash of the remainder polynomial in order to generate the Fiat-Shamir challenge `tau` for
+# the `verify_remainder_xx` procedure.
+#
+# Input: [...]
+# Output: [...]
+export.load_and_verify_remainder
+    # Load remainder commitment and save it at `TMP7`
+    push.0.0.0.0
     adv_loadw
-    loc_storew.7
+    mem_storew.TMP7
 
     # Reseed with remainder commitment
-    swapw
-    exec.random_coin::reseed_load_save
-    # => [Seed_n, X, X,  ptr_remainder, 0, x, x]
+    exec.random_coin::reseed
     
     # adv_pipe the remainder codeword
     ## Get the length of remainder
-    loc_loadw.6
+    mem_loadw.TMP6
     ## Compute the correct remainder pointer using length of remainder
-    locaddr.FRI_COM
+    push.FRI_COM_PTR
     swap
     mul.2
     add
     ## Store for later use
-    loc_storew.8
-    # => [ptr_remainder, remainder_size, x, x, X, X, ptr_remainder, 0, x, x]
+    mem_storew.TMP8
+    # => [ptr_remainder, remainder_size, y, y, Y, Y, ptr_remainder, 0, y, y]
+
+    #=> [ptr_remainder, remainder_size, y, y, ]
 
     dup.1
     push.32
     eq
     if.true
         # Remainder length equal to 32
-        swapw.3
-        # load [0, 0, 0, 0] from memory
-        mem_loadw.ZERO_WORD
-        swapw.2
-        # => [X, X, 0, 0, 0, 0 ptr_remainder, remainder_size, x, x]
+        push.0.0.0.0
+        push.0.0.0.0
+        push.0.0.0.0
+        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
         
         # adv_load remainder polynomial
         # TODO: This is a workaround since the FRI verifier expects the memory layout to be 
@@ -598,10 +392,10 @@ export.verify.4222
         add.17
         mem_storew
         hperm
-        # => [X, Remainder_poly_com, Y, ptr_remainder, remainder_size, x, x]
+        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
 
         # Compare Remainder_poly_com with the read commitment
-        loc_loadw.7
+        mem_loadw.TMP7
         movup.4
         assert_eq
         movup.3
@@ -609,7 +403,7 @@ export.verify.4222
         movup.2
         assert_eq
         assert_eq
-        # => [Y, ptr_remainder, remainder_size, x, x]
+        # => [Y, ptr_remainder, remainder_size, y, y]
         push.0.0.0.0
         push.0.0.0.0
         repeat.8
@@ -617,10 +411,10 @@ export.verify.4222
         end
     else
         # Remainder length equal to 64
-        swapw.3
-        mem_loadw.ZERO_WORD    # load [0, 0, 0, 0] from memory
-        swapw.2
-        # => [X, X, 0, 0, 0, 0 ptr_remainder, remainder_size, x, x]
+        push.0.0.0.0
+        push.0.0.0.0
+        push.0.0.0.0
+        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
         
         # adv_load remainder polynomial
         # TODO: This is a workaround since the FRI verifier expects the memory layout to be 
@@ -652,10 +446,10 @@ export.verify.4222
         add.35
         mem_storew
         hperm
-        # => [X, Remainder_poly_com, Y, ptr_remainder, remainder_size, x, x]
+        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
 
         # Compare Remainder_poly_com with the read commitment
-        loc_loadw.7
+        mem_loadw.TMP7
         movup.4
         assert_eq
         movup.3
@@ -663,19 +457,29 @@ export.verify.4222
         movup.2
         assert_eq
         assert_eq
-        # => [Y, ptr_remainder, remainder_size, x, x]
+        # => [Y, ptr_remainder, remainder_size, y, y]
         push.0.0.0.0
         push.0.0.0.0
         repeat.16
             adv_pipe
         end
     end
-    # => [X, R, Y, X] where R = [x, x, tau1, tau0]
-    
+    # => [Y, R, Y, Y] where R = [y, y, tau1, tau0]
+
+    dropw
+    swapw.2
+    dropw 
+    dropw
+    drop
+    drop
+    #=> [tau1, tau0] where tau is the challenge of ext2fri::verify_remainder_xx
+  
     # Prepare for remainder verification procedure
-    drop drop
-    loc_loadw.8
-    # => [ptr_remainder, remainder_size, x, x, tau1, tau0, X, X]
+    push.0.0.0.0
+    mem_loadw.TMP8
+    movup.2 drop
+    movup.2 drop
+    # => [ptr_remainder, remainder_size, y, y, tau1, tau0, Y, Y]
 
     # Call the correct remainder verification procedure
     swap
@@ -684,781 +488,245 @@ export.verify.4222
     if.true
         # TODO: Modify verify_remainder_32 so that it uses (tau0, tau1) instead of 
         # recomputing them again.
-        # For the moment, we drop the word containing (tau0, tau1).
-        movdn.4 dropw
+        # For the moment, we drop (tau0, tau1).
+        swap.2 drop drop
         exec.ext2fri::verify_remainder_32
     else
         # TODO: Modify verify_remainder_64 so that it uses (tau0, tau1) instead of 
         # recomputing them again.
-        # For the moment, we drop the word containing (tau0, tau1).
-        movdn.4 dropw
+        # For the moment, we drop (tau0, tau1).
+        swap.2 drop drop
         exec.ext2fri::verify_remainder_64
     end
-    # => [Y, Y]
+    #=> [...]
+end
+
+#   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
+#   The following simplifying assumptions are currently made:
+#   - The blowup is set to 8, the grinding to 16bits and number of FRI queries to 27.
+#   - The maximal allowed degree of the remainder polynomial is 7.
+#   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
+#   to public inputs.
+#   - The following procedure makes use of global memory address beyond 3 * 2^30. More precisely,
+#   the following is a list of pointers used by `stark::verify`:    
+#
+#   * ZERO_ZERO_ZERO_ONE. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
+#   * ZERO_WORD. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
+#   * SEED_PTR. Seed
+#   * LDE_SIZE. [lde_size, log2(lde_size), 0, 0]
+#   * Z. [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
+#   * MAIN_TRACE_COM_PTR. Main trace commitment
+#   * AUX_TRACE_COM_PTR. Aux trace commitment
+#   * COMPOSITION_POLY_COM_PTR. Constraint polynomial columns trace commitment
+#   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
+#   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
+#   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
+#   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame 
+#   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame 
+#   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
+#   * DEEP_RAND_CC_PTR.    Deep query coefficients
+#   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
+#   * TMP1.   [gz1, gz0, z1, z0]
+#   * TMP2.   [x, _, _, _] where x := offset * lde_domain_generator^query_index
+#   * TMP3.   Leaf value at index `query_index` of the commitment tree to either main, auxiliary or constraint traces.
+#   * TMP4.   [query_index, depth, _, _] where query_index is the current deep FRI query being computed.
+#   * TMP5.   [lde_size, log2(lde_size), lde_domain_generator, 0]
+#   * TMP6.   [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
+#   * TMP7.   Remainder commitment
+#   * TMP8.   [ptr_remainder, remainder_size, lde_size, lde_size]
+#
+# Input: [log(trace_length), num_queries, log(blowup), grinding]
+# Output: []
+export.verify
+
+    # Pre-load constants used by hperm into memory
+    # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
+    # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout 
+    # the `verify` procedure.
+    push.0.0.0.0
+    mem_storew.ZERO_WORD
+    drop
+    push.1
+    swap.3
+    mem_storew.ZERO_ZERO_ZERO_ONE
+    dropw
+    #=> [log(trace_length), num_queries, log(blowup), grinding]
+
+    #==============================================================================================
+    #       I)  Hash proof context and hash-&-load public inputs
+    #==============================================================================================
+
+    # Initialize the seed using proof context
+    exec.hash_proof_context
+    #=> [C]
+    
+    # Load public inputs
+    push.PUBLIC_INPUTS_PTR
+    exec.load_pub_inputs
+    #=> [...]
+
+    #==============================================================================================
+    #       II) Generate the auxiliary trace random elements
+    #==============================================================================================
+
+    # Load main trace commitment and re-seed with it
+    push.0.0.0.0
+    adv_loadw          
+    mem_storew.MAIN_TRACE_COM_PTR
+    #=> [main_trace_commitment]
+    exec.random_coin::reseed         
+    # => [...]
+
+
+    # Draw random ExtFelt for the auxiliary trace
+    push.AUX_RAND_ELEM_PTR
+    exec.random_coin::generate_aux_randomness
+    # => [...] 
+
+    # Reseed with auxiliary trace commitment
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.AUX_TRACE_COM_PTR
+    exec.random_coin::reseed
+    #=> [...]
+ 
+    #==============================================================================================
+    #       III) Draw constraint composition coefficients
+    #==============================================================================================
+
+    push.COMPOSITION_COEF_PTR
+    exec.random_coin::generate_constraint_composition_coefficients
+    #=> [...]
+
+    #==============================================================================================
+    #       IV) Reseed with commitment to constraint composition polynomial H evaluations over LDE
+    #          and generate the Out-of-Domain (OOD) challenge z 
+    #==============================================================================================
+
+    # Reseed with constraint composition polynomial commitment
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.COMPOSITION_POLY_COM_PTR
+    exec.random_coin::reseed
+    exec.random_coin::generate_z_z8
+    #=> [...]
+   
+    #==============================================================================================
+    #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
+    #           of H over the LDE domain.
+    #==============================================================================================
+
+    exec.ood_frames::load_evaluation_frame
+    #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
+
+    exec.random_coin::reseed    
+    exec.random_coin::reseed    
+    
+    exec.ood_frames::load_constraint_evaluations
+    # => [CONSTR_EVAL_HASH, ...]
+
+    exec.random_coin::reseed
+    
+    # Compute `H(z)`
+    exec.ood_frames::compute_Hz
+    # => [res1, res0, ...]
+
+    #==============================================================================================
+    #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
+    #==============================================================================================
+
+    # TODO: Compare with the evaluation of the constraints on the EvaluationFrame
+    drop drop
+    #=> [...]
+
+    #==============================================================================================
+    #       VII) FRI
+    #==============================================================================================
+
+    #============================================
+    #   1) Draw random coefficients for computing
+    #       DEEP composition polynomial.
+    #============================================
+
+    push.DEEP_RAND_CC_PTR
+    exec.random_coin::generate_deep_composition_random_coefficients
+
+    #============================================
+    #   2) Compute constants needed for computing
+    #       FRI queries. These are:
+    #       -   LDE domain generator.
+    #       -   Trace domain generator `g`.
+    #       -   `gz`.
+    #       -   Number of FRI layers. 
+    #============================================
+
+    exec.generate_fri_parameters
+    # => [num_fri_layers, ...]
+
+    #============================================
+    #   3) Load and reseed with FRI layer commitments 
+    #      and draw the folding challenges for 
+    #      computing the degree respecting projection
+    #============================================
+    
+    push.FRI_COM_PTR
+    exec.load_fri_layer_commitments
+    #=> [...]
+
+    #============================================
+    #   4) Remainder verification:
+    #       a) Check commitment to remainder polynomial
+    #            coefficients.
+    #       b) Load the NTT of remainder polynomial
+    #            into memory.
+    #       c) Check the NTT relationship.
+    #============================================
+
+    exec.load_and_verify_remainder
+    #=> [...]
 
     #============================================
     #   5) Check PoW nonce
     #============================================
 
-    # Check PoW nonce
-    ## Load Seed
-    mem_loadw.SEED
-    push.1.0.0.0
-    swapw
-    adv_push.1
-    push.1.0.0
-    hperm
-    swapw
-    mem_storew.SEED
-    # => [Seed, Y, Y, Y]
-
-    ## Get the leading field element of the digest
-    swap.3
-
-    ## Make sure the lower 16 bits are zero
-    u32split
-    swap
-    push.0xFFFF
-    u32checked_and
-    assertz
-    # => [Y, Y, Y, Y]
+    exec.check_pow
+    #=> [...]
 
     #============================================
-    #   5) Compute evaluations of DEEP composition
+    #   6) Compute evaluations of DEEP composition
     #   polynomial at randomly chosen query positions 
     #============================================
 
     # Draw random query indices
-    ## Put the pointer to the integers on the stack
-    ## TODO: avoid this by changing the loop over the query indices
-    drop 
-    locaddr.FRI_QUERIES
-    swap.3
-    swapw.3
-    push.0
-    #[Y, Y, Y, Y, ptr_integers]
-    
-    ## Create mask
-    loc_loadw.9
-    sub.1
-
-    ## Get address holding the integers (this will later hold the FRI queries)
-    locaddr.FRI_QUERIES
-    push.1
-    swapw
-    # => [Y, 1, ptr_integers, mask, depth, Y, Y,    y, y, ptr_integers] where depth = log(lde_size)
-
-    ## Draw the random queries
+    push.FRI_QUERIES_PTR
     exec.random_coin::generate_list_indices
-    # => [Y, Y, Y, Y,    y, y, ptr_integers]
+    # => [...]
     
-
-    # Note: From now on, only Y and y denote garbage values.
-    push.1.1
-    locaddr.FRI_QUERIES
-    #=>[ptr_query, Y, Y, Y, Y, Y, ptr_query]
-  
-    repeat.27       
-        
-        # Main trace portion of the query
-        ## Get the next query index
-        mem_loadw
-        #=> [query, depth, y, y, ..]
-        ## Get main trace commitment and use it to get the leaf
-        swapw
-        loc_loadw.MAIN_TRACE_COM
-        swapw
-        loc_storew.14
-        movup.2 drop
-        movup.2 drop
-        swap
-        #=> [d, query, Com, Y, Y]
-        ## Get the leaf in the main trace commitment and save it 
-        mtree_get
-        loc_storew.13
-        adv.keyval
-        #=> [V, R, Y, Y]  
-        drop
-        locaddr.2800
-        swapw.3
-        #=> [Y, Y, Y, ptr, y, y, y ]
-        mem_loadw.ZERO_WORD
-        swapw.2
-        #=> [Y, Y, 0, 0, 0, 0, ptr, y, y, y]
-        repeat.9
-            adv_pipe
-        end
-        #=> [Y, L, Y, ptr, y, y, y]
-
-        ## Load the leaf value we got using mtree_get
-        loc_loadw.13
-
-        ## Check correctness of unhashing
-        movup.4
-        assert_eq
-        movup.3
-        assert_eq
-        movup.2
-        assert_eq
-        assert_eq
-        #=>[Y, ptr, y, y, y]
-
-        swapw
-        swap.3
-        push.0
-        loc_loadw.14
-        movup.2 drop
-        movup.3
-        swapw
-        #=>[Y, ptr, pos, depth, y]
-        
-        # Aux trace part
-        ## Load aux trace commitment and get leaf
-        loc_loadw.AUX_TRACE_COM
-        dup.5
-        dup.7
-        mtree_get
-        adv.keyval
-        loc_storew.13
-        #=> [L, R, ptr, pos, depth, 0, ]
-
-        ## Prepare for adv_pipe aux trace row
-        mem_loadw.ZERO_ZERO_ZERO_ONE
-        swapw
-        push.0.0.0.0
-        adv_pipe
-        adv_pipe
-        dropw
-        adv_push.1
-        adv_push.1
-        push.1
-        push.0
-        loc_storew.2822
-        swapw
-        mem_loadw.ZERO_WORD
-        hperm
-        #=> [Y, L, Y, ptr, pos, depth, y]
-        loc_loadw.13
-        ## Check correctness of unhashing
-        movup.4
-        assert_eq
-        movup.3
-        assert_eq
-        movup.2
-        assert_eq
-        assert_eq
-        #=> [Y, ptr, pos, depth, y]
-
-        ## Update pointer
-        swapw
-        add.1
-        swapw
-
-        # Constraint composition trace part
-        ## Load commitment constraint trace and get leaf
-        loc_loadw.COMPOSITION_POLY_COM
-        dup.5
-        dup.7
-        mtree_get
-        adv.keyval
-        loc_storew.13
-        #=>[L, R, ptr, pos, depth, y]
-        mem_loadw.ZERO_WORD
-        swapw
-        push.0.0.0.0
-        adv_pipe
-        adv_pipe
-        #=> [Y, L, Y, ptr, pos, depth, y,       y, y]
-
-        ## Check correctness of unhashing
-        loc_loadw.13
-        movup.4
-        assert_eq
-        movup.3
-        assert_eq
-        movup.2
-        assert_eq
-        assert_eq
-        #=> [Y, ptr, pos, depth, y, y, y, y, ]
-
-        # TODO: avoid this
-        swapw
-        swap
-        movdn.3
-        #=> [ptr, depth, y, pos, Y, y, y, y, ]
-        
-        # Load domain_gen    
-        push.0
-        loc_loadw.9
-        #=> [lde_size, depth, domain_gen, 0, pos, y, y, y, Y, ]
-
-        # Compute x = offset * domain_gen^pos
-        movup.2
-        dup.4
-        exp.u32
-        mul.7
-        loc_storew.11       # Store x for much later use
-        #=> [x, lde_size, depth, 0, pos, y, y, y, Y, ]
-        swapw
-        #=> [pos, y, y, y, x, lde_size, depth, 0, Y, ]
-
-        # Compute the denominator i.e. (x - z) and (x - gz) 
-        ## Get z and gz from memory
-        loc_loadw.10
-        #=> [gz1, gz0, z1, z0, x, lde_size, depth, 0, Y, ]
-        neg
-        dup.4
-        movup.2
-        sub
-        movdn.4
-        movdn.3
-        #=> [z1, z0, x, -gz1, x -gz0, ..]
-
-        ## Compute Z := [-z1, x - z0, -gz1, x -gz0] 
-        neg
-        movdn.2
-        sub
-        swap
-        #=> [Z, Y, Y] where Z := [-z1, x - z0, -gz1, x -gz0] 
-
-        ## Move Z to the last portion of the stack
-        push.0
-        movdn.4
-        swapw.2
-        #=> [Y, Y, Z]
-
-        # Get pointers
-        locaddr.2800    # p3 := ptr_trace
-        locaddr.DEEP_RAND_CC    # p2 := ptr_coef
-        locaddr.OOD_TRACE_CURRENT    # p1 := ptr_ood_frame current. Next is 2293 i.e. 41 words offset
-        push.0
-        #=> [P, x, lde_size, depth, 0, pos, y, y, y, Y, ]
-
-        # Prepare to compute the sum \sum_{i=0}^k{\left(\alpha_i \cdot \frac{T_i(x) - T_i(z)}{x - z} 
-        #            + \beta_i \cdot \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g}
-        # We can factorize (x - z) and (x - gz) and divide the two sums only once at the end.
-        # The two sums are stored in [Acc3, Acc2] and [Acc1, Acc0] respectively.
-
-        # This will contain the two accumulators
-        push.0.0.0.0    
-        swapw.3
-        #=> [Y, P, Y, 0, 0, 0, 0,      Z ]
-        #=> [Y, P, Y, Acc,       Z] where Acc =: [Acc3, Acc2, Acc1, Acc0]
-
-        # Loop over i (constraints) for the currently fixed x 
-        # There are 72 columns in the main trace. In each iteration of the following loop we are treating 
-        # 4 columns and thus need 18 iterations.
-        # The reason for having 4 different (almost) identical implementations for `proc.deep_query`
-        # is due to the fact that T_i(x) is a base field element and can be in 1 of 4 possible
-        # locations at a memory location. To avoid expensive pointer arithmetic we opted to have
-        # one implementation for each of the 4 possiblities.
-        repeat.18
-        exec.deep_queries::deep_query_1
-        exec.deep_queries::deep_query_2
-        exec.deep_queries::deep_query_3
-        exec.deep_queries::deep_query_4
-        end
-
-        # Next is the auxiliary columns. Since the aux trace has elements in the extension field we need
-        # to give up one of the pointers in order to fit everything on the stack. Since the trace-row
-        # currently being processed is always held in the temporary contiguous memory region pointed to
-        # by locaddr.2800, we can just drop p1 and unroll the loop into as many aux trace columns as needed.
-        # Currently, we have 9 such columns and thus the following 9 similar code-blocks.
-        #<= [Y, 0, p1, p2, p3, Y, Acc,      Z ]
-        swapw
-        movup.3
-        #=> [p3, 0, p2, p3, Y, Y, Acc,      Z ]
-        #=> [y, y, p2, p3, Y, Y, Acc,      Z]
-
-        # Load the 1st, out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2818
-        #=> [value_{i+1}1, value_{i+1}0, value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
-        drop drop
-        #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
-        exec.deep_queries::deep_query_aux_1
-
-        # Load the 2nd out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2818
-        #=> [value_{i+1}1, value_{i+1}0, value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
-        movup.2 drop
-        movup.2 drop
-        #=> [value_{i+1}1, value_{i+1}0, p1, p2, Y, Y, Acc,      Z ]
-        exec.deep_queries::deep_query_aux_2
-
-        # Load the 3rd out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2819
-        drop drop
-        exec.deep_queries::deep_query_aux_1
-
-        # Load the 4th out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2819
-        movup.2 drop
-        movup.2 drop
-        exec.deep_queries::deep_query_aux_2
-
-        # Load the 5th out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2820
-        drop drop
-        exec.deep_queries::deep_query_aux_1
-
-        # Load the 6th out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2820
-        movup.2 drop
-        movup.2 drop
-        exec.deep_queries::deep_query_aux_2
-
-        # Load the 7th out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2821
-        drop drop
-        exec.deep_queries::deep_query_aux_1
-
-        # Load the 8th out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2821
-        movup.2 drop
-        movup.2 drop
-        exec.deep_queries::deep_query_aux_2
-
-        # Load the 9th out of 9, auxiliary trace values 
-        push.0.0
-        loc_loadw.2822
-        drop drop
-        exec.deep_queries::deep_query_aux_1
-        #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
-
-        # Move p2, the pointer to constraint random coefficients, further up the stack and prepare 
-        # for loading the composition constraint polynomial part by getting the next two H_i(x) 
-        # i.e. the constraint composition trace row i.e. H_i(x) and H_{i+1}(x) for current x 
-        swapw.2
-        loc_loadw.2823    
-        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, Y, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-
-        # Get OOD constraint evaluation frame for i = 0
-        swapw
-        loc_loadw.2334
-        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1,
-        #    H_{i}(x)_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-
-
-        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
-        movup.5
-        movup.5
-        swapw
-        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
-        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        ext2sub
-        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
-        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
-        movdn.5
-        movdn.5
-        ext2sub
-        neg
-        swap
-        neg
-        swap
-        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
-
-        # Load the random coefficients and compute the two products for i and i+1
-        swapw
-        push.0.0.0.0
-        dup.7
-        add.1
-        swap.8
-        mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, value_{i}1, value_{i}0, p2, p1, 
-        #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
-
-        movupw.2
-        movup.5
-        movup.5
-        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
-        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        ext2mul
-        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
-        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
-
-        movdn.5
-        movdn.5
-        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, 
-        #   value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        ext2mul
-        movdn.3
-        movdn.3
-        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
-
-        # Accumulate partial sum 
-        ext2add
-        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        #=> [accH_1, accH_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
-        # where (accH_0, accH_1) = (prod_{i+1}_0 + prod_i_0, prod_{i+1}_1 + prod_i_1)
-
-        # load next H_i(x) and H_{i+1}(x) for current x i.e. i = 2
-        movup.3
-        movup.3
-        push.0.0
-        loc_loadw.2824
-        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # load next H_i(z) and H_{i+1}(z)
-        push.0.0.0.0
-        loc_loadw.2335
-        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0,
-        #    accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
-        movup.5
-        movup.5
-        swapw
-        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
-        #    accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2sub
-        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
-
-        movdn.5
-        movdn.5
-        ext2sub
-        neg
-        swap
-        neg
-        swap
-        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
-
-        # Load the random coefficients and compute the two products for i and i+1
-        swapw
-        push.0.0.0.0
-        dup.7
-        add.1
-        swap.8
-        mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, 
-        #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
-
-        movupw.2
-        movup.5
-        movup.5
-        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
-        #   accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2mul
-        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
-        #   accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
-
-        movdn.5
-        movdn.5
-        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, 
-        #   accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2mul
-        movdn.3
-        movdn.3
-        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
-
-        # Accumulate
-        ext2add
-        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2add
-        #=> [accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # load next H_i(x) and H_{i+1}(x) for current x i.e. i = 4
-        push.0.0.0.0
-        loc_loadw.2825
-        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # load next H_i(z) and H_{i+1}(z)
-        push.0.0.0.0
-        loc_loadw.2336
-        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0,
-        #    accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
-        movup.5
-        movup.5
-        swapw
-        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, 
-        #   accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2sub
-        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
-
-        movdn.5
-        movdn.5
-        ext2sub
-        neg
-        swap
-        neg
-        swap
-        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
-
-        # Load the random coefficients and compute the two products for i and i+1
-        swapw
-        push.0.0.0.0
-        dup.7
-        add.1
-        swap.8
-        mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, 
-        #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
-
-        movupw.2
-        movup.5
-        movup.5
-        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
-        #   accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2mul
-        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
-
-        movdn.5
-        movdn.5
-        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2mul
-        movdn.3
-        movdn.3
-        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
-
-        ext2add
-        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        ext2add
-        #=> [accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # load next H_i(x) and H_{i+1}(x) for current x i.e. i = 6
-        push.0.0.0.0
-        loc_loadw.2826
-        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # load next H_i(z) and H_{i+1}(z)
-        push.0.0.0.0
-        loc_loadw.2337
-        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0,
-        #    accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
-        movup.5
-        movup.5
-        swapw
-        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, 
-        #   accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2sub
-        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
-
-        movdn.5
-        movdn.5
-        ext2sub
-        neg
-        swap
-        neg
-        swap
-        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
-
-        # Load the random coefficients and compute the two products for i and i+1
-        swapw
-        push.0.0.0.0
-        dup.7
-        add.1
-        swap.8
-        mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
-
-        movupw.2
-        movup.5
-        movup.5
-        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2mul
-        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
-
-        movdn.5
-        movdn.5
-        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        ext2mul
-        movdn.3
-        movdn.3
-        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
-
-        ext2add
-        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
-
-        ext2add
-        #=> [accH_1, accH_0, p2, p1, Acc, Z, y, ptr_query ]
-        #=> [accH_1, accH_0, p2, p1, acc_z_1, acc_z_0, acc_gz_1, acc_gz_0,      Z ]
-
-        # Divide by (x - z), (x - gz)
-        swapw.2
-        swapw
-        #=> [acc_z_1, acc_z_0, acc_gz_1, acc_gz_0, (x - z)_1, (x - z)_0, (x - gz)_1, (x - gz)_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-
-        movup.5
-        movup.5
-        ext2div
-        #=> [query_z_1, query_z_0, acc_gz_1, acc_gz_0, (x - gz)_1, (x - gz)_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-        # where (query_z_0, query_z_1) = (acc_z_0, acc_z_1)/(x - z)
-
-        movdn.5
-        movdn.5
-        #=> [acc_gz_1, acc_gz_0, (x - gz)_1, (x - gz)_0, query_z_1, query_z_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-
-        movup.3
-        movup.3
-        ext2div
-        #=> [query_gz_1, query_gz_0, query_z_1, query_z_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-
-        # Sum the two accumulators to get the part of the query comming from the traces
-        ext2add
-        #=> [query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-
-        # Divide the constraint composition polynomial accumulator by (x - z^8)
-        ## Get x 
-        push.0.0.0.0
-        loc_loadw.11
-        movdn.3
-        push.0
-        mem_loadw.Z
-        #=> [z^8_1, z^8_0, z1, z0, x, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-
-        ## Compute the denominator
-        neg
-        swap
-        movup.4
-        swap
-        sub
-        swap
-        #=> [-z^8_1, x - z^8_0, z1, z0, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
-
-        ## Divide by the computed denominator
-        movdn.5
-        movdn.5
-        swapw
-        #=> [-z^8_1, x - z^8_0, accH_1, accH_0, z1, z0, query_trace_1, query_trace_0, p2, p1, y, ptr_query  ]
-        ext2div
-        #=> [query_constr_1, query_constr_0, z1, z0, query_trace_1, query_trace_0, p2, p1, y, ptr_query  ]
-
-        # Sum the two parts to get the deep evaluation query value for current x (without degree adjustment)
-        movup.5
-        movup.5
-        ext2add
-        #=> [eval_tmp_1, eval_tmp_0, y, y, p2, p1, y, ptr_query ]
-
-        # Multiply the evaluation by the degree adj factor (alpha + x * beta)
-        ## Load the next two random coefficients
-        movup.3
-        movup.3
-        push.00
-        movdn.5
-        #=> [y, y, eval_tmp_1, eval_tmp_0, p2, 00, p1, y, ptr_query ]
-        swapw
-        swap.2
-        #=> [p1, 00, p2, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query ]
-        mem_loadw
-        #=> [alpha1, alpha0, beta1, beta0, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
-
-        ## Load x
-        push.0.0.0.0
-        loc_loadw.11
-        #=> [x, y, y, y, alpha1, alpha0, beta1, beta0, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
-
-        ## Compute (alpha * x + beta)
-        swapw
-        swap
-        dup.4
-        #=> [x, alpha0, alpha1, beta1, beta0, x, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
-        mul
-        movup.3
-        add
-        #=> [beta0 + x* alpha0, alpha1, beta1, x, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
-        movdn.3
-        movup.2
-        mul
-        add
-        #=> [x * alpha1 + beta1, beta0 + x * alpha0, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
-        
-        # Compute deep evaluation for the current x
-        movup.7
-        movup.7
-        #=> [eval_tmp_1, eval_tmp_0, alpha1 + beta1, beta0 + x* alpha0, y, y, y, y, ptr_query, ]
-        ext2mul
-        #=> [eval_1, eval_0, y, y, y, y, ptr_query, ]
-
-        # Store [poe, index, eval_1, eval_0] 
-        # where poe := g^index = x / offset.
-        movdn.5
-        movdn.5
-        dup.6
-        #=> [ptr_query, y, y, y, y, eval_1, eval_0, ptr_query, ]
-        mem_loadw
-        #=> [index, depth, y, y, eval_1, eval_0, ptr_query, ]
-        movdn.3
-        push.0
-        loc_loadw.11
-        div.7
-        #=> [poe, y, y, y, index, eval_1, eval_0, ptr_query, ]
-        movdn.3
-        drop drop drop
-        #=> [poe, index, eval_1, eval_0, ptr_query, ]
-
-        dup.4
-        add.1
-        swap.5
-        mem_storew
-        #=> [depth, index, eval_1, eval_0, ptr_query_n]
-
-        # Prepare stack for next iteration
-        # TODO: simplify/optimize this
-        dup.4
-        #=> [ptr_query_n, depth, index, eval_1, eval_0, ptr_query_n]
-        push.0.0.0
-        #=> [0, 0, 0, ptr_query_n, depth, index, eval_1, eval_0, ptr_query_n]
-
-        repeat.3
-            push.0.0.0.0
-        end
-        #=> [Y, Y, Y, 0, 0, 0, ptr_query_n, Y, ptr_query_n]
-
-        swapw.3
-        #=> [0, 0, 0, ptr_query_n, Y, Y, Y, Y, ptr_query_n]
-
-        dup.3
-        #=> [ptr_query_n, Y, Y, Y, Y, Y, ptr_query_n]
-    end
-
-    repeat.4 dropw end
-    drop drop
-
-    # Call the FRI verifier
-    ## Get domain generator and a pointer to the remainder codeword
-    loc_loadw.9
+    # Compute deep compostion polynomial queries
+    exec.deep_queries::compute_deep_composition_polynomial_queries
+    # => [...]
+
+    #============================================
+    #   7) Call the FRI verifier
+    #============================================
+    
+    # Get domain generator and a pointer to the remainder codeword
+    push.0.0.0.0
+    mem_loadw.TMP0
     push.0.0
-    loc_loadw.8
+    mem_loadw.TMP8
     swap.3
     drop drop drop
     #=>[ptr_remainder, g]
 
-    ## Get the pointer to the first layer commitment
-    locaddr.FRI_COM
+    # Get the pointer to the first layer commitment
+    push.FRI_COM_PTR
 
-    ## Get the pointer to the first FRI query
-    locaddr.FRI_QUERIES
+    # Get the pointer to the first FRI query
+    push.FRI_QUERIES_PTR
     #=> [ptr_query, ptr_layer, ptr_remainder, domain_gen]
 
-    ## Call FRI verifier
+    # Call FRI verifier
     exec.frie2f4::verify
     #=> ()
 end
