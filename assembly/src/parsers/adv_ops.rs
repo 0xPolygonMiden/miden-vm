@@ -7,7 +7,8 @@ use super::{
 // INSTRUCTION PARSERS
 // ================================================================================================
 
-/// Returns `AdvU64Div`, `AdvKeyval`, or `AdvMem`  instruction node.
+/// Returns `AdvU64Div`, `AdvKeyval`, `AdvMem`, `AdvExt2Inv`, `AdvExt2INTT`, or `AdvSmtGet`
+/// instruction node.
 ///
 /// # Errors
 /// Returns an error if:
@@ -48,6 +49,12 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
                 return Err(ParsingError::extra_param(op));
             }
             Ok(Instruction(AdvExt2INTT))
+        }
+        "smtget" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
+            }
+            Ok(Instruction(AdvSmtGet))
         }
         _ => Err(ParsingError::invalid_op(op)),
     }

@@ -331,6 +331,7 @@ impl Deserializable for Instruction {
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
             OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),
             OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
+            OpCode::AdvSmtGet => Ok(Instruction::AdvSmtGet),
 
             // ----- cryptographic operations -----------------------------------------------------
             OpCode::Hash => Ok(Instruction::Hash),

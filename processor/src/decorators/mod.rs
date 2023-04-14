@@ -1,13 +1,32 @@
 use super::{
     AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Felt, Process,
-    StarkField,
+    StarkField, Word,
 };
-use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_SIZE, ZERO};
+use vm_core::{
+    crypto::merkle::EmptySubtreeRoots, utils::collections::Vec, FieldElement, QuadExtension, ONE,
+    WORD_SIZE, ZERO,
+};
 use winter_prover::math::fft;
+
+#[cfg(test)]
+mod tests;
 
 // TYPE ALIASES
 // ================================================================================================
 type QuadFelt = QuadExtension<Felt>;
+
+// CONSTANTS
+// ================================================================================================
+
+/// Maximum depth of a Sparse Merkle tree
+const SMT_MAX_TREE_DEPTH: Felt = Felt::new(64);
+
+/// Lookup table for Sparse Merkle tree depth normalization
+const SMT_NORMALIZED_DEPTHS: [u8; 65] = [
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 32, 32,
+    32, 32, 32, 32, 32, 32, 32, 32, 32, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+    48, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+];
 
 // DECORATORS
 // ================================================================================================
@@ -45,6 +64,7 @@ where
             AdviceInjector::Memory => self.inject_mem_values(),
             AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
             AdviceInjector::Ext2INTT => self.inject_ext2_intt_result(),
+            AdviceInjector::SmtGet => self.inject_smtget(),
         }
     }
 
@@ -277,6 +297,74 @@ where
 
         Ok(())
     }
+
+    /// Pushes the value and depth flags of a leaf indexed by `key` on a Sparse Merkle tree with
+    /// the provided `root`.
+    ///
+    /// The Sparse Merkle tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    /// The depth flags define the tier on which the leaf is located.
+    ///
+    /// The operand stack is expected to be arranged as follows:
+    /// - key, 4 elements.
+    /// - root of the Sparse Merkle tree, 4 elements.
+    ///
+    /// After a successful operation, the advice stack will look as follows (from the top):
+    /// - boolean flag set to `1` if the depth is `16` or `48`.
+    /// - boolean flag set to `1` if the depth is `16` or `32`.
+    /// - remaining key word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - value word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - boolean flag set to `1` if a remaining key is not zero.
+    ///
+    /// # Errors
+    /// Will return an error if:
+    /// - The provided Merkle root doesn't exist on the advice provider
+    ///
+    /// # Panics
+    /// Will panic as unimplemented if the target depth is `64`.
+    fn inject_smtget(&mut self) -> Result<(), ExecutionError> {
+        // fetch the arguments from the operand stack
+        let key = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
+        let root = [self.stack.get(7), self.stack.get(6), self.stack.get(5), self.stack.get(4)];
+
+        let index = &key[3];
+        let depth = self.advice_provider.get_leaf_depth(root, &SMT_MAX_TREE_DEPTH, index)?;
+        debug_assert!(depth < 65);
+
+        // normalize the depth into one of the tiers. this is not a simple `next_power_of_two`
+        // because of `48`. using a lookup table is far more efficient than if/else if/else.
+        let depth = SMT_NORMALIZED_DEPTHS[depth as usize];
+        if depth == 64 {
+            unimplemented!("the functionality is unimplemented for depth 64 as the bottom tier will have a special treatment to embed multiple key/value pairs onto a single node");
+        }
+
+        // fetch the node value
+        let index = index.as_int() >> (64 - depth);
+        let index = Felt::new(index);
+        let node = self.advice_provider.get_tree_node(root, &Felt::new(depth as u64), &index)?;
+
+        // set the node value; zeroed if empty sub-tree
+        let empty = EmptySubtreeRoots::empty_hashes(64);
+        if Word::from(empty[depth as usize]) == node {
+            // push zeroes for remaining key, value & empty remaining key flag
+            for _ in 0..9 {
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+            }
+        } else {
+            // push a flag indicating that a remaining key exists
+            self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+
+            // map is expected to contain `node |-> {K', V}`
+            self.advice_provider.push_stack(AdviceSource::Map { key: node })?;
+        }
+
+        // set the flags
+        let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
+        let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+
+        Ok(())
+    }
 }
 
 // HELPER FUNCTIONS
@@ -286,80 +374,4 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
     let hi = Felt::new(value >> 32);
     let lo = Felt::new((value as u32) as u64);
     (hi, lo)
-}
-
-// TESTS
-// ================================================================================================
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
-        Process,
-    };
-    use crate::{MemAdviceProvider, StackInputs, Word};
-    use vm_core::{
-        crypto::merkle::{MerkleStore, MerkleTree},
-        AdviceInjector, Decorator,
-    };
-
-    #[test]
-    fn inject_merkle_node() {
-        let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
-        let tree = MerkleTree::new(leaves.to_vec()).unwrap();
-        let store = MerkleStore::default().with_merkle_tree(leaves).unwrap();
-        let stack_inputs = [
-            tree.root()[0].as_int(),
-            tree.root()[1].as_int(),
-            tree.root()[2].as_int(),
-            tree.root()[3].as_int(),
-            1,
-            tree.depth() as u64,
-        ];
-
-        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_inputs = AdviceInputs::default().with_merkle_store(store);
-        let advice_provider = MemAdviceProvider::from(advice_inputs);
-        let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
-        process.execute_op(Operation::Noop).unwrap();
-
-        // push the node onto the advice stack
-        process
-            .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
-            .unwrap();
-
-        // pop the node from the advice stack and push it onto the operand stack
-        process.execute_op(Operation::AdvPop).unwrap();
-        process.execute_op(Operation::AdvPop).unwrap();
-        process.execute_op(Operation::AdvPop).unwrap();
-        process.execute_op(Operation::AdvPop).unwrap();
-
-        let expected_stack = build_expected(&[
-            leaves[1][3],
-            leaves[1][2],
-            leaves[1][1],
-            leaves[1][0],
-            Felt::new(2),
-            Felt::new(1),
-            tree.root()[3],
-            tree.root()[2],
-            tree.root()[1],
-            tree.root()[0],
-        ]);
-        assert_eq!(expected_stack, process.stack.trace_state());
-    }
-
-    // HELPER FUNCTIONS
-    // --------------------------------------------------------------------------------------------
-    fn init_leaf(value: u64) -> Word {
-        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
-    }
-
-    fn build_expected(values: &[Felt]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
-        for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = value
-        }
-        expected
-    }
 }

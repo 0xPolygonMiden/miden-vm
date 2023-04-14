@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, InputError, Word};
+use super::{ExecutionError, Felt, InputError, StarkField, Word};
 use vm_core::{
     crypto::merkle::{MerklePath, MerkleStore, NodeIndex},
     utils::{
@@ -124,6 +124,21 @@ pub trait AdviceProvider {
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError>;
 
+    /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
+    ///
+    /// For more information, check [MerkleStore::get_leaf_depth].
+    ///
+    /// # Errors
+    /// Will return an error if:
+    /// - The provided `tree_depth` doesn't fit `u8`.
+    /// - The conditions of [MerkleStore::get_leaf_depth] aren't met.
+    fn get_leaf_depth(
+        &self,
+        root: Word,
+        tree_depth: &Felt,
+        index: &Felt,
+    ) -> Result<u8, ExecutionError>;
+
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root.
     ///
@@ -209,6 +224,15 @@ where
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
         T::get_merkle_path(self, root, depth, index)
+    }
+
+    fn get_leaf_depth(
+        &self,
+        root: Word,
+        tree_depth: &Felt,
+        index: &Felt,
+    ) -> Result<u8, ExecutionError> {
+        T::get_leaf_depth(self, root, tree_depth, index)
     }
 
     fn update_merkle_node(

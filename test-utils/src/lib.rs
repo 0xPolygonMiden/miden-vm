@@ -25,7 +25,6 @@ pub use prover::{MemAdviceProvider, ProofOptions};
 pub use test_case::test_case;
 pub use verifier::ProgramInfo;
 pub use vm_core::{
-    crypto::hash::RpoDigest,
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
     Felt, FieldElement, Program, StarkField, Word, ONE, WORD_SIZE, ZERO,
@@ -41,14 +40,14 @@ pub mod serde {
 
 pub mod crypto;
 
+#[cfg(not(target_family = "wasm"))]
+pub mod rand;
+
 mod test_builders;
 pub use test_builders::*;
 
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
-
-#[cfg(not(target_family = "wasm"))]
-pub use rand_utils as rand;
 
 // TYPE ALIASES
 // ================================================================================================

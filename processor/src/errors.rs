@@ -18,6 +18,7 @@ pub enum ExecutionError {
     AdviceKeyNotFound(Word),
     AdviceStackReadFailed(u32),
     InvalidNodeIndex { depth: Felt, value: Felt },
+    InvalidTreeDepth { depth: Felt },
     MerkleUpdateInPlace,
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
@@ -54,6 +55,9 @@ impl Display for ExecutionError {
                 fmt,
                 "The provided index {value} is out of bounds for a node at depth {depth}"
             ),
+            InvalidTreeDepth { depth } => {
+                write!(fmt, "The provided {depth} is out of bounds and cannot be represented as an unsigned 8-bits integer")
+            }
             MerkleUpdateInPlace => write!(fmt, "Update in place is not supported"),
             MerkleStoreLookupFailed(reason) => {
                 write!(fmt, "Advice provider Merkle store backend lookup failed: {reason}")
