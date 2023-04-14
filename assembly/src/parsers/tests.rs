@@ -2,7 +2,7 @@ use vm_core::Felt;
 
 use super::{
     parse_module, parse_program, BTreeMap, Instruction, LocalProcMap, ModuleAst, Node,
-    ProcedureAst, ProcedureId, ProgramAst,
+    ParsingError, ProcedureAst, ProcedureId, ProgramAst, Token,
 };
 
 // UNIT TESTS
@@ -690,6 +690,72 @@ fn test_ast_program_serde_control_flow() {
     let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);
+}
+
+#[test]
+fn assert_parsing_line_unmatched_begin() {
+    let source = format!("\n\nbegin\npush.1.2\n\nadd mul");
+    let err = parse_program(&source).err().unwrap();
+    assert_eq!(err, ParsingError::unmatched_begin(&Token::new("begin", 3)));
+}
+
+#[test]
+fn assert_parsing_line_extra_param() {
+    let source = format!("begin add.1.2\nend");
+    let err = parse_program(&source).err().unwrap();
+    assert_eq!(err, ParsingError::extra_param(&Token::new("add.1.2", 1)));
+}
+
+#[test]
+fn assert_parsing_line_invalid_op() {
+    let source = "\
+    begin
+        repeat.3
+            push.1
+            push.0.1
+        end
+
+        # some comments
+
+        if.true
+            and
+            loc_store.0
+        else
+            padw
+        end
+
+        # more comments
+        # to test if line is correct
+
+        while.true
+            push.5.7
+            u32checked_add
+            loc_store.1
+            push.0
+        end
+
+        repeat.3
+            push.2
+            u32overflowing_mulx
+        end
+
+    end";
+    let err = parse_program(&source).err().unwrap();
+    assert_eq!(err, ParsingError::invalid_op(&Token::new("u32overflowing_mulx", 28)));
+}
+
+#[test]
+fn assert_parsing_line_unexpected_eof() {
+    let source = format!("proc.foo\nadd\nend");
+    let err = parse_program(&source).err().unwrap();
+    assert_eq!(err, ParsingError::unexpected_eof(3));
+}
+
+#[test]
+fn assert_parsing_line_unexpected_token() {
+    let source = format!("proc.foo\nadd\nend\n\nmul");
+    let err = parse_program(&source).err().unwrap();
+    assert_eq!(err, ParsingError::unexpected_token(&Token::new("mul", 5), "begin"));
 }
 
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {

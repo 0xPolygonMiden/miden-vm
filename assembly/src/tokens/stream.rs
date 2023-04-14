@@ -10,6 +10,7 @@ pub const LINE_COMMENT_PREFIX: &str = "#";
 #[derive(Debug)]
 pub struct TokenStream<'a> {
     tokens: Vec<&'a str>,
+    lines: Vec<usize>,
     current: Token<'a>,
     pos: usize,
     temp: Token<'a>,
@@ -26,12 +27,14 @@ impl<'a> TokenStream<'a> {
             return Err(ParsingError::empty_source());
         }
         let mut tokens = Vec::new();
+        let mut lines = Vec::new();
         let mut proc_comments = BTreeMap::new();
         let mut module_comment = None;
-
         let mut comment_builder = CommentBuilder(None);
+        let mut line_number = 0;
 
         for line in source.lines() {
+            line_number += 1;
             let line = line.trim();
             if line.starts_with(DOC_COMMENT_PREFIX) {
                 comment_builder.append_line(line);
@@ -46,7 +49,7 @@ impl<'a> TokenStream<'a> {
                     } else {
                         // since we already have a module comment, this is a procedure comment
                         // which is followed by a blank line.
-                        return Err(ParsingError::dangling_procedure_comment(tokens.len()));
+                        return Err(ParsingError::dangling_procedure_comment(line_number));
                     }
                 }
             } else {
@@ -62,19 +65,21 @@ impl<'a> TokenStream<'a> {
                     if token.starts_with(Token::EXPORT) || token.starts_with(Token::PROC) {
                         proc_comments.insert(tokens.len(), comment_builder.take_comment());
                     } else {
-                        return Err(ParsingError::dangling_procedure_comment(tokens.len()));
+                        return Err(ParsingError::dangling_procedure_comment(line_number));
                     }
                 }
                 tokens.append(&mut line_tokens);
+                lines.resize(tokens.len(), line_number);
             }
         }
 
         if tokens.is_empty() {
             return Err(ParsingError::empty_source());
         }
-        let current = Token::new(tokens[0], 0);
+        let current = Token::new(tokens[0], 1);
         Ok(Self {
             tokens,
+            lines,
             current,
             pos: 0,
             temp: Token::default(),
@@ -89,6 +94,11 @@ impl<'a> TokenStream<'a> {
     /// Returns position of the current token in this stream.
     pub fn pos(&self) -> usize {
         self.pos
+    }
+
+    /// Returns the current lines count for the stream.
+    pub fn num_lines(&self) -> usize {
+        self.lines[self.pos.min(self.lines.len().saturating_sub(1))]
     }
 
     /// Returns 'true' all tokens from this stream have been read.
@@ -119,7 +129,7 @@ impl<'a> TokenStream<'a> {
         if pos == self.pos {
             self.read()
         } else {
-            self.temp.update(self.tokens[pos], pos);
+            self.temp.update(self.tokens[pos], self.lines[pos]);
             Some(&self.temp)
         }
     }
@@ -129,7 +139,7 @@ impl<'a> TokenStream<'a> {
         if !self.eof() {
             self.pos += 1;
             if !self.eof() {
-                self.current.update(self.tokens[self.pos], self.pos);
+                self.current.update(self.tokens[self.pos], self.lines[self.pos]);
             }
         }
     }
