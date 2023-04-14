@@ -1,5 +1,5 @@
 use crate::build_test;
-use test_utils::{build_expected_hash, StarkField, TestError};
+use test_utils::{build_expected_hash, build_expected_perm, StarkField, TestError};
 
 #[test]
 fn test_invalid_end_addr() {
@@ -190,4 +190,69 @@ fn test_hash_odd_words() {
         0, 0, 1, 0,
     ]).into_iter().map(|e| e.as_int()).collect();
     build_test!(odd_words, &[]).expect_stack(&odd_hash);
+}
+
+#[test]
+fn test_hash_memory_even() {
+    let even_words = "
+    use.std::crypto::hashes::native
+
+    begin
+        push.1.0.0.0.1000 mem_storew dropw
+        push.0.1.0.0.1001 mem_storew dropw
+
+        push.1002      # end address
+        push.1000      # start address
+        padw padw padw # hasher state
+        exec.native::hash_memory_even
+    end
+    ";
+
+    #[rustfmt::skip]
+    let mut even_hash: Vec<u64> = build_expected_perm(&[
+        0, 0, 0, 0, // capacity, no padding required
+        1, 0, 0, 0, // first word of the rate
+        0, 1, 0, 0, // second word of the rate
+    ]).into_iter().map(|e| e.as_int()).collect();
+
+    // start and end addr
+    even_hash.push(1002);
+    even_hash.push(1002);
+
+    build_test!(even_words, &[]).expect_stack(&even_hash);
+}
+
+#[test]
+fn test_state_to_digest() {
+    let even_words = "
+    use.std::crypto::hashes::native
+
+    begin
+        push.1.0.0.0.1000 mem_storew dropw
+        push.0.1.0.0.1001 mem_storew dropw
+        push.0.0.1.0.1002 mem_storew dropw
+        push.0.0.0.1.1003 mem_storew dropw
+
+        push.1004      # end address
+        push.1000      # start address
+        padw padw padw # hasher state
+        exec.native::hash_memory_even
+
+        exec.native::state_to_digest
+    end
+    ";
+
+    #[rustfmt::skip]
+    let mut even_hash: Vec<u64> = build_expected_hash(&[
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    ]).into_iter().map(|e| e.as_int()).collect();
+
+    // start and end addr
+    even_hash.push(1004);
+    even_hash.push(1004);
+
+    build_test!(even_words, &[]).expect_stack(&even_hash);
 }

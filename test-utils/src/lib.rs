@@ -8,13 +8,13 @@ extern crate alloc;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
-use vm_core::chiplets::hasher::{apply_permutation, STATE_WIDTH};
+use vm_core::chiplets::hasher::apply_permutation;
 use vm_core::utils::{collections::Vec, string::String};
 
 // EXPORTS
 // ================================================================================================
 
-pub use vm_core::chiplets::hasher::hash_elements;
+pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
@@ -216,6 +216,17 @@ impl Test {
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
         processor::execute(&program, self.stack_inputs.clone(), advice_provider)
+    }
+
+    /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
+    /// process once execution is finished.
+    pub fn execute_process(&self) -> Result<Process<MemAdviceProvider>, ExecutionError> {
+        let program = self.compile();
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        let mut process =
+            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
+        process.execute(&program)?;
+        Ok(process)
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
