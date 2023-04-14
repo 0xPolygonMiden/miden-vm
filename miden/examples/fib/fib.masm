@@ -1,5 +1,5 @@
 begin
-    repeat.1000
+    repeat.999
         swap dup.1 add
     end
 end
