@@ -363,10 +363,12 @@ pub enum Operation {
     Pipe,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
-    /// rate part of the sponge is assumed to be on top of the stack, and the capacity is expected
-    /// to be deepest in the stack, starting at stack[8]. For an RPO permutation of [A, B, C] where
-    /// A is the capacity, the stack should look like [C, B, A, ...] from the top.
+    /// Performs a Rescue Prime Optimized permutation on the top 3 words of the operand stack,
+    /// where the top 2 words are the rate (words C and B), the deepest word is the capacity (word
+    /// A), and the digest output is the middle word E.
+    ///
+    /// Stack transition:
+    /// [C, B, A, ...] -> [F, E, D, ...]
     HPerm,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This

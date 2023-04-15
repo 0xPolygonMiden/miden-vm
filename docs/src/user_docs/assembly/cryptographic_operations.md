@@ -7,7 +7,7 @@ Miden assembly provides a set of instructions for performing common cryptographi
 | Instruction    | Stack_input     | Stack_output   | Notes                                      |
 | -------------- | --------------- | -------------- | ------------------------------------------ |
 | hash <br> - *(20 cycles)*  | [A, ...] | [B, ...] | $\{B\} \leftarrow hash(A)$ <BR> where, $hash()$ computes a 1-to-1 Rescue Prime Optimized hash. |
-| hperm  <br> - *(1 cycle)*      | [C, B, A, ...]  | [F, E, D, ...] | $\{D, E, F\} \leftarrow permute(A, B, C)$ <br> where, $permute()$ computes a Rescue Prime Optimized permutation. |
+| hperm  <br> - *(1 cycle)*      | [C, B, A, ...]  | [F, E, D, ...] | $\{D, E, F\} \leftarrow permute(A, B, C)$ <br> Performs a Rescue Prime Optimized permutation on the top 3 words of the operand stack, where the top 2 words elements are the rate (words C and B), the deepest word is the capacity (word A), the digest output is the word E. |
 | hmerge  <br> - *(16 cycles)*        | [B, A, ...]     | [C, ...]       | $C \leftarrow hash(A,B)$ <br> where, $hash()$ computes a 2-to-1 Rescue Prime Optimized hash. |
 | mtree_get  <br> - *(9 cycles)*     | [d, i, R, ...]  | [V, R, ...] |  Fetches the node value from the advice provider and runs a verification equivalent to `mtree_verify`, returning the value if succeeded. |
 | mtree_set <br> - *(29 cycles)*      | [d, i, R, V', ...] | [V, R', ...] | Updates a node in the Merkle tree with root $R$ at depth $d$ and index $i$ to value $V'$. $R'$ is the Merkle root of the resulting tree and $V$ is old value of the node. Merkle tree with root $R$ must be present in the advice provider, otherwise execution fails. At the end of the operation the advice provider will contain both Merkle trees. |
