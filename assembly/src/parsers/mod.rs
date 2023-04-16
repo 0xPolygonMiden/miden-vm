@@ -228,7 +228,8 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
     context.parse_procedures(&mut tokens, false)?;
 
     // make sure program body is present
-    let next_token = tokens.read().ok_or_else(|| ParsingError::unexpected_eof(tokens.pos()))?;
+    let next_token =
+        tokens.read().ok_or_else(|| ParsingError::unexpected_eof(tokens.num_lines()))?;
     if next_token.parts()[0] != Token::BEGIN {
         return Err(ParsingError::unexpected_token(next_token, Token::BEGIN));
     }
@@ -240,9 +241,8 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
     tokens.advance();
 
     // make sure there is something to be read
-    let start_pos = tokens.pos();
     if tokens.eof() {
-        return Err(ParsingError::unexpected_eof(start_pos));
+        return Err(ParsingError::unexpected_eof(tokens.num_lines()));
     }
 
     let mut body = Vec::<Node>::new();
