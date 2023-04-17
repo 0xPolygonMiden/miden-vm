@@ -14,8 +14,7 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 /// than 16.
 pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
-    span.push_op_many(AdvPop, n as usize);
-    Ok(None)
+    span.add_op_many(AdvPop, n as usize)
 }
 
 // ADVICE INJECTORS

@@ -331,42 +331,6 @@ impl Assembler {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// This is a helper function that appends a PUSH operation to the span block which puts the
-/// provided u32 value onto the stack.
-///
-/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
-/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_u32_value(span: &mut SpanBuilder, value: u32) {
-    use Operation::*;
-
-    if value == 0 {
-        span.push_op(Pad);
-    } else if value == 1 {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(Felt::from(value)));
-    }
-}
-
-/// This is a helper function that appends a PUSH operation to the span block which puts the
-/// provided field element onto the stack.
-///
-/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
-/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_felt(span: &mut SpanBuilder, value: Felt) {
-    use Operation::*;
-
-    if value == ZERO {
-        span.push_op(Pad);
-    } else if value == ONE {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(value));
-    }
-}
-
 /// Returns an error if the specified value is smaller than or equal to min or greater than or
 /// equal to max. Otherwise, returns Ok(()).
 fn validate_param<I, R>(value: I, range: R) -> Result<(), AssemblyError>

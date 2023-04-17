@@ -1,6 +1,5 @@
 use super::{
-    push_felt, push_u32_value, validate_param, AssemblyContext, AssemblyError, CodeBlock, Felt,
-    Operation::*, SpanBuilder,
+    validate_param, AssemblyContext, AssemblyError, CodeBlock, Felt, Operation::*, SpanBuilder,
 };
 
 // INSTRUCTION PARSERS
@@ -32,7 +31,7 @@ pub fn mem_read(
         if is_local {
             local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
         } else {
-            push_u32_value(span, addr);
+            span.push_felt(Felt::from(addr));
         }
     } else if is_local {
         unreachable!("local always contains addr value");
@@ -40,12 +39,10 @@ pub fn mem_read(
 
     // load from the memory address on top of the stack
     if is_single {
-        span.push_op(MLoad);
+        span.add_op(MLoad)
     } else {
-        span.push_op(MLoadW);
+        span.add_op(MLoadW)
     }
-
-    Ok(None)
 }
 
 /// Appends operations to the span needed to execute a memory write instruction with an immediate
@@ -80,17 +77,15 @@ pub fn mem_write_imm(
     if is_local {
         local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
     } else {
-        push_u32_value(span, addr);
+        span.push_felt(Felt::from(addr));
     }
 
     if is_single {
         span.push_op(MStore);
-        span.push_op(Drop);
+        span.add_op(Drop)
     } else {
-        span.push_op(MStoreW);
+        span.add_op(MStoreW)
     }
-
-    Ok(None)
 }
 
 // HELPER FUNCTIONS
@@ -110,12 +105,10 @@ pub fn local_to_absolute_addr(
     span: &mut SpanBuilder,
     index: u16,
     num_proc_locals: u16,
-) -> Result<(), AssemblyError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     let max = num_proc_locals - 1;
     validate_param(index, 0..=max)?;
 
-    push_felt(span, -Felt::from(max - index));
-    span.push_op(FmpAdd);
-
-    Ok(())
+    span.push_felt(-Felt::from(max - index));
+    span.add_op(FmpAdd)
 }

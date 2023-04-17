@@ -110,7 +110,7 @@ pub fn append_pow2_op(span: &mut SpanBuilder) {
     // drop the top two elements bit and exp value of the latest bit.
     span.push_ops([Drop, Drop]);
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span.push_ops([Swap, Eqz, Assert]);
+    span.push_ops([Swap, Eqz, Assert])
 }
 
 // EXPONENTIATION OPERATION
@@ -139,8 +139,7 @@ pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>
     span.push_ops([Drop, Drop]);
 
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span.push_ops([Swap, Eqz, Assert]);
-    Ok(None)
+    span.add_ops([Swap, Eqz, Assert])
 }
 
 /// Appends a sequence of operations to compute b^pow where b is the value at the top of the stack.
@@ -284,9 +283,7 @@ pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // combine low-bit and high-bit results
     // 2 cycles
-    set_result(span);
-
-    Ok(None)
+    set_result(span)
 }
 
 /// Appends a sequence of operations to pop the top 2 elements off the stack and do a "less
@@ -310,9 +307,7 @@ pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // combine low-bit and high-bit results
     // 2 cycles
-    set_result(span);
-
-    Ok(None)
+    set_result(span)
 }
 
 /// Appends a sequence of operations to pop the top 2 elements off the stack and do a "greater
@@ -336,9 +331,7 @@ pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // combine low-bit and high-bit results
     // 2 cycles
-    set_result(span);
-
-    Ok(None)
+    set_result(span)
 }
 
 /// Appends a sequence of operations to pop the top 2 elements off the stack and do a "greater
@@ -362,9 +355,7 @@ pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // combine low-bit and high-bit results
     // 2 cycles
-    set_result(span);
-
-    Ok(None)
+    set_result(span)
 }
 
 /// Checks if the top element in the stack is an odd number or not.
@@ -475,12 +466,12 @@ fn check_lt(span: &mut SpanBuilder) {
 /// - high-bit comparison flag: 1 if the lt/gt condition being checked was true; 0 otherwise
 ///
 /// This function takes 2 cycles.
-fn set_result(span: &mut SpanBuilder) {
+fn set_result(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // check if high bits are equal AND low bit comparison condition was true
     span.push_op(And);
 
     // Set the result flag if the above check passed OR the high-bit comparison was true
-    span.push_op(Or);
+    span.add_op(Or)
 }
 
 /// Appends operations to the span block to emulate a "less than or equal" conditional and check

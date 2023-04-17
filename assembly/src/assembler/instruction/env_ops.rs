@@ -1,6 +1,6 @@
 use super::{
-    mem_ops::local_to_absolute_addr, push_felt, AssemblyContext, AssemblyError, CodeBlock, Felt,
-    Operation::*, SpanBuilder,
+    mem_ops::local_to_absolute_addr, AssemblyContext, AssemblyError, CodeBlock, Felt, Operation::*,
+    SpanBuilder,
 };
 
 // CONSTANT INPUTS
@@ -15,8 +15,7 @@ pub fn push_one<T>(imm: T, span: &mut SpanBuilder) -> Result<Option<CodeBlock>, 
 where
     T: Into<Felt>,
 {
-    push_felt(span, imm.into());
-    Ok(None)
+    span.add_felt(imm.into())
 }
 
 /// Appends `PUSH` operations to the span block to push two or more provided constant values onto
@@ -29,7 +28,7 @@ pub fn push_many<T>(imms: &[T], span: &mut SpanBuilder) -> Result<Option<CodeBlo
 where
     T: Into<Felt> + Copy,
 {
-    imms.iter().for_each(|imm| push_felt(span, (*imm).into()));
+    imms.iter().for_each(|imm| span.push_felt((*imm).into()));
     Ok(None)
 }
 

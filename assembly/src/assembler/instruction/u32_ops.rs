@@ -1,6 +1,6 @@
 use super::{
     field_ops::append_pow2_op,
-    push_u32_value, validate_param, AssemblyError, CodeBlock, Felt,
+    validate_param, AssemblyError, CodeBlock, Felt,
     Operation::{self, *},
     SpanBuilder,
 };
@@ -295,8 +295,7 @@ pub fn u32rotr(
     match (imm, op_mode) {
         (Some(imm), U32OpMode::Checked) if imm == 0 => {
             // if rotation is performed by 0, just verify that stack top is u32
-            span.push_ops([Pad, U32assert2, Drop]);
-            return Ok(None);
+            return span.add_ops([Pad, U32assert2, Drop]);
         }
         (Some(imm), U32OpMode::Checked) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
@@ -304,8 +303,7 @@ pub fn u32rotr(
         }
         (Some(imm), U32OpMode::Unchecked) if imm == 0 => {
             // if rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
-            return Ok(None);
+            return span.add_op(Noop);
         }
         (Some(imm), U32OpMode::Unchecked) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
@@ -399,7 +397,7 @@ fn handle_arithmetic_operation(
     let mut assert_u32_res = false;
 
     if let Some(imm) = imm {
-        push_u32_value(span, imm);
+        span.push_felt(Felt::from(imm));
     }
 
     match op_mode {
@@ -436,7 +434,7 @@ fn handle_division(
         if imm == 0 {
             return Err(AssemblyError::division_by_zero());
         }
-        push_u32_value(span, imm);
+        span.push_felt(Felt::from(imm));
     }
 
     match op_mode {
@@ -472,8 +470,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
     match (imm, op_mode) {
         (Some(imm), U32OpMode::Checked) if imm == 0 => {
             // if shift/rotation is performed by 0, just verify that stack top is u32
-            span.push_ops([Pad, U32assert2, Drop]);
-            return Ok(None);
+            return span.add_ops([Pad, U32assert2, Drop]);
         }
         (Some(imm), U32OpMode::Checked) => {
             validate_param(imm, 1..=MAX_VALUE)?;
@@ -481,8 +478,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
         }
         (Some(imm), U32OpMode::Unchecked) if imm == 0 => {
             // if shift/rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
-            return Ok(None);
+            return span.add_op(Noop);
         }
         (Some(imm), U32OpMode::Unchecked) => {
             span.push_op(Push(Felt::new(1 << imm)));
@@ -510,7 +506,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 /// - u32checked_eq.b: 3 cycles
 pub fn u32eq(span: &mut SpanBuilder, imm: Option<u32>) -> Result<Option<CodeBlock>, AssemblyError> {
     if let Some(imm) = imm {
-        push_u32_value(span, imm);
+        span.push_felt(Felt::from(imm));
     }
 
     span.add_ops([U32assert2, Eq])
@@ -529,7 +525,7 @@ pub fn u32neq(
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     if let Some(imm) = imm {
-        push_u32_value(span, imm);
+        span.push_felt(Felt::from(imm));
     }
 
     span.add_ops([U32assert2, Eq, Not])

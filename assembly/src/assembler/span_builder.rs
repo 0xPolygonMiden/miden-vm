@@ -1,6 +1,6 @@
 use super::{
-    AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
-    Instruction, Operation, ToString, Vec,
+    AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList, Felt,
+    Instruction, Operation, ToString, Vec, ONE, ZERO,
 };
 use vm_core::AssemblyOp;
 
@@ -47,7 +47,7 @@ impl SpanBuilder {
 
     /// Adds the specified operation to the list of span operations and returns Ok(None).
     pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblyError> {
-        self.ops.push(op);
+        self.push_op(op);
         Ok(None)
     }
 
@@ -57,7 +57,23 @@ impl SpanBuilder {
         I: IntoIterator<Item = O>,
         O: Borrow<Operation>,
     {
-        self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
+        self.push_ops(ops);
+        Ok(None)
+    }
+
+    /// Adds the specified operation n times to the list of span operations and returns `Ok(None)`.
+    pub fn add_op_many(
+        &mut self,
+        op: Operation,
+        n: usize,
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        self.push_op_many(op, n);
+        Ok(None)
+    }
+
+    /// Push instruction to add `value` to the top of the operand stack and return `Ok(None)`.
+    pub fn add_felt(&mut self, value: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
+        self.push_felt(value);
         Ok(None)
     }
 
@@ -79,6 +95,24 @@ impl SpanBuilder {
     pub fn push_op_many(&mut self, op: Operation, n: usize) {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
+    }
+
+    /// This is a helper function that appends a PUSH operation to the span block which puts the
+    /// provided field element onto the stack.
+    ///
+    /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
+    /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
+    pub fn push_felt(&mut self, value: Felt) {
+        use Operation::*;
+
+        if value == ZERO {
+            self.push_op(Pad);
+        } else if value == ONE {
+            self.push_op(Pad);
+            self.push_op(Incr);
+        } else {
+            self.push_op(Push(value));
+        }
     }
 
     // DECORATORS
