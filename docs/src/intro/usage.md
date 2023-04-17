@@ -76,7 +76,7 @@ As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.htm
 After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (`overflow_addrs`) that are required to reconstruct the [stack overflow table](../design/stack/main.md#overflow-table).
 
 ## Fibonacci example
-In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
+In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:
 ```
 ./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
 ```
