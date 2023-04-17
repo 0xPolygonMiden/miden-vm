@@ -1,0 +1,732 @@
+use.std::crypto::fri::frie2f4
+use.std::crypto::fri::ext2fri
+
+use.std::crypto::stark::deep_queries
+use.std::crypto::stark::random_coin
+use.std::crypto::stark::ood_frames
+
+# Constants
+const.ROOT_UNITY=7277203076849721926
+
+# Global memory
+const.ZERO_ZERO_ZERO_ONE=4294967294
+const.ZERO_WORD=4294967295
+const.SEED_PTR=4294967293
+const.LDE_SIZE=4294967292
+const.Z=4294967291
+
+const.MAIN_TRACE_COM_PTR=4294967290
+const.AUX_TRACE_COM_PTR=4294967289
+const.COMPOSITION_POLY_COM_PTR=4294967288
+
+const.TMP0=4294967287
+const.TMP1=4294967286
+const.TMP2=4294967285
+const.TMP3=4294967284
+const.TMP4=4294967283
+const.TMP5=4294967282
+const.TMP6=4294967281
+const.TMP7=4294967280
+const.TMP8=4294967279
+
+const.OOD_TRACE_CURRENT_PTR=4294965000
+const.OOD_TRACE_NEXT_PTR=4294965041
+const.OOD_CONSTRAINT_EVALS_PTR=4294965082
+
+const.AUX_RAND_ELEM_PTR=4294966000
+const.COMPOSITION_COEF_PTR=4294966016
+const.DEEP_RAND_CC_PTR=4294966338
+const.FRI_QUERIES_PTR=4294966473
+const.FRI_COM_PTR=4294966500
+
+const.CURRENT_TRACE_ROW_PTR=4294964000
+const.PUBLIC_INPUTS_PTR=4294960000
+
+# Compute the LDE domain generator from the log2 of its size.
+#
+# Input: [log2(domain_size), ..]
+# Output: [domain_gen, ..]
+export.compute_lde_generator
+    push.32
+    swap
+    sub
+    pow2
+    push.ROOT_UNITY
+    swap
+    exp.u32
+    # => [domain_gen, ..]
+end
+
+# Compute the hash of the proof context using the trace length, number of queries, logarithm of
+# blowup factor and the number of bits of grinding. Currently, this part, as well as the rest of
+# the STARK verifier has the blowup factor fixed to 8, number of queries to 27.
+# The ouput of this procedure is the capacity portion of the state after applying `hperm`.
+#
+# Input: [trace_length, num_queries, blowup, grinding, ...]
+# Output: [C]
+export.hash_proof_context
+
+    # Create the initial seed for randomness generation from proof context
+    
+    ## compute trace_length
+    dup
+    pow2
+    u32split assertz
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
+
+    ## Assert blowup is equal to 8
+    swap
+    dup.3
+    dup
+    push.3
+    assert_eq
+
+    ## Compute log(lde_size) and lde_size and store them
+    add
+    swap
+    movup.3
+    pow2
+    dup
+    movdn.4
+    swap
+    dup
+    movdn.3
+    mul
+    push.0
+    movdn.2
+    push.0
+    movdn.2
+    mem_storew.LDE_SIZE
+    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
+
+    # Construct the proof context
+    dropw
+    push.1208027408
+    push.1
+    push.ZERO_WORD
+    push.132103
+    swapw
+    
+    # Hash proof context
+    push.1.0.0.0
+    #=> [0, 0, 0, 1, B, A, ..]
+    swapw.2
+    swapw
+    #=> [B, A, 0, 0, 0, 1, ..]
+    hperm
+    dropw
+    dropw
+    #=> [C]
+end
+
+# Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
+# In parallel, compute the hash of the public inputs being loaded. The hashing starts with
+# capacity registers of the hash function set to `C` resulting from hashing the proof context.
+#
+# Input: [public_inputs_ptr, C]
+# Output: [...] 
+export.load_pub_inputs
+    
+    # TODO: load the public inputs using public_inputs_ptr
+    drop
+
+    # Unhash the public inputs from the advice provider.
+    # The following assumes that the public inputs contain only the input and output states
+    # of the operand stack and both are of length exactly 16. 
+    # TODO: generalize to any number of public inputs supported by the VM.
+    push.0.0.0.0
+    push.0.0.0.0
+    repeat.4
+        adv_loadw
+        swapw
+        adv_loadw
+        hperm
+    end
+    adv_loadw
+    swapw
+    mem_loadw.ZERO_ZERO_ZERO_ONE
+    hperm
+    dropw
+    mem_storew.SEED_PTR
+    dropw
+    dropw
+end
+
+# Check that the Proof-of-Work contained in the current `SEED` is equal to the required number
+# of bits prescribed by grinding bits. Currently the grinding factor is fixed to 16 bits.
+#
+# Input: [...]
+# Output: [...]
+export.check_pow
+    # Check PoW nonce
+    ## Load Seed
+    push.0.0.0.0
+    mem_loadw.SEED_PTR
+    push.1.0.0.0
+    swapw
+    adv_push.1
+    push.1.0.0
+    hperm
+    swapw
+    mem_storew.SEED_PTR
+    # => [Seed, Y, Y, Y]
+
+    ## Get the leading field element of the digest
+    swap.3
+
+    ## Make sure the lower 16 bits are zero
+    u32split
+    swap
+    push.0xFFFF
+    u32checked_and
+    assertz
+    # => [Y, Y, Y]
+    repeat.3 dropw end
+    #=> [...]
+end
+
+# Compute the number of FRI layers given log2 of the size of LDE domain. It also computes the
+# LDE domain generator and, from it, the trace generator and store these for later use.
+#
+# Input: [...]
+# Output: [num_fri_layers, ...]
+export.generate_fri_parameters
+    # Load  FRI verifier data:
+    # [lde_size, log(lde_size), 0, 0]
+    push.0.0.0.0
+    mem_loadw.LDE_SIZE
+
+    # Compute lde_domain generator
+    dup.1
+    exec.compute_lde_generator
+    #=> [g, lde_size, log2(lde_size), 0, ...]
+    movdn.2
+    #=> [lde_size, log2(lde_size), g, 0, ...]
+    
+    # Store in `TMP5` in order to use it for fri layer loading
+    mem_storew.TMP5
+
+    # Compute [gz1, gz0, z1, z0] using domain generator
+    # TODO: move to somewhere else
+    push.0.0.0.0
+    mem_loadw.Z
+    drop drop
+    dup.1
+    dup.1
+    dup.6
+
+    # Compute trace_domain_generator
+    repeat.3
+        dup mul
+    end
+    dup
+    movup.3
+    mul
+    swap.2
+    mul
+    mem_storew.TMP1
+    dropw
+
+    # This is the same as the word referenced by `TMP5` but is immutable.
+    mem_storew.TMP0
+    # => [lde_size, log2(lde_size), lde_generator, 0]
+    
+    # Compute the number of FRI layers
+    dup
+    dup.2
+    dup
+    is_odd
+    if.true
+        push.32
+        swap
+        sub.5
+        div.2
+    else
+        push.64
+        swap
+        sub.6
+        div.2
+    end
+    # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, ...]
+ 
+    # Save [num_fri_layers, remainder_size, lde_size, lde_size] in memory
+    mem_storew.TMP6
+    swap.5
+    dropw
+    drop
+end
+
+# Get FRI layer commitments and reseed with them in order to draw folding challenges i.e. alphas.
+#
+# Input: [ptr_layer, num_layers, ...]
+# Output: [...]
+export.load_fri_layer_commitments
+    # Address containing the first layer commitment
+    push.0.0
+    movup.3
+    movup.3
+    swap
+    push.0.0.0.0
+    swapw     
+    # => [num_layers, ptr_layer, y, y, Y, ...] 
+   
+    dup
+    push.0
+    neq
+    while.true
+        swapw               # [Y, num_layers, ptr_layer, y, y, ...]
+        adv_loadw           # [Com, num_layers, ptr_layer, y, y, ...]
+
+        # Save FRI layer commitment
+        dup.5
+        add.1
+        swap.6
+        mem_storew
+        #=> [Com, num_layers, ptr_layer + 1, y, y, ...]
+
+        # Reseed
+        exec.random_coin::reseed
+        # => [num_layers, ptr_layer + 1, y, y, ...]
+
+        push.1.0.0.0
+        push.0.0.0.0
+        mem_loadw.SEED_PTR
+        push.1.1.0.0
+        # => [0, 0, 1, 1, Seed, 0, 0, 0, 1, num_layers, ptr_layer + 1, y, y, ...]
+        hperm
+        drop drop
+        mem_loadw.TMP5
+        # => [lde_size, log2(lde_size), lde_generator, 0, a1, a0, Y, num_layers, ptr_layer + 1, y, y, ...]
+
+        # Compute and save to memory new lde_size and its new logarithm
+        div.4
+        swap
+        sub.2
+        swap
+        mem_storew.TMP5
+
+        # Move the pointer higher up the stack
+        movup.2 drop
+        movup.2 drop
+        swapw
+        dropw
+        # => [lde_size, log2(lde_size), a1, a0, num_layers, ptr_layer + 1, y, y, Y, ...]
+
+        # Save [lde_size, log2(lde_size), a1, a0] in memory next to the layer commitment
+        dup.5
+        add.1
+        swap.6
+        mem_storew
+        swapw
+        # => [num_layers, ptr_layer + 2, y, y, lde_size, log2(lde_size), a1, a0, Y]
+
+        # Decrement the FRI layer counter
+        sub.1
+        dup
+        push.0
+        neq
+    end
+    # => [Y, Y]
+    dropw
+    dropw
+    #=> [...]
+end
+
+# Load the remainder polynomial from the advice provider and check that its hash corresponds
+# to its commitment and reseed with the latter.
+# Load the remainder code word, i.e. the NTT of the remainder polynomial, and use its hash, together,
+# with the hash of the remainder polynomial in order to generate the Fiat-Shamir challenge `tau` for
+# the `verify_remainder_xx` procedure.
+#
+# Input: [...]
+# Output: [...]
+export.load_and_verify_remainder
+    # Load remainder commitment and save it at `TMP7`
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.TMP7
+
+    # Reseed with remainder commitment
+    exec.random_coin::reseed
+    
+    # adv_pipe the remainder codeword
+    ## Get the length of remainder
+    mem_loadw.TMP6
+    ## Compute the correct remainder pointer using length of remainder
+    push.FRI_COM_PTR
+    swap
+    mul.2
+    add
+    ## Store for later use
+    mem_storew.TMP8
+    # => [ptr_remainder, remainder_size, y, y, Y, Y, ptr_remainder, 0, y, y]
+
+    #=> [ptr_remainder, remainder_size, y, y, ]
+
+    dup.1
+    push.32
+    eq
+    if.true
+        # Remainder length equal to 32
+        push.0.0.0.0
+        push.0.0.0.0
+        push.0.0.0.0
+        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
+        
+        # adv_load remainder polynomial
+        # TODO: This is a workaround since the FRI verifier expects the memory layout to be 
+        # [query_ptr ... layer_ptr ... rem_ptr ...] which leaves only one option for laying out 
+        # the polynomial coefficients i.e. starting at remainder_ptr + remainder_codeword_length/2.
+        # On the other hand, we need to check that the hash of the polynomial coefficients agrees with
+        # the commitment already received by the prover. Thus the need for hashing the polynomial
+        # coefficients first.
+        # Also, this is redundant now since `verify_remainder_32` recomputes the polynomial coefficients
+        # from the remainder codeword.
+        adv_loadw
+        dup.12
+        add.16
+        mem_storew
+        swapw
+        adv_loadw
+        dup.12
+        add.17
+        mem_storew
+        hperm
+        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
+
+        # Compare Remainder_poly_com with the read commitment
+        mem_loadw.TMP7
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        # => [Y, ptr_remainder, remainder_size, y, y]
+        push.0.0.0.0
+        push.0.0.0.0
+        repeat.8
+            adv_pipe
+        end
+    else
+        # Remainder length equal to 64
+        push.0.0.0.0
+        push.0.0.0.0
+        push.0.0.0.0
+        # => [Y, Y, 0, 0, 0, 0 ptr_remainder, remainder_size, y, y]
+        
+        # adv_load remainder polynomial
+        # TODO: This is a workaround since the FRI verifier expects the memory layout to be 
+        # [query_ptr ... layer_ptr ... rem_ptr ...] which leaves only one option for laying out 
+        # the polynomial coefficients i.e. starting at remainder_ptr + remainder_codeword_length/2.
+        # On the other hand, we need to check that the hash of the polynomial coefficients agrees with
+        # the commitment already received by the prover. Thus the need for hashing the polynomial
+        # coefficients first.
+        # Also, this is redundant now since `verify_remainder_64` recomputes the polynomial coefficients
+        # from the remainder codeword.
+        adv_loadw
+        dup.12
+        add.32
+        mem_storew
+        swapw
+        adv_loadw
+        dup.12
+        add.33
+        mem_storew
+        hperm
+
+        adv_loadw
+        dup.12
+        add.34
+        mem_storew
+        swapw
+        adv_loadw
+        dup.12
+        add.35
+        mem_storew
+        hperm
+        # => [Y, Remainder_poly_com, Y, ptr_remainder, remainder_size, y, y]
+
+        # Compare Remainder_poly_com with the read commitment
+        mem_loadw.TMP7
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        # => [Y, ptr_remainder, remainder_size, y, y]
+        push.0.0.0.0
+        push.0.0.0.0
+        repeat.16
+            adv_pipe
+        end
+    end
+    # => [Y, R, Y, Y] where R = [y, y, tau1, tau0]
+
+    dropw
+    swapw.2
+    dropw 
+    dropw
+    drop
+    drop
+    #=> [tau1, tau0] where tau is the challenge of ext2fri::verify_remainder_xx
+  
+    # Prepare for remainder verification procedure
+    push.0.0.0.0
+    mem_loadw.TMP8
+    movup.2 drop
+    movup.2 drop
+    # => [ptr_remainder, remainder_size, y, y, tau1, tau0, Y, Y]
+
+    # Call the correct remainder verification procedure
+    swap
+    push.32
+    eq
+    if.true
+        # TODO: Modify verify_remainder_32 so that it uses (tau0, tau1) instead of 
+        # recomputing them again.
+        # For the moment, we drop (tau0, tau1).
+        swap.2 drop drop
+        exec.ext2fri::verify_remainder_32
+    else
+        # TODO: Modify verify_remainder_64 so that it uses (tau0, tau1) instead of 
+        # recomputing them again.
+        # For the moment, we drop (tau0, tau1).
+        swap.2 drop drop
+        exec.ext2fri::verify_remainder_64
+    end
+    #=> [...]
+end
+
+#   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
+#   The following simplifying assumptions are currently made:
+#   - The blowup is set to 8, the grinding to 16bits and number of FRI queries to 27.
+#   - The maximal allowed degree of the remainder polynomial is 7.
+#   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
+#   to public inputs.
+#   - The following procedure makes use of global memory address beyond 3 * 2^30. More precisely,
+#   the following is a list of pointers used by `stark::verify`:    
+#
+#   * ZERO_ZERO_ZERO_ONE. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
+#   * ZERO_WORD. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
+#   * SEED_PTR. Seed
+#   * LDE_SIZE. [lde_size, log2(lde_size), 0, 0]
+#   * Z. [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
+#   * MAIN_TRACE_COM_PTR. Main trace commitment
+#   * AUX_TRACE_COM_PTR. Aux trace commitment
+#   * COMPOSITION_POLY_COM_PTR. Constraint polynomial columns trace commitment
+#   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
+#   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
+#   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
+#   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame 
+#   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame 
+#   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
+#   * DEEP_RAND_CC_PTR.    Deep query coefficients
+#   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
+#   * TMP1.   [gz1, gz0, z1, z0]
+#   * TMP2.   [x, _, _, _] where x := offset * lde_domain_generator^query_index
+#   * TMP3.   Leaf value at index `query_index` of the commitment tree to either main, auxiliary or constraint traces.
+#   * TMP4.   [query_index, depth, _, _] where query_index is the current deep FRI query being computed.
+#   * TMP5.   [lde_size, log2(lde_size), lde_domain_generator, 0]
+#   * TMP6.   [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
+#   * TMP7.   Remainder commitment
+#   * TMP8.   [ptr_remainder, remainder_size, lde_size, lde_size]
+#
+# Input: [log(trace_length), num_queries, log(blowup), grinding]
+# Output: []
+export.verify
+
+    # Pre-load constants used by hperm into memory
+    # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
+    # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout 
+    # the `verify` procedure.
+    push.0.0.0.0
+    mem_storew.ZERO_WORD
+    drop
+    push.1
+    swap.3
+    mem_storew.ZERO_ZERO_ZERO_ONE
+    dropw
+    #=> [log(trace_length), num_queries, log(blowup), grinding]
+
+    #==============================================================================================
+    #       I)  Hash proof context and hash-&-load public inputs
+    #==============================================================================================
+
+    # Initialize the seed using proof context
+    exec.hash_proof_context
+    #=> [C]
+    
+    # Load public inputs
+    push.PUBLIC_INPUTS_PTR
+    exec.load_pub_inputs
+    #=> [...]
+
+    #==============================================================================================
+    #       II) Generate the auxiliary trace random elements
+    #==============================================================================================
+
+    # Load main trace commitment and re-seed with it
+    push.0.0.0.0
+    adv_loadw          
+    mem_storew.MAIN_TRACE_COM_PTR
+    #=> [main_trace_commitment]
+    exec.random_coin::reseed         
+    # => [...]
+
+
+    # Draw random ExtFelt for the auxiliary trace
+    push.AUX_RAND_ELEM_PTR
+    exec.random_coin::generate_aux_randomness
+    # => [...] 
+
+    # Reseed with auxiliary trace commitment
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.AUX_TRACE_COM_PTR
+    exec.random_coin::reseed
+    #=> [...]
+ 
+    #==============================================================================================
+    #       III) Draw constraint composition coefficients
+    #==============================================================================================
+
+    push.COMPOSITION_COEF_PTR
+    exec.random_coin::generate_constraint_composition_coefficients
+    #=> [...]
+
+    #==============================================================================================
+    #       IV) Reseed with commitment to constraint composition polynomial H evaluations over LDE
+    #          and generate the Out-of-Domain (OOD) challenge z 
+    #==============================================================================================
+
+    # Reseed with constraint composition polynomial commitment
+    push.0.0.0.0
+    adv_loadw
+    mem_storew.COMPOSITION_POLY_COM_PTR
+    exec.random_coin::reseed
+    exec.random_coin::generate_z_z8
+    #=> [...]
+   
+    #==============================================================================================
+    #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
+    #           of H over the LDE domain.
+    #==============================================================================================
+
+    exec.ood_frames::load_evaluation_frame
+    #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
+
+    exec.random_coin::reseed    
+    exec.random_coin::reseed    
+    
+    exec.ood_frames::load_constraint_evaluations
+    # => [CONSTR_EVAL_HASH, ...]
+
+    exec.random_coin::reseed
+    
+    # Compute `H(z)`
+    exec.ood_frames::compute_Hz
+    # => [res1, res0, ...]
+
+    #==============================================================================================
+    #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
+    #==============================================================================================
+
+    # TODO: Compare with the evaluation of the constraints on the EvaluationFrame
+    drop drop
+    #=> [...]
+
+    #==============================================================================================
+    #       VII) FRI
+    #==============================================================================================
+
+    #============================================
+    #   1) Draw random coefficients for computing
+    #       DEEP composition polynomial.
+    #============================================
+
+    push.DEEP_RAND_CC_PTR
+    exec.random_coin::generate_deep_composition_random_coefficients
+
+    #============================================
+    #   2) Compute constants needed for computing
+    #       FRI queries. These are:
+    #       -   LDE domain generator.
+    #       -   Trace domain generator `g`.
+    #       -   `gz`.
+    #       -   Number of FRI layers. 
+    #============================================
+
+    exec.generate_fri_parameters
+    # => [num_fri_layers, ...]
+
+    #============================================
+    #   3) Load and reseed with FRI layer commitments 
+    #      and draw the folding challenges for 
+    #      computing the degree respecting projection
+    #============================================
+    
+    push.FRI_COM_PTR
+    exec.load_fri_layer_commitments
+    #=> [...]
+
+    #============================================
+    #   4) Remainder verification:
+    #       a) Check commitment to remainder polynomial
+    #            coefficients.
+    #       b) Load the NTT of remainder polynomial
+    #            into memory.
+    #       c) Check the NTT relationship.
+    #============================================
+
+    exec.load_and_verify_remainder
+    #=> [...]
+
+    #============================================
+    #   5) Check PoW nonce
+    #============================================
+
+    exec.check_pow
+    #=> [...]
+
+    #============================================
+    #   6) Compute evaluations of DEEP composition
+    #   polynomial at randomly chosen query positions 
+    #============================================
+
+    # Draw random query indices
+    push.FRI_QUERIES_PTR
+    exec.random_coin::generate_list_indices
+    # => [...]
+    
+    # Compute deep compostion polynomial queries
+    exec.deep_queries::compute_deep_composition_polynomial_queries
+    # => [...]
+
+    #============================================
+    #   7) Call the FRI verifier
+    #============================================
+    
+    # Get domain generator and a pointer to the remainder codeword
+    push.0.0.0.0
+    mem_loadw.TMP0
+    push.0.0
+    mem_loadw.TMP8
+    swap.3
+    drop drop drop
+    #=>[ptr_remainder, g]
+
+    # Get the pointer to the first layer commitment
+    push.FRI_COM_PTR
+
+    # Get the pointer to the first FRI query
+    push.FRI_QUERIES_PTR
+    #=> [ptr_query, ptr_layer, ptr_remainder, domain_gen]
+
+    # Call FRI verifier
+    exec.frie2f4::verify
+    #=> ()
+end

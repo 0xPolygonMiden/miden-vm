@@ -21,9 +21,9 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ExecutionError, ExecutionTrace, Process, StackInputs,
     VmStateIterator,
 };
-pub use prover::{MemAdviceProvider, ProofOptions};
+pub use prover::{prove, MemAdviceProvider, ProofOptions};
 pub use test_case::test_case;
-pub use verifier::ProgramInfo;
+pub use verifier::{ProgramInfo, VerifierError};
 pub use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
@@ -31,11 +31,15 @@ pub use vm_core::{
 };
 
 pub mod math {
-    pub use winter_prover::math::{fft, polynom};
+    pub use winter_prover::math::{
+        fft, fields::QuadExtension, polynom, FieldElement, StarkField, ToElements,
+    };
 }
 
 pub mod serde {
-    pub use vm_core::utils::{Deserializable, DeserializationError, Serializable, SliceReader};
+    pub use vm_core::utils::{
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    };
 }
 
 pub mod crypto;

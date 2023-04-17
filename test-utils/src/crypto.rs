@@ -11,7 +11,9 @@ pub use vm_core::crypto::{
     },
 };
 
-pub use winter_prover::crypto::{BatchMerkleProof, ElementHasher, Hasher};
+pub use winter_prover::crypto::{
+    BatchMerkleProof, DefaultRandomCoin as WinterRandomCoin, ElementHasher, Hasher, RandomCoin,
+};
 
 // CRYPTO HELPER FUNCTIONS
 // ================================================================================================

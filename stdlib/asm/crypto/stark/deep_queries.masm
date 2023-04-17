@@ -1,0 +1,1462 @@
+const.FRI_QUERIES_PTR=4294966473
+const.MAIN_TRACE_COM_PTR=4294967290
+const.AUX_TRACE_COM_PTR=4294967289
+const.COMPOSITION_POLY_COM_PTR=4294967288
+const.DEEP_RAND_CC_PTR=4294966338
+const.OOD_TRACE_CURRENT_PTR=4294965000
+const.OOD_CONSTRAINT_EVALS_PTR=4294965082
+const.Z=4294967291
+
+const.TMP0=4294967287
+const.TMP1=4294967286
+const.TMP2=4294967285
+const.TMP3=4294967284
+const.TMP4=4294967283
+const.TMP5=4294967282
+const.TMP6=4294967281
+const.TMP7=4294967280
+const.TMP8=4294967279
+
+const.CURRENT_TRACE_ROW_PTR=4294964000
+const.ZERO_ZERO_ZERO_ONE=4294967294
+const.ZERO_WORD=4294967295
+
+# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+# 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
+# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#   is referenced by `p1`        
+# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#   referenced by `p1 + 41`
+# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#
+# The difference between `deep_query_aux_trace_1` and `deep_query_aux_trace_2` is related to the fact
+# that `T_i(z)` are stored in memory as `(T_{i+1}(z), T_i(z))` and in order to reduce memory pointer
+# manipulations we have `deep_query_aux_trace_1` for accumulating the terms related to `T_i(z)` and
+# `deep_query_aux_trace_2` for accumulating the terms related to `T_i(gz)`.
+#
+# Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
+# Output: [T_i(x)1, T_i(x)0, p1, p2 + 1, Y', Y', Acc']
+proc.deep_query_aux_trace_1
+
+    # Get T_i(z), T_i(gz)
+    swapw
+    dup.6
+    mem_loadw
+    push.0.0
+    dup.8 
+    add.41
+    mem_loadw
+    drop drop
+    #=> [T_i(gz)1, T_i(gz)0, T_i(z)1, T_i(z)0, value_{i}1, value_{i}0, p1, p2, Y, Acc]
+
+    # Compute the numerators
+    swapw
+    dup.1
+    dup.1
+    movup.9
+    movup.9
+    ext2sub
+    #=> [value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, value_{i}1, value_{i}0, p1, p2, T_i(gz)1, T_i(gz)0, Y, Acc]
+
+    movdn.7
+    movdn.7
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2sub
+    movdn.5
+    movdn.5
+    #=> [value_{i}1, value_{i}0, p1, p2, value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, Y, Acc]
+    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc] 
+    # where T := [value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0]
+
+    # Multiply by randomness
+    ## Get [alpha1, alpha0, beta1, beta0]
+    movupw.2
+    dup.7
+    add.1
+    swap.8
+    mem_loadw
+    #=> [[alpha1, alpha0, beta1, beta0], value_{i}1, value_{i}0, p1, p2, T, Acc]
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [[beta1, beta0, alpha1, alpha0], value_{i}1, value_{i}0, p1, p2, T, Acc]
+    swapdw
+    movupw.2
+    #=> [[beta1, beta0, alpha1, alpha0], T, Acc, value_{i}1, value_{i}0, p1, p2]
+
+    ## Multiply the shifted term
+    dup.7
+    dup.7
+    ext2mul
+    #=> [prod1_g, prod0_g, beta1, beta0, T, Acc, value_{i}1, value_{i}0, p1, p2]
+    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha 
+
+    ## Multiply the non-shifted term
+    swap
+    swap.3
+    swap
+    swap.2    
+    swapw
+    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_{i}1, value_{i}0, p1, p2]
+    dup.5
+    dup.5
+    ext2mul
+    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
+
+    ## Shuffle stack to prepare for accumulating
+    movup.7
+    movup.7  
+    #=> [prod1_g, prod0_g, prod1, prod0, ..]
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [prod1, prod0, prod1_g, prod0_g, ..]
+    dupw.2
+    #=> [Acc, prod1_g, prod0_g, prod1, prod0, Y, Acc, value_{i}1, value_{i}0, p2, p3]
+
+    # Accumulate
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+    ext2add
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [Acc3+prod1, Acc2+prod0, Acc1+prod1_g, Acc0+prod0_g, Y, Acc, value_{i}1, value_{i}0, p2, p3]           Acc = [Tz, Tz, Tgz, Tgz]
+    #=> [Acc, Y, Y, P]
+    swapw.3
+    #=> [P, Y, Y, Acc]
+end
+
+# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+# 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
+# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#   is referenced by `p1`        
+# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#   referenced by `p1 + 41`
+# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#
+# The difference between `deep_query_aux_trace_1` and `deep_query_aux_trace_2` is related to the fact
+# that `T_i(z)` are stored in memory as `(T_{i+1}(z), T_i(z))` and in order to reduce memory pointer
+# manipulations we have `deep_query_aux_trace_1` for accumulating the terms related to `T_i(z)` and
+# `deep_query_aux_trace_2` for accumulating the terms related to `T_i(gz)`.
+#
+# Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
+# Output: [T_i(x)1, T_i(x)0, p1 + 1, p2 + 1, Y', Y', Acc']
+proc.deep_query_aux_trace_2
+
+    # Get T_i(z), T_i(gz)
+    swapw
+    dup.6
+    add.1
+    swap.7
+    mem_loadw
+    movup.3
+    movup.3
+    push.0.0
+    dup.8 
+    add.40          #   40 instead of 41 because we added 1 a few lines above
+    mem_loadw
+    movup.2 drop
+    movup.2 drop
+    #=> [T_i(gz)1, T_i(gz)0, T_i(z)1, T_i(z)0, value_{i}1, value_{i}0, p1, p2, Y, Acc]
+
+    # Compute the numerators
+    swapw
+    dup.1
+    dup.1
+    movup.9
+    movup.9
+    ext2sub
+    #=> [value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, value_{i}1, value_{i}0, p1, p2, T_i(gz)1, T_i(gz)0, Y, Acc]
+    movdn.7
+    movdn.7
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2sub
+    movdn.5
+    movdn.5
+    #=> [value_{i}1, value_{i}0, p1, p2, value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, Y, Acc]
+    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc] 
+    # where T := [value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0]
+
+    # Multiply by randomness
+    ## Get [alpha1, alpha0, beta1, beta0]
+    movupw.2
+    #=> [Y, value_{i}1, value_{i}0, p1, p2, T, Acc]
+    dup.7
+    add.1
+    swap.8
+    mem_loadw
+    #=> [[alpha1, alpha0, beta1, beta0], value_{i}1, value_{i}0, p1, p2, T, Acc]
+    swapdw
+    movupw.2
+    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_{i}1, value_{i}0, p1, p2,     Z]
+
+    ## Shuffle the random coefficients
+    ## TODO: remove need for this
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [[beta1, beta0, alpha1, alpha0], T, Acc, value_{i}1, value_{i}0, p1, p2]
+  
+    ## Multiply the shifted term
+    dup.7
+    dup.7
+    ext2mul
+    #=> [prod1_g, prod0_g, beta1, beta0, T, Acc, value_{i}1, value_{i}0, p1, p2]
+    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha 
+
+    ## Multiply the non-shifted term
+    swap
+    swap.3
+    swap
+    swap.2    
+    swapw
+    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_{i}1, value_{i}0, p1, p2]
+    dup.5
+    dup.5
+    ext2mul
+    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1,p2, p3]
+    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
+
+    # Permute the two products in order to align with the accumulator
+    movup.7
+    movup.7
+    #=> [prod1_g, prod0_g, prod1, prod0, ..]
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [prod1, prod0, prod1_g, prod0_g, ..]
+    dupw.2
+    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1, p2, p3]
+
+    # Accumulate
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+    ext2add
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1,p2, p3]
+    #=> [Acc, Y, Y, P]
+    # where Acc = [Tz, Tz, Tgz, Tgz]
+
+    # Shuffle stack in case of further iterations
+    swapw.3
+    #=> [P, Y, Y, Acc]
+end
+
+# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#   is referenced by `p1`        
+# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#   referenced by `p1 + 41`
+# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#
+# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+# the terms related to `T_{i+1}(x)` and so forth.
+#
+# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+# Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc'] 
+proc.deep_query_main_trace_1
+
+    # Get value_i := T_i(x)
+    dup.7
+    mem_loadw
+    movup.4
+    #=> [Y, value_i, p1, p2, p3, Y, Acc ]
+
+    # Get T_i(z), T_i(gz)
+    dup.5
+    mem_loadw
+    push.0.0
+    dup.7 add.41
+    mem_loadw
+    drop drop
+    neg 
+    swap.2
+    neg
+    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
+
+    # Compute numerator
+    swapw
+    dup
+    movup.6
+    sub
+    #=> [value_i - T_i(gz)_0, value_i, p1, p2, p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc ]
+    movdn.7
+    swapw
+    dup.4
+    movup.3
+    sub
+    swap
+    swapw.2
+    #=> [Y, value_i, p1, p2, p3, T, Acc]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
+
+    # Multiply by randomness
+    ## Get [alpha1, alpha0, beta1, beta0]
+    dup.6
+    add.1
+    swap.7
+    mem_loadw
+    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1, p2, p3, T, Acc]
+    swapdw
+    movupw.2
+    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1, p2, p3]
+
+    ## Multiply the shifted term
+    dup.7
+    dup.7
+    ext2mul
+    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1, p2, p3]
+    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
+
+    ## Multiply the non-shifted term
+    swap
+    swap.3
+    swap
+    swap.2    
+    swapw
+    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    dup.5
+    dup.5
+    ext2mul
+    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
+    movup.7
+    movup.7
+    dupw.2
+    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1, p2, p3]
+
+    # Accumulate
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+    ext2add
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1, p2, p3]           Acc = [Tz, Tz, Tgz, Tgz]
+    #=> [Acc, Y, Y, P]
+
+    # Prepare for next iteration, if any
+    swapw.3
+    swapw
+    #=> [Y, P, Y, Acc]
+end
+
+# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#   is referenced by `p1`        
+# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#   referenced by `p1 + 41`
+# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#
+# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+# the terms related to `T_{i+1}(x)` and so forth.
+#
+# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+# Output: [T_i(x), p1 + 1, p2 + 1, p3, Y', Y', Acc']
+proc.deep_query_main_trace_2
+
+    # Get value_i := T_i(x)
+    dup.7
+    mem_loadw
+    swap.2
+    swap.4
+    #=> [Y, value_i, p1, p2, p3, Y, Acc ]
+
+    # Get T_i(z), T_i(gz)
+    dup.5
+    mem_loadw
+    movup.3
+    movup.3
+    push.0.0
+    dup.7 add.41
+    mem_loadw
+    movup.3
+    movup.3
+    drop drop
+    neg 
+    swap.2
+    neg
+    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
+
+    # Update p1
+    movup.5
+    add.1
+    movdn.5
+
+
+    # Compute numerator
+    swapw
+    dup
+    movup.6
+    sub
+    #=> [value_i - T_i(gz)_0, value_i, p1, p2, p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc ]
+    movdn.7
+    swapw
+    dup.4
+    movup.3
+    sub
+    swap
+    swapw.2
+    #=> [Y, value_i, p1, p2, p3, T, Acc]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
+
+    # Multiply by random coefficients
+    ## Get [alpha1, alpha0, beta1, beta0]
+    dup.6
+    add.1
+    swap.7
+    mem_loadw
+    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1, p2, p3, T, Acc]
+    swapdw
+    movupw.2
+    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1, p2, p3]
+
+    ## Multiply shifted term
+    dup.7
+    dup.7
+    ext2mul
+    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1, p2, p3]
+    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
+
+    ## Multiply the non shifted term
+    swap
+    swap.3
+    swap
+    swap.2    
+    swapw
+    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    dup.5
+    dup.5
+    ext2mul
+    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
+    movup.7
+    movup.7
+    dupw.2
+    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1, p2, p3]
+
+    # Accumulate
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+    ext2add
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1, p2, p3]           Acc = [Tz, Tz, Tgz, Tgz]
+    #=> [Acc, Y, Y, P]
+
+    # Prepare for next iteration, if any
+    swapw.3
+    swapw
+    #=> [Y, P, Y, Acc]
+end
+
+# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#   is referenced by `p1`        
+# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#   referenced by `p1 + 41`
+# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#
+# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+# the terms related to `T_{i+1}(x)` and so forth.
+#
+# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+# Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc']
+proc.deep_query_main_trace_3
+
+    # Get value_i := T_i(x)
+    dup.7
+    mem_loadw
+    #=> [x, value_i, x, x, x, p1, p2, p3, Y, Acc ]
+    swap
+    swap.4
+    #=> [y, y, y, y, value_i, p1, p2, p3, Y, Acc ]
+    
+
+    # Get T_i(z), T_i(gz)
+    dup.5
+    mem_loadw
+    push.0.0
+    dup.7 add.41
+    mem_loadw
+    drop drop
+    neg 
+    swap.2
+    neg
+    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
+
+    # Compute numerator
+    swapw
+    dup
+    movup.6
+    sub
+    #=> [value_i - T_i(gz)_0, value_i, p1, p2, p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc ]
+    movdn.7
+    swapw
+    dup.4
+    movup.3
+    sub
+    swap
+    swapw.2
+    #=> [Y, value_i, p1, p2, p3, T, Acc]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
+
+    # Multiply by random coefficients
+    ## Get [alpha1, alpha0, beta1, beta0]
+    dup.6
+    add.1
+    swap.7
+    mem_loadw
+    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1, p2, p3, T, Acc]
+    swapdw
+    movupw.2
+    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1, p2, p3]
+
+    ## Multiply the shifted term
+    dup.7
+    dup.7
+    ext2mul
+    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1, p2, p3]
+    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
+    swap
+    swap.3
+    swap
+    swap.2    
+    swapw
+    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+
+    ## Multiply the non-shifted term
+    dup.5
+    dup.5
+    ext2mul
+    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
+    movup.7
+    movup.7
+    dupw.2
+    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1, p2, p3]
+
+    # Accumulate
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+    ext2add
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1, p2, p3]           Acc = [Tz, Tz, Tgz, Tgz]
+    #=> [Acc, Y, Y, P]
+
+    # Prepare for next iteration, if any
+    swapw.3
+    swapw
+    #=> [Y, P, Y, Acc]
+end
+
+# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#   is referenced by `p1`        
+# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#   referenced by `p1 + 41`
+# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#
+# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+# the terms related to `T_{i+1}(x)` and so forth.
+#
+# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+# Output: [T_i(x), p1 + 1, p2 + 1, p3 + 1, Y', Y', Acc']
+proc.deep_query_main_trace_4
+
+    # Get value_i := T_i(x)
+    ## update pointer for potential next iteration
+    dup.7
+    add.1
+    swap.8
+    ## Load correct value
+    mem_loadw
+    #=> [value_i, x, x , x, x, p1, p2, p3, Y, Acc ]
+    swap.4
+    #=> [Y, value_i, p1, p2, p3, Y, Acc ]
+    
+
+    # Get T_i(z), T_i(gz)
+    dup.5
+    mem_loadw
+    movup.3
+    movup.3
+    push.0.0
+    dup.7 add.41
+    mem_loadw
+    movup.3
+    movup.3
+    drop drop
+    neg 
+    swap.2
+    neg
+    #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
+
+    # Update p1 (since `deep_query_main_trace_4` is the last of the `deep_query_X` procedures in the 4-procedure cycle)
+    movup.5
+    add.1
+    movdn.5
+
+
+    # Compute numerator
+    swapw
+    dup
+    movup.6
+    sub
+    #=> [value_i - T_i(gz)_0, value_i, p1, p2, p3, - T_i(z)_1, - T_i(gz)_1, T_i(z)_0,, Y, Acc ]
+    movdn.7
+    swapw
+    dup.4
+    movup.3
+    sub
+    swap
+    swapw.2
+    #=> [Y, value_i, p1, p2, p3, T, Acc]      where T := [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0]
+
+    # Multiply by randomness
+    ## Get [alpha1, alpha0, beta1, beta0]
+    dup.6
+    add.1
+    swap.7
+    mem_loadw
+    #=> [[alpha1, alpha0, beta1, beta0], value_i, p1, p2, p3, T, Acc]
+    swapdw
+    movupw.2
+    #=> [[alpha1, alpha0, beta1, beta0], T, Acc, value_i, p1, p2, p3]
+
+    ## Multiply shifted term
+    dup.7
+    dup.7
+    ext2mul
+    #=> [prod1_g, prod0_g, beta1, beta0, - T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_Acc, 0, value_i, p1, p2, p3]
+    # Where (prod0_g, prod1_g) =  (value_i - T_i(gz)_0, - T_i(gz)_1) * alpha = (T_i(x) - T_i(gz)) * alpha
+    swap
+    swap.3
+    swap
+    swap.2    
+    swapw
+    #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+
+    ## Multiply non-shifted term
+    dup.5
+    dup.5
+    ext2mul
+    #=> [prod1, prod0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
+    # where (prod0, prod1) =  (value_i - T_i(z)_0, - T_i(z)_1) * beta = (T_i(x) - T_i(z)) * beta
+    movup.7
+    movup.7
+    dupw.2
+    #=> [Acc, prod1_g, prod0_g, prod1, prod0, y, y, y, y, Acc, value_i, p1, p2, p3]
+
+    # Accumulate
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+    ext2add
+    swap
+    swap.3
+    swap
+    swap.2
+    #=> [Acc3 + prod1, Acc2 + prod0, Acc1 + prod1_g, Acc0 + prod0_g, y, y, y, y, Acc, value_i, p1, p2, p3]           Acc = [Tz, Tz, Tgz, Tgz]
+    #=> [Acc, Y, Y, P]
+
+    # Prepare for next cycle, if any
+    swapw.3
+    swapw
+    #=> [Y, P, Y, Acc]
+end
+
+
+ 
+# Compute the deep composition polynomial at the previously drawn random queries. Currently, their
+# number is fixed to 27.
+#
+# Input: [...]
+# Output: [...]
+export.compute_deep_composition_polynomial_queries
+    push.FRI_QUERIES_PTR
+    repeat.5 push.0.0.0.0 end
+    push.FRI_QUERIES_PTR
+    #=>[ptr_query, Y, Y, Y, Y, Y, ptr_query]
+    
+    repeat.27         
+        # Main trace portion of the query
+        ## Get the next query index
+        mem_loadw
+        #=> [query, depth, y, y, ..]
+        ## Get main trace commitment and use it to get the leaf
+        swapw
+        mem_loadw.MAIN_TRACE_COM_PTR
+
+        swapw
+        mem_storew.TMP4
+        movup.2 drop
+        movup.2 drop
+        swap
+        #=> [d, query, Com, Y, Y]
+        ## Get the leaf in the main trace commitment and save it 
+        mtree_get
+        mem_storew.TMP3
+        adv.keyval
+        #=> [V, R, Y, Y]  
+        drop
+        push.CURRENT_TRACE_ROW_PTR
+        swapw.3
+        #=> [Y, Y, Y, ptr, y, y, y ]
+        mem_loadw.ZERO_WORD
+        swapw.2
+        #=> [Y, Y, 0, 0, 0, 0, ptr, y, y, y]
+        repeat.9
+            adv_pipe
+        end
+        #=> [Y, L, Y, ptr, y, y, y]
+
+        ## Load the leaf value we got using mtree_get
+        mem_loadw.TMP3
+
+        ## Check correctness of unhashing
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        #=>[Y, ptr, y, y, y]
+
+        swapw
+        swap.3
+        push.0
+        mem_loadw.TMP4
+        movup.2 drop
+        movup.3
+        swapw
+        #=>[Y, ptr, pos, depth, y]
+        
+        # Aux trace part
+        ## Load aux trace commitment and get leaf
+        mem_loadw.AUX_TRACE_COM_PTR
+        dup.5
+        dup.7
+        mtree_get
+        adv.keyval
+        mem_storew.TMP3
+        #=> [L, R, ptr, pos, depth, 0, ]
+
+        ## Prepare for adv_pipe aux trace row
+        mem_loadw.ZERO_ZERO_ZERO_ONE
+        swapw
+        push.0.0.0.0
+        adv_pipe
+        adv_pipe
+        dropw
+        adv_push.1
+        adv_push.1
+        push.1
+        push.0
+        
+        push.CURRENT_TRACE_ROW_PTR
+        add.22
+        mem_storew
+        
+        swapw
+        mem_loadw.ZERO_WORD
+        hperm
+        #=> [Y, L, Y, ptr, pos, depth, y]
+        mem_loadw.TMP3
+        ## Check correctness of unhashing
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        #=> [Y, ptr, pos, depth, y]
+
+        ## Update pointer
+        swapw
+        add.1
+        swapw
+
+        # Constraint composition trace part
+        ## Load commitment constraint trace and get leaf
+        mem_loadw.COMPOSITION_POLY_COM_PTR
+        dup.5
+        dup.7
+        mtree_get
+        adv.keyval
+        mem_storew.TMP3
+        #=>[L, R, ptr, pos, depth, y]
+        mem_loadw.ZERO_WORD
+        swapw
+        push.0.0.0.0
+        adv_pipe
+        adv_pipe
+        #=> [Y, L, Y, ptr, pos, depth, y,       y, y]
+
+        ## Check correctness of unhashing
+        mem_loadw.TMP3
+        movup.4
+        assert_eq
+        movup.3
+        assert_eq
+        movup.2
+        assert_eq
+        assert_eq
+        #=> [Y, ptr, pos, depth, y, y, y, y, ]
+
+        # TODO: avoid this
+        swapw
+        swap
+        movdn.3
+        #=> [ptr, depth, y, pos, Y, y, y, y, ]
+        
+        # Load domain_gen    
+        push.0
+        mem_loadw.TMP0
+        #=> [lde_size, depth, domain_gen, 0, pos, y, y, y, Y, ]
+
+        # Compute x = offset * domain_gen^pos
+        movup.2
+        dup.4
+        exp.u32
+        mul.7
+        mem_storew.TMP2    # Store x for much later use
+        #=> [x, lde_size, depth, 0, pos, y, y, y, Y, ]
+        swapw
+        #=> [pos, y, y, y, x, lde_size, depth, 0, Y, ]
+
+        # Compute the denominator i.e. (x - z) and (x - gz) 
+        ## Get z and gz from memory
+        mem_loadw.TMP1
+        #=> [gz1, gz0, z1, z0, x, lde_size, depth, 0, Y, ]
+        neg
+        dup.4
+        movup.2
+        sub
+        movdn.4
+        movdn.3
+        #=> [z1, z0, x, -gz1, x -gz0, ..]
+
+        ## Compute Z := [-z1, x - z0, -gz1, x -gz0] 
+        neg
+        movdn.2
+        sub
+        swap
+        #=> [Z, Y, Y] where Z := [-z1, x - z0, -gz1, x -gz0] 
+
+        ## Move Z to the last portion of the stack
+        push.0
+        movdn.4
+        swapw.2
+        #=> [Y, Y, Z]
+
+        # Get pointers
+        push.CURRENT_TRACE_ROW_PTR
+        push.DEEP_RAND_CC_PTR
+        push.OOD_TRACE_CURRENT_PTR    # Next is OOD_TRACE_CURRENT_PTR + 41
+        push.0
+        #=> [P, x, lde_size, depth, 0, pos, y, y, y, Y, ]
+
+        # Prepare to compute the sum \sum_{i=0}^k{\left(\alpha_i \cdot \frac{T_i(x) - T_i(z)}{x - z} 
+        #            + \beta_i \cdot \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g}
+        # We can factorize (x - z) and (x - gz) and divide the two sums only once at the end.
+        # The two sums are stored in [Acc3, Acc2] and [Acc1, Acc0] respectively.
+
+        # This will contain the two accumulators
+        push.0.0.0.0    
+        swapw.3
+        #=> [Y, P, Y, 0, 0, 0, 0,      Z ]
+        #=> [Y, P, Y, Acc,       Z] where Acc =: [Acc3, Acc2, Acc1, Acc0]
+
+        # Loop over i (constraints) for the currently fixed x 
+        # There are 72 columns in the main trace. In each iteration of the following loop we are treating 
+        # 4 columns and thus need 18 iterations.
+        # The reason for having 4 different (almost) identical implementations for `proc.deep_query`
+        # is due to the fact that T_i(x) is a base field element and can be in 1 of 4 possible
+        # locations at a memory location. To avoid expensive pointer arithmetic we opted to have
+        # one implementation for each of the 4 possiblities.
+        repeat.18
+        exec.deep_query_main_trace_1
+        exec.deep_query_main_trace_2
+        exec.deep_query_main_trace_3
+        exec.deep_query_main_trace_4
+        end
+
+        # Next is the auxiliary columns. Since the aux trace has elements in the extension field we need
+        # to give up one of the pointers in order to fit everything on the stack. Since the trace-row
+        # currently being processed is always held in the temporary contiguous memory region pointed to
+        # by CURRENT_TRACE_ROW_PTR, we can just drop p3 and unroll the loop into as many aux trace columns as needed.
+        # Currently, we have 9 such columns and thus the following 9 similar code-blocks.
+        #<= [Y, 0, p1, p2, p3, Y, Acc,      Z ]
+        swapw
+        movup.3
+        #=> [p3, 0, p1, p2, Y, Y, Acc,      Z ]
+        #=> [y, y, p1, p2, Y, Y, Acc,      Z]
+
+        # Load the 1st, out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.18
+        mem_loadw
+        #=> [value_{i+1}1, value_{i+1}0, value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
+        drop drop
+        #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
+        exec.deep_query_aux_trace_1
+
+        # Load the 2nd out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.18
+        mem_loadw
+        #=> [value_{i+1}1, value_{i+1}0, value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
+        movup.2 drop
+        movup.2 drop
+        #=> [value_{i+1}1, value_{i+1}0, p1, p2, Y, Y, Acc,      Z ]
+        exec.deep_query_aux_trace_2
+
+        # Load the 3rd out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.19
+        mem_loadw
+        drop drop
+        exec.deep_query_aux_trace_1
+
+        # Load the 4th out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.19
+        mem_loadw
+        movup.2 drop
+        movup.2 drop
+        exec.deep_query_aux_trace_2
+
+        # Load the 5th out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.20
+        mem_loadw
+        drop drop
+        exec.deep_query_aux_trace_1
+
+        # Load the 6th out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.20
+        mem_loadw
+        movup.2 drop
+        movup.2 drop
+        exec.deep_query_aux_trace_2
+
+        # Load the 7th out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.21
+        mem_loadw
+        drop drop
+        exec.deep_query_aux_trace_1
+
+        # Load the 8th out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.21
+        mem_loadw
+        movup.2 drop
+        movup.2 drop
+        exec.deep_query_aux_trace_2
+
+        # Load the 9th out of 9, auxiliary trace values 
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.22
+        mem_loadw
+        drop drop
+        exec.deep_query_aux_trace_1
+        #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
+
+        # Move p2, the pointer to constraint random coefficients, further up the stack and prepare 
+        # for loading the composition constraint polynomial part by getting the next two H_i(x) 
+        # i.e. the constraint composition trace row i.e. H_i(x) and H_{i+1}(x) for current x 
+        swapw.2
+        push.CURRENT_TRACE_ROW_PTR
+        add.23
+        mem_loadw
+        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, Y, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+
+        # Get OOD constraint evaluation frame for i = 0
+        swapw
+        mem_loadw.OOD_CONSTRAINT_EVALS_PTR
+        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1,
+        #    H_{i}(x)_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+
+
+        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
+        movup.5
+        movup.5
+        swapw
+        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
+        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        ext2sub
+        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
+        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
+        movdn.5
+        movdn.5
+        ext2sub
+        neg
+        swap
+        neg
+        swap
+        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
+
+        # Load the random coefficients and compute the two products for i and i+1
+        swapw
+        push.0.0.0.0
+        dup.7
+        add.1
+        swap.8
+        mem_loadw
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, value_{i}1, value_{i}0, p2, p1, 
+        #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
+
+        movupw.2
+        movup.5
+        movup.5
+        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
+        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        ext2mul
+        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
+        #    value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
+
+        movdn.5
+        movdn.5
+        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, 
+        #   value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        ext2mul
+        movdn.3
+        movdn.3
+        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
+
+        # Accumulate partial sum 
+        ext2add
+        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        #=> [accH_1, accH_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
+        # where (accH_0, accH_1) = (prod_{i+1}_0 + prod_i_0, prod_{i+1}_1 + prod_i_1)
+
+        # load next H_i(x) and H_{i+1}(x) for current x i.e. i = 2
+        movup.3
+        movup.3
+        push.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.24
+        mem_loadw
+        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # load next H_i(z) and H_{i+1}(z)
+        push.0.0.0.0
+        push.OOD_CONSTRAINT_EVALS_PTR
+        add.1
+        mem_loadw
+        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0,
+        #    accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
+        movup.5
+        movup.5
+        swapw
+        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
+        #    accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2sub
+        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
+
+        movdn.5
+        movdn.5
+        ext2sub
+        neg
+        swap
+        neg
+        swap
+        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
+
+        # Load the random coefficients and compute the two products for i and i+1
+        swapw
+        push.0.0.0.0
+        dup.7
+        add.1
+        swap.8
+        mem_loadw
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, 
+        #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
+
+        movupw.2
+        movup.5
+        movup.5
+        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
+        #   accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2mul
+        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
+        #   accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
+
+        movdn.5
+        movdn.5
+        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, 
+        #   accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2mul
+        movdn.3
+        movdn.3
+        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
+
+        # Accumulate
+        ext2add
+        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2add
+        #=> [accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # load next H_i(x) and H_{i+1}(x) for current x i.e. i = 4
+        push.0.0.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.25
+        mem_loadw
+        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # load next H_i(z) and H_{i+1}(z)
+        push.0.0.0.0
+        push.OOD_CONSTRAINT_EVALS_PTR
+        add.2
+        mem_loadw
+        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0,
+        #    accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
+        movup.5
+        movup.5
+        swapw
+        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, 
+        #   accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2sub
+        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
+
+        movdn.5
+        movdn.5
+        ext2sub
+        neg
+        swap
+        neg
+        swap
+        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
+
+        # Load the random coefficients and compute the two products for i and i+1
+        swapw
+        push.0.0.0.0
+        dup.7
+        add.1
+        swap.8
+        mem_loadw
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, 
+        #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
+
+        movupw.2
+        movup.5
+        movup.5
+        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
+        #   accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2mul
+        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
+
+        movdn.5
+        movdn.5
+        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2mul
+        movdn.3
+        movdn.3
+        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
+
+        ext2add
+        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        ext2add
+        #=> [accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # load next H_i(x) and H_{i+1}(x) for current x i.e. i = 6
+        push.0.0.0.0
+        push.CURRENT_TRACE_ROW_PTR
+        add.26
+        mem_loadw
+        #=> [H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # load next H_i(z) and H_{i+1}(z)
+        push.0.0.0.0
+        push.OOD_CONSTRAINT_EVALS_PTR
+        add.3
+        mem_loadw
+        #=> [H_{i+1}(z)_1, H_{i+1}(z)_0, H_{i}(z)_1, H_{i}(z)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i}(x)_1, H_{i}(x)_0,
+        #    accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        # Compute H_i(x) - H_i(z) and H_{i+1}(x) - H_{i+1}(z)
+        movup.5
+        movup.5
+        swapw
+        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, 
+        #   accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2sub
+        #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (H_{i}_0, H_{i}_1) = (H_{i}(x)_0 - H_{i}(z)_0, H_{i}(x)_1 - H_{i}(z)_1)
+
+        movdn.5
+        movdn.5
+        ext2sub
+        neg
+        swap
+        neg
+        swap
+        #=> [H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (H_{i+1}_0, H_{i+1}_1) = (H_{i+1}(x)_0 - H_{i+1}(z)_0, H_{i+1}(x)_1 - H_{i+1}(z)_1)
+
+        # Load the random coefficients and compute the two products for i and i+1
+        swapw
+        push.0.0.0.0
+        dup.7
+        add.1
+        swap.8
+        mem_loadw
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
+
+        movupw.2
+        movup.5
+        movup.5
+        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2mul
+        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
+
+        movdn.5
+        movdn.5
+        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        ext2mul
+        movdn.3
+        movdn.3
+        #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+        # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
+
+        ext2add
+        #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, accH_1, accH_0, p2, p1, Acc,      Z ]
+
+        ext2add
+        #=> [accH_1, accH_0, p2, p1, Acc, Z, y, ptr_query ]
+        #=> [accH_1, accH_0, p2, p1, acc_z_1, acc_z_0, acc_gz_1, acc_gz_0,      Z ]
+
+        # Divide by (x - z), (x - gz)
+        swapw.2
+        swapw
+        #=> [acc_z_1, acc_z_0, acc_gz_1, acc_gz_0, (x - z)_1, (x - z)_0, (x - gz)_1, (x - gz)_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+
+        movup.5
+        movup.5
+        ext2div
+        #=> [query_z_1, query_z_0, acc_gz_1, acc_gz_0, (x - gz)_1, (x - gz)_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+        # where (query_z_0, query_z_1) = (acc_z_0, acc_z_1)/(x - z)
+
+        movdn.5
+        movdn.5
+        #=> [acc_gz_1, acc_gz_0, (x - gz)_1, (x - gz)_0, query_z_1, query_z_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+
+        movup.3
+        movup.3
+        ext2div
+        #=> [query_gz_1, query_gz_0, query_z_1, query_z_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+
+        # Sum the two accumulators to get the part of the query comming from the traces
+        ext2add
+        #=> [query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+
+        # Divide the constraint composition polynomial accumulator by (x - z^8)
+        ## Get x 
+        push.0.0.0.0
+        mem_loadw.TMP2
+        movdn.3
+        push.0
+        mem_loadw.Z
+        #=> [z^8_1, z^8_0, z1, z0, x, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+
+        ## Compute the denominator
+        neg
+        swap
+        movup.4
+        swap
+        sub
+        swap
+        #=> [-z^8_1, x - z^8_0, z1, z0, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
+
+        ## Divide by the computed denominator
+        movdn.5
+        movdn.5
+        swapw
+        #=> [-z^8_1, x - z^8_0, accH_1, accH_0, z1, z0, query_trace_1, query_trace_0, p2, p1, y, ptr_query  ]
+        ext2div
+        #=> [query_constr_1, query_constr_0, z1, z0, query_trace_1, query_trace_0, p2, p1, y, ptr_query  ]
+
+        # Sum the two parts to get the deep evaluation query value for current x (without degree adjustment)
+        movup.5
+        movup.5
+        ext2add
+        #=> [eval_tmp_1, eval_tmp_0, y, y, p2, p1, y, ptr_query ]
+
+        # Multiply the evaluation by the degree adj factor (alpha + x * beta)
+        ## Load the next two random coefficients
+        movup.3
+        movup.3
+        push.00
+        movdn.5
+        #=> [y, y, eval_tmp_1, eval_tmp_0, p2, 00, p1, y, ptr_query ]
+        swapw
+        swap.2
+        #=> [p1, 00, p2, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query ]
+        mem_loadw
+        #=> [alpha1, alpha0, beta1, beta0, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
+
+        ## Load x
+        push.0.0.0.0
+        mem_loadw.TMP2
+        #=> [x, y, y, y, alpha1, alpha0, beta1, beta0, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
+
+        ## Compute (alpha * x + beta)
+        swapw
+        swap
+        dup.4
+        #=> [x, alpha0, alpha1, beta1, beta0, x, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
+        mul
+        movup.3
+        add
+        #=> [beta0 + x* alpha0, alpha1, beta1, x, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
+        movdn.3
+        movup.2
+        mul
+        add
+        #=> [x * alpha1 + beta1, beta0 + x * alpha0, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
+        
+        # Compute deep evaluation for the current x
+        movup.7
+        movup.7
+        #=> [eval_tmp_1, eval_tmp_0, alpha1 + beta1, beta0 + x* alpha0, y, y, y, y, ptr_query, ]
+        ext2mul
+        #=> [eval_1, eval_0, y, y, y, y, ptr_query, ]
+
+        # Store [poe, index, eval_1, eval_0] 
+        # where poe := g^index = x / offset.
+        movdn.5
+        movdn.5
+        dup.6
+        #=> [ptr_query, y, y, y, y, eval_1, eval_0, ptr_query, ]
+        mem_loadw
+        #=> [index, depth, y, y, eval_1, eval_0, ptr_query, ]
+        movdn.3
+        push.0
+        mem_loadw.TMP2
+        div.7
+        #=> [poe, y, y, y, index, eval_1, eval_0, ptr_query, ]
+        movdn.3
+        drop drop drop
+        #=> [poe, index, eval_1, eval_0, ptr_query, ]
+
+        dup.4
+        add.1
+        swap.5
+        mem_storew
+        #=> [depth, index, eval_1, eval_0, ptr_query_n]
+
+        # Prepare stack for next iteration
+        # TODO: simplify/optimize this
+        dup.4
+        #=> [ptr_query_n, depth, index, eval_1, eval_0, ptr_query_n]
+        push.0.0.0
+        #=> [0, 0, 0, ptr_query_n, depth, index, eval_1, eval_0, ptr_query_n]
+
+        repeat.3
+            push.0.0.0.0
+        end
+        #=> [Y, Y, Y, 0, 0, 0, ptr_query_n, Y, ptr_query_n]
+
+        swapw.3
+        #=> [0, 0, 0, ptr_query_n, Y, Y, Y, Y, ptr_query_n]
+
+        dup.3
+        #=> [ptr_query_n, Y, Y, Y, Y, Y, ptr_query_n]
+    end
+    repeat.5 dropw end
+    drop drop
+end
