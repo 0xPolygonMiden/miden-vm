@@ -1,10 +1,11 @@
+use miden_air::ProcessorAir;
 use test_utils::{
     collections::Vec,
-    math::fft,
-    math::{log2, ToElements},
-    Air, AuxTraceRandElements, Digest, Felt, FieldElement, MerkleStore, ProcessorAir,
-    QuadExtension, RandomCoin, Rpo256, StarkField, StarkProof, VerifierError, WinterRandomCoin,
+    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest, WinterRandomCoin},
+    math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
+    Felt, VerifierError,
 };
+use winter_air::{proof::StarkProof, Air, AuxTraceRandElements};
 
 mod channel;
 use channel::VerifierChannel;
@@ -23,9 +24,9 @@ pub fn generate_advice_inputs(
     let trace_len: Felt = public_coin_seed[7];
     let stack = vec![
         public_coin_seed[4].as_int(),
-        log2(public_coin_seed[5].as_int() as usize) as u64,
+        (public_coin_seed[5].as_int() as usize).ilog2() as u64,
         public_coin_seed[6].as_int(),
-        log2(trace_len.as_int() as usize) as u64,
+        (trace_len.as_int() as usize).ilog2() as u64,
     ];
 
     let mut tape = vec![];
@@ -152,7 +153,7 @@ pub fn generate_advice_inputs(
 }
 
 // Helpers
-pub fn digest_to_int_vec(digest: &[Digest]) -> Vec<u64> {
+pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
     digest
         .iter()
         .map(|digest| digest.as_elements().into_iter().map(|e| e.as_int()))

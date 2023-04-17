@@ -13,7 +13,6 @@ use test_utils::{
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
-use winterfell::math::log2;
 
 // This function proves and then verifies a FRI proof with the following fixed parameters:
 //  1) Max remainder codeword (1 << 6).
@@ -188,7 +187,7 @@ impl FriVerifierFold4Ext2 {
 
         // infer evaluation domain info
         let domain_size = max_poly_degree.next_power_of_two() * options.blowup_factor();
-        let domain_generator = Felt::get_root_of_unity(log2(domain_size));
+        let domain_generator = Felt::get_root_of_unity(domain_size.ilog2());
 
         // read layer commitments from the channel and use them to build a list of alphas
         let layer_commitments = channel.read_fri_layer_commitments();
@@ -321,7 +320,7 @@ fn iterate_query_fold_4_quad_ext(
         // Assumes the num_partitions == 1
         let position_index = folded_pos;
 
-        let tree_depth = log2(target_domain_size);
+        let tree_depth = target_domain_size.ilog2();
 
         let query_nodes = m_path_sets[depth]
             .get_node(NodeIndex::new(tree_depth as u8, position_index as u64).unwrap())
@@ -433,7 +432,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
                 })
                 .collect();
 
-            let new_set = MerklePathSet::new((log2(current_domain_size / N)) as u8);
+            let new_set = MerklePathSet::new((current_domain_size / N).ilog2() as u8);
 
             let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
             let nodes_tmp = nodes.clone();

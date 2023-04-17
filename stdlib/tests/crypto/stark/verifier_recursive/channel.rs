@@ -1,17 +1,17 @@
 // VERIFIER CHANNEL
 // ================================================================================================
 
-use std::{mem, vec};
-
-use super::VerifierError;
+use miden_air::ProcessorAir;
 use test_utils::{
     collections::Vec,
-    crypto::Rpo256,
-    crypto::{BatchMerkleProof, MerklePath, MerklePathSet},
+    crypto::{BatchMerkleProof, MerklePath, MerklePathSet, Rpo256, RpoDigest},
     group_vector_elements,
-    math::log2,
-    Air, Digest, EvaluationFrame, Felt, FieldElement, IntoBytes, ProcessorAir, QuadExtension,
-    StarkField, StarkProof, ZERO, {Queries, Table},
+    math::{FieldElement, QuadExtension, StarkField},
+    Felt, IntoBytes, VerifierError, ZERO,
+};
+use winter_air::{
+    proof::{Queries, StarkProof, Table},
+    Air, EvaluationFrame,
 };
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
 
@@ -23,13 +23,13 @@ pub type QuadExt = QuadExtension<Felt>;
 /// well-formed in the context of the computation for the specified [Air].
 pub struct VerifierChannel {
     // trace queries
-    trace_roots: Vec<Digest>,
+    trace_roots: Vec<RpoDigest>,
     trace_queries: Option<TraceQueries>,
     // constraint queries
-    constraint_root: Digest,
+    constraint_root: RpoDigest,
     constraint_queries: Option<ConstraintQueries>,
     // FRI proof
-    fri_roots: Option<Vec<Digest>>,
+    fri_roots: Option<Vec<RpoDigest>>,
     fri_layer_proofs: Vec<BatchMerkleProof<Rpo256>>,
     fri_layer_queries: Vec<Vec<QuadExt>>,
     fri_remainder: Option<Vec<QuadExt>>,
@@ -118,12 +118,12 @@ impl VerifierChannel {
     ///
     /// For computations requiring multiple trace segment, the returned slice will contain a
     /// commitment for each trace segment.
-    pub fn read_trace_commitments(&self) -> &[Digest] {
+    pub fn read_trace_commitments(&self) -> &[RpoDigest] {
         &self.trace_roots
     }
 
     /// Returns constraint evaluation commitment sent by the prover.
-    pub fn read_constraint_commitment(&self) -> Digest {
+    pub fn read_constraint_commitment(&self) -> RpoDigest {
         self.constraint_root
     }
 
@@ -163,7 +163,7 @@ impl VerifierChannel {
         positions: &[usize],
     ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, Vec<MerklePathSet>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
-        let mut sets = vec![];
+        let mut sets = Vec::new();
 
         let proofs: Vec<_> = queries.query_proofs.into_iter().collect();
         let main_queries = queries.main_states.clone();
@@ -207,7 +207,7 @@ impl VerifierChannel {
     }
 
     // Get the FRI layer challenges alpha
-    pub fn fri_layer_commitments(&self) -> Option<Vec<Digest>> {
+    pub fn fri_layer_commitments(&self) -> Option<Vec<RpoDigest>> {
         self.fri_roots.clone()
     }
 
@@ -224,15 +224,15 @@ impl VerifierChannel {
         &mut self,
         positions_: &[usize],
         domain_size: usize,
-        layer_commitments: Vec<Digest>,
+        layer_commitments: Vec<RpoDigest>,
     ) -> (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>) {
         let queries = self.fri_layer_queries.clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
         let depth = layer_commitments.len() - 1;
 
-        let mut adv_key_map = vec![];
-        let mut sets = vec![];
+        let mut adv_key_map = Vec::new();
+        let mut sets = Vec::new();
         let mut layer_proofs = self.layer_proofs();
         for i in 0..depth {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
@@ -265,13 +265,13 @@ impl VerifierChannel {
                 })
                 .collect();
 
-            let new_set = MerklePathSet::new((log2(current_domain_size / N)) as u8);
+            let new_set = MerklePathSet::new((current_domain_size / N).ilog2() as u8);
 
             let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
             let nodes_tmp = nodes.clone();
             let iter_nodes = nodes_tmp.iter();
             let iter_paths = paths.into_iter();
-            let mut tmp_vec = vec![];
+            let mut tmp_vec = Vec::new();
             for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
                 tmp_vec.push((p, *node, path));
             }
@@ -290,7 +290,7 @@ impl VerifierChannel {
                 })
                 .collect();
 
-            mem::swap(&mut positions, &mut folded_positions);
+            core::mem::swap(&mut positions, &mut folded_positions);
             current_domain_size = current_domain_size / N;
         }
 
@@ -308,7 +308,7 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
         self.fri_num_partitions
     }
 
-    fn read_fri_layer_commitments(&mut self) -> Vec<Digest> {
+    fn read_fri_layer_commitments(&mut self) -> Vec<RpoDigest> {
         self.fri_roots.take().expect("already read")
     }
 
@@ -460,7 +460,7 @@ pub fn unbatch_to_path_set(
 ) -> (MerklePathSet, Vec<([u8; 32], Vec<Felt>)>) {
     let mut unbatched_proof = proof.into_paths(&positions).unwrap();
     let depth = unbatched_proof[0].len() as u8;
-    let mut adv_key_map = vec![];
+    let mut adv_key_map = Vec::new();
     let nodes: Vec<[Felt; 4]> = unbatched_proof
         .iter_mut()
         .map(|list| {

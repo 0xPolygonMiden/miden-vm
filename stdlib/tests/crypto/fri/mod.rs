@@ -1,6 +1,5 @@
 use crate::build_test;
 use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
-use winterfell::math::log2;
 
 mod channel;
 pub use channel::*;
@@ -40,7 +39,7 @@ fn fri_fold4_ext2_remainder32() {
     );
 
     let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
-    let domain_generator = Felt::get_root_of_unity(log2(domain_size as usize)).as_int();
+    let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
     for path_set in &advice_provider.0 {
@@ -81,7 +80,7 @@ fn fri_fold4_ext2_remainder64() {
     );
 
     let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
-    let domain_generator = Felt::get_root_of_unity(log2(domain_size as usize)).as_int();
+    let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
     for path_set in &advice_provider.0 {

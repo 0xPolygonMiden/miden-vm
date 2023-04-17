@@ -2,9 +2,10 @@ mod verifier_recursive;
 
 use crate::build_test;
 use assembly::Assembler;
+use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use test_utils::{
-    crypto::MerkleStore, prove, AdviceInputs, Felt, FieldExtension, HashFunction,
-    MemAdviceProvider, ProgramInfo, ProofOptions, PublicInputs, StackInputs, VerifierError,
+    crypto::MerkleStore, prove, AdviceInputs, Felt, MemAdviceProvider, ProgramInfo, ProofOptions,
+    StackInputs, VerifierError,
 };
 
 #[test]
