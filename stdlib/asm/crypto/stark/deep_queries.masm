@@ -5,7 +5,7 @@ const.COMPOSITION_POLY_COM_PTR=4294967288
 const.DEEP_RAND_CC_PTR=4294966338
 const.OOD_TRACE_CURRENT_PTR=4294965000
 const.OOD_CONSTRAINT_EVALS_PTR=4294965082
-const.Z=4294967291
+const.Z_PTR=4294967291
 
 const.TMP0=4294967287
 const.TMP1=4294967286
@@ -18,8 +18,8 @@ const.TMP7=4294967280
 const.TMP8=4294967279
 
 const.CURRENT_TRACE_ROW_PTR=4294964000
-const.ZERO_ZERO_ZERO_ONE=4294967294
-const.ZERO_WORD=4294967295
+const.ZERO_ZERO_ZERO_ONE_PTR=4294967294
+const.ZERO_WORD_PTR=4294967295
 
 # Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
 # `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
@@ -765,7 +765,7 @@ export.compute_deep_composition_polynomial_queries
         push.CURRENT_TRACE_ROW_PTR
         swapw.3
         #=> [Y, Y, Y, ptr, y, y, y ]
-        mem_loadw.ZERO_WORD
+        mem_loadw.ZERO_WORD_PTR
         swapw.2
         #=> [Y, Y, 0, 0, 0, 0, ptr, y, y, y]
         repeat.9
@@ -806,7 +806,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [L, R, ptr, pos, depth, 0, ]
 
         ## Prepare for adv_pipe aux trace row
-        mem_loadw.ZERO_ZERO_ZERO_ONE
+        mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
         swapw
         push.0.0.0.0
         adv_pipe
@@ -822,7 +822,7 @@ export.compute_deep_composition_polynomial_queries
         mem_storew
         
         swapw
-        mem_loadw.ZERO_WORD
+        mem_loadw.ZERO_WORD_PTR
         hperm
         #=> [Y, L, Y, ptr, pos, depth, y]
         mem_loadw.TMP3
@@ -850,7 +850,7 @@ export.compute_deep_composition_polynomial_queries
         adv.keyval
         mem_storew.TMP3
         #=>[L, R, ptr, pos, depth, y]
-        mem_loadw.ZERO_WORD
+        mem_loadw.ZERO_WORD_PTR
         swapw
         push.0.0.0.0
         adv_pipe
@@ -1350,7 +1350,7 @@ export.compute_deep_composition_polynomial_queries
         mem_loadw.TMP2
         movdn.3
         push.0
-        mem_loadw.Z
+        mem_loadw.Z_PTR
         #=> [z^8_1, z^8_0, z1, z0, x, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
 
         ## Compute the denominator

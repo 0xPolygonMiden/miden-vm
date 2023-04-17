@@ -1,0 +1,49 @@
+const.ROOT_UNITY=7277203076849721926
+const.SEED_PTR=4294967293
+
+# Compute the LDE domain generator from the log2 of its size.
+#
+# Input: [log2(domain_size), ..]
+# Output: [domain_gen, ..]
+export.compute_lde_generator
+    push.32
+    swap
+    sub
+    pow2
+    push.ROOT_UNITY
+    swap
+    exp.u32
+    # => [domain_gen, ..]
+end
+
+# Check that the Proof-of-Work contained in the current `SEED` is equal to the required number
+# of bits prescribed by grinding bits. Currently the grinding factor is fixed to 16 bits.
+#
+# Input: [...]
+# Output: [...]
+export.check_pow
+    # Load Seed
+    push.0.0.0.0
+    mem_loadw.SEED_PTR
+    push.1.0.0.0
+    swapw
+    adv_push.1
+    push.1.0.0
+    hperm
+    swapw
+    mem_storew.SEED_PTR
+    # => [Seed, Y, Y, Y]
+
+    # Get the leading field element of the digest
+    swap.3
+
+    # Make sure the lower 16 bits are zero
+    u32split
+    swap
+    push.0xFFFF
+    u32checked_and
+    assertz
+    # => [Y, Y, Y]
+    repeat.3 dropw end
+    #=> [...]
+end

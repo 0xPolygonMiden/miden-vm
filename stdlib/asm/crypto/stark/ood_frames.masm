@@ -1,4 +1,4 @@
-const.Z=4294967291
+const.Z_PTR=4294967291
 const.OOD_TRACE_CURRENT_PTR=4294965000
 const.OOD_TRACE_NEXT_PTR=4294965041
 const.OOD_CONSTRAINT_EVALS_PTR=4294965082
@@ -131,7 +131,7 @@ export.compute_Hz
 
     ## Load z
     push.0.0.0.0
-    mem_loadw.Z
+    mem_loadw.Z_PTR
     drop drop
     # => [z1, z0, value_7, ... ,value_0]
 

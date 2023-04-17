@@ -1,9 +1,10 @@
 const.SEED_PTR=4294967293
-const.Z=4294967291
+const.Z_PTR=4294967291
 const.TMP0=4294967287
 const.FRI_QUERIES_PTR=4294966473
 const.DEEP_RAND_CC_PTR=4294966338
 const.AUX_RAND_ELEM_PTR=4294966000
+const.LDE_SIZE_PTR=4294967292
 
 # Reseed the random coin with `Data`
 #
@@ -197,7 +198,7 @@ export.generate_z_z8
         dup.1
         ext2mul
     end
-    mem_storew.Z
+    mem_storew.Z_PTR
     dropw
 end
 
@@ -229,4 +230,67 @@ export.generate_deep_composition_random_coefficients
     drop
     drop
     # => [...]
+end
+
+# Initializes the seed for randomness generation by computing the hash of the proof context using
+# the trace length, number of queries, logarithm of blowup factor and the number of bits of 
+# grinding. Currently, this part, as well as the rest of the STARK verifier has the blowup factor
+# fixed to 8, number of queries to 27.
+# The ouput of this procedure is the capacity portion of the state after applying `hperm`.
+#
+# Input: [trace_length, num_queries, blowup, grinding, ...]
+# Output: [C]
+export.init_seed
+
+    # Create the initial seed for randomness generation from proof context
+    
+    ## compute trace_length
+    dup
+    pow2
+    u32split assertz
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
+
+    ## Assert blowup is equal to 8
+    swap
+    dup.3
+    dup
+    push.3
+    assert_eq
+
+    ## Compute log(lde_size) and lde_size and store them
+    add
+    swap
+    movup.3
+    pow2
+    dup
+    movdn.4
+    swap
+    dup
+    movdn.3
+    mul
+    push.0
+    movdn.2
+    push.0
+    movdn.2
+    mem_storew.LDE_SIZE_PTR
+    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
+
+    # Construct the proof context
+    dropw
+    push.1208027408
+    push.1
+    push.4294967295
+    push.132103
+    swapw
+    
+    # Hash proof context
+    push.1.0.0.0
+    #=> [0, 0, 0, 1, B, A, ..]
+    swapw.2
+    swapw
+    #=> [B, A, 0, 0, 0, 1, ..]
+    hperm
+    dropw
+    dropw
+    #=> [C]
 end
