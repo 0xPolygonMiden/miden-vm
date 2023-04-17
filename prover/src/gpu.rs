@@ -9,13 +9,17 @@ use gpu_poly::{
 };
 use log::debug;
 use pollster::block_on;
-use processor::crypto::RandomCoin;
-use processor::crypto::{Rpo256, RpoDigest};
-use processor::math::{fft, Felt};
-use processor::ExecutionTrace;
+use processor::{
+    crypto::{RandomCoin, Rpo256, RpoDigest},
+    math::{fft, Felt},
+    ExecutionTrace,
+};
 use std::time::Instant;
-use winter_prover::matrix::{get_evaluation_offsets, Segment};
-use winter_prover::{crypto::MerkleTree, ColMatrix, Prover, RowMatrix, StarkDomain};
+use winter_prover::{
+    crypto::MerkleTree,
+    matrix::{get_evaluation_offsets, Segment},
+    ColMatrix, Prover, RowMatrix, StarkDomain,
+};
 
 const RPO_RATE: usize = Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.start;
 
@@ -77,7 +81,6 @@ where
     {
         // interpolate the execution trace
         let now = Instant::now();
-        let poly_size = trace.num_rows();
         let inv_twiddles = fft::get_inv_twiddles::<E::BaseField>(trace.num_rows());
         let trace_polys = trace.columns().map(|col| {
             let mut poly = col.to_vec();
@@ -85,22 +88,15 @@ where
             poly
         });
 
-        // extend the execution trace
+        // extend the execution trace and generate hashes on the gpu
         let lde_segments = FrozenVec::new();
-        let lde_blowup = domain.trace_to_lde_blowup();
-        let offsets = get_evaluation_offsets::<E>(poly_size, lde_blowup, domain.offset());
-        let domain_size = offsets.len();
-        let trace_twiddles = domain.trace_twiddles();
-        let mut lde_segment_generator =
-            SegmentGenerator::new(trace_polys, &offsets, trace_twiddles);
-
-        // generate hashes on the gpu
         let lde_domain_size = domain.lde_domain_size();
         let num_base_columns = trace.num_base_cols();
         let rpo_requires_padding = num_base_columns % RPO_RATE != 0;
         let rpo_padded_segment_idx = rpo_requires_padding.then_some(num_base_columns / RPO_RATE);
         let mut row_hasher = GpuRpo256RowMajor::<Felt>::new(lde_domain_size, rpo_requires_padding);
         let mut rpo_padded_segment: Vec<[Felt; RPO_RATE]>;
+        let mut lde_segment_generator = SegmentGenerator::new(trace_polys, domain);
         let mut lde_segment_iter = lde_segment_generator.gen_segment_iter().enumerate();
         for (segment_idx, segment) in &mut lde_segment_iter {
             let segment = lde_segments.push_get(Box::new(segment));
@@ -110,7 +106,7 @@ where
                 // rule ("1" followed by "0"s). Our segments are already
                 // padded with "0"s we only need to add the "1"s.
                 let rpo_pad_column = num_base_columns % RPO_RATE;
-                rpo_padded_segment = unsafe { page_aligned_uninit_vector(domain_size) };
+                rpo_padded_segment = unsafe { page_aligned_uninit_vector(lde_domain_size) };
                 rpo_padded_segment.copy_from_slice(segment);
                 rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = Felt::ONE);
                 row_hasher.update(&rpo_padded_segment);
@@ -140,7 +136,7 @@ where
     }
 }
 
-struct SegmentGenerator<'a, 'b, E, I, const N: usize>
+struct SegmentGenerator<'a, E, I, const N: usize>
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>,
@@ -148,24 +144,26 @@ where
     poly_iter: I::IntoIter,
     polys: Option<ColMatrix<E>>,
     poly_offset: usize,
-    offsets: &'a [E::BaseField],
-    twiddles: &'b [E::BaseField],
+    offsets: Vec<E::BaseField>,
+    domain: &'a StarkDomain<E::BaseField>,
 }
 
-impl<'a, 'b, E, I, const N: usize> SegmentGenerator<'a, 'b, E, I, N>
+impl<'a, E, I, const N: usize> SegmentGenerator<'a, E, I, N>
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>,
 {
-    fn new(polys: I, offsets: &'a [E::BaseField], twiddles: &'b [E::BaseField]) -> Self {
+    fn new(polys: I, domain: &'a StarkDomain<Felt>) -> Self {
         assert!(N > 0, "batch size N must be greater than zero");
-        assert_eq!(offsets.len() % twiddles.len() * 2, 0);
+        let poly_size = domain.trace_length();
+        let lde_blowup = domain.trace_to_lde_blowup();
+        let offsets = get_evaluation_offsets::<E>(poly_size, lde_blowup, domain.offset());
         Self {
             poly_iter: polys.into_iter(),
             polys: None,
             poly_offset: 0,
             offsets,
-            twiddles,
+            domain,
         }
     }
 
@@ -175,7 +173,7 @@ where
     }
 
     /// Returns a segment generating iterator.
-    fn gen_segment_iter(&mut self) -> SegmentIterator<'a, 'b, '_, E, I, N> {
+    fn gen_segment_iter(&mut self) -> SegmentIterator<'a, '_, E, I, N> {
         SegmentIterator(self)
     }
 
@@ -201,25 +199,26 @@ where
             return None;
         }
 
-        let domain_size = self.offsets.len();
+        let domain_size = self.domain.lde_domain_size();
         let mut data = unsafe { page_aligned_uninit_vector(domain_size) };
         if polys.num_base_cols() < offset + N {
             // the segment will remain unfilled so we pad it with zeros
             data.fill([E::BaseField::ZERO; N]);
         }
 
-        let segment = Segment::new_with_buffer(data, &*polys, offset, self.offsets, self.twiddles);
+        let twiddles = self.domain.trace_twiddles();
+        let segment = Segment::new_with_buffer(data, &*polys, offset, &self.offsets, twiddles);
         self.poly_offset += N;
         Some(segment)
     }
 }
 
-struct SegmentIterator<'a, 'b, 'c, E, I, const N: usize>(&'c mut SegmentGenerator<'a, 'b, E, I, N>)
+struct SegmentIterator<'a, 'b, E, I, const N: usize>(&'b mut SegmentGenerator<'a, E, I, N>)
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>;
 
-impl<'a, 'b, 'c, E, I, const N: usize> Iterator for SegmentIterator<'a, 'b, 'c, E, I, N>
+impl<'a, 'b, E, I, const N: usize> Iterator for SegmentIterator<'a, 'b, E, I, N>
 where
     E: FieldElement<BaseField = Felt>,
     I: IntoIterator<Item = Vec<E>>,
@@ -230,6 +229,9 @@ where
         self.0.gen_next_segment()
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {
