@@ -297,7 +297,7 @@ represents the leaf value (4 elements). </li>
 <p><em>Check out the <a href="https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm">comparison example</a> to see how secret inputs work.</em></p>
 <p>After a program finishes executing, the elements that remain on the stack become the outputs of the program, along with the overflow addresses (<code>overflow_addrs</code>) that are required to reconstruct the <a href="intro/../design/stack/main.html#overflow-table">stack overflow table</a>.</p>
 <h2 id="fibonacci-example"><a class="header" href="#fibonacci-example">Fibonacci example</a></h2>
-<p>In the <code>miden/examples/fib</code> directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:</p>
+<p>In the <code>miden/examples/fib</code> directory, we provide a very simple Fibonacci calculator example. This example computes the 1001st term of the Fibonacci sequence. You can execute this example on Miden VM like so:</p>
 <pre><code>./target/optimized/miden run -a miden/examples/fib/fib.masm -n 1
 </code></pre>
 <p>This will run the example code to completion and will output the top element remaining on the stack.</p>
