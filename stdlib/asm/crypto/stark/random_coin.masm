@@ -1,14 +1,15 @@
 const.SEED_PTR=4294967293
-const.Z=4294967291
+const.Z_PTR=4294967291
 const.TMP0=4294967287
 const.FRI_QUERIES_PTR=4294966473
 const.DEEP_RAND_CC_PTR=4294966338
 const.AUX_RAND_ELEM_PTR=4294966000
+const.LDE_SIZE_PTR=4294967292
 
-# Reseed the random coin with `Data`
-#
-# Input: [Data, ...]
-# Ouput: [...]
+#! Reseed the random coin with `Data`
+#!
+#! Input: [Data, ...]
+#! Ouput: [...]
 export.reseed
     push.0.0.0.0
     swapw
@@ -23,12 +24,12 @@ export.reseed
     dropw
 end
 
-# Generate the next tuple of extension field element (v0, v1, v0', v1') based on the current seed 
-# and counter and uses the memory pointer to store (v0, v1, v0', v1') in memory
-#
-# The counter is updated as part of the procedure.
-# Input: [Seed, 1, ptr]
-# Output: [Y, 3, ptr + 1] where Y is a "garbage" value
+#! Generate the next tuple of extension field element (v0, v1, v0', v1') based on the current seed 
+#! and counter and uses the memory pointer to store (v0, v1, v0', v1') in memory
+#!
+#! The counter is updated as part of the procedure.
+#! Input: [Seed, 1, ptr]
+#! Output: [Y, 3, ptr + 1] where Y is a "garbage" value
 proc.generate_next_extfelt_tuple
     dupw
     dup.8
@@ -68,11 +69,11 @@ proc.generate_next_extfelt_tuple
     # => [r1, r0, r1, r0, 3, ptr + 1]
 end
 
-# Generate the next integer value `r` in the range [0, mask + 1] and stores the word `(r, depth, y, y)`
-# where `depth` is `log(lde_domain_size)`. `depth` is needed when computing the deep queries.
-#
-# Input: [Seed, 1, ptr, mask, depth, ...]
-# Output: [Y, 2, ptr + 1, depth, ...]
+#! Generate the next integer value `r` in the range [0, mask + 1] and stores the word `(r, depth, y, y)`
+#! where `depth` is `log(lde_domain_size)`. `depth` is needed when computing the deep queries.
+#!
+#! Input: [Seed, 1, ptr, mask, depth, ...]
+#! Output: [Y, 2, ptr + 1, depth, ...]
 proc.generate_next_integer
     movup.4         
     dup
@@ -99,14 +100,14 @@ proc.generate_next_integer
     mem_storew          # [r, depth, y, r1, 2, ptr + 1, mask, depth]
 end
 
-# Generate a list of random indices in the range [0, lde_size] and store it in memory starting
-# from `query_ptr`. The list is stored as `(r, depth, y, y)` where `depth` is
-# `log(lde_domain_size)`. `depth` is needed when computing the deep queries.
-# TODO: the case of duplicate queries
-# TODO: generalize to any number of queries
-#
-# Input: [query_ptr, ...]
-# Output: [...]
+#! Generate a list of random indices in the range [0, lde_size] and store it in memory starting
+#! from `query_ptr`. The list is stored as `(r, depth, y, y)` where `depth` is
+#! `log(lde_domain_size)`. `depth` is needed when computing the deep queries.
+#! TODO: the case of duplicate queries
+#! TODO: generalize to any number of queries
+#!
+#! Input: [query_ptr, ...]
+#! Output: [...]
 export.generate_list_indices
     # Create mask
     push.0.0.0.0
@@ -131,11 +132,11 @@ export.generate_list_indices
     dropw
 end
 
-# Draw a list of random extension field elements related to the auxiliary trace and store the list 
-# in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 8 - 1`
-#
-# Input: [aux_rand_elem_ptr, ...]
-# Output: [...]
+#! Draw a list of random extension field elements related to the auxiliary trace and store the list 
+#! in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 8 - 1`
+#!
+#! Input: [aux_rand_elem_ptr, ...]
+#! Output: [...]
 export.generate_aux_randomness
     push.1
     push.0.0.0.0
@@ -152,11 +153,11 @@ export.generate_aux_randomness
     # => [...] 
 end
 
-# Draw constraint composition random coefficients and save them into memory in the region from
-# `compos_coef_ptr` `compos_coef_ptr + 235 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
-#
-# Input: [compos_coef_ptr, ...]
-# Output: [...]
+#! Draw constraint composition random coefficients and save them into memory in the region from
+#! `compos_coef_ptr` `compos_coef_ptr + 235 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#!
+#! Input: [compos_coef_ptr, ...]
+#! Output: [...]
 export.generate_constraint_composition_coefficients
     push.1
     push.0.0.0.0
@@ -172,11 +173,11 @@ export.generate_constraint_composition_coefficients
     drop
 end
 
-# Generate the OOD challenge point `z = (z0, z1)` and compute `z^8`. The resulting word
-# `[z^8_1, z^8_0, z1, z0]` is stored in the global memory address reserved for it.
-#
-# Input: [...]
-# Output: [...]
+#! Generate the OOD challenge point `z = (z0, z1)` and compute `z^8`. The resulting word
+#! `[z^8_1, z^8_0, z1, z0]` is stored in the global memory address reserved for it.
+#!
+#! Input: [...]
+#! Output: [...]
 export.generate_z_z8
     # draw z 
     push.1.0.0.0
@@ -197,15 +198,15 @@ export.generate_z_z8
         dup.1
         ext2mul
     end
-    mem_storew.Z
+    mem_storew.Z_PTR
     dropw
 end
 
-# Draw deep composition polynomial random coefficients and save them into memory in the region from
-# `deep_rand_coef_ptr` `compos_coef_ptr + 86 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
-#
-# Input: [deep_rand_coef_ptr, ...]
-# Output: [...]
+#! Draw deep composition polynomial random coefficients and save them into memory in the region from
+#! `deep_rand_coef_ptr` `compos_coef_ptr + 86 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#!
+#! Input: [deep_rand_coef_ptr, ...]
+#! Output: [...]
 export.generate_deep_composition_random_coefficients
     # Load Seed and prepare for drawing
     push.1
@@ -229,4 +230,67 @@ export.generate_deep_composition_random_coefficients
     drop
     drop
     # => [...]
+end
+
+#! Initializes the seed for randomness generation by computing the hash of the proof context using
+#! the trace length, number of queries, logarithm of blowup factor and the number of bits of 
+#! grinding. Currently, this part, as well as the rest of the STARK verifier has the blowup factor
+#! fixed to 8, number of queries to 27.
+#! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
+#!
+#! Input: [trace_length, num_queries, blowup, grinding, ...]
+#! Output: [C]
+export.init_seed
+
+    # Create the initial seed for randomness generation from proof context
+    
+    ## compute trace_length
+    dup
+    pow2
+    u32split assertz
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
+
+    ## Assert blowup is equal to 8
+    swap
+    dup.3
+    dup
+    push.3
+    assert_eq
+
+    ## Compute log(lde_size) and lde_size and store them
+    add
+    swap
+    movup.3
+    pow2
+    dup
+    movdn.4
+    swap
+    dup
+    movdn.3
+    mul
+    push.0
+    movdn.2
+    push.0
+    movdn.2
+    mem_storew.LDE_SIZE_PTR
+    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
+
+    # Construct the proof context
+    dropw
+    push.1208027408
+    push.1
+    push.4294967295
+    push.132103
+    swapw
+    
+    # Hash proof context
+    push.1.0.0.0
+    #=> [0, 0, 0, 1, B, A, ..]
+    swapw.2
+    swapw
+    #=> [B, A, 0, 0, 0, 1, ..]
+    hperm
+    dropw
+    dropw
+    #=> [C]
 end

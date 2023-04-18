@@ -5,7 +5,7 @@ const.COMPOSITION_POLY_COM_PTR=4294967288
 const.DEEP_RAND_CC_PTR=4294966338
 const.OOD_TRACE_CURRENT_PTR=4294965000
 const.OOD_CONSTRAINT_EVALS_PTR=4294965082
-const.Z=4294967291
+const.Z_PTR=4294967291
 
 const.TMP0=4294967287
 const.TMP1=4294967286
@@ -18,25 +18,25 @@ const.TMP7=4294967280
 const.TMP8=4294967279
 
 const.CURRENT_TRACE_ROW_PTR=4294964000
-const.ZERO_ZERO_ZERO_ONE=4294967294
-const.ZERO_WORD=4294967295
+const.ZERO_ZERO_ZERO_ONE_PTR=4294967294
+const.ZERO_WORD_PTR=4294967295
 
-# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
-# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
-# 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
-# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#   is referenced by `p1`        
-# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
-#   referenced by `p1 + 41`
-# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
-#
-# The difference between `deep_query_aux_trace_1` and `deep_query_aux_trace_2` is related to the fact
-# that `T_i(z)` are stored in memory as `(T_{i+1}(z), T_i(z))` and in order to reduce memory pointer
-# manipulations we have `deep_query_aux_trace_1` for accumulating the terms related to `T_i(z)` and
-# `deep_query_aux_trace_2` for accumulating the terms related to `T_i(gz)`.
-#
-# Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
-# Output: [T_i(x)1, T_i(x)0, p1, p2 + 1, Y', Y', Acc']
+#! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+#! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+#! 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
+#! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#!   is referenced by `p1`        
+#! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#!   referenced by `p1 + 41`
+#! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#!
+#! The difference between `deep_query_aux_trace_1` and `deep_query_aux_trace_2` is related to the fact
+#! that `T_i(z)` are stored in memory as `(T_{i+1}(z), T_i(z))` and in order to reduce memory pointer
+#! manipulations we have `deep_query_aux_trace_1` for accumulating the terms related to `T_i(z)` and
+#! `deep_query_aux_trace_2` for accumulating the terms related to `T_i(gz)`.
+#!
+#! Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
+#! Output: [T_i(x)1, T_i(x)0, p1, p2 + 1, Y', Y', Acc']
 proc.deep_query_aux_trace_1
 
     # Get T_i(z), T_i(gz)
@@ -138,22 +138,22 @@ proc.deep_query_aux_trace_1
     #=> [P, Y, Y, Acc]
 end
 
-# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
-# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
-# 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
-# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#   is referenced by `p1`        
-# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
-#   referenced by `p1 + 41`
-# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
-#
-# The difference between `deep_query_aux_trace_1` and `deep_query_aux_trace_2` is related to the fact
-# that `T_i(z)` are stored in memory as `(T_{i+1}(z), T_i(z))` and in order to reduce memory pointer
-# manipulations we have `deep_query_aux_trace_1` for accumulating the terms related to `T_i(z)` and
-# `deep_query_aux_trace_2` for accumulating the terms related to `T_i(gz)`.
-#
-# Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
-# Output: [T_i(x)1, T_i(x)0, p1 + 1, p2 + 1, Y', Y', Acc']
+#! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+#! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+#! 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
+#! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#!   is referenced by `p1`        
+#! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#!   referenced by `p1 + 41`
+#! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#!
+#! The difference between `deep_query_aux_trace_1` and `deep_query_aux_trace_2` is related to the fact
+#! that `T_i(z)` are stored in memory as `(T_{i+1}(z), T_i(z))` and in order to reduce memory pointer
+#! manipulations we have `deep_query_aux_trace_1` for accumulating the terms related to `T_i(z)` and
+#! `deep_query_aux_trace_2` for accumulating the terms related to `T_i(gz)`.
+#!
+#! Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
+#! Output: [T_i(x)1, T_i(x)0, p1 + 1, p2 + 1, Y', Y', Acc']
 proc.deep_query_aux_trace_2
 
     # Get T_i(z), T_i(gz)
@@ -266,24 +266,24 @@ proc.deep_query_aux_trace_2
     #=> [P, Y, Y, Acc]
 end
 
-# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
-# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
-# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
-# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#   is referenced by `p1`        
-# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
-#   referenced by `p1 + 41`
-# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
-#
-# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
-# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
-# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
-# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
-# the terms related to `T_{i+1}(x)` and so forth.
-#
-# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
-# Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc'] 
+#! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+#! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+#! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#!   is referenced by `p1`        
+#! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#!   referenced by `p1 + 41`
+#! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#!
+#! The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+#! that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+#! order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+#! the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+#! the terms related to `T_{i+1}(x)` and so forth.
+#!
+#! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+#! Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc'] 
 proc.deep_query_main_trace_1
 
     # Get value_i := T_i(x)
@@ -374,24 +374,24 @@ proc.deep_query_main_trace_1
     #=> [Y, P, Y, Acc]
 end
 
-# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
-# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
-# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
-# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#   is referenced by `p1`        
-# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
-#   referenced by `p1 + 41`
-# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
-#
-# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
-# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
-# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
-# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
-# the terms related to `T_{i+1}(x)` and so forth.
-#
-# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
-# Output: [T_i(x), p1 + 1, p2 + 1, p3, Y', Y', Acc']
+#! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+#! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+#! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#!   is referenced by `p1`        
+#! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#!   referenced by `p1 + 41`
+#! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#!
+#! The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+#! that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+#! order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+#! the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+#! the terms related to `T_{i+1}(x)` and so forth.
+#!
+#! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+#! Output: [T_i(x), p1 + 1, p2 + 1, p3, Y', Y', Acc']
 proc.deep_query_main_trace_2
 
     # Get value_i := T_i(x)
@@ -493,24 +493,24 @@ proc.deep_query_main_trace_2
     #=> [Y, P, Y, Acc]
 end
 
-# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
-# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
-# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
-# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#   is referenced by `p1`        
-# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
-#   referenced by `p1 + 41`
-# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
-#
-# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
-# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
-# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
-# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
-# the terms related to `T_{i+1}(x)` and so forth.
-#
-# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
-# Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc']
+#! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+#! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+#! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#!   is referenced by `p1`        
+#! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#!   referenced by `p1 + 41`
+#! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#!
+#! The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+#! that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+#! order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+#! the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+#! the terms related to `T_{i+1}(x)` and so forth.
+#!
+#! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+#! Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc']
 proc.deep_query_main_trace_3
 
     # Get value_i := T_i(x)
@@ -604,24 +604,24 @@ proc.deep_query_main_trace_3
     #=> [Y, P, Y, Acc]
 end
 
-# Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
-# `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
-# 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
-# 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#   is referenced by `p1`        
-# 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
-#   referenced by `p1 + 41`
-# 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
-#
-# The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
-# that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
-# order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
-# the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
-# the terms related to `T_{i+1}(x)` and so forth.
-#
-# Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
-# Output: [T_i(x), p1 + 1, p2 + 1, p3 + 1, Y', Y', Acc']
+#! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
+#! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
+#! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
+#!   is referenced by `p1`        
+#! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
+#!   referenced by `p1 + 41`
+#! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
+#!
+#! The difference between `deep_query_main_trace_i` for i in {1, 2, 3, 4} is related to the fact
+#! that `T_i(x)` are stored in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and in
+#! order to reduce memory pointer manipulations we have `deep_query_main_trace_1` for accumulating
+#! the terms related to `T_i(x)` and `deep_query_main_trace_2` for accumulating
+#! the terms related to `T_{i+1}(x)` and so forth.
+#!
+#! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
+#! Output: [T_i(x), p1 + 1, p2 + 1, p3 + 1, Y', Y', Acc']
 proc.deep_query_main_trace_4
 
     # Get value_i := T_i(x)
@@ -730,11 +730,11 @@ end
 
 
  
-# Compute the deep composition polynomial at the previously drawn random queries. Currently, their
-# number is fixed to 27.
-#
-# Input: [...]
-# Output: [...]
+#! Compute the deep composition polynomial at the previously drawn random queries. Currently, their
+#! number is fixed to 27.
+#!
+#! Input: [...]
+#! Output: [...]
 export.compute_deep_composition_polynomial_queries
     push.FRI_QUERIES_PTR
     repeat.5 push.0.0.0.0 end
@@ -765,7 +765,7 @@ export.compute_deep_composition_polynomial_queries
         push.CURRENT_TRACE_ROW_PTR
         swapw.3
         #=> [Y, Y, Y, ptr, y, y, y ]
-        mem_loadw.ZERO_WORD
+        mem_loadw.ZERO_WORD_PTR
         swapw.2
         #=> [Y, Y, 0, 0, 0, 0, ptr, y, y, y]
         repeat.9
@@ -806,7 +806,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [L, R, ptr, pos, depth, 0, ]
 
         ## Prepare for adv_pipe aux trace row
-        mem_loadw.ZERO_ZERO_ZERO_ONE
+        mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
         swapw
         push.0.0.0.0
         adv_pipe
@@ -822,7 +822,7 @@ export.compute_deep_composition_polynomial_queries
         mem_storew
         
         swapw
-        mem_loadw.ZERO_WORD
+        mem_loadw.ZERO_WORD_PTR
         hperm
         #=> [Y, L, Y, ptr, pos, depth, y]
         mem_loadw.TMP3
@@ -850,7 +850,7 @@ export.compute_deep_composition_polynomial_queries
         adv.keyval
         mem_storew.TMP3
         #=>[L, R, ptr, pos, depth, y]
-        mem_loadw.ZERO_WORD
+        mem_loadw.ZERO_WORD_PTR
         swapw
         push.0.0.0.0
         adv_pipe
@@ -1350,7 +1350,7 @@ export.compute_deep_composition_polynomial_queries
         mem_loadw.TMP2
         movdn.3
         push.0
-        mem_loadw.Z
+        mem_loadw.Z_PTR
         #=> [z^8_1, z^8_0, z1, z0, x, query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
 
         ## Compute the denominator

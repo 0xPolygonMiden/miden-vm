@@ -1,14 +1,14 @@
-const.Z=4294967291
+const.Z_PTR=4294967291
 const.OOD_TRACE_CURRENT_PTR=4294965000
 const.OOD_TRACE_NEXT_PTR=4294965041
 const.OOD_CONSTRAINT_EVALS_PTR=4294965082
 
-# Loads and computes ROW_HASH which is the hash of either
-# [ood_main_trace_frame.current(), aux_trace_frame.current()]
-# or [ood_main_trace_frame.next(), aux_trace_frame.next()]
-#
-# Input: [ood_frame_ptr, ...]
-# Output: [ROW_HASH, ...]
+#! Loads and computes ROW_HASH which is the hash of either
+#! [ood_main_trace_frame.current(), aux_trace_frame.current()]
+#! or [ood_main_trace_frame.next(), aux_trace_frame.next()]
+#!
+#! Input: [ood_frame_ptr, ...]
+#! Output: [ROW_HASH, ...]
 export.load_ood_eval_frame
     push.1.0.0.0
     push.0.0.0.0
@@ -38,10 +38,10 @@ export.load_ood_eval_frame
 end
 
 
-# Loads OOD evaluation frame (both current and next rows) into memory and reseeds the random coin.
-#
-# Input: [...]
-# Output: [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
+#! Loads OOD evaluation frame (both current and next rows) into memory and reseeds the random coin.
+#!
+#! Input: [...]
+#! Output: [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
 export.load_evaluation_frame
     # Read [ood_main_trace_frame.current(), aux_trace_frame.current()]
     # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
@@ -71,11 +71,11 @@ export.load_evaluation_frame
     #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
 end
 
-# Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
-# coin.
-#
-# Input: [...]
-# Output: [EVAL_HASH, ...]
+#! Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
+#! coin.
+#!
+#! Input: [...]
+#! Output: [EVAL_HASH, ...]
 export.load_constraint_evaluations
     # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of
     # constraint evaluation function at `z` `H(z)` equals `\sum_0^7 z^i value_i`.
@@ -94,10 +94,10 @@ export.load_constraint_evaluations
     # => [CONSTR_EVAL_HASH, ...]
 end 
 
-# Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z. 
-#
-# Input: [...]
-# Output: [res1, res0, ...]
+#! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z. 
+#!
+#! Input: [...]
+#! Output: [res1, res0, ...]
 export.compute_Hz
     # TODO: remove this
     push.OOD_CONSTRAINT_EVALS_PTR
@@ -131,7 +131,7 @@ export.compute_Hz
 
     ## Load z
     push.0.0.0.0
-    mem_loadw.Z
+    mem_loadw.Z_PTR
     drop drop
     # => [z1, z0, value_7, ... ,value_0]
 
