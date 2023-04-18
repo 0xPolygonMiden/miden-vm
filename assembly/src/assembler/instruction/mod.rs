@@ -56,6 +56,7 @@ impl Assembler {
             Instruction::Incr => span.add_op(Incr),
 
             Instruction::Pow2 => field_ops::pow2(span),
+            Instruction::ILog2 => field_ops::ilog2(span),
             Instruction::Exp => field_ops::exp(span, 64),
             Instruction::ExpImm(pow) => field_ops::exp_imm(span, *pow),
             Instruction::ExpBitLength(num_pow_bits) => field_ops::exp(span, *num_pow_bits),
