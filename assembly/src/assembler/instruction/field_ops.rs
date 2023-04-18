@@ -97,20 +97,33 @@ pub fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> 
 
 /// Appends relevant operations to the span block for the computation of power of 2.
 ///
-/// VM cycles: 16 cycles
+/// Input: [exp, ...]
+/// Output: [2 ** exp, ...]
+/// Cycles: 16
 pub fn append_pow2_op(span: &mut SpanBuilder) {
-    // push base 2 onto the stack: [exp, ...] -> [2, exp, ...]
+    // push base 2 onto the stack
     span.push_op(Push(2_u8.into()));
-    // introduce initial value of acc onto the stack: [2, exp, ...] -> [1, 2, exp, ...]
+    // => [2, exp, ...]
+
+    // introduce initial value of acc onto the stack
     span.push_ops([Pad, Incr]);
-    // arrange the top of the stack for EXPACC operation: [1, 2, exp, ...] -> [0, 2, 1, exp, ...]
+    // => [1, 2, exp, ...]
+
+    // arrange the top of the stack for EXPACC operation
     span.push_ops([Swap, Pad]);
+    // => [0, 2, 1, exp, ...]
+
     // calling expacc instruction 6 times
     span.push_ops([Expacc, Expacc, Expacc, Expacc, Expacc, Expacc]);
+    // => [(exp >>) 5 & 1, 2**64, result, exp >> 6, ...]
+
     // drop the top two elements bit and exp value of the latest bit.
     span.push_ops([Drop, Drop]);
+    // => [result, exp >> 6, ...]
+
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
     span.push_ops([Swap, Eqz, Assert]);
+    // => [result, ...]
 }
 
 // EXPONENTIATION OPERATION
