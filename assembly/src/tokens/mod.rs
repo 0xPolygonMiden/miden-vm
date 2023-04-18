@@ -3,6 +3,9 @@ use super::{
 };
 use core::fmt;
 
+mod lines;
+pub use lines::{LineInfo, LinesStream};
+
 mod stream;
 pub use stream::TokenStream;
 
@@ -39,6 +42,11 @@ impl<'a> Token<'a> {
     pub const REPEAT: &'static str = "repeat";
     pub const SYSCALL: &'static str = "syscall";
     pub const WHILE: &'static str = "while";
+
+    // COMMENT DELIMITERS
+    // --------------------------------------------------------------------------------------------
+    pub const DOC_COMMENT_PREFIX: &str = "#!";
+    pub const COMMENT_PREFIX: char = '#';
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
