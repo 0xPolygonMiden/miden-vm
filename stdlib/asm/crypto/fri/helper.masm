@@ -14,11 +14,11 @@ const.TMP6=4294967281
 const.TMP7=4294967280
 const.TMP8=4294967279
 
-# Compute the number of FRI layers given log2 of the size of LDE domain. It also computes the
-# LDE domain generator and, from it, the trace generator and store these for later use.
-#
-# Input: [...]
-# Output: [num_fri_layers, ...]
+#! Compute the number of FRI layers given log2 of the size of LDE domain. It also computes the
+#! LDE domain generator and, from it, the trace generator and store these for later use.
+#!
+#! Input: [...]
+#! Output: [num_fri_layers, ...]
 export.generate_fri_parameters
     # Load  FRI verifier data:
     # [lde_size, log(lde_size), 0, 0]
@@ -85,10 +85,10 @@ export.generate_fri_parameters
     drop
 end
 
-# Get FRI layer commitments and reseed with them in order to draw folding challenges i.e. alphas.
-#
-# Input: [ptr_layer, num_layers, ...]
-# Output: [...]
+#! Get FRI layer commitments and reseed with them in order to draw folding challenges i.e. alphas.
+#!
+#! Input: [ptr_layer, num_layers, ...]
+#! Output: [...]
 export.load_fri_layer_commitments
     # Address containing the first layer commitment
     push.0.0
@@ -161,14 +161,14 @@ export.load_fri_layer_commitments
     #=> [...]
 end
 
-# Load the remainder polynomial from the advice provider and check that its hash corresponds
-# to its commitment and reseed with the latter.
-# Load the remainder code word, i.e. the NTT of the remainder polynomial, and use its hash, together,
-# with the hash of the remainder polynomial in order to generate the Fiat-Shamir challenge `tau` for
-# the `verify_remainder_xx` procedure.
-#
-# Input: [...]
-# Output: [...]
+#! Load the remainder polynomial from the advice provider and check that its hash corresponds
+#! to its commitment and reseed with the latter.
+#! Load the remainder code word, i.e. the NTT of the remainder polynomial, and use its hash, together,
+#! with the hash of the remainder polynomial in order to generate the Fiat-Shamir challenge `tau` for
+#! the `verify_remainder_xx` procedure.
+#!
+#! Input: [...]
+#! Output: [...]
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP7`
     push.0.0.0.0

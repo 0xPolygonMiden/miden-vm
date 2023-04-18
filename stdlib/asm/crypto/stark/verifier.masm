@@ -46,42 +46,42 @@ const.CURRENT_TRACE_ROW_PTR=4294964000
 const.PUBLIC_INPUTS_PTR=4294960000
 
 
-#   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
-#   The following simplifying assumptions are currently made:
-#   - The blowup is set to 8, the grinding to 16bits and number of FRI queries to 27.
-#   - The maximal allowed degree of the remainder polynomial is 7.
-#   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
-#   to public inputs.
-#   - The following procedure makes use of global memory address beyond 3 * 2^30. More precisely,
-#   the following is a list of pointers used by `stark::verify`:    
-#
-#   * ZERO_ZERO_ZERO_ONE_PTR. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
-#   * ZERO_WORD_PTR. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
-#   * SEED_PTR. Seed
-#   * LDE_SIZE_PTR. [lde_size, log2(lde_size), 0, 0]
-#   * Z_PTR. [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
-#   * MAIN_TRACE_COM_PTR. Main trace commitment
-#   * AUX_TRACE_COM_PTR. Aux trace commitment
-#   * COMPOSITION_POLY_COM_PTR. Constraint polynomial columns trace commitment
-#   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
-#   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
-#   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
-#   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame 
-#   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame 
-#   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
-#   * DEEP_RAND_CC_PTR.    Deep query coefficients
-#   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
-#   * TMP1.   [gz1, gz0, z1, z0]
-#   * TMP2.   [x, _, _, _] where x := offset * lde_domain_generator^query_index
-#   * TMP3.   Leaf value at index `query_index` of the commitment tree to either main, auxiliary or constraint traces.
-#   * TMP4.   [query_index, depth, _, _] where query_index is the current deep FRI query being computed.
-#   * TMP5.   [lde_size, log2(lde_size), lde_domain_generator, 0]
-#   * TMP6.   [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
-#   * TMP7.   Remainder commitment
-#   * TMP8.   [ptr_remainder, remainder_size, lde_size, lde_size]
-#
-# Input: [log(trace_length), num_queries, log(blowup), grinding]
-# Output: []
+#!   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
+#!   The following simplifying assumptions are currently made:
+#!   - The blowup is set to 8, the grinding to 16bits and number of FRI queries to 27.
+#!   - The maximal allowed degree of the remainder polynomial is 7.
+#!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
+#!   to public inputs.
+#!   - The following procedure makes use of global memory address beyond 3 * 2^30. More precisely,
+#!   the following is a list of pointers used by `stark::verify`:    
+#!
+#!   * ZERO_ZERO_ZERO_ONE_PTR. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
+#!   * ZERO_WORD_PTR. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
+#!   * SEED_PTR. Seed
+#!   * LDE_SIZE_PTR. [lde_size, log2(lde_size), 0, 0]
+#!   * Z_PTR. [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
+#!   * MAIN_TRACE_COM_PTR. Main trace commitment
+#!   * AUX_TRACE_COM_PTR. Aux trace commitment
+#!   * COMPOSITION_POLY_COM_PTR. Constraint polynomial columns trace commitment
+#!   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
+#!   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
+#!   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
+#!   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame 
+#!   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame 
+#!   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
+#!   * DEEP_RAND_CC_PTR.    Deep query coefficients
+#!   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
+#!   * TMP1.   [gz1, gz0, z1, z0]
+#!   * TMP2.   [x, _, _, _] where x := offset * lde_domain_generator^query_index
+#!   * TMP3.   Leaf value at index `query_index` of the commitment tree to either main, auxiliary or constraint traces.
+#!   * TMP4.   [query_index, depth, _, _] where query_index is the current deep FRI query being computed.
+#!   * TMP5.   [lde_size, log2(lde_size), lde_domain_generator, 0]
+#!   * TMP6.   [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
+#!   * TMP7.   Remainder commitment
+#!   * TMP8.   [ptr_remainder, remainder_size, lde_size, lde_size]
+#!
+#! Input: [log(trace_length), num_queries, log(blowup), grinding]
+#! Output: []
 export.verify
 
     # Pre-load constants used by hperm into memory

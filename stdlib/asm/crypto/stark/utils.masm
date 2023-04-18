@@ -1,10 +1,10 @@
 const.ROOT_UNITY=7277203076849721926
 const.SEED_PTR=4294967293
 
-# Compute the LDE domain generator from the log2 of its size.
-#
-# Input: [log2(domain_size), ..]
-# Output: [domain_gen, ..]
+#! Compute the LDE domain generator from the log2 of its size.
+#!
+#! Input: [log2(domain_size), ..]
+#! Output: [domain_gen, ..]
 export.compute_lde_generator
     push.32
     swap
@@ -16,11 +16,11 @@ export.compute_lde_generator
     # => [domain_gen, ..]
 end
 
-# Check that the Proof-of-Work contained in the current `SEED` is equal to the required number
-# of bits prescribed by grinding bits. Currently the grinding factor is fixed to 16 bits.
-#
-# Input: [...]
-# Output: [...]
+#! Check that the Proof-of-Work contained in the current `SEED` is equal to the required number
+#! of bits prescribed by grinding bits. Currently the grinding factor is fixed to 16 bits.
+#!
+#! Input: [...]
+#! Output: [...]
 export.check_pow
     # Load Seed
     push.0.0.0.0
