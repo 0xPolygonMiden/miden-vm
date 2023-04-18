@@ -1,38 +1,6 @@
 use.std::mem
 use.std::crypto::hashes::native
 
-#! Computes the `ilog2(number)` and `2^(ilog2(number))`.
-#!
-#! number must be non-zero, otherwise this will error
-#!
-#! Stack transition:
-#! Input: [number, ...]
-#! Output: [ilog2, power_of_two, ...]
-#!
-#! Cycles:  12 + 9 * leading_zeros
-export.ilog2_checked
-  # prepare the stack (2 cycles)
-  push.2147483648 # power_of_two from high to low bit
-  push.0          # bit_pos from the most-signficant, `31-bit_pos` equals to ilog2
-  # stack: [bit_pos, power_of_two, number, ...]
-
-  dup.1 dup.3 u32checked_and eq.0 # (4 cycles)
-
-  # find the first most-significant true bit (9 * leading_zero cycles)
-  while.true
-    add.1 swap div.2 swap  # (5 cycles)
-    dup.1 dup.3 u32checked_and eq.0 # (4 cycles)
-  end
-
-  # compute ilog2 (4 cycles)
-  push.31 swap sub
-  # stack: [ilog2, power_of_two, number, ...]
-
-  # drop number (2 cycles)
-  movup.2 drop
-  # stack: [ilog2, power_of_two, ...]
-end
-
 #! Loads the leaf at the absolute `pos` in the MMR.
 #!
 #! This MMR implementation supports only u32 positions.
@@ -40,8 +8,7 @@ end
 #! Stack transition:
 #! Input: [pos, mmr_ptr, ...]
 #! Output: [N, ...] where `N` is the leaf and `R` is the MMR peak that owns the leaf.
-#!
-#! Cycles: 65 + 9 * tree_position (where `tree_position` is 0-indexed bit position from most to least significant)
+#! Cycles: 104
 export.get
   # load the num_leaves of the MMR (2 cycles)
   dup.1 mem_load
@@ -55,8 +22,8 @@ export.get
   dup.1 swap sub
   # stack: [owner_candidates, num_leaves, pos, mmr_ptr, ...]
 
-  # compute `ilog2(owner_candidates)` and `2**depth`, it corresponds to the owner peak and its depth (13 + 9 * leading_zeros cycles)
-  exec.ilog2_checked swap
+  # compute `ilog2(owner_candidates)` and `2**depth`, it corresponds to the owner peak and its depth (52 cycles)
+  ilog2
   # stack: [owner_peak, depth, num_leaves, pos, mmr_ptr, ...]
 
   # compute `owner_peak - 1`, this mask corresponds to every peak after the owner (3 cycles)

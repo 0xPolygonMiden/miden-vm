@@ -68,6 +68,7 @@ impl Deserializable for Instruction {
             OpCode::Inv => Ok(Instruction::Inv),
             OpCode::Incr => Ok(Instruction::Incr),
             OpCode::Pow2 => Ok(Instruction::Pow2),
+            OpCode::ILog2 => Ok(Instruction::ILog2),
             OpCode::Exp => Ok(Instruction::Exp),
             OpCode::ExpImm => Ok(Instruction::ExpImm(Felt::read_from(source)?)),
             OpCode::ExpBitLength => Ok(Instruction::ExpBitLength(source.read_u8()?)),

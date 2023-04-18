@@ -6,69 +6,6 @@ use test_utils::{
 };
 
 #[test]
-fn test_ilog2() {
-    let bit31 = "
-    use.std::collections::mmr
-
-    begin
-        push.2147483648
-        exec.mmr::ilog2_checked
-    end
-    ";
-
-    let test = build_test!(bit31, &[]);
-    test.expect_stack(&[31, 1 << 31]);
-
-    let bit31_and_one = "
-    use.std::collections::mmr
-
-    begin
-        push.2147483649
-        exec.mmr::ilog2_checked
-    end
-    ";
-
-    let test = build_test!(bit31_and_one, &[]);
-    test.expect_stack(&[31, 1 << 31]);
-
-    let bit16 = "
-    use.std::collections::mmr
-
-    begin
-        push.65536
-        exec.mmr::ilog2_checked
-    end
-    ";
-
-    let test = build_test!(bit16, &[]);
-    test.expect_stack(&[16, 1 << 16]);
-
-    let all_bits_from_16 = "
-    use.std::collections::mmr
-
-    begin
-        push.131071
-        exec.mmr::ilog2_checked
-    end
-    ";
-
-    let test = build_test!(all_bits_from_16, &[]);
-    test.expect_stack(&[16, 1 << 16]);
-
-    let one = "
-    use.std::collections::mmr
-
-    begin
-        push.1
-        exec.mmr::ilog2_checked
-    end
-    ";
-
-    let test = build_test!(one, &[]);
-    test.expect_stack(&[0, 1 << 0]);
-}
-
-#[test]
 fn test_num_leaves_to_num_peaks() {
     let hash_size = "
     use.std::collections::mmr

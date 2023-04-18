@@ -1,6 +1,6 @@
 use super::{
-    validate_param, AssemblyError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder,
-    StarkField, ONE, ZERO,
+    validate_param, AdviceInjector, AssemblyError, CodeBlock, Decorator, Felt, FieldElement,
+    Operation::*, SpanBuilder, StarkField, ONE, ZERO,
 };
 use crate::MAX_EXP_BITS;
 
@@ -93,6 +93,60 @@ pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 pub fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     append_pow2_op(span);
     Ok(None)
+}
+
+/// Computes `ilog2` for the number at the top of the stack, and its corresponding power-of-two.
+///
+/// Input: [n, ...]
+/// Output: [pow2, ilog2, ...]
+/// Cycles: 52
+pub fn ilog2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // validate `n` is not `0`
+    span.push_ops([Dup0, Eqz, Not, Assert]);
+
+    // push the result of the ilog2 operation to the advice stack
+    span.add_decorator(Decorator::Advice(AdviceInjector::ILog2))?;
+    // operand => [n, ...]
+    // advice => [ilog2(n), ...]
+
+    // pull the result from the advice stack to the operand stack (1 cycles)
+    span.push_op(AdvPop);
+    // => [ilog2(n), n, ...]
+
+    // compute the power-of-two for the value given in the advice tape (17 cycles)
+    span.push_op(Dup0);
+    append_pow2_op(span);
+    // => [pow2, ilog2(n), n, ...]
+
+    #[rustfmt::skip]
+    let ops = [
+        // split the words into u32 halves to use the bitwise operations (4 cycles)
+        MovUp2, U32split, Dup2, U32split,
+        // => [pow2_high, pow2_low, n_high, n_low, pow2, ilog2(n), ...]
+
+        // only one of the two halves in pow2 has a bit set, drop the other (9 cycles)
+        Dup1, Eqz, Dup0, MovDn3,
+        // => [drop_low, pow2_high, pow2_low, drop_low, n_high, n_low, pow2, ilog2(n), ...]
+        CSwap, Drop, MovDn3, CSwap, Drop,
+        // => [n_half, pow2_half, pow2, ilog2(n), ...]
+
+        // unset all bits lower than pow2_half (8 cycles)
+        Dup1, Pad, Incr, Neg, Add,
+        // => [low_bitmask, n_half, pow2_half, pow2, ilog2(n), ...]
+        Dup1, U32and,
+        // => [n_half_low, n_half, pow2_half, pow2, ilog2(n), ...]
+        U32xor,
+        // => [n_half_high, pow2_half, pow2, ilog2(n), ...]
+
+        // assert the result bit was set in `n` (6 cycles)
+        Dup1, Dup1, U32and, Eqz, Not, Assert,
+        // => [n_half_high, pow2_half, pow2, ilog2(n), ...]
+
+        // assert no higher bit is set in `n` (3 cycles)
+        U32xor, Eqz, Assert,
+    ];
+
+    span.add_ops(ops)
 }
 
 /// Appends relevant operations to the span block for the computation of power of 2.

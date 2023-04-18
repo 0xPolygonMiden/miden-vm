@@ -31,6 +31,9 @@ pub enum AdviceInjector {
     /// then the quotient.
     DivResultU64,
 
+    /// Pushes the result of [ilog2] of the top operand stack value into the advice stack.
+    ILog2,
+
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the
     /// key-value map maintained by the advice provider using the top 4 elements of the operand
     /// stack as key.
@@ -76,6 +79,7 @@ impl fmt::Display for AdviceInjector {
             Self::MerkleNode => write!(f, "merkle_node"),
             Self::MerkleMerge => write!(f, "merkle_merge"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
+            Self::ILog2 => write!(f, "ilog2"),
             Self::MapValue => write!(f, "map_value"),
             Self::Memory => write!(f, "mem"),
             Self::Ext2Inv => write!(f, "ext2_inv"),

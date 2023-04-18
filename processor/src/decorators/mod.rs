@@ -60,6 +60,7 @@ where
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::MerkleMerge => self.inject_merkle_merge(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
+            AdviceInjector::ILog2 => self.inject_ilog2(),
             AdviceInjector::MapValue => self.inject_map_value(),
             AdviceInjector::Memory => self.inject_mem_values(),
             AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
@@ -123,6 +124,14 @@ where
         // perform the merge
         self.advice_provider.merge_roots(lhs, rhs)?;
 
+        Ok(())
+    }
+
+    /// Pushes the result of [ilog2] operation on the top stack element onto the advice stack.
+    fn inject_ilog2(&mut self) -> Result<(), ExecutionError> {
+        let n = self.stack.get(0).as_int();
+        let r = Felt::new(n.ilog2().into());
+        self.advice_provider.push_stack(AdviceSource::Value(r))?;
         Ok(())
     }
 

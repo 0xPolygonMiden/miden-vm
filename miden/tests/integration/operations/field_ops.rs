@@ -316,6 +316,28 @@ fn pow2() {
 }
 
 #[test]
+fn ilog2() {
+    let asm_op = "ilog2";
+
+    build_op_test!(asm_op, &[1]).expect_stack(&[1, 0]);
+    build_op_test!(asm_op, &[2]).expect_stack(&[2, 1]);
+    build_op_test!(asm_op, &[3]).expect_stack(&[2, 1]);
+    build_op_test!(asm_op, &[4]).expect_stack(&[4, 2]);
+
+    for i in 0..u64::BITS {
+        let pow2 = 2u64.pow(i);
+        build_op_test!(asm_op, &[pow2]).expect_stack(&[pow2, i.into()]);
+    }
+}
+
+#[test]
+fn ilog2_fail() {
+    let asm_op = "ilog2";
+
+    build_op_test!(asm_op, &[0]).expect_error(TestError::ExecutionError("FailedAssertion"));
+}
+
+#[test]
 fn pow2_fail() {
     let asm_op = "pow2";
 
@@ -681,6 +703,15 @@ proptest! {
         let expected = 2_u64.wrapping_pow(b);
 
         build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected])?;
+    }
+
+    #[test]
+    fn ilog2_proptest(b in 1..u64::MAX) {
+        let asm_op = "ilog2";
+        let ilog2 = b.ilog2();
+        let pow2 = 2u64.pow(ilog2);
+
+        build_op_test!(asm_op, &[b]).prop_expect_stack(&[pow2, ilog2.into()])?;
     }
 
     #[test]
