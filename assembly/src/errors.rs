@@ -1,4 +1,4 @@
-use super::{ProcedureId, String, ToString, Token, Vec};
+use super::{ProcedureId, SourceLocation, String, ToString, Token, Vec};
 use core::fmt;
 
 // ASSEMBLY ERROR
@@ -139,7 +139,7 @@ impl std::error::Error for AssemblyError {}
 #[derive(Clone, Eq, PartialEq)]
 pub struct ParsingError {
     message: String,
-    line: usize,
+    location: SourceLocation,
     op: String,
 }
 
@@ -150,15 +150,15 @@ impl ParsingError {
     pub fn empty_source() -> Self {
         ParsingError {
             message: "source code cannot be an empty string".to_string(),
-            line: 0,
+            location: SourceLocation::default(),
             op: "".to_string(),
         }
     }
 
-    pub fn unexpected_eof(line: usize) -> Self {
+    pub fn unexpected_eof(location: SourceLocation) -> Self {
         ParsingError {
             message: "unexpected EOF".to_string(),
-            line,
+            location,
             op: "".to_string(),
         }
     }
@@ -166,7 +166,7 @@ impl ParsingError {
     pub fn unexpected_token(token: &Token, expected: &str) -> Self {
         ParsingError {
             message: format!("unexpected token: expected '{expected}' but was '{token}'"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -176,7 +176,7 @@ impl ParsingError {
     pub fn duplicate_const_name(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("duplicate constant name: '{label}'"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -184,7 +184,7 @@ impl ParsingError {
     pub fn invalid_const_name(token: &Token, err: LabelError) -> Self {
         ParsingError {
             message: format!("invalid constant name: {err}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -194,7 +194,7 @@ impl ParsingError {
             message: format!(
                 "malformed constant `{token}` - invalid value: `{value}` - reason: {reason}"
             ),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -202,7 +202,7 @@ impl ParsingError {
     pub fn const_invalid_scope(token: &Token) -> Self {
         ParsingError {
             message: format!("invalid constant declaration: `{token}` - constants can only be defined below imports and above procedure / program bodies"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -210,7 +210,7 @@ impl ParsingError {
     pub fn const_not_found(token: &Token) -> Self {
         ParsingError {
             message: format!("constant used in operation `{token}` not found"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -220,7 +220,7 @@ impl ParsingError {
             message: format!(
                 "failed to convert u64 constant used in `{token}` to required type {type_name}"
             ),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -231,7 +231,7 @@ impl ParsingError {
     pub fn invalid_op(token: &Token) -> Self {
         ParsingError {
             message: format!("instruction '{token}' is invalid"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -239,7 +239,7 @@ impl ParsingError {
     pub fn missing_param(token: &Token) -> Self {
         ParsingError {
             message: format!("malformed instruction '{token}': missing required parameter"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -247,7 +247,7 @@ impl ParsingError {
     pub fn extra_param(token: &Token) -> Self {
         ParsingError {
             message: format!("malformed instruction '{token}': too many parameters provided"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -258,7 +258,7 @@ impl ParsingError {
                 "malformed instruction `{token}`: parameter '{}' is invalid",
                 token.parts()[part_idx]
             ),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -269,7 +269,7 @@ impl ParsingError {
                 "malformed instruction '{token}', parameter {} is invalid: {reason}",
                 token.parts()[part_idx],
             ),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -280,7 +280,7 @@ impl ParsingError {
     pub fn dangling_else(token: &Token) -> Self {
         ParsingError {
             message: "else without matching if".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -288,7 +288,7 @@ impl ParsingError {
     pub fn unmatched_if(token: &Token) -> Self {
         ParsingError {
             message: "if without matching else/end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -296,7 +296,7 @@ impl ParsingError {
     pub fn unmatched_while(token: &Token) -> Self {
         ParsingError {
             message: "while without matching end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -304,7 +304,7 @@ impl ParsingError {
     pub fn unmatched_repeat(token: &Token) -> Self {
         ParsingError {
             message: "repeat without matching end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -312,7 +312,7 @@ impl ParsingError {
     pub fn unmatched_else(token: &Token) -> Self {
         ParsingError {
             message: "else without matching end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -320,7 +320,7 @@ impl ParsingError {
     pub fn unmatched_begin(token: &Token) -> Self {
         ParsingError {
             message: "begin without matching end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -328,7 +328,7 @@ impl ParsingError {
     pub fn dangling_ops_after_program(token: &Token) -> Self {
         ParsingError {
             message: "dangling instructions after program end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -336,16 +336,16 @@ impl ParsingError {
     pub fn dangling_ops_after_module(token: &Token) -> Self {
         ParsingError {
             message: "dangling instructions after module end".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
 
-    pub fn dangling_procedure_comment(line: usize) -> Self {
+    pub fn dangling_procedure_comment(location: SourceLocation) -> Self {
         ParsingError {
             message: "Procedure comment is not immediately followed by a procedure declaration."
                 .to_string(),
-            line,
+            location,
             op: "".to_string(),
         }
     }
@@ -353,7 +353,7 @@ impl ParsingError {
     pub fn not_a_library_module(token: &Token) -> Self {
         ParsingError {
             message: "not a module: `begin` instruction found".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -364,7 +364,7 @@ impl ParsingError {
     pub fn duplicate_proc_name(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("duplicate procedure name: {label}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -372,7 +372,7 @@ impl ParsingError {
     pub fn invalid_proc_name(token: &Token, err: LabelError) -> Self {
         ParsingError {
             message: format!("invalid procedure name: {err}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -383,7 +383,7 @@ impl ParsingError {
                 "procedure name cannot be longer than {max_len} characters, but was {}",
                 label.len()
             ),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -391,7 +391,7 @@ impl ParsingError {
     pub fn invalid_proc_locals(token: &Token, locals: &str) -> Self {
         ParsingError {
             message: format!("invalid procedure locals: {locals}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -399,7 +399,7 @@ impl ParsingError {
     pub fn too_many_proc_locals(token: &Token, num_locals: u64, max_locals: u64) -> Self {
         ParsingError {
             message: format!("number of procedure locals cannot be greater than {max_locals} characters, but was {num_locals}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -407,7 +407,7 @@ impl ParsingError {
     pub fn unmatched_proc(token: &Token, proc_name: &str) -> Self {
         ParsingError {
             message: format!("procedure '{proc_name}' has no matching end"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -415,7 +415,7 @@ impl ParsingError {
     pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("exported procedures not allowed in this context: {label}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -426,7 +426,7 @@ impl ParsingError {
     pub fn invalid_proc_invocation(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("invalid procedure invocation: {label}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -434,7 +434,7 @@ impl ParsingError {
     pub fn syscall_with_module_name(token: &Token) -> Self {
         ParsingError {
             message: "invalid syscall: cannot invoke a syscall on a named module".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -442,7 +442,7 @@ impl ParsingError {
     pub fn undefined_local_proc(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("undefined local procedure: {label}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -450,7 +450,7 @@ impl ParsingError {
     pub fn procedure_module_not_imported(token: &Token, module_name: &str) -> Self {
         ParsingError {
             message: format!("module '{module_name}' was not imported"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -461,7 +461,7 @@ impl ParsingError {
     pub fn duplicate_module_import(token: &Token, module: &str) -> Self {
         ParsingError {
             message: format!("duplicate module import found: {module}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -469,7 +469,7 @@ impl ParsingError {
     pub fn invalid_module_path(token: &Token, module_path: &str) -> Self {
         ParsingError {
             message: format!("invalid module import path: {module_path}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -477,7 +477,7 @@ impl ParsingError {
     pub fn import_inside_body(token: &Token) -> Self {
         ParsingError {
             message: "import in procedure body".to_string(),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -485,7 +485,7 @@ impl ParsingError {
     pub fn invalid_library_path(token: &Token, error: LibraryError) -> Self {
         ParsingError {
             message: format!("invalid path resolution: {error}"),
-            line: token.line(),
+            location: *token.location(),
             op: token.to_string(),
         }
     }
@@ -500,20 +500,20 @@ impl ParsingError {
         &self.op
     }
 
-    pub const fn line(&self) -> usize {
-        self.line
+    pub const fn location(&self) -> &SourceLocation {
+        &self.location
     }
 }
 
 impl fmt::Debug for ParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "parsing error at line {}: {}", self.line, self.message)
+        write!(f, "parsing error at {}: {}", self.location, self.message)
     }
 }
 
 impl fmt::Display for ParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "parsing error at line {}: {}", self.line, self.message)
+        write!(f, "parsing error at {}: {}", self.location, self.message)
     }
 }
 

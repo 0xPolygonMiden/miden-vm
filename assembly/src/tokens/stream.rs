@@ -1,4 +1,4 @@
-use super::{BTreeMap, LinesStream, ParsingError, String, Token, Vec};
+use super::{BTreeMap, LinesStream, ParsingError, SourceLocation, String, Token, Vec};
 use core::fmt;
 
 // TOKEN STREAM
@@ -7,7 +7,7 @@ use core::fmt;
 #[derive(Debug)]
 pub struct TokenStream<'a> {
     tokens: Vec<&'a str>,
-    lines: Vec<usize>,
+    locations: Vec<SourceLocation>,
     current: Token<'a>,
     pos: usize,
     temp: Token<'a>,
@@ -22,52 +22,80 @@ impl<'a> TokenStream<'a> {
     pub fn new(source: &'a str) -> Result<Self, ParsingError> {
         // initialize the attributes
         let mut tokens = Vec::new();
-        let mut lines = Vec::new();
+        let mut locations = Vec::new();
         let mut proc_comments = BTreeMap::new();
         let mut module_comment = None;
 
         // fetch all tokens
-        for line_info in LinesStream::from(source) {
-            let line_number = line_info.line_number() as usize;
+        for info in LinesStream::from(source) {
+            let offset = info.char_offset();
+            let mut location = SourceLocation::new(info.line_number(), 1 + offset);
 
-            match line_info.contents() {
-                Some(line) => {
-                    // fill the doc comments for procedures
-                    if line.starts_with(Token::EXPORT) || line.starts_with(Token::PROC) {
-                        let doc_comment = build_comment(line_info.docs());
-                        proc_comments.insert(tokens.len(), doc_comment);
-                    } else if !line_info.docs().is_empty() {
-                        return Err(ParsingError::dangling_procedure_comment(line_number));
-                    }
-
-                    // for each token, skip comments & err when dangling docs; push otherwise
-                    for token in line.split_whitespace() {
-                        if token.starts_with(Token::DOC_COMMENT_PREFIX) {
-                            return Err(ParsingError::dangling_procedure_comment(line_number));
-                        } else if token.starts_with(Token::COMMENT_PREFIX) {
-                            break;
-                        }
-
-                        tokens.push(token);
-                    }
+            // fetch contents line
+            let mut contents = match info.contents() {
+                // if not first token & has docs without being export or proc, then dangling
+                Some(contents)
+                    if !(tokens.is_empty()
+                        || info.docs().is_empty()
+                        || contents.trim().starts_with(Token::EXPORT)
+                        || contents.trim().starts_with(Token::PROC)) =>
+                {
+                    return Err(ParsingError::dangling_procedure_comment(location));
                 }
 
-                // if first dangling comment, then module docs
-                // TODO consider using a dedicated symbol for module docs such as `//!`
+                Some(contents) => contents,
+
+                // first dangling comments are module docs
                 None if tokens.is_empty() => {
-                    module_comment = build_comment(line_info.docs());
+                    module_comment = build_comment(info.docs());
+                    continue;
                 }
 
-                // if has tokens, then dangling docs are illegal
+                // other dangling docs are forbidden
                 None => {
-                    return Err(ParsingError::dangling_procedure_comment(
-                        line_info.line_number() as usize
-                    ));
+                    return Err(ParsingError::dangling_procedure_comment(location));
                 }
-            }
+            };
 
-            // extend lines until it fits the added tokens
-            lines.resize(tokens.len(), line_number);
+            while !contents.is_empty() {
+                // ignore comments; halt if dangling comment
+                if contents.starts_with(Token::DOC_COMMENT_PREFIX) {
+                    return Err(ParsingError::dangling_procedure_comment(location));
+                } else if contents.starts_with(Token::COMMENT_PREFIX) {
+                    break;
+                }
+
+                // fill the doc comments for procedures
+                if contents.starts_with(Token::EXPORT) || contents.starts_with(Token::PROC) {
+                    proc_comments.insert(tokens.len(), build_comment(info.docs()));
+                }
+
+                // pick the current token & remainder
+                let (token, remainder) = match contents.split_once(char::is_whitespace) {
+                    Some(split) => split,
+
+                    // last token; push and break
+                    None => {
+                        tokens.push(contents);
+                        locations.push(location);
+                        break;
+                    }
+                };
+
+                // append the token
+                tokens.push(token);
+                locations.push(location);
+
+                // seek next token
+                let n = match remainder.find(|c: char| !c.is_whitespace()) {
+                    Some(n) => n,
+                    None => break,
+                };
+
+                // update the offset; add extra char consumed by `split_once`
+                location.move_column(token.len() as u32 + n as u32 + 1);
+                contents = remainder.split_at(n).1;
+            }
         }
 
         // invalid if no tokens
@@ -75,10 +103,11 @@ impl<'a> TokenStream<'a> {
             return Err(ParsingError::empty_source());
         }
 
-        let current = Token::new(tokens[0], 1);
+        let location = SourceLocation::default();
+        let current = Token::new(tokens[0], location);
         Ok(Self {
             tokens,
-            lines,
+            locations,
             current,
             pos: 0,
             temp: Token::default(),
@@ -95,9 +124,10 @@ impl<'a> TokenStream<'a> {
         self.pos
     }
 
-    /// Returns the current lines count for the stream.
-    pub fn num_lines(&self) -> usize {
-        self.lines[self.pos.min(self.lines.len().saturating_sub(1))]
+    /// Returns the [SourceLocation] linked to the current [Token].
+    pub fn location(&self) -> &SourceLocation {
+        let idx = self.pos.min(self.locations.len().saturating_sub(1));
+        &self.locations[idx]
     }
 
     /// Returns 'true' all tokens from this stream have been read.
@@ -128,7 +158,7 @@ impl<'a> TokenStream<'a> {
         if pos == self.pos {
             self.read()
         } else {
-            self.temp.update(self.tokens[pos], self.lines[pos]);
+            self.temp.update(self.tokens[pos], self.locations[pos]);
             Some(&self.temp)
         }
     }
@@ -138,7 +168,7 @@ impl<'a> TokenStream<'a> {
         if !self.eof() {
             self.pos += 1;
             if !self.eof() {
-                self.current.update(self.tokens[self.pos], self.lines[self.pos]);
+                self.current.update(self.tokens[self.pos], self.locations[self.pos]);
             }
         }
     }

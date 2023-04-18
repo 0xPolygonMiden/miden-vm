@@ -226,7 +226,7 @@ impl<'a> LineInfo<'a> {
     /// ```
     ///
     /// `2` is returned.
-    pub const fn _char_offset(&self) -> u32 {
+    pub const fn char_offset(&self) -> u32 {
         self.char_offset
     }
 }
