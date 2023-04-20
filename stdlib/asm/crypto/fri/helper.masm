@@ -19,6 +19,7 @@ const.TMP8=4294967279
 #!
 #! Input: [...]
 #! Output: [num_fri_layers, ...]
+#! Cycles: 126
 export.generate_fri_parameters
     # Load  FRI verifier data:
     # [lde_size, log(lde_size), 0, 0]
@@ -89,6 +90,7 @@ end
 #!
 #! Input: [ptr_layer, num_layers, ...]
 #! Output: [...]
+#! Cycles: 21 + 83 * num_fri_layers
 export.load_fri_layer_commitments
     # Address containing the first layer commitment
     push.0.0
@@ -169,6 +171,9 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
+#! Cycles:
+#!  1- Remainder of size 32: 1498
+#!  2- Remainder of size 64: 2792
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP7`
     push.0.0.0.0

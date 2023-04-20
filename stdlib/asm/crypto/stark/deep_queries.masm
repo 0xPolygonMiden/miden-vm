@@ -37,6 +37,7 @@ const.ZERO_WORD_PTR=4294967295
 #!
 #! Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
 #! Output: [T_i(x)1, T_i(x)0, p1, p2 + 1, Y', Y', Acc']
+#! Cycles: ~ 117
 proc.deep_query_aux_trace_1
 
     # Get T_i(z), T_i(gz)
@@ -154,6 +155,7 @@ end
 #!
 #! Input: [T_i(x)1, T_i(x)0, p1, p2, Y, Y, Acc]
 #! Output: [T_i(x)1, T_i(x)0, p1 + 1, p2 + 1, Y', Y', Acc']
+#! Cycles: ~ 123
 proc.deep_query_aux_trace_2
 
     # Get T_i(z), T_i(gz)
@@ -284,6 +286,7 @@ end
 #!
 #! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
 #! Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc'] 
+#! Cycles: ~ 87
 proc.deep_query_main_trace_1
 
     # Get value_i := T_i(x)
@@ -392,6 +395,7 @@ end
 #!
 #! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
 #! Output: [T_i(x), p1 + 1, p2 + 1, p3, Y', Y', Acc']
+#! Cycles: ~ 96
 proc.deep_query_main_trace_2
 
     # Get value_i := T_i(x)
@@ -511,6 +515,7 @@ end
 #!
 #! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
 #! Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc']
+#! Cycles: 89
 proc.deep_query_main_trace_3
 
     # Get value_i := T_i(x)
@@ -622,6 +627,7 @@ end
 #!
 #! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
 #! Output: [T_i(x), p1 + 1, p2 + 1, p3 + 1, Y', Y', Acc']
+#! Cycles: 97
 proc.deep_query_main_trace_4
 
     # Get value_i := T_i(x)
@@ -735,6 +741,7 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
+#! Cycles: 44 + 27 * 8445 = 228059
 export.compute_deep_composition_polynomial_queries
     push.FRI_QUERIES_PTR
     repeat.5 push.0.0.0.0 end
