@@ -4,7 +4,7 @@ use core::slice::Iter;
 // SIMPLE PROGRAMS
 // ================================================================================================
 #[test]
-fn simple_new_instrctns() {
+fn simple_new_instructions() {
     let assembler = super::Assembler::default();
     let source = "begin push.0 assertz end";
     let program = assembler.compile(source).unwrap();
@@ -384,6 +384,29 @@ fn const_conversion_failed_to_u32() {
     let expected_error =
         "failed to convert u64 constant used in `mem_load.CONSTANT` to required type u32";
     assert_eq!(expected_error, err.to_string());
+}
+
+// ADVICE INJECTION
+// ================================================================================================
+
+#[test]
+fn advice_injection() {
+    let source = format!(
+        "\
+    begin
+        adv.keyval
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let expected = "\
+    begin \
+        span \
+            noop \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
 }
 
 // NESTED CONTROL BLOCKS

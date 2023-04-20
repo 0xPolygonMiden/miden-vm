@@ -144,21 +144,30 @@ impl SpanBuilder {
     /// This consumes all operations and decorators in the builder, but does not touch the
     /// operations in the epilogue of the builder.
     pub fn extract_span_into(&mut self, target: &mut Vec<CodeBlock>) {
-        if !self.ops.is_empty() {
-            let ops = self.ops.drain(..).collect();
-            let decorators = self.decorators.drain(..).collect();
+        let ops: Vec<Operation> = self.ops.drain(..).collect();
+        let decorators: DecoratorList = self.decorators.drain(..).collect();
+
+        if !ops.is_empty() {
             target.push(CodeBlock::new_span_with_decorators(ops, decorators));
-        } else if !self.decorators.is_empty() {
-            // this is a bug in the assembler. we shouldn't have decorators added without their
-            // associated operations
-            unreachable!()
+        } else if !decorators.is_empty() {
+            // this is a bug in the assembler. we shouldn't have AsmOp decorators added without
+            // their associated operations
+            if self
+                .decorators
+                .iter()
+                .any(|(_, decorator)| matches!(decorator, Decorator::AsmOp(_)))
+            {
+                unreachable!()
+            }
+
+            target.push(CodeBlock::new_span_with_decorators(vec![Operation::Noop], decorators));
         }
     }
 
     /// Creates a new SPAN block from the operations and decorators currently in this builder and
     /// appends the block to the provided target.
     ///
-    /// The main differences from the `extract_span_int()` method above are:
+    /// The main differences from the `extract_span_into()` method above are:
     /// - Operations contained in the epilogue of the span builder are appended to the list of
     ///   ops which go into the new SPAN block.
     /// - The span builder is consumed in the process.
