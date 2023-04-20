@@ -70,6 +70,7 @@ impl Serializable for Instruction {
             Self::Incr => OpCode::Incr.write_into(target),
             Self::Pow2 => OpCode::Pow2.write_into(target),
             Self::ILog2 => OpCode::ILog2.write_into(target),
+            Self::TrailingOnes => OpCode::TrailingOnes.write_into(target),
             Self::Exp => OpCode::Exp.write_into(target),
             Self::ExpImm(v) => {
                 OpCode::ExpImm.write_into(target);

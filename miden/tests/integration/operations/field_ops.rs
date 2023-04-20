@@ -339,6 +339,20 @@ fn ilog2_fail() {
 }
 
 #[test]
+fn trailing_ones() {
+    let asm_op = "trailing_ones";
+
+    build_op_test!(asm_op, &[0b0000]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[0b0010]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[0b0110]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[0b1000]).expect_stack(&[0]);
+
+    build_op_test!(asm_op, &[0b0001]).expect_stack(&[1]);
+    build_op_test!(asm_op, &[0b0011]).expect_stack(&[2]);
+    build_op_test!(asm_op, &[0b0111]).expect_stack(&[3]);
+}
+
+#[test]
 fn pow2_fail() {
     let asm_op = "pow2";
 
@@ -713,6 +727,13 @@ proptest! {
         let pow2 = 2u64.pow(ilog2);
 
         build_op_test!(asm_op, &[b]).prop_expect_stack(&[pow2, ilog2.into()])?;
+    }
+
+    #[test]
+    fn trailing_ones_proptest(b in 0..u64::MAX) {
+        let asm_op = "trailing_ones";
+        let trailing_ones = b.trailing_ones();
+        build_op_test!(asm_op, &[b]).prop_expect_stack(&[trailing_ones.into()])?;
     }
 
     #[test]

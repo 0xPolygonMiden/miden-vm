@@ -61,6 +61,7 @@ where
             AdviceInjector::MerkleMerge => self.inject_merkle_merge(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
             AdviceInjector::ILog2 => self.inject_ilog2(),
+            AdviceInjector::TrailingOnes => self.inject_trailing_ones(),
             AdviceInjector::MapValue => self.inject_map_value(),
             AdviceInjector::Memory => self.inject_mem_values(),
             AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
@@ -131,6 +132,14 @@ where
     fn inject_ilog2(&mut self) -> Result<(), ExecutionError> {
         let n = self.stack.get(0).as_int();
         let r = Felt::new(n.ilog2().into());
+        self.advice_provider.push_stack(AdviceSource::Value(r))?;
+        Ok(())
+    }
+
+    /// Pushes the result of [trailing_ones] operation on the top stack element onto the advice stack.
+    fn inject_trailing_ones(&mut self) -> Result<(), ExecutionError> {
+        let n = self.stack.get(0).as_int();
+        let r = Felt::new(n.trailing_ones().into());
         self.advice_provider.push_stack(AdviceSource::Value(r))?;
         Ok(())
     }

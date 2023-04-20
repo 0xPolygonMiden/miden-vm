@@ -347,6 +347,7 @@ impl ParserContext {
             "pow2" => simple_instruction(op, Pow2),
             "exp" => field_ops::parse_exp(op),
             "ilog2" => simple_instruction(op, ILog2),
+            "trailing_ones" => simple_instruction(op, TrailingOnes),
 
             "not" => simple_instruction(op, Not),
             "and" => simple_instruction(op, And),

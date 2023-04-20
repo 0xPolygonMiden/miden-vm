@@ -151,6 +151,61 @@ pub fn ilog2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError>
     span.add_ops(ops)
 }
 
+/// Computes the number of trailing_ones for the number at the top of the stack.
+///
+/// Input: [n, ...]
+/// Output: [trailing_ones, ...]
+/// Cycles: 47
+pub fn trailing_ones(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // push the result of the trailing_ones operation to the advice stack
+    span.add_decorator(Decorator::Advice(AdviceInjector::TrailingOnes))?;
+    // operand => [n, ...]
+    // advice => [trailing_ones, ...]
+
+    // pull the result from the advice stack to the operand stack (1 cycles)
+    span.push_op(AdvPop);
+    // => [trailing_ones, n, ...]
+
+    // compute the power-of-two for the value given in the advice tape (17 cycles)
+    // note: this wont overflow because this is operating over field elements, the longest number
+    // with all ones in the field is 63 bits long, and $2^63$ can be represented in the field.
+    span.push_op(Dup0);
+    append_pow2_op(span);
+    // => [pow2, trailing_ones, n, ...]
+
+    #[rustfmt::skip]
+    let ops = [
+        // check that pow2 points to a non-true bit (11 cycles)
+        Dup0, U32split,
+        // => [pow_high, pow_low, pow2, trailing_ones, n, ...]
+        Dup4, U32split,
+        // => [n_high, n_low, pow_high, pow_low, pow2, trailing_ones, n, ...]
+        MovUp2, U32and,
+        // => [high_test, n_low, pow_low, pow2, trailing_ones, n, ...]
+        MovDn2, U32and,
+        // => [low_test, high_test, pow2, trailing_ones, n, ...]
+        U32and, Eqz, Assert,
+        // => [pow2, trailing_ones, n, ...]
+
+        // checks every bit below pow2 is true (18 cycles)
+        Pad, Incr, Neg, Add,
+        // => [bit_mask, trailing_ones, n, ...]
+        MovUp2, U32split,
+        // => [n_high, n_low, bit_mask, trailing_ones, ...]
+        Dup2, U32split,
+        // => [bit_mask_high, bit_mask_low, n_high, n_low, bit_mask, trailing_ones, ...]
+        MovUp2, U32and,
+        // => [bits_high, bit_mask_low, n_low, bit_mask, trailing_ones, ...]
+        MovDn2, U32and,
+        // => [bits_low, bits_high, bit_mask, trailing_ones, ...]
+        Swap, Push(Felt::new(4294967296)), Mul, Add,
+        // => [n_masked, bit_mask, trailing_ones, ...]
+        Eq, Assert,
+    ];
+
+    span.add_ops(ops)
+}
+
 /// Appends relevant operations to the span block for the computation of power of 2.
 ///
 /// Input: [exp, ...]
