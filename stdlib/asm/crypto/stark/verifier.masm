@@ -82,12 +82,17 @@ const.PUBLIC_INPUTS_PTR=4294960000
 #!
 #! Input: [log(trace_length), num_queries, log(blowup), grinding]
 #! Output: []
+#! Cycles:
+#!  1- Remainder codeword size 32: 24313 + num_queries * (40 + num_fri_layers * 76 + 26 + 8445) + 83 * num_fri_layers + 1498
+#!  2- Remainder codeword size 64: 24313 + num_queries * (40 + num_fri_layers * 76 + 26 + 8445) + 83 * num_fri_layers + 2792
 export.verify
 
     # Pre-load constants used by hperm into memory
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout 
     # the `verify` procedure.
+    #
+    # Cycles: 16
     push.0.0.0.0
     mem_storew.ZERO_WORD_PTR
     drop
@@ -102,10 +107,14 @@ export.verify
     #==============================================================================================
 
     # Initialize the seed using proof context
+    #
+    # Cycles: 82
     exec.random_coin::init_seed
     #=> [C]
     
     # Load public inputs
+    #
+    # Cycles: 22
     push.PUBLIC_INPUTS_PTR
     exec.public_inputs::load
     #=> [...]
@@ -115,6 +124,8 @@ export.verify
     #==============================================================================================
 
     # Load main trace commitment and re-seed with it
+    #
+    # Cycles: 39
     push.0.0.0.0
     adv_loadw          
     mem_storew.MAIN_TRACE_COM_PTR
@@ -124,11 +135,15 @@ export.verify
 
 
     # Draw random ExtFelt for the auxiliary trace
+    #
+    # Cycles: 550
     push.AUX_RAND_ELEM_PTR
     exec.random_coin::generate_aux_randomness
     # => [...] 
 
     # Reseed with auxiliary trace commitment
+    #
+    # Cycles: 39
     push.0.0.0.0
     adv_loadw
     mem_storew.AUX_TRACE_COM_PTR
@@ -139,6 +154,7 @@ export.verify
     #       III) Draw constraint composition coefficients
     #==============================================================================================
 
+    # Cycles: 15759
     push.COMPOSITION_COEF_PTR
     exec.random_coin::generate_constraint_composition_coefficients
     #=> [...]
@@ -149,6 +165,8 @@ export.verify
     #==============================================================================================
 
     # Reseed with constraint composition polynomial commitment
+    #
+    # Cycles: 82
     push.0.0.0.0
     adv_loadw
     mem_storew.COMPOSITION_POLY_COM_PTR
@@ -161,18 +179,24 @@ export.verify
     #           of H over the LDE domain.
     #==============================================================================================
 
+    # Cycles: 207
     exec.ood_frames::load_evaluation_frame
     #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
 
+    # Cycles: 60
     exec.random_coin::reseed    
     exec.random_coin::reseed    
     
+    # Cycles: 29
     exec.ood_frames::load_constraint_evaluations
     # => [CONSTR_EVAL_HASH, ...]
 
+    # Cycles: 30
     exec.random_coin::reseed
     
     # Compute `H(z)`
+    #
+    # Cycles: 118
     exec.ood_frames::compute_Hz
     # => [res1, res0, ...]
 
@@ -193,6 +217,7 @@ export.verify
     #       DEEP composition polynomial.
     #============================================
 
+    # Cycles: 5776
     push.DEEP_RAND_CC_PTR
     exec.random_coin::generate_deep_composition_random_coefficients
 
@@ -205,6 +230,7 @@ export.verify
     #       -   Number of FRI layers. 
     #============================================
 
+    # Cycles: 126
     exec.helper::generate_fri_parameters
     # => [num_fri_layers, ...]
 
@@ -214,6 +240,7 @@ export.verify
     #      computing the degree respecting projection
     #============================================
     
+    # Cycles: 22 + 83 * num_fri_layers
     push.FRI_COM_PTR
     exec.helper::load_fri_layer_commitments
     #=> [...]
@@ -227,6 +254,9 @@ export.verify
     #       c) Check the NTT relationship.
     #============================================
 
+    # Cycles:
+    #  1- Remainder of size 32: 1498
+    #  2- Remainder of size 64: 2792
     exec.helper::load_and_verify_remainder
     #=> [...]
 
@@ -234,6 +264,7 @@ export.verify
     #   5) Check PoW nonce
     #============================================
 
+    # Cycles: 42
     exec.utils::check_pow
     #=> [...]
 
@@ -243,11 +274,15 @@ export.verify
     #============================================
 
     # Draw random query indices
+    #
+    # Cycles: 1242
     push.FRI_QUERIES_PTR
     exec.random_coin::generate_list_indices
     # => [...]
     
     # Compute deep compostion polynomial queries
+    #
+    # Cycles: 44 + 27 * 8445 = 228059
     exec.deep_queries::compute_deep_composition_polynomial_queries
     # => [...]
 
@@ -256,6 +291,8 @@ export.verify
     #============================================
     
     # Get domain generator and a pointer to the remainder codeword
+    #
+    # Cycles: 15
     push.0.0.0.0
     mem_loadw.TMP0
     push.0.0
@@ -272,6 +309,8 @@ export.verify
     #=> [ptr_query, ptr_layer, ptr_remainder, domain_gen]
 
     # Call FRI verifier
+    #
+    # Cycles: 7 + 4 + 27 * (40 + num_layers * 76 + 26)
     exec.frie2f4::verify
     #=> ()
 end

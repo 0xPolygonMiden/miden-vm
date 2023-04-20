@@ -10,6 +10,7 @@ const.LDE_SIZE_PTR=4294967292
 #!
 #! Input: [Data, ...]
 #! Ouput: [...]
+#! Cycles: 30
 export.reseed
     push.0.0.0.0
     swapw
@@ -30,6 +31,7 @@ end
 #! The counter is updated as part of the procedure.
 #! Input: [Seed, 1, ptr]
 #! Output: [Y, 3, ptr + 1] where Y is a "garbage" value
+#! Cycles: 65
 proc.generate_next_extfelt_tuple
     dupw
     dup.8
@@ -74,6 +76,7 @@ end
 #!
 #! Input: [Seed, 1, ptr, mask, depth, ...]
 #! Output: [Y, 2, ptr + 1, depth, ...]
+#! Cycles: 43
 proc.generate_next_integer
     movup.4         
     dup
@@ -108,6 +111,7 @@ end
 #!
 #! Input: [query_ptr, ...]
 #! Output: [...]
+#! Cycles: 26 + 27 * 45 = 1241
 export.generate_list_indices
     # Create mask
     push.0.0.0.0
@@ -137,6 +141,7 @@ end
 #!
 #! Input: [aux_rand_elem_ptr, ...]
 #! Output: [...]
+#! Cycles: 549
 export.generate_aux_randomness
     push.1
     push.0.0.0.0
@@ -158,6 +163,7 @@ end
 #!
 #! Input: [compos_coef_ptr, ...]
 #! Output: [...]
+#! Cycles: 15758
 export.generate_constraint_composition_coefficients
     push.1
     push.0.0.0.0
@@ -178,6 +184,7 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
+#! Cycles: 43
 export.generate_z_z8
     # draw z 
     push.1.0.0.0
@@ -207,6 +214,7 @@ end
 #!
 #! Input: [deep_rand_coef_ptr, ...]
 #! Output: [...]
+#! Ccycles: 5775
 export.generate_deep_composition_random_coefficients
     # Load Seed and prepare for drawing
     push.1
@@ -240,17 +248,20 @@ end
 #!
 #! Input: [trace_length, num_queries, blowup, grinding, ...]
 #! Output: [C]
+#! Cycles: 82
 export.init_seed
 
     # Create the initial seed for randomness generation from proof context
     
-    ## compute trace_length
+    ## Compute trace_length
+    ## Cycles: 20
     dup
     pow2
     u32split assertz
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
     ## Assert blowup is equal to 8
+    ##  Cycles: 6
     swap
     dup.3
     dup
@@ -258,6 +269,7 @@ export.init_seed
     assert_eq
 
     ## Compute log(lde_size) and lde_size and store them
+    ## Cycles: 32
     add
     swap
     movup.3
@@ -276,6 +288,7 @@ export.init_seed
     #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
 
     # Construct the proof context
+    # Cycles: 9
     dropw
     push.1208027408
     push.1
@@ -284,6 +297,7 @@ export.init_seed
     swapw
     
     # Hash proof context
+    # Cycles: 15
     push.1.0.0.0
     #=> [0, 0, 0, 1, B, A, ..]
     swapw.2

@@ -5,6 +5,7 @@ const.SEED_PTR=4294967293
 #!
 #! Input: [log2(domain_size), ..]
 #! Output: [domain_gen, ..]
+#! Cycles: 63
 export.compute_lde_generator
     push.32
     swap
@@ -21,6 +22,7 @@ end
 #!
 #! Input: [...]
 #! Output: [...]
+#! Cycles: 42
 export.check_pow
     # Load Seed
     push.0.0.0.0

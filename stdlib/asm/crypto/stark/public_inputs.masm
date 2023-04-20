@@ -8,6 +8,7 @@ const.SEED_PTR=4294967293
 #!
 #! Input: [public_inputs_ptr, C]
 #! Output: [...] 
+#! Cycles: 21
 export.load
     
     # TODO: load the public inputs using public_inputs_ptr
