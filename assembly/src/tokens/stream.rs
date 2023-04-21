@@ -1,8 +1,5 @@
-use super::{BTreeMap, ParsingError, String, Token, Vec};
+use super::{BTreeMap, LinesStream, ParsingError, String, Token, Vec};
 use core::fmt;
-
-pub const DOC_COMMENT_PREFIX: &str = "#!";
-pub const LINE_COMMENT_PREFIX: &str = "#";
 
 // TOKEN STREAM
 // ================================================================================================
@@ -23,59 +20,61 @@ impl<'a> TokenStream<'a> {
     // --------------------------------------------------------------------------------------------
     /// TODO: add comments
     pub fn new(source: &'a str) -> Result<Self, ParsingError> {
-        if source.is_empty() {
-            return Err(ParsingError::empty_source());
-        }
+        // initialize the attributes
         let mut tokens = Vec::new();
         let mut lines = Vec::new();
         let mut proc_comments = BTreeMap::new();
         let mut module_comment = None;
-        let mut comment_builder = CommentBuilder(None);
-        let mut line_number = 0;
 
-        for line in source.lines() {
-            line_number += 1;
-            let line = line.trim();
-            if line.starts_with(DOC_COMMENT_PREFIX) {
-                comment_builder.append_line(line);
-            } else if line.starts_with(LINE_COMMENT_PREFIX) {
-                continue;
-            } else if line.is_empty() {
-                if !comment_builder.is_empty() {
-                    if tokens.is_empty() && module_comment.is_none() {
-                        // if we haven't read any tokens yet, but already have built a comment, a
-                        // new line must indicate the end of a module comment.
-                        module_comment = comment_builder.take_comment();
-                    } else {
-                        // since we already have a module comment, this is a procedure comment
-                        // which is followed by a blank line.
+        // fetch all tokens
+        for line_info in LinesStream::from(source) {
+            let line_number = line_info.line_number() as usize;
+
+            match line_info.contents() {
+                Some(line) => {
+                    // fill the doc comments for procedures
+                    if line.starts_with(Token::EXPORT) || line.starts_with(Token::PROC) {
+                        let doc_comment = build_comment(line_info.docs());
+                        proc_comments.insert(tokens.len(), doc_comment);
+                    } else if !line_info.docs().is_empty() {
                         return Err(ParsingError::dangling_procedure_comment(line_number));
                     }
-                }
-            } else {
-                let mut line_tokens = line
-                    .split_whitespace()
-                    .take_while(|&token| !token.starts_with(LINE_COMMENT_PREFIX))
-                    .collect::<Vec<_>>();
 
-                if !comment_builder.is_empty() {
-                    // procedure comment should always be followed by a procedure token
-                    debug_assert!(!line_tokens.is_empty());
-                    let token = line_tokens[0];
-                    if token.starts_with(Token::EXPORT) || token.starts_with(Token::PROC) {
-                        proc_comments.insert(tokens.len(), comment_builder.take_comment());
-                    } else {
-                        return Err(ParsingError::dangling_procedure_comment(line_number));
+                    // for each token, skip comments & err when dangling docs; push otherwise
+                    for token in line.split_whitespace() {
+                        if token.starts_with(Token::DOC_COMMENT_PREFIX) {
+                            return Err(ParsingError::dangling_procedure_comment(line_number));
+                        } else if token.starts_with(Token::COMMENT_PREFIX) {
+                            break;
+                        }
+
+                        tokens.push(token);
                     }
                 }
-                tokens.append(&mut line_tokens);
-                lines.resize(tokens.len(), line_number);
+
+                // if first dangling comment, then module docs
+                // TODO consider using a dedicated symbol for module docs such as `//!`
+                None if tokens.is_empty() => {
+                    module_comment = build_comment(line_info.docs());
+                }
+
+                // if has tokens, then dangling docs are illegal
+                None => {
+                    return Err(ParsingError::dangling_procedure_comment(
+                        line_info.line_number() as usize
+                    ));
+                }
             }
+
+            // extend lines until it fits the added tokens
+            lines.resize(tokens.len(), line_number);
         }
 
+        // invalid if no tokens
         if tokens.is_empty() {
             return Err(ParsingError::empty_source());
         }
+
         let current = Token::new(tokens[0], 1);
         Ok(Self {
             tokens,
@@ -159,40 +158,18 @@ impl<'a> fmt::Display for TokenStream<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct CommentBuilder(Option<String>);
+// HELPERS
+// ================================================================================================
 
-impl CommentBuilder {
-    pub fn append_line(&mut self, line: &str) {
-        let prepared_line = prepare_line(line);
-        if !prepared_line.is_empty() {
-            match &mut self.0 {
-                Some(comment) => {
-                    comment.push('\n');
-                    comment.push_str(prepared_line);
-                }
-                None => {
-                    self.0 = Some(String::from(prepared_line));
-                }
-            }
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none()
-    }
-
-    pub fn take_comment(&mut self) -> Option<String> {
-        self.0.take()
-    }
-}
-
-/// Removes `prefix` from provided `line` and trims additional whitespaces from start and end of
-/// the `line`
-pub fn prepare_line(line: &str) -> &str {
-    // We should panic if strip_prefix returns None since it is our internal parsing error
-    line.trim()
-        .strip_prefix(DOC_COMMENT_PREFIX)
-        .expect("Current line is not a comment")
-        .trim()
+fn build_comment(docs: &[&str]) -> Option<String> {
+    let last = docs.len().saturating_sub(1);
+    let docs: String = docs
+        .iter()
+        .enumerate()
+        .map(|(i, d)| {
+            let lb = if last == i { "" } else { "\n" };
+            format!("{d}{lb}")
+        })
+        .collect();
+    (!docs.is_empty()).then_some(docs)
 }
