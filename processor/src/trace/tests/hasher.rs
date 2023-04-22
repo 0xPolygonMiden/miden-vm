@@ -16,8 +16,8 @@ use vm_core::{
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn hasher_p1_mp_verify() {
-    let (tree, leaves) = build_merkle_tree();
-    let store = MerkleStore::new().with_merkle_tree(leaves).unwrap();
+    let (tree, _) = build_merkle_tree();
+    let store = MerkleStore::from(&tree);
     let node = tree.get_node(NodeIndex::new(3, 1).unwrap()).unwrap();
 
     // build program inputs
@@ -46,7 +46,7 @@ fn hasher_p1_mp_verify() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn hasher_p1_mr_update() {
-    let (tree, leaves) = build_merkle_tree();
+    let (tree, _) = build_merkle_tree();
     let index = 5_u64;
     let old_node = tree.get_node(NodeIndex::new(3, index).unwrap()).unwrap();
     let new_node = init_leaf(11);
@@ -61,7 +61,7 @@ fn hasher_p1_mr_update() {
 
     init_stack.reverse();
     let stack_inputs = StackInputs::try_from_values(init_stack).unwrap();
-    let store = MerkleStore::new().with_merkle_tree(leaves).unwrap();
+    let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     // build execution trace and extract the sibling table column from it

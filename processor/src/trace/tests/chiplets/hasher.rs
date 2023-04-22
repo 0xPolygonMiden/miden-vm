@@ -420,7 +420,7 @@ fn b_chip_mpverify() {
         leaves[index][3].as_int(),
     ];
     let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-    let store = MerkleStore::new().with_merkle_tree(leaves.clone()).unwrap();
+    let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     let mut trace =

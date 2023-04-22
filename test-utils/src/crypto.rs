@@ -20,7 +20,8 @@ pub use winter_prover::crypto::{
 
 pub fn init_merkle_store(values: &[u64]) -> (Vec<Word>, MerkleStore) {
     let leaves = init_merkle_leaves(values);
-    let store = MerkleStore::new().with_merkle_tree(leaves.clone()).unwrap();
+    let merkle_tree = MerkleTree::new(leaves.clone()).unwrap();
+    let store = MerkleStore::from(&merkle_tree);
     (leaves, store)
 }
 
