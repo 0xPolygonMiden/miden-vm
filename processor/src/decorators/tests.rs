@@ -17,7 +17,7 @@ use vm_core::{
 fn inject_merkle_node() {
     let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
     let tree = MerkleTree::new(leaves.to_vec()).unwrap();
-    let store = MerkleStore::default().with_merkle_tree(leaves).unwrap();
+    let store = MerkleStore::from(&tree);
     let stack_inputs = [
         tree.root()[0].as_int(),
         tree.root()[1].as_int(),

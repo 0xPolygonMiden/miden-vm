@@ -1,6 +1,7 @@
 use test_utils::{
     crypto::{
-        init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, Mmr, NodeIndex, RpoDigest,
+        init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
+        RpoDigest,
     },
     hash_elements, stack_to_ints, Felt, StarkField, WORD_SIZE, ZERO,
 };
@@ -178,8 +179,9 @@ fn test_num_peaks_to_message_size() {
 fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
     // This test uses a single merkle tree as the only MMR peak
     let leaves = &[1, 2, 3, 4];
-    let mut merkle_store = MerkleStore::new();
-    let merkle_root = merkle_store.add_merkle_tree(init_merkle_leaves(leaves))?;
+    let merkle_tree = MerkleTree::new(init_merkle_leaves(leaves))?;
+    let merkle_root = merkle_tree.root();
+    let merkle_store = MerkleStore::from(&merkle_tree);
     let advice_stack: Vec<u64> = merkle_root.iter().map(StarkField::as_int).collect();
 
     for pos in 0..(leaves.len() as u64) {
@@ -211,12 +213,17 @@ fn test_mmr_get_single_peak() -> Result<(), MerkleError> {
 fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
     // This test uses two merkle trees for the MMR, one with 8 elements, and one with 2
     let leaves1 = &[1, 2, 3, 4, 5, 6, 7, 8];
+    let merkle_tree1 = MerkleTree::new(init_merkle_leaves(leaves1))?;
+    let merkle_root1 = merkle_tree1.root();
     let leaves2 = &[9, 10];
+    let merkle_tree2 = MerkleTree::new(init_merkle_leaves(leaves2))?;
+    let merkle_root2 = merkle_tree2.root();
     let num_leaves = leaves1.len() + leaves2.len();
 
     let mut merkle_store = MerkleStore::new();
-    let merkle_root1 = merkle_store.add_merkle_tree(init_merkle_leaves(leaves1))?;
-    let merkle_root2 = merkle_store.add_merkle_tree(init_merkle_leaves(leaves2))?;
+    merkle_store
+        .extend(merkle_tree1.inner_nodes())
+        .extend(merkle_tree2.inner_nodes());
 
     let advice_stack: Vec<u64> = merkle_root1
         .iter()
@@ -269,10 +276,17 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
     let leaves2 = &[9, 10];
     let leaves3 = &[11];
 
-    let mut merkle_store = MerkleStore::new();
-    let merkle_root1 = merkle_store.add_merkle_tree(init_merkle_leaves(leaves1))?;
-    let merkle_root2 = merkle_store.add_merkle_tree(init_merkle_leaves(leaves2))?;
+    let merkle_tree1 = MerkleTree::new(init_merkle_leaves(leaves1))?;
+    let merkle_tree2 = MerkleTree::new(init_merkle_leaves(leaves2))?;
+
+    let merkle_root1 = merkle_tree1.root();
+    let merkle_root2 = merkle_tree2.root();
     let merkle_root3 = init_merkle_leaves(leaves3)[0];
+
+    let mut merkle_store = MerkleStore::new();
+    merkle_store
+        .extend(merkle_tree1.inner_nodes())
+        .extend(merkle_tree2.inner_nodes());
 
     // In the case of a single leaf, the leaf is itself also the root
     let stack: Vec<u64> = merkle_root3.iter().map(StarkField::as_int).rev().collect();

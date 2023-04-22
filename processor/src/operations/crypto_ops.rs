@@ -227,7 +227,7 @@ mod tests {
         let index = 5usize;
         let nodes = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let tree = MerkleTree::new(nodes.to_vec()).unwrap();
-        let store = MerkleStore::new().with_merkle_tree(nodes.clone()).unwrap();
+        let store = MerkleStore::from(&tree);
         let root = tree.root();
         let node = nodes[index];
         let index = index as u64;
@@ -290,7 +290,7 @@ mod tests {
             leaves[leaf_index][3].as_int(),
         ];
 
-        let store = MerkleStore::new().with_merkle_tree(leaves.to_vec()).unwrap();
+        let store = MerkleStore::from(&tree);
         let advice_inputs = AdviceInputs::default().with_merkle_store(store);
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
         let mut process =
@@ -334,11 +334,8 @@ mod tests {
         let tree_c = MerkleTree::new(leaves_c.clone()).unwrap();
 
         // appends only the input trees to the Merkle store
-        let store = MerkleStore::new()
-            .with_merkle_tree(leaves_a.to_vec())
-            .unwrap()
-            .with_merkle_tree(leaves_b.to_vec())
-            .unwrap();
+        let mut store = MerkleStore::default();
+        store.extend(tree_a.inner_nodes()).extend(tree_b.inner_nodes());
 
         // set the target coordinates to update the indexes 4..8
         let target_depth = 2;

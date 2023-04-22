@@ -1,6 +1,6 @@
 use assembly::{Library, MaslLibrary};
 use miden::{
-    crypto::MerkleStore,
+    crypto::{MerkleStore, MerkleTree, SimpleSmt},
     math::Felt,
     utils::{Deserializable, SliceReader},
     AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
@@ -191,15 +191,17 @@ impl InputFile {
             match data {
                 MerkleData::MerkleTree(data) => {
                     let leaves = Self::parse_merkle_tree(data)?;
-                    merkle_store
-                        .add_merkle_tree(leaves)
-                        .map_err(|e| format!("failed to add merkle tree to merkle store - {e}"))?;
+                    let tree = MerkleTree::new(leaves)
+                        .map_err(|e| format!("failed to parse a Merkle tree: {e}"))?;
+                    merkle_store.extend(tree.inner_nodes());
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
-                    merkle_store.add_sparse_merkle_tree(u64::BITS as u8, entries).map_err(|e| {
-                        format!("failed to add sparse merkle tree to merkle store - {e}")
-                    })?;
+                    let tree = SimpleSmt::new(u64::BITS as u8)
+                        .expect("failed to instantiate a sparse Merkle tree")
+                        .with_leaves(entries)
+                        .map_err(|e| format!("failed to parse a sparse Merkle tree: {e}"))?;
+                    merkle_store.extend(tree.inner_nodes());
                 }
             }
         }
