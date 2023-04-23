@@ -1,6 +1,6 @@
 use super::{
     AbsolutePath, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError,
-    LibraryNamespace, ModuleAst, ModulePath, Serializable, SerializationError, Vec,
+    LibraryNamespace, ModuleAst, ModulePath, Serializable, Vec,
 };
 use core::{cmp::Ordering, fmt, slice::Iter};
 
@@ -449,19 +449,35 @@ impl fmt::Display for Version {
 }
 
 impl TryFrom<&str> for Version {
-    type Error = SerializationError;
+    type Error = LibraryError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let mut tokens = value
-            .split('.')
-            .map(|n| n.parse::<u16>().map_err(|_| SerializationError::InvalidNumber));
-        let major = tokens.next().transpose()?.ok_or(SerializationError::UnexpectedEndOfStream)?;
-        let minor = tokens.next().transpose()?.ok_or(SerializationError::UnexpectedEndOfStream)?;
-        let patch = tokens.next().transpose()?.ok_or(SerializationError::UnexpectedEndOfStream)?;
-        Ok(Self {
-            major,
-            minor,
-            patch,
-        })
+        let mut components = value.split('.');
+
+        let major = components
+            .next()
+            .ok_or(LibraryError::missing_version_component(value, "major"))?
+            .parse::<u16>()
+            .map_err(|err| LibraryError::invalid_version_number(value, err.to_string()))?;
+        let minor = components
+            .next()
+            .ok_or(LibraryError::missing_version_component(value, "minor"))?
+            .parse::<u16>()
+            .map_err(|err| LibraryError::invalid_version_number(value, err.to_string()))?;
+        let patch = components
+            .next()
+            .ok_or(LibraryError::missing_version_component(value, "patch"))?
+            .parse::<u16>()
+            .map_err(|err| LibraryError::invalid_version_number(value, err.to_string()))?;
+
+        if components.next().is_some() {
+            Err(LibraryError::too_many_version_components(value))
+        } else {
+            Ok(Self {
+                major,
+                minor,
+                patch,
+            })
+        }
     }
 }

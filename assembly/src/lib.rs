@@ -35,7 +35,7 @@ pub use tokens::SourceLocation;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, SerializationError};
+pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError};
 
 mod assembler;
 pub use assembler::Assembler;

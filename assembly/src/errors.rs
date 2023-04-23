@@ -580,84 +580,34 @@ impl fmt::Display for LabelError {
     }
 }
 
-// SERIALIZATION ERROR
-// ================================================================================================
-
-#[derive(Debug)]
-pub enum SerializationError {
-    EndOfReader,
-    InvalidBoolValue,
-    InvalidFieldElement,
-    InvalidModulePath,
-    InvalidNamespace,
-    InvalidNumber,
-    InvalidNumOfPushValues,
-    InvalidOpCode,
-    InvalidPathNoDelimiter,
-    InvalidProcedureName,
-    InvalidUtf8,
-    LengthTooLong,
-    UnexpectedEndOfStream,
-}
-
-impl fmt::Display for SerializationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use SerializationError::*;
-        match self {
-            EndOfReader => write!(f, "unexpected reader EOF"),
-            InvalidBoolValue => write!(f, "invalid boolean value"),
-            InvalidFieldElement => write!(f, "could not read a valid field element"),
-            InvalidModulePath => write!(f, "could not read a valid module path definition"),
-            InvalidNamespace => write!(f, "could not read a valid namespace definition"),
-            InvalidNumber => write!(f, "could not read a valid number"),
-            InvalidNumOfPushValues => write!(f, "invalid push values argument"),
-            InvalidOpCode => write!(f, "could not read a valid opcode"),
-            InvalidPathNoDelimiter => write!(f, "a path must contain a delimiter"),
-            InvalidProcedureName => write!(f, "invalid procedure name"),
-            InvalidUtf8 => write!(f, "could not read a well-formed utf-8 string"),
-            LengthTooLong => write!(f, "the provided length is too long and is not supported"),
-            UnexpectedEndOfStream => write!(f, "the stream of tokens reached an unexpected end"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl From<SerializationError> for std::io::Error {
-    fn from(e: SerializationError) -> Self {
-        std::io::Error::new(std::io::ErrorKind::Other, e)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for SerializationError {}
-
-impl From<LabelError> for SerializationError {
-    fn from(_err: LabelError) -> Self {
-        Self::InvalidProcedureName
-    }
-}
-
 // LIBRARY ERROR
 // ================================================================================================
 
 #[derive(Clone, Debug)]
 pub enum LibraryError {
-    ModuleNotFound(String),
     DeserializationFailed(String, String),
     DuplicateModulePath(String),
     DuplicateNamespace(String),
     EmptyProcedureName,
     FileIO(String, String),
-    ProcedureNameWithDelimiter(String),
-    ModulePathStartsWithDelimiter(String),
-    ModulePathEndsWithDelimiter(String),
+    InvalidVersionNumber { version: String, err_msg: String },
     LibraryNameWithDelimiter(String),
+    MissingVersionComponent { version: String, component: String },
+    ModuleNotFound(String),
+    ModulePathEndsWithDelimiter(String),
+    ModulePathStartsWithDelimiter(String),
     NamespaceViolation { expected: String, found: String },
+    ProcedureNameWithDelimiter(String),
+    TooManyVersionComponents { version: String },
 }
 
 impl LibraryError {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
+
+    pub fn deserialization_error(path: &str, message: &str) -> Self {
+        Self::DeserializationFailed(path.to_string(), message.to_string())
+    }
 
     pub fn duplicate_module_path(path: &str) -> Self {
         Self::DuplicateModulePath(path.to_string())
@@ -671,12 +621,22 @@ impl LibraryError {
         Self::FileIO(path.to_string(), message.to_string())
     }
 
-    pub fn deserialization_error(path: &str, message: &str) -> Self {
-        Self::DeserializationFailed(path.to_string(), message.to_string())
+    pub fn invalid_version_number(version: &str, err_msg: String) -> Self {
+        Self::InvalidVersionNumber {
+            version: version.to_string(),
+            err_msg,
+        }
     }
 
-    pub fn procedure_name_with_delimiter(name: &str) -> Self {
-        Self::ProcedureNameWithDelimiter(name.to_string())
+    pub fn library_name_with_delimiter(name: &str) -> Self {
+        Self::LibraryNameWithDelimiter(name.to_string())
+    }
+
+    pub fn missing_version_component(version: &str, component: &str) -> Self {
+        Self::MissingVersionComponent {
+            version: version.to_string(),
+            component: component.to_string(),
+        }
     }
 
     pub fn module_path_starts_with_delimiter(path: &str) -> Self {
@@ -687,14 +647,20 @@ impl LibraryError {
         Self::ModulePathEndsWithDelimiter(path.to_string())
     }
 
-    pub fn library_name_with_delimiter(name: &str) -> Self {
-        Self::LibraryNameWithDelimiter(name.to_string())
-    }
-
     pub fn namespace_violation(expected: &str, found: &str) -> Self {
         Self::NamespaceViolation {
             expected: expected.into(),
             found: found.into(),
+        }
+    }
+
+    pub fn procedure_name_with_delimiter(name: &str) -> Self {
+        Self::ProcedureNameWithDelimiter(name.to_string())
+    }
+
+    pub fn too_many_version_components(version: &str) -> Self {
+        Self::TooManyVersionComponents {
+            version: version.to_string(),
         }
     }
 }
@@ -703,7 +669,6 @@ impl fmt::Display for LibraryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use LibraryError::*;
         match self {
-            ModuleNotFound(path) => write!(f, "module '{path}' not found"),
             DeserializationFailed(path, message) => {
                 write!(f, "library deserialization failed - '{path}': {message}")
             }
@@ -713,20 +678,30 @@ impl fmt::Display for LibraryError {
             FileIO(path, message) => {
                 write!(f, "file error - '{path}': {message}")
             }
-            ProcedureNameWithDelimiter(name) => {
-                write!(f, "'{name}' cannot contain a module delimiter")
-            }
-            ModulePathStartsWithDelimiter(path) => {
-                write!(f, "'{path}' cannot start with a module delimiter")
-            }
-            ModulePathEndsWithDelimiter(path) => {
-                write!(f, "'{path}' cannot end with a module delimiter")
+            InvalidVersionNumber { version, err_msg } => {
+                write!(f, "version '{version}' is invalid: {err_msg}")
             }
             LibraryNameWithDelimiter(name) => {
                 write!(f, "'{name}' cannot contain a module delimiter")
             }
+            MissingVersionComponent { version, component } => {
+                write!(f, "version '{version}' is invalid: missing {component} version component")
+            }
+            ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+            ModulePathEndsWithDelimiter(path) => {
+                write!(f, "'{path}' cannot end with a module delimiter")
+            }
+            ModulePathStartsWithDelimiter(path) => {
+                write!(f, "'{path}' cannot start with a module delimiter")
+            }
             NamespaceViolation { expected, found } => {
                 write!(f, "invalid namespace! expected '{expected}', found '{found}'")
+            }
+            ProcedureNameWithDelimiter(name) => {
+                write!(f, "'{name}' cannot contain a module delimiter")
+            }
+            TooManyVersionComponents { version } => {
+                write!(f, "version '{version}' contains too many components")
             }
         }
     }
