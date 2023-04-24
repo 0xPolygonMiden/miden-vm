@@ -4,13 +4,16 @@ use super::{
 use core::fmt;
 
 mod lines;
-pub use lines::{LineToken, LineTokenizer};
+pub use lines::{LineInfo, LinesStream};
 
 mod location;
 pub use location::SourceLocation;
 
 mod stream;
 pub use stream::TokenStream;
+
+mod tokenizer;
+pub use tokenizer::{LineToken, LineTokenizer};
 
 // TOKEN
 // ================================================================================================
