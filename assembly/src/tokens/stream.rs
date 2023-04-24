@@ -77,8 +77,8 @@ impl<'a> TokenStream<'a> {
         self.pos
     }
 
-    /// Returns the [SourceLocation] linked to the current [Token].
-    pub fn location(&self) -> &SourceLocation {
+    /// Returns the [SourceLocation] linked to the end-of-file of the source.
+    pub fn eof_location(&self) -> &SourceLocation {
         let idx = self.pos.min(self.locations.len().saturating_sub(1));
         &self.locations[idx]
     }
