@@ -1,4 +1,3 @@
-use super::LineInfo;
 use core::fmt;
 
 // SOURCE LOCATION
@@ -15,14 +14,6 @@ pub struct SourceLocation {
 impl Default for SourceLocation {
     fn default() -> Self {
         Self { line: 1, column: 1 }
-    }
-}
-
-impl From<LineInfo<'_>> for SourceLocation {
-    fn from(info: LineInfo<'_>) -> Self {
-        let line = info.line_number();
-        let column = info.char_offset();
-        Self::new(line, column)
     }
 }
 
