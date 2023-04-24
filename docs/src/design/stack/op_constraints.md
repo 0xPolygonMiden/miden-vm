@@ -29,18 +29,18 @@ As mentioned above, operation flags are used as selectors to enforce operation-s
 
 Operation flags are mutually exclusive. That is, if one flag is set to $1$, all other flags are set to $0$. Also, one of the flags is always guaranteed to be set to $1$.
 
-To compute values of operation flags we use _op bits_ registers located in the [decoder](../decoder/main.md#decoder-trace). These registers contain binary representations of operation codes (opcodes). Each opcode consists of $7$ bits, and thus, there are $7$ _op bits_ registers. We denote these registers as $b_0, ..., b_6$. The values are computed by multiplying the op bit registers in various combinations.
+To compute values of operation flags we use _op bits_ registers located in the [decoder](../decoder/main.md#decoder-trace). These registers contain binary representations of operation codes (opcodes). Each opcode consists of $7$ bits, and thus, there are $7$ _op bits_ registers. We denote these registers as $b_0, ..., b_6$. The values are computed by multiplying the op bit registers in various combinations. Notice that binary encoding down below is showed in big-endian order, so the flag bits correspond to the reverse order of the _op bits_ registers, from $b_6$ to $b_0$.
 
 For example, the value of the flag for `NOOP`, which is encoded as `0000000`, is computed as follows:
 
 $$
-f_{noop} = (1 - b_0) \cdot (1 - b_1) \cdot (1 - b_2) \cdot (1 - b_3) \cdot (1 - b_4) \cdot (1 - b_5) \cdot (1 - b_6)
+f_{noop} = (1 - b_6) \cdot (1 - b_5) \cdot (1 - b_4) \cdot (1 - b_3) \cdot (1 - b_2) \cdot (1 - b_1) \cdot (1 - b_0)
 $$
 
 While the value of the `DROP` operation, which is encoded as `0101001` is computed as follows:
 
 $$
-f_{drop} = (1 - b_0) \cdot b_1 \cdot (1 - b_2) \cdot b_3 \cdot (1 - b_4) \cdot (1 - b_5) \cdot b_6
+f_{drop} = (1 - b_6) \cdot b_5 \cdot (1 - b_4) \cdot b_3 \cdot (1 - b_2) \cdot (1 - b_1) \cdot b_0
 $$
 
 As can be seen from above, the degree for both of these flags is $7$. Since degree of constraints in Miden VM can go up to $9$, this means that operation-specific constraints cannot exceed degree $2$. However, there are some operations which require constraints of higher degree (e.g., $3$ or even $5$). To support such constraints, we adopt the following scheme.
