@@ -47,7 +47,7 @@ fn test_compile() {
             .ast
             .local_procs
             .iter()
-            .any(|proc| module.path.concatenate(&proc.name).as_str() == path)
+            .any(|proc| module.path.append(&proc.name).unwrap().as_str() == path)
     });
 
     assert!(exists);

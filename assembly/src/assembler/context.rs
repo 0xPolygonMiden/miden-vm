@@ -1,5 +1,5 @@
 use super::{
-    AbsolutePath, AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, Procedure,
     ProcedureCache, ProcedureId, String, ToString, Vec,
 };
 use crate::{ProcedureName, MODULE_PATH_DELIM};
@@ -69,7 +69,7 @@ impl AssemblyContext {
             // a kernel context must be initialized with a kernel module path
             debug_assert_eq!(
                 module_path,
-                AbsolutePath::KERNEL_PATH,
+                LibraryPath::KERNEL_PATH,
                 "kernel context not initialized with kernel module"
             );
         }

@@ -1,8 +1,8 @@
 use super::{
     parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
-    AbsolutePath, AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel,
-    Library, LibraryError, Module, ModuleAst, Operation, Procedure, ProcedureId, Program, String,
-    ToString, Vec, ONE, ZERO,
+    AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
+    LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, Program,
+    String, ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};

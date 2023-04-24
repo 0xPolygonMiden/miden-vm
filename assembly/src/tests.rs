@@ -1,4 +1,4 @@
-use crate::{parse_module, Assembler, Library, LibraryNamespace, Module, ModulePath, Version};
+use crate::{parse_module, Assembler, Library, LibraryNamespace, LibraryPath, Module, Version};
 use core::slice::Iter;
 
 // SIMPLE PROGRAMS
@@ -525,7 +525,8 @@ fn program_with_one_import() {
     impl Default for DummyLibrary {
         fn default() -> Self {
             let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
-            let path = ModulePath::try_from(MODULE.to_string()).unwrap().to_absolute(&namespace);
+            let path =
+                LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
             let ast = parse_module(PROCEDURE).unwrap();
             Self {
                 namespace,

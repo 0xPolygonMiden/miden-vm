@@ -1,5 +1,5 @@
 use super::{
-    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
+    BTreeMap, LibraryPath, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
     PROCEDURE_LABEL_PARSER,
 };
 use core::fmt;
@@ -103,7 +103,7 @@ impl<'a> Token<'a> {
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn parse_use(&self) -> Result<AbsolutePath, ParsingError> {
+    pub fn parse_use(&self) -> Result<LibraryPath, ParsingError> {
         assert_eq!(Self::USE, self.parts[0], "not a use");
         match self.num_parts() {
             0 => unreachable!(),
@@ -254,21 +254,8 @@ impl<'a> fmt::Display for Token<'a> {
 /// - Path limbs must be separated by double-colons ("::").
 /// - Each limb must start with an ASCII letter.
 /// - Each limb can contain only ASCII letters, numbers, underscores, or colons.
-fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, ParsingError> {
-    // a path cannot be empty
-    if path.is_empty() {
-        return Err(ParsingError::invalid_module_path(token, path));
-    }
-
-    // path limbs must be separated by "::"
-    for limb in path.split(MODULE_PATH_DELIM) {
-        // each limb must be a valid label
-        if AbsolutePath::try_from(limb.to_string()).is_err() {
-            return Err(ParsingError::invalid_module_path(token, path));
-        }
-    }
-
-    Ok(AbsolutePath::new_unchecked(path.to_string()))
+fn validate_import_path(path: &str, token: &Token) -> Result<LibraryPath, ParsingError> {
+    LibraryPath::try_from(path).map_err(|_| ParsingError::invalid_module_path(token, path))
 }
 
 /// Procedure locals must be a 16-bit integer.

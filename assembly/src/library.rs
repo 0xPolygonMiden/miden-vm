@@ -1,6 +1,6 @@
 use super::{
-    AbsolutePath, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError,
-    LibraryNamespace, ModuleAst, ModulePath, Serializable, Vec,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, LibraryNamespace,
+    LibraryPath, ModuleAst, Serializable, Vec,
 };
 use core::{cmp::Ordering, fmt, slice::Iter};
 
@@ -80,9 +80,6 @@ impl Library for MaslLibrary {
 }
 
 impl MaslLibrary {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
     /// File extension for the Assembly Library.
     pub const LIBRARY_EXTENSION: &str = "masl";
     /// File extension for the Assembly Module.
@@ -126,13 +123,11 @@ mod use_std {
                 ));
             }
 
-            let module = ModulePath::empty();
-            let modules = read_from_dir_helper(Default::default(), path, &module)?
+            let module_path = LibraryPath::new(&namespace)
+                .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
+            let modules = read_from_dir_helper(Default::default(), path, &module_path)?
                 .into_iter()
-                .map(|(path, ast)| {
-                    let path = path.to_absolute(&namespace);
-                    Module { path, ast }
-                })
+                .map(|(path, ast)| Module { path, ast })
                 .collect();
 
             Ok(Self {
@@ -181,10 +176,10 @@ mod use_std {
     ///
     /// Helper for [`Self::read_from_dir`].
     fn read_from_dir_helper<P>(
-        mut state: BTreeMap<ModulePath, ModuleAst>,
+        mut state: BTreeMap<LibraryPath, ModuleAst>,
         dir: P,
-        module: &ModulePath,
-    ) -> io::Result<BTreeMap<ModulePath, ModuleAst>>
+        module_path: &LibraryPath,
+    ) -> io::Result<BTreeMap<LibraryPath, ModuleAst>>
     where
         P: AsRef<Path>,
     {
@@ -198,8 +193,10 @@ mod use_std {
                 let name = path.file_name().and_then(|s| s.to_str()).ok_or_else(|| {
                     io::Error::new(io::ErrorKind::Other, "invalid directory entry!")
                 })?;
-                let module = module.concatenate(name);
-                state = read_from_dir_helper(state, path, &module)?;
+                let module_path = module_path
+                    .append(name)
+                    .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
+                state = read_from_dir_helper(state, path, &module_path)?;
             // if file, check if `masm`, parse & append; skip otherwise
             } else if ty.is_file() {
                 let path = entry.path();
@@ -216,7 +213,9 @@ mod use_std {
                     let contents = fs::read_to_string(&path)?;
                     let ast = parse_module(&contents)?;
 
-                    let module = module.concatenate(name);
+                    let module = module_path
+                        .append(name)
+                        .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
                     if state.insert(module, ast).is_some() {
                         unreachable!(
                             "the filesystem is inconsistent as it produced duplicated module paths"
@@ -239,7 +238,9 @@ impl Serializable for MaslLibrary {
         let modules = self.modules();
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
-            ModulePath::strip_namespace(&module.path).write_into(target);
+            LibraryPath::strip_first(&module.path)
+                .expect("module path consists of a single component")
+                .write_into(target);
             module.ast.write_into(target);
         });
     }
@@ -252,15 +253,15 @@ impl Deserializable for MaslLibrary {
         let namespace = LibraryNamespace::read_from(source)?;
         let version = Version::read_from(source)?;
 
-        let len = source.read_u16()? as usize;
-        let modules = (0..len)
-            .map(|_| {
-                ModulePath::read_from(source)
-                    .map(|path| path.to_absolute(&namespace))
-                    .and_then(|path| ModuleAst::read_from(source).map(|ast| (path, ast)))
-                    .map(|(path, ast)| Module { path, ast })
-            })
-            .collect::<Result<_, _>>()?;
+        let num_modules = source.read_u16()? as usize;
+        let mut modules = Vec::with_capacity(num_modules);
+        for _ in 0..num_modules {
+            let path = LibraryPath::read_from(source)?
+                .prepend(&namespace)
+                .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
+            let ast = ModuleAst::read_from(source)?;
+            modules.push(Module { path, ast });
+        }
 
         Ok(Self {
             namespace,
@@ -277,7 +278,7 @@ impl Deserializable for MaslLibrary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     /// Absolute path of the module.
-    pub path: AbsolutePath,
+    pub path: LibraryPath,
     /// Parsed AST of the module.
     pub ast: ModuleAst,
 }
@@ -287,14 +288,14 @@ impl Module {
     // --------------------------------------------------------------------------------------------
 
     /// Create a new module from a path and ast.
-    pub const fn new(path: AbsolutePath, ast: ModuleAst) -> Self {
+    pub const fn new(path: LibraryPath, ast: ModuleAst) -> Self {
         Self { path, ast }
     }
 
-    /// Create a new kernel module from a AST using the constant [`AbsolutePath::kernel_path`].
+    /// Create a new kernel module from a AST using the constant [`LibraryPath::kernel_path`].
     pub fn kernel(ast: ModuleAst) -> Self {
         Self {
-            path: AbsolutePath::kernel_path(),
+            path: LibraryPath::kernel_path(),
             ast,
         }
     }
@@ -304,9 +305,9 @@ impl Module {
 
     /// Validate if the module belongs to the provided namespace.
     pub fn check_namespace(&self, namespace: &LibraryNamespace) -> Result<(), LibraryError> {
-        (self.path.namespace() == namespace.as_str()).then_some(()).ok_or_else(|| {
-            LibraryError::namespace_violation(self.path.namespace(), namespace.as_str())
-        })
+        (self.path.first() == namespace.as_str())
+            .then_some(())
+            .ok_or_else(|| LibraryError::namespace_violation(self.path.first(), namespace.as_str()))
     }
 }
 
@@ -331,7 +332,7 @@ impl Serializable for Module {
 
 impl Deserializable for Module {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let path = AbsolutePath::read_from(source)?;
+        let path = LibraryPath::read_from(source)?;
         let ast = ModuleAst::read_from(source)?;
         Ok(Self { path, ast })
     }

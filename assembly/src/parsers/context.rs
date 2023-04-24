@@ -1,5 +1,5 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, AbsolutePath, Instruction, LocalConstMap,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, Instruction, LibraryPath, LocalConstMap,
     LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
 };
 use vm_core::utils::{
@@ -13,7 +13,7 @@ use vm_core::utils::{
 /// AST Parser context that holds internal state to generate correct ASTs.
 #[derive(Default)]
 pub struct ParserContext {
-    pub imports: BTreeMap<String, AbsolutePath>,
+    pub imports: BTreeMap<String, LibraryPath>,
     pub local_procs: LocalProcMap,
     pub local_constants: LocalConstMap,
 }

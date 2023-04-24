@@ -3,7 +3,7 @@ use super::{LabelError, MAX_LABEL_LEN};
 // LABEL PARSERS
 // ================================================================================================
 
-/// Constant label parser
+/// Constant label parser.
 pub const CONSTANT_LABEL_PARSER: LabelParser = LabelParser {
     caps: true,
     max_len: MAX_LABEL_LEN,
@@ -11,7 +11,7 @@ pub const CONSTANT_LABEL_PARSER: LabelParser = LabelParser {
     start_with_letter: true,
 };
 
-/// Procedure label parser
+/// Procedure label parser.
 pub const PROCEDURE_LABEL_PARSER: LabelParser = LabelParser {
     caps: false,
     max_len: MAX_LABEL_LEN,
@@ -40,7 +40,7 @@ impl LabelParser {
             // label cannot be empty
             return Err(LabelError::empty_label());
         } else if label.len() > self.max_len {
-            // label cannot be more than 100 characters long
+            // label cannot be more than `max_len` characters long
             return Err(LabelError::label_too_long(label, self.max_len));
         } else if self.start_with_letter && !label.chars().next().unwrap().is_ascii_alphabetic() {
             // label must start with a letter

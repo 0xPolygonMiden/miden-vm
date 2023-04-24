@@ -1,6 +1,6 @@
 use super::{
-    crypto::hash::Blake3_160, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
-    Deserializable, DeserializationError, LabelError, Serializable, String, ToString,
+    crypto::hash::Blake3_160, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable,
+    DeserializationError, LabelError, LibraryPath, Serializable, String, ToString,
     MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
 };
 use core::{
@@ -118,14 +118,6 @@ impl ProcedureName {
         }
     }
 
-    // TYPE-SAFE TRANSFORMATION
-    // --------------------------------------------------------------------------------------------
-
-    /// Append the procedure name to a module path.
-    pub fn to_absolute(&self, module: &AbsolutePath) -> AbsolutePath {
-        AbsolutePath::new_unchecked(format!("{}{MODULE_PATH_DELIM}{}", module.as_str(), &self.name))
-    }
-
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
@@ -218,7 +210,7 @@ impl ProcedureId {
 
     /// Creates a new procedure ID from a name to be resolved in the kernel.
     pub fn from_kernel_name(name: &str) -> Self {
-        let path = format!("{}{MODULE_PATH_DELIM}{name}", AbsolutePath::KERNEL_PATH);
+        let path = format!("{}{MODULE_PATH_DELIM}{name}", LibraryPath::KERNEL_PATH);
         Self::new(path)
     }
 
@@ -243,6 +235,12 @@ impl ProcedureId {
 impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
     fn from(value: [u8; ProcedureId::SIZE]) -> Self {
         Self(value)
+    }
+}
+
+impl From<&LibraryPath> for ProcedureId {
+    fn from(path: &LibraryPath) -> Self {
+        ProcedureId::new(path)
     }
 }
 

@@ -588,23 +588,17 @@ pub enum LibraryError {
     DeserializationFailed(String, String),
     DuplicateModulePath(String),
     DuplicateNamespace(String),
-    EmptyProcedureName,
     FileIO(String, String),
+    InvalidPath(PathError),
     InvalidVersionNumber { version: String, err_msg: String },
     LibraryNameWithDelimiter(String),
     MissingVersionComponent { version: String, component: String },
     ModuleNotFound(String),
-    ModulePathEndsWithDelimiter(String),
-    ModulePathStartsWithDelimiter(String),
     NamespaceViolation { expected: String, found: String },
-    ProcedureNameWithDelimiter(String),
     TooManyVersionComponents { version: String },
 }
 
 impl LibraryError {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
     pub fn deserialization_error(path: &str, message: &str) -> Self {
         Self::DeserializationFailed(path.to_string(), message.to_string())
     }
@@ -639,23 +633,11 @@ impl LibraryError {
         }
     }
 
-    pub fn module_path_starts_with_delimiter(path: &str) -> Self {
-        Self::ModulePathStartsWithDelimiter(path.to_string())
-    }
-
-    pub fn module_path_ends_with_delimiter(path: &str) -> Self {
-        Self::ModulePathEndsWithDelimiter(path.to_string())
-    }
-
     pub fn namespace_violation(expected: &str, found: &str) -> Self {
         Self::NamespaceViolation {
             expected: expected.into(),
             found: found.into(),
         }
-    }
-
-    pub fn procedure_name_with_delimiter(name: &str) -> Self {
-        Self::ProcedureNameWithDelimiter(name.to_string())
     }
 
     pub fn too_many_version_components(version: &str) -> Self {
@@ -674,9 +656,11 @@ impl fmt::Display for LibraryError {
             }
             DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
             DuplicateNamespace(namespace) => write!(f, "duplicate namespace '{namespace}'"),
-            EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
             FileIO(path, message) => {
                 write!(f, "file error - '{path}': {message}")
+            }
+            InvalidPath(err) => {
+                write!(f, "invalid path: {err}")
             }
             InvalidVersionNumber { version, err_msg } => {
                 write!(f, "version '{version}' is invalid: {err_msg}")
@@ -688,17 +672,8 @@ impl fmt::Display for LibraryError {
                 write!(f, "version '{version}' is invalid: missing {component} version component")
             }
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
-            ModulePathEndsWithDelimiter(path) => {
-                write!(f, "'{path}' cannot end with a module delimiter")
-            }
-            ModulePathStartsWithDelimiter(path) => {
-                write!(f, "'{path}' cannot start with a module delimiter")
-            }
             NamespaceViolation { expected, found } => {
                 write!(f, "invalid namespace! expected '{expected}', found '{found}'")
-            }
-            ProcedureNameWithDelimiter(name) => {
-                write!(f, "'{name}' cannot contain a module delimiter")
             }
             TooManyVersionComponents { version } => {
                 write!(f, "version '{version}' contains too many components")
@@ -709,3 +684,93 @@ impl fmt::Display for LibraryError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for LibraryError {}
+
+impl From<PathError> for LibraryError {
+    fn from(value: PathError) -> Self {
+        LibraryError::InvalidPath(value)
+    }
+}
+
+// PATH ERROR
+// ================================================================================================
+
+#[derive(Clone, Debug)]
+pub enum PathError {
+    ComponentInvalidChar { component: String },
+    ComponentInvalidFirstChar { component: String },
+    ComponentTooLong { component: String, max_len: usize },
+    EmptyComponent,
+    EmptyPath,
+    PathTooLong { path: String, max_len: usize },
+    TooFewComponents { path: String, min_components: usize },
+}
+
+impl PathError {
+    pub fn component_invalid_char(component: &str) -> Self {
+        Self::ComponentInvalidChar {
+            component: component.to_string(),
+        }
+    }
+
+    pub fn component_invalid_first_char(component: &str) -> Self {
+        Self::ComponentInvalidFirstChar {
+            component: component.to_string(),
+        }
+    }
+
+    pub fn component_too_long(component: &str, max_len: usize) -> Self {
+        Self::ComponentTooLong {
+            component: component.to_string(),
+            max_len,
+        }
+    }
+
+    pub fn path_too_long(path: &str, max_len: usize) -> Self {
+        Self::PathTooLong {
+            path: path.to_string(),
+            max_len,
+        }
+    }
+
+    pub fn too_few_components(path: &str, min_components: usize) -> Self {
+        Self::TooFewComponents {
+            path: path.to_string(),
+            min_components,
+        }
+    }
+}
+
+impl fmt::Display for PathError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use PathError::*;
+        match self {
+            ComponentInvalidChar { component } => {
+                write!(f, "path component '{component}' contains invalid characters")
+            }
+            ComponentInvalidFirstChar { component } => {
+                write!(f, "path component '{component}' does not start with a letter")
+            }
+            ComponentTooLong { component, max_len } => {
+                write!(f, "path component '{component}' contains over {max_len} characters")
+            }
+            EmptyComponent => {
+                write!(f, "path component cannot be an empty string")
+            }
+            EmptyPath => {
+                write!(f, "path cannot be an empty string")
+            }
+            PathTooLong { path, max_len } => {
+                write!(f, "path  `{path}` contains over {max_len} characters")
+            }
+            TooFewComponents {
+                path,
+                min_components,
+            } => {
+                write!(f, "path  `{path}` does not consist of at least {min_components} components")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for PathError {}

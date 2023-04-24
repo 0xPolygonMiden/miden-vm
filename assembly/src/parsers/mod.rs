@@ -1,6 +1,6 @@
 use super::{
-    AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
-    LabelError, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader, StarkField,
+    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, LabelError,
+    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader, StarkField,
     String, ToString, Token, TokenStream, Vec, MAX_LABEL_LEN,
 };
 use core::{fmt::Display, ops::RangeBounds, str::from_utf8};
@@ -316,14 +316,14 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
 
 /// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
 /// its fully-qualified path (e.g., "std::math::u64").
-fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, AbsolutePath>, ParsingError> {
-    let mut imports = BTreeMap::<String, AbsolutePath>::new();
+fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, LibraryPath>, ParsingError> {
+    let mut imports = BTreeMap::<String, LibraryPath>::new();
     // read tokens from the token stream until all `use` tokens are consumed
     while let Some(token) = tokens.read() {
         match token.parts()[0] {
             Token::USE => {
                 let module_path = token.parse_use()?;
-                let module_name = module_path.label();
+                let module_name = module_path.last();
                 if imports.contains_key(module_name) {
                     return Err(ParsingError::duplicate_module_import(token, &module_path));
                 }
