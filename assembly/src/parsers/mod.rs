@@ -12,7 +12,7 @@ mod context;
 use context::ParserContext;
 mod labels;
 use labels::CONSTANT_LABEL_PARSER;
-pub use labels::PROCEDURE_LABEL_PARSER;
+pub use labels::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
 mod adv_ops;
 mod field_ops;

@@ -1,13 +1,13 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable,
+    MAX_LABEL_LEN,
 };
 use core::{ops::Deref, str::from_utf8};
 
 // CONSTANTS
 // ================================================================================================
 
-const MAX_PATH_LEN: usize = 1000;
-const MAX_COMPONENT_LEN: usize = 100;
+const MAX_PATH_LEN: usize = 1023;
 
 // LIBRARY PATH
 // ================================================================================================
@@ -40,9 +40,9 @@ impl LibraryPath {
     /// # Errors
     /// Returns an error if:
     /// - The path is empty.
-    /// - The path is over 1000 characters long.
-    /// - Any of the path's components is empty, is over 100 characters long, does not start with
-    ///   a letter, or contains non-alphanumeric characters.
+    /// - The path requires more than 1KB to serialize.
+    /// - Any of the path's components is empty, requires more than 255 bytes to serialize, does
+    ///   not start with a letter, or contains non-alphanumeric characters.
     pub fn new<S>(source: S) -> Result<Self, PathError>
     where
         S: AsRef<str>,
@@ -260,8 +260,8 @@ fn validate_path_len(path: &str) -> Result<(), PathError> {
 fn validate_component(component: &str) -> Result<(), PathError> {
     if component.is_empty() {
         Err(PathError::EmptyComponent)
-    } else if component.len() > MAX_COMPONENT_LEN {
-        Err(PathError::component_too_long(component, MAX_COMPONENT_LEN))
+    } else if component.len() > MAX_LABEL_LEN {
+        Err(PathError::component_too_long(component, MAX_LABEL_LEN))
     } else if !component.chars().next().unwrap().is_ascii_alphabetic() {
         Err(PathError::component_invalid_first_char(component))
     } else if !component.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {

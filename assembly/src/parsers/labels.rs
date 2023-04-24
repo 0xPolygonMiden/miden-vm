@@ -11,6 +11,14 @@ pub const CONSTANT_LABEL_PARSER: LabelParser = LabelParser {
     start_with_letter: true,
 };
 
+/// Library namespace label parser.
+pub const NAMESPACE_LABEL_PARSER: LabelParser = LabelParser {
+    caps: false,
+    max_len: MAX_LABEL_LEN,
+    numbers_letters_underscore: true,
+    start_with_letter: true,
+};
+
 /// Procedure label parser.
 pub const PROCEDURE_LABEL_PARSER: LabelParser = LabelParser {
     caps: false,

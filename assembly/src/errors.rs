@@ -589,60 +589,60 @@ pub enum LibraryError {
     DuplicateModulePath(String),
     DuplicateNamespace(String),
     FileIO(String, String),
+    InconsistentNamespace { expected: String, actual: String },
+    InvalidNamespace(LabelError),
     InvalidPath(PathError),
     InvalidVersionNumber { version: String, err_msg: String },
-    LibraryNameWithDelimiter(String),
     MissingVersionComponent { version: String, component: String },
     ModuleNotFound(String),
-    NamespaceViolation { expected: String, found: String },
     TooManyVersionComponents { version: String },
 }
 
 impl LibraryError {
     pub fn deserialization_error(path: &str, message: &str) -> Self {
-        Self::DeserializationFailed(path.to_string(), message.to_string())
+        Self::DeserializationFailed(path.into(), message.into())
     }
 
     pub fn duplicate_module_path(path: &str) -> Self {
-        Self::DuplicateModulePath(path.to_string())
+        Self::DuplicateModulePath(path.into())
     }
 
     pub fn duplicate_namespace(namespace: &str) -> Self {
-        Self::DuplicateNamespace(namespace.to_string())
+        Self::DuplicateNamespace(namespace.into())
     }
 
     pub fn file_error(path: &str, message: &str) -> Self {
-        Self::FileIO(path.to_string(), message.to_string())
+        Self::FileIO(path.into(), message.into())
+    }
+
+    pub fn inconsistent_namespace(expected: &str, actual: &str) -> Self {
+        Self::InconsistentNamespace {
+            expected: expected.into(),
+            actual: actual.into(),
+        }
+    }
+
+    pub fn invalid_namespace(err: LabelError) -> Self {
+        Self::InvalidNamespace(err)
     }
 
     pub fn invalid_version_number(version: &str, err_msg: String) -> Self {
         Self::InvalidVersionNumber {
-            version: version.to_string(),
+            version: version.into(),
             err_msg,
         }
     }
 
-    pub fn library_name_with_delimiter(name: &str) -> Self {
-        Self::LibraryNameWithDelimiter(name.to_string())
-    }
-
     pub fn missing_version_component(version: &str, component: &str) -> Self {
         Self::MissingVersionComponent {
-            version: version.to_string(),
-            component: component.to_string(),
-        }
-    }
-
-    pub fn namespace_violation(expected: &str, found: &str) -> Self {
-        Self::NamespaceViolation {
-            expected: expected.into(),
-            found: found.into(),
+            version: version.into(),
+            component: component.into(),
         }
     }
 
     pub fn too_many_version_components(version: &str) -> Self {
         Self::TooManyVersionComponents {
-            version: version.to_string(),
+            version: version.into(),
         }
     }
 }
@@ -659,22 +659,22 @@ impl fmt::Display for LibraryError {
             FileIO(path, message) => {
                 write!(f, "file error - '{path}': {message}")
             }
+            InconsistentNamespace { expected, actual } => {
+                write!(f, "inconsistent module namespace: expected '{expected}', but was {actual}")
+            }
+            InvalidNamespace(err) => {
+                write!(f, "invalid namespace: {err}")
+            }
             InvalidPath(err) => {
                 write!(f, "invalid path: {err}")
             }
             InvalidVersionNumber { version, err_msg } => {
                 write!(f, "version '{version}' is invalid: {err_msg}")
             }
-            LibraryNameWithDelimiter(name) => {
-                write!(f, "'{name}' cannot contain a module delimiter")
-            }
             MissingVersionComponent { version, component } => {
                 write!(f, "version '{version}' is invalid: missing {component} version component")
             }
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
-            NamespaceViolation { expected, found } => {
-                write!(f, "invalid namespace! expected '{expected}', found '{found}'")
-            }
             TooManyVersionComponents { version } => {
                 write!(f, "version '{version}' contains too many components")
             }
@@ -708,33 +708,33 @@ pub enum PathError {
 impl PathError {
     pub fn component_invalid_char(component: &str) -> Self {
         Self::ComponentInvalidChar {
-            component: component.to_string(),
+            component: component.into(),
         }
     }
 
     pub fn component_invalid_first_char(component: &str) -> Self {
         Self::ComponentInvalidFirstChar {
-            component: component.to_string(),
+            component: component.into(),
         }
     }
 
     pub fn component_too_long(component: &str, max_len: usize) -> Self {
         Self::ComponentTooLong {
-            component: component.to_string(),
+            component: component.into(),
             max_len,
         }
     }
 
     pub fn path_too_long(path: &str, max_len: usize) -> Self {
         Self::PathTooLong {
-            path: path.to_string(),
+            path: path.into(),
             max_len,
         }
     }
 
     pub fn too_few_components(path: &str, min_components: usize) -> Self {
         Self::TooFewComponents {
-            path: path.to_string(),
+            path: path.into(),
             min_components,
         }
     }
