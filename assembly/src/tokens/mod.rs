@@ -13,7 +13,7 @@ mod stream;
 pub use stream::TokenStream;
 
 mod tokenizer;
-pub use tokenizer::{LineToken, LineTokenizer};
+pub use tokenizer::LineTokenizer;
 
 // TOKEN
 // ================================================================================================

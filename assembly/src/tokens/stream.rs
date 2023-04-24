@@ -1,5 +1,7 @@
-use super::{BTreeMap, LineToken, LineTokenizer, ParsingError, SourceLocation, String, Token, Vec};
-use core::fmt;
+use super::{
+    BTreeMap, LineTokenizer, LinesStream, ParsingError, SourceLocation, String, Token, Vec,
+};
+use core::{fmt, mem};
 
 // TOKEN STREAM
 // ================================================================================================
@@ -24,29 +26,51 @@ impl<'a> TokenStream<'a> {
         let mut tokens = Vec::new();
         let mut locations = Vec::new();
         let mut proc_comments = BTreeMap::new();
-        let mut tokenizer = LineTokenizer::from(source);
+        let mut module_comment = None;
 
-        for token in tokenizer.by_ref() {
-            let LineToken {
-                docs,
-                location,
-                token,
-            } = token;
+        for info in LinesStream::from(source) {
+            let mut docs = info.docs();
+            let mut tokenizer = LineTokenizer::from(&info);
 
-            // bind doc comments to proc/export; halt otherwise
-            if token.starts_with(Token::EXPORT) || token.starts_with(Token::PROC) {
-                proc_comments.insert(tokens.len(), docs);
-            } else if docs.is_some() {
+            // first dangling docs are module docs
+            if tokens.is_empty() && info.contents().is_none() {
+                let docs = mem::take(&mut docs);
+                let docs = build_comment(docs);
+                module_comment = docs;
+            } else if info.contents().is_none() {
+                let location = SourceLocation::new(info.line_number(), 1);
                 return Err(ParsingError::dangling_procedure_comment(location));
             }
 
-            tokens.push(token);
-            locations.push(location);
-        }
+            // first token from stream might be export or proc; take docs
+            if !docs.is_empty() {
+                match tokenizer.next() {
+                    Some((token, location))
+                        if token.starts_with(Token::EXPORT) || token.starts_with(Token::PROC) =>
+                    {
+                        let docs = mem::take(&mut docs);
+                        let docs = build_comment(docs);
+                        proc_comments.insert(tokens.len(), docs);
+                        tokens.push(token);
+                        locations.push(location);
+                    }
+                    _ => {
+                        return Err(ParsingError::dangling_procedure_comment(SourceLocation::new(
+                            info.line_number(),
+                            1,
+                        )))
+                    }
+                }
+            }
 
-        // halt if dangling docs
-        if let Some(location) = tokenizer.take_dangling_docs() {
-            return Err(ParsingError::dangling_procedure_comment(location));
+            for (token, location) in tokenizer.by_ref() {
+                tokens.push(token);
+                locations.push(location);
+            }
+
+            if let Some(location) = tokenizer.take_dangling() {
+                return Err(ParsingError::dangling_procedure_comment(location));
+            }
         }
 
         // invalid if no tokens
@@ -54,8 +78,6 @@ impl<'a> TokenStream<'a> {
             return Err(ParsingError::empty_source());
         }
 
-        // set module comment & return
-        let module_comment = tokenizer.take_module_docs();
         let location = SourceLocation::default();
         let current = Token::new(tokens[0], location);
         Ok(Self {
@@ -139,4 +161,20 @@ impl<'a> fmt::Display for TokenStream<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", &self.tokens[self.pos..])
     }
+}
+
+// HELPERS
+// ================================================================================================
+
+fn build_comment(docs: &[&str]) -> Option<String> {
+    let last = docs.len().saturating_sub(1);
+    let docs: String = docs
+        .iter()
+        .enumerate()
+        .map(|(i, d)| {
+            let lb = if last == i { "" } else { "\n" };
+            format!("{d}{lb}")
+        })
+        .collect();
+    (!docs.is_empty()).then_some(docs)
 }

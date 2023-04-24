@@ -128,10 +128,10 @@ impl<'a> Iterator for LinesStream<'a> {
 /// A processed line with source location.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LineInfo<'a> {
-    pub(super) contents: Option<&'a str>,
-    pub(super) docs: Vec<&'a str>,
-    pub(super) line_number: u32,
-    pub(super) char_offset: u32,
+    contents: Option<&'a str>,
+    docs: Vec<&'a str>,
+    line_number: u32,
+    char_offset: u32,
 }
 
 impl From<LineInfo<'_>> for SourceLocation {
@@ -510,12 +510,10 @@ end
     // TESTS HELPERS
     // ============================================================================================
 
-    #[cfg(test)]
     fn t(num: u32, offset: u32, contents: &str) -> Option<LineInfo> {
         Some(LineInfo::new(num, offset).with_contents(contents))
     }
 
-    #[cfg(test)]
     fn tdocs<'a, I>(num: u32, offset: u32, contents: &'a str, docs: I) -> Option<LineInfo<'a>>
     where
         I: IntoIterator<Item = &'a str>,
@@ -523,7 +521,6 @@ end
         Some(LineInfo::new(num, offset).with_contents(contents).with_docs(docs))
     }
 
-    #[cfg(test)]
     fn tdangling<'a, I>(num: u32, offset: u32, docs: I) -> Option<LineInfo<'a>>
     where
         I: IntoIterator<Item = &'a str>,

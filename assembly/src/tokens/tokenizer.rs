@@ -1,39 +1,28 @@
-use super::{LineInfo, LinesStream, SourceLocation, Token};
+use super::{LineInfo, SourceLocation, Token};
 use core::mem;
 
 // LINE TOKENIZER
 // ================================================================================================
 
-#[derive(Debug, Clone)]
+/// A line tokenizer that will generate tokens with their locations from [LinesStream] and
+/// [LineInfo].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LineTokenizer<'a> {
-    // current token variables
-    docs: Option<String>,
-    line: Option<&'a str>,
+    line: &'a str,
     location: SourceLocation,
-
-    // internal variables
-    is_first: bool,
-    dangling_docs: Option<SourceLocation>,
-    lines: LinesStream<'a>,
-    module_docs: Option<String>,
+    dangling: Option<SourceLocation>,
 }
 
-impl<'a> From<&'a str> for LineTokenizer<'a> {
-    fn from(source: &'a str) -> Self {
-        LinesStream::from(source).into()
-    }
-}
-
-impl<'a> From<LinesStream<'a>> for LineTokenizer<'a> {
-    fn from(lines: LinesStream<'a>) -> Self {
+impl<'a> From<&LineInfo<'a>> for LineTokenizer<'a> {
+    fn from(info: &LineInfo<'a>) -> Self {
+        let line_number = info.line_number();
+        let column = info.char_offset() + 1;
+        let location = SourceLocation::new(line_number, column);
+        let line = info.contents().unwrap_or("");
         Self {
-            docs: None,
-            line: None,
-            location: SourceLocation::default(),
-            is_first: true,
-            dangling_docs: None,
-            lines,
-            module_docs: None,
+            line,
+            location,
+            dangling: None,
         }
     }
 }
@@ -43,122 +32,138 @@ impl<'a> LineTokenizer<'a> {
     // --------------------------------------------------------------------------------------------
 
     /// Takes dangling docs location, if present.
-    pub fn take_dangling_docs(&mut self) -> Option<SourceLocation> {
-        self.dangling_docs.take()
-    }
-
-    /// Takes the module docs, if present.
-    pub fn take_module_docs(&mut self) -> Option<String> {
-        self.module_docs.take()
-    }
-
-    // HELPERS
-    // --------------------------------------------------------------------------------------------
-
-    /// Fetches a new line with a token on its first position.
-    fn take_new_line(&mut self) -> Option<&'a str> {
-        let LineInfo {
-            contents,
-            docs,
-            line_number,
-            char_offset,
-        } = self.lines.next()?;
-
-        // set source location according to the provided offset
-        let is_first = mem::take(&mut self.is_first);
-        self.location = SourceLocation::new(line_number, char_offset + 1);
-
-        // if line contains doc comments, then it is dangling
-        if contents.and_then(|l| l.find(Token::DOC_COMMENT_PREFIX)).is_some() {
-            self.dangling_docs.replace(self.location);
-            return None;
-        }
-
-        // remove trailing comments & whitespaces
-        let line = contents
-            .map(|line| {
-                line.split_once(Token::COMMENT_PREFIX)
-                    .map(|(l, _comments)| l.trim_end())
-                    .unwrap_or(line)
-            })
-            .and_then(|line| {
-                line.find(|c: char| !c.is_whitespace()).map(|n| {
-                    self.location.move_column(n as u32);
-                    line.split_at(n).1
-                })
-            })
-            .filter(|line| !line.is_empty());
-
-        // if first line is empty & has docs, set the module docs
-        if line.is_none() && is_first && !docs.is_empty() {
-            self.module_docs = build_comment(&docs);
-            return self.take_new_line();
-        }
-
-        // if line is empty, then dangling docs as first line is already checked
-        if line.is_none() {
-            self.dangling_docs.replace(self.location);
-            return None;
-        }
-
-        // set token docs & return
-        self.docs = build_comment(&docs);
-        line
+    pub fn take_dangling(&mut self) -> Option<SourceLocation> {
+        self.dangling.take()
     }
 }
 
 impl<'a> Iterator for LineTokenizer<'a> {
-    type Item = LineToken<'a>;
+    type Item = (&'a str, SourceLocation);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let line = self.line.take().or_else(|| self.take_new_line())?;
+        if self.line.is_empty() {
+            return None;
+        }
+
+        if self.line.starts_with(Token::DOC_COMMENT_PREFIX) {
+            let mut location = self.location;
+            location.move_column(1);
+            self.dangling.replace(location);
+            return None;
+        }
+
+        if self.line.starts_with(Token::COMMENT_PREFIX) {
+            return None;
+        }
+
+        // [LinesStream] generates [LineInfo] without leading whitespaces
+        let (token, remainder) = match self.line.split_once(char::is_whitespace) {
+            Some(split) => split,
+            None => {
+                let line = mem::take(&mut self.line);
+                let location = mem::take(&mut self.location);
+                return Some((line, location));
+            }
+        };
+
+        // set location & find next non-whitespace
         let location = self.location;
-        let docs = self.docs.take();
+        let at = match remainder.find(|c: char| !c.is_whitespace()) {
+            Some(at) => at,
+            None => {
+                mem::take(&mut self.line);
+                mem::take(&mut self.location);
+                return Some((token, location));
+            }
+        };
 
-        // fetch token & move offset
-        let (token, remainder) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
-        self.location.move_column(token.len() as u32);
-
-        // update remainder line
-        self.line = remainder
-            .find(|c: char| !c.is_whitespace())
-            .map(|n| {
-                self.location.move_column(n as u32 + 1);
-                remainder.split_at(n).1
-            })
-            .filter(|line| !line.is_empty());
-
-        Some(LineToken {
-            docs,
-            location,
-            token,
-        })
+        // update location, line & return
+        self.location.move_column((token.len() + at + 1) as u32);
+        self.line = remainder.split_at(at).1;
+        Some((token, location))
     }
 }
 
-// LINE TOKEN
-// ================================================================================================
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// A processed line with source location.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LineToken<'a> {
-    pub docs: Option<String>,
-    pub location: SourceLocation,
-    pub token: &'a str,
-}
+    // UNIT TESTS
+    // ============================================================================================
 
-// HELPERS
-// ================================================================================================
+    #[test]
+    fn empty_line() {
+        let info = LineInfo::new(1, 0).with_contents("");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(None, tokenizer.next());
+        assert!(tokenizer.take_dangling().is_none());
+    }
 
-fn build_comment(docs: &[&str]) -> Option<String> {
-    let last = docs.len().saturating_sub(1);
-    let docs: String = docs
-        .iter()
-        .enumerate()
-        .map(|(i, d)| {
-            let lb = if last == i { "" } else { "\n" };
-            format!("{d}{lb}")
-        })
-        .collect();
-    (!docs.is_empty()).then_some(docs)
+    #[test]
+    fn blank_line() {
+        let info = LineInfo::new(1, 0).with_contents("     \t");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(None, tokenizer.next());
+        assert!(tokenizer.take_dangling().is_none());
+    }
+
+    #[test]
+    fn comment_line() {
+        let info = LineInfo::new(1, 0).with_contents("# foo");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(None, tokenizer.next());
+        assert!(tokenizer.take_dangling().is_none());
+    }
+
+    #[test]
+    fn single_token() {
+        let info = LineInfo::new(1, 0).with_contents("begin");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(l("begin", 1, 1), tokenizer.next());
+        assert_eq!(None, tokenizer.next());
+        assert!(tokenizer.take_dangling().is_none());
+    }
+
+    #[test]
+    fn single_line_multiple_token() {
+        let info = LineInfo::new(1, 0).with_contents("begin  add mul  \t end ");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(l("begin", 1, 1), tokenizer.next());
+        assert_eq!(l("add", 1, 8), tokenizer.next());
+        assert_eq!(l("mul", 1, 12), tokenizer.next());
+        assert_eq!(l("end", 1, 19), tokenizer.next());
+        assert_eq!(None, tokenizer.next());
+        assert!(tokenizer.take_dangling().is_none());
+    }
+
+    #[test]
+    fn single_line_multiple_token_with_comment() {
+        let info = LineInfo::new(10, 15).with_contents("begin  add mul  \t end # foo");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(l("begin", 10, 16), tokenizer.next());
+        assert_eq!(l("add", 10, 23), tokenizer.next());
+        assert_eq!(l("mul", 10, 27), tokenizer.next());
+        assert_eq!(l("end", 10, 34), tokenizer.next());
+        assert_eq!(None, tokenizer.next());
+        assert!(tokenizer.take_dangling().is_none());
+    }
+
+    #[test]
+    fn single_line_multiple_token_with_dangling_comment() {
+        let info = LineInfo::new(1, 0).with_contents("begin  add mul  \t end #! foo");
+        let mut tokenizer = LineTokenizer::from(&info);
+        assert_eq!(l("begin", 1, 1), tokenizer.next());
+        assert_eq!(l("add", 1, 8), tokenizer.next());
+        assert_eq!(l("mul", 1, 12), tokenizer.next());
+        assert_eq!(l("end", 1, 19), tokenizer.next());
+        assert_eq!(None, tokenizer.next());
+        assert_eq!(Some(SourceLocation::new(1, 24)), tokenizer.take_dangling());
+    }
+
+    // TESTS HELPERS
+    // ============================================================================================
+
+    fn l(token: &str, line: u32, col: u32) -> Option<(&str, SourceLocation)> {
+        Some((token, SourceLocation::new(line, col)))
+    }
 }
