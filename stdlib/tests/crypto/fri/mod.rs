@@ -25,24 +25,31 @@ fn fri_fold4_ext2_remainder32() {
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
 
-    let (advice_provider, position_eval, alphas, commitments, remainder, num_queries) =
-        fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
+    let FriResult {
+        merkle_sets,
+        advice_maps,
+        positions,
+        alphas,
+        commitments,
+        remainder,
+        num_queries,
+    } = fri_prove_verify_fold4_ext2(trace_len_e).unwrap();
 
     let advice_stack = prepare_advice_stack(
         depth,
         domain_size,
         num_queries,
-        position_eval,
+        positions,
         alphas,
         commitments,
         remainder,
     );
 
-    let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
+    let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_maps);
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
-    for path_set in &advice_provider.0 {
+    for path_set in &merkle_sets {
         store.add_merkle_path_set(&path_set).unwrap();
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
@@ -66,24 +73,31 @@ fn fri_fold4_ext2_remainder64() {
     let depth = trace_len_e + blowup_exp;
     let domain_size = 1 << depth;
 
-    let (advice_provider, position_eval, alphas, commitments, remainder, num_queries) =
-        fri_prove_verify_fold4_ext2(trace_len_e).expect("should not panic");
+    let FriResult {
+        merkle_sets,
+        advice_maps,
+        positions,
+        alphas,
+        commitments,
+        remainder,
+        num_queries,
+    } = fri_prove_verify_fold4_ext2(trace_len_e).unwrap();
 
     let advice_stack = prepare_advice_stack(
         depth,
         domain_size,
         num_queries,
-        position_eval,
+        positions,
         alphas,
         commitments,
         remainder,
     );
 
-    let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_provider.1);
+    let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_maps);
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
-    for path_set in &advice_provider.0 {
+    for path_set in &merkle_sets {
         store.add_merkle_path_set(&path_set).unwrap();
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());

@@ -14,6 +14,32 @@ use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
 
+pub struct FriResult {
+    /// contains the Merkle authentication paths used to authenticate the queries.
+    pub merkle_sets: Vec<MerklePathSet>,
+
+    /// used to unhash Merkle nodes to a sequence of field elements representing the query-values.
+    pub advice_maps: Vec<([u8; 32], Vec<Felt>)>,
+
+    /// A vector of consecutive quadruples of the form (poe, p, e1, e0) where p is index of the
+    /// query at the first layer and (e1, e0) is its corresponding evaluation and poe is g^p with g
+    /// being the initial domain generator.
+    pub positions: Vec<u64>,
+
+    /// A vector of tuples representing the folding challenges.
+    pub alphas: Vec<u64>,
+
+    /// A vector of consecutive quadruples (c3, c2, c1, c0) representing the Merkle tree layer
+    /// commitments.
+    pub commitments: Vec<u64>,
+
+    /// The remainder codeword as consecutive (r0, r1).
+    pub remainder: Vec<u64>,
+
+    /// The number of queries contained in the current FRI proof.
+    pub num_queries: usize,
+}
+
 // This function proves and then verifies a FRI proof with the following fixed parameters:
 //  1) Max remainder codeword (1 << 6).
 //  2) Blow up factor 8.
@@ -22,31 +48,7 @@ use winter_fri::{
 //  The main purpose of this function is to build the non-deterministic inputs needed to verify
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
-//  1) `(merkle_sets, advice_maps): (Vec<MerkleTree>, Vec<([u8; 32], Vec<Felt>)>)` where
-//  merkle_sets contains the Merkle authentication paths used to authenticate the queries.
-//  advice_maps is used to unhash Merkle nodes to a sequence of field elements representing
-//  the query-values. TODO: Make use of the advice_maps.
-//  2) `positions: Vec<u64>` a vector of consecutive quadruples of the form (poe, p, e1, e0)
-//  where p is index of the query at the first layer and (e1, e0) is its corresponding
-//  evaluation and poe is g^p with g being the initial domain generator.
-//  3) `alphas: Vec<u64>` is a vector of tuples representing the folding challenges.
-//  4) `commitments: Vec<u64>` is a vector of consecutive quadruples (c3, c2, c1, c0)
-//  representing the Merkle tree layer commitments.
-//  5)  `remainder: Vec<u64>` is the remainder codeword as consecutive (r0, r1).
-//  6)  `num_queries: usize` is the number of queries contained in the current FRI proof.
-pub fn fri_prove_verify_fold4_ext2(
-    trace_length_e: usize,
-) -> Result<
-    (
-        (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>),
-        Vec<u64>,
-        Vec<u64>,
-        Vec<u64>,
-        Vec<u64>,
-        usize,
-    ),
-    VerifierError,
-> {
+pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, VerifierError> {
     let max_remainder_size_e = 3;
     let folding_factor_e = 2;
     let trace_length = 1 << trace_length_e;
@@ -97,15 +99,16 @@ pub fn fri_prove_verify_fold4_ext2(
         .collect();
 
     match result {
-        Ok(((merkle_path_set, advice_values), all_position_evaluation, all_alphas)) => {
-            return Ok((
-                (merkle_path_set, advice_values),
-                all_position_evaluation,
-                all_alphas,
+        Ok(((merkle_sets, advice_maps), all_position_evaluation, alphas)) => {
+            return Ok(FriResult {
+                merkle_sets,
+                advice_maps,
+                positions: all_position_evaluation,
+                alphas,
                 commitments,
                 remainder,
-                positions.len(),
-            ));
+                num_queries: positions.len(),
+            });
         }
         Err(err) => return Err(err),
     }
