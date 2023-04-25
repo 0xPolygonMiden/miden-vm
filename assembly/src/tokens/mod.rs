@@ -1,7 +1,4 @@
-use super::{
-    BTreeMap, LibraryPath, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
-    PROCEDURE_LABEL_PARSER,
-};
+use super::{BTreeMap, LibraryPath, ParsingError, ProcedureName, String, ToString, Vec};
 use core::fmt;
 
 mod lines;
@@ -278,35 +275,20 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
 ///   case both module and procedure name must comply with relevant name rules.
 ///
 /// All other combinations will result in an error.
-///
-/// TODO: validation should happen at the path and procedure name levels rather than here.
 fn validate_proc_invocation_label<'a>(
     label: &'a str,
     token: &'a Token,
 ) -> Result<(&'a str, Option<&'a str>), ParsingError> {
-    // a label must start with a letter
-    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(ParsingError::invalid_proc_invocation(token, label));
-    }
+    let num_components = LibraryPath::validate(label)
+        .map_err(|_| ParsingError::invalid_proc_invocation(token, label))?;
 
-    let mut parts = label.split(MODULE_PATH_DELIM);
-    let (proc_name, module_name) = match (parts.next(), parts.next()) {
-        (None, _) => return Err(ParsingError::invalid_proc_invocation(token, label)),
-        (Some(proc_name), None) => {
-            if PROCEDURE_LABEL_PARSER.parse_label(proc_name).is_err() {
-                return Err(ParsingError::invalid_proc_invocation(token, label));
-            }
-            (proc_name, None)
+    let (proc_name, module_name) = match num_components {
+        1 => (label, None),
+        2 => {
+            let parts = label.split_once(LibraryPath::PATH_DELIM).expect("no components");
+            (parts.1, Some(parts.0))
         }
-        (Some(module_name), Some(proc_name)) => {
-            if PROCEDURE_LABEL_PARSER.parse_label(proc_name).is_err()
-                || PROCEDURE_LABEL_PARSER.parse_label(module_name).is_err()
-                || parts.next().is_some()
-            {
-                return Err(ParsingError::invalid_proc_invocation(token, label));
-            }
-            (proc_name, Some(module_name))
-        }
+        _ => return Err(ParsingError::invalid_proc_invocation(token, label)),
     };
 
     Ok((proc_name, module_name))

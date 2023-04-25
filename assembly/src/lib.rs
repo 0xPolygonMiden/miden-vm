@@ -50,8 +50,6 @@ pub use vm_core::utils;
 // CONSTANTS
 // ================================================================================================
 
-const MODULE_PATH_DELIM: &str = "::";
-
 /// The maximum number of constant inputs allowed for the `push` instruction.
 const MAX_PUSH_INPUTS: usize = 16;
 

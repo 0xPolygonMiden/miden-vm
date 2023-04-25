@@ -546,7 +546,7 @@ impl ParserContext {
             .imports
             .get(module_name)
             .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module_name))?;
-        let proc_id = ProcedureId::from_name(proc_name, module_path.as_str());
+        let proc_id = ProcedureId::from_name(proc_name, module_path);
         Ok(proc_id)
     }
 }

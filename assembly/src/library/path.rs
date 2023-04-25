@@ -24,10 +24,13 @@ impl LibraryPath {
     // --------------------------------------------------------------------------------------------
 
     /// Path delimiter.
-    const MODULE_PATH_DELIM: &str = "::";
+    pub const PATH_DELIM: &str = "::";
 
     /// Base kernel path.
-    pub const KERNEL_PATH: &str = "$sys";
+    pub const KERNEL_PATH: &str = "#sys";
+
+    /// Path for an executable module.
+    pub const EXEC_PATH: &str = "#exec";
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -47,22 +50,9 @@ impl LibraryPath {
     where
         S: AsRef<str>,
     {
-        // make sure the path is not empty and is not over max length of 1000 chars
-        if source.as_ref().is_empty() {
-            return Err(PathError::EmptyPath);
-        }
-        validate_path_len(source.as_ref())?;
-
-        // count the number of components in the path and make sure each component is valid
-        let mut num_components = 0;
-        for component in source.as_ref().split(Self::MODULE_PATH_DELIM) {
-            validate_component(component)?;
-            num_components += 1;
-        }
-
         Ok(Self {
             path: source.as_ref().to_string(),
-            num_components,
+            num_components: Self::validate(source)?,
         })
     }
 
@@ -70,6 +60,14 @@ impl LibraryPath {
     pub fn kernel_path() -> Self {
         Self {
             path: Self::KERNEL_PATH.into(),
+            num_components: 1,
+        }
+    }
+
+    /// Returns a path for an executable module.
+    pub fn exec_path() -> Self {
+        Self {
+            path: Self::EXEC_PATH.into(),
             num_components: 1,
         }
     }
@@ -82,7 +80,7 @@ impl LibraryPath {
     /// The first component is the leftmost token separated by `::`.
     pub fn first(&self) -> &str {
         self.path
-            .split_once(Self::MODULE_PATH_DELIM)
+            .split_once(Self::PATH_DELIM)
             .expect("a valid library path must always have at least one component")
             .0
     }
@@ -92,7 +90,7 @@ impl LibraryPath {
     /// The last component is the rightmost token separated by `::`.
     pub fn last(&self) -> &str {
         self.path
-            .rsplit_once(Self::MODULE_PATH_DELIM)
+            .rsplit_once(Self::PATH_DELIM)
             .expect("a valid library path must always have at least one component")
             .1
     }
@@ -106,7 +104,17 @@ impl LibraryPath {
 
     /// Returns an iterator over all components of the path.
     pub fn components(&self) -> core::str::Split<&str> {
-        self.path.split(Self::MODULE_PATH_DELIM)
+        self.path.split(Self::PATH_DELIM)
+    }
+
+    /// Returns true if this path is for a kernel module.
+    pub fn is_kernel_path(&self) -> bool {
+        self.path == Self::KERNEL_PATH
+    }
+
+    /// Returns true if this path is for an executable module.
+    pub fn is_exec_path(&self) -> bool {
+        self.path == Self::EXEC_PATH
     }
 
     // TYPE-SAFE TRANSFORMATION
@@ -117,7 +125,11 @@ impl LibraryPath {
     /// # Errors
     /// Returns an error if the resulting path is longer than max path length of 1000 chars.
     pub fn join(&self, other: &Self) -> Result<Self, PathError> {
-        let new_path = format!("{}{}{}", self.path, Self::MODULE_PATH_DELIM, other.path);
+        if other.path.starts_with(Self::KERNEL_PATH) || other.starts_with(Self::EXEC_PATH) {
+            return Err(PathError::component_invalid_char(&other.path));
+        }
+
+        let new_path = format!("{}{}{}", self.path, Self::PATH_DELIM, other.path);
         validate_path_len(&new_path)?;
         Ok(Self {
             path: new_path,
@@ -136,7 +148,7 @@ impl LibraryPath {
     where
         S: AsRef<str>,
     {
-        let new_path = format!("{}{}{}", self.path, Self::MODULE_PATH_DELIM, component.as_ref());
+        let new_path = format!("{}{}{}", self.path, Self::PATH_DELIM, component.as_ref());
         Self::new(new_path)
     }
 
@@ -151,7 +163,7 @@ impl LibraryPath {
     where
         S: AsRef<str>,
     {
-        let new_path = format!("{}{}{}", component.as_ref(), Self::MODULE_PATH_DELIM, self.path);
+        let new_path = format!("{}{}{}", component.as_ref(), Self::PATH_DELIM, self.path);
         Self::new(new_path)
     }
 
@@ -166,7 +178,7 @@ impl LibraryPath {
 
         let rem = self
             .path
-            .split_once(Self::MODULE_PATH_DELIM)
+            .split_once(Self::PATH_DELIM)
             .expect("failed to split path on module delimiter")
             .1;
 
@@ -187,7 +199,7 @@ impl LibraryPath {
 
         let rem = self
             .path
-            .rsplit_once(Self::MODULE_PATH_DELIM)
+            .rsplit_once(Self::PATH_DELIM)
             .expect("failed to split path on module delimiter")
             .1;
 
@@ -195,6 +207,58 @@ impl LibraryPath {
             path: rem.to_string(),
             num_components: self.num_components - 1,
         })
+    }
+
+    // UTILITY FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Validates the specified path and returns the number of components in the path.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The path is empty.
+    /// - The path requires more than 1KB to serialize.
+    /// - Any of the path's components is empty, requires more than 255 bytes to serialize, does
+    ///   not start with a letter, or contains non-alphanumeric characters.
+    pub fn validate<S>(source: S) -> Result<usize, PathError>
+    where
+        S: AsRef<str>,
+    {
+        // make sure the path is not empty and is not over max length of 255 bytes
+        if source.as_ref().is_empty() {
+            return Err(PathError::EmptyPath);
+        }
+        validate_path_len(source.as_ref())?;
+
+        // special handling of the first component as it may contain non-alphanumeric characters
+        let (path, mut num_components) = if source.as_ref().starts_with(Self::KERNEL_PATH) {
+            let split_at = Self::KERNEL_PATH.len() + Self::PATH_DELIM.len();
+            (source.as_ref().split_at(split_at).1, 1)
+        } else if source.as_ref().starts_with(Self::EXEC_PATH) {
+            let split_at = Self::EXEC_PATH.len() + Self::PATH_DELIM.len();
+            (source.as_ref().split_at(split_at).1, 1)
+        } else {
+            (source.as_ref(), 0)
+        };
+
+        // count the number of components in the path and make sure each component is valid
+        for component in path.split(Self::PATH_DELIM) {
+            validate_component(component)?;
+            num_components += 1;
+        }
+
+        Ok(num_components)
+    }
+
+    /// Appends the specified component to the end of this path and returns the resulting string
+    /// representation of the path.
+    ///
+    /// This does not check whether the component or the resulting path are valid.
+    pub fn append_unchecked<S>(&self, component: S) -> String
+    where
+        S: AsRef<str>,
+    {
+        format!("{}{}{}", self.path, Self::PATH_DELIM, component.as_ref())
     }
 }
 
@@ -288,6 +352,12 @@ mod tests {
 
         let path = LibraryPath::new("foo::bar::baz").unwrap();
         assert_eq!(path.num_components(), 3);
+
+        let path = LibraryPath::new("#exec::bar::baz").unwrap();
+        assert_eq!(path.num_components(), 3);
+
+        let path = LibraryPath::new("#sys::bar::baz").unwrap();
+        assert_eq!(path.num_components(), 3);
     }
 
     #[test]
@@ -309,5 +379,8 @@ mod tests {
 
         let path = LibraryPath::new("foo::b@r");
         assert!(matches!(path, Err(PathError::ComponentInvalidChar { component: _ })));
+
+        let path = LibraryPath::new("#foo::bar");
+        assert!(matches!(path, Err(PathError::ComponentInvalidFirstChar { component: _ })));
     }
 }
