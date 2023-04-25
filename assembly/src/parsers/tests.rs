@@ -4,6 +4,7 @@ use super::{
     parse_module, parse_program, BTreeMap, Instruction, LocalProcMap, ModuleAst, Node,
     ParsingError, ProcedureAst, ProcedureId, ProgramAst, Token,
 };
+use crate::SourceLocation;
 
 // UNIT TESTS
 // ================================================================================================
@@ -696,14 +697,16 @@ fn test_ast_program_serde_control_flow() {
 fn assert_parsing_line_unmatched_begin() {
     let source = format!("\n\nbegin\npush.1.2\n\nadd mul");
     let err = parse_program(&source).err().unwrap();
-    assert_eq!(err, ParsingError::unmatched_begin(&Token::new("begin", 3)));
+    let location = SourceLocation::new(3, 1);
+    assert_eq!(err, ParsingError::unmatched_begin(&Token::new("begin", location)));
 }
 
 #[test]
 fn assert_parsing_line_extra_param() {
     let source = format!("begin add.1.2\nend");
     let err = parse_program(&source).err().unwrap();
-    assert_eq!(err, ParsingError::extra_param(&Token::new("add.1.2", 1)));
+    let location = SourceLocation::new(1, 7);
+    assert_eq!(err, ParsingError::extra_param(&Token::new("add.1.2", location)));
 }
 
 #[test]
@@ -741,21 +744,24 @@ fn assert_parsing_line_invalid_op() {
 
     end";
     let err = parse_program(&source).err().unwrap();
-    assert_eq!(err, ParsingError::invalid_op(&Token::new("u32overflowing_mulx", 28)));
+    let location = SourceLocation::new(28, 13);
+    assert_eq!(err, ParsingError::invalid_op(&Token::new("u32overflowing_mulx", location)));
 }
 
 #[test]
 fn assert_parsing_line_unexpected_eof() {
     let source = format!("proc.foo\nadd\nend");
     let err = parse_program(&source).err().unwrap();
-    assert_eq!(err, ParsingError::unexpected_eof(3));
+    let location = SourceLocation::new(3, 1);
+    assert_eq!(err, ParsingError::unexpected_eof(location));
 }
 
 #[test]
 fn assert_parsing_line_unexpected_token() {
     let source = format!("proc.foo\nadd\nend\n\nmul");
     let err = parse_program(&source).err().unwrap();
-    assert_eq!(err, ParsingError::unexpected_token(&Token::new("mul", 5), "begin"));
+    let location = SourceLocation::new(5, 1);
+    assert_eq!(err, ParsingError::unexpected_token(&Token::new("mul", location), "begin"));
 }
 
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {

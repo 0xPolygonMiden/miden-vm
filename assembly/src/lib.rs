@@ -31,6 +31,7 @@ pub use vm_core::utils::{
 };
 
 mod tokens;
+pub use tokens::SourceLocation;
 use tokens::{Token, TokenStream};
 
 mod errors;

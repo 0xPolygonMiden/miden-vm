@@ -1,4 +1,4 @@
-use super::{Token, Vec};
+use super::{SourceLocation, Token, Vec};
 use core::{iter, str::Lines};
 
 // LINES STREAM
@@ -134,6 +134,14 @@ pub struct LineInfo<'a> {
     char_offset: u32,
 }
 
+impl From<LineInfo<'_>> for SourceLocation {
+    fn from(info: LineInfo<'_>) -> Self {
+        let line = info.line_number();
+        let column = info.char_offset();
+        Self::new(line, column)
+    }
+}
+
 impl<'a> LineInfo<'a> {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -226,7 +234,7 @@ impl<'a> LineInfo<'a> {
     /// ```
     ///
     /// `2` is returned.
-    pub const fn _char_offset(&self) -> u32 {
+    pub const fn char_offset(&self) -> u32 {
         self.char_offset
     }
 }
@@ -245,6 +253,25 @@ mod tests {
         "#;
         let mut lines = LinesStream::from(source);
         assert_eq!(t(2, 8, "begin"), lines.next());
+        assert_eq!(None, lines.next());
+    }
+
+    #[test]
+    fn token_lines_single_comment() {
+        let source = r#"
+        # foo
+        "#;
+        let mut lines = LinesStream::from(source);
+        assert_eq!(None, lines.next());
+    }
+
+    #[test]
+    fn token_lines_single_doc_comment() {
+        let source = r#"
+        #! foo
+        "#;
+        let mut lines = LinesStream::from(source);
+        assert_eq!(tdangling(2, 0, ["foo"]), lines.next());
         assert_eq!(None, lines.next());
     }
 
@@ -483,12 +510,10 @@ end
     // TESTS HELPERS
     // ============================================================================================
 
-    #[cfg(test)]
     fn t(num: u32, offset: u32, contents: &str) -> Option<LineInfo> {
         Some(LineInfo::new(num, offset).with_contents(contents))
     }
 
-    #[cfg(test)]
     fn tdocs<'a, I>(num: u32, offset: u32, contents: &'a str, docs: I) -> Option<LineInfo<'a>>
     where
         I: IntoIterator<Item = &'a str>,
@@ -496,7 +521,6 @@ end
         Some(LineInfo::new(num, offset).with_contents(contents).with_docs(docs))
     }
 
-    #[cfg(test)]
     fn tdangling<'a, I>(num: u32, offset: u32, docs: I) -> Option<LineInfo<'a>>
     where
         I: IntoIterator<Item = &'a str>,
