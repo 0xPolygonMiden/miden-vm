@@ -1,5 +1,4 @@
 use super::{LineInfo, SourceLocation, Token};
-use core::mem;
 
 // LINE TOKENIZER
 // ================================================================================================
@@ -58,31 +57,20 @@ impl<'a> Iterator for LineTokenizer<'a> {
             return None;
         }
 
-        // [LinesStream] generates [LineInfo] without leading whitespaces
-        let (token, remainder) = match self.line.split_once(char::is_whitespace) {
-            Some(split) => split,
-            None => {
-                let line = mem::take(&mut self.line);
-                let location = mem::take(&mut self.location);
-                return Some((line, location));
+        let token_loc = self.location;
+        let (token, offset) = match self.line.split_once(char::is_whitespace) {
+            Some((token, remainder)) => {
+                let offset = remainder.find(|c: char| !c.is_whitespace()).unwrap_or_default();
+                (token, token.len() + offset + 1)
             }
+            None => (self.line, self.line.len()),
         };
 
-        // set location & find next non-whitespace
-        let location = self.location;
-        let at = match remainder.find(|c: char| !c.is_whitespace()) {
-            Some(at) => at,
-            None => {
-                mem::take(&mut self.line);
-                mem::take(&mut self.location);
-                return Some((token, location));
-            }
-        };
+        let (_, remainder) = self.line.split_at(offset);
+        self.line = remainder;
+        self.location.move_column(offset as u32);
 
-        // update location, line & return
-        self.location.move_column((token.len() + at + 1) as u32);
-        self.line = remainder.split_at(at).1;
-        Some((token, location))
+        Some((token, token_loc))
     }
 }
 
