@@ -1,7 +1,7 @@
 use super::{
     BTreeMap, LineTokenizer, LinesStream, ParsingError, SourceLocation, String, Token, Vec,
 };
-use core::{fmt, mem};
+use core::fmt;
 
 // TOKEN STREAM
 // ================================================================================================
@@ -28,48 +28,39 @@ impl<'a> TokenStream<'a> {
         let mut proc_comments = BTreeMap::new();
         let mut module_comment = None;
 
-        for info in LinesStream::from(source) {
-            let mut docs = info.docs();
-            let mut tokenizer = LineTokenizer::from(&info);
+        for line_info in LinesStream::from(source) {
+            match line_info.contents() {
+                Some(line) => {
+                    // fill the doc comments for procedures
+                    if line.starts_with(Token::EXPORT) || line.starts_with(Token::PROC) {
+                        let doc_comment = build_comment(line_info.docs());
+                        proc_comments.insert(tokens.len(), doc_comment);
+                    } else if !line_info.docs().is_empty() {
+                        return Err(ParsingError::dangling_procedure_comment(line_info.into()));
+                    }
 
-            // first dangling docs are module docs
-            if tokens.is_empty() && info.contents().is_none() {
-                let docs = mem::take(&mut docs);
-                let docs = build_comment(docs);
-                module_comment = docs;
-            } else if info.contents().is_none() {
-                let location = SourceLocation::new(info.line_number(), 1);
-                return Err(ParsingError::dangling_procedure_comment(location));
-            }
-
-            // first token from stream might be export or proc; take docs
-            if !docs.is_empty() {
-                match tokenizer.next() {
-                    Some((token, location))
-                        if token.starts_with(Token::EXPORT) || token.starts_with(Token::PROC) =>
-                    {
-                        let docs = mem::take(&mut docs);
-                        let docs = build_comment(docs);
-                        proc_comments.insert(tokens.len(), docs);
+                    // break the line into tokens and record their locations
+                    let mut tokenizer = LineTokenizer::from(&line_info);
+                    for (token, location) in tokenizer.by_ref() {
                         tokens.push(token);
                         locations.push(location);
                     }
-                    _ => {
-                        return Err(ParsingError::dangling_procedure_comment(SourceLocation::new(
-                            info.line_number(),
-                            1,
-                        )))
+
+                    // if the line ends with a procedure doc comment, return an error
+                    if let Some(location) = tokenizer.take_dangling() {
+                        return Err(ParsingError::dangling_procedure_comment(location));
                     }
                 }
-            }
 
-            for (token, location) in tokenizer.by_ref() {
-                tokens.push(token);
-                locations.push(location);
-            }
+                // if first dangling comment, then module docs
+                None if tokens.is_empty() => {
+                    module_comment = build_comment(line_info.docs());
+                }
 
-            if let Some(location) = tokenizer.take_dangling() {
-                return Err(ParsingError::dangling_procedure_comment(location));
+                // if has tokens, then dangling docs are illegal
+                None => {
+                    return Err(ParsingError::dangling_procedure_comment(line_info.into()));
+                }
             }
         }
 
