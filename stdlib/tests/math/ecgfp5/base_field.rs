@@ -99,7 +99,7 @@ fn sqrt(x: Felt) -> (Felt, Felt) {
     (u * cc, cc)
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Eq, Copy, Clone, Debug)]
 pub struct Ext5 {
     pub a0: Felt,
     pub a1: Felt,

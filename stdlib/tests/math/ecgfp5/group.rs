@@ -3,8 +3,8 @@ use crate::build_test;
 use std::ops::Add;
 use test_utils::{test_case, Felt, StarkField, ONE, ZERO};
 
-#[derive(Copy, Clone, Debug)]
-struct ECExt5 {
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub struct ECExt5 {
     pub x: Ext5,
     pub y: Ext5,
     pub point_at_infinity: Felt,
