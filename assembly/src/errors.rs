@@ -1,4 +1,4 @@
-use super::{ProcedureId, SourceLocation, String, ToString, Token, Vec};
+use super::{LibraryNamespace, ProcedureId, SourceLocation, String, ToString, Token, Vec};
 use core::fmt;
 
 // ASSEMBLY ERROR
@@ -589,13 +589,32 @@ pub enum LibraryError {
     DuplicateModulePath(String),
     DuplicateNamespace(String),
     FileIO(String, String),
-    InconsistentNamespace { expected: String, actual: String },
+    InconsistentNamespace {
+        expected: String,
+        actual: String,
+    },
     InvalidNamespace(LabelError),
     InvalidPath(PathError),
-    InvalidVersionNumber { version: String, err_msg: String },
-    MissingVersionComponent { version: String, component: String },
+    InvalidVersionNumber {
+        version: String,
+        err_msg: String,
+    },
+    MissingVersionComponent {
+        version: String,
+        component: String,
+    },
     ModuleNotFound(String),
-    TooManyVersionComponents { version: String },
+    NoModulesInLibrary {
+        name: LibraryNamespace,
+    },
+    TooManyModulesInLibrary {
+        name: LibraryNamespace,
+        num_modules: usize,
+        max_modules: usize,
+    },
+    TooManyVersionComponents {
+        version: String,
+    },
 }
 
 impl LibraryError {
@@ -640,6 +659,22 @@ impl LibraryError {
         }
     }
 
+    pub fn no_modules_in_library(name: LibraryNamespace) -> Self {
+        Self::NoModulesInLibrary { name }
+    }
+
+    pub fn too_many_modules_in_library(
+        name: LibraryNamespace,
+        num_modules: usize,
+        max_modules: usize,
+    ) -> Self {
+        Self::TooManyModulesInLibrary {
+            name,
+            num_modules,
+            max_modules,
+        }
+    }
+
     pub fn too_many_version_components(version: &str) -> Self {
         Self::TooManyVersionComponents {
             version: version.into(),
@@ -675,6 +710,20 @@ impl fmt::Display for LibraryError {
                 write!(f, "version '{version}' is invalid: missing {component} version component")
             }
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+            NoModulesInLibrary { name } => {
+                write!(f, "library '{}' does not contain any modules", name.as_str())
+            }
+            TooManyModulesInLibrary {
+                name,
+                num_modules,
+                max_modules,
+            } => {
+                write!(
+                    f,
+                    "library '{}' contains {num_modules} modules, but max is {max_modules}",
+                    name.as_str()
+                )
+            }
             TooManyVersionComponents { version } => {
                 write!(f, "version '{version}' contains too many components")
             }

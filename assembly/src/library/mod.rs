@@ -51,80 +51,6 @@ where
     }
 }
 
-// LIBRARY NAMESPACE
-// ================================================================================================
-
-/// Library namespace.
-///
-/// Will be `std` in the absolute procedure name `std::foo::bar::baz`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LibraryNamespace {
-    name: String,
-}
-
-impl LibraryNamespace {
-    /// Returns an new [LibraryNamespace] instantiated from the provided source.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The source string is empty or requires more than 255 bytes to serialize.
-    /// - Does not start with a ASCII letter.
-    /// - Contains characters other than ASCII letters, numbers, and underscores.
-    pub fn new<S>(source: S) -> Result<Self, LibraryError>
-    where
-        S: AsRef<str>,
-    {
-        let name = NAMESPACE_LABEL_PARSER
-            .parse_label(source.as_ref())
-            .map_err(LibraryError::invalid_namespace)?;
-        Ok(Self {
-            name: name.to_string(),
-        })
-    }
-}
-
-impl TryFrom<String> for LibraryNamespace {
-    type Error = LibraryError;
-
-    fn try_from(name: String) -> Result<Self, Self::Error> {
-        Self::new(name)
-    }
-}
-
-impl Deref for LibraryNamespace {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.name
-    }
-}
-
-impl AsRef<str> for LibraryNamespace {
-    fn as_ref(&self) -> &str {
-        &self.name
-    }
-}
-
-impl Serializable for LibraryNamespace {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // this assertion should pass because library namespace constructor enforces max allowed
-        // length at 100 bytes
-        debug_assert!(self.name.len() < u16::MAX as usize, "namespace too long");
-        target.write_u16(self.name.len() as u16);
-        target.write_bytes(self.name.as_bytes());
-    }
-}
-
-impl Deserializable for LibraryNamespace {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let num_bytes = source.read_u16()? as usize;
-        let name = source.read_vec(num_bytes)?;
-        let name =
-            from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-        Self::new(name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))
-    }
-}
-
 // MODULE
 // ================================================================================================
 
@@ -334,5 +260,79 @@ impl TryFrom<&str> for Version {
                 patch,
             })
         }
+    }
+}
+
+// LIBRARY NAMESPACE
+// ================================================================================================
+
+/// Library namespace.
+///
+/// Will be `std` in the absolute procedure name `std::foo::bar::baz`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct LibraryNamespace {
+    name: String,
+}
+
+impl LibraryNamespace {
+    /// Returns an new [LibraryNamespace] instantiated from the provided source.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The source string is empty or requires more than 255 bytes to serialize.
+    /// - Does not start with a ASCII letter.
+    /// - Contains characters other than ASCII letters, numbers, and underscores.
+    pub fn new<S>(source: S) -> Result<Self, LibraryError>
+    where
+        S: AsRef<str>,
+    {
+        let name = NAMESPACE_LABEL_PARSER
+            .parse_label(source.as_ref())
+            .map_err(LibraryError::invalid_namespace)?;
+        Ok(Self {
+            name: name.to_string(),
+        })
+    }
+}
+
+impl TryFrom<String> for LibraryNamespace {
+    type Error = LibraryError;
+
+    fn try_from(name: String) -> Result<Self, Self::Error> {
+        Self::new(name)
+    }
+}
+
+impl Deref for LibraryNamespace {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.name
+    }
+}
+
+impl AsRef<str> for LibraryNamespace {
+    fn as_ref(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Serializable for LibraryNamespace {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // this assertion should pass because library namespace constructor enforces max allowed
+        // length at 255 bytes
+        debug_assert!(self.name.len() <= u8::MAX as usize, "namespace too long");
+        target.write_u8(self.name.len() as u8);
+        target.write_bytes(self.name.as_bytes());
+    }
+}
+
+impl Deserializable for LibraryNamespace {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let num_bytes = source.read_u8()? as usize;
+        let name = source.read_vec(num_bytes)?;
+        let name =
+            from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+        Self::new(name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))
     }
 }

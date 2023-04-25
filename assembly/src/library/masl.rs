@@ -15,11 +15,11 @@ use core::slice::Iter;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MaslLibrary {
     /// Root namespace of the library.
-    pub namespace: LibraryNamespace,
+    namespace: LibraryNamespace,
     /// Version of the library.
-    pub version: Version,
+    version: Version,
     /// Available modules.
-    pub modules: Vec<Module>,
+    modules: Vec<Module>,
 }
 
 impl Library for MaslLibrary {
@@ -43,6 +43,35 @@ impl MaslLibrary {
     pub const LIBRARY_EXTENSION: &str = "masl";
     /// File extension for the Assembly Module.
     pub const MODULE_EXTENSION: &str = "masm";
+
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Returns a new [Library] instantiated from the specified parameters.
+    ///
+    /// # Errors
+    /// Returns an error if the provided `modules` vector is empty or contains more than
+    /// [u16::MAX] elements.
+    fn new(
+        namespace: LibraryNamespace,
+        version: Version,
+        modules: Vec<Module>,
+    ) -> Result<Self, LibraryError> {
+        if modules.is_empty() {
+            return Err(LibraryError::no_modules_in_library(namespace));
+        } else if modules.len() > u16::MAX as usize {
+            return Err(LibraryError::too_many_modules_in_library(
+                namespace,
+                modules.len(),
+                u16::MAX as usize,
+            ));
+        }
+
+        Ok(Self {
+            namespace,
+            version,
+            modules,
+        })
+    }
 }
 
 #[cfg(feature = "std")]
@@ -89,11 +118,8 @@ mod use_std {
                 .map(|(path, ast)| Module { path, ast })
                 .collect();
 
-            Ok(Self {
-                namespace,
-                version,
-                modules,
-            })
+            Self::new(namespace, version, modules)
+                .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
 
         /// Read a library from a file.
@@ -113,8 +139,8 @@ mod use_std {
                 .map_err(|e| LibraryError::deserialization_error(path_str, &e.to_string()))
         }
 
-        /// Write the library to a target dir, using its namespace as file name and the appropriate
-        /// extension.
+        /// Write the library to a target director, using its namespace as file name and the
+        /// appropriate extension.
         pub fn write_to_dir<P>(&self, dir_path: P) -> io::Result<()>
         where
             P: AsRef<Path>,
@@ -128,8 +154,8 @@ mod use_std {
         }
     }
 
-    // MASL LIBRARY HELPERS
-    // ================================================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================================
 
     /// Read a directory and recursively feed the state map with path->ast tuples.
     ///
@@ -188,13 +214,14 @@ mod use_std {
 }
 
 impl Serializable for MaslLibrary {
-    /// TODO
-    /// Enforce that we don't allow \# -of modules in library to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.namespace.write_into(target);
         self.version.write_into(target);
 
         let modules = self.modules();
+        // this assert is OK because maximum number of modules is enforced by Library constructor
+        debug_assert!(modules.len() <= u16::MAX as usize, "too many modules");
+
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
             LibraryPath::strip_first(&module.path)
@@ -206,8 +233,6 @@ impl Serializable for MaslLibrary {
 }
 
 impl Deserializable for MaslLibrary {
-    /// TODO
-    /// Enforce that we don't allow \# -of modules in library to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let namespace = LibraryNamespace::read_from(source)?;
         let version = Version::read_from(source)?;
@@ -222,10 +247,7 @@ impl Deserializable for MaslLibrary {
             modules.push(Module { path, ast });
         }
 
-        Ok(Self {
-            namespace,
-            version,
-            modules,
-        })
+        Self::new(namespace, version, modules)
+            .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
 }

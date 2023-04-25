@@ -123,7 +123,9 @@ impl LibraryPath {
     /// Appends the provided path to this path and returns the result.
     ///
     /// # Errors
-    /// Returns an error if the resulting path is longer than max path length of 1000 chars.
+    /// Returns an error if:
+    /// - The joined path is either for a kernel or an executable module.
+    /// - The resulting path requires more than 1KB to serialize.
     pub fn join(&self, other: &Self) -> Result<Self, PathError> {
         if other.path.starts_with(Self::KERNEL_PATH) || other.starts_with(Self::EXEC_PATH) {
             return Err(PathError::component_invalid_char(&other.path));
@@ -142,8 +144,8 @@ impl LibraryPath {
     /// # Errors
     /// Returns an error if:
     /// - The resulting path is over 1000 characters long.
-    /// - The components is empty, is over 100 characters long, does not start with a letter, or
-    ///   contains non-alphanumeric characters.
+    /// - The component is empty, requires more than 255 bytes to serialize, does not start with
+    ///   a letter, or contains non-alphanumeric characters.
     pub fn append<S>(&self, component: S) -> Result<Self, PathError>
     where
         S: AsRef<str>,
@@ -157,8 +159,8 @@ impl LibraryPath {
     /// # Errors
     /// Returns an error if:
     /// - The resulting path is over 1000 characters long.
-    /// - The components is empty, is over 100 characters long, does not start with a letter, or
-    ///   contains non-alphanumeric characters.
+    /// - The component is empty, requires more than 255 bytes to serialize, does not start with
+    ///   a letter, or contains non-alphanumeric characters.
     pub fn prepend<S>(&self, component: S) -> Result<Self, PathError>
     where
         S: AsRef<str>,
