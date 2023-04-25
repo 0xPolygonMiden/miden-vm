@@ -40,7 +40,8 @@ impl<'a> TokenStream<'a> {
                     }
 
                     // break the line into tokens and record their locations
-                    let mut tokenizer = LineTokenizer::from(&line_info);
+                    let mut tokenizer = LineTokenizer::new(&line_info)
+                        .expect("line contents are checked and present");
                     for (token, location) in tokenizer.by_ref() {
                         tokens.push(token);
                         locations.push(location);

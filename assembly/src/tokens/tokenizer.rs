@@ -13,21 +13,23 @@ pub struct LineTokenizer<'a> {
     dangling: Option<SourceLocation>,
 }
 
-impl<'a> From<&LineInfo<'a>> for LineTokenizer<'a> {
-    fn from(info: &LineInfo<'a>) -> Self {
-        let line_number = info.line_number();
-        let column = info.char_offset() + 1;
+impl<'a> LineTokenizer<'a> {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates a new [LineTokenizer] from the contents of a [LineInfo], if present.
+    pub fn new(line_info: &LineInfo<'a>) -> Option<Self> {
+        let line_number = line_info.line_number();
+        let column = line_info.char_offset() + 1;
         let location = SourceLocation::new(line_number, column);
-        let line = info.contents().unwrap_or("");
-        Self {
+        let line = line_info.contents()?;
+        Some(Self {
             line,
             location,
             dangling: None,
-        }
+        })
     }
-}
 
-impl<'a> LineTokenizer<'a> {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -94,7 +96,7 @@ mod tests {
     #[test]
     fn empty_line() {
         let info = LineInfo::new(1, 0).with_contents("");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(None, tokenizer.next());
         assert!(tokenizer.take_dangling().is_none());
     }
@@ -102,7 +104,7 @@ mod tests {
     #[test]
     fn blank_line() {
         let info = LineInfo::new(1, 0).with_contents("     \t");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(None, tokenizer.next());
         assert!(tokenizer.take_dangling().is_none());
     }
@@ -110,7 +112,7 @@ mod tests {
     #[test]
     fn comment_line() {
         let info = LineInfo::new(1, 0).with_contents("# foo");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(None, tokenizer.next());
         assert!(tokenizer.take_dangling().is_none());
     }
@@ -118,7 +120,7 @@ mod tests {
     #[test]
     fn single_token() {
         let info = LineInfo::new(1, 0).with_contents("begin");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(l("begin", 1, 1), tokenizer.next());
         assert_eq!(None, tokenizer.next());
         assert!(tokenizer.take_dangling().is_none());
@@ -127,7 +129,7 @@ mod tests {
     #[test]
     fn single_line_multiple_token() {
         let info = LineInfo::new(1, 0).with_contents("begin  add mul  \t end ");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(l("begin", 1, 1), tokenizer.next());
         assert_eq!(l("add", 1, 8), tokenizer.next());
         assert_eq!(l("mul", 1, 12), tokenizer.next());
@@ -139,7 +141,7 @@ mod tests {
     #[test]
     fn single_line_multiple_token_with_comment() {
         let info = LineInfo::new(10, 15).with_contents("begin  add mul  \t end # foo");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(l("begin", 10, 16), tokenizer.next());
         assert_eq!(l("add", 10, 23), tokenizer.next());
         assert_eq!(l("mul", 10, 27), tokenizer.next());
@@ -151,7 +153,7 @@ mod tests {
     #[test]
     fn single_line_multiple_token_with_dangling_comment() {
         let info = LineInfo::new(1, 0).with_contents("begin  add mul  \t end #! foo");
-        let mut tokenizer = LineTokenizer::from(&info);
+        let mut tokenizer = LineTokenizer::new(&info).unwrap();
         assert_eq!(l("begin", 1, 1), tokenizer.next());
         assert_eq!(l("add", 1, 8), tokenizer.next());
         assert_eq!(l("mul", 1, 12), tokenizer.next());
