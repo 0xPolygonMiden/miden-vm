@@ -358,6 +358,34 @@ impl ParsingError {
         }
     }
 
+    pub fn too_many_module_procs(num_procs: usize, max_procs: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "a module cannot contain more than {max_procs} procedures, but had {num_procs}"
+            ),
+            location: SourceLocation::default(),
+            op: "".to_string(),
+        }
+    }
+
+    pub fn module_docs_too_long(doc_len: usize, max_len: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "module doc comments cannot exceed {max_len} bytes, but was {doc_len}"
+            ),
+            location: SourceLocation::default(),
+            op: "".to_string(),
+        }
+    }
+
+    pub fn body_too_long(token: &Token, body_size: usize, max_body_size: usize) -> Self {
+        ParsingError {
+            message: format!("body block size cannot contain more than {max_body_size} instructions, but had {body_size}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     // PROCEDURES DECLARATION
     // --------------------------------------------------------------------------------------------
 
@@ -415,6 +443,16 @@ impl ParsingError {
     pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("exported procedures not allowed in this context: {label}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn proc_docs_too_long(token: &Token, doc_len: usize, max_len: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "procedure doc comments cannot exceed {max_len} bytes, but was {doc_len}"
+            ),
             location: *token.location(),
             op: token.to_string(),
         }

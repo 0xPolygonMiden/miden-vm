@@ -24,12 +24,21 @@ mod u32_ops;
 #[cfg(test)]
 pub mod tests;
 
+// CONSTANTS
+// ================================================================================================
+
+/// Maximum number of procedures in a module.
+const MAX_LOCL_PROCS: usize = u16::MAX as usize;
+
+/// Maximum number of bytes for a single documentation comment.
+const MAX_DOCS_LEN: usize = u16::MAX as usize;
+
 // TYPE ALIASES
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 type LocalConstMap = BTreeMap<String, u64>;
 
-// ABSTRACT SYNTAX TREE STRUCTS
+// EXECUTABLE PROGRAM AST
 // ================================================================================================
 
 /// An abstract syntax tree (AST) of a Miden program.
@@ -37,31 +46,101 @@ type LocalConstMap = BTreeMap<String, u64>;
 /// A program AST consists of a list of internal procedure ASTs and a list of body nodes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramAst {
-    pub local_procs: Vec<ProcedureAst>,
-    pub body: Vec<Node>,
+    local_procs: Vec<ProcedureAst>,
+    body: Vec<Node>,
 }
 
 impl ProgramAst {
-    /// Returns byte representation of the `ProgramAst`.
+    // PARSER
+    // --------------------------------------------------------------------------------------------
+    /// Parses the provided source into a [ProgramAst].
     ///
-    /// TODO
-    /// Enforce that we don't allow \# -of nodes in program body to exceed (2^16 - 1).
+    /// A program consist of a body and a set of internal (i.e., not exported) procedures.
+    pub fn parse(source: &str) -> Result<ProgramAst, ParsingError> {
+        let mut tokens = TokenStream::new(source)?;
+        let imports = parse_imports(&mut tokens)?;
+        let local_constants = parse_constants(&mut tokens)?;
+
+        let mut context = ParserContext {
+            imports,
+            local_constants,
+            ..Default::default()
+        };
+
+        context.parse_procedures(&mut tokens, false)?;
+
+        // make sure program body is present
+        let next_token = tokens
+            .read()
+            .ok_or_else(|| ParsingError::unexpected_eof(*tokens.eof_location()))?;
+        if next_token.parts()[0] != Token::BEGIN {
+            return Err(ParsingError::unexpected_token(next_token, Token::BEGIN));
+        }
+
+        let program_start = tokens.pos();
+        // consume the 'begin' token
+        let header = tokens.read().expect("missing program header");
+        header.validate_begin()?;
+        tokens.advance();
+
+        // make sure there is something to be read
+        if tokens.eof() {
+            return Err(ParsingError::unexpected_eof(*tokens.eof_location()));
+        }
+
+        // parse the sequence of nodes and add each node to the list
+        let body = context.parse_body(&mut tokens, false)?;
+
+        // consume the 'end' token
+        match tokens.read() {
+            None => Err(ParsingError::unmatched_begin(
+                tokens.read_at(program_start).expect("no begin token"),
+            )),
+            Some(token) => match token.parts()[0] {
+                Token::END => token.validate_end(),
+                Token::ELSE => Err(ParsingError::dangling_else(token)),
+                _ => Err(ParsingError::unmatched_begin(
+                    tokens.read_at(program_start).expect("no begin token"),
+                )),
+            },
+        }?;
+        tokens.advance();
+
+        // make sure there are no instructions after the end
+        if let Some(token) = tokens.read() {
+            return Err(ParsingError::dangling_ops_after_program(token));
+        }
+
+        let local_procs = sort_procs_into_vec(context.local_procs);
+        if local_procs.len() > MAX_LOCL_PROCS {
+            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
+        }
+
+        Ok(Self { body, local_procs })
+    }
+
+    // SERIALIZATION / DESERIALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns byte representation of this [ProgramAst].
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut target = Vec::<u8>::default();
 
+        // asserts below are OK because we enforce limits on the number of procedure and the
+        // number of body instructions in relevant parsers
+
+        assert!(self.local_procs.len() <= u16::MAX as usize, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(&mut target);
 
+        assert!(self.body.len() <= u16::MAX as usize, "too many body instructions");
         target.write_u16(self.body.len() as u16);
         self.body.write_into(&mut target);
 
         target
     }
 
-    /// Returns a `ProgramAst` struct by its byte representation.
-    ///
-    /// TODO
-    /// Enforce that we don't allow \# -of nodes in program body to exceed (2^16 - 1).
+    /// Returns a [ProgramAst] struct deserialized from the provided bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
 
@@ -73,7 +152,18 @@ impl ProgramAst {
 
         Ok(ProgramAst { local_procs, body })
     }
+
+    // DESTRUCTURING
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns local procedures and body nodes of this program.
+    pub fn into_parts(self) -> (Vec<ProcedureAst>, Vec<Node>) {
+        (self.local_procs, self.body)
+    }
 }
+
+// LIBRARY MODULE AST
+// ================================================================================================
 
 /// An abstract syntax tree (AST) of a Miden code module.
 ///
@@ -81,19 +171,78 @@ impl ProgramAst {
 /// list could be local or exported.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleAst {
-    pub docs: Option<String>,
-    pub local_procs: Vec<ProcedureAst>,
+    docs: Option<String>,
+    local_procs: Vec<ProcedureAst>,
 }
 
 impl ModuleAst {
-    /// Returns byte representation of the `ModuleAst`.
+    // PARSER
+    // --------------------------------------------------------------------------------------------
+    /// Parses the provided source into a [ModuleAst].
+    ///
+    /// A module consists of internal and exported procedures but does not contain a body.
+    pub fn parse(source: &str) -> Result<Self, ParsingError> {
+        let mut tokens = TokenStream::new(source)?;
+
+        let imports = parse_imports(&mut tokens)?;
+        let local_constants = parse_constants(&mut tokens)?;
+        let mut context = ParserContext {
+            imports,
+            local_constants,
+            ..Default::default()
+        };
+        context.parse_procedures(&mut tokens, true)?;
+
+        // make sure program body is absent and there are no more instructions.
+        if let Some(token) = tokens.read() {
+            if token.parts()[0] == Token::BEGIN {
+                return Err(ParsingError::not_a_library_module(token));
+            } else {
+                return Err(ParsingError::dangling_ops_after_module(token));
+            }
+        }
+
+        // get a list of local procs and make sure the number of procs is within the limit
+        let local_procs = sort_procs_into_vec(context.local_procs);
+        if local_procs.len() > MAX_LOCL_PROCS {
+            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
+        }
+
+        // get module docs and make sure the size is within the limit
+        let docs = tokens.take_module_comments();
+        if let Some(ref docs) = docs {
+            if docs.len() > MAX_DOCS_LEN {
+                return Err(ParsingError::module_docs_too_long(docs.len(), MAX_DOCS_LEN));
+            }
+        }
+
+        Ok(ModuleAst { docs, local_procs })
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a list of procedures in this module.
+    pub fn procs(&self) -> &[ProcedureAst] {
+        &self.local_procs
+    }
+
+    /// Returns doc comments for this module.
+    pub fn docs(&self) -> Option<&String> {
+        self.docs.as_ref()
+    }
+
+    // SERIALIZATION / DESERIALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns byte representation of this [ModuleAst].
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut target = Vec::<u8>::default();
         self.write_into(&mut target);
         target
     }
 
-    /// Returns a `ModuleAst` struct by its byte representation.
+    /// Returns a [ModuleAst] struct deserialized from the provided bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
         Self::read_from(&mut source)
@@ -101,46 +250,47 @@ impl ModuleAst {
 }
 
 impl Serializable for ModuleAst {
-    /// TODO
-    /// Enforce that we don't allow \# -of bytes in module documentation and \# -of procedures
-    /// in module, to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // asserts below are OK because we enforce limits on the number of procedure and length of
+        // module docs in the module parser
+
         match &self.docs {
-            Some(t) => {
-                target.write_bool(true);
-                target.write_u16(t.len() as u16);
-                target.write_bytes(t.as_bytes());
+            Some(docs) => {
+                assert!(docs.len() <= u16::MAX as usize, "docs too long");
+                target.write_u16(docs.len() as u16);
+                target.write_bytes(docs.as_bytes());
             }
             None => {
-                target.write_bool(false);
+                target.write_u16(0);
             }
         }
+
+        assert!(self.local_procs.len() <= u16::MAX as usize, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(target);
     }
 }
 
 impl Deserializable for ModuleAst {
-    /// TODO
-    /// Enforce that we don't allow \# -of bytes in module documentation and \# -of procedures
-    /// in module, to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let flg = source.read_bool()?;
-        let docs = match flg {
-            true => {
-                let slen = source.read_u16()? as usize;
-                let str = source.read_vec(slen)?;
-                let str = from_utf8(&str)
-                    .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-                Some(str.to_string())
-            }
-            false => None,
+        let docs_len = source.read_u16()? as usize;
+        let docs = if docs_len != 0 {
+            let str = source.read_vec(docs_len)?;
+            let str =
+                from_utf8(&str).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+            Some(str.to_string())
+        } else {
+            None
         };
-        let num_elements = source.read_u16()? as usize;
-        let local_procs = Deserializable::read_batch_from(source, num_elements)?;
+
+        let num_local_procs = source.read_u16()? as usize;
+        let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
         Ok(Self { docs, local_procs })
     }
 }
+
+// PROCEDURE AST
+// ================================================================================================
 
 /// An abstract syntax tree of a Miden procedure.
 ///
@@ -157,42 +307,41 @@ pub struct ProcedureAst {
 }
 
 impl Serializable for ProcedureAst {
-    /// TODO
-    /// Enforce that we don't allow procedure doc string and body byte length to exceed (2^16 - 1).
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // asserts below are OK because we enforce limits on the procedure body size and length of
+        // procedure docs in the procedure parser
+
         self.name.write_into(target);
         match &self.docs {
-            Some(t) => {
-                target.write_bool(true);
-                target.write_u16(t.len() as u16);
-                target.write_bytes(t.as_bytes());
+            Some(docs) => {
+                assert!(docs.len() <= u16::MAX as usize, "docs too long");
+                target.write_u16(docs.len() as u16);
+                target.write_bytes(docs.as_bytes());
             }
             None => {
-                target.write_bool(false);
+                target.write_u16(0);
             }
         }
+
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
+        assert!(self.body.len() <= u16::MAX as usize, "too many body instructions");
         target.write_u16(self.body.len() as u16);
         self.body.write_into(target);
     }
 }
 
 impl Deserializable for ProcedureAst {
-    /// TODO
-    /// Enforce that we don't allow procedure doc string and body byte length to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from(source)?;
-        let flg = source.read_bool()?;
-        let docs = match flg {
-            true => {
-                let slen = source.read_u16()? as usize;
-                let str = source.read_vec(slen)?;
-                let str = from_utf8(&str)
-                    .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-                Some(str.to_string())
-            }
-            false => None,
+        let docs_len = source.read_u16()? as usize;
+        let docs = if docs_len != 0 {
+            let str = source.read_vec(docs_len)?;
+            let str =
+                from_utf8(&str).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+            Some(str.to_string())
+        } else {
+            None
         };
 
         let is_export = source.read_bool()?;
@@ -211,108 +360,6 @@ impl Deserializable for ProcedureAst {
 
 // PARSERS
 // ================================================================================================
-
-/// Parses the provided source into a program AST. A program consist of a body and a set of
-/// internal (i.e., not exported) procedures.
-pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
-    let mut tokens = TokenStream::new(source)?;
-    let imports = parse_imports(&mut tokens)?;
-    let local_constants = parse_constants(&mut tokens)?;
-
-    let mut context = ParserContext {
-        imports,
-        local_constants,
-        ..Default::default()
-    };
-
-    context.parse_procedures(&mut tokens, false)?;
-
-    // make sure program body is present
-    let next_token = tokens
-        .read()
-        .ok_or_else(|| ParsingError::unexpected_eof(*tokens.eof_location()))?;
-    if next_token.parts()[0] != Token::BEGIN {
-        return Err(ParsingError::unexpected_token(next_token, Token::BEGIN));
-    }
-
-    let program_start = tokens.pos();
-    // consume the 'begin' token
-    let header = tokens.read().expect("missing program header");
-    header.validate_begin()?;
-    tokens.advance();
-
-    // make sure there is something to be read
-    if tokens.eof() {
-        return Err(ParsingError::unexpected_eof(*tokens.eof_location()));
-    }
-
-    let mut body = Vec::<Node>::new();
-
-    // parse the sequence of nodes and add each node to the list
-    let mut end_of_nodes = false;
-    while !end_of_nodes {
-        let node_count = body.len();
-        context.parse_body(&mut tokens, &mut body, false)?;
-        end_of_nodes = body.len() == node_count;
-    }
-
-    // consume the 'end' token
-    match tokens.read() {
-        None => Err(ParsingError::unmatched_begin(
-            tokens.read_at(program_start).expect("no begin token"),
-        )),
-        Some(token) => match token.parts()[0] {
-            Token::END => token.validate_end(),
-            Token::ELSE => Err(ParsingError::dangling_else(token)),
-            _ => Err(ParsingError::unmatched_begin(
-                tokens.read_at(program_start).expect("no begin token"),
-            )),
-        },
-    }?;
-    tokens.advance();
-
-    // make sure there are no instructions after the end
-    if let Some(token) = tokens.read() {
-        return Err(ParsingError::dangling_ops_after_program(token));
-    }
-
-    let local_procs = sort_procs_into_vec(context.local_procs);
-
-    let program = ProgramAst { body, local_procs };
-
-    Ok(program)
-}
-
-/// Parses the provided source into a module ST. A module consists of internal and exported
-/// procedures but does not contain a body.
-pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
-    let mut tokens = TokenStream::new(source)?;
-
-    let imports = parse_imports(&mut tokens)?;
-    let local_constants = parse_constants(&mut tokens)?;
-    let mut context = ParserContext {
-        imports,
-        local_constants,
-        ..Default::default()
-    };
-    context.parse_procedures(&mut tokens, true)?;
-
-    // make sure program body is absent and there are no more instructions.
-    if let Some(token) = tokens.read() {
-        if token.parts()[0] == Token::BEGIN {
-            return Err(ParsingError::not_a_library_module(token));
-        } else {
-            return Err(ParsingError::dangling_ops_after_module(token));
-        }
-    }
-
-    let module = ModuleAst {
-        docs: tokens.take_module_comments(),
-        local_procs: sort_procs_into_vec(context.local_procs),
-    };
-
-    Ok(module)
-}
 
 /// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
 /// its fully-qualified path (e.g., "std::math::u64").
@@ -365,6 +412,30 @@ fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, ParsingErr
     Ok(constants)
 }
 
+/// Parses a constant token and returns a (constant_name, constant_value) tuple
+fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
+    match token.num_parts() {
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(token)),
+        2 => {
+            let const_declaration: Vec<&str> = token.parts()[1].split('=').collect();
+            match const_declaration.len() {
+                0 => unreachable!(),
+                1 => Err(ParsingError::missing_param(token)),
+                2 => {
+                    let name = CONSTANT_LABEL_PARSER
+                        .parse_label(const_declaration[0])
+                        .map_err(|err| ParsingError::invalid_const_name(token, err))?;
+                    let value = parse_const_value(token, const_declaration[1])?;
+                    Ok((name.to_string(), value))
+                }
+                _ => Err(ParsingError::extra_param(token)),
+            }
+        }
+        _ => Err(ParsingError::extra_param(token)),
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -411,30 +482,6 @@ fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I,
     };
 
     Ok(result)
-}
-
-/// parses a constant token and returns a (constant_name, constant_value) tuple
-pub fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
-    match token.num_parts() {
-        0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(token)),
-        2 => {
-            let const_declaration: Vec<&str> = token.parts()[1].split('=').collect();
-            match const_declaration.len() {
-                0 => unreachable!(),
-                1 => Err(ParsingError::missing_param(token)),
-                2 => {
-                    let name = CONSTANT_LABEL_PARSER
-                        .parse_label(const_declaration[0])
-                        .map_err(|err| ParsingError::invalid_const_name(token, err))?;
-                    let value = parse_const_value(token, const_declaration[1])?;
-                    Ok((name.to_string(), value))
-                }
-                _ => Err(ParsingError::extra_param(token)),
-            }
-        }
-        _ => Err(ParsingError::extra_param(token)),
-    }
 }
 
 /// Parses a constant value and ensures it falls within bounds specified by the caller

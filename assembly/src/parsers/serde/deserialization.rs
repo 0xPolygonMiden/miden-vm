@@ -7,8 +7,6 @@ use super::{
 // ================================================================================================
 
 impl Deserializable for Node {
-    /// TODO
-    /// Enforce that we don't allow \# -of nodes in body of conditional/ loop blocks to exceed (2^16 - 1).
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let first_byte = source.peek_u8()?;
 

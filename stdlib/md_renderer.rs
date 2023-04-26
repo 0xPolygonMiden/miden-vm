@@ -33,11 +33,11 @@ impl MarkdownRenderer {
     }
 
     fn write_docs_module(mut writer: &File, module: &ModuleAst) {
-        if module.docs.is_none() {
+        if module.docs().is_none() {
             return;
         }
         writer
-            .write_all(module.docs.clone().unwrap().replace('\n', "<br />").as_bytes())
+            .write_all(module.docs().unwrap().replace('\n', "<br />").as_bytes())
             .expect("unable to write module comments");
     }
 }
@@ -56,7 +56,7 @@ impl Renderer for MarkdownRenderer {
                 .expect("unable to open stdlib markdown file");
             Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, ns);
-            for proc in module.local_procs.iter() {
+            for proc in module.procs().iter() {
                 Self::write_docs_procedure(&f, proc);
             }
         }

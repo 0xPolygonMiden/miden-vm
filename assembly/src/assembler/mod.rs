@@ -1,5 +1,5 @@
 use super::{
-    parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
+    parsers::{Instruction, Node, ProcedureAst, ProgramAst},
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
     LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, Program,
     ToString, Vec, ONE, ZERO,
@@ -78,7 +78,7 @@ impl Assembler {
     /// # Panics
     /// Panics if the assembler has already been used to compile programs.
     pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
-        let kernel_ast = parsers::parse_module(kernel_source)?;
+        let kernel_ast = ModuleAst::parse(kernel_source)?;
         self.with_kernel_module(kernel_ast)
     }
 
@@ -127,7 +127,7 @@ impl Assembler {
     {
         // parse the program into an AST
         let source = source.as_ref();
-        let ProgramAst { local_procs, body } = parsers::parse_program(source)?;
+        let (local_procs, body) = ProgramAst::parse(source)?.into_parts();
 
         // compile all local procedures; this will add the procedures to the specified context
         let mut context = AssemblyContext::new(false);
@@ -160,7 +160,7 @@ impl Assembler {
         // compile all procedures in the module; once the compilation is complete, we get all
         // compiled procedures (and their combined callset) from the context
         context.begin_module(&module.path)?;
-        for proc_ast in module.ast.local_procs.iter() {
+        for proc_ast in module.ast.procs().iter() {
             self.compile_procedure(proc_ast, context)?;
         }
         let (module_procs, module_callset) = context.complete_module();

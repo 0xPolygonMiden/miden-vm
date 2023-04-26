@@ -1,5 +1,5 @@
 use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
-use crate::{parse_module, LibraryNamespace, LibraryPath, Version};
+use crate::{LibraryNamespace, LibraryPath, ModuleAst, Version};
 use core::slice::Iter;
 
 // TESTS
@@ -28,7 +28,7 @@ fn nested_blocks() {
             let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
             let path =
                 LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
-            let ast = parse_module(PROCEDURE).unwrap();
+            let ast = ModuleAst::parse(PROCEDURE).unwrap();
             Self {
                 namespace,
                 modules: vec![Module { path, ast }],

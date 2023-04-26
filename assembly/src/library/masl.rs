@@ -77,7 +77,7 @@ impl MaslLibrary {
 #[cfg(feature = "std")]
 mod use_std {
     use super::*;
-    use crate::{parse_module, BTreeMap};
+    use crate::{BTreeMap, ModuleAst};
     use std::{fs, io, path::Path};
 
     impl MaslLibrary {
@@ -196,7 +196,7 @@ mod use_std {
 
                     // read & parse file
                     let contents = fs::read_to_string(&path)?;
-                    let ast = parse_module(&contents)?;
+                    let ast = ModuleAst::parse(&contents)?;
 
                     let module = module_path
                         .append(name)

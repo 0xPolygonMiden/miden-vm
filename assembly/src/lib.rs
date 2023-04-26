@@ -22,7 +22,7 @@ use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
 mod parsers;
-pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
+pub use parsers::{ModuleAst, ProcedureAst, ProgramAst};
 use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
 pub use vm_core::utils::{

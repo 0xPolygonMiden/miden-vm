@@ -1,4 +1,4 @@
-use crate::{parse_module, Assembler, Library, LibraryNamespace, LibraryPath, Module, Version};
+use crate::{Assembler, Library, LibraryNamespace, LibraryPath, Module, ModuleAst, Version};
 use core::slice::Iter;
 
 // SIMPLE PROGRAMS
@@ -527,7 +527,7 @@ fn program_with_one_import() {
             let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
             let path =
                 LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
-            let ast = parse_module(PROCEDURE).unwrap();
+            let ast = ModuleAst::parse(PROCEDURE).unwrap();
             Self {
                 namespace,
                 modules: vec![Module { path, ast }],

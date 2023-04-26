@@ -45,7 +45,7 @@ fn test_compile() {
     let exists = stdlib.modules().any(|module| {
         module
             .ast
-            .local_procs
+            .procs()
             .iter()
             .any(|proc| module.path.append(&proc.name).unwrap().as_str() == path)
     });
