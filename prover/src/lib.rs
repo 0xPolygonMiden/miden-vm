@@ -18,6 +18,9 @@ use std::time::Instant;
 #[cfg(feature = "std")]
 use winter_prover::Trace;
 
+#[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+mod gpu;
+
 // EXPORTS
 // ================================================================================================
 
@@ -78,12 +81,16 @@ where
             stack_outputs.clone(),
         )
         .prove(trace),
-        HashFunction::Rpo256 => ExecutionProver::<Rpo256, RpoRandomCoin>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace),
+        HashFunction::Rpo256 => {
+            let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
+                options,
+                stack_inputs,
+                stack_outputs.clone(),
+            );
+            #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+            let prover = gpu::GpuRpoExecutionProver(prover);
+            prover.prove(trace)
+        }
     }
     .map_err(ExecutionError::ProverError)?;
     let proof = ExecutionProof::new(proof, hash_fn);

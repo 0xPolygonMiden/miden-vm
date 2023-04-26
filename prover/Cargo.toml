@@ -14,10 +14,17 @@ rust-version = "1.67"
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
+metal = ["dep:gpu-poly", "dep:elsa", "dep:pollster", "concurrent", "std"]
 std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.6", default-features = false }
-log = { version = "0.4", default-features = false }
+log = { version = "0.4", default-features = false, optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.6", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
+
+[target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
+# TODO: add gpu-poly version on crates
+gpu-poly = { git = "https://github.com/andrewmilson/ministark", rev = "7aca43d", features = [ "winterfell" ], optional = true }
+elsa = { version = "1.7", optional = true }
+pollster = { version = "0.2", optional = true }
