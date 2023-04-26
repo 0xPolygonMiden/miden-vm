@@ -1,5 +1,7 @@
-use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
-use crate::utils::{split_element, split_u32_into_u16};
+use super::{
+    super::utils::{split_element, split_u32_into_u16},
+    AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField,
+};
 
 impl<A> Process<A>
 where
@@ -233,8 +235,8 @@ mod tests {
         split_u32_into_u16, Process,
     };
     use crate::StackInputs;
+    use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
     use rand_utils::rand_value;
-    use vm_core::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
 
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@ use super::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE,
     V_COL_RANGE, ZERO,
 };
-use vm_core::chiplets::memory::{
+use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
     MEMORY_WRITE_LABEL, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
 };

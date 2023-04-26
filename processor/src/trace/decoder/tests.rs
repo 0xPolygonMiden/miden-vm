@@ -7,12 +7,12 @@ use super::{
     Felt,
 };
 use crate::decoder::{build_op_group, BlockHashTableRow, BlockStackTableRow, OpGroupTableRow};
-use rand_utils::rand_array;
-use vm_core::{
-    code_blocks::CodeBlock,
+use miden_air::trace::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
-    FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, ZERO,
+    AUX_TRACE_RAND_ELEMENTS,
 };
+use rand_utils::rand_array;
+use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, ONE, ZERO};
 
 // BLOCK STACK TABLE TESTS
 // ================================================================================================

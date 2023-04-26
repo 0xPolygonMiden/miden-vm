@@ -1,6 +1,9 @@
-use super::{utils::build_lookup_table_row_values, ColMatrix, Felt, FieldElement, Vec};
-use crate::decoder::{AuxTraceHints, BlockTableUpdate, OpGroupTableUpdate};
-use vm_core::{utils::uninit_vector, DECODER_TRACE_OFFSET};
+use super::{
+    super::decoder::{AuxTraceHints, BlockTableUpdate, OpGroupTableUpdate},
+    utils::build_lookup_table_row_values,
+    ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
+};
+use vm_core::utils::uninit_vector;
 
 #[cfg(test)]
 mod tests;
@@ -8,7 +11,7 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-const ADDR_COL_IDX: usize = DECODER_TRACE_OFFSET + vm_core::decoder::ADDR_COL_IDX;
+const ADDR_COL_IDX: usize = DECODER_TRACE_OFFSET + miden_air::trace::decoder::ADDR_COL_IDX;
 
 // DECODER AUXILIARY TRACE COLUMNS
 // ================================================================================================

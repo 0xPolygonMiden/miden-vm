@@ -1,9 +1,12 @@
-use super::{Felt, OverflowTableRow, Stack, StackInputs, Vec, ONE, STACK_TOP_SIZE, ZERO};
-use crate::StackTopState;
-use vm_core::{
-    stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
-    FieldElement, StarkField, STACK_TRACE_WIDTH,
+use super::{
+    super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, Vec, ONE, STACK_TOP_SIZE,
+    ZERO,
 };
+use miden_air::trace::{
+    stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
+    STACK_TRACE_WIDTH,
+};
+use vm_core::{FieldElement, StarkField};
 
 // TYPE ALIASES
 // ================================================================================================

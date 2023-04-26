@@ -3,7 +3,7 @@ use super::{
     NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::stack::OverflowTableRow;
-use vm_core::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
+use miden_air::trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
 
 // CONSTANTS
 // ================================================================================================

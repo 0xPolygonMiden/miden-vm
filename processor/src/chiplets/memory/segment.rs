@@ -1,4 +1,4 @@
-use vm_core::chiplets::memory::{
+use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
     MEMORY_WRITE_LABEL,
 };

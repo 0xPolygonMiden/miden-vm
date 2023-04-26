@@ -6,12 +6,12 @@ use super::{
     stack::AuxTraceBuilder as StackAuxTraceBuilder,
     AdviceProvider, ColMatrix, Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
-use vm_core::{
+use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    stack::STACK_TOP_SIZE,
-    ProgramInfo, StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
-    MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
+    STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
+use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{EvaluationFrame, Trace, TraceLayout};
 
 #[cfg(feature = "std")]

@@ -1,16 +1,17 @@
 use super::{
-    init_state_from_words, AuxTraceBuilder, Digest, Felt, Hasher, HasherState, Selectors,
-    SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
-    MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+    init_state_from_words, lookups::HasherLookupContext, AuxTraceBuilder, Digest, Felt, Hasher,
+    HasherLookup, HasherState, Selectors, SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec,
+    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
+    TRACE_WIDTH,
 };
-use crate::chiplets::hasher::{lookups::HasherLookupContext, HasherLookup};
+use miden_air::trace::chiplets::hasher::{
+    DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
+    MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
+    STATE_COL_RANGE,
+};
 use rand_utils::rand_array;
 use vm_core::{
-    chiplets::hasher::{
-        self, DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
-        MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
-        STATE_COL_RANGE,
-    },
+    chiplets::hasher,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
     Operation, StarkField, ONE, ZERO,

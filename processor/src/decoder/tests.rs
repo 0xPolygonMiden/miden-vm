@@ -1,23 +1,26 @@
 use super::{
+    super::{
+        utils::get_trace_len, ExecutionTrace, Felt, Kernel, MemAdviceProvider, Operation, Process,
+        StackInputs, Word,
+    },
     build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
-    OpGroupTableRow, OpGroupTableUpdate,
+    ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
 };
-use crate::{
-    decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt, Kernel,
-    MemAdviceProvider, Operation, Process, StackInputs, Word,
-};
-use rand_utils::rand_value;
-use vm_core::{
-    code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
+use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
         OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BIT_EXTRA_COL_IDX,
         OP_INDEX_COL_IDX,
     },
+    CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
+    IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
+};
+use rand_utils::rand_value;
+use vm_core::{
+    code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
-    CodeBlockTable, StarkField, CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX,
-    FN_HASH_RANGE, IN_SYSCALL_COL_IDX, ONE, SYS_TRACE_RANGE, SYS_TRACE_WIDTH, ZERO,
+    CodeBlockTable, StarkField, ONE, ZERO,
 };
 
 // CONSTANTS

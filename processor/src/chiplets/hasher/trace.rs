@@ -1,6 +1,8 @@
 use super::{Felt, HasherState, Selectors, TraceFragment, Vec, STATE_WIDTH, TRACE_WIDTH, ZERO};
 use core::ops::Range;
-use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS};
+use miden_air::trace::chiplets::hasher::NUM_ROUNDS;
+use vm_core::chiplets::hasher::apply_round;
+
 // HASHER TRACE
 // ================================================================================================
 
