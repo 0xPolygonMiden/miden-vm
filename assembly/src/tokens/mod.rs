@@ -1,6 +1,4 @@
-use super::{
-    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
-};
+use super::{BTreeMap, LibraryPath, ParsingError, ProcedureName, String, ToString, Vec};
 use core::fmt;
 
 mod lines;
@@ -102,7 +100,7 @@ impl<'a> Token<'a> {
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn parse_use(&self) -> Result<AbsolutePath, ParsingError> {
+    pub fn parse_use(&self) -> Result<LibraryPath, ParsingError> {
         assert_eq!(Self::USE, self.parts[0], "not a use");
         match self.num_parts() {
             0 => unreachable!(),
@@ -253,23 +251,8 @@ impl<'a> fmt::Display for Token<'a> {
 /// - Path limbs must be separated by double-colons ("::").
 /// - Each limb must start with an ASCII letter.
 /// - Each limb can contain only ASCII letters, numbers, underscores, or colons.
-///
-/// TODO: this validation should happen in AbsolutePath::try_from().
-fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, ParsingError> {
-    // a path cannot be empty
-    if path.is_empty() {
-        return Err(ParsingError::invalid_module_path(token, path));
-    }
-
-    // path limbs must be separated by "::"
-    for limb in path.split(MODULE_PATH_DELIM) {
-        // each limb must be a valid label
-        if !is_valid_label(limb) {
-            return Err(ParsingError::invalid_module_path(token, path));
-        }
-    }
-
-    Ok(AbsolutePath::new_unchecked(path.to_string()))
+fn validate_import_path(path: &str, token: &Token) -> Result<LibraryPath, ParsingError> {
+    LibraryPath::try_from(path).map_err(|_| ParsingError::invalid_module_path(token, path))
 }
 
 /// Procedure locals must be a 16-bit integer.
@@ -292,52 +275,21 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
 ///   case both module and procedure name must comply with relevant name rules.
 ///
 /// All other combinations will result in an error.
-///
-/// TODO: validation should happen at the path and procedure name levels rather than here.
 fn validate_proc_invocation_label<'a>(
     label: &'a str,
     token: &'a Token,
 ) -> Result<(&'a str, Option<&'a str>), ParsingError> {
-    // a label must start with a letter
-    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(ParsingError::invalid_proc_invocation(token, label));
-    }
+    let num_components = LibraryPath::validate(label)
+        .map_err(|_| ParsingError::invalid_proc_invocation(token, label))?;
 
-    let mut parts = label.split(MODULE_PATH_DELIM);
-    let (proc_name, module_name) = match (parts.next(), parts.next()) {
-        (None, _) => return Err(ParsingError::invalid_proc_invocation(token, label)),
-        (Some(proc_name), None) => {
-            if !is_valid_label(proc_name) {
-                return Err(ParsingError::invalid_proc_invocation(token, label));
-            }
-            (proc_name, None)
+    let (proc_name, module_name) = match num_components {
+        1 => (label, None),
+        2 => {
+            let parts = label.split_once(LibraryPath::PATH_DELIM).expect("no components");
+            (parts.1, Some(parts.0))
         }
-        (Some(module_name), Some(proc_name)) => {
-            if !is_valid_label(proc_name) || !is_valid_label(module_name) || parts.next().is_some()
-            {
-                return Err(ParsingError::invalid_proc_invocation(token, label));
-            }
-            (proc_name, Some(module_name))
-        }
+        _ => return Err(ParsingError::invalid_proc_invocation(token, label)),
     };
 
     Ok((proc_name, module_name))
-}
-
-/// Returns true if the provided label is valid and false otherwise.
-///
-/// A label is considered valid if it start with a letter and consists only of letters, numbers,
-/// and underscores.
-fn is_valid_label(label: &str) -> bool {
-    // a label must start with a letter
-    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return false;
-    }
-
-    // a label can contain only letters, numbers, or underscores
-    if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return false;
-    }
-
-    true
 }

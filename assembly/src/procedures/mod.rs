@@ -1,7 +1,7 @@
 use super::{
-    crypto::hash::Blake3_160, AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock,
-    Deserializable, DeserializationError, LabelError, Serializable, String, ToString,
-    MODULE_PATH_DELIM, PROCEDURE_LABEL_PARSER,
+    crypto::hash::Blake3_160, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable,
+    DeserializationError, LabelError, LibraryPath, Serializable, String, ToString,
+    PROCEDURE_LABEL_PARSER,
 };
 use core::{
     fmt,
@@ -87,7 +87,7 @@ impl Procedure {
 /// Procedure name.
 ///
 /// Procedure name must comply with the following rules:
-/// - It cannot be longer than 100 characters.
+/// - It cannot require more than 255 characters to serialize.
 /// - It must start with a ASCII letter.
 /// - It must consist of only ASCII letters, numbers, and underscores.
 ///
@@ -118,14 +118,6 @@ impl ProcedureName {
         }
     }
 
-    // TYPE-SAFE TRANSFORMATION
-    // --------------------------------------------------------------------------------------------
-
-    /// Append the procedure name to a module path.
-    pub fn to_absolute(&self, module: &AbsolutePath) -> AbsolutePath {
-        AbsolutePath::new_unchecked(format!("{}{MODULE_PATH_DELIM}{}", module.as_str(), &self.name))
-    }
-
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
@@ -140,7 +132,7 @@ impl TryFrom<String> for ProcedureName {
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: PROCEDURE_LABEL_PARSER.parse_label(name)?,
+            name: (PROCEDURE_LABEL_PARSER.parse_label(&name)?).to_string(),
         })
     }
 }
@@ -162,7 +154,7 @@ impl AsRef<str> for ProcedureName {
 impl Serializable for ProcedureName {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         debug_assert!(
-            PROCEDURE_LABEL_PARSER.parse_label(self.name.clone()).is_ok(),
+            PROCEDURE_LABEL_PARSER.parse_label(&self.name).is_ok(),
             "The constructor should ensure the length is within limits"
         );
 
@@ -207,18 +199,9 @@ impl ProcedureId {
         Self(digest)
     }
 
-    /// Computes the full path, given a module path and the procedure name
-    pub fn path<N, M>(name: N, module_path: M) -> String
-    where
-        N: AsRef<str>,
-        M: AsRef<str>,
-    {
-        format!("{}{MODULE_PATH_DELIM}{}", module_path.as_ref(), name.as_ref())
-    }
-
     /// Creates a new procedure ID from a name to be resolved in the kernel.
     pub fn from_kernel_name(name: &str) -> Self {
-        let path = format!("{}{MODULE_PATH_DELIM}{name}", AbsolutePath::KERNEL_PATH);
+        let path = LibraryPath::kernel_path().append_unchecked(name);
         Self::new(path)
     }
 
@@ -226,16 +209,16 @@ impl ProcedureId {
     ///
     /// No validation is performed regarding the consistency of the module path or procedure name
     /// format.
-    pub fn from_name(name: &str, module_path: &str) -> Self {
-        let path = Self::path(name, module_path);
+    pub fn from_name(name: &str, module_path: &LibraryPath) -> Self {
+        let path = module_path.append_unchecked(name);
         Self::new(path)
     }
 
     /// Creates a new procedure ID from its local index and module path.
     ///
     /// No validation is performed regarding the consistency of the module path format.
-    pub fn from_index(index: u16, module_path: &str) -> Self {
-        let path = format!("{module_path}{MODULE_PATH_DELIM}{index}");
+    pub fn from_index(index: u16, module_path: &LibraryPath) -> Self {
+        let path = module_path.append_unchecked(index.to_string());
         Self::new(path)
     }
 }
@@ -243,6 +226,12 @@ impl ProcedureId {
 impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
     fn from(value: [u8; ProcedureId::SIZE]) -> Self {
         Self(value)
+    }
+}
+
+impl From<&LibraryPath> for ProcedureId {
+    fn from(path: &LibraryPath) -> Self {
+        ProcedureId::new(path)
     }
 }
 

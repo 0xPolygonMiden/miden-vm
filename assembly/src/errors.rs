@@ -1,4 +1,4 @@
-use super::{ProcedureId, SourceLocation, String, ToString, Token, Vec};
+use super::{LibraryNamespace, ProcedureId, SourceLocation, String, ToString, Token, Vec};
 use core::fmt;
 
 // ASSEMBLY ERROR
@@ -358,6 +358,34 @@ impl ParsingError {
         }
     }
 
+    pub fn too_many_module_procs(num_procs: usize, max_procs: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "a module cannot contain more than {max_procs} procedures, but had {num_procs}"
+            ),
+            location: SourceLocation::default(),
+            op: "".to_string(),
+        }
+    }
+
+    pub fn module_docs_too_long(doc_len: usize, max_len: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "module doc comments cannot exceed {max_len} bytes, but was {doc_len}"
+            ),
+            location: SourceLocation::default(),
+            op: "".to_string(),
+        }
+    }
+
+    pub fn body_too_long(token: &Token, body_size: usize, max_body_size: usize) -> Self {
+        ParsingError {
+            message: format!("body block size cannot contain more than {max_body_size} instructions, but had {body_size}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     // PROCEDURES DECLARATION
     // --------------------------------------------------------------------------------------------
 
@@ -415,6 +443,16 @@ impl ParsingError {
     pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("exported procedures not allowed in this context: {label}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn proc_docs_too_long(token: &Token, doc_len: usize, max_len: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "procedure doc comments cannot exceed {max_len} bytes, but was {doc_len}"
+            ),
             location: *token.location(),
             op: token.to_string(),
         }
@@ -580,121 +618,104 @@ impl fmt::Display for LabelError {
     }
 }
 
-// SERIALIZATION ERROR
-// ================================================================================================
-
-#[derive(Debug)]
-pub enum SerializationError {
-    EndOfReader,
-    InvalidBoolValue,
-    InvalidFieldElement,
-    InvalidModulePath,
-    InvalidNamespace,
-    InvalidNumber,
-    InvalidNumOfPushValues,
-    InvalidOpCode,
-    InvalidPathNoDelimiter,
-    InvalidProcedureName,
-    InvalidUtf8,
-    LengthTooLong,
-    UnexpectedEndOfStream,
-}
-
-impl fmt::Display for SerializationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use SerializationError::*;
-        match self {
-            EndOfReader => write!(f, "unexpected reader EOF"),
-            InvalidBoolValue => write!(f, "invalid boolean value"),
-            InvalidFieldElement => write!(f, "could not read a valid field element"),
-            InvalidModulePath => write!(f, "could not read a valid module path definition"),
-            InvalidNamespace => write!(f, "could not read a valid namespace definition"),
-            InvalidNumber => write!(f, "could not read a valid number"),
-            InvalidNumOfPushValues => write!(f, "invalid push values argument"),
-            InvalidOpCode => write!(f, "could not read a valid opcode"),
-            InvalidPathNoDelimiter => write!(f, "a path must contain a delimiter"),
-            InvalidProcedureName => write!(f, "invalid procedure name"),
-            InvalidUtf8 => write!(f, "could not read a well-formed utf-8 string"),
-            LengthTooLong => write!(f, "the provided length is too long and is not supported"),
-            UnexpectedEndOfStream => write!(f, "the stream of tokens reached an unexpected end"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl From<SerializationError> for std::io::Error {
-    fn from(e: SerializationError) -> Self {
-        std::io::Error::new(std::io::ErrorKind::Other, e)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for SerializationError {}
-
-impl From<LabelError> for SerializationError {
-    fn from(_err: LabelError) -> Self {
-        Self::InvalidProcedureName
-    }
-}
-
 // LIBRARY ERROR
 // ================================================================================================
 
 #[derive(Clone, Debug)]
 pub enum LibraryError {
-    ModuleNotFound(String),
     DeserializationFailed(String, String),
     DuplicateModulePath(String),
     DuplicateNamespace(String),
-    EmptyProcedureName,
     FileIO(String, String),
-    ProcedureNameWithDelimiter(String),
-    ModulePathStartsWithDelimiter(String),
-    ModulePathEndsWithDelimiter(String),
-    LibraryNameWithDelimiter(String),
-    NamespaceViolation { expected: String, found: String },
+    InconsistentNamespace {
+        expected: String,
+        actual: String,
+    },
+    InvalidNamespace(LabelError),
+    InvalidPath(PathError),
+    InvalidVersionNumber {
+        version: String,
+        err_msg: String,
+    },
+    MissingVersionComponent {
+        version: String,
+        component: String,
+    },
+    ModuleNotFound(String),
+    NoModulesInLibrary {
+        name: LibraryNamespace,
+    },
+    TooManyModulesInLibrary {
+        name: LibraryNamespace,
+        num_modules: usize,
+        max_modules: usize,
+    },
+    TooManyVersionComponents {
+        version: String,
+    },
 }
 
 impl LibraryError {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
+    pub fn deserialization_error(path: &str, message: &str) -> Self {
+        Self::DeserializationFailed(path.into(), message.into())
+    }
 
     pub fn duplicate_module_path(path: &str) -> Self {
-        Self::DuplicateModulePath(path.to_string())
+        Self::DuplicateModulePath(path.into())
     }
 
     pub fn duplicate_namespace(namespace: &str) -> Self {
-        Self::DuplicateNamespace(namespace.to_string())
+        Self::DuplicateNamespace(namespace.into())
     }
 
     pub fn file_error(path: &str, message: &str) -> Self {
-        Self::FileIO(path.to_string(), message.to_string())
+        Self::FileIO(path.into(), message.into())
     }
 
-    pub fn deserialization_error(path: &str, message: &str) -> Self {
-        Self::DeserializationFailed(path.to_string(), message.to_string())
-    }
-
-    pub fn procedure_name_with_delimiter(name: &str) -> Self {
-        Self::ProcedureNameWithDelimiter(name.to_string())
-    }
-
-    pub fn module_path_starts_with_delimiter(path: &str) -> Self {
-        Self::ModulePathStartsWithDelimiter(path.to_string())
-    }
-
-    pub fn module_path_ends_with_delimiter(path: &str) -> Self {
-        Self::ModulePathEndsWithDelimiter(path.to_string())
-    }
-
-    pub fn library_name_with_delimiter(name: &str) -> Self {
-        Self::LibraryNameWithDelimiter(name.to_string())
-    }
-
-    pub fn namespace_violation(expected: &str, found: &str) -> Self {
-        Self::NamespaceViolation {
+    pub fn inconsistent_namespace(expected: &str, actual: &str) -> Self {
+        Self::InconsistentNamespace {
             expected: expected.into(),
-            found: found.into(),
+            actual: actual.into(),
+        }
+    }
+
+    pub fn invalid_namespace(err: LabelError) -> Self {
+        Self::InvalidNamespace(err)
+    }
+
+    pub fn invalid_version_number(version: &str, err_msg: String) -> Self {
+        Self::InvalidVersionNumber {
+            version: version.into(),
+            err_msg,
+        }
+    }
+
+    pub fn missing_version_component(version: &str, component: &str) -> Self {
+        Self::MissingVersionComponent {
+            version: version.into(),
+            component: component.into(),
+        }
+    }
+
+    pub fn no_modules_in_library(name: LibraryNamespace) -> Self {
+        Self::NoModulesInLibrary { name }
+    }
+
+    pub fn too_many_modules_in_library(
+        name: LibraryNamespace,
+        num_modules: usize,
+        max_modules: usize,
+    ) -> Self {
+        Self::TooManyModulesInLibrary {
+            name,
+            num_modules,
+            max_modules,
+        }
+    }
+
+    pub fn too_many_version_components(version: &str) -> Self {
+        Self::TooManyVersionComponents {
+            version: version.into(),
         }
     }
 }
@@ -703,30 +724,46 @@ impl fmt::Display for LibraryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use LibraryError::*;
         match self {
-            ModuleNotFound(path) => write!(f, "module '{path}' not found"),
             DeserializationFailed(path, message) => {
                 write!(f, "library deserialization failed - '{path}': {message}")
             }
             DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
             DuplicateNamespace(namespace) => write!(f, "duplicate namespace '{namespace}'"),
-            EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
             FileIO(path, message) => {
                 write!(f, "file error - '{path}': {message}")
             }
-            ProcedureNameWithDelimiter(name) => {
-                write!(f, "'{name}' cannot contain a module delimiter")
+            InconsistentNamespace { expected, actual } => {
+                write!(f, "inconsistent module namespace: expected '{expected}', but was {actual}")
             }
-            ModulePathStartsWithDelimiter(path) => {
-                write!(f, "'{path}' cannot start with a module delimiter")
+            InvalidNamespace(err) => {
+                write!(f, "invalid namespace: {err}")
             }
-            ModulePathEndsWithDelimiter(path) => {
-                write!(f, "'{path}' cannot end with a module delimiter")
+            InvalidPath(err) => {
+                write!(f, "invalid path: {err}")
             }
-            LibraryNameWithDelimiter(name) => {
-                write!(f, "'{name}' cannot contain a module delimiter")
+            InvalidVersionNumber { version, err_msg } => {
+                write!(f, "version '{version}' is invalid: {err_msg}")
             }
-            NamespaceViolation { expected, found } => {
-                write!(f, "invalid namespace! expected '{expected}', found '{found}'")
+            MissingVersionComponent { version, component } => {
+                write!(f, "version '{version}' is invalid: missing {component} version component")
+            }
+            ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+            NoModulesInLibrary { name } => {
+                write!(f, "library '{}' does not contain any modules", name.as_str())
+            }
+            TooManyModulesInLibrary {
+                name,
+                num_modules,
+                max_modules,
+            } => {
+                write!(
+                    f,
+                    "library '{}' contains {num_modules} modules, but max is {max_modules}",
+                    name.as_str()
+                )
+            }
+            TooManyVersionComponents { version } => {
+                write!(f, "version '{version}' contains too many components")
             }
         }
     }
@@ -734,3 +771,93 @@ impl fmt::Display for LibraryError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for LibraryError {}
+
+impl From<PathError> for LibraryError {
+    fn from(value: PathError) -> Self {
+        LibraryError::InvalidPath(value)
+    }
+}
+
+// PATH ERROR
+// ================================================================================================
+
+#[derive(Clone, Debug)]
+pub enum PathError {
+    ComponentInvalidChar { component: String },
+    ComponentInvalidFirstChar { component: String },
+    ComponentTooLong { component: String, max_len: usize },
+    EmptyComponent,
+    EmptyPath,
+    PathTooLong { path: String, max_len: usize },
+    TooFewComponents { path: String, min_components: usize },
+}
+
+impl PathError {
+    pub fn component_invalid_char(component: &str) -> Self {
+        Self::ComponentInvalidChar {
+            component: component.into(),
+        }
+    }
+
+    pub fn component_invalid_first_char(component: &str) -> Self {
+        Self::ComponentInvalidFirstChar {
+            component: component.into(),
+        }
+    }
+
+    pub fn component_too_long(component: &str, max_len: usize) -> Self {
+        Self::ComponentTooLong {
+            component: component.into(),
+            max_len,
+        }
+    }
+
+    pub fn path_too_long(path: &str, max_len: usize) -> Self {
+        Self::PathTooLong {
+            path: path.into(),
+            max_len,
+        }
+    }
+
+    pub fn too_few_components(path: &str, min_components: usize) -> Self {
+        Self::TooFewComponents {
+            path: path.into(),
+            min_components,
+        }
+    }
+}
+
+impl fmt::Display for PathError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use PathError::*;
+        match self {
+            ComponentInvalidChar { component } => {
+                write!(f, "path component '{component}' contains invalid characters")
+            }
+            ComponentInvalidFirstChar { component } => {
+                write!(f, "path component '{component}' does not start with a letter")
+            }
+            ComponentTooLong { component, max_len } => {
+                write!(f, "path component '{component}' contains over {max_len} characters")
+            }
+            EmptyComponent => {
+                write!(f, "path component cannot be an empty string")
+            }
+            EmptyPath => {
+                write!(f, "path cannot be an empty string")
+            }
+            PathTooLong { path, max_len } => {
+                write!(f, "path  `{path}` contains over {max_len} characters")
+            }
+            TooFewComponents {
+                path,
+                min_components,
+            } => {
+                write!(f, "path  `{path}` does not consist of at least {min_components} components")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for PathError {}

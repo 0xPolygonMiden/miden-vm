@@ -1,8 +1,8 @@
 use super::{
-    AbsolutePath, AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure,
-    ProcedureCache, ProcedureId, String, ToString, Vec,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, Procedure,
+    ProcedureCache, ProcedureId, ToString, Vec,
 };
-use crate::{ProcedureName, MODULE_PATH_DELIM};
+use crate::ProcedureName;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -64,18 +64,17 @@ impl AssemblyContext {
     ///
     /// # Errors
     /// Returns an error if a module with the same path already exists in the module stack.
-    pub fn begin_module(&mut self, module_path: &str) -> Result<(), AssemblyError> {
+    pub fn begin_module(&mut self, module_path: &LibraryPath) -> Result<(), AssemblyError> {
         if self.is_kernel && self.module_stack.is_empty() {
             // a kernel context must be initialized with a kernel module path
-            debug_assert_eq!(
-                module_path,
-                AbsolutePath::KERNEL_PATH,
+            debug_assert!(
+                module_path.is_kernel_path(),
                 "kernel context not initialized with kernel module"
             );
         }
 
         // make sure this module is not in the chain of modules which are currently being compiled
-        if self.module_stack.iter().any(|m| m.path == module_path) {
+        if self.module_stack.iter().any(|m| &m.path == module_path) {
             let dep_chain =
                 self.module_stack.iter().map(|m| m.path.to_string()).collect::<Vec<_>>();
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
@@ -277,7 +276,7 @@ struct ModuleContext {
     /// List of local procedures which have already been compiled for this module.
     compiled_procs: Vec<Procedure>,
     /// Fully qualified path of this module.
-    path: String,
+    path: LibraryPath,
     /// A combined callset of all procedure callsets in this module.
     callset: CallSet,
 }
@@ -296,7 +295,7 @@ impl ModuleContext {
         Self {
             proc_stack: vec![main_proc_context],
             compiled_procs: Vec::new(),
-            path: MODULE_PATH_DELIM.to_string(),
+            path: LibraryPath::exec_path(),
             callset: CallSet::default(),
         }
     }
@@ -304,11 +303,11 @@ impl ModuleContext {
     /// Returns a new [ModuleContext] instantiated for compiling library modules.
     ///
     /// A library module must be identified by a unique module path.
-    pub fn for_module(module_path: &str) -> Self {
+    pub fn for_module(module_path: &LibraryPath) -> Self {
         Self {
             proc_stack: Vec::new(),
             compiled_procs: Vec::new(),
-            path: module_path.to_string(),
+            path: module_path.clone(),
             callset: CallSet::default(),
         }
     }
@@ -318,8 +317,7 @@ impl ModuleContext {
 
     /// Returns true if this module is the executable module of a program.
     pub fn is_executable(&self) -> bool {
-        // module path for executable modules is "::"
-        self.path == MODULE_PATH_DELIM
+        self.path.is_exec_path()
     }
 
     /// Returns a [Procedure] with the specified ID, or None if a compiled procedure with such ID

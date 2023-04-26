@@ -3,7 +3,7 @@ use super::{
     Instruction::*,
     LocalConstMap,
     Node::{self, Instruction},
-    ParsingError, ToString, Token, Vec, CONSTANT_LABEL_PARSER,
+    ParsingError, Token, Vec, CONSTANT_LABEL_PARSER,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
 use core::{convert::TryFrom, ops::RangeBounds};
@@ -272,7 +272,7 @@ fn parse_non_hex_param_with_constants_lookup<R: RangeBounds<u64>>(
 ) -> Result<u64, ParsingError> {
     let param_str = op.parts()[param_idx];
     // if we have a valid constant label then try and fetch it
-    match CONSTANT_LABEL_PARSER.parse_label(param_str.to_string()) {
+    match CONSTANT_LABEL_PARSER.parse_label(param_str) {
         Ok(_) => constants
             .get(param_str)
             .cloned()

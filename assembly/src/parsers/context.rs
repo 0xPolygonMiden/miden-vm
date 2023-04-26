@@ -1,11 +1,17 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, AbsolutePath, Instruction, LocalConstMap,
-    LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, Instruction, LibraryPath, LocalConstMap,
+    LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream, MAX_DOCS_LEN,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
     string::{String, ToString},
 };
+
+// CONSTANTS
+// ================================================================================================
+
+/// Maximum number of nodes in statement body (e.g., procedure body, loop body etc.).
+const MAX_BODY_LEN: usize = u16::MAX as usize;
 
 // PARSER CONTEXT
 // ================================================================================================
@@ -13,7 +19,7 @@ use vm_core::utils::{
 /// AST Parser context that holds internal state to generate correct ASTs.
 #[derive(Default)]
 pub struct ParserContext {
-    pub imports: BTreeMap<String, AbsolutePath>,
+    pub imports: BTreeMap<String, LibraryPath>,
     pub local_procs: LocalProcMap,
     pub local_constants: LocalConstMap,
 }
@@ -30,8 +36,7 @@ impl ParserContext {
         tokens.advance();
 
         // read the `if` clause
-        let mut t_branch = Vec::<Node>::new();
-        self.parse_body(tokens, &mut t_branch, true)?;
+        let t_branch = self.parse_body(tokens, true)?;
 
         // build the `else` clause; if the else clause is specified, then parse it;
         // otherwise, set the `else` to an empty vector
@@ -44,8 +49,7 @@ impl ParserContext {
                     tokens.advance();
 
                     // parse the `false` branch
-                    let mut f_branch = Vec::<Node>::new();
-                    self.parse_body(tokens, &mut f_branch, false)?;
+                    let f_branch = self.parse_body(tokens, false)?;
 
                     // consume the `end` token
                     match tokens.read() {
@@ -95,8 +99,7 @@ impl ParserContext {
         tokens.advance();
 
         // read the loop body
-        let mut loop_body = Vec::<Node>::new();
-        self.parse_body(tokens, &mut loop_body, false)?;
+        let loop_body = self.parse_body(tokens, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -126,8 +129,7 @@ impl ParserContext {
         tokens.advance();
 
         // read the loop body
-        let mut loop_body = Vec::<Node>::new();
-        self.parse_body(tokens, &mut loop_body, false)?;
+        let loop_body = self.parse_body(tokens, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -239,14 +241,21 @@ impl ParserContext {
 
         // attach doc comments (if any) to exported procedures
         let docs = if is_export {
-            tokens.take_doc_comment_at(proc_start)
+            let docs = tokens.take_doc_comment_at(proc_start);
+            // make sure procedure docs don't exceed the allowed limit
+            if let Some(ref docs) = docs {
+                if docs.len() > MAX_DOCS_LEN {
+                    let token = tokens.read_at(proc_start).expect("no proc token");
+                    return Err(ParsingError::proc_docs_too_long(token, docs.len(), MAX_DOCS_LEN));
+                }
+            }
+            docs
         } else {
             None
         };
 
         // parse procedure body
-        let mut body = Vec::<Node>::new();
-        self.parse_body(tokens, &mut body, false)?;
+        let body = self.parse_body(tokens, false)?;
 
         // consume the 'end' token
         match tokens.read() {
@@ -285,9 +294,11 @@ impl ParserContext {
     pub fn parse_body(
         &self,
         tokens: &mut TokenStream,
-        nodes: &mut Vec<Node>,
         break_on_else: bool,
-    ) -> Result<(), ParsingError> {
+    ) -> Result<Vec<Node>, ParsingError> {
+        let start_pos = tokens.pos();
+        let mut nodes = Vec::new();
+
         while let Some(token) = tokens.read() {
             match token.parts()[0] {
                 Token::IF => nodes.push(self.parse_if(tokens)?),
@@ -319,7 +330,12 @@ impl ParserContext {
             }
         }
 
-        Ok(())
+        if nodes.len() > MAX_BODY_LEN {
+            let token = tokens.read_at(start_pos - 1).expect("no body start token");
+            return Err(ParsingError::body_too_long(token, nodes.len(), MAX_BODY_LEN));
+        }
+
+        Ok(nodes)
     }
 
     // HELPER METHODS
@@ -546,7 +562,7 @@ impl ParserContext {
             .imports
             .get(module_name)
             .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module_name))?;
-        let proc_id = ProcedureId::from_name(proc_name, module_path.as_str());
+        let proc_id = ProcedureId::from_name(proc_name, module_path);
         Ok(proc_id)
     }
 }
