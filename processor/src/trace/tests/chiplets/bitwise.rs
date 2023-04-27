@@ -2,7 +2,7 @@ use super::{
     build_trace_from_ops, rand_array, rand_value, ExecutionTrace, Felt, FieldElement, Operation,
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
 };
-use vm_core::chiplets::{
+use miden_air::trace::chiplets::{
     bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
     BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
 };

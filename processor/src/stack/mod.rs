@@ -319,7 +319,7 @@ impl Stack {
 
     /// Returns state of helper columns at the current clock cycle.
     #[cfg(test)]
-    pub fn helpers_state(&self) -> [Felt; vm_core::stack::NUM_STACK_HELPER_COLS] {
+    pub fn helpers_state(&self) -> [Felt; miden_air::trace::stack::NUM_STACK_HELPER_COLS] {
         self.trace.get_helpers_state_at(self.clk)
     }
 }

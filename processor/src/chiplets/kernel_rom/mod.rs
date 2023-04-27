@@ -1,5 +1,5 @@
 use super::{BTreeMap, Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
-use vm_core::chiplets::kernel_rom::TRACE_WIDTH;
+use miden_air::trace::chiplets::kernel_rom::TRACE_WIDTH;
 
 #[cfg(test)]
 mod tests;

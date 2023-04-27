@@ -24,6 +24,7 @@ std = ["vm-core/std", "winter-prover/std", "log/std"]
 [dependencies]
 log = "0.4.14"
 vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
+miden-air = { package = "miden-air", path = "../air", version = "0.6", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
 
 [dev-dependencies]

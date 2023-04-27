@@ -4,10 +4,10 @@ use super::{
     Vec, Word, ONE, ZERO,
 };
 use crate::{chiplets::SiblingTableRow, StackInputs};
+use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
 use vm_core::{
-    chiplets::hasher::P1_COL_IDX,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS,
+    FieldElement, StarkField,
 };
 
 // SIBLING TABLE TESTS

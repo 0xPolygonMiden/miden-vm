@@ -2,7 +2,7 @@ use super::{
     build_lookup_table_row_values, uninit_vector, BTreeMap, ColMatrix, CycleRangeChecks, Felt,
     FieldElement, RangeCheckFlag, Vec, NUM_RAND_ROWS,
 };
-use vm_core::range::V_COL_IDX;
+use miden_air::trace::range::V_COL_IDX;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================

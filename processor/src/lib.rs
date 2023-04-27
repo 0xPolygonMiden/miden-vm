@@ -4,6 +4,10 @@
 #[macro_use]
 extern crate alloc;
 
+use miden_air::trace::{
+    CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
+    SYS_TRACE_WIDTH,
+};
 pub use vm_core::{
     chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
     Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
@@ -14,9 +18,9 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
-    StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
-    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    StackTopState, StarkField, ONE, ZERO,
 };
+
 use winter_prover::ColMatrix;
 
 mod decorators;

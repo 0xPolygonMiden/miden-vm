@@ -4,10 +4,11 @@ use miden_air::{
         enforce_constraints, field_ops, io_ops, op_flags::generate_evaluation_frame, overflow,
         stack_manipulation, system_ops, u32_ops, NUM_GENERAL_CONSTRAINTS,
     },
+    trace::STACK_TRACE_OFFSET,
     Felt, FieldElement,
 };
 use std::time::Duration;
-use vm_core::{Operation, STACK_TRACE_OFFSET};
+use vm_core::Operation;
 
 fn enforce_stack_constraint(c: &mut Criterion) {
     let mut group = c.benchmark_group("enforce_stack_constraint");

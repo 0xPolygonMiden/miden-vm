@@ -6,23 +6,24 @@ extern crate alloc;
 
 use vm_core::{
     utils::{collections::Vec, ByteWriter, Serializable},
-    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE,
-    STACK_TRACE_OFFSET, ZERO,
+    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,
     ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree,
 };
 
-mod chiplets;
+mod constraints;
+pub use constraints::stack;
+use constraints::{chiplets, range};
+
+pub mod trace;
+use trace::*;
+
 mod proof;
-mod range;
 
 mod utils;
 use utils::TransitionConstraintRange;
-
-// exported publicly for benchmarking purposes
-pub mod stack;
 
 // EXPORTS
 // ================================================================================================

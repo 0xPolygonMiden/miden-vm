@@ -3,22 +3,20 @@ use super::{
     Operation, Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
     ZERO,
 };
-use vm_core::{
+use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
-    code_blocks::get_span_op_group_count,
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
-    stack::STACK_TOP_SIZE,
-    AssemblyOp,
 };
+use vm_core::{code_blocks::get_span_op_group_count, stack::STACK_TOP_SIZE, AssemblyOp};
 
 mod trace;
 use trace::DecoderTrace;
 
 #[cfg(test)]
-use vm_core::decoder::NUM_USER_OP_HELPERS;
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
 mod block_stack;
 use block_stack::{BlockInfo, BlockStack, BlockType, ExecutionContextInfo};
@@ -35,7 +33,7 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::chiplets::hasher::HASH_CYCLE_LEN as u64);
+const HASH_CYCLE_LEN: Felt = Felt::new(miden_air::trace::chiplets::hasher::HASH_CYCLE_LEN as u64);
 
 // DECODER PROCESS EXTENSION
 // ================================================================================================
