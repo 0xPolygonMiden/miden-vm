@@ -65,8 +65,15 @@ pub const OP_BATCH_2_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ZERO, ONE];
 /// Operation batch consists of 1 operation group.
 pub const OP_BATCH_1_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ONE];
 
-/// Index of the op bits extra column in the decoder trace.
-pub const OP_BIT_EXTRA_COL_IDX: usize = OP_BATCH_FLAGS_RANGE.end;
+/// Index at which the op bits extra columns start in the decoder trace.
+pub const OP_BITS_EXTRA_COLS_OFFSET: usize = OP_BATCH_FLAGS_RANGE.end;
+
+/// Number of columns needed for degree reduction of the operation flags.
+pub const NUM_OP_BITS_EXTRA_COLS: usize = 2;
+
+/// Location of the operation bits extra columns (for degree reduction) in the decoder trace.
+pub const OP_BITS_EXTRA_COLS_RANGE: Range<usize> =
+    range(OP_BITS_EXTRA_COLS_OFFSET, NUM_OP_BITS_EXTRA_COLS);
 
 /// Index of a flag column which indicates whether an ending block is a body of a loop.
 pub const IS_LOOP_BODY_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 4;

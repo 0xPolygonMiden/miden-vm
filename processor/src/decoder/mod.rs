@@ -6,8 +6,8 @@ use super::{
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
     decoder::{
-        NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
-        OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
+        NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, NUM_OP_BITS_EXTRA_COLS,
+        OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
 };
 use vm_core::{code_blocks::get_span_op_group_count, stack::STACK_TOP_SIZE, AssemblyOp};
@@ -291,10 +291,10 @@ where
 /// of the executed program, as well as building an execution trace for these computations.
 ///
 /// ## Execution trace
-/// Decoder execution trace currently consists of 23 columns as illustrated below:
+/// Decoder execution trace currently consists of 24 columns as illustrated below:
 ///
-///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2 be
-/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┴──┤
+///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2 be0 be1
+/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┴───┴───┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// * addr column contains address of the hasher for the current block (row index from the
@@ -321,8 +321,10 @@ where
 /// * Operation batch flag columns c0, c1, c2 which indicate how many operation groups are in
 ///   a given operation batch. These flags are set only for SPAN or RESPAN operations, and are
 ///   set to ZEROs otherwise.
-/// * Operation bit extra column `be` which is used to reduce the degree of op flags for
-///   operations where the two most significant bits are ONE.
+/// * Operation bit extra columns `be0` and `be1` which are used to reduce the degree of op flags
+///   for operations.
+///   - `be0` is set when op_bits[6] is ONE, op_bits[5] is ZERO, and op_bits[4] is ONE.
+///   - `be1` is set when the two most significant op bits are ONE.
 ///
 /// In addition to the execution trace, the decoder also contains the following:
 /// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
