@@ -65,7 +65,7 @@ $$
 Also, when `END` operation is executed and the next operation is `REPEAT`, values in $h_0, ..., h_4$ (the hash of the current block and the `is_loop_body` flag) must be copied to the next row:
 
 > $$
-f_{end} \cdot f_{repeat}' \cdot (h_i' - h_i) = 0 \text { for } i \in 0..4 \text{ | degree} = 9
+f_{end} \cdot f_{repeat}' \cdot (h_i' - h_i) = 0 \text { for } i \in [0, 5) \text{ | degree} = 9
 $$
 
 A `HALT` instruction can be followed only by another `HALT` instruction:
@@ -83,7 +83,7 @@ $$
 Values in `op_bits` columns must be binary (i.e., either $1$ or $0$):
 
 > $$
-b_i^2 - b_i = 0 \text{ for } i \in 0..6 \text{ | degree} = 2
+b_i^2 - b_i = 0 \text{ for } i \in [0, 7) \text{ | degree} = 2
 $$
 
 When the value in `in_span` column is set to $1$, control flow operations cannot be executed on the VM, but when `in_span` flag is $0$, only control flow operations can be executed on the VM:
@@ -498,7 +498,7 @@ These flags can be set to $1$ only when we are executing `SPAN` or `RESPAN` oper
 All batch flags must be binary:
 
 > $$
-bc_i^2 - bc_i = 0 \text{ for } i \in 0..2 \text{ | degree} = 2
+bc_i^2 - bc_i = 0 \text{ for } i \in [0, 3) \text{ | degree} = 2
 $$
 
 When `SPAN` or `RESPAN` operations is executed, one of the batch flags must be set to $1$.
@@ -510,7 +510,7 @@ $$
 When we have at most 4 groups in a batch, registers $h_4, ..., h_7$ should be set to $0$'s.
 
 > $$
-(f_{g1} + f_{g2} + f_{g4}) \cdot h_i = 0 \text{ for } i \in 4..7 \text{ | degree} = 4
+(f_{g1} + f_{g2} + f_{g4}) \cdot h_i = 0 \text{ for } i \in [4, 8) \text{ | degree} = 4
 $$
 
 When we have at most 2 groups in a batch, registers $h_2$ and $h_3$ should also be set to $0$'s.
@@ -539,7 +539,7 @@ $$
 v_i = \alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot (gc - i) + \alpha_3 \cdot h_{i} \text{ | degree} = 1
 $$
 
-Where $i \in 1..7$. Thus, $v_1$ defines row value for group in $h_1$, $v_2$ defines row value for group $h_2$ etc. Note that batch address column comes from the next row of the block address column ($a'$).
+Where $i \in [1, 8)$. Thus, $v_1$ defines row value for group in $h_1$, $v_2$ defines row value for group $h_2$ etc. Note that batch address column comes from the next row of the block address column ($a'$).
 
 We compute the value of the row to be removed from the op group table as follows:
 
