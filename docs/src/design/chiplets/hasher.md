@@ -107,7 +107,7 @@ Computing a 2-to-1 hash involves the following steps:
 
 1. Initialize hasher state with $8$ field elements, setting the second capacity element to $domain$ if the domain is provided (as in the case of [control block hashing](../programs.md#program-hash-computation)) or else $0$, and the remaining capacity elements to $0$.
 2. Apply Rescue Prime Optimized permutation.
-3. Return elements ${4, ..., 7}$ of the hasher state as output.
+3. Return elements $[4, 8)$ of the hasher state as output.
 
 The chiplet accomplishes the above by executing the following instructions:
 
@@ -135,7 +135,7 @@ Computing a linear hash of $n$ elements consists of the following steps:
 2. Apply Rescue Prime Optimized permutation.
 3. Absorb the next set of elements into the state (up to $8$ elements), while keeping capacity elements unchanged.
 4. Repeat steps 2 and 3 until all $n$ elements have been absorbed.
-5. Return elements ${4, ..., 7}$ of the hasher state as output.
+5. Return elements $[4, 8)$ of the hasher state as output.
 
 The chiplet accomplishes the above by executing the following instructions (for hashing $16$ elements):
 
@@ -151,7 +151,7 @@ Execution trace for this computation would look as illustrated below.
 
 ![hash_linear_hash_n](../../assets/design/chiplets/hasher/hash_linear_hash_n.png)
 
-In the above, the value absorbed into hasher state between rows $7$ and $8$ is the delta between values $t_i$ and $s_i$. Thus, if we define $b_i = t_i - s_i$ for $i \in \{0, ..., 7\}$, the above computes the following:
+In the above, the value absorbed into hasher state between rows $7$ and $8$ is the delta between values $t_i$ and $s_i$. Thus, if we define $b_i = t_i - s_i$ for $i \in [0, 8)$, the above computes the following:
 
 $$
 \{r_0, r_1, r_2, r_3\} \leftarrow hash(a_0, ..., a_7, b_0, ..., b_7)
@@ -168,7 +168,7 @@ Verifying a Merkle path involves the following steps:
 3. Copy the result of the hash to the next row, and absorb the next node of the Merkle path into the hasher state.
    a. Remove a single bit from the index, and use it to determine how to place the copied result and absorbed node in the state.
 4. Repeat steps 2 and 3 until all nodes of the Merkle path have been absorbed.
-5. Return elements ${4, ..., 7}$ of the hasher state as output.
+5. Return elements $[4, 8)$ of the hasher state as output.
    a. Also, make sure the index value has been reduced to $0$.
 
 The chiplet accomplishes the above by executing the following instructions (for Merkle tree of depth $3$):
@@ -333,13 +333,13 @@ Hasher state columns $h_0, ..., h_{11}$ should behave as follows:
 - For the first $7$ row of every $8$-row cycle (i.e., when $k_0=0$), we need to apply [Rescue Prime Optimized](https://eprint.iacr.org/2022/1577) round constraints to the hasher state. For brevity, we omit these constraints from this note.
 - On the $8$th row of every $8$-row cycle, we apply the constraints based on which transition flag is set as described in the table below.
 
-Specifically, when absorbing the next set of elements into the state during linear hash computation (i.e., $f_{abp} = 1$), the first $4$ elements (the capacity portion) are carried over to the next row. For $j \in \{0, ..., 3\}$ this can be described as follows:
+Specifically, when absorbing the next set of elements into the state during linear hash computation (i.e., $f_{abp} = 1$), the first $4$ elements (the capacity portion) are carried over to the next row. For $j \in [0, 4)$ this can be described as follows:
 
 >$$
 f_{abp} \cdot (h'_j - h_j) = 0 \text{ | degree} = 5
 $$
 
-When absorbing the next node during Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu}=1$), the result of the previous hash ($h_4, ..., h_7$) are copied over either to $(h_4', ..., h_7')$ or to $(h_8', ..., h_{11}')$ depending on the value of $b$, which is defined in the same way as in the previous section. For $j \in \{0, ..., 3\}$ this can be described as follows:
+When absorbing the next node during Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu}=1$), the result of the previous hash ($h_4, ..., h_7$) are copied over either to $(h_4', ..., h_7')$ or to $(h_8', ..., h_{11}')$ depending on the value of $b$, which is defined in the same way as in the previous section. For $j \in [0, 4)$ this can be described as follows:
 
 >$$
 (f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree} = 6
@@ -350,7 +350,7 @@ Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher 
 ### Multiset check constraints
 In this sections we describe constraints which enforce updates for [multiset check columns](../multiset.md) $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
 
-To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
+To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc.
 
 $$
 m = op_{label} + 2^4 \cdot k_0 + 2^5 \cdot k_2 \\

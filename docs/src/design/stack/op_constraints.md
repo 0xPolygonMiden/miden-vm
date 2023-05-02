@@ -8,7 +8,7 @@ To describe how operation-specific constraints work, let's use an example with `
 
 $$
 f_{dup} \cdot (s'_0 - s_0) = 0 \\
-f_{dup} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in \{0, .., 14\}
+f_{dup} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in [0, 15)
 $$
 
 The first constraint enforces that the top stack item in the next row is the same as the top stack item in the current row. The second constraint enforces that all stack items (starting from item $0$) are shifted to the right by $1$. We also need to impose all the constraints discussed in the previous section, be we omit them here.
@@ -17,7 +17,7 @@ Let's write similar constraints for `DUP1` operation, which pushes a copy of the
 
 $$
 f_{dup1} \cdot (s'_0 - s_1) = 0 \\
-f_{dup1} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in \{0, .., 14\}
+f_{dup1} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in [0, 15)
 $$
 
 It is easy to notice that while the first constraint changed, the second constraint remained the same - i.e., we are still just shifting the stack to the right.
