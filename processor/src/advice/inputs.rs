@@ -1,4 +1,4 @@
-use super::{BTreeMap, Felt, InputError, MerkleStore, Vec};
+use super::{BTreeMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -65,6 +65,33 @@ impl AdviceInputs {
     pub fn with_merkle_store(mut self, store: MerkleStore) -> Self {
         self.store = store;
         self
+    }
+
+    // PUBLIC MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Extends the stack with the given elements.
+    pub fn extend_stack<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = Felt>,
+    {
+        self.stack.extend(iter);
+    }
+
+    /// Extends the map of values with the given argument, replacing previously inserted items.
+    pub fn extend_map<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = ([u8; 32], Vec<Felt>)>,
+    {
+        self.map.extend(iter);
+    }
+
+    /// Extends the [MerkleStore] with the given nodes.
+    pub fn extend_merkle_store<I>(&mut self, iter: I)
+    where
+        I: Iterator<Item = InnerNodeInfo>,
+    {
+        self.store.extend(iter);
     }
 
     // PUBLIC ACCESSORS
