@@ -1,6 +1,6 @@
 use super::{ExecutionError, Felt, InputError, StarkField, Word};
 use vm_core::{
-    crypto::merkle::{MerklePath, MerkleStore, NodeIndex},
+    crypto::merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex},
     utils::{
         collections::{BTreeMap, Vec},
         IntoBytes,
