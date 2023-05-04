@@ -67,7 +67,7 @@ impl Assembler {
         L: Library,
         I: Iterator<Item = L>,
     {
-        libraries.try_fold(self, |slf, library| slf.with_library(library.borrow()))
+        libraries.try_fold(self, |slf, library| slf.with_library(&library))
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided source.
