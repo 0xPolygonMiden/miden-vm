@@ -1,7 +1,8 @@
 use miden_air::ProcessorAir;
+use processor::crypto::RpoRandomCoin;
 use test_utils::{
     collections::Vec,
-    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest, WinterRandomCoin},
+    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
     Felt, VerifierError,
 };
@@ -46,7 +47,7 @@ pub fn generate_advice_inputs(
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.get_trace_info(), pub_inputs, proof.options().clone());
 
-    let mut public_coin: WinterRandomCoin<Rpo256> = WinterRandomCoin::new(&public_coin_seed);
+    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(&public_coin_seed);
     let mut channel = VerifierChannel::new(&air, proof)?;
 
     // 1 ----- trace commitment -------------------------------------------------------------------
@@ -65,6 +66,10 @@ pub fn generate_advice_inputs(
         aux_trace_rand_elements.add_segment_elements(rand_elements);
         public_coin.reseed(*commitment);
     }
+    // build random coefficients for the composition polynomial
+    let _constraint_coeffs: winter_air::ConstraintCompositionCoefficients<QuadExt> = air
+        .get_constraint_composition_coefficients(&mut public_coin)
+        .map_err(|_| VerifierError::RandomCoinError)?;
 
     // 2 ----- constraint commitment --------------------------------------------------------------
     let constraint_commitment = channel.read_constraint_commitment();
@@ -113,7 +118,7 @@ pub fn generate_advice_inputs(
     tape.extend_from_slice(&to_int_vec(&fri_remainder));
 
     let _deep_coefficients = air
-        .get_deep_composition_coefficients::<QuadExt, WinterRandomCoin<Rpo256>>(&mut public_coin)
+        .get_deep_composition_coefficients::<QuadExt, RpoRandomCoin>(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
     // Reseed with FRI layer commitments
     let layer_commitments = fri_commitments_digests.clone();
@@ -157,7 +162,6 @@ pub fn generate_advice_inputs(
     for path_set in &m_path_sets_fri {
         store.add_merkle_path_set(&path_set).unwrap();
     }
-
     Ok(VerifierData {
         initial_stack,
         tape,

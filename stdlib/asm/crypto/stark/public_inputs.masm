@@ -1,14 +1,14 @@
 
-const.ZERO_ZERO_ZERO_ONE_PTR=4294967294
-const.SEED_PTR=4294967293
+const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
 
 #! Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
 #! In parallel, compute the hash of the public inputs being loaded. The hashing starts with
 #! capacity registers of the hash function set to `C` resulting from hashing the proof context.
+#! The ouptut D is the digest of the hashing.
 #!
 #! Input: [public_inputs_ptr, C]
-#! Output: [...] 
-#! Cycles: 21
+#! Output: [D] 
+#! Cycles: 38
 export.load
     
     # TODO: load the public inputs using public_inputs_ptr
@@ -30,8 +30,8 @@ export.load
     swapw
     mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
     hperm
+
     dropw
-    mem_storew.SEED_PTR
-    dropw
+    swapw
     dropw
 end

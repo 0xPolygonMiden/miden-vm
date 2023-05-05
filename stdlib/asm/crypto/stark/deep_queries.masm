@@ -18,8 +18,8 @@ const.TMP7=4294967280
 const.TMP8=4294967279
 
 const.CURRENT_TRACE_ROW_PTR=4294964000
-const.ZERO_ZERO_ZERO_ONE_PTR=4294967294
-const.ZERO_WORD_PTR=4294967295
+const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
+const.ZERO_WORD_PTR=4294967278
 
 #! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
