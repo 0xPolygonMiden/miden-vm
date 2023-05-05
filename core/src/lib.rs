@@ -10,8 +10,8 @@ pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
         pub use ::crypto::merkle::{
-            EmptySubtreeRoots, MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree,
-            Mmr, MmrPeaks, NodeIndex, SimpleSmt,
+            EmptySubtreeRoots, InnerNodeInfo, MerkleError, MerklePath, MerklePathSet, MerkleStore,
+            MerkleTree, Mmr, MmrPeaks, NodeIndex, SimpleSmt,
         };
     }
 
