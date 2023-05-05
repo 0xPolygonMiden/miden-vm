@@ -1,11 +1,12 @@
 mod verifier_recursive;
 
+use verifier_recursive::{generate_advice_inputs, VerifierData};
+
 use crate::build_test;
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use test_utils::{
-    crypto::MerkleStore, prove, AdviceInputs, Felt, MemAdviceProvider, ProgramInfo, ProofOptions,
-    StackInputs, VerifierError,
+    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProofOptions, StackInputs, VerifierError,
 };
 
 #[test]
@@ -22,8 +23,12 @@ fn stark_verifier_e2f4() {
     stack_inputs[15] = 0;
     stack_inputs[14] = 1;
 
-    let (initial_stack, tape, store, advice_map) =
-        generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
+    let VerifierData {
+        initial_stack,
+        tape,
+        store,
+        advice_map,
+    } = generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
 
     // Verify inside Miden VM
     let source = "
@@ -43,7 +48,7 @@ fn stark_verifier_e2f4() {
 pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
-) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> {
+) -> Result<VerifierData, VerifierError> {
     let program = Assembler::default().compile(&source).unwrap();
     let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
@@ -60,5 +65,5 @@ pub fn generate_recursive_verifier_data(
     // build public inputs and generate the advice data needed for recursive proof verification
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
     let (_, proof) = proof.into_parts();
-    Ok(verifier_recursive::generate_advice_inputs(proof, pub_inputs).unwrap())
+    Ok(generate_advice_inputs(proof, pub_inputs).unwrap())
 }

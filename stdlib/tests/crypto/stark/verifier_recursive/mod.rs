@@ -13,16 +13,24 @@ use channel::VerifierChannel;
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct VerifierData {
+    pub initial_stack: Vec<u64>,
+    pub tape: Vec<u64>,
+    pub store: MerkleStore,
+    pub advice_map: Vec<([u8; 32], Vec<Felt>)>,
+}
+
 pub fn generate_advice_inputs(
     proof: StarkProof,
     pub_inputs: <ProcessorAir as Air>::PublicInputs,
-) -> Result<(Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>), VerifierError> {
+) -> Result<VerifierData, VerifierError> {
     //// build a seed for the public coin; the initial seed is the hash of public inputs and proof
     //// context, but as the protocol progresses, the coin will be reseeded with the info received
     //// from the prover
     let mut public_coin_seed = proof.context.to_elements();
     let trace_len: Felt = public_coin_seed[7];
-    let stack = vec![
+    let initial_stack = vec![
         public_coin_seed[4].as_int(),
         (public_coin_seed[5].as_int() as usize).ilog2() as u64,
         public_coin_seed[6].as_int(),
@@ -132,7 +140,7 @@ pub fn generate_advice_inputs(
         .map_err(|_| VerifierError::RandomCoinError)?;
 
     // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
-    let (mut adv_map_traces, mut m_path_sets_traces) =
+    let (mut advice_map, mut m_path_sets_traces) =
         channel.read_queried_trace_states(&query_positions)?;
     let (mut adv_map_constraint, m_path_set_constraint) =
         channel.read_constraint_evaluations(&query_positions)?;
@@ -140,8 +148,8 @@ pub fn generate_advice_inputs(
     let domain_size = (air.trace_poly_degree() + 1) * BLOWUP_FACTOR;
     let mut ress = channel.unbatch::<4, 3>(&query_positions, domain_size, fri_commitments_digests);
     // consolidate advice maps
-    adv_map_traces.append(&mut adv_map_constraint);
-    adv_map_traces.append(&mut ress.1);
+    advice_map.append(&mut adv_map_constraint);
+    advice_map.append(&mut ress.1);
     let mut m_path_sets_fri = ress.0;
     m_path_sets_fri.append(&mut m_path_sets_traces);
     m_path_sets_fri.push(m_path_set_constraint);
@@ -149,7 +157,13 @@ pub fn generate_advice_inputs(
     for path_set in &m_path_sets_fri {
         store.add_merkle_path_set(&path_set).unwrap();
     }
-    Ok((stack, tape, store, adv_map_traces))
+
+    Ok(VerifierData {
+        initial_stack,
+        tape,
+        store,
+        advice_map,
+    })
 }
 
 // Helpers
