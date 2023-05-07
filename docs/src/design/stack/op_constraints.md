@@ -215,7 +215,7 @@ $$
 Also, we need to make sure that `extra` register, which is used to reduce the flag degree by $1$, is set to $1$ when both $b_6$ and $b_5$ columns set to $1$:
 
 >$$
-b_6 \cdot b_5 \cdot (1 - extra) = 0 \text{ | degree} = 3
+extra - b_6 \cdot b_5 = 0 \text{ | degree} = 2
 $$
 
 ## Composite flags
