@@ -212,6 +212,12 @@ $$
 b_6 \cdot b_5 \cdot b_1 = 0 \text{ | degree} = 3
 $$
 
+Also, we need to make sure that `extra` register, which is used to reduce the flag degree by $1$, is set to $1$ when both $b_6$ and $b_5$ columns set to $1$:
+
+>$$
+extra - b_6 \cdot b_5 = 0 \text{ | degree} = 2
+$$
+
 ## Composite flags
 Using the operation flags defined above, we can compute several composite flags which are used by various constraints in the VM.
 

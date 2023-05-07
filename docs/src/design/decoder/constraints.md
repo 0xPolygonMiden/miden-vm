@@ -35,7 +35,7 @@ In the sections below, we describe constraints according to their logical groupi
 When `SPLIT` or `LOOP` operation is executed, the top of the operand stack must contain a binary value:
 
 > $$
-(f_{split} + f_{loop}) \cdot (s_0^2 - s_0) = 0  \text{ | degree} = 8
+(f_{split} + f_{loop}) \cdot (s_0^2 - s_0) = 0 \text{ | degree} = 8
 $$
 
 When `REPEAT` operation is executed, the value at the top of the operand stack must be $1$:
