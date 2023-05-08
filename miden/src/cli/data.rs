@@ -197,9 +197,7 @@ impl InputFile {
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
-                    let tree = SimpleSmt::new(u64::BITS as u8)
-                        .expect("failed to instantiate a sparse Merkle tree")
-                        .with_leaves(entries)
+                    let tree = SimpleSmt::with_leaves(u64::BITS as u8, entries)
                         .map_err(|e| format!("failed to parse a sparse Merkle tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
                 }
