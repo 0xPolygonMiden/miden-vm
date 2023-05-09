@@ -5,7 +5,7 @@ use super::{
     ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
-use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
+use vm_core::{crypto::hash::RpoDigest, utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
 
@@ -16,7 +16,7 @@ mod span_builder;
 use span_builder::SpanBuilder;
 
 mod context;
-use context::AssemblyContext;
+pub use context::{AssemblyContext, AssemblyContextType};
 
 #[cfg(test)]
 mod tests;
@@ -88,7 +88,7 @@ impl Assembler {
     /// Returns an error if compiling kernel source results in an error.
     pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
-        let mut context = AssemblyContext::new(true);
+        let mut context = AssemblyContext::new(AssemblyContextType::Kernel);
         let kernel = Module::kernel(module);
         self.compile_module(&kernel, &mut context)?;
 
@@ -130,7 +130,7 @@ impl Assembler {
         let (local_procs, body) = ProgramAst::parse(source)?.into_parts();
 
         // compile all local procedures; this will add the procedures to the specified context
-        let mut context = AssemblyContext::new(false);
+        let mut context = AssemblyContext::new(AssemblyContextType::Program);
         for proc_ast in local_procs.iter() {
             if proc_ast.is_export {
                 return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
@@ -148,15 +148,33 @@ impl Assembler {
         Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
     }
 
+    /// Compiles the provided [ProgramAst] into a [CodeBlock].
+    pub fn compile_program_ast(&self, program: ProgramAst) -> Result<CodeBlock, AssemblyError> {
+        let (local_procs, body) = program.into_parts();
+
+        let mut context = AssemblyContext::new(AssemblyContextType::Program);
+        // compile all local procedures; this will add the procedures to the specified context
+        for proc_ast in local_procs.iter() {
+            if proc_ast.is_export {
+                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
+            }
+            self.compile_procedure(proc_ast, &mut context)?;
+        }
+
+        // compile the program body
+        let program_root = self.compile_body(body.iter(), &mut context, None)?;
+
+        Ok(program_root)
+    }
     // MODULE COMPILER
     // --------------------------------------------------------------------------------------------
 
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
-    fn compile_module(
+    pub fn compile_module(
         &self,
         module: &Module,
         context: &mut AssemblyContext,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<Vec<RpoDigest>, AssemblyError> {
         // compile all procedures in the module; once the compilation is complete, we get all
         // compiled procedures (and their combined callset) from the context
         context.begin_module(&module.path)?;
@@ -170,7 +188,12 @@ impl Assembler {
         // - a procedure is exported from the module, or
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
-        for proc in module_procs {
+        let mut proc_roots = Vec::new();
+        for proc in module_procs.into_iter() {
+            if proc.is_export() {
+                proc_roots.push(proc.code_root().hash());
+            }
+
             if proc.is_export() || module_callset.contains(proc.id()) {
                 // this is safe because we fail if the cache is borrowed.
                 self.proc_cache
@@ -180,7 +203,7 @@ impl Assembler {
             }
         }
 
-        Ok(())
+        Ok(proc_roots)
     }
 
     // PROCEDURE COMPILER
