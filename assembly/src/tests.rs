@@ -1,4 +1,7 @@
-use crate::{Assembler, Library, LibraryNamespace, LibraryPath, Module, ModuleAst, Version};
+use crate::{
+    Assembler, AssemblyContextType, Library, LibraryNamespace, LibraryPath, Module, ModuleAst,
+    ProgramAst, Version,
+};
 use core::slice::Iter;
 
 // SIMPLE PROGRAMS
@@ -103,6 +106,46 @@ fn span_and_simple_if() {
             end \
         end";
     assert_eq!(expected, format!("{program}"));
+}
+
+// PROGRAM WITH #main CALL
+// ================================================================================================
+#[test]
+fn simple_main_call() {
+    // instantiate assembler
+    let assembler = super::Assembler::default();
+
+    // compile account module
+    let account_path = LibraryPath::new("context::account").unwrap();
+    let account_code = ModuleAst::parse(
+        "\
+    export.account_method_1
+        push.2.1 add
+    end
+    
+    export.account_method_2
+        push.3.1 sub
+    end
+    ",
+    )
+    .unwrap();
+    let account_module = Module::new(account_path, account_code);
+    let _method_roots = assembler
+        .compile_module(
+            &account_module,
+            &mut super::AssemblyContext::new(AssemblyContextType::Module),
+        )
+        .unwrap();
+
+    // compile note 1 program
+    let note_1 =
+        ProgramAst::parse("use.context::account begin call.account::account_method_1 end").unwrap();
+    let _note_1_root = assembler.compile_program_ast(note_1).unwrap();
+
+    // compile note 2 program
+    let note_2 =
+        ProgramAst::parse("use.context::account begin call.account::account_method_2 end").unwrap();
+    let _note_2_root = assembler.compile_program_ast(note_2).unwrap();
 }
 
 // CONSTANTS

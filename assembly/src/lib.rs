@@ -42,7 +42,7 @@ mod errors;
 pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, PathError};
 
 mod assembler;
-pub use assembler::Assembler;
+pub use assembler::{Assembler, AssemblyContext, AssemblyContextType};
 
 #[cfg(test)]
 mod tests;
