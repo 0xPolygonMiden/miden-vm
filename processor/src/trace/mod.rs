@@ -12,7 +12,7 @@ use miden_air::trace::{
     STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
-use winter_prover::{EvaluationFrame, Trace, TraceLayout};
+use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
 use vm_core::StarkField;
