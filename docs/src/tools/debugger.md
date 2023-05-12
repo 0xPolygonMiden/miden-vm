@@ -32,10 +32,10 @@ Debug program
 Reading program file `miden/examples/nprime/nprime.masm`
 Compiling program... done (16 ms)
 Debugging program with hash 11dbbddff27e26e48be3198133df8cbed6c5875d0fb
-606c9f037c7893fde4118... 
+606c9f037c7893fde4118...
 Reading input file `miden/examples/nprime/nprime.inputs`
 Welcome! Enter `h` for help.
->> 
+>>
 ```
 
 In order to add a breakpoint, the user should insert a `breakpoint` instruction into the MASM file. This will generate a `Noop` operation that will be decorated with the debug break configuration. This is a provisory solution until the source mapping is implemented.

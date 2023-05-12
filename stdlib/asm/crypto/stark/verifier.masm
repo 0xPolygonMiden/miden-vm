@@ -53,7 +53,7 @@ const.PUBLIC_INPUTS_PTR=4294960000
 #!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
 #!   to public inputs.
 #!   - The following procedure makes use of global memory address beyond 3 * 2^30. More precisely,
-#!   the following is a list of pointers used by `stark::verify`:    
+#!   the following is a list of pointers used by `stark::verify`:
 #!
 #!   * ZERO_ZERO_ZERO_ONE_PTR. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
 #!   * ZERO_WORD_PTR. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
@@ -65,8 +65,8 @@ const.PUBLIC_INPUTS_PTR=4294960000
 #!   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
 #!   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
 #!   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
-#!   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame 
-#!   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame 
+#!   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame
+#!   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame
 #!   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
 #!   * DEEP_RAND_CC_PTR.    Deep query coefficients
 #!   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
@@ -99,7 +99,7 @@ export.verify
     # Cycles: 82
     exec.random_coin::init_seed
     #=> [C]
-    
+
     # Load public inputs
     #
     # Cycles: 93
@@ -116,7 +116,7 @@ export.verify
     #
     # Cycles: 61
     push.0.0.0.0
-    adv_loadw          
+    adv_loadw
     mem_storew.MAIN_TRACE_COM_PTR
     #=> [main_trace_commitment]
     exec.random_coin::reseed
@@ -137,7 +137,7 @@ export.verify
     mem_storew.AUX_TRACE_COM_PTR
     exec.random_coin::reseed
     #=> [...]
- 
+
     #==============================================================================================
     #       III) Draw constraint composition coefficients
     #==============================================================================================
@@ -149,7 +149,7 @@ export.verify
 
     #==============================================================================================
     #       IV) Reseed with commitment to constraint composition polynomial H evaluations over LDE
-    #          and generate the Out-of-Domain (OOD) challenge z 
+    #          and generate the Out-of-Domain (OOD) challenge z
     #==============================================================================================
 
     # Reseed with constraint composition polynomial commitment
@@ -161,7 +161,7 @@ export.verify
     exec.random_coin::reseed
     exec.random_coin::generate_z_z8
     #=> [...]
-   
+
     #==============================================================================================
     #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
     #           of H over the LDE domain.
@@ -172,16 +172,16 @@ export.verify
     #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
 
     # Cycles: 108
-    exec.random_coin::reseed    
-    exec.random_coin::reseed    
-    
+    exec.random_coin::reseed
+    exec.random_coin::reseed
+
     # Cycles: 29
     exec.ood_frames::load_constraint_evaluations
     #=> [CONSTR_EVAL_HASH, ...]
 
     # Cycles: 54
     exec.random_coin::reseed
-    
+
     # Compute `H(z)`
     #
     # Cycles: 118
@@ -215,7 +215,7 @@ export.verify
     #       -   LDE domain generator.
     #       -   Trace domain generator `g`.
     #       -   `gz`.
-    #       -   Number of FRI layers. 
+    #       -   Number of FRI layers.
     #============================================
 
     # Cycles: 126
@@ -223,11 +223,11 @@ export.verify
     #=> [num_fri_layers, ...]
 
     #============================================
-    #   3) Load and reseed with FRI layer commitments 
-    #      and draw the folding challenges for 
+    #   3) Load and reseed with FRI layer commitments
+    #      and draw the folding challenges for
     #      computing the degree respecting projection
     #============================================
-    
+
     # Cycles: 22 + 83 * num_fri_layers
     push.FRI_COM_PTR
     exec.helper::load_fri_layer_commitments
@@ -261,7 +261,7 @@ export.verify
 
     #============================================
     #   6) Compute evaluations of DEEP composition
-    #   polynomial at randomly chosen query positions 
+    #   polynomial at randomly chosen query positions
     #============================================
 
     # Draw random query indices
@@ -270,7 +270,7 @@ export.verify
     push.FRI_QUERIES_PTR
     exec.random_coin::generate_list_indices
     #=> [...]
-    
+
     # Compute deep compostion polynomial queries
     #
     # Cycles: 44 + 27 * 8445 = 228059
@@ -280,7 +280,7 @@ export.verify
     #============================================
     #   7) Call the FRI verifier
     #============================================
-    
+
     # Get domain generator and a pointer to the remainder codeword
     #
     # Cycles: 15

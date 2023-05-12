@@ -7,16 +7,16 @@ const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
 #! The ouptut D is the digest of the hashing.
 #!
 #! Input: [public_inputs_ptr, C]
-#! Output: [D] 
+#! Output: [D]
 #! Cycles: 38
 export.load
-    
+
     # TODO: load the public inputs using public_inputs_ptr
     drop
 
     # Unhash the public inputs from the advice provider.
     # The following assumes that the public inputs contain only the input and output states
-    # of the operand stack and both are of length exactly 16. 
+    # of the operand stack and both are of length exactly 16.
     # TODO: generalize to any number of public inputs supported by the VM.
     push.0.0.0.0
     push.0.0.0.0
