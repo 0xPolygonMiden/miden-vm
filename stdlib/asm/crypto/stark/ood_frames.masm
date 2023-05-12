@@ -52,7 +52,7 @@ export.load_evaluation_frame
     # OOD_TRACE_CURRENT_PTR to OOD_TRACE_CURRENT_PTR + 41 - 1.
     # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for the last tuple
     # OOD_TRACE_CURRENT_PTR + 40 which is stored from the stack as (a1, a0, 1, 0)
-    
+
     push.OOD_TRACE_CURRENT_PTR
     exec.load_ood_eval_frame
     #=> [CURENT_ROW_HASH, ...]
@@ -65,7 +65,7 @@ export.load_evaluation_frame
     # to OOD_TRACE_CURRENT_PTR + 2 * 41 - 1.
     # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for the last tuple
     # which is stored from the stack as (a1, a0, 1, 0)
-    
+
     push.OOD_TRACE_NEXT_PTR
     exec.load_ood_eval_frame
 
@@ -95,9 +95,9 @@ export.load_constraint_evaluations
     movup.4
     drop
     # => [CONSTR_EVAL_HASH, ...]
-end 
+end
 
-#! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z. 
+#! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
 #!
 #! Input: [...]
 #! Output: [res1, res0, ...]
@@ -112,7 +112,7 @@ export.compute_Hz
 
     # Compute `H(z)`
     ## Load `value_i`'s
-    
+
     dup.12
     sub.4
     mem_loadw

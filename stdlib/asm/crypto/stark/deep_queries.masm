@@ -25,7 +25,7 @@ const.ZERO_WORD_PTR=4294967278
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
 #! 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
 #! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#!   is referenced by `p1`        
+#!   is referenced by `p1`
 #! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
 #!   referenced by `p1 + 41`
 #! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
@@ -45,7 +45,7 @@ proc.deep_query_aux_trace_1
     dup.6
     mem_loadw
     push.0.0
-    dup.8 
+    dup.8
     add.41
     mem_loadw
     drop drop
@@ -70,7 +70,7 @@ proc.deep_query_aux_trace_1
     movdn.5
     movdn.5
     #=> [value_{i}1, value_{i}0, p1, p2, value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, Y, Acc]
-    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc] 
+    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc]
     # where T := [value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0]
 
     # Multiply by randomness
@@ -95,13 +95,13 @@ proc.deep_query_aux_trace_1
     dup.7
     ext2mul
     #=> [prod1_g, prod0_g, beta1, beta0, T, Acc, value_{i}1, value_{i}0, p1, p2]
-    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha 
+    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha
 
     ## Multiply the non-shifted term
     swap
     swap.3
     swap
-    swap.2    
+    swap.2
     swapw
     #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_{i}1, value_{i}0, p1, p2]
     dup.5
@@ -112,7 +112,7 @@ proc.deep_query_aux_trace_1
 
     ## Shuffle stack to prepare for accumulating
     movup.7
-    movup.7  
+    movup.7
     #=> [prod1_g, prod0_g, prod1, prod0, ..]
     swap
     swap.3
@@ -143,7 +143,7 @@ end
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
 #! 1- `T_i(x)` is the value of the i-th column of the auxiliary trace (an extension field element).
 #! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#!   is referenced by `p1`        
+#!   is referenced by `p1`
 #! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
 #!   referenced by `p1 + 41`
 #! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
@@ -167,7 +167,7 @@ proc.deep_query_aux_trace_2
     movup.3
     movup.3
     push.0.0
-    dup.8 
+    dup.8
     add.40          #   40 instead of 41 because we added 1 a few lines above
     mem_loadw
     movup.2 drop
@@ -192,7 +192,7 @@ proc.deep_query_aux_trace_2
     movdn.5
     movdn.5
     #=> [value_{i}1, value_{i}0, p1, p2, value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0, Y, Acc]
-    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc] 
+    #=> [value_{i}1, value_{i}0, p1, p2, T, Y, Acc]
     # where T := [value_{i}1 - T_i(gz)1, value_{i}0 - T_i(gz)0, value_{i}1 - T_i(z)1, value_{i}0 - T_i(z)0]
 
     # Multiply by randomness
@@ -215,19 +215,19 @@ proc.deep_query_aux_trace_2
     swap
     swap.2
     #=> [[beta1, beta0, alpha1, alpha0], T, Acc, value_{i}1, value_{i}0, p1, p2]
-  
+
     ## Multiply the shifted term
     dup.7
     dup.7
     ext2mul
     #=> [prod1_g, prod0_g, beta1, beta0, T, Acc, value_{i}1, value_{i}0, p1, p2]
-    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha 
+    # Where (prod0_g, prod1_g) =  (T0, T1) * alpha
 
     ## Multiply the non-shifted term
     swap
     swap.3
     swap
-    swap.2    
+    swap.2
     swapw
     #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_{i}1, value_{i}0, p1, p2]
     dup.5
@@ -271,9 +271,9 @@ end
 #! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
 #! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3`
 #! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#!   is referenced by `p1`        
+#!   is referenced by `p1`
 #! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
 #!   referenced by `p1 + 41`
 #! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
@@ -285,7 +285,7 @@ end
 #! the terms related to `T_{i+1}(x)` and so forth.
 #!
 #! Input: [T_i(x), p1, p2, p3, Y, Y, Acc]
-#! Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc'] 
+#! Output: [T_i(x), p1, p2 + 1, p3, Y', Y', Acc']
 #! Cycles: ~ 87
 proc.deep_query_main_trace_1
 
@@ -302,7 +302,7 @@ proc.deep_query_main_trace_1
     dup.7 add.41
     mem_loadw
     drop drop
-    neg 
+    neg
     swap.2
     neg
     #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
@@ -344,7 +344,7 @@ proc.deep_query_main_trace_1
     swap
     swap.3
     swap
-    swap.2    
+    swap.2
     swapw
     #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
     dup.5
@@ -380,9 +380,9 @@ end
 #! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
 #! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3`
 #! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#!   is referenced by `p1`        
+#!   is referenced by `p1`
 #! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
 #!   referenced by `p1 + 41`
 #! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
@@ -416,7 +416,7 @@ proc.deep_query_main_trace_2
     movup.3
     movup.3
     drop drop
-    neg 
+    neg
     swap.2
     neg
     #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
@@ -464,7 +464,7 @@ proc.deep_query_main_trace_2
     swap
     swap.3
     swap
-    swap.2    
+    swap.2
     swapw
     #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
     dup.5
@@ -500,9 +500,9 @@ end
 #! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
 #! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3`
 #! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#!   is referenced by `p1`        
+#!   is referenced by `p1`
 #! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
 #!   referenced by `p1 + 41`
 #! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
@@ -525,7 +525,7 @@ proc.deep_query_main_trace_3
     swap
     swap.4
     #=> [y, y, y, y, value_i, p1, p2, p3, Y, Acc ]
-    
+
 
     # Get T_i(z), T_i(gz)
     dup.5
@@ -534,7 +534,7 @@ proc.deep_query_main_trace_3
     dup.7 add.41
     mem_loadw
     drop drop
-    neg 
+    neg
     swap.2
     neg
     #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
@@ -574,7 +574,7 @@ proc.deep_query_main_trace_3
     swap
     swap.3
     swap
-    swap.2    
+    swap.2
     swapw
     #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
 
@@ -612,9 +612,9 @@ end
 #! Computes `(T_i(x) - T_i(z)) * alpha` and `(T_i(x) - T_i(gz)) * beta` and accumulates the results into
 #! `(Acc2, Acc3)` and `(Acc0, Acc1)`, respectively, where:
 #! 1- `T_i(x)` is the value of the i-th column of the main trace (a base field element) and is stored
-#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3` 
+#!   in memory as `[T_{i+3}(x), T_{i+2}(x), T_{i+1}(x), T_{i}(x)]` and referenced by `p3`
 #! 2- `T_i(z)` is i-th value of the current row of the OOD frame (an extension field element) and
-#!   is referenced by `p1`        
+#!   is referenced by `p1`
 #! 3- `T_i(gz)` is i-th value of the next row of the OOD frame (an extension field element) and is
 #!   referenced by `p1 + 41`
 #! 4- `alpha` and `beta` are random extension field element and are referenced by `p2`.
@@ -640,7 +640,7 @@ proc.deep_query_main_trace_4
     #=> [value_i, x, x , x, x, p1, p2, p3, Y, Acc ]
     swap.4
     #=> [Y, value_i, p1, p2, p3, Y, Acc ]
-    
+
 
     # Get T_i(z), T_i(gz)
     dup.5
@@ -653,7 +653,7 @@ proc.deep_query_main_trace_4
     movup.3
     movup.3
     drop drop
-    neg 
+    neg
     swap.2
     neg
     #=> [ - T_i(z)_1, T_i(gz)_0, - T_i(gz)_1, T_i(z)_0, value_i, p1, p2, p3, Y, Acc ]
@@ -699,7 +699,7 @@ proc.deep_query_main_trace_4
     swap
     swap.3
     swap
-    swap.2    
+    swap.2
     swapw
     #=> [- T_i(z)_1, value_i - T_i(z)_0, - T_i(gz)_1, value_i - T_i(gz)_0, beta1, beta0, prod1_g, prod0_g, Acc, value_i, p1, p2, p3]
 
@@ -735,7 +735,7 @@ proc.deep_query_main_trace_4
 end
 
 
- 
+
 #! Compute the deep composition polynomial at the previously drawn random queries. Currently, their
 #! number is fixed to 27.
 #!
@@ -747,8 +747,8 @@ export.compute_deep_composition_polynomial_queries
     repeat.5 push.0.0.0.0 end
     push.FRI_QUERIES_PTR
     #=>[ptr_query, Y, Y, Y, Y, Y, ptr_query]
-    
-    repeat.27         
+
+    repeat.27
         # Main trace portion of the query
         ## Get the next query index
         mem_loadw
@@ -763,11 +763,11 @@ export.compute_deep_composition_polynomial_queries
         movup.2 drop
         swap
         #=> [d, query, Com, Y, Y]
-        ## Get the leaf in the main trace commitment and save it 
+        ## Get the leaf in the main trace commitment and save it
         mtree_get
         mem_storew.TMP3
         adv.keyval
-        #=> [V, R, Y, Y]  
+        #=> [V, R, Y, Y]
         drop
         push.CURRENT_TRACE_ROW_PTR
         swapw.3
@@ -801,7 +801,7 @@ export.compute_deep_composition_polynomial_queries
         movup.3
         swapw
         #=>[Y, ptr, pos, depth, y]
-        
+
         # Aux trace part
         ## Load aux trace commitment and get leaf
         mem_loadw.AUX_TRACE_COM_PTR
@@ -823,11 +823,11 @@ export.compute_deep_composition_polynomial_queries
         adv_push.1
         push.1
         push.0
-        
+
         push.CURRENT_TRACE_ROW_PTR
         add.22
         mem_storew
-        
+
         swapw
         mem_loadw.ZERO_WORD_PTR
         hperm
@@ -880,8 +880,8 @@ export.compute_deep_composition_polynomial_queries
         swap
         movdn.3
         #=> [ptr, depth, y, pos, Y, y, y, y, ]
-        
-        # Load domain_gen    
+
+        # Load domain_gen
         push.0
         mem_loadw.TMP0
         #=> [lde_size, depth, domain_gen, 0, pos, y, y, y, Y, ]
@@ -896,7 +896,7 @@ export.compute_deep_composition_polynomial_queries
         swapw
         #=> [pos, y, y, y, x, lde_size, depth, 0, Y, ]
 
-        # Compute the denominator i.e. (x - z) and (x - gz) 
+        # Compute the denominator i.e. (x - z) and (x - gz)
         ## Get z and gz from memory
         mem_loadw.TMP1
         #=> [gz1, gz0, z1, z0, x, lde_size, depth, 0, Y, ]
@@ -908,12 +908,12 @@ export.compute_deep_composition_polynomial_queries
         movdn.3
         #=> [z1, z0, x, -gz1, x -gz0, ..]
 
-        ## Compute Z := [-z1, x - z0, -gz1, x -gz0] 
+        ## Compute Z := [-z1, x - z0, -gz1, x -gz0]
         neg
         movdn.2
         sub
         swap
-        #=> [Z, Y, Y] where Z := [-z1, x - z0, -gz1, x -gz0] 
+        #=> [Z, Y, Y] where Z := [-z1, x - z0, -gz1, x -gz0]
 
         ## Move Z to the last portion of the stack
         push.0
@@ -928,19 +928,19 @@ export.compute_deep_composition_polynomial_queries
         push.0
         #=> [P, x, lde_size, depth, 0, pos, y, y, y, Y, ]
 
-        # Prepare to compute the sum \sum_{i=0}^k{\left(\alpha_i \cdot \frac{T_i(x) - T_i(z)}{x - z} 
+        # Prepare to compute the sum \sum_{i=0}^k{\left(\alpha_i \cdot \frac{T_i(x) - T_i(z)}{x - z}
         #            + \beta_i \cdot \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g}
         # We can factorize (x - z) and (x - gz) and divide the two sums only once at the end.
         # The two sums are stored in [Acc3, Acc2] and [Acc1, Acc0] respectively.
 
         # This will contain the two accumulators
-        push.0.0.0.0    
+        push.0.0.0.0
         swapw.3
         #=> [Y, P, Y, 0, 0, 0, 0,      Z ]
         #=> [Y, P, Y, Acc,       Z] where Acc =: [Acc3, Acc2, Acc1, Acc0]
 
-        # Loop over i (constraints) for the currently fixed x 
-        # There are 72 columns in the main trace. In each iteration of the following loop we are treating 
+        # Loop over i (constraints) for the currently fixed x
+        # There are 72 columns in the main trace. In each iteration of the following loop we are treating
         # 4 columns and thus need 18 iterations.
         # The reason for having 4 different (almost) identical implementations for `proc.deep_query`
         # is due to the fact that T_i(x) is a base field element and can be in 1 of 4 possible
@@ -964,7 +964,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [p3, 0, p1, p2, Y, Y, Acc,      Z ]
         #=> [y, y, p1, p2, Y, Y, Acc,      Z]
 
-        # Load the 1st, out of 9, auxiliary trace values 
+        # Load the 1st, out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.18
@@ -974,7 +974,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
         exec.deep_query_aux_trace_1
 
-        # Load the 2nd out of 9, auxiliary trace values 
+        # Load the 2nd out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.18
@@ -985,7 +985,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [value_{i+1}1, value_{i+1}0, p1, p2, Y, Y, Acc,      Z ]
         exec.deep_query_aux_trace_2
 
-        # Load the 3rd out of 9, auxiliary trace values 
+        # Load the 3rd out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.19
@@ -993,7 +993,7 @@ export.compute_deep_composition_polynomial_queries
         drop drop
         exec.deep_query_aux_trace_1
 
-        # Load the 4th out of 9, auxiliary trace values 
+        # Load the 4th out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.19
@@ -1002,7 +1002,7 @@ export.compute_deep_composition_polynomial_queries
         movup.2 drop
         exec.deep_query_aux_trace_2
 
-        # Load the 5th out of 9, auxiliary trace values 
+        # Load the 5th out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.20
@@ -1010,7 +1010,7 @@ export.compute_deep_composition_polynomial_queries
         drop drop
         exec.deep_query_aux_trace_1
 
-        # Load the 6th out of 9, auxiliary trace values 
+        # Load the 6th out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.20
@@ -1019,7 +1019,7 @@ export.compute_deep_composition_polynomial_queries
         movup.2 drop
         exec.deep_query_aux_trace_2
 
-        # Load the 7th out of 9, auxiliary trace values 
+        # Load the 7th out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.21
@@ -1027,7 +1027,7 @@ export.compute_deep_composition_polynomial_queries
         drop drop
         exec.deep_query_aux_trace_1
 
-        # Load the 8th out of 9, auxiliary trace values 
+        # Load the 8th out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.21
@@ -1036,7 +1036,7 @@ export.compute_deep_composition_polynomial_queries
         movup.2 drop
         exec.deep_query_aux_trace_2
 
-        # Load the 9th out of 9, auxiliary trace values 
+        # Load the 9th out of 9, auxiliary trace values
         push.0.0
         push.CURRENT_TRACE_ROW_PTR
         add.22
@@ -1045,9 +1045,9 @@ export.compute_deep_composition_polynomial_queries
         exec.deep_query_aux_trace_1
         #=> [value_{i}1, value_{i}0, p1, p2, Y, Y, Acc,      Z ]
 
-        # Move p2, the pointer to constraint random coefficients, further up the stack and prepare 
-        # for loading the composition constraint polynomial part by getting the next two H_i(x) 
-        # i.e. the constraint composition trace row i.e. H_i(x) and H_{i+1}(x) for current x 
+        # Move p2, the pointer to constraint random coefficients, further up the stack and prepare
+        # for loading the composition constraint polynomial part by getting the next two H_i(x)
+        # i.e. the constraint composition trace row i.e. H_i(x) and H_{i+1}(x) for current x
         swapw.2
         push.CURRENT_TRACE_ROW_PTR
         add.23
@@ -1088,7 +1088,7 @@ export.compute_deep_composition_polynomial_queries
         add.1
         swap.8
         mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, value_{i}1, value_{i}0, p2, p1, 
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, value_{i}1, value_{i}0, p2, p1,
         #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
 
         movupw.2
@@ -1103,7 +1103,7 @@ export.compute_deep_composition_polynomial_queries
 
         movdn.5
         movdn.5
-        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, 
+        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0,
         #   value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
         ext2mul
         movdn.3
@@ -1111,7 +1111,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [prod_{i+1}_1, prod_{i+1}_0, prod_i_1, prod_i_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
         # where (prod_{i}_0, prod_{i}_1) = (H_{i}_0, H_{i}_1) * delta_{i}
 
-        # Accumulate partial sum 
+        # Accumulate partial sum
         ext2add
         #=> [prod_{i+1}_1 + prod_i_1, prod_{i+1}_0 + prod_i_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
         #=> [accH_1, accH_0, value_{i}1, value_{i}0, p2, p1, Acc,      Z ]
@@ -1161,22 +1161,22 @@ export.compute_deep_composition_polynomial_queries
         add.1
         swap.8
         mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, 
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1,
         #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
 
         movupw.2
         movup.5
         movup.5
-        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
+        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
         #   accH_1, accH_0, p2, p1, Acc,      Z ]
         ext2mul
-        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
+        #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
         #   accH_1, accH_0, p2, p1, Acc,      Z ]
         # where (prod_{i+1}_0, prod_{i+1}_1) = (H_{i+1}_0, H_{i+1}_1) * delta_{i+1}
 
         movdn.5
         movdn.5
-        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0, 
+        #=> [H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, prod_{i+1}_1, prod_{i+1}_0,
         #   accH_1, accH_0, p2, p1, Acc,      Z ]
         ext2mul
         movdn.3
@@ -1209,7 +1209,7 @@ export.compute_deep_composition_polynomial_queries
         movup.5
         movup.5
         swapw
-        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, 
+        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
         #   accH_1, accH_0, p2, p1, Acc,      Z ]
         ext2sub
         #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
@@ -1232,13 +1232,13 @@ export.compute_deep_composition_polynomial_queries
         add.1
         swap.8
         mem_loadw
-        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, 
+        #=> [delta_{i+1}_1, delta_{i+1}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1,
         #   H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, Acc,      Z ]
 
         movupw.2
         movup.5
         movup.5
-        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, 
+        #=> [delta_{i+1}_1, delta_{i+1}_0, H_{i+1}_1, H_{i+1}_0, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0,
         #   accH_1, accH_0, p2, p1, Acc,      Z ]
         ext2mul
         #=> [prod_{i+1}_0, prod_{i+1}_1, H_{i}_1, H_{i}_0, delta_{i}_1, delta_{i}_0, accH_1, accH_0, p2, p1, Acc,      Z ]
@@ -1278,7 +1278,7 @@ export.compute_deep_composition_polynomial_queries
         movup.5
         movup.5
         swapw
-        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, 
+        #=> [H_{i}(z)_1, H_{i}(z)_0, H_{i}(x)_1, H_{i}(x)_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0,
         #   accH_1, accH_0, p2, p1, Acc,      Z ]
         ext2sub
         #=> [H_{i}_1, H_{i}_0, H_{i+1}(x)_1, H_{i+1}(x)_0, H_{i+1}(z)_1, H_{i+1}(z)_0, accH_1, accH_0, p2, p1, Acc,      Z ]
@@ -1352,7 +1352,7 @@ export.compute_deep_composition_polynomial_queries
         #=> [query_trace_1, query_trace_0, accH_1, accH_0, p2, p1, y, ptr_query ]
 
         # Divide the constraint composition polynomial accumulator by (x - z^8)
-        ## Get x 
+        ## Get x
         push.0.0.0.0
         mem_loadw.TMP2
         movdn.3
@@ -1415,7 +1415,7 @@ export.compute_deep_composition_polynomial_queries
         mul
         add
         #=> [x * alpha1 + beta1, beta0 + x * alpha0, y, y, y, y, eval_tmp_1, eval_tmp_0, ptr_query, ]
-        
+
         # Compute deep evaluation for the current x
         movup.7
         movup.7
@@ -1423,7 +1423,7 @@ export.compute_deep_composition_polynomial_queries
         ext2mul
         #=> [eval_1, eval_0, y, y, y, y, ptr_query, ]
 
-        # Store [poe, index, eval_1, eval_0] 
+        # Store [poe, index, eval_1, eval_0]
         # where poe := g^index = x / offset.
         movdn.5
         movdn.5
