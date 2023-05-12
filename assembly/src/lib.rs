@@ -25,6 +25,11 @@ mod parsers;
 pub use parsers::{ModuleAst, ProcedureAst, ProgramAst};
 use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
+pub mod ast {
+    pub use crate::parsers::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst};
+    pub use crate::procedures::ProcedureName;
+}
+
 pub use vm_core::utils::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };

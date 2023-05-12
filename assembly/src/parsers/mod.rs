@@ -7,7 +7,7 @@ use core::{fmt::Display, ops::RangeBounds, str::from_utf8};
 
 mod nodes;
 use crate::utils::bound_into_included_u64;
-pub(crate) use nodes::{Instruction, Node};
+pub use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 mod labels;
@@ -51,6 +51,18 @@ pub struct ProgramAst {
 }
 
 impl ProgramAst {
+    // AST
+    // --------------------------------------------------------------------------------------------
+    /// Constructs a [ProgramAst].
+    ///
+    /// A program consist of a body and a set of internal (i.e., not exported) procedures.
+    pub fn new(local_procs: Vec<ProcedureAst>, body: Vec<Node>) -> Result<Self, ParsingError> {
+        if local_procs.len() > MAX_LOCL_PROCS {
+            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
+        }
+        Ok(Self { local_procs, body })
+    }
+
     // PARSER
     // --------------------------------------------------------------------------------------------
     /// Parses the provided source into a [ProgramAst].
@@ -112,11 +124,7 @@ impl ProgramAst {
         }
 
         let local_procs = sort_procs_into_vec(context.local_procs);
-        if local_procs.len() > MAX_LOCL_PROCS {
-            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
-        }
-
-        Ok(Self { body, local_procs })
+        Self::new(local_procs, body)
     }
 
     // SERIALIZATION / DESERIALIZATION
@@ -150,7 +158,10 @@ impl ProgramAst {
         let body_len = source.read_u16()? as usize;
         let body = Deserializable::read_batch_from(&mut source, body_len)?;
 
-        Ok(ProgramAst { local_procs, body })
+        match Self::new(local_procs, body) {
+            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
+            Ok(res) => Ok(res),
+        }
     }
 
     // DESTRUCTURING
@@ -176,6 +187,23 @@ pub struct ModuleAst {
 }
 
 impl ModuleAst {
+    // AST
+    // --------------------------------------------------------------------------------------------
+    /// Constructs a [ModuleAst].
+    ///
+    /// A module consists of internal and exported procedures but does not contain a body.
+    pub fn new(local_procs: Vec<ProcedureAst>, docs: Option<String>) -> Result<Self, ParsingError> {
+        if local_procs.len() > MAX_LOCL_PROCS {
+            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
+        }
+        if let Some(ref docs) = docs {
+            if docs.len() > MAX_DOCS_LEN {
+                return Err(ParsingError::module_docs_too_long(docs.len(), MAX_DOCS_LEN));
+            }
+        }
+        Ok(Self { docs, local_procs })
+    }
+
     // PARSER
     // --------------------------------------------------------------------------------------------
     /// Parses the provided source into a [ModuleAst].
@@ -204,19 +232,11 @@ impl ModuleAst {
 
         // get a list of local procs and make sure the number of procs is within the limit
         let local_procs = sort_procs_into_vec(context.local_procs);
-        if local_procs.len() > MAX_LOCL_PROCS {
-            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
-        }
 
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
-        if let Some(ref docs) = docs {
-            if docs.len() > MAX_DOCS_LEN {
-                return Err(ParsingError::module_docs_too_long(docs.len(), MAX_DOCS_LEN));
-            }
-        }
 
-        Ok(ModuleAst { docs, local_procs })
+        Self::new(local_procs, docs)
     }
 
     // PUBLIC ACCESSORS
@@ -285,7 +305,11 @@ impl Deserializable for ModuleAst {
 
         let num_local_procs = source.read_u16()? as usize;
         let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
-        Ok(Self { docs, local_procs })
+
+        match Self::new(local_procs, docs) {
+            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
+            Ok(res) => Ok(res),
+        }
     }
 }
 
@@ -304,6 +328,29 @@ pub struct ProcedureAst {
     pub num_locals: u16,
     pub body: Vec<Node>,
     pub is_export: bool,
+}
+
+impl ProcedureAst {
+    // AST
+    // --------------------------------------------------------------------------------------------
+    /// Constructs a [ProcedureAst].
+    ///
+    /// A procedure consists of a name, a number of locals, a body, and a flag to signal whether the procedure is exported.
+    pub fn new(
+        name: ProcedureName,
+        num_locals: u16,
+        body: Vec<Node>,
+        is_export: bool,
+        docs: Option<String>,
+    ) -> Self {
+        Self {
+            name,
+            docs,
+            num_locals,
+            body,
+            is_export,
+        }
+    }
 }
 
 impl Serializable for ProcedureAst {
@@ -350,10 +397,10 @@ impl Deserializable for ProcedureAst {
         let body = Deserializable::read_batch_from(source, body_len)?;
         Ok(Self {
             name,
-            docs,
             num_locals,
             body,
             is_export,
+            docs,
         })
     }
 }

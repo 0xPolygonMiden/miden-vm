@@ -106,13 +106,7 @@ fn test_ast_parsing_program_proc() {
         String::from("foo"),
         (
             0,
-            ProcedureAst {
-                name: String::from("foo").try_into().unwrap(),
-                docs: None,
-                is_export: false,
-                num_locals: 1,
-                body: proc_body1,
-            },
+            ProcedureAst::new(String::from("foo").try_into().unwrap(), 1, proc_body1, false, None),
         ),
     );
     let proc_body2: Vec<Node> = vec![Node::Instruction(Instruction::PadW)];
@@ -120,13 +114,7 @@ fn test_ast_parsing_program_proc() {
         String::from("bar"),
         (
             1,
-            ProcedureAst {
-                name: String::from("bar").try_into().unwrap(),
-                docs: None,
-                is_export: false,
-                num_locals: 2,
-                body: proc_body2,
-            },
+            ProcedureAst::new(String::from("bar").try_into().unwrap(), 2, proc_body2, false, None),
         ),
     );
     let nodes: Vec<Node> = vec![
@@ -148,13 +136,7 @@ fn test_ast_parsing_module() {
         String::from("foo"),
         (
             0,
-            ProcedureAst {
-                name: String::from("foo").try_into().unwrap(),
-                docs: None,
-                is_export: true,
-                num_locals: 1,
-                body: proc_body,
-            },
+            ProcedureAst::new(String::from("foo").try_into().unwrap(), 1, proc_body, true, None),
         ),
     );
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
@@ -256,13 +238,7 @@ fn test_ast_parsing_module_nested_if() {
         String::from("foo"),
         (
             0,
-            ProcedureAst {
-                name: String::from("foo").try_into().unwrap(),
-                docs: None,
-                is_export: false,
-                num_locals: 0,
-                body: proc_body,
-            },
+            ProcedureAst::new(String::from("foo").try_into().unwrap(), 0, proc_body, false, None),
         ),
     );
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
@@ -319,13 +295,7 @@ fn test_ast_parsing_module_sequential_if() {
         String::from("foo"),
         (
             0,
-            ProcedureAst {
-                name: String::from("foo").try_into().unwrap(),
-                docs: None,
-                is_export: false,
-                num_locals: 0,
-                body: proc_body,
-            },
+            ProcedureAst::new(String::from("foo").try_into().unwrap(), 0, proc_body, false, None),
         ),
     );
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
@@ -412,13 +382,13 @@ fn test_ast_parsing_simple_docs() {
 
     let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let docs_foo = "proc doc".to_string();
-    let procedure = ProcedureAst {
-        name: String::from("foo").try_into().unwrap(),
-        docs: Some(docs_foo),
-        is_export: true,
-        num_locals: 1,
-        body: proc_body_foo,
-    };
+    let procedure = ProcedureAst::new(
+        String::from("foo").try_into().unwrap(),
+        1,
+        proc_body_foo,
+        true,
+        Some(docs_foo),
+    );
 
     let module = ModuleAst::parse(source).unwrap();
 
@@ -468,13 +438,13 @@ of the comments is correctly parsed. There was a bug here earlier."
         String::from("foo"),
         (
             0,
-            ProcedureAst {
-                name: String::from("foo").try_into().unwrap(),
-                docs: Some(docs_foo),
-                is_export: true,
-                num_locals: 1,
-                body: proc_body_foo,
-            },
+            ProcedureAst::new(
+                String::from("foo").try_into().unwrap(),
+                1,
+                proc_body_foo,
+                true,
+                Some(docs_foo),
+            ),
         ),
     );
 
@@ -483,13 +453,13 @@ of the comments is correctly parsed. There was a bug here earlier."
         String::from("bar"),
         (
             1,
-            ProcedureAst {
-                name: String::from("bar").try_into().unwrap(),
-                docs: None,
-                is_export: false,
-                num_locals: 2,
-                body: proc_body_bar,
-            },
+            ProcedureAst::new(
+                String::from("bar").try_into().unwrap(),
+                2,
+                proc_body_bar,
+                false,
+                None,
+            ),
         ),
     );
 
@@ -504,13 +474,13 @@ aliqua."
         String::from("baz"),
         (
             2,
-            ProcedureAst {
-                name: String::from("baz").try_into().unwrap(),
-                docs: Some(docs_baz),
-                is_export: true,
-                num_locals: 3,
-                body: proc_body_baz,
-            },
+            ProcedureAst::new(
+                String::from("baz").try_into().unwrap(),
+                3,
+                proc_body_baz,
+                true,
+                Some(docs_baz),
+            ),
         ),
     );
 
