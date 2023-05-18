@@ -286,11 +286,11 @@ where
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
 
-    // Generate the 8bit tables for the range trace.
-    let range_table = range.build_8bit_lookup();
+    // Generate number of rows for the range trace.
+    let range_table_len = range.get_number_range_checker_rows();
 
     // Get the trace length required to hold all execution trace steps.
-    let max_len = range_table.len.max(clk as usize).max(chiplets.trace_len());
+    let max_len = range_table_len.max(clk as usize).max(chiplets.trace_len());
 
     // pad the trace length to the next power of two and ensure that there is space for the
     // rows to hold random values
@@ -307,7 +307,7 @@ where
     let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
 
     // combine the range trace segment using the support lookup table
-    let range_check_trace = range.into_trace_with_table(range_table, trace_len, NUM_RAND_ROWS);
+    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
         .into_iter()

@@ -10,7 +10,7 @@ pub mod stack;
 // ================================================================================================
 
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
-pub const MIN_TRACE_LEN: usize = 1024;
+pub const MIN_TRACE_LEN: usize = 8192;
 
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRAC
 
 // Range check trace
 pub const RANGE_CHECK_TRACE_OFFSET: usize = STACK_TRACE_RANGE.end;
-pub const RANGE_CHECK_TRACE_WIDTH: usize = 4;
+pub const RANGE_CHECK_TRACE_WIDTH: usize = 3;
 pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_WIDTH);
 
@@ -74,7 +74,7 @@ pub const STACK_AUX_TRACE_RANGE: Range<usize> =
 
 // Range check auxiliary columns
 pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
-pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 3;
+pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 2;
 pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
 

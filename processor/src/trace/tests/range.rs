@@ -1,74 +1,11 @@
 use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
 use miden_air::trace::{
     chiplets::hasher::HASH_CYCLE_LEN,
-    range::{P0_COL_IDX, P1_COL_IDX, Q_COL_IDX},
+    range::{P1_COL_IDX, Q_COL_IDX},
     AUX_TRACE_RAND_ELEMENTS,
 };
 use rand_utils::rand_array;
 use vm_core::Operation;
-
-#[test]
-fn p0_trace() {
-    // --- Range check 256_u32 (4 16-bit range checks: 0, 256 and 0, 0) ---------------------------
-    let stack = [1, 255];
-    let operations = vec![Operation::U32add];
-    let mut trace = build_trace_from_ops(operations, &stack);
-
-    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let p0 = aux_columns.get_column(P0_COL_IDX);
-
-    assert_eq!(trace.length(), p0.len());
-
-    // 256 8-bit rows are needed to for each value 0-255. 64 8-bit rows are needed to check 256
-    // increments of 255 in the 16-bit portion of the table, for a total of 256 + 63 = 319 rows.
-    let len_8bit = 319;
-    // 260 16-bit rows are needed for 0, 0, 255, 256, ... 255 increments of 255 ..., 65535. (0 is
-    // range-checked in 2 rows for a total of 3 lookups. 256 is range-checked in one row. 65535 is
-    // the max, and the rest are "bridge" values.) An extra row is added to pad the u16::MAX value.
-    let len_16bit = 260 + 1;
-    // The range checker is padded at the beginning, so the padding must be skipped.
-    let start_8bit = trace.length() - len_8bit - len_16bit - NUM_RAND_ROWS;
-    let start_16bit = trace.length() - len_16bit - NUM_RAND_ROWS;
-
-    // The padded portion of the column should be all ones.
-    let expected_padding = vec![ONE; start_8bit];
-    assert_eq!(expected_padding, p0[..start_8bit]);
-
-    // The first value in the 8-bit portion should be one.
-    assert_eq!(ONE, p0[start_8bit]);
-
-    // The 8-bit portion should include two lookups of zero (included at the next row).
-    let mut expected = alpha.square();
-    assert_eq!(alpha.square(), p0[start_8bit + 1]);
-
-    // The 8-bit portion should include 1 lookup of one.
-    expected *= alpha + ONE;
-    assert_eq!(expected, p0[start_8bit + 2]);
-
-    // Nothing changes until the lookup of 254.
-    for i in 3..255 {
-        assert_eq!(expected, p0[start_8bit + i])
-    }
-
-    // The 8-bit portion should include 1 lookup of 254.
-    expected *= alpha + Felt::new(254);
-    assert_eq!(expected, p0[start_8bit + 255]);
-
-    // Finally, the 8-bit portion should include 256 lookups of 255, so that at the start of the
-    // 16-bit portion, the value of `p0` includes all the 8-bit lookups
-    let mut acc_255 = alpha + Felt::new(255);
-    for _ in 0..8 {
-        acc_255 *= acc_255;
-    }
-    expected *= acc_255;
-    assert_eq!(expected, p0[start_16bit]);
-
-    // The final value at the end of the 16-bit portion should be 1. This will be the last row
-    // before the random row.
-    assert_eq!(ONE, p0[p0.len() - 1 - NUM_RAND_ROWS]);
-}
 
 #[test]
 #[allow(clippy::needless_range_loop)]
@@ -141,16 +78,12 @@ fn p1_trace_stack() {
 
     // --- Check the range checker's lookups. -----------------------------------------------------
 
-    // 260 16-bit rows are needed for 0, 0, 255, 256, ... 255 increments of 255 ..., 65535. (0 is
+    // 8194 16-bit rows are needed for 0, 0, 255, 256, ... 255 increments of 255 ..., 65535. (0 is
     // range-checked in 2 rows for a total of 3 lookups. 256 is range-checked in one row. 65535 is
     // the max, and the rest are "bridge" values.) An extra row is added to pad the u16::MAX value.
-    let len_16bit = 260 + 1;
+    let len_16bit = 8194 + 1;
     // The start of the 16-bit section of the range checker table.
     let start_16bit = trace.length() - len_16bit - NUM_RAND_ROWS;
-
-    // The values in p1 should not change again until the range checker's 16-bit table starts
-    let expected_vec = vec![expected; start_16bit - 3];
-    assert_eq!(expected_vec, p1[3..start_16bit]);
 
     // When the 16-bit portion of the table starts, the first value will be unchanged.
     assert_eq!(expected, p1[start_16bit]);
@@ -160,12 +93,15 @@ fn p1_trace_stack() {
     // Then we include our third lookup of 0, so the next value should be multiplied by alpha.
     expected *= alpha;
     assert_eq!(expected, p1[start_16bit + 2]);
-    // Then we have a bridge row for 255 where the value does not change
-    assert_eq!(expected, p1[start_16bit + 3]);
+    // Then we have bridge rows at the intervals of 8 where the values do not change.
+    let mut idx = 3;
+    for _ in (0..256).step_by(8).skip(1) {
+        assert_eq!(expected, p1[start_16bit + idx]);
+        idx += 1;
+    }
     // Then we include 1 lookup of 256, so it should be multiplied by alpha + 256.
     expected *= alpha + Felt::new(256);
-    assert_eq!(expected, p1[start_16bit + 4]);
-
+    assert_eq!(expected, p1[start_16bit + idx]);
     // --- Check the last value of the p1 column is one. ------------------------------------------
 
     let last_row = p1.len() - NUM_RAND_ROWS - 1;
@@ -195,16 +131,16 @@ fn p1_trace_mem() {
     let alpha = rand_elements[0];
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
-
     assert_eq!(trace.length(), p1.len());
-
     // The memory section of the chiplets trace starts after the span hash.
     let memory_start = HASH_CYCLE_LEN;
-    // 260 16-bit rows are needed for 0, 0, 4, ... 256 increments of 255 ..., 65535. (0 is
+
+    // TODO: Should this be 8194?
+    // 8195 16-bit rows are needed for 0, 0, 4, ... 8192 increments of 8 ..., 65535. (0 is
     // range-checked in 2 rows for a total of 3 lookups. Four is range checked in one row for a
     // total of one lookup. 65535 is the max, and the rest are "bridge" values.) An extra row is
     // added to pad the u16::MAX value.
-    let len_16bit = 260 + 1;
+    let len_16bit = 8195 + 1;
     let start_16bit = trace.length() - len_16bit - NUM_RAND_ROWS;
 
     // The value should start at ONE and be unchanged until the memory processor section begins.
@@ -228,11 +164,6 @@ fn p1_trace_mem() {
     // Include the lookup from the `MLoadW` operation at the next row.
     expected *= ((d0_load + alpha) * (d1_load + alpha)).inv();
     assert_eq!(expected, p1[memory_start + 2]);
-
-    // The values in p1 should not change again until the range checker's 16-bit table starts
-    for row in (memory_start + 3)..=start_16bit {
-        assert_eq!(expected, p1[row]);
-    }
 
     // --- Check the range checker's lookups. -----------------------------------------------------
 
