@@ -274,15 +274,7 @@ impl ParserContext {
         tokens.advance();
 
         // build and return the procedure
-        let proc = ProcedureAst {
-            name,
-            docs,
-            num_locals,
-            is_export,
-            body,
-        };
-
-        Ok(proc)
+        Ok(ProcedureAst::new(name, num_locals, body, is_export, docs))
     }
 
     // BODY PARSER
