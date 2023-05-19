@@ -1,4 +1,4 @@
-use super::{Felt, ProcedureId, Vec};
+use super::{CodeBody, Felt, ProcedureId, Vec};
 use core::fmt;
 
 // NODES
@@ -8,9 +8,17 @@ use core::fmt;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Node {
     Instruction(Instruction),
-    IfElse(Vec<Node>, Vec<Node>),
-    Repeat(u32, Vec<Node>),
-    While(Vec<Node>),
+    IfElse {
+        true_case: CodeBody,
+        false_case: CodeBody,
+    },
+    Repeat {
+        times: u32,
+        body: CodeBody,
+    },
+    While {
+        body: CodeBody,
+    },
 }
 
 /// This holds the list of instructions supported in a Miden program.

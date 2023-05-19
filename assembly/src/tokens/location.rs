@@ -1,3 +1,4 @@
+use super::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use core::fmt;
 
 // SOURCE LOCATION
@@ -46,5 +47,20 @@ impl SourceLocation {
 impl fmt::Display for SourceLocation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}:{}]", self.line, self.column)
+    }
+}
+
+impl Serializable for SourceLocation {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u32(self.line);
+        target.write_u32(self.column);
+    }
+}
+
+impl Deserializable for SourceLocation {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let line = source.read_u32()?;
+        let column = source.read_u32()?;
+        Ok(Self { line, column })
     }
 }

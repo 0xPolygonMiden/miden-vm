@@ -18,6 +18,8 @@ pub struct MaslLibrary {
     namespace: LibraryNamespace,
     /// Version of the library.
     version: Version,
+    /// Flag defining if locations are serialized with the library.
+    has_source_locations: bool,
     /// Available modules.
     modules: Vec<Module>,
 }
@@ -51,9 +53,10 @@ impl MaslLibrary {
     /// # Errors
     /// Returns an error if the provided `modules` vector is empty or contains more than
     /// [u16::MAX] elements.
-    fn new(
+    pub(super) fn new(
         namespace: LibraryNamespace,
         version: Version,
+        has_source_locations: bool,
         modules: Vec<Module>,
     ) -> Result<Self, LibraryError> {
         if modules.is_empty() {
@@ -69,8 +72,17 @@ impl MaslLibrary {
         Ok(Self {
             namespace,
             version,
+            has_source_locations,
             modules,
         })
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Clears the source locations from this bundle.
+    pub fn clear_locations(&mut self) {
+        self.modules.iter_mut().for_each(|m| m.clear_locations())
     }
 }
 
@@ -96,6 +108,7 @@ mod use_std {
         pub fn read_from_dir<P>(
             path: P,
             namespace: LibraryNamespace,
+            with_source_locations: bool,
             version: Version,
         ) -> io::Result<Self>
         where
@@ -118,7 +131,7 @@ mod use_std {
                 .map(|(path, ast)| Module { path, ast })
                 .collect();
 
-            Self::new(namespace, version, modules)
+            Self::new(namespace, version, with_source_locations, modules)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
 
@@ -229,6 +242,13 @@ impl Serializable for MaslLibrary {
                 .write_into(target);
             module.ast.write_into(target);
         });
+
+        // optionally write the locations into the target. given the modules count is already
+        // written, we can safely dump the locations structs
+        target.write_bool(self.has_source_locations);
+        if self.has_source_locations {
+            self.modules.iter().for_each(|m| m.write_source_locations(target));
+        }
     }
 }
 
@@ -247,7 +267,13 @@ impl Deserializable for MaslLibrary {
             modules.push(Module { path, ast });
         }
 
-        Self::new(namespace, version, modules)
+        // for each module, load its locations
+        let has_source_locations = source.read_bool()?;
+        if has_source_locations {
+            modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
+        }
+
+        Self::new(namespace, version, has_source_locations, modules)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
 }

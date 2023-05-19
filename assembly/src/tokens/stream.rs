@@ -70,7 +70,7 @@ impl<'a> TokenStream<'a> {
             return Err(ParsingError::empty_source());
         }
 
-        let location = SourceLocation::default();
+        let location = locations[0];
         let current = Token::new(tokens[0], location);
         Ok(Self {
             tokens,

@@ -1,6 +1,7 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, Instruction, LibraryPath, LocalConstMap,
-    LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream, MAX_DOCS_LEN,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction, LibraryPath,
+    LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
+    MAX_DOCS_LEN,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
@@ -32,15 +33,17 @@ impl ParserContext {
     fn parse_if(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the if-else block and consume the 'if' token
         let if_start = tokens.pos();
-        tokens.read().expect("no if token").validate_if()?;
+        let if_token = tokens.read().expect("no if token");
+
+        if_token.validate_if()?;
         tokens.advance();
 
         // read the `if` clause
-        let t_branch = self.parse_body(tokens, true)?;
+        let mut true_case = self.parse_body(tokens, true)?;
 
         // build the `else` clause; if the else clause is specified, then parse it;
         // otherwise, set the `else` to an empty vector
-        let f_branch = match tokens.read() {
+        let false_case = match tokens.read() {
             Some(token) => match token.parts()[0] {
                 Token::ELSE => {
                     // record start of the `else` block and consume the `else` token
@@ -49,7 +52,7 @@ impl ParserContext {
                     tokens.advance();
 
                     // parse the `false` branch
-                    let f_branch = self.parse_body(tokens, false)?;
+                    let false_case = self.parse_body(tokens, false)?;
 
                     // consume the `end` token
                     match tokens.read() {
@@ -58,7 +61,14 @@ impl ParserContext {
                             Err(ParsingError::unmatched_else(token))
                         }
                         Some(token) => match token.parts()[0] {
-                            Token::END => token.validate_end(),
+                            Token::END => {
+                                // the end token is duplicated for the if body so consistency is
+                                // maintained over the assumption that a body is always terminated
+                                // with an `end` location - in this case, both `if.true` and `else`
+                                // have points to the same `end`.
+                                true_case.push_location(*token.location());
+                                token.validate_end()
+                            }
                             Token::ELSE => Err(ParsingError::dangling_else(token)),
                             _ => {
                                 let token = tokens.read_at(else_start).expect("no else token");
@@ -69,13 +79,13 @@ impl ParserContext {
                     tokens.advance();
 
                     // return the `false` branch
-                    f_branch
+                    false_case
                 }
                 Token::END => {
                     // consume the `end` token and return an empty vector
                     token.validate_end()?;
                     tokens.advance();
-                    Vec::new()
+                    CodeBody::default()
                 }
                 _ => {
                     let token = tokens.read_at(if_start).expect("no if token");
@@ -88,18 +98,22 @@ impl ParserContext {
             }
         };
 
-        Ok(Node::IfElse(t_branch, f_branch))
+        Ok(Node::IfElse {
+            true_case,
+            false_case,
+        })
     }
 
     /// Parses a while statement from the provided token stream into an AST node.
     fn parse_while(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the while block and consume the 'while' token
         let while_start = tokens.pos();
-        tokens.read().expect("no while token").validate_while()?;
+        let while_token = tokens.read().expect("no while token");
+        while_token.validate_while()?;
         tokens.advance();
 
         // read the loop body
-        let loop_body = self.parse_body(tokens, false)?;
+        let body = self.parse_body(tokens, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -118,18 +132,19 @@ impl ParserContext {
         }?;
         tokens.advance();
 
-        Ok(Node::While(loop_body))
+        Ok(Node::While { body })
     }
 
     /// Parses a repeat statement from the provided token stream into an AST node.
     fn parse_repeat(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the repeat block and consume the 'repeat' token
         let repeat_start = tokens.pos();
-        let count = tokens.read().expect("no repeat token").parse_repeat()?;
+        let repeat_token = tokens.read().expect("no repeat token");
+        let times = repeat_token.parse_repeat()?;
         tokens.advance();
 
         // read the loop body
-        let loop_body = self.parse_body(tokens, false)?;
+        let body = self.parse_body(tokens, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -148,7 +163,7 @@ impl ParserContext {
         }?;
         tokens.advance();
 
-        Ok(Node::Repeat(count, loop_body))
+        Ok(Node::Repeat { times, body })
     }
 
     // CALL PARSERS
@@ -162,10 +177,12 @@ impl ParserContext {
 
         if let Some(module_name) = module_name {
             let proc_id = self.get_imported_proc_id(proc_name, module_name, token)?;
-            Ok(Node::Instruction(Instruction::ExecImported(proc_id)))
+            let inner = Instruction::ExecImported(proc_id);
+            Ok(Node::Instruction(inner))
         } else {
             let index = self.get_local_proc_index(proc_name, token)?;
-            Ok(Node::Instruction(Instruction::ExecLocal(index)))
+            let inner = Instruction::ExecLocal(index);
+            Ok(Node::Instruction(inner))
         }
     }
 
@@ -177,10 +194,12 @@ impl ParserContext {
 
         if let Some(module_name) = module_name {
             let proc_id = self.get_imported_proc_id(proc_name, module_name, token)?;
-            Ok(Node::Instruction(Instruction::CallImported(proc_id)))
+            let inner = Instruction::CallImported(proc_id);
+            Ok(Node::Instruction(inner))
         } else {
             let index = self.get_local_proc_index(proc_name, token)?;
-            Ok(Node::Instruction(Instruction::CallLocal(index)))
+            let inner = Instruction::CallLocal(index);
+            Ok(Node::Instruction(inner))
         }
     }
 
@@ -190,7 +209,8 @@ impl ParserContext {
         let proc_name = token.parse_syscall()?;
 
         let proc_id = ProcedureId::from_kernel_name(proc_name);
-        Ok(Node::Instruction(Instruction::SysCall(proc_id)))
+        let inner = Instruction::SysCall(proc_id);
+        Ok(Node::Instruction(inner))
     }
 
     // PROCEDURE PARSERS
@@ -237,6 +257,7 @@ impl ParserContext {
         if self.local_procs.contains_key(name.as_str()) {
             return Err(ParsingError::duplicate_proc_name(header, name.as_str()));
         }
+        let start = *header.location();
         tokens.advance();
 
         // attach doc comments (if any) to exported procedures
@@ -274,7 +295,9 @@ impl ParserContext {
         tokens.advance();
 
         // build and return the procedure
-        Ok(ProcedureAst::new(name, num_locals, body, is_export, docs))
+        let (nodes, locations) = body.into_parts();
+        Ok(ProcedureAst::new(name, num_locals, nodes, is_export, docs)
+            .with_source_locations(locations, start))
     }
 
     // BODY PARSER
@@ -287,13 +310,24 @@ impl ParserContext {
         &self,
         tokens: &mut TokenStream,
         break_on_else: bool,
-    ) -> Result<Vec<Node>, ParsingError> {
+    ) -> Result<CodeBody, ParsingError> {
         let start_pos = tokens.pos();
         let mut nodes = Vec::new();
+        let mut locations = Vec::new();
 
         while let Some(token) = tokens.read() {
+            // locations are tracked inside the body, except for nested block declaration that have
+            // their locations tracked on the node
+            if !matches!(token.parts()[0], Token::EXPORT | Token::PROC | Token::BEGIN | Token::ELSE)
+            {
+                locations.push(*token.location());
+            }
+
             match token.parts()[0] {
-                Token::IF => nodes.push(self.parse_if(tokens)?),
+                Token::IF => {
+                    let body = self.parse_if(tokens)?;
+                    nodes.push(body);
+                }
                 Token::ELSE => {
                     token.validate_else()?;
                     if break_on_else {
@@ -301,8 +335,14 @@ impl ParserContext {
                     }
                     return Err(ParsingError::dangling_else(token));
                 }
-                Token::WHILE => nodes.push(self.parse_while(tokens)?),
-                Token::REPEAT => nodes.push(self.parse_repeat(tokens)?),
+                Token::WHILE => {
+                    let body = self.parse_while(tokens)?;
+                    nodes.push(body);
+                }
+                Token::REPEAT => {
+                    let body = self.parse_repeat(tokens)?;
+                    nodes.push(body);
+                }
                 Token::END => {
                     token.validate_end()?;
                     break;
@@ -327,7 +367,7 @@ impl ParserContext {
             return Err(ParsingError::body_too_long(token, nodes.len(), MAX_BODY_LEN));
         }
 
-        Ok(nodes)
+        Ok(CodeBody::new(nodes).with_source_locations(locations))
     }
 
     // HELPER METHODS

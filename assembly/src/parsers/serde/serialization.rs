@@ -9,32 +9,37 @@ impl Serializable for Node {
         // the body parser
 
         match self {
-            Self::Instruction(i) => i.write_into(target),
-            Self::IfElse(if_clause, else_clause) => {
+            // TODO this initial implementation will store location only for in-memory compilation
+            // and will not serialize it.
+            Self::Instruction(inner) => inner.write_into(target),
+            Self::IfElse {
+                true_case,
+                false_case,
+            } => {
                 OpCode::IfElse.write_into(target);
 
-                assert!(if_clause.len() <= u16::MAX as usize, "too many body nodes");
-                target.write_u16(if_clause.len() as u16);
-                if_clause.write_into(target);
+                assert!(true_case.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                target.write_u16(true_case.nodes().len() as u16);
+                true_case.nodes().write_into(target);
 
-                assert!(else_clause.len() <= u16::MAX as usize, "too many body nodes");
-                target.write_u16(else_clause.len() as u16);
-                else_clause.write_into(target);
+                assert!(false_case.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                target.write_u16(false_case.nodes().len() as u16);
+                false_case.nodes().write_into(target);
             }
-            Self::Repeat(times, nodes) => {
+            Self::Repeat { times, body } => {
                 OpCode::Repeat.write_into(target);
                 target.write_u32(*times);
 
-                assert!(nodes.len() <= u16::MAX as usize, "too many body nodes");
-                target.write_u16(nodes.len() as u16);
-                nodes.write_into(target);
+                assert!(body.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                target.write_u16(body.nodes().len() as u16);
+                body.nodes().write_into(target);
             }
-            Self::While(nodes) => {
+            Self::While { body } => {
                 OpCode::While.write_into(target);
 
-                assert!(nodes.len() <= u16::MAX as usize, "too many body nodes");
-                target.write_u16(nodes.len() as u16);
-                nodes.write_into(target);
+                assert!(body.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                target.write_u16(body.nodes().len() as u16);
+                body.nodes().write_into(target);
             }
         }
     }

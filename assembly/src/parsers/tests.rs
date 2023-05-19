@@ -1,10 +1,8 @@
-use vm_core::Felt;
-
 use super::{
-    BTreeMap, Instruction, LocalProcMap, ModuleAst, Node, ParsingError, ProcedureAst, ProcedureId,
-    ProgramAst, Token,
+    BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node, ParsingError,
+    ProcedureAst, ProcedureId, ProgramAst, SourceLocation, Token,
 };
-use crate::SourceLocation;
+use vm_core::utils::SliceReader;
 
 // UNIT TESTS
 // ================================================================================================
@@ -100,21 +98,40 @@ fn test_ast_parsing_program_proc() {
         exec.foo
         exec.bar
     end";
-    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
+
     let mut procedures: LocalProcMap = BTreeMap::new();
     procedures.insert(
         String::from("foo"),
         (
             0,
-            ProcedureAst::new(String::from("foo").try_into().unwrap(), 1, proc_body1, false, None),
+            ProcedureAst::new(
+                String::from("foo").try_into().unwrap(),
+                1,
+                [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
+                false,
+                None,
+            )
+            .with_source_locations(
+                [SourceLocation::new(2, 9), SourceLocation::new(3, 5)],
+                SourceLocation::new(1, 1),
+            ),
         ),
     );
-    let proc_body2: Vec<Node> = vec![Node::Instruction(Instruction::PadW)];
     procedures.insert(
         String::from("bar"),
         (
             1,
-            ProcedureAst::new(String::from("bar").try_into().unwrap(), 2, proc_body2, false, None),
+            ProcedureAst::new(
+                String::from("bar").try_into().unwrap(),
+                2,
+                [Node::Instruction(Instruction::PadW)].to_vec(),
+                false,
+                None,
+            )
+            .with_source_locations(
+                [SourceLocation::new(5, 9), SourceLocation::new(6, 5)],
+                SourceLocation::new(4, 5),
+            ),
         ),
     );
     let nodes: Vec<Node> = vec![
@@ -131,12 +148,21 @@ fn test_ast_parsing_module() {
         loc_load.0
     end";
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     procedures.insert(
         String::from("foo"),
         (
             0,
-            ProcedureAst::new(String::from("foo").try_into().unwrap(), 1, proc_body, true, None),
+            ProcedureAst::new(
+                String::from("foo").try_into().unwrap(),
+                1,
+                [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
+                true,
+                None,
+            )
+            .with_source_locations(
+                [SourceLocation::new(2, 9), SourceLocation::new(3, 5)],
+                SourceLocation::new(1, 1),
+            ),
         ),
     );
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
@@ -211,34 +237,57 @@ fn test_ast_parsing_module_nested_if() {
     end";
 
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![
+    let proc_body_nodes = [
         Node::Instruction(Instruction::PushU8(1)),
-        Node::IfElse(
-            [
+        Node::IfElse {
+            true_case: CodeBody::new([
                 Node::Instruction(Instruction::PushU8(0)),
                 Node::Instruction(Instruction::PushU8(1)),
-                Node::IfElse(
-                    [
+                Node::IfElse {
+                    true_case: CodeBody::new([
                         Node::Instruction(Instruction::PushU8(0)),
                         Node::Instruction(Instruction::Sub),
-                    ]
-                    .to_vec(),
-                    [
+                    ])
+                    .with_source_locations([
+                        SourceLocation::new(7, 17),
+                        SourceLocation::new(8, 17),
+                        SourceLocation::new(12, 13),
+                    ]),
+                    false_case: CodeBody::new([
                         Node::Instruction(Instruction::PushU8(1)),
                         Node::Instruction(Instruction::Sub),
-                    ]
-                    .to_vec(),
-                ),
-            ]
-            .to_vec(),
-            vec![],
-        ),
-    ];
+                    ])
+                    .with_source_locations([
+                        SourceLocation::new(10, 17),
+                        SourceLocation::new(11, 17),
+                        SourceLocation::new(12, 13),
+                    ]),
+                },
+            ])
+            .with_source_locations([
+                SourceLocation::new(4, 13),
+                SourceLocation::new(5, 13),
+                SourceLocation::new(6, 13),
+                SourceLocation::new(13, 9),
+            ]),
+            false_case: CodeBody::default(),
+        },
+    ]
+    .to_vec();
+    let proc_body_locations =
+        [SourceLocation::new(2, 9), SourceLocation::new(3, 9), SourceLocation::new(14, 5)];
     procedures.insert(
         String::from("foo"),
         (
             0,
-            ProcedureAst::new(String::from("foo").try_into().unwrap(), 0, proc_body, false, None),
+            ProcedureAst::new(
+                String::from("foo").try_into().unwrap(),
+                0,
+                proc_body_nodes,
+                false,
+                None,
+            )
+            .with_source_locations(proc_body_locations, SourceLocation::new(1, 1)),
         ),
     );
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
@@ -274,28 +323,60 @@ fn test_ast_parsing_module_sequential_if() {
     end";
 
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![
+    let proc_body_nodes = [
         Node::Instruction(Instruction::PushU8(1)),
-        Node::IfElse(
-            [
+        Node::IfElse {
+            true_case: CodeBody::new([
                 Node::Instruction(Instruction::PushU8(5)),
                 Node::Instruction(Instruction::PushU8(1)),
-            ]
-            .to_vec(),
-            vec![],
-        ),
-        Node::IfElse(
-            [Node::Instruction(Instruction::PushU8(0)), Node::Instruction(Instruction::Sub)]
-                .to_vec(),
-            [Node::Instruction(Instruction::PushU8(1)), Node::Instruction(Instruction::Sub)]
-                .to_vec(),
-        ),
+            ])
+            .with_source_locations([
+                SourceLocation::new(4, 13),
+                SourceLocation::new(5, 13),
+                SourceLocation::new(6, 9),
+            ]),
+            false_case: CodeBody::default(),
+        },
+        Node::IfElse {
+            true_case: CodeBody::new([
+                Node::Instruction(Instruction::PushU8(0)),
+                Node::Instruction(Instruction::Sub),
+            ])
+            .with_source_locations([
+                SourceLocation::new(8, 13),
+                SourceLocation::new(9, 13),
+                SourceLocation::new(13, 9),
+            ]),
+            false_case: CodeBody::new([
+                Node::Instruction(Instruction::PushU8(1)),
+                Node::Instruction(Instruction::Sub),
+            ])
+            .with_source_locations([
+                SourceLocation::new(11, 13),
+                SourceLocation::new(12, 13),
+                SourceLocation::new(13, 9),
+            ]),
+        },
+    ]
+    .to_vec();
+    let proc_body_locations = [
+        SourceLocation::new(2, 9),
+        SourceLocation::new(3, 9),
+        SourceLocation::new(7, 9),
+        SourceLocation::new(14, 5),
     ];
     procedures.insert(
         String::from("foo"),
         (
             0,
-            ProcedureAst::new(String::from("foo").try_into().unwrap(), 0, proc_body, false, None),
+            ProcedureAst::new(
+                String::from("foo").try_into().unwrap(),
+                0,
+                proc_body_nodes,
+                false,
+                None,
+            )
+            .with_source_locations(proc_body_locations, SourceLocation::new(1, 1)),
         ),
     );
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
@@ -310,6 +391,49 @@ fn test_ast_parsing_module_sequential_if() {
             proc
         );
     }
+}
+
+#[test]
+fn parsed_while_if_body() {
+    let source = "\
+    begin
+        push.1
+        while.true
+            mul
+        end
+        add
+        if.true
+            div
+        end
+        mul
+    end
+    ";
+
+    let body = ProgramAst::parse(source).unwrap().body;
+    let expected = CodeBody::new([
+        Node::Instruction(Instruction::PushU8(1)),
+        Node::While {
+            body: CodeBody::new([Node::Instruction(Instruction::Mul)])
+                .with_source_locations([SourceLocation::new(4, 13), SourceLocation::new(5, 9)]),
+        },
+        Node::Instruction(Instruction::Add),
+        Node::IfElse {
+            true_case: CodeBody::new([Node::Instruction(Instruction::Div)])
+                .with_source_locations([SourceLocation::new(8, 13), SourceLocation::new(9, 9)]),
+            false_case: CodeBody::default(),
+        },
+        Node::Instruction(Instruction::Mul),
+    ])
+    .with_source_locations([
+        SourceLocation::new(2, 9),
+        SourceLocation::new(3, 9),
+        SourceLocation::new(6, 9),
+        SourceLocation::new(7, 9),
+        SourceLocation::new(10, 9),
+        SourceLocation::new(11, 5),
+    ]);
+
+    assert_eq!(body, expected);
 }
 
 // PROCEDURE IMPORTS
@@ -380,14 +504,17 @@ fn test_ast_parsing_simple_docs() {
         loc_load.0
     end";
 
-    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let docs_foo = "proc doc".to_string();
     let procedure = ProcedureAst::new(
         String::from("foo").try_into().unwrap(),
         1,
-        proc_body_foo,
+        [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
         true,
         Some(docs_foo),
+    )
+    .with_source_locations(
+        [SourceLocation::new(3, 9), SourceLocation::new(4, 5)],
+        SourceLocation::new(2, 5),
     );
 
     let module = ModuleAst::parse(source).unwrap();
@@ -427,7 +554,6 @@ export.baz.3
     push.0
 end";
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let docs_foo =
         "Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -441,14 +567,17 @@ of the comments is correctly parsed. There was a bug here earlier."
             ProcedureAst::new(
                 String::from("foo").try_into().unwrap(),
                 1,
-                proc_body_foo,
+                [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
                 true,
                 Some(docs_foo),
+            )
+            .with_source_locations(
+                [SourceLocation::new(11, 5), SourceLocation::new(12, 1)],
+                SourceLocation::new(10, 1),
             ),
         ),
     );
 
-    let proc_body_bar: Vec<Node> = vec![Node::Instruction(Instruction::PadW)];
     procedures.insert(
         String::from("bar"),
         (
@@ -456,15 +585,17 @@ of the comments is correctly parsed. There was a bug here earlier."
             ProcedureAst::new(
                 String::from("bar").try_into().unwrap(),
                 2,
-                proc_body_bar,
+                [Node::Instruction(Instruction::PadW)].to_vec(),
                 false,
                 None,
+            )
+            .with_source_locations(
+                [SourceLocation::new(18, 5), SourceLocation::new(19, 1)],
+                SourceLocation::new(17, 1),
             ),
         ),
     );
 
-    let proc_body_baz: Vec<Node> =
-        vec![Node::Instruction(Instruction::PadW), Node::Instruction(Instruction::PushU8(0))];
     let docs_baz =
         "Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
@@ -477,9 +608,18 @@ aliqua."
             ProcedureAst::new(
                 String::from("baz").try_into().unwrap(),
                 3,
-                proc_body_baz,
+                [Node::Instruction(Instruction::PadW), Node::Instruction(Instruction::PushU8(0))]
+                    .to_vec(),
                 true,
                 Some(docs_baz),
+            )
+            .with_source_locations(
+                [
+                    SourceLocation::new(25, 5),
+                    SourceLocation::new(26, 5),
+                    SourceLocation::new(27, 1),
+                ],
+                SourceLocation::new(24, 1),
             ),
         ),
     );
@@ -507,6 +647,7 @@ of the comments is correctly parsed. There was a bug here earlier."
     let module_serialized = module.to_bytes();
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
+    let module = clear_procs_loc_module(module);
     assert_eq!(module, module_deserialized);
 }
 
@@ -583,11 +724,7 @@ fn test_ast_parsing_module_docs_fail() {
 #[test]
 fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
-    let program = ProgramAst::parse(source).unwrap();
-    let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-
-    assert_eq!(program, program_deserialized);
+    assert_correct_program_serialization(source);
 }
 
 #[test]
@@ -603,11 +740,7 @@ fn test_ast_program_serde_local_procs() {
         exec.foo
         exec.bar
     end";
-    let program = ProgramAst::parse(source).unwrap();
-    let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-
-    assert_eq!(program, program_deserialized);
+    assert_correct_program_serialization(source);
 }
 
 #[test]
@@ -619,11 +752,7 @@ fn test_ast_program_serde_exported_procs() {
     export.bar.2
         padw
     end";
-    let module = ModuleAst::parse(source).unwrap();
-    let module_serialized = module.to_bytes();
-    let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
-
-    assert_eq!(module, module_deserialized);
+    assert_correct_module_serialization(source);
 }
 
 #[test]
@@ -655,12 +784,7 @@ fn test_ast_program_serde_control_flow() {
         end
 
     end";
-
-    let program = ProgramAst::parse(source).unwrap();
-    let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-
-    assert_eq!(program, program_deserialized);
+    assert_correct_program_serialization(source);
 }
 
 #[test]
@@ -736,7 +860,7 @@ fn assert_parsing_line_unexpected_token() {
 
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {
     let program = ProgramAst::parse(source).unwrap();
-    assert_eq!(program.body, body);
+    assert_eq!(program.body.nodes(), body);
     assert_eq!(program.local_procs.len(), procedures.len());
     for (i, proc) in program.local_procs.iter().enumerate() {
         assert_eq!(
@@ -747,4 +871,85 @@ fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>
             proc
         );
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Clears the proc locations.
+///
+/// Currently, the locations are not part of the serialized libraries; thus, they have to be
+/// cleaned before equality is checked for tests
+fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
+    module.local_procs.iter_mut().for_each(|m| {
+        m.body.replace_locations([].to_vec());
+        m.start = SourceLocation::default();
+    });
+    module
+}
+
+/// Clears the proc locations.
+///
+/// Currently, the locations are not part of the serialized libraries; thus, they have to be
+/// cleaned before equality is checked for tests
+fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
+    program.start = SourceLocation::default();
+    program.local_procs.iter_mut().for_each(|m| {
+        m.body.replace_locations([].to_vec());
+        m.start = SourceLocation::default();
+    });
+    program.body.replace_locations([].to_vec());
+    program
+}
+
+fn assert_correct_program_serialization(source: &str) {
+    let program = ProgramAst::parse(source).unwrap();
+
+    // assert the correct program serialization
+    let program_serialized = program.to_bytes();
+    let mut program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
+    let clear_program = clear_procs_loc_program(program.clone());
+    assert_eq!(clear_program, program_deserialized);
+
+    // assert the correct locations serialization
+    let mut locations = Vec::new();
+    program.write_source_locations(&mut locations);
+
+    // assert empty locations
+    {
+        let mut locations = program_deserialized.source_locations();
+        let start = locations.next().unwrap();
+        assert_eq!(start, &SourceLocation::default());
+        assert!(locations.next().is_none());
+    }
+
+    program_deserialized
+        .load_source_locations(&mut SliceReader::new(&locations))
+        .unwrap();
+    assert_eq!(program, program_deserialized);
+}
+
+fn assert_correct_module_serialization(source: &str) {
+    let module = ModuleAst::parse(source).unwrap();
+    let module_serialized = module.to_bytes();
+    let mut module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
+    let clear_module = clear_procs_loc_module(module.clone());
+    assert_eq!(clear_module, module_deserialized);
+
+    // assert the correct locations serialization
+    let mut locations = Vec::new();
+    module.write_source_locations(&mut locations);
+
+    // assert module locations are empty
+    module_deserialized.procs().iter().for_each(|m| {
+        let mut locations = m.source_locations();
+        let start = locations.next().unwrap();
+        assert_eq!(start, &SourceLocation::default());
+        assert!(locations.next().is_none());
+    });
+
+    module_deserialized
+        .load_source_locations(&mut SliceReader::new(&locations))
+        .unwrap();
+    assert_eq!(module, module_deserialized);
 }
