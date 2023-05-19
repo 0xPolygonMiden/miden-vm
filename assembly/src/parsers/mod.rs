@@ -30,7 +30,7 @@ pub mod tests;
 // ================================================================================================
 
 /// Maximum number of procedures in a module.
-const MAX_LOCL_PROCS: usize = u16::MAX as usize;
+const MAX_LOCAL_PROCS: usize = u16::MAX as usize;
 
 /// Maximum number of bytes for a single documentation comment.
 const MAX_DOCS_LEN: usize = u16::MAX as usize;
@@ -60,8 +60,8 @@ impl ProgramAst {
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
     pub fn new(local_procs: Vec<ProcedureAst>, body: Vec<Node>) -> Result<Self, ParsingError> {
-        if local_procs.len() > MAX_LOCL_PROCS {
-            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
+        if local_procs.len() > MAX_LOCAL_PROCS {
+            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
         }
         let start = SourceLocation::default();
         let body = CodeBody::new(body);
@@ -248,8 +248,8 @@ impl ModuleAst {
     ///
     /// A module consists of internal and exported procedures but does not contain a body.
     pub fn new(local_procs: Vec<ProcedureAst>, docs: Option<String>) -> Result<Self, ParsingError> {
-        if local_procs.len() > MAX_LOCL_PROCS {
-            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
+        if local_procs.len() > MAX_LOCAL_PROCS {
+            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
         }
         if let Some(ref docs) = docs {
             if docs.len() > MAX_DOCS_LEN {
