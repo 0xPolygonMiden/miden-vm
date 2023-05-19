@@ -1,9 +1,8 @@
 use super::{
-    BTreeMap, CodeBody, Instruction, LocalProcMap, ModuleAst, Node, ParsingError, ProcedureAst,
-    ProcedureId, ProgramAst, SourceLocation, Token,
+    BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node, ParsingError,
+    ProcedureAst, ProcedureId, ProgramAst, SourceLocation, Token,
 };
-use core::mem;
-use vm_core::Felt;
+use vm_core::utils::SliceReader;
 
 // UNIT TESTS
 // ================================================================================================
@@ -626,7 +625,7 @@ aliqua."
     );
 
     ProgramAst::parse(source).expect_err("Program should contain body and no export");
-    let mut module = ModuleAst::parse(source).unwrap();
+    let module = ModuleAst::parse(source).unwrap();
 
     let module_docs =
         "Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet,
@@ -648,7 +647,7 @@ of the comments is correctly parsed. There was a bug here earlier."
     let module_serialized = module.to_bytes();
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
-    clear_procs_loc_module(&mut module);
+    let module = clear_procs_loc_module(module);
     assert_eq!(module, module_deserialized);
 }
 
@@ -725,12 +724,7 @@ fn test_ast_parsing_module_docs_fail() {
 #[test]
 fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
-    let mut program = ProgramAst::parse(source).unwrap();
-    let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-
-    clear_procs_loc_program(&mut program);
-    assert_eq!(program, program_deserialized);
+    assert_correct_program_serialization(source);
 }
 
 #[test]
@@ -746,12 +740,7 @@ fn test_ast_program_serde_local_procs() {
         exec.foo
         exec.bar
     end";
-    let mut program = ProgramAst::parse(source).unwrap();
-    let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-
-    clear_procs_loc_program(&mut program);
-    assert_eq!(program, program_deserialized);
+    assert_correct_program_serialization(source);
 }
 
 #[test]
@@ -763,12 +752,7 @@ fn test_ast_program_serde_exported_procs() {
     export.bar.2
         padw
     end";
-    let mut module = ModuleAst::parse(source).unwrap();
-    let module_serialized = module.to_bytes();
-    let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
-
-    clear_procs_loc_module(&mut module);
-    assert_eq!(module, module_deserialized);
+    assert_correct_module_serialization(source);
 }
 
 #[test]
@@ -800,13 +784,7 @@ fn test_ast_program_serde_control_flow() {
         end
 
     end";
-
-    let mut program = ProgramAst::parse(source).unwrap();
-    let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-
-    clear_procs_loc_program(&mut program);
-    assert_eq!(program, program_deserialized);
+    assert_correct_program_serialization(source);
 }
 
 #[test]
@@ -902,24 +880,76 @@ fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>
 ///
 /// Currently, the locations are not part of the serialized libraries; thus, they have to be
 /// cleaned before equality is checked for tests
-#[cfg(test)]
-fn clear_procs_loc_module(module: &mut ModuleAst) {
+fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
     module.local_procs.iter_mut().for_each(|m| {
-        m.body = CodeBody::new(mem::take(&mut m.body).into_parts().0);
+        m.body.replace_locations([].to_vec());
         m.start = SourceLocation::default();
     });
+    module
 }
 
 /// Clears the proc locations.
 ///
 /// Currently, the locations are not part of the serialized libraries; thus, they have to be
 /// cleaned before equality is checked for tests
-#[cfg(test)]
-fn clear_procs_loc_program(program: &mut ProgramAst) {
+fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
     program.start = SourceLocation::default();
     program.local_procs.iter_mut().for_each(|m| {
-        m.body = CodeBody::new(mem::take(&mut m.body).into_parts().0);
+        m.body.replace_locations([].to_vec());
         m.start = SourceLocation::default();
     });
-    program.body = CodeBody::new(mem::take(&mut program.body).into_parts().0);
+    program.body.replace_locations([].to_vec());
+    program
+}
+
+fn assert_correct_program_serialization(source: &str) {
+    let program = ProgramAst::parse(source).unwrap();
+
+    // assert the correct program serialization
+    let program_serialized = program.to_bytes();
+    let mut program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
+    let clear_program = clear_procs_loc_program(program.clone());
+    assert_eq!(clear_program, program_deserialized);
+
+    // assert the correct locations serialization
+    let mut locations = Vec::new();
+    program.write_source_locations(&mut locations);
+
+    // assert empty locations
+    {
+        let mut locations = program_deserialized.source_locations();
+        let start = locations.next().unwrap();
+        assert_eq!(start, &SourceLocation::default());
+        assert!(locations.next().is_none());
+    }
+
+    program_deserialized
+        .load_source_locations(&mut SliceReader::new(&locations))
+        .unwrap();
+    assert_eq!(program, program_deserialized);
+}
+
+fn assert_correct_module_serialization(source: &str) {
+    let module = ModuleAst::parse(source).unwrap();
+    let module_serialized = module.to_bytes();
+    let mut module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
+    let clear_module = clear_procs_loc_module(module.clone());
+    assert_eq!(clear_module, module_deserialized);
+
+    // assert the correct locations serialization
+    let mut locations = Vec::new();
+    module.write_source_locations(&mut locations);
+
+    // assert module locations are empty
+    module_deserialized.procs().iter().for_each(|m| {
+        let mut locations = m.source_locations();
+        let start = locations.next().unwrap();
+        assert_eq!(start, &SourceLocation::default());
+        assert!(locations.next().is_none());
+    });
+
+    module_deserialized
+        .load_source_locations(&mut SliceReader::new(&locations))
+        .unwrap();
+    assert_eq!(module, module_deserialized);
 }

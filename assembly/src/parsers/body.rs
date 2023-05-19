@@ -1,4 +1,7 @@
-use super::{Node, SourceLocation};
+use super::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Node, Serializable,
+    SourceLocation,
+};
 use core::{iter, slice};
 
 // CODE BODY
@@ -84,6 +87,38 @@ impl CodeBody {
         self.locations = locations;
     }
 
+    // SERIALIZATION / DESERIALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Loads the [SourceLocation] from the `source`.
+    ///
+    /// The `source` is expected to provide a locations count equal to the block nodes count + 1,
+    /// having the last element reserved for its `end` node. This way, the locations count is not
+    /// expected to be read, as opposed to common vector serialization strategies.
+    ///
+    /// This implementation intentionally diverges from [Deserializable] so locations can be
+    /// optionally stored.
+    pub fn load_source_locations<R: ByteReader>(
+        &mut self,
+        source: &mut R,
+    ) -> Result<(), DeserializationError> {
+        self.locations = (0..=self.nodes.len())
+            .map(|_| SourceLocation::read_from(source))
+            .collect::<Result<_, _>>()?;
+        Ok(())
+    }
+
+    /// Writes the [SourceLocation] into `target`.
+    ///
+    /// The locations will be written directly, without storing the locations count. This is the
+    /// counterpart of [CodeBody::load_source_locations].
+    ///
+    /// This implementation intentionally diverges from [Serializable] so locations can be
+    /// optionally stored.
+    pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
+        self.locations.iter().for_each(|l| l.write_into(target));
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -93,7 +128,7 @@ impl CodeBody {
     }
 
     /// Returns the [SourceLocations] bound to the nodes of this body structure.
-    pub fn locations(&self) -> &[SourceLocation] {
+    pub fn source_locations(&self) -> &[SourceLocation] {
         &self.locations
     }
 

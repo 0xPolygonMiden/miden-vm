@@ -10,6 +10,9 @@ pub use masl::MaslLibrary;
 mod path;
 pub use path::LibraryPath;
 
+#[cfg(test)]
+mod tests;
+
 // LIBRARY
 // ================================================================================================
 
@@ -88,6 +91,30 @@ impl Module {
         (self.path.first() == namespace.as_str()).then_some(()).ok_or_else(|| {
             LibraryError::inconsistent_namespace(self.path.first(), namespace.as_str())
         })
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Clears the source locations from this module.
+    pub fn clear_locations(&mut self) {
+        self.ast.clear_locations()
+    }
+
+    // SERIALIZATION / DESERIALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Loads the [SourceLocation] of the procedures via [ModuleAst::load_source_locations].
+    pub fn load_source_locations<R: ByteReader>(
+        &mut self,
+        source: &mut R,
+    ) -> Result<(), DeserializationError> {
+        self.ast.load_source_locations(source)
+    }
+
+    /// Writes the [SourceLocation] of the procedures via [ModuleAst::write_source_locations].
+    pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
+        self.ast.write_source_locations(target)
     }
 }
 
