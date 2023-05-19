@@ -1,6 +1,6 @@
 use super::{
-    ByteReader, Deserializable, DeserializationError, Felt, Instruction, Node, OpCode, ProcedureId,
-    MAX_PUSH_INPUTS,
+    ByteReader, CodeBody, Deserializable, DeserializationError, Felt, Instruction, Node, OpCode,
+    ProcedureId, MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION
@@ -14,30 +14,38 @@ impl Deserializable for Node {
             source.read_u8()?;
 
             let if_block_len = source.read_u16()? as usize;
-            let if_block = Deserializable::read_batch_from(source, if_block_len)?;
+            let nodes = Deserializable::read_batch_from(source, if_block_len)?;
+            let true_case = CodeBody::new(nodes);
 
             let else_block_len = source.read_u16()? as usize;
-            let else_block = Deserializable::read_batch_from(source, else_block_len)?;
+            let nodes = Deserializable::read_batch_from(source, else_block_len)?;
+            let false_case = CodeBody::new(nodes);
 
-            Ok(Node::IfElse(if_block, else_block))
+            Ok(Node::IfElse {
+                true_case,
+                false_case,
+            })
         } else if first_byte == OpCode::Repeat as u8 {
             source.read_u8()?;
 
-            let repeat_count = source.read_u32()?;
+            let times = source.read_u32()?;
 
             let nodes_len = source.read_u16()? as usize;
             let nodes = Deserializable::read_batch_from(source, nodes_len)?;
+            let body = CodeBody::new(nodes);
 
-            Ok(Node::Repeat(repeat_count, nodes))
+            Ok(Node::Repeat { times, body })
         } else if first_byte == OpCode::While as u8 {
             source.read_u8()?;
 
             let nodes_len = source.read_u16()? as usize;
             let nodes = Deserializable::read_batch_from(source, nodes_len)?;
+            let body = CodeBody::new(nodes);
 
-            Ok(Node::While(nodes))
+            Ok(Node::While { body })
         } else {
-            Ok(Node::Instruction(Deserializable::read_from(source)?))
+            let inner = Deserializable::read_from(source)?;
+            Ok(Node::Instruction(inner))
         }
     }
 }

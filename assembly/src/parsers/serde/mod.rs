@@ -1,6 +1,6 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, Instruction, Node,
-    ProcedureId, Serializable,
+    ByteReader, ByteWriter, CodeBody, Deserializable, DeserializationError, Felt, Instruction,
+    Node, ProcedureId, Serializable,
 };
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;

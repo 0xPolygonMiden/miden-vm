@@ -1,10 +1,12 @@
 use super::{
     BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, LabelError,
-    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader, StarkField,
-    String, ToString, Token, TokenStream, Vec, MAX_LABEL_LEN,
+    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader,
+    SourceLocation, StarkField, String, ToString, Token, TokenStream, Vec, MAX_LABEL_LEN,
 };
 use core::{fmt::Display, ops::RangeBounds, str::from_utf8};
 
+mod body;
+use body::CodeBody;
 mod nodes;
 use crate::utils::bound_into_included_u64;
 pub use nodes::{Instruction, Node};
@@ -47,11 +49,12 @@ type LocalConstMap = BTreeMap<String, u64>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramAst {
     local_procs: Vec<ProcedureAst>,
-    body: Vec<Node>,
+    body: CodeBody,
+    start: SourceLocation,
 }
 
 impl ProgramAst {
-    // AST
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Constructs a [ProgramAst].
     ///
@@ -60,7 +63,25 @@ impl ProgramAst {
         if local_procs.len() > MAX_LOCL_PROCS {
             return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCL_PROCS));
         }
-        Ok(Self { local_procs, body })
+        let start = SourceLocation::default();
+        let body = CodeBody::new(body);
+        Ok(Self {
+            local_procs,
+            body,
+            start,
+        })
+    }
+
+    /// Binds the provided `locations` into the ast nodes.
+    ///
+    /// The `start` location points to the first node of this block.
+    pub fn with_source_locations<L>(mut self, locations: L, start: SourceLocation) -> Self
+    where
+        L: IntoIterator<Item = SourceLocation>,
+    {
+        self.start = start;
+        self.body = self.body.with_source_locations(locations);
+        self
     }
 
     // PARSER
@@ -92,6 +113,7 @@ impl ProgramAst {
         let program_start = tokens.pos();
         // consume the 'begin' token
         let header = tokens.read().expect("missing program header");
+        let start = *header.location();
         header.validate_begin()?;
         tokens.advance();
 
@@ -124,7 +146,8 @@ impl ProgramAst {
         }
 
         let local_procs = sort_procs_into_vec(context.local_procs);
-        Self::new(local_procs, body)
+        let (nodes, locations) = body.into_parts();
+        Ok(Self::new(local_procs, nodes)?.with_source_locations(locations, start))
     }
 
     // SERIALIZATION / DESERIALIZATION
@@ -141,9 +164,9 @@ impl ProgramAst {
         target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(&mut target);
 
-        assert!(self.body.len() <= u16::MAX as usize, "too many body instructions");
-        target.write_u16(self.body.len() as u16);
-        self.body.write_into(&mut target);
+        assert!(self.body.nodes().len() <= u16::MAX as usize, "too many body instructions");
+        target.write_u16(self.body.nodes().len() as u16);
+        self.body.nodes().write_into(&mut target);
 
         target
     }
@@ -156,9 +179,8 @@ impl ProgramAst {
         let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
 
         let body_len = source.read_u16()? as usize;
-        let body = Deserializable::read_batch_from(&mut source, body_len)?;
-
-        match Self::new(local_procs, body) {
+        let nodes = Deserializable::read_batch_from(&mut source, body_len)?;
+        match Self::new(local_procs, nodes) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
             Ok(res) => Ok(res),
         }
@@ -169,7 +191,7 @@ impl ProgramAst {
 
     /// Returns local procedures and body nodes of this program.
     pub fn into_parts(self) -> (Vec<ProcedureAst>, Vec<Node>) {
-        (self.local_procs, self.body)
+        (self.local_procs, self.body.into_parts().0)
     }
 }
 
@@ -326,12 +348,13 @@ pub struct ProcedureAst {
     pub name: ProcedureName,
     pub docs: Option<String>,
     pub num_locals: u16,
-    pub body: Vec<Node>,
+    pub body: CodeBody,
+    pub start: SourceLocation,
     pub is_export: bool,
 }
 
 impl ProcedureAst {
-    // AST
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Constructs a [ProcedureAst].
     ///
@@ -343,13 +366,28 @@ impl ProcedureAst {
         is_export: bool,
         docs: Option<String>,
     ) -> Self {
+        let start = SourceLocation::default();
+        let body = CodeBody::new(body);
         Self {
             name,
             docs,
             num_locals,
             body,
             is_export,
+            start,
         }
+    }
+
+    /// Binds the provided `locations` into the ast nodes.
+    ///
+    /// The `start` location points to the first node of this block.
+    pub fn with_source_locations<L>(mut self, locations: L, start: SourceLocation) -> Self
+    where
+        L: IntoIterator<Item = SourceLocation>,
+    {
+        self.start = start;
+        self.body = self.body.with_source_locations(locations);
+        self
     }
 }
 
@@ -372,9 +410,9 @@ impl Serializable for ProcedureAst {
 
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
-        assert!(self.body.len() <= u16::MAX as usize, "too many body instructions");
-        target.write_u16(self.body.len() as u16);
-        self.body.write_into(target);
+        assert!(self.body.nodes().len() <= u16::MAX as usize, "too many body instructions");
+        target.write_u16(self.body.nodes().len() as u16);
+        self.body.nodes().write_into(target);
     }
 }
 
@@ -394,11 +432,14 @@ impl Deserializable for ProcedureAst {
         let is_export = source.read_bool()?;
         let num_locals = source.read_u16()?;
         let body_len = source.read_u16()? as usize;
-        let body = Deserializable::read_batch_from(source, body_len)?;
+        let nodes = Deserializable::read_batch_from(source, body_len)?;
+        let body = CodeBody::new(nodes);
+        let start = SourceLocation::default();
         Ok(Self {
             name,
             num_locals,
             body,
+            start,
             is_export,
             docs,
         })

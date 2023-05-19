@@ -204,9 +204,9 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.body.iter(), context, Some(wrapper))?
+            self.compile_body(proc.body.nodes().iter(), context, Some(wrapper))?
         } else {
-            self.compile_body(proc.body.iter(), context, None)?
+            self.compile_body(proc.body.nodes().iter(), context, None)?
         };
 
         context.complete_proc(code_root);
@@ -233,47 +233,48 @@ impl Assembler {
 
         for node in body {
             match node.borrow() {
-                Node::Instruction(instruction) => {
-                    if let Some(block) =
-                        self.compile_instruction(instruction, &mut span, context)?
-                    {
+                Node::Instruction(inner) => {
+                    if let Some(block) = self.compile_instruction(inner, &mut span, context)? {
                         span.extract_span_into(&mut blocks);
                         blocks.push(block);
                     }
                 }
 
-                Node::IfElse(t, f) => {
+                Node::IfElse {
+                    true_case,
+                    false_case,
+                } => {
                     span.extract_span_into(&mut blocks);
 
-                    let t = self.compile_body(t.iter(), context, None)?;
+                    let true_case = self.compile_body(true_case.nodes().iter(), context, None)?;
 
                     // else is an exception because it is optional; hence, will have to be replaced
                     // by noop span
-                    let f = if !f.is_empty() {
-                        self.compile_body(f.iter(), context, None)?
+                    let false_case = if !false_case.nodes().is_empty() {
+                        self.compile_body(false_case.nodes().iter(), context, None)?
                     } else {
                         CodeBlock::new_span(vec![Operation::Noop])
                     };
 
-                    let block = CodeBlock::new_split(t, f);
+                    let block = CodeBlock::new_split(true_case, false_case);
 
                     blocks.push(block);
                 }
 
-                Node::Repeat(n, nodes) => {
+                Node::Repeat { times, body } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, None)?;
+                    let block = self.compile_body(body.nodes().iter(), context, None)?;
 
-                    for _ in 0..*n {
+                    for _ in 0..*times {
                         blocks.push(block.clone());
                     }
                 }
 
-                Node::While(nodes) => {
+                Node::While { body } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, None)?;
+                    let block = self.compile_body(body.nodes().iter(), context, None)?;
                     let block = CodeBlock::new_loop(block);
 
                     blocks.push(block);
