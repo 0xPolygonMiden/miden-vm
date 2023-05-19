@@ -3,7 +3,7 @@ use super::{
     LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader,
     SourceLocation, StarkField, String, ToString, Token, TokenStream, Vec, MAX_LABEL_LEN,
 };
-use core::{fmt::Display, ops::RangeBounds, str::from_utf8};
+use core::{fmt::Display, iter, ops::RangeBounds, str::from_utf8};
 
 mod body;
 use body::CodeBody;
@@ -82,6 +82,14 @@ impl ProgramAst {
         self.start = start;
         self.body = self.body.with_source_locations(locations);
         self
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the [SourceLocation] associated with this program, if present.
+    pub fn source_locations(&self) -> impl Iterator<Item = &'_ SourceLocation> {
+        iter::once(&self.start).chain(self.body.source_locations().iter())
     }
 
     // PARSER
@@ -186,6 +194,31 @@ impl ProgramAst {
         }
     }
 
+    /// Loads the [SourceLocation] from the `source`.
+    ///
+    /// It expects the `start` location at the first position, and will subsequentially load the
+    /// body via [CodeBody::load_source_locations]. Finally, it will load the local procedures via
+    /// [ProcedureAst::load_source_locations].
+    pub fn load_source_locations<R: ByteReader>(
+        &mut self,
+        source: &mut R,
+    ) -> Result<(), DeserializationError> {
+        self.start = SourceLocation::read_from(source)?;
+        self.body.load_source_locations(source)?;
+        self.local_procs.iter_mut().try_for_each(|p| p.load_source_locations(source))
+    }
+
+    /// Writes the [SourceLocation] into `target`.
+    ///
+    /// It will write the `start` location, and then execute the body serialization via
+    /// [CodeBlock::write_source_locations]. Finally, it will write the local procedures via
+    /// [ProcedureAst::write_source_locations].
+    pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
+        self.start.write_into(target);
+        self.body.write_source_locations(target);
+        self.local_procs.iter().for_each(|p| p.write_source_locations(target))
+    }
+
     // DESTRUCTURING
     // --------------------------------------------------------------------------------------------
 
@@ -274,6 +307,14 @@ impl ModuleAst {
         self.docs.as_ref()
     }
 
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Clears the source locations from this module.
+    pub fn clear_locations(&mut self) {
+        self.local_procs.iter_mut().for_each(|p| p.clear_locations())
+    }
+
     // SERIALIZATION / DESERIALIZATION
     // --------------------------------------------------------------------------------------------
 
@@ -288,6 +329,25 @@ impl ModuleAst {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
         Self::read_from(&mut source)
+    }
+
+    /// Loads the [SourceLocation] of the procedures via [ProcedureAst::load_source_locations].
+    ///
+    /// The local procedures are expected to have deterministic order from parse. This way, the
+    /// serialization can be simplified into a contiguous sequence of locations.
+    pub fn load_source_locations<R: ByteReader>(
+        &mut self,
+        source: &mut R,
+    ) -> Result<(), DeserializationError> {
+        self.local_procs.iter_mut().try_for_each(|p| p.load_source_locations(source))
+    }
+
+    /// Writes the [SourceLocation] of the procedures via [ProcedureAst::write_source_locations].
+    ///
+    /// The local procedures are expected to have deterministic order from parse. This way, the
+    /// serialization can be simplified into a contiguous sequence of locations.
+    pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
+        self.local_procs.iter().for_each(|p| p.write_source_locations(target))
     }
 }
 
@@ -388,6 +448,48 @@ impl ProcedureAst {
         self.start = start;
         self.body = self.body.with_source_locations(locations);
         self
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the [SourceLocation] associated with this procedure, if present.
+    pub fn source_locations(&self) -> impl Iterator<Item = &'_ SourceLocation> {
+        iter::once(&self.start).chain(self.body.source_locations().iter())
+    }
+
+    // STATE MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Clears the source locations from this Ast.
+    pub fn clear_locations(&mut self) {
+        self.start = SourceLocation::default();
+        self.body.replace_locations([].to_vec());
+    }
+
+    // SERIALIZATION / DESERIALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Loads the [SourceLocation] from the `source`.
+    ///
+    /// It expects the `start` location at the first position, and will subsequentially load the
+    /// body via [CodeBody::load_source_locations].
+    pub fn load_source_locations<R: ByteReader>(
+        &mut self,
+        source: &mut R,
+    ) -> Result<(), DeserializationError> {
+        self.start = SourceLocation::read_from(source)?;
+        self.body.load_source_locations(source)?;
+        Ok(())
+    }
+
+    /// Writes the [SourceLocation] into `target`.
+    ///
+    /// It will write the `start` location, and then execute the body serialization via
+    /// [CodeBlock::write_source_locations].
+    pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
+        self.start.write_into(target);
+        self.body.write_source_locations(target);
     }
 }
 
