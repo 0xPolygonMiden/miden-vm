@@ -12,16 +12,16 @@
 #!
 #! The stack transition of the instruction can be visualized as follows:
 #!
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+
-#! |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  T0  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr|  b   |
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+
+#! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
+#! |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  T0  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr| - |
+#! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
 #! 
 #!                                                       ||
 #!                                                       \/
 #!                                                    
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+-------+
-#! |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+b|  1-b  |
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+-------+
+#! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
+#! |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+1| - |
+#! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
 #! 
 #! 
 #! Here:
@@ -29,82 +29,76 @@
 #! 2- (p0, p1) stands for an extension field element accumulating the values for the quotients with common denominator (x - gz).
 #! 3- (r0, r1) stands for an extension field element accumulating the values for the quotients with common denominator (x - z).
 #! 4- x_addr is the memory address from which we are loading the Ti's using the MSTREAM instruction.
-#! 5- z_addr is the memory address to the i-th OOD evaluation frame at z and gz i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1)
+#! 5- z_addr is the memory address to the i-th OOD evaluation frame at z and gz i.e. T_i(z):= (T_i(z)0, T_i(z)1)
+#!  and T_i(gz):= (T_i(gz)0, T_i(gz)1)
 #! 6- a_addr is the memory address of the i-th random element used in batching the trace polynomial quotients. 
-#! Since each memory address holds two random values and only one is used for the current step, we use a binary flag to decide
-#! on which of the two random elements to use in the current step.
-#! 7- b is a binary flag to select between a := (a0, a1) and  a' := (a0', a1') where [a0, a1, a0', a1']
-#! is the word currently pointed to by a_addr.
+#!  The random elements a := (a0, a1) are stored in memory as [0, 0, a0, a1].
 #! 
-#! Input: [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-#! Output: [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-export.main_1
-    #=> [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
+#! Input: [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
+#! Output: [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr+1, a_addr+1, 0]
+export.main
 
     # 1) Shift trace columns values left
     movup.7   
-    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
+    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
 
-    # 2) Get a_addr and b and update a_addr. This is done here before these elements become inaccessible.
+    # 2) Get a_addr and update it. This is done here before the element becomes inaccessible.
     
     # Update a_addr
-    dup.15 dup.15 add swap.15
-    #=> [a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr', b]
+    dup.14 add.1 swap.15
+    #=> [a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr', 0]
 
     # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
     # This also updates the z_addr pointer.
     dup.14 add.1 swap.15
     push.0.0.0.0 movup.4 mem_loadw
-    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     # 4) Compute the numerators
 
     # a) Compute T_i - T_i(z). This equals, in the case of T0, (-Tz1, T0 - Tz0)
     dup.5
     movup.4
-    #=> [Tz0, T0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tz0, T0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     sub
-    #=> [T0 - Tz0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [T0 - Tz0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     
     swap.3 neg swap.2
-    #=> [Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     
     # b) Compute T_i - T_i(gz). This equals, in the case of T0, (-Tgz1, T0 - Tgz0)
     dup.5 swap sub
-    #=> [T0 - Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [T0 - Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     
     swap
     neg
-    #=> [-Tgz1, T0 - Tgz0, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [-Tgz1, T0 - Tgz0, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
+    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     # where Δg1 := -Tgz1, Δg0 := T0 - Tgz0, Δ1 := -Tz1 and Δ0 := T0 - Tz0
 
     # 5) Multiply by randomness
 
     # a) Load randomness from memory
     push.0.0.0.0
-    movup.8 mem_loadw
-    #=> [a1', a0', a1, a0, Δg1, Δg0, Δ1, Δ0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    movup.8 mem_loadw drop drop
+    #=> [a1, a0, Δg1, Δg0, Δ1, Δ0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
-    # b) Use b to choose between a and a'. Since b is inaccessible, we "hard-code" b by creating two versions of `random_combinate`.
-    drop drop
-
-    # c) Multiply (Δ0, Δ1)
+    # b) Multiply (Δ0, Δ1)
     dup.1 dup.1
     movup.7 movup.7
-    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     ext2mul
-    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     #   where (prod0, prod1) := (Δ0, Δ1) * (a0, a1)
 
     movdn.5 movdn.5
-    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
-    # d) Multiply (Δg0, Δg1)
+    # c) Multiply (Δg0, Δg1)
     ext2mul
-    #=> [prodg1, prodg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [prodg1, prodg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     #   where (prodg0, prodg1) := (Δg0, Δg1) * (a0, a1)
 
     # 6) Accumulate into (p0, p1) and (r0, r1)
@@ -112,114 +106,17 @@ export.main_1
 
     # a) Accumulate into (r0, r1)
     movup.7 movup.7 
-    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', b]
+    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
     movup.5 movup.5 ext2add
-    #=> [r1', r0', p1, p0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', b]
+    #=> [r1', r0', p1, p0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
     
     # b) Accumulate into (p0, p1)
     movdn.5 movdn.5 ext2add    
-    #=> [p1', p0', r1', r0', T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', b]
+    #=> [p1', p0', r1', r0', T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
 
-    # c) Prepare for next iteration. This includes updating b.
-    swapw.3
-    movup.3 not movdn.3
-    movdnw.3
-    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-end
-
-#! Similar to `random_combine::main_1` but chooses the second random element at address `a_addr`.
-#! This mimics the function of `b` because `b` is unreachable when needed on the stack.
-#! 
-#! Input: [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-#! Output: [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-export.main_2
-    #=> [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-
-    # 1) Shift trace columns values left
-    movup.7   
-    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-
-    # 2) Get a_addr and b and update a_addr. This is done here before these elements become inaccessible.
-    
-    # Update a_addr
-    dup.15 dup.15 add swap.15
-    #=> [a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr', b]
-
-    # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
-    # This also updates the z_addr pointer.
-    dup.14 add.1 swap.15
-    push.0.0.0.0 movup.4 mem_loadw
-    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    # 4) Compute the numerators
-
-    # a) Compute T_i - T_i(z). This equals, in the case of T0, (-Tz1, T0 - Tz0)
-    dup.5
-    movup.4
-    #=> [Tz0, T0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    sub
-    #=> [T0 - Tz0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    
-    swap.3 neg swap.2
-    #=> [Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    
-    # b) Compute T_i - T_i(gz). This equals, in the case of T0, (-Tgz1, T0 - Tgz0)
-    dup.5 swap sub
-    #=> [T0 - Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    
-    swap
-    neg
-    #=> [-Tgz1, T0 - Tgz0, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    # where Δg1 := -Tgz1, Δg0 := T0 - Tgz0, Δ1 := -Tz1 and Δ0 := T0 - Tz0
-
-    # 5) Multiply by randomness
-
-    # a) Load randomness from memory
-    push.0.0.0.0
-    movup.8 mem_loadw
-    #=> [a1', a0', a1, a0, Δg1, Δg0, Δ1, Δ0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    # b) Use b to choose between a and a'. Since b is inaccessible, we "hard-code" b by creating two versions of `random_combinate`.
-    movup.2 drop movup.2 drop
-
-    # c) Multiply (Δ0, Δ1)
-    dup.1 dup.1
-    movup.7 movup.7
-    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    ext2mul
-    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #   where (prod0, prod1) := (Δ0, Δ1) * (a0, a1)
-
-    movdn.5 movdn.5
-    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    # d) Multiply (Δg0, Δg1)
-    ext2mul
-    #=> [prodg1, prodg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #   where (prodg0, prodg1) := (Δg0, Δg1) * (a0, a1)
-
-    # 6) Accumulate into (p0, p1) and (r0, r1)
-    movupw.3
-
-    # a) Accumulate into (r0, r1)
-    movup.7 movup.7 
-    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', b]
-    movup.5 movup.5 ext2add
-    #=> [r1', r0', p1, p0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', b]
-    
-    # b) Accumulate into (p0, p1)
-    movdn.5 movdn.5 ext2add    
-    #=> [p1', p0', r1', r0', T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', b]
-
-    # c) Prepare for next iteration. This includes updating b.
-    swapw.3
-    movup.3 not movdn.3
-    movdnw.3
-    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-    
+    # c) Prepare for next iteration.
+    movdnw.2
+    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr', a_addr', 0]
 end
 
 #! Computes a single step of the random linear combination defining the DEEP composition polynomial
@@ -236,16 +133,16 @@ end
 #!
 #! The stack transition of the instruction can be visualized as follows:
 #!
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+------+
-#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr|  b   |
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+------+
+#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+---+
+#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr| - |
+#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+---+
 #! 
 #!                                                       ||
 #!                                                       \/
 #!                                                         
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------+-------+
-#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+b|  1-b  |
-#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------+-------+
+#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------+-----+
+#! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+b|  -  |
+#! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------------+
 #! 
 #! 
 #! Here:
@@ -256,82 +153,76 @@ end
 #! 4- x_addr is the memory address from which we are loading the Ti's using the MSTREAM instruction.
 #! 5- z_addr is the memory address to the i-th OOD evaluation frame at z and gz i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1)
 #! 6- a_addr is the memory address of the i-th random element used in batching the trace polynomial quotients.
-#! Since each memory address holds two random values and only one is used for the current step, we use a binary flag
-#! to decide on which of the two random elements to use in the current step.
-#! 7- b is a binary flag to select between a := (a0, a1) and  a' := (a0', a1') where [a0, a1, a0', a1'] is the word currently pointed to by a_addr.
+#! The random elements a := (a0, a1) are stored in memory as [0, 0, a0, a1].
 #!
-#! Input: [T31, T30, T21, T20, T11, T10, T01, T00, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-#! Output: [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-export.aux_1
-    #=> [T31, T30, T21, T20, T11, T10, T01, T00, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
+#! Input: [T31, T30, T21, T20, T11, T10, T01, T00, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
+#! Output: [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 0]
+export.aux
 
     # 1) Shift trace columns values (as quadratic extension field element) left
     movup.7 movup.7   
-    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
+    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
 
-    # 2) Get a_addr and b and update a_addr. This is done here before these elements become inaccessible.
+    # 2) Get a_addr and update it. This is done here before it becomes inaccessible.
     
     # Update a_addr
-    dup.15 dup.15 add swap.15
-    #=> [a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr',b]
+    dup.14 add.1 swap.15
+    #=> [a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr', 0]
 
     # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
     # This also updates the z_addr pointer.
     dup.14 add.1 swap.15
     push.0.0.0.0 movup.4 mem_loadw
-    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     # 4) Compute the numerators
 
     # a) Compute T_i - T_i(z). This equals, in the case of T0, (T01 - Tz1, T00 - Tz0)
     dup.6 dup.6
     movup.5 movup.5
-    #=> [Tz1, Tz0, T01, T00, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tz1, Tz0, T01, T00, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     ext2sub
-    #=> [T01 - Tz1, T00 - Tz0, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [T01 - Tz1, T00 - Tz0, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     movdn.3 movdn.3
-    #=> [Tgz1, Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tgz1, Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     
     # b) Compute T_i - T_i(gz). This equals, in the case of T0, (T01 - Tgz1, T00 - Tgz0)
 
     # Compute first -(T_i - T_i(gz))
     dup.6 dup.6
     ext2sub
-    #=> [Tgz1 - T01, Tgz0 - T00, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Tgz1 - T01, Tgz0 - T00, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     
     # Negate both coordinates
     neg swap neg swap
-    #=> [T01 - Tgz1, T00 - Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [T01 - Tgz1, T00 - Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
+    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     # where Δg1 := T01 - Tgz1, Δg0 := T00 - Tgz0, Δ1 := T01 - Tz1 and Δ0 := T00 - Tz0
 
     # 5) Multiply by randomness
 
     # a) Load randomness from memory
     push.0.0.0.0
-    movup.8 mem_loadw
-    #=> [a1', a0', a1, a0, Δg1, Δg0, Δ1, Δ0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    movup.8 mem_loadw drop drop
+    #=> [a1', a0', a1, a0, Δg1, Δg0, Δ1, Δ0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
-    # b) Use b to choose between a and a'. Since b is inaccessible, we "hard-code" b by creating two versions of `random_combinate_aux`.
-    drop drop
-
-    # c) Multiply (Δ0, Δ1)
+    # b) Multiply (Δ0, Δ1)
     dup.1 dup.1
     movup.7 movup.7
-    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
     ext2mul
-    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     #   where (prod0, prod1) := (Δ0, Δ1) * (a0, a1)
 
     movdn.5 movdn.5
-    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
 
-    # d) Multiply (Δg0, Δg1)
+    # c) Multiply (Δg0, Δg1)
     ext2mul
-    #=> [prodg1, prodg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
+    #=> [prodg1, prodg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
     #   where (prodg0, prodg1) := (Δg0, Δg1) * (a0, a1)
 
     # 6) Accumulate into (p0, p1) and (r0, r1)
@@ -339,114 +230,15 @@ export.aux_1
 
     # a) Accumulate into (r0, r1)
     movup.7 movup.7 
-    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', b]
+    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
     movup.5 movup.5 ext2add
-    #=> [r1', r0', p1, p0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', b]
+    #=> [r1', r0', p1, p0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
     
     # b) Accumulate into (p0, p1)
     movdn.5 movdn.5 ext2add    
-    #=> [p1', p0', r1', r0', T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', b]
+    #=> [p1', p0', r1', r0', T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
 
     # c) Prepare for next iteration
-    swapw.3
-    movup.3 not movdn.3
-    movdnw.3
-    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-end
-
-#! Similar to `random_combine::aux_1` but chooses the second random element at address `a_addr`.
-#! This mimics the function of `b` because `b` is unreachable when needed on the stack.
-#!
-#! Input: [T31, T30, T21, T20, T11, T10, T01, T00, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-#! Output: [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
-export.aux_2
-    #=> [T31, T30, T21, T20, T11, T10, T01, T00, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-
-    # 1) Shift trace columns values (as quadratic extension field element) left
-    movup.7 movup.7   
-    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr, b]
-
-    # 2) Get a_addr and b and update a_addr. This is done here before these elements become inaccessible.
-    
-    # Update a_addr
-    dup.15 dup.15 add swap.15
-    #=> [a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr', b]
-
-    # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
-    # This also updates the z_addr pointer.
-    dup.14 add.1 swap.15
-    push.0.0.0.0 movup.4 mem_loadw
-    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    # 4) Compute the numerators
-
-    # a) Compute T_i - T_i(z). This equals, in the case of T0, (T01 - Tz1, T00 - Tz0)
-    dup.6 dup.6
-    movup.5 movup.5
-    #=> [Tz1, Tz0, T01, T00, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    ext2sub
-    #=> [T01 - Tz1, T00 - Tz0, Tgz1, Tgz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    movdn.3 movdn.3
-    #=> [Tgz1, Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    
-    # b) Compute T_i - T_i(gz). This equals, in the case of T0, (T01 - Tgz1, T00 - Tgz0)
-
-    # Compute first -(T_i - T_i(gz))
-    dup.6 dup.6
-    ext2sub
-    #=> [Tgz1 - T01, Tgz0 - T00, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    
-    # Negate both coordinates
-    neg swap neg swap
-    #=> [T01 - Tgz1, T00 - Tgz0, T01 - Tz1, T00 - Tz0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    # where Δg1 := T01 - Tgz1, Δg0 := T00 - Tgz0, Δ1 := T01 - Tz1 and Δ0 := T00 - Tz0
-
-    # 5) Multiply by randomness
-
-    # a) Load randomness from memory
-    push.0.0.0.0
-    movup.8 mem_loadw
-    #=> [a1', a0', a1, a0, Δg1, Δg0, Δ1, Δ0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    # b) Use b to choose between a and a'. Since b is inaccessible, we "hard-code" b by creating two versions of `random_combinate_aux`.
-    movup.2 drop movup.2 drop
-
-    # c) Multiply (Δ0, Δ1)
-    dup.1 dup.1
-    movup.7 movup.7
-    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    ext2mul
-    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #   where (prod0, prod1) := (Δ0, Δ1) * (a0, a1)
-
-    movdn.5 movdn.5
-    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-
-    # d) Multiply (Δg0, Δg1)
-    ext2mul
-    #=> [prodg1, prodg0, prod1, prod0, T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr', a_addr', b]
-    #   where (prodg0, prodg1) := (Δg0, Δg1) * (a0, a1)
-
-    # 6) Accumulate into (p0, p1) and (r0, r1)
-    movupw.3
-
-    # a) Accumulate into (r0, r1)
-    movup.7 movup.7 
-    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', b]
-    movup.5 movup.5 ext2add
-    #=> [r1', r0', p1, p0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', b]
-    
-    # b) Accumulate into (p0, p1)
-    movdn.5 movdn.5 ext2add    
-    #=> [p1', p0', r1', r0', T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', b]
-
-    # c) Prepare for next iteration
-    swapw.3
-    movup.3 not movdn.3
-    movdnw.3
-    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 1-b]
+    movdnw.2
+    #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1', p0', r1', r0', x_addr, z_addr', a_addr', 0]
 end
