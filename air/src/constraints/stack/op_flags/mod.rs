@@ -1,6 +1,6 @@
 use super::{EvaluationFrame, B0_COL_IDX};
 use crate::trace::{
-    decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_RANGE, OP_BIT_EXTRA_COL_IDX},
+    decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_EXTRA_COLS_RANGE, OP_BITS_RANGE},
     stack::H0_COL_IDX,
     DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
@@ -16,7 +16,10 @@ pub mod tests;
 const NUM_DEGREE_7_OPS: usize = 64;
 
 /// Total number of degree 6 operations in the VM.
-const NUM_DEGREE_6_OPS: usize = 16;
+const NUM_DEGREE_6_OPS: usize = 8;
+
+/// Total number of degree 5 operations in the VM.
+const NUM_DEGREE_5_OPS: usize = 16;
 
 /// Total number of degree 4 operations in the VM.
 const NUM_DEGREE_4_OPS: usize = 8;
@@ -24,22 +27,28 @@ const NUM_DEGREE_4_OPS: usize = 8;
 /// Total number of composite flags per stack impact type in the VM.
 const NUM_STACK_IMPACT_FLAGS: usize = 16;
 
-/// Opcode at which degree 7 operation starts.
+/// Opcode at which degree 7 operations start.
 const DEGREE_7_OPCODE_STARTS: usize = 0;
 
-/// Opcode at which degree 7 operation ends.
+/// Opcode at which degree 7 operations end.
 const DEGREE_7_OPCODE_ENDS: usize = DEGREE_7_OPCODE_STARTS + 63;
 
-/// Opcode at which degree 6 operation starts.
+/// Opcode at which degree 6 operations start.
 const DEGREE_6_OPCODE_STARTS: usize = DEGREE_7_OPCODE_ENDS + 1;
 
-/// Opcode at which degree 6 operation ends.
-const DEGREE_6_OPCODE_ENDS: usize = DEGREE_6_OPCODE_STARTS + 31;
+/// Opcode at which degree 6 operations end.
+const DEGREE_6_OPCODE_ENDS: usize = DEGREE_6_OPCODE_STARTS + 15;
 
-/// Opcode at which degree 4 operation starts.
-const DEGREE_4_OPCODE_STARTS: usize = DEGREE_6_OPCODE_ENDS + 1;
+/// Opcode at which degree 5 operations start.
+const DEGREE_5_OPCODE_STARTS: usize = DEGREE_6_OPCODE_ENDS + 1;
 
-/// Opcode at which degree 4 operation ends.
+/// Opcode at which degree 5 operations end.
+const DEGREE_5_OPCODE_ENDS: usize = DEGREE_5_OPCODE_STARTS + 15;
+
+/// Opcode at which degree 4 operations start.
+const DEGREE_4_OPCODE_STARTS: usize = DEGREE_5_OPCODE_ENDS + 1;
+
+/// Opcode at which degree 4 operations end.
 #[allow(dead_code)]
 const DEGREE_4_OPCODE_ENDS: usize = DEGREE_4_OPCODE_STARTS + 31;
 
@@ -58,6 +67,7 @@ const DEGREE_4_OPCODE_ENDS: usize = DEGREE_4_OPCODE_STARTS + 31;
 pub struct OpFlags<E: FieldElement> {
     degree7_op_flags: [E; NUM_DEGREE_7_OPS],
     degree6_op_flags: [E; NUM_DEGREE_6_OPS],
+    degree5_op_flags: [E; NUM_DEGREE_5_OPS],
     degree4_op_flags: [E; NUM_DEGREE_4_OPS],
     no_shift_flags: [E; NUM_STACK_IMPACT_FLAGS],
     left_shift_flags: [E; NUM_STACK_IMPACT_FLAGS],
@@ -81,7 +91,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// - degree 7 operations which doesn't shift the stack.
     /// - degree 7 operations which shifts the stack to the left.
     /// - degree 7 operations which shifts the stack to the right.
-    /// - degree 6 and 4 operations.
+    /// - degree 6, 5, and 4 operations.
     /// - composite flags for individual stack items whose value has been copied over.
     /// - composite flags for individual stack items which has been shifted to the left.
     /// - composite flags for individual stack items which has been shifted to the right.
@@ -94,6 +104,7 @@ impl<E: FieldElement> OpFlags<E> {
         // intermediary array to cache the value of intermediate flags.
         let mut degree7_op_flags = [E::ZERO; NUM_DEGREE_7_OPS];
         let mut degree6_op_flags = [E::ZERO; NUM_DEGREE_6_OPS];
+        let mut degree5_op_flags = [E::ZERO; NUM_DEGREE_5_OPS];
         let mut degree4_op_flags = [E::ZERO; NUM_DEGREE_4_OPS];
         let mut no_shift_flags = [E::ZERO; NUM_STACK_IMPACT_FLAGS];
         let mut left_shift_flags = [E::ZERO; NUM_STACK_IMPACT_FLAGS];
@@ -108,6 +119,8 @@ impl<E: FieldElement> OpFlags<E> {
         let not_1 = binary_not(frame.op_bit(1));
         let not_0 = binary_not(frame.op_bit(0));
 
+        // --- computation of the degree 7 operation flags ----------------------------------------
+
         // The intermediary value are computed from the most significant bits side.
         degree7_op_flags[0] = not_5 * not_4;
         degree7_op_flags[16] = not_5 * frame.op_bit(4);
@@ -120,14 +133,6 @@ impl<E: FieldElement> OpFlags<E> {
         // flag of prefix when the first 4 elements in op_bits are `1000`. Caching the result
         // for the compution of no_change_2. It's a flag for u32 arithmetic operations.
         let f1000 = f100 * not_3;
-        // flag of prefix when the first 4 elements in op_bits are `1011`. Caching the result
-        // for the compution of control flow op flag. It's a flag for control flow op flag whose degree is
-        // 6.
-        let f1011 = degree7_op_flags[16] * frame.op_bit(3) * frame.op_bit(6);
-        // flag of prefix when the first 3 elements in op_bits are `111`. Caching the result
-        // for the compution of control flow op flag. It's a flag for control flow op flag whose degree is
-        // 4.
-        let f111 = degree7_op_flags[48] * frame.op_bit(6);
 
         let not_6_not_3 = not_6 * not_3;
         let not_6_yes_3 = not_6 * frame.op_bit(3);
@@ -193,56 +198,102 @@ impl<E: FieldElement> OpFlags<E> {
         // flag when the items from second point onwards are shifted to the left. It doesn't have assert.
         let left_change_1_flag = f0100 - degree7_op_flags[32];
 
-        let helper = frame.op_bit_helper();
+        // --- computation of the degree 6 operation flags ----------------------------------------
 
-        // computation of degree 6 and 4 flags.
-        degree4_op_flags[0] = not_3 * not_2;
-        degree4_op_flags[1] = frame.op_bit(2) * not_3;
-        degree4_op_flags[2] = not_2 * frame.op_bit(3);
-        degree4_op_flags[3] = frame.op_bit(3) * frame.op_bit(2);
+        // The degree 6 flag prefix is `100`.
+        let degree_6_flag = frame.op_bit(6) * not_5 * not_4;
+
+        // degree 6 flags do not use the first bit (op_bits[0])
+        let not_2_not_3 = not_2 * not_3;
+        let yes_2_not_3 = frame.op_bit(2) * not_3;
+        let not_2_yes_3 = not_2 * frame.op_bit(3);
+        let yes_2_yes_3 = frame.op_bit(2) * frame.op_bit(3);
+
+        degree6_op_flags[0] = not_1 * not_2_not_3; // U32ADD
+        degree6_op_flags[1] = frame.op_bit(1) * not_2_not_3; // U32SUB
+        degree6_op_flags[2] = not_1 * yes_2_not_3; // U32MUL
+        degree6_op_flags[3] = frame.op_bit(1) * yes_2_not_3; // U32DIV
+        degree6_op_flags[4] = not_1 * not_2_yes_3; // U32SPLIT
+        degree6_op_flags[5] = frame.op_bit(1) * not_2_yes_3; // U32ASSERT2
+        degree6_op_flags[6] = not_1 * yes_2_yes_3; // U32ADD3
+        degree6_op_flags[7] = frame.op_bit(1) * yes_2_yes_3; // U32MADD
+
+        // the lower 4 bits of all degree 6 operations are finished.
+        // the degree 6 flag is multiplied with the intermediate values to enumerate all the
+        // possible degree 6 operations flags.
+        degree6_op_flags.iter_mut().for_each(|v| *v *= degree_6_flag);
+
+        // --- computation of the degree 5 operation flags ----------------------------------------
+
+        // the degree 5 flag uses the first degree reduction column.
+        let degree_5_flag = frame.op_bit_extra(0);
+
+        let not_0_not_1 = not_0 * not_1;
+        let yes_0_not_1 = frame.op_bit(0) * not_1;
+        let not_0_yes_1 = not_0 * frame.op_bit(1);
+        let yes_0_yes_1 = frame.op_bit(0) * frame.op_bit(1);
+        degree5_op_flags[0] = not_0_not_1 * not_2; // HPERM
+        degree5_op_flags[1] = yes_0_not_1 * not_2; // MPVERIFY
+        degree5_op_flags[2] = not_0_yes_1 * not_2; // PIPE
+        degree5_op_flags[3] = yes_0_yes_1 * not_2; // MSTREAM
+        degree5_op_flags[4] = not_0_not_1 * frame.op_bit(2); // SPLIT
+        degree5_op_flags[5] = yes_0_not_1 * frame.op_bit(2); // LOOP
+        degree5_op_flags[6] = not_0_yes_1 * frame.op_bit(2); // SPAN
+        degree5_op_flags[7] = yes_0_yes_1 * frame.op_bit(2); // JOIN
+
+        // the second half of the degree 5 flags share the same lower 3 bits as the first half.
+        degree5_op_flags.copy_within(0..8, 8);
+
+        // update the intermediate values of the degree 5 operation flags with the values of
+        // op_bit[3] and the degree 3 flag.
+        let deg_5_not_3 = not_3 * degree_5_flag;
+        for flag in degree5_op_flags.iter_mut().take(8) {
+            *flag *= deg_5_not_3;
+        }
+        let deg_5_yes_3 = frame.op_bit(3) * degree_5_flag;
+        for flag in degree5_op_flags.iter_mut().skip(8) {
+            *flag *= deg_5_yes_3;
+        }
+
+        // --- computation of the degree 4 operation flags ----------------------------------------
+
+        // the degree 4 flag uses the second degree reduction column.
+        let degree_4_flag = frame.op_bit_extra(1);
+
+        // degree 6 flags do not use the first two bits (op_bits[0], op_bits[1])
+        degree4_op_flags[0] = not_2_not_3; // MRUPDATE
+        degree4_op_flags[1] = yes_2_not_3; // PUSH
+        degree4_op_flags[2] = not_2_yes_3; // SYSCALL
+        degree4_op_flags[3] = yes_2_yes_3; // CALL
+
+        // the second half of the degree 4 flags share the same lower 4 bits as the first half.
         degree4_op_flags.copy_within(0..4, 4);
 
-        for i in 0..4 {
-            degree4_op_flags[i] *= not_4;
-            degree6_op_flags[2 * i] = degree4_op_flags[i];
+        // update the intermediate values of the degree 4 operation flags with the values of
+        // op_bit[4] and the degree 4 flag.
+        let deg_4_not_4 = not_4 * degree_4_flag;
+        for flag in degree4_op_flags.iter_mut().take(4) {
+            *flag *= deg_4_not_4;
         }
-        for i in 4..8 {
-            degree4_op_flags[i] *= frame.op_bit(4);
-            degree6_op_flags[2 * i] = degree4_op_flags[i];
-        }
-
-        // helper register is multiplied with the intermediate values to enumerate all the possible
-        // degree 4 operations flags.
-        degree4_op_flags.iter_mut().take(8).for_each(|v| *v *= helper);
-
-        // flag of END operation shifting stack to the left. It's effect on stack depends if the
-        // current block being executed is a loop block or not.
-        let shift_left_on_end = degree4_op_flags[4] * frame.is_loop_end();
-
-        // The degree 6 flag (`10xxxxx`) is clubbed with both 6th bit and it's boolean not value to
-        // reduce the number of multiplications.
-        let degree_six_flag = frame.op_bit(6) * not_5;
-        let degree_six_flag_not_1 = degree_six_flag * not_1;
-        let degree_six_flag_yes_1 = degree_six_flag * frame.op_bit(1);
-        for i in (0..16).step_by(2) {
-            degree6_op_flags[i + 1] = degree6_op_flags[i] * degree_six_flag_yes_1;
-            degree6_op_flags[i] *= degree_six_flag_not_1;
+        let deg_4_yes_4 = frame.op_bit(4) * degree_4_flag;
+        for flag in degree4_op_flags.iter_mut().skip(4) {
+            *flag *= deg_4_yes_4;
         }
 
         // -------------------------- no shift composite flags computation ------------------------
 
-        no_shift_flags[0] = degree7_op_flags[0]
-            + degree6_op_flags[5]
-            + degree6_op_flags[9]
-            + degree6_op_flags[12]
-            + degree6_op_flags[13]
-            + degree4_op_flags[6]
-            + degree4_op_flags[7]
-            + degree4_op_flags[3]
-            + degree4_op_flags[4] * binary_not(frame.is_loop_end());
+        no_shift_flags[0] = degree7_op_flags[0] // NOOP
+            + degree6_op_flags[5] // U32ASSERT2
+            + degree5_op_flags[1] // MPVERIFY
+            + degree5_op_flags[6] // SPAN
+            + degree5_op_flags[7] // JOIN
+            + degree4_op_flags[6] // RESPAN
+            + degree4_op_flags[7] // HALT
+            + degree4_op_flags[3] // CALL
+            + degree4_op_flags[4] * binary_not(frame.is_loop_end()); // END
 
         no_shift_flags[1] = no_shift_flags[0] + no_change_1_flag;
-        no_shift_flags[2] = no_shift_flags[1] + degree7_op_flags[8] + f1000;
+        no_shift_flags[2] = no_shift_flags[1] + degree7_op_flags[8] + f1000; // SWAP
         no_shift_flags[3] = no_shift_flags[2] + mov2_flag;
         no_shift_flags[4] = no_shift_flags[3]
             + mov3_flag
@@ -260,13 +311,18 @@ impl<E: FieldElement> OpFlags<E> {
         no_shift_flags[9] = no_shift_flags[8] + mov8_flag;
         no_shift_flags[10] = no_shift_flags[9];
         no_shift_flags[11] = no_shift_flags[9];
+        // SWAPW3; SWAPW2; HPERM
         no_shift_flags[12] =
-            no_shift_flags[9] - degree7_op_flags[29] + degree7_op_flags[28] + degree6_op_flags[8];
+            no_shift_flags[9] - degree7_op_flags[29] + degree7_op_flags[28] + degree5_op_flags[0];
         no_shift_flags[13] = no_shift_flags[12];
         no_shift_flags[14] = no_shift_flags[12];
         no_shift_flags[15] = no_shift_flags[12];
 
         // -------------------------- left shift composite flags computation ----------------------
+
+        // flag for whether or not an END operation causes the stack to shift left. The effect on
+        // the stack depends on whether the current block being executed is a loop block or not.
+        let shift_left_on_end = degree4_op_flags[4] * frame.is_loop_end();
 
         let movdnn_flag = degree7_op_flags[11]
             + degree7_op_flags[13]
@@ -276,8 +332,8 @@ impl<E: FieldElement> OpFlags<E> {
             + degree7_op_flags[23]
             + degree7_op_flags[27];
 
-        let split_loop_flag = degree6_op_flags[14] + degree6_op_flags[15];
-        let add3_madd_flag = degree6_op_flags[6] + degree6_op_flags[7];
+        let split_loop_flag = degree5_op_flags[4] + degree5_op_flags[5]; // SPLIT; LOOP
+        let add3_madd_flag = degree6_op_flags[6] + degree6_op_flags[7]; // U32ADD3; U32MADD
 
         left_shift_flags[1] = degree7_op_flags[32]
             + movdnn_flag
@@ -316,7 +372,7 @@ impl<E: FieldElement> OpFlags<E> {
 
         right_shift_flags[0] = f011 + degree4_op_flags[1] + movupn_flag;
 
-        right_shift_flags[1] = right_shift_flags[0] + degree6_op_flags[4];
+        right_shift_flags[1] = right_shift_flags[0] + degree6_op_flags[4]; // degree 6: U32SPLIT
 
         right_shift_flags[2] = right_shift_flags[1] - degree7_op_flags[10];
         right_shift_flags[3] = right_shift_flags[2] - degree7_op_flags[12];
@@ -334,15 +390,16 @@ impl<E: FieldElement> OpFlags<E> {
         right_shift_flags[15] = right_shift_flags[8];
 
         // Flag if the stack has been shifted to the right.
-        let right_shift = f011 + degree4_op_flags[1] + degree6_op_flags[4];
+        let right_shift = f011 + degree4_op_flags[1] + degree6_op_flags[4]; // PUSH; U32SPLIT
 
         // Flag if the stack has been shifted to the left.
         let left_shift =
             f010 + add3_madd_flag + split_loop_flag + degree4_op_flags[5] + shift_left_on_end;
 
         // Flag if the current operation being executed is a control flow operation.
-        let control_flow = f111
-            + f1011
+        // first row: SPAN, JOIN, SPLIT, LOOP
+        let control_flow = frame.op_bit_extra(0) * not_3 * frame.op_bit(2)
+            + frame.op_bit_extra(1) * frame.op_bit(4) // END, REPEAT, RESPAN, HALT
             + degree4_op_flags[2]  // SYSCALL op
             + degree4_op_flags[3]; // CALL op
 
@@ -363,6 +420,7 @@ impl<E: FieldElement> OpFlags<E> {
         Self {
             degree7_op_flags,
             degree6_op_flags,
+            degree5_op_flags,
             degree4_op_flags,
             no_shift_flags,
             left_shift_flags,
@@ -800,37 +858,37 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of HPERM operation.
     #[inline(always)]
     pub fn hperm(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::HPerm.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::HPerm.op_code())]
     }
 
     /// Operation Flag of MPVERIFY operation.
     #[inline(always)]
     pub fn mpverify(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::MpVerify.op_code())]
-    }
-
-    /// Operation Flag of SPAN operation.
-    #[inline(always)]
-    pub fn span(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::Span.op_code())]
-    }
-
-    /// Operation Flag of JOIN operation.
-    #[inline(always)]
-    pub fn join(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::Join.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::MpVerify.op_code())]
     }
 
     /// Operation Flag of SPLIT operation.
     #[inline(always)]
     pub fn split(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::Split.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::Split.op_code())]
     }
 
     /// Operation Flag of LOOP operation.
     #[inline(always)]
     pub fn loop_op(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::Loop.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::Loop.op_code())]
+    }
+
+    /// Operation Flag of SPAN operation.
+    #[inline(always)]
+    pub fn span(&self) -> E {
+        self.degree5_op_flags[get_op_index(Operation::Span.op_code())]
+    }
+
+    /// Operation Flag of JOIN operation.
+    #[inline(always)]
+    pub fn join(&self) -> E {
+        self.degree5_op_flags[get_op_index(Operation::Join.op_code())]
     }
 
     // ------ Degree 4 stack operations  ----------------------------------------------------------
@@ -911,18 +969,21 @@ impl<E: FieldElement> OpFlags<E> {
     // --------------------------- other composite flags -----------------------------------------
 
     /// Returns the flag when the stack operation shifts the flag to the right.
+    /// Degree: 6
     #[inline(always)]
     pub fn right_shift(&self) -> E {
         self.right_shift
     }
 
     /// Returns the flag when the stack operation shifts the flag to the left.
+    /// Degree: 5
     #[inline(always)]
     pub fn left_shift(&self) -> E {
         self.left_shift
     }
 
     /// Returns the flag when the stack operation is a control flow operation.
+    /// Degree: 3
     #[inline(always)]
     pub fn control_flow(&self) -> E {
         self.control_flow
@@ -935,6 +996,7 @@ impl<E: FieldElement> OpFlags<E> {
     }
 
     /// Returns the flag if the stack overflow table contains values or not.
+    /// Degree: 2
     #[inline(always)]
     pub fn overflow(&self) -> E {
         self.overflow
@@ -954,9 +1016,9 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// the index is a valid index.
     fn op_bit(&self, index: usize) -> E;
 
-    /// Returns the value of operation bit extra column which is used to reduce the degree of op
-    /// flags for degree 4 operations where the two most significant bits are ONE.
-    fn op_bit_helper(&self) -> E;
+    /// Returns the value of the specified op bit extra column, which is used to reduce the degree
+    /// of op flags for degree 4 and 5 operations. It assumes that the index is a valid index.
+    fn op_bit_extra(&self, index: usize) -> E;
 
     /// Returns the h0 bookeeeping register value in the current frame.
     fn overflow_register(&self) -> E;
@@ -978,8 +1040,8 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline]
-    fn op_bit_helper(&self) -> E {
-        self.current()[DECODER_TRACE_OFFSET + OP_BIT_EXTRA_COL_IDX]
+    fn op_bit_extra(&self, idx: usize) -> E {
+        self.current()[DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_RANGE.start + idx]
     }
 
     #[inline]
@@ -1010,6 +1072,9 @@ pub const fn get_op_index(opcode: u8) -> usize {
     } else if opcode < DEGREE_6_OPCODE_ENDS {
         // index of a degree 6 operation in the degree 6 flag's array.
         (opcode - DEGREE_6_OPCODE_STARTS) / 2
+    } else if opcode < DEGREE_5_OPCODE_ENDS {
+        // index of a degree 5 operation in the degree 5 flag's array.
+        opcode - DEGREE_5_OPCODE_STARTS
     } else {
         // index of a degree 4 operation in the degree 4 flag's array.
         (opcode - DEGREE_4_OPCODE_STARTS) / 4
@@ -1036,11 +1101,15 @@ pub fn generate_evaluation_frame(opcode: usize) -> EvaluationFrame<Felt> {
         current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.start + i] = operation_bit_array[i];
     }
 
-    // set helper value in the decoder. It will be ONE only in the case of a
-    // degree four operation.
-    current[DECODER_TRACE_OFFSET + OP_BIT_EXTRA_COL_IDX] = current
-        [DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 1]
-        * current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 2];
+    // set the op bits extra columns in the decoder.
+    let bit_6 = current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 1];
+    let bit_5 = current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 2];
+    let bit_4 = current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 3];
+    // It will be ONE only in the case of a degree five operation.
+    current[DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_RANGE.start] = bit_6 * (ONE - bit_5) * bit_4;
+
+    // It will be ONE only in the case of a degree four operation.
+    current[DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_RANGE.start + 1] = bit_6 * bit_5;
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }

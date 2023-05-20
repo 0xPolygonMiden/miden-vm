@@ -3,7 +3,7 @@ use crate::stack::op_flags::get_op_index;
 use super::{
     generate_evaluation_frame, OpFlags, DECODER_TRACE_OFFSET, DEGREE_4_OPCODE_ENDS,
     DEGREE_4_OPCODE_STARTS, DEGREE_6_OPCODE_ENDS, DEGREE_6_OPCODE_STARTS, DEGREE_7_OPCODE_ENDS,
-    DEGREE_7_OPCODE_STARTS, NUM_DEGREE_4_OPS, NUM_DEGREE_6_OPS, NUM_DEGREE_7_OPS,
+    DEGREE_7_OPCODE_STARTS, NUM_DEGREE_4_OPS, NUM_DEGREE_5_OPS, NUM_DEGREE_6_OPS, NUM_DEGREE_7_OPS,
 };
 use crate::trace::decoder::IS_LOOP_FLAG_COL_IDX;
 use vm_core::{Operation, ONE, ZERO};
@@ -36,6 +36,11 @@ fn degree_7_op_flags() {
         // Asserts all degree 6 operation flags to ZERO as the input operation is of degree 7.
         for i in 0..NUM_DEGREE_6_OPS {
             assert_eq!(op_flags.degree6_op_flags[i], ZERO)
+        }
+
+        // Asserts all degree 5 operation flags to ZERO as the input operation is of degree 7.
+        for i in 0..NUM_DEGREE_5_OPS {
+            assert_eq!(op_flags.degree5_op_flags[i], ZERO)
         }
 
         // Asserts all degree 4 operation flags to ZERO as the input operation is of degree 7.
@@ -78,6 +83,12 @@ fn degree_6_op_flags() {
 
         // Assert operation flags not present in the trace to ZERO as the operation being executed
         // is of degree 6.
+        for i in 0..NUM_DEGREE_5_OPS {
+            assert_eq!(op_flags.degree5_op_flags[i], ZERO)
+        }
+
+        // Assert operation flags not present in the trace to ZERO as the operation being executed
+        // is of degree 6.
         for i in 0..NUM_DEGREE_4_OPS {
             assert_eq!(op_flags.degree4_op_flags[i], ZERO)
         }
@@ -99,7 +110,7 @@ fn degree_4_op_flags() {
         // index of the operation flag in the op_flag's degree four array.
         let idx_in_degree4_flags = get_op_index(i as u8);
 
-        // Asserts operation flag of degree 4 operation being executed to ONE.
+        // Asserts that the operation flag of the degree 4 operation being executed is ONE.
         assert_eq!(op_flags.degree4_op_flags[idx_in_degree4_flags], ONE);
 
         // Assert operation flags not present in the trace to ZERO as the operation being executed
@@ -112,6 +123,12 @@ fn degree_4_op_flags() {
         // is of degree 4.
         for i in 0..NUM_DEGREE_6_OPS {
             assert_eq!(op_flags.degree6_op_flags[i], ZERO)
+        }
+
+        // Assert operation flags not present in the trace to ZERO as the operation being executed
+        // is of degree 4.
+        for i in 0..NUM_DEGREE_5_OPS {
+            assert_eq!(op_flags.degree5_op_flags[i], ZERO)
         }
 
         // Except the operation being executed, all the degree 4 operation flags should be ZERO.
