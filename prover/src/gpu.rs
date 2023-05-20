@@ -3,11 +3,11 @@
 use crate::{ExecutionProver, WinterProofOptions};
 use air::{FieldElement, PublicInputs};
 use elsa::FrozenVec;
-use gpu_poly::{
+use log::debug;
+use ministark_gpu::{
     plan::{gen_rpo_merkle_tree, GpuRpo256RowMajor},
     utils::page_aligned_uninit_vector,
 };
-use log::debug;
 use pollster::block_on;
 use processor::{
     crypto::{RandomCoin, Rpo256, RpoDigest},
