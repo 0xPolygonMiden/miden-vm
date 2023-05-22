@@ -1,4 +1,4 @@
-use super::{Assembler, AssemblyContext, AssemblyError, CodeBlock, ProcedureId};
+use super::{Assembler, AssemblyContext, AssemblyError, CodeBlock, ProcedureId, RpoDigest};
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -31,7 +31,7 @@ impl Assembler {
 
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get(proc_id).expect("procedure not in cache");
+        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "inlined" call to the procedure; this updates the callset of the
@@ -60,6 +60,30 @@ impl Assembler {
         Ok(Some(CodeBlock::new_call(digest)))
     }
 
+    pub(super) fn call_mast_root(
+        &self,
+        root: &RpoDigest,
+        context: &mut AssemblyContext,
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        // get the procedure from the assembler
+        let proc_cache = self.proc_cache.borrow();
+
+        // TODO: consider relaxing the restriction that mast roots must exist in the procedure
+        // cache; see https://github.com/0xPolygonMiden/miden-vm/pull/911/files#r1202962206
+        let proc = proc_cache
+            .get_by_hash(root)
+            .ok_or(AssemblyError::proc_mast_root_not_found(root))?;
+        debug_assert!(proc.is_export(), "not imported procedure");
+
+        // register and "non-inlined" call to the procedure; this updates the callset of the
+        // procedure currently being compiled
+        context.register_external_call(proc, false)?;
+
+        // create a new CALL block for the procedure call and return
+        let digest = proc.code_root().hash();
+        Ok(Some(CodeBlock::new_call(digest)))
+    }
+
     pub(super) fn call_imported(
         &self,
         proc_id: &ProcedureId,
@@ -70,7 +94,7 @@ impl Assembler {
 
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get(proc_id).expect("procedure not in cache");
+        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the
@@ -93,7 +117,7 @@ impl Assembler {
         let proc_cache = self.proc_cache.borrow();
 
         let proc = proc_cache
-            .get(proc_id)
+            .get_by_id(proc_id)
             .ok_or_else(|| AssemblyError::kernel_proc_not_found(proc_id))?;
 
         // since call and syscall instructions cannot be executed inside a kernel, a callset for

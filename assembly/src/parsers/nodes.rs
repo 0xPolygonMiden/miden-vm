@@ -1,4 +1,4 @@
-use super::{CodeBody, Felt, ProcedureId, Vec};
+use super::{CodeBody, Felt, ProcedureId, RpoDigest, Vec};
 use core::fmt;
 
 // NODES
@@ -285,6 +285,7 @@ pub enum Instruction {
     ExecLocal(u16),
     ExecImported(ProcedureId),
     CallLocal(u16),
+    CallMastRoot(RpoDigest),
     CallImported(ProcedureId),
     SysCall(ProcedureId),
 
@@ -563,6 +564,10 @@ impl fmt::Display for Instruction {
             Self::ExecLocal(index) => write!(f, "exec.{index}"),
             Self::ExecImported(proc_id) => write!(f, "exec.{proc_id}"),
             Self::CallLocal(index) => write!(f, "call.{index}"),
+            Self::CallMastRoot(root) => {
+                write!(f, "call.")?;
+                display_hex_bytes(f, &root.as_bytes())
+            }
             Self::CallImported(proc_id) => write!(f, "call.{proc_id}"),
             Self::SysCall(proc_id) => write!(f, "syscall.{proc_id}"),
 
@@ -574,6 +579,15 @@ impl fmt::Display for Instruction {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+/// Builds a hex string from a byte slice
+pub fn display_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
+    write!(f, "0x")?;
+    for byte in bytes {
+        write!(f, "{byte:02x}")?;
+    }
+    Ok(())
+}
 
 /// Builds a string from input vector to display push operation
 fn display_push_vec<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[T]) -> fmt::Result {
