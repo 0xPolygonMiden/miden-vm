@@ -543,11 +543,57 @@ fn program_with_exported_procedure() {
     assert!(assembler.compile(source).is_err());
 }
 
-// IMPORTS
+// MAST ROOT CALLS
 // ================================================================================================
+#[test]
+fn program_with_incorrect_mast_root_length() {
+    let assembler = super::Assembler::default();
+    let source = "begin call.0x1234 end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "invalid procedure root invocation: 0x1234 - rpo digest hex label must have 66 characters, but was 6";
+    assert_eq!(expected_error, err.to_string());
+}
 
 #[test]
-fn program_with_one_import() {
+fn program_with_invalid_mast_root_chars() {
+    let assembler = super::Assembler::default();
+    let source =
+        "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "invalid procedure root invocation: 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb - \
+    '0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb' contains invalid hex characters";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn program_with_invalid_rpo_digest_call() {
+    let assembler = super::Assembler::default();
+    let source =
+        "begin call.0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "invalid procedure root invocation: 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff - \
+    '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' is not a valid Rpo Digest hex label";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn program_with_mast_root_call_that_does_not_exist() {
+    let assembler = super::Assembler::default();
+    let source =
+        "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "procedure mast root not found for digest - 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae";
+    assert_eq!(expected_error, err.to_string());
+}
+
+// IMPORTS
+// ================================================================================================
+#[test]
+fn program_with_one_import_and_hex_call() {
     const NAMESPACE: &str = "dummy";
     const MODULE: &str = "math::u256";
     const PROCEDURE: &str = r#"
@@ -601,21 +647,25 @@ fn program_with_one_import() {
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
+            call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
         end"#
     );
     let program = assembler.compile(source).unwrap();
     let expected = "\
         begin \
-            span \
-                push(4) push(3) \
-                eqz \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
+            join \
+                span \
+                    push(4) push(3) \
+                    eqz \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                end \
+                call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae \
             end \
         end";
     assert_eq!(expected, format!("{program}"));

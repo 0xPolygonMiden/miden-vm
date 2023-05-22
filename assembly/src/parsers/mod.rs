@@ -1,7 +1,8 @@
 use super::{
-    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt, LabelError,
-    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader,
-    SourceLocation, StarkField, String, ToString, Token, TokenStream, Vec, MAX_LABEL_LEN,
+    crypto::hash::RpoDigest, BTreeMap, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Felt, LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName,
+    Serializable, SliceReader, SourceLocation, StarkField, String, ToString, Token, TokenStream,
+    Vec, MAX_LABEL_LEN,
 };
 use core::{fmt::Display, iter, ops::RangeBounds, str::from_utf8};
 
@@ -9,12 +10,15 @@ mod body;
 use body::CodeBody;
 mod nodes;
 use crate::utils::bound_into_included_u64;
+pub use nodes::display_hex_bytes;
 pub use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 mod labels;
 use labels::CONSTANT_LABEL_PARSER;
-pub use labels::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+pub use labels::{decode_hex_rpo_digest_label, NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+mod invocation_target;
+pub use invocation_target::InvocationTarget;
 
 mod adv_ops;
 mod field_ops;

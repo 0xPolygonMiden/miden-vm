@@ -1,11 +1,13 @@
 use super::{
+    btree_map,
+    crypto::hash::RpoDigest,
     parsers::{Instruction, Node, ProcedureAst, ProgramAst},
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
     LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, Program,
     ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
-use vm_core::{crypto::hash::RpoDigest, utils::group_vector_elements, Decorator, DecoratorList};
+use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
 
@@ -18,13 +20,11 @@ use span_builder::SpanBuilder;
 mod context;
 pub use context::{AssemblyContext, AssemblyContextType};
 
+mod procedure_cache;
+use procedure_cache::ProcedureCache;
+
 #[cfg(test)]
 mod tests;
-
-// TYPE ALIASES
-// ================================================================================================
-
-type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 
 // ASSEMBLER
 // ================================================================================================
@@ -198,8 +198,8 @@ impl Assembler {
                 // this is safe because we fail if the cache is borrowed.
                 self.proc_cache
                     .try_borrow_mut()
-                    .map(|mut cache| cache.insert(*proc.id(), proc))
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?;
+                    .map_err(|_| AssemblyError::InvalidCacheLock)?
+                    .insert(proc)?;
             }
         }
 
@@ -316,8 +316,8 @@ impl Assembler {
     // PROCEDURE CACHE
     // --------------------------------------------------------------------------------------------
 
-    /// Ensure a procedure exists in the cache. Otherwise, attempt to fetch it from the module
-    /// provider, compile, and check again.
+    /// Ensures that a procedure with the specified [ProcedureId] exists in the cache. Otherwise,
+    /// attempt to fetch it from the module provider, compile, and check again.
     ///
     /// If `Ok` is returned, the procedure can be safely unwrapped from the cache.
     ///
@@ -329,7 +329,7 @@ impl Assembler {
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
-        if !self.proc_cache.borrow().contains_key(proc_id) {
+        if !self.proc_cache.borrow().contains_id(proc_id) {
             // if procedure is not in cache, try to get its module and compile it
             let module = self
                 .module_provider
@@ -338,7 +338,7 @@ impl Assembler {
             self.compile_module(module, context)?;
 
             // if the procedure is still not in cache, then there was some error
-            if !self.proc_cache.borrow().contains_key(proc_id) {
+            if !self.proc_cache.borrow().contains_id(proc_id) {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
                     proc_id,
                     &module.path,

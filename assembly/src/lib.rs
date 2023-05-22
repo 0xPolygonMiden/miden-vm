@@ -8,7 +8,7 @@ use vm_core::{
     code_blocks::CodeBlock,
     crypto,
     utils::{
-        collections::{BTreeMap, BTreeSet, Vec},
+        collections::{btree_map, BTreeMap, BTreeSet, Vec},
         string::{String, ToString},
     },
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
@@ -22,8 +22,8 @@ use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
 mod parsers;
-pub use parsers::{ModuleAst, ProcedureAst, ProgramAst};
-use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+use parsers::{display_hex_bytes, NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+pub use parsers::{InvocationTarget, ModuleAst, ProcedureAst, ProgramAst};
 
 pub mod ast {
     pub use crate::parsers::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst};

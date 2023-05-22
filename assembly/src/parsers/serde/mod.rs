@@ -1,6 +1,6 @@
 use super::{
     ByteReader, ByteWriter, CodeBody, Deserializable, DeserializationError, Felt, Instruction,
-    Node, ProcedureId, Serializable,
+    Node, ProcedureId, RpoDigest, Serializable,
 };
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;
@@ -273,8 +273,9 @@ pub enum OpCode {
     ExecLocal = 239,
     ExecImported = 240,
     CallLocal = 241,
-    CallImported = 242,
-    SysCall = 243,
+    CallMastRoot = 242,
+    CallImported = 243,
+    SysCall = 244,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,
