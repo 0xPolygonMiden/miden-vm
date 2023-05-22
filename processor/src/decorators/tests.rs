@@ -7,7 +7,7 @@ use test_utils::{crypto::get_smt_remaining_key, rand::seeded_word};
 use vm_core::{
     crypto::{
         hash::{Rpo256, RpoDigest},
-        merkle::{EmptySubtreeRoots, MerkleStore, MerkleTree, NodeIndex},
+        merkle::{EmptySubtreeRoots, MerkleStore, MerkleTree, NodeIndex, TieredSmt},
     },
     utils::IntoBytes,
     AdviceInjector, Decorator, ONE, ZERO,
@@ -59,6 +59,9 @@ fn push_merkle_node() {
     ]);
     assert_eq!(expected_stack, process.stack.trace_state());
 }
+
+// SMTGET TESTS
+// ================================================================================================
 
 #[test]
 fn push_smtget() {
@@ -144,8 +147,62 @@ fn push_smtget() {
     }
 }
 
+// SMTINSERT TESTS
+// ================================================================================================
+
+#[test]
+fn inject_smtinsert() {
+    let mut smt = TieredSmt::default();
+
+    // --- insert into empty tree ---------------------------------------------
+
+    let raw_a = 0b_01101001_01101100_00011111_11111111_10010110_10010011_11100000_00000000_u64;
+    let key_a = build_key(raw_a);
+    let val_a = [ONE, ZERO, ZERO, ZERO];
+
+    // insertion should happen at depth 16 and thus 16_or_32 and 16_or_48 flags should be set to ONE;
+    // since we are replacing a node which is an empty subtree, the is_empty flag should also be ONE
+    let expected_stack = [ONE, ONE, ONE];
+    let process = prepare_smt_insert(key_a, val_a, &smt, expected_stack.len());
+    assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
+
+    // --- update same key with different value -------------------------------
+
+    let val_b = [ONE, ONE, ZERO, ZERO];
+    smt.insert(key_a.into(), val_b);
+
+    // we are updating a node at depth 16 and thus 16_or_32 and 16_or_48 flags should be set to ONE;
+    // since we are updating an existing leaf, the is_empty flag should be set to ZERO
+    let expected_stack = [ZERO, ONE, ONE];
+    let process = prepare_smt_insert(key_a, val_b, &smt, expected_stack.len());
+    assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
+}
+
+fn prepare_smt_insert(
+    key: Word,
+    value: Word,
+    smt: &TieredSmt,
+    adv_stack_depth: usize,
+) -> Process<MemAdviceProvider> {
+    let root: Word = smt.root().into();
+    let store = MerkleStore::from(smt);
+
+    let stack_inputs = build_stack_inputs(value, key, root);
+    let advice_inputs = AdviceInputs::default().with_merkle_store(store);
+    let mut process = build_process(stack_inputs, advice_inputs);
+
+    process.execute_op(Operation::Noop).unwrap();
+    process
+        .execute_decorator(&Decorator::Advice(AdviceInjector::SmtInsert))
+        .unwrap();
+
+    move_adv_to_stack(&mut process, adv_stack_depth);
+
+    process
+}
+
 // HELPER FUNCTIONS
-// --------------------------------------------------------------------------------------------
+// ================================================================================================
 
 fn init_leaf(value: u64) -> Word {
     [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
@@ -169,17 +226,7 @@ fn assert_case_smtget(
     expected_stack: &[Felt],
 ) {
     // build the process
-    let stack_inputs = StackInputs::try_from_values([
-        root[0].as_int(),
-        root[1].as_int(),
-        root[2].as_int(),
-        root[3].as_int(),
-        key[0].as_int(),
-        key[1].as_int(),
-        key[2].as_int(),
-        key[3].as_int(),
-    ])
-    .unwrap();
+    let stack_inputs = build_stack_inputs(key, root, Word::default());
     let remaining = get_smt_remaining_key(key, depth);
     let mapped = remaining.into_iter().chain(value.into_iter()).collect();
     let advice_inputs = AdviceInputs::default()
@@ -192,13 +239,52 @@ fn assert_case_smtget(
     // call the injector and clear the stack
     process.execute_op(Operation::Noop).unwrap();
     process.execute_decorator(&Decorator::Advice(AdviceInjector::SmtGet)).unwrap();
-    for _ in 0..8 {
+
+    // replace operand stack contents with the data on the advice stack
+    move_adv_to_stack(&mut process, expected_stack.len());
+
+    assert_eq!(build_expected(expected_stack), process.stack.trace_state());
+}
+
+fn build_process(
+    stack_inputs: StackInputs,
+    adv_inputs: AdviceInputs,
+) -> Process<MemAdviceProvider> {
+    let advice_provider = MemAdviceProvider::from(adv_inputs);
+    Process::new(Kernel::default(), stack_inputs, advice_provider)
+}
+
+fn build_stack_inputs(w0: Word, w1: Word, w2: Word) -> StackInputs {
+    StackInputs::try_from_values([
+        w2[0].as_int(),
+        w2[1].as_int(),
+        w2[2].as_int(),
+        w2[3].as_int(),
+        w1[0].as_int(),
+        w1[1].as_int(),
+        w1[2].as_int(),
+        w1[3].as_int(),
+        w0[0].as_int(),
+        w0[1].as_int(),
+        w0[2].as_int(),
+        w0[3].as_int(),
+    ])
+    .unwrap()
+}
+
+fn build_key(prefix: u64) -> Word {
+    [ONE, ONE, ONE, Felt::new(prefix)]
+}
+
+/// Removes all items from the operand stack and pushes the specified number of values from
+/// the advice tack onto it.
+fn move_adv_to_stack(process: &mut Process<MemAdviceProvider>, adv_stack_depth: usize) {
+    let stack_depth = process.stack.depth();
+    for _ in 0..stack_depth {
         process.execute_op(Operation::Drop).unwrap();
     }
 
-    // expect the stack output
-    for _ in 0..expected_stack.len() {
+    for _ in 0..adv_stack_depth {
         process.execute_op(Operation::AdvPop).unwrap();
     }
-    assert_eq!(build_expected(expected_stack), process.stack.trace_state());
 }
