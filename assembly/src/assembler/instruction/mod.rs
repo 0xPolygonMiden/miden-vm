@@ -265,11 +265,11 @@ impl Assembler {
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, ctx),
             Instruction::Clk => span.add_op(Clk),
-            Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
+            Instruction::AdvPipe => span.add_op(Pipe),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
             Instruction::AdvLoadW => span.add_op(AdvPopW),
 
-            Instruction::MemStream => span.add_ops([MStream, HPerm]),
+            Instruction::MemStream => span.add_op(MStream),
 
             Instruction::Locaddr(v) => env_ops::locaddr(span, *v, ctx),
             Instruction::MemLoad => mem_ops::mem_read(span, ctx, None, false, true),

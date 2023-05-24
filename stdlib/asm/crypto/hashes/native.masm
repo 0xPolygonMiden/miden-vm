@@ -29,7 +29,7 @@ end
 export.hash_memory_even
   dup.13 dup.13 neq  # (4 cycles )
   while.true
-    mem_stream # (2 cycles)
+    mem_stream hperm # (2 cycles)
     dup.13 dup.13 neq  # (4 cycles )
   end
 end

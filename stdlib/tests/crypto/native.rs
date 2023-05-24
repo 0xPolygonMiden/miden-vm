@@ -37,7 +37,7 @@ fn test_hash_empty() {
     begin
         # mem_stream state
         push.1000 padw padw padw
-        mem_stream
+        mem_stream hperm
 
         # drop everything except the hash
         dropw swapw dropw movup.4 drop
@@ -78,7 +78,7 @@ fn test_single_iteration() {
 
         # mem_stream state
         push.1000 padw padw padw
-        mem_stream
+        mem_stream hperm
 
         # drop everything except the hash
         dropw swapw dropw movup.4 drop

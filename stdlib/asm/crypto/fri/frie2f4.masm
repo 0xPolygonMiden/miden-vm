@@ -128,6 +128,7 @@ export.verify_query_layer.3
     swapw
     push.0.0.0.0
     adv_pipe
+    hperm
     # => [T2, T1, T0, ptr, V, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ..]
 
     # assert T1 == V (16 cycles)

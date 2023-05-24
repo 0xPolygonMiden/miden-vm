@@ -776,7 +776,7 @@ export.compute_deep_composition_polynomial_queries
         swapw.2
         #=> [Y, Y, 0, 0, 0, 0, ptr, y, y, y]
         repeat.9
-            adv_pipe
+            adv_pipe hperm
         end
         #=> [Y, L, Y, ptr, y, y, y]
 
@@ -816,8 +816,8 @@ export.compute_deep_composition_polynomial_queries
         mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
         swapw
         push.0.0.0.0
-        adv_pipe
-        adv_pipe
+        adv_pipe hperm
+        adv_pipe hperm
         dropw
         adv_push.1
         adv_push.1
@@ -860,8 +860,8 @@ export.compute_deep_composition_polynomial_queries
         mem_loadw.ZERO_WORD_PTR
         swapw
         push.0.0.0.0
-        adv_pipe
-        adv_pipe
+        adv_pipe hperm
+        adv_pipe hperm
         #=> [Y, L, Y, ptr, pos, depth, y,       y, y]
 
         ## Check correctness of unhashing

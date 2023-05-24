@@ -15,7 +15,7 @@ export.load_ood_eval_frame
     push.0.0.0.0
     push.0.0.0.0
     repeat.20
-        adv_pipe
+        adv_pipe hperm
     end
 
     # adv_pipe the last two elements
@@ -87,8 +87,8 @@ export.load_constraint_evaluations
     push.0.0.0.0
     push.0.0.0.0
     push.0.0.0.0
-    adv_pipe
-    adv_pipe
+    adv_pipe hperm
+    adv_pipe hperm
     dropw
     swapw
     dropw
