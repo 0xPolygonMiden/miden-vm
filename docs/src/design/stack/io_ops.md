@@ -169,3 +169,37 @@ Note that $\alpha_2$ term is skipped because currently memory context value is a
 
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
+
+### MSTREAM
+
+The `MSTREAM` operation loads two words from memory, and replaces the top 8 elements of the stack with them, element-wise, in stack order. The memory address from which the words are loaded is stored in the 13th stack element (position 12). The diagram below illustrates this graphically.
+
+![mstream](../../assets/design/stack/io_ops/MSTREAM.png)
+
+After the operation, the memory address is incremented by 2.
+
+$$
+s_{12}' = s_{12} + 2
+$$
+
+To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
+
+$$
+v = \sum_{i=0}^7\alpha_{i+6} \cdot s_{7-i}'
+$$
+
+Using the above variable, we define the value representing the memory access request as follows:
+
+$$
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_3 \cdot s_{12} + \alpha_4 \cdot (s_{12} + 1) + \alpha_5 \cdot clk + v
+$$
+
+In the above:
+- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $s_{12}$ and $s_{12} + 1$ are the memory addresses from which the values are to be loaded onto the stack.
+- $clk$ is the current clock cycle of the VM.
+
+Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
+
+The effect of this operation on the rest of the stack is:
+* **No change** starting from position $8$ except position $12$.
