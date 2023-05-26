@@ -1,7 +1,7 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction, LibraryPath,
-    LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
-    MAX_DOCS_LEN,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction, InvocationTarget,
+    LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token,
+    TokenStream, MAX_DOCS_LEN,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
@@ -171,46 +171,54 @@ impl ParserContext {
 
     /// Parse an `exec` token into an instruction node.
     fn parse_exec(&self, token: &Token) -> Result<Node, ParsingError> {
-        // get the name of the invoked procedure; if the procedure is invoked from an imported
-        // module, the module name is also returned
-        let (proc_name, module_name) = token.parse_exec()?;
-
-        if let Some(module_name) = module_name {
-            let proc_id = self.get_imported_proc_id(proc_name, module_name, token)?;
-            let inner = Instruction::ExecImported(proc_id);
-            Ok(Node::Instruction(inner))
-        } else {
-            let index = self.get_local_proc_index(proc_name, token)?;
-            let inner = Instruction::ExecLocal(index);
-            Ok(Node::Instruction(inner))
+        match token.parse_invocation(token.parts()[0])? {
+            InvocationTarget::MastRoot(_) => Err(ParsingError::exec_with_mast_root(token)),
+            InvocationTarget::ProcedureName(proc_name) => {
+                let index = self.get_local_proc_index(proc_name, token)?;
+                let inner = Instruction::ExecLocal(index);
+                Ok(Node::Instruction(inner))
+            }
+            InvocationTarget::ProcedurePath { name, module } => {
+                let proc_id = self.get_imported_proc_id(name, module, token)?;
+                let inner = Instruction::ExecImported(proc_id);
+                Ok(Node::Instruction(inner))
+            }
         }
     }
 
     /// Parse a `call` token into an instruction node.
     fn parse_call(&self, token: &Token) -> Result<Node, ParsingError> {
-        // get the name of the invoked procedure; if the procedure is invoked from an imported
-        // module, the module name is also returned
-        let (proc_name, module_name) = token.parse_call()?;
-
-        if let Some(module_name) = module_name {
-            let proc_id = self.get_imported_proc_id(proc_name, module_name, token)?;
-            let inner = Instruction::CallImported(proc_id);
-            Ok(Node::Instruction(inner))
-        } else {
-            let index = self.get_local_proc_index(proc_name, token)?;
-            let inner = Instruction::CallLocal(index);
-            Ok(Node::Instruction(inner))
+        match token.parse_invocation(token.parts()[0])? {
+            InvocationTarget::MastRoot(root_hash) => {
+                let inner = Instruction::CallMastRoot(root_hash);
+                Ok(Node::Instruction(inner))
+            }
+            InvocationTarget::ProcedureName(proc_name) => {
+                let index = self.get_local_proc_index(proc_name, token)?;
+                let inner = Instruction::CallLocal(index);
+                Ok(Node::Instruction(inner))
+            }
+            InvocationTarget::ProcedurePath { name, module } => {
+                let proc_id = self.get_imported_proc_id(name, module, token)?;
+                let inner = Instruction::CallImported(proc_id);
+                Ok(Node::Instruction(inner))
+            }
         }
     }
 
     /// Parse `syscall` token into an instruction node.
     fn parse_syscall(&self, token: &Token) -> Result<Node, ParsingError> {
-        // get the name of the invoked procedure;
-        let proc_name = token.parse_syscall()?;
-
-        let proc_id = ProcedureId::from_kernel_name(proc_name);
-        let inner = Instruction::SysCall(proc_id);
-        Ok(Node::Instruction(inner))
+        match token.parse_invocation(token.parts()[0])? {
+            InvocationTarget::MastRoot(_) => Err(ParsingError::syscall_with_mast_root(token)),
+            InvocationTarget::ProcedureName(proc_name) => {
+                let proc_id = ProcedureId::from_kernel_name(proc_name);
+                let inner = Instruction::SysCall(proc_id);
+                Ok(Node::Instruction(inner))
+            }
+            InvocationTarget::ProcedurePath { .. } => {
+                Err(ParsingError::syscall_with_module_name(token))
+            }
+        }
     }
 
     // PROCEDURE PARSERS

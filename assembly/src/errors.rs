@@ -1,4 +1,7 @@
-use super::{LibraryNamespace, ProcedureId, SourceLocation, String, ToString, Token, Vec};
+use super::{
+    crypto::hash::RpoDigest, display_hex_bytes, LibraryNamespace, ProcedureId, SourceLocation,
+    String, ToString, Token, Vec,
+};
 use core::fmt;
 
 // ASSEMBLY ERROR
@@ -11,9 +14,12 @@ pub enum AssemblyError {
     CircularModuleDependency(Vec<String>),
     DivisionByZero,
     DuplicateProcName(String, String),
+    DuplicateProcId(ProcedureId),
     ExportedProcInProgram(String),
+    ProcMastRootNotFound(RpoDigest),
     ImportedProcModuleNotFound(ProcedureId),
     ImportedProcNotFoundInModule(ProcedureId, String),
+    InvalidProgramAssemblyContext,
     InvalidCacheLock,
     KernelProcNotFound(ProcedureId),
     LocalProcNotFound(u16, String),
@@ -49,8 +55,16 @@ impl AssemblyError {
         Self::DuplicateProcName(proc_name.to_string(), module_path.to_string())
     }
 
+    pub fn duplicate_proc_id(proc_id: &ProcedureId) -> Self {
+        Self::DuplicateProcId(*proc_id)
+    }
+
     pub fn exported_proc_in_program(proc_name: &str) -> Self {
         Self::ExportedProcInProgram(proc_name.to_string())
+    }
+
+    pub fn proc_mast_root_not_found(root: &RpoDigest) -> Self {
+        Self::ProcMastRootNotFound(*root)
     }
 
     pub fn imported_proc_module_not_found(proc_id: &ProcedureId) -> Self {
@@ -109,9 +123,15 @@ impl fmt::Display for AssemblyError {
             CircularModuleDependency(dep_chain) => write!(f, "circular module dependency in the following chain: {dep_chain:?}"),
             DivisionByZero => write!(f, "division by zero"),
             DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
+            DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
+            ProcMastRootNotFound(digest) => {
+                write!(f, "procedure mast root not found for digest - ")?;
+                display_hex_bytes(f, &digest.as_bytes())
+            },
             ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
+            InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
             InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
             KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
@@ -461,6 +481,14 @@ impl ParsingError {
     // PROCEDURE INVOCATION
     // --------------------------------------------------------------------------------------------
 
+    pub fn invalid_proc_root_invocation(token: &Token, label: &str, err: LabelError) -> Self {
+        ParsingError {
+            message: format!("invalid procedure root invocation: {label} - {err}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn invalid_proc_invocation(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("invalid procedure invocation: {label}"),
@@ -469,9 +497,25 @@ impl ParsingError {
         }
     }
 
+    pub fn exec_with_mast_root(token: &Token) -> Self {
+        ParsingError {
+            message: "invalid exec: cannot invoke a procedure on a mast root".to_string(),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn syscall_with_module_name(token: &Token) -> Self {
         ParsingError {
             message: "invalid syscall: cannot invoke a syscall on a named module".to_string(),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn syscall_with_mast_root(token: &Token) -> Self {
+        ParsingError {
+            message: "invalid syscall: cannot invoke a syscall on a mast root".to_string(),
             location: *token.location(),
             op: token.to_string(),
         }
@@ -571,6 +615,9 @@ impl std::error::Error for ParsingError {}
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LabelError {
     EmptyLabel,
+    RpoDigestHexLabelIncorrectLength(usize),
+    InvalidHexCharacters(String),
+    InvalidHexRpoDigestLabel(String),
     InvalidFirstLetter(String),
     InvalidChars(String),
     LabelTooLong(String, usize),
@@ -580,6 +627,10 @@ pub enum LabelError {
 impl LabelError {
     pub const fn empty_label() -> Self {
         Self::EmptyLabel
+    }
+
+    pub fn rpo_digest_hex_label_incorrect_length(len: usize) -> Self {
+        Self::RpoDigestHexLabelIncorrectLength(len)
     }
 
     pub fn invalid_label(label: &str) -> Self {
@@ -604,6 +655,15 @@ impl fmt::Display for LabelError {
         use LabelError::*;
         match self {
             EmptyLabel => write!(f, "label cannot be empty"),
+            RpoDigestHexLabelIncorrectLength(len) => {
+                write!(f, "rpo digest hex label must have 66 characters, but was {}", len)
+            }
+            InvalidHexCharacters(label) => {
+                write!(f, "'{label}' contains invalid hex characters")
+            }
+            InvalidHexRpoDigestLabel(label) => {
+                write!(f, "'{label}' is not a valid Rpo Digest hex label")
+            }
             InvalidFirstLetter(label) => {
                 write!(f, "'{label}' does not start with a letter")
             }

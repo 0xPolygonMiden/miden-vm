@@ -35,7 +35,7 @@ pub struct VerifierChannel {
     fri_remainder: Option<Vec<QuadExt>>,
     fri_num_partitions: usize,
     // out-of-domain frame
-    ood_trace_frame: Option<TraceOodFrame>,
+    ood_trace_frame: Option<TraceOodFrame<QuadExt>>,
     ood_constraint_evaluations: Option<Vec<QuadExt>>,
     // query proof-of-work
     pow_nonce: u64,
@@ -66,6 +66,7 @@ impl VerifierChannel {
         let aux_trace_width = air.trace_layout().aux_trace_width();
         let lde_domain_size = air.lde_domain_size();
         let fri_options = air.options().to_fri_options();
+        let constraint_frame_width = air.context().num_constraint_composition_columns();
 
         // --- parse commitments ------------------------------------------------------------------
         let (trace_roots, constraint_root, fri_roots) = commitments
@@ -85,10 +86,11 @@ impl VerifierChannel {
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
 
         // --- parse out-of-domain evaluation frame -----------------------------------------------
-        let (ood_main_trace_frame, ood_aux_trace_frame, ood_constraint_evaluations) = ood_frame
-            .parse(main_trace_width, aux_trace_width, air.ce_blowup_factor())
+        let (ood_trace_evaluations, ood_constraint_evaluations) = ood_frame
+            .parse(main_trace_width, aux_trace_width, constraint_frame_width)
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
-        let ood_trace_frame = TraceOodFrame::new(ood_main_trace_frame, ood_aux_trace_frame);
+        let ood_trace_frame =
+            TraceOodFrame::new(ood_trace_evaluations, main_trace_width, aux_trace_width);
 
         Ok(VerifierChannel {
             // trace queries
@@ -137,7 +139,7 @@ impl VerifierChannel {
         &mut self,
     ) -> (EvaluationFrame<QuadExt>, Option<EvaluationFrame<QuadExt>>) {
         let frame = self.ood_trace_frame.take().expect("already read");
-        (frame.main_frame, frame.aux_frame)
+        (frame.main_frame(), frame.aux_frame())
     }
 
     /// Returns evaluations of composition polynomial columns at z^m, where z is the out-of-domain
@@ -435,24 +437,52 @@ impl ConstraintQueries {
 // TRACE OUT-OF-DOMAIN FRAME
 // ================================================================================================
 
-struct TraceOodFrame {
-    main_frame: EvaluationFrame<QuadExt>,
-    aux_frame: Option<EvaluationFrame<QuadExt>>,
+pub struct TraceOodFrame<E: FieldElement> {
+    values: Vec<E>,
+    main_trace_width: usize,
+    aux_trace_width: usize,
 }
 
-impl TraceOodFrame {
-    pub fn new(
-        main_frame: EvaluationFrame<QuadExt>,
-        aux_frame: Option<EvaluationFrame<QuadExt>>,
-    ) -> Self {
+impl<E: FieldElement> TraceOodFrame<E> {
+    pub fn new(values: Vec<E>, main_trace_width: usize, aux_trace_width: usize) -> Self {
         Self {
-            main_frame,
-            aux_frame,
+            values,
+            main_trace_width,
+            aux_trace_width,
+        }
+    }
+
+    pub fn main_frame(&self) -> EvaluationFrame<E> {
+        let mut current = vec![E::ZERO; self.main_trace_width];
+        let mut next = vec![E::ZERO; self.main_trace_width];
+
+        for (i, a) in self.values.chunks(2).take(self.main_trace_width).enumerate() {
+            current[i] = a[0];
+            next[i] = a[1];
+        }
+
+        EvaluationFrame::from_rows(current, next)
+    }
+
+    pub fn aux_frame(&self) -> Option<EvaluationFrame<E>> {
+        if self.aux_trace_width == 0 {
+            None
+        } else {
+            let mut current_aux = vec![E::ZERO; self.aux_trace_width];
+            let mut next_aux = vec![E::ZERO; self.aux_trace_width];
+
+            for (i, a) in self.values.chunks(2).skip(self.main_trace_width).enumerate() {
+                current_aux[i] = a[0];
+                next_aux[i] = a[1];
+            }
+            Some(EvaluationFrame::from_rows(current_aux, next_aux))
         }
     }
 }
 
-// Helper
+// HELPER FUNCTIONS
+// ================================================================================================
+
 pub fn unbatch_to_path_set(
     mut positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,

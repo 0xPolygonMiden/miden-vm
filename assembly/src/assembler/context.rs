@@ -19,24 +19,30 @@ pub struct AssemblyContext {
     kernel: Option<Kernel>,
 }
 
+/// The [ContextType] enum specifies how the [AssemblyContext] will be used.
+#[derive(PartialEq)]
+pub enum AssemblyContextType {
+    Kernel,
+    Module,
+    Program,
+}
+
 impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [AssemblyContext]. When is_kernel is set to true, the context is instantiated
-    /// for compiling a kernel module. Otherwise, the context is instantiated for compiling
-    /// executable programs.
-    pub fn new(is_kernel: bool) -> Self {
-        let modules = if is_kernel {
-            Vec::new()
-        } else {
+    /// Returns a new [AssemblyContext]. The `context_type` speicifies how the context will be used
+    /// and the `AssmeblyContext` is instantiated accordingly.
+    pub fn new(context_type: AssemblyContextType) -> Self {
+        let modules = match context_type {
+            AssemblyContextType::Kernel | AssemblyContextType::Module => Vec::new(),
             // for executable programs we initialize the module stack with the context of the
             // executable module itself
-            vec![ModuleContext::for_program()]
+            AssemblyContextType::Program => vec![ModuleContext::for_program()],
         };
 
         Self {
             module_stack: modules,
-            is_kernel,
+            is_kernel: context_type == AssemblyContextType::Kernel,
             kernel: None,
         }
     }
@@ -236,7 +242,7 @@ impl AssemblyContext {
         let mut cb_table = CodeBlockTable::default();
         for proc_id in main_module_context.callset.iter() {
             let proc = proc_cache
-                .get(proc_id)
+                .get_by_id(proc_id)
                 .or_else(|| main_module_context.find_local_proc(proc_id))
                 .expect("callset procedure not found");
 

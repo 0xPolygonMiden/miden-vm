@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath,
-    ParsingError, ProcedureName, Serializable, String, ToString, Vec,
+    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, InvocationTarget,
+    LibraryPath, ParsingError, ProcedureName, Serializable, String, ToString, Vec,
 };
 use core::fmt;
 
@@ -195,38 +195,15 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_exec(&self) -> Result<(&str, Option<&str>), ParsingError> {
-        assert_eq!(Self::EXEC, self.parts[0], "not an exec");
+    pub fn parse_invocation(
+        &self,
+        invocation_token: &str,
+    ) -> Result<InvocationTarget, ParsingError> {
+        assert_eq!(invocation_token, self.parts[0], "not an {invocation_token}");
         match self.num_parts() {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
-            2 => validate_proc_invocation_label(self.parts[1], self),
-            _ => Err(ParsingError::extra_param(self)),
-        }
-    }
-
-    pub fn parse_call(&self) -> Result<(&str, Option<&str>), ParsingError> {
-        assert_eq!(Self::CALL, self.parts[0], "not a call");
-        match self.num_parts() {
-            0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
-            2 => validate_proc_invocation_label(self.parts[1], self),
-            _ => Err(ParsingError::extra_param(self)),
-        }
-    }
-
-    pub fn parse_syscall(&self) -> Result<&str, ParsingError> {
-        assert_eq!(Self::SYSCALL, self.parts[0], "not a syscall");
-        match self.num_parts() {
-            0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
-            2 => {
-                let (proc_name, module_name) = validate_proc_invocation_label(self.parts[1], self)?;
-                if module_name.is_some() {
-                    return Err(ParsingError::syscall_with_module_name(self));
-                }
-                Ok(proc_name)
-            }
+            2 => InvocationTarget::parse(self.parts[1], self),
             _ => Err(ParsingError::extra_param(self)),
         }
     }
@@ -269,30 +246,4 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
         }
         Err(_) => Err(ParsingError::invalid_proc_locals(token, locals)),
     }
-}
-
-/// A label of an invoked procedure must comply with the following rules:
-/// - It can contain a single procedure name. In this case, the label must comply with procedure
-///   name rules.
-/// - It can contain module name followed by procedure name (e.g., "module::procedure"). In this
-///   case both module and procedure name must comply with relevant name rules.
-///
-/// All other combinations will result in an error.
-fn validate_proc_invocation_label<'a>(
-    label: &'a str,
-    token: &'a Token,
-) -> Result<(&'a str, Option<&'a str>), ParsingError> {
-    let num_components = LibraryPath::validate(label)
-        .map_err(|_| ParsingError::invalid_proc_invocation(token, label))?;
-
-    let (proc_name, module_name) = match num_components {
-        1 => (label, None),
-        2 => {
-            let parts = label.split_once(LibraryPath::PATH_DELIM).expect("no components");
-            (parts.1, Some(parts.0))
-        }
-        _ => return Err(ParsingError::invalid_proc_invocation(token, label)),
-    };
-
-    Ok((proc_name, module_name))
 }

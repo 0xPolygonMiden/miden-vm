@@ -59,7 +59,7 @@ verifier = { package = "miden-verifier", path = "../verifier", version = "0.6", 
 
 [dev-dependencies]
 assert_cmd = "2.0"
-criterion = "0.4"
+criterion = "0.5"
 escargot = "0.5.7"
 num-bigint = "0.4"
 predicates = "3.0"

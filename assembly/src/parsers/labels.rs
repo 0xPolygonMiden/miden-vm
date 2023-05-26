@@ -1,4 +1,4 @@
-use super::{LabelError, MAX_LABEL_LEN};
+use super::{Deserializable, LabelError, RpoDigest, SliceReader, MAX_LABEL_LEN};
 
 // LABEL PARSERS
 // ================================================================================================
@@ -67,5 +67,27 @@ impl LabelParser {
             return Err(LabelError::must_be_uppercase(label));
         }
         Ok(label)
+    }
+}
+
+// HEX LABEL PARSER
+// ================================================================================================.
+/// Parses an [RpoDigest] from a hex representation. Verifies that the hex string is 66 characters
+/// long, contains only valid hex characters, and that the resulting [RpoDigest] is valid.
+pub fn decode_hex_rpo_digest_label(s: &str) -> Result<RpoDigest, LabelError> {
+    debug_assert!(s.starts_with("0x"), "hex label must start with 0x");
+    if s.len() != 66 {
+        Err(LabelError::rpo_digest_hex_label_incorrect_length(s.len()))
+    } else {
+        let data: Vec<u8> = (2..s.len())
+            .step_by(2)
+            .map(|i| {
+                u8::from_str_radix(&s[i..i + 2], 16)
+                    .map_err(|_| LabelError::InvalidHexCharacters(s.to_string()))
+            })
+            .collect::<Result<Vec<_>, LabelError>>()?;
+        let mut slice_reader = SliceReader::new(&data);
+        RpoDigest::read_from(&mut slice_reader)
+            .map_err(|_| LabelError::InvalidHexRpoDigestLabel(s.to_string()))
     }
 }

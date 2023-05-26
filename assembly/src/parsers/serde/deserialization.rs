@@ -1,6 +1,6 @@
 use super::{
     ByteReader, CodeBody, Deserializable, DeserializationError, Felt, Instruction, Node, OpCode,
-    ProcedureId, MAX_PUSH_INPUTS,
+    ProcedureId, RpoDigest, MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION
@@ -353,6 +353,7 @@ impl Deserializable for Instruction {
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(source.read_u16()?)),
             OpCode::ExecImported => Ok(Instruction::ExecImported(ProcedureId::read_from(source)?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(source.read_u16()?)),
+            OpCode::CallMastRoot => Ok(Instruction::CallMastRoot(RpoDigest::read_from(source)?)),
             OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(source)?)),
             OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(source)?)),
 

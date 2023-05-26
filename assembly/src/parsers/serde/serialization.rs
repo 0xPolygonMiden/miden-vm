@@ -477,6 +477,10 @@ impl Serializable for Instruction {
                 OpCode::CallLocal.write_into(target);
                 target.write_u16(*v);
             }
+            Self::CallMastRoot(root) => {
+                OpCode::CallMastRoot.write_into(target);
+                root.write_into(target);
+            }
             Self::CallImported(imported) => {
                 OpCode::CallImported.write_into(target);
                 imported.write_into(target)
