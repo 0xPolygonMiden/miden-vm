@@ -25,12 +25,12 @@ std = ["vm-core/std", "winter-prover/std", "log/std"]
 log = "0.4.14"
 vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
 miden-air = { package = "miden-air", path = "../air", version = "0.6", default-features = false }
-winter-prover = { package = "winter-prover", git = "https://github.com/facebook/winterfell.git", branch = "main", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
 
 [dev-dependencies]
 logtest = { version = "2.0", default-features = false  }
 miden-assembly = { package = "miden-assembly", path = "../assembly", version = "0.6", default-features = false }
-rand-utils = { package = "winter-rand-utils", git = "https://github.com/facebook/winterfell.git", branch = "main" }
+rand-utils = { package = "winter-rand-utils", version = "0.6" }
 test-utils = { package = "miden-test-utils", path = "../test-utils", version = "0.1" }
-winter-fri = { package = "winter-fri", git = "https://github.com/facebook/winterfell.git", branch = "main" }
-winter-utils = { package = "winter-utils", git = "https://github.com/facebook/winterfell.git", branch = "main" }
+winter-fri = { package = "winter-fri", version = "0.6" }
+winter-utils = { package = "winter-utils", version = "0.6" }

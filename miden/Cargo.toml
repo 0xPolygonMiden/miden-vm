@@ -59,10 +59,10 @@ verifier = { package = "miden-verifier", path = "../verifier", version = "0.6", 
 
 [dev-dependencies]
 assert_cmd = "2.0"
-criterion = "0.4"
+criterion = "0.5"
 escargot = "0.5.7"
 num-bigint = "0.4"
 predicates = "3.0"
 test-utils = { package = "miden-test-utils", path = "../test-utils", version = "0.1" }
 vm-core = { package = "miden-core", path = "../core", version = "0.6" }
-winter-fri = { package = "winter-fri", git = "https://github.com/facebook/winterfell.git", branch = "main" }
+winter-fri = { package = "winter-fri", version = "0.6" }

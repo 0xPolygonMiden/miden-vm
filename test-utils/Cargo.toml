@@ -22,8 +22,8 @@ prover = { package = "miden-prover", path = "../prover", version = "0.6", defaul
 test-case = "3.0.0"
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.6", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
-winter-prover = { package = "winter-prover", git = "https://github.com/facebook/winterfell.git", branch = "main", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 proptest = { version = "1.1"  }
-rand-utils = { package = "winter-rand-utils", git = "https://github.com/facebook/winterfell.git", branch = "main" }
+rand-utils = { package = "winter-rand-utils", version = "0.6" }
