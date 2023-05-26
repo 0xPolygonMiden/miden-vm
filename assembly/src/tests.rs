@@ -140,12 +140,16 @@ fn simple_main_call() {
     // compile note 1 program
     let note_1 =
         ProgramAst::parse("use.context::account begin call.account::account_method_1 end").unwrap();
-    let _note_1_root = assembler.compile_program_ast(note_1).unwrap();
+    let _note_1_root = assembler
+        .compile_in_context(note_1, &mut super::AssemblyContext::new(AssemblyContextType::Program))
+        .unwrap();
 
     // compile note 2 program
     let note_2 =
         ProgramAst::parse("use.context::account begin call.account::account_method_2 end").unwrap();
-    let _note_2_root = assembler.compile_program_ast(note_2).unwrap();
+    let _note_2_root = assembler
+        .compile_in_context(note_2, &mut super::AssemblyContext::new(AssemblyContextType::Program))
+        .unwrap();
 }
 
 // CONSTANTS

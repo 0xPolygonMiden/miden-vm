@@ -40,11 +40,9 @@ impl AssemblyContext {
             AssemblyContextType::Program => vec![ModuleContext::for_program()],
         };
 
-        let is_kernel = context_type == AssemblyContextType::Kernel;
-
         Self {
             module_stack: modules,
-            is_kernel,
+            is_kernel: context_type == AssemblyContextType::Kernel,
             kernel: None,
         }
     }

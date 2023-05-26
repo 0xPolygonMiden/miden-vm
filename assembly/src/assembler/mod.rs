@@ -3,8 +3,8 @@ use super::{
     crypto::hash::RpoDigest,
     parsers::{Instruction, Node, ProcedureAst, ProgramAst},
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
-    LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, Program,
-    ToString, Vec, ONE, ZERO,
+    LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, ProcedureName,
+    Program, ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
@@ -127,19 +127,11 @@ impl Assembler {
     {
         // parse the program into an AST
         let source = source.as_ref();
-        let (local_procs, body) = ProgramAst::parse(source)?.into_parts();
+        let program = ProgramAst::parse(source)?;
 
-        // compile all local procedures; this will add the procedures to the specified context
+        // compile the program
         let mut context = AssemblyContext::new(AssemblyContextType::Program);
-        for proc_ast in local_procs.iter() {
-            if proc_ast.is_export {
-                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
-            }
-            self.compile_procedure(proc_ast, &mut context)?;
-        }
-
-        // compile the program body
-        let program_root = self.compile_body(body.iter(), &mut context, None)?;
+        let program_root = self.compile_in_context(program, &mut context)?;
 
         // convert the context into a call block table for the program
         let cb_table = context.into_cb_table(&self.proc_cache.borrow());
@@ -148,21 +140,37 @@ impl Assembler {
         Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
     }
 
-    /// Compiles the provided [ProgramAst] into a [CodeBlock].
-    pub fn compile_program_ast(&self, program: ProgramAst) -> Result<CodeBlock, AssemblyError> {
+    /// Compiles the provided [ProgramAst] into a program and returns the program root
+    /// ([CodeBlock]).  Mutates the provided context by adding all of the call targets of
+    /// the program to the [CallSet].
+    ///
+    /// # Errors
+    /// - If the provided context is not appropriate for compiling a program.
+    /// - If any of the local procedures defined in the program are exported.
+    /// - If compilation of any of the local procedures fails.
+    /// - if compilation of the program body fails.
+    pub fn compile_in_context(
+        &self,
+        program: ProgramAst,
+        context: &mut AssemblyContext,
+    ) -> Result<CodeBlock, AssemblyError> {
+        // check to ensure that the context is appropriate for compiling a program
+        if context.current_context_name() != ProcedureName::main().as_str() {
+            return Err(AssemblyError::InvalidProgramAssemblyContext);
+        }
+
         let (local_procs, body) = program.into_parts();
 
-        let mut context = AssemblyContext::new(AssemblyContextType::Program);
         // compile all local procedures; this will add the procedures to the specified context
         for proc_ast in local_procs.iter() {
             if proc_ast.is_export {
                 return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
             }
-            self.compile_procedure(proc_ast, &mut context)?;
+            self.compile_procedure(proc_ast, context)?;
         }
 
         // compile the program body
-        let program_root = self.compile_body(body.iter(), &mut context, None)?;
+        let program_root = self.compile_body(body.iter(), context, None)?;
 
         Ok(program_root)
     }
@@ -170,6 +178,12 @@ impl Assembler {
     // --------------------------------------------------------------------------------------------
 
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
+    /// Returns a vector of procedure digests for all exported procedures in the module.
+    ///
+    /// # Errors
+    /// - If a module with the same path already exists in the module stack of the
+    ///   [AssemblyContext].
+    /// - If a lock to the [ProcedureCache] can not be attained.
     pub fn compile_module(
         &self,
         module: &Module,
