@@ -5,11 +5,11 @@ multilingual = false
 src = "src"
 title = "Polygon Miden VM"
 
-[output.katex]
 [output.html]
 git-repository-url = "https://github.com/0xPolygonMiden/miden-vm/"
 
+[preprocessor.katex]
+after = ["links"]
+
 [output.linkcheck]
 warning-policy = "ignore"
-
-[preprocessor.katex]
