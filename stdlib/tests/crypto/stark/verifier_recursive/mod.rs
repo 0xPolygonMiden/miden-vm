@@ -77,27 +77,12 @@ pub fn generate_advice_inputs(
     public_coin.reseed(constraint_commitment);
 
     // 3 ----- OOD frames --------------------------------------------------------------
-    let (ood_main_trace_frame, ood_aux_trace_frame) = channel.read_ood_trace_frame();
+    let ood_trace_frame = channel.read_ood_trace_frame();
+    let _ood_main_trace_frame = ood_trace_frame.main_frame();
+    let _ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
-    if let Some(ref aux_trace_frame) = ood_aux_trace_frame {
-        // when the trace contains auxiliary segments, append auxiliary trace elements at the
-        // end of main trace elements for both current and next rows in the frame. this is
-        // needed to be consistent with how the prover writes OOD frame into the channel.
-
-        let mut current = ood_main_trace_frame.current().to_vec();
-        current.extend_from_slice(aux_trace_frame.current());
-        let current_ = to_int_vec(&current);
-        tape.extend_from_slice(&current_);
-        public_coin.reseed(Rpo256::hash_elements(&current));
-
-        let mut next = ood_main_trace_frame.next().to_vec();
-        next.extend_from_slice(aux_trace_frame.next());
-        tape.extend_from_slice(&to_int_vec(&next));
-
-        public_coin.reseed(Rpo256::hash_elements(&next));
-    } else {
-        unreachable!()
-    }
+    tape.extend_from_slice(&to_int_vec(&ood_trace_frame.values()));
+    public_coin.reseed(Rpo256::hash_elements(ood_trace_frame.values()));
 
     // read evaluations of composition polynomial columns
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();

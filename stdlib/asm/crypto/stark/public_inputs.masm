@@ -18,8 +18,7 @@ export.load
     # The following assumes that the public inputs contain only the input and output states
     # of the operand stack and both are of length exactly 16.
     # TODO: generalize to any number of public inputs supported by the VM.
-    push.0.0.0.0
-    push.0.0.0.0
+    padw padw
     repeat.4
         adv_loadw
         swapw

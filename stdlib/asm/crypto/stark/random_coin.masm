@@ -11,6 +11,7 @@ const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
 
 const.TRACE_LENGTH_LOG_PTR=4294959999
 const.TRACE_LENGTH_PTR=4294959998
+const.PARAMETERS_PTR=4294967276
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -64,7 +65,7 @@ export.init_seed
     # the `verify` procedure.
     #
     # Cycles: 22
-    push.0.0.0.0
+    padw
     mem_storew.ZERO_WORD_PTR
     mem_storew.C_PTR
     mem_storew.R1_PTR
@@ -118,17 +119,25 @@ export.init_seed
     mem_storew.LDE_SIZE_PTR
     #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
 
+
     # Construct the proof context
     # Cycles: 9
     dropw
-    push.1208027408
+
+    ##trace layout info
+    push.1224804624
+
+    ##field modulus bytes (2 field elements)
     push.1
     push.4294967295
+
+    ## field extension and FRI parameters
     push.132103
-    swapw
+
 
     # Hash proof context
     # Cycles: 15
+    swapw
     push.1.0.0.0
     #=> [0, 0, 0, 1, B, A, ..]
     swapw.2
@@ -146,15 +155,15 @@ end
 #! Ouput: [...]
 #! Cycles: 54
 export.reseed
-    push.0.0.0.0
+    padw
     mem_loadw.R1_PTR
     exec.add_two_words
 
-    push.0.0.0.0
+    padw
     mem_loadw.C_PTR
     swapw
 
-    push.0.0.0.0
+    padw
     mem_loadw.R2_PTR
 
     hperm
@@ -194,17 +203,16 @@ proc.generate_random_coefficients
     #=> [loop_ctr, dest_ptr, x, x, ...]
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
-
-    push.0.0.0.0
+    padw
     mem_loadw.R1_PTR
     dup.5 mem_storew
 
-    push.0.0.0.0
+    padw
     mem_loadw.R2_PTR
     dup.9 add.1 mem_storew
     #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
 
-    push.0.0.0.0
+    padw
     mem_loadw.C_PTR
     swapdw
     swapw
@@ -250,6 +258,119 @@ proc.generate_random_coefficients
     #=> [...]
 end
 
+#! Generates a `num_tuples` tuples of random field elements and stores them in memory
+#! starting from address `dest_ptr`. Each memory address holds one tuple.
+#! TODO: Generalize by keeping track of something similar to the `output` variable in `RpoRandomCoin`
+#! so that we keep track of already used randomness and know when there is a need to apply `hperm`.
+#!
+#! Input: [dest_ptr, num_tuples, ...]
+#! Output: [...]
+#!
+#! Cycles: 104 + (69 * num_tuples) / 4
+proc.generate_random_coefficients_pad
+
+    # Compute the loop counter. We use checked division to make sure the number is a multiple of 4.
+    # If we use field division and num_tuples is not a multiple of 4 then we will enter into
+    # a very large loop with high probability.
+    push.0 dup movup.2 movup.3
+    u32checked_divmod.4
+    assertz
+    neg
+    #=> [loop_ctr, dest_ptr, x, x, ...]
+    # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
+
+    padw
+    mem_loadw.R1_PTR
+    dup.5
+    #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
+    dup.4
+    dup.4
+    push.0.0
+    dup.4
+    mem_storew
+    #=> [0, 0, a01, a00, dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
+
+    dropw
+    dup.2 dup.2 push.0.0
+    movup.4 add.1 mem_storew
+    #=> [0, 0, a11, a10, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
+
+    mem_loadw.R2_PTR
+    dup.9  add.4 swap.10
+    #=> [dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
+
+    dup.4
+    dup.4
+    push.0.0
+    dup.4 add.2
+    mem_storew
+    #=> [0, 0, a21, a20, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
+    dropw
+    dup.2 dup.2 push.0.0
+    movup.4 add.3 mem_storew
+    #=> [0, 0, a31, a30, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
+
+    mem_loadw.C_PTR
+    swapdw
+    swapw
+    #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2, ..]
+
+    add.1 dup neq.0
+
+    while.true
+
+        swapw.3 hperm
+        #=> [R2, R1, C, loop_ctr, dest_ptr, x, x, ...]
+
+        # save R2 to mem[dest+1]; we use dup.13 here because it takes only 1 cycle
+        dup.13
+        dup.4 dup.4 push.0.0
+        dup.4 add.2
+        mem_storew
+        #=> [0, 0, a21, a20, dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
+        dropw
+        dup.2 dup.2 push.0.0
+        movup.4 add.3 mem_storew
+        #=> [0, 0, a31, a30, a31, a30, a21, a20, a11, a10, a01, a00, C, loop_ctr, dest_ptr, x, x, ...]
+
+        # save R1 to mem[dest]
+        dropw
+        swapw dup.13
+        dup.4 dup.4 push.0.0
+        dup.4
+        mem_storew
+        #=> [0, 0, a01, a00, dest_ptr, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
+        dropw
+        dup.2 dup.2 push.0.0
+        movup.4 add.1 mem_storew
+        #=> [0, 0, a01, a00, a11, a10, a01, a00, a31, a30, a21, a20, C, loop_ctr, dest_ptr, x, x, ...]
+
+        # reshuffle and update destination pointer and loop counter
+        dropw
+        swapw
+        swapw.3
+        #=> [loop_ctr, dest_ptr, x, x, R1, C, R2, ...]
+
+        swap add.4 swap
+        #=> [loop_ctr, dest_ptr+2, x, x, R1, C, R2, ...]
+
+        add.1 dup
+        #=> [loop_ctr+1, loop_ctr+1, dest_ptr+2, x, x, R1, C, R2, ...]
+
+        neq.0
+    end
+
+    # Save the new state of the random coin
+    dropw
+    mem_storew.R1_PTR
+    dropw
+    mem_storew.C_PTR
+    dropw
+    mem_storew.R2_PTR
+    dropw
+    #=> [...]
+end
+
 #! Draw a list of random extension field elements related to the auxiliary trace and store the list
 #! in memory from `aux_rand_elem_ptr` to `aux_rand_elem_ptr + 8 - 1`
 #!
@@ -264,35 +385,34 @@ export.generate_aux_randomness
 end
 
 #! Draw constraint composition random coefficients and save them into memory in the region from
-#! `compos_coef_ptr` `compos_coef_ptr + 235 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#! `compos_coef_ptr` `compos_coef_ptr + 118 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
 #!
 #! Input: [compos_coef_ptr, ...]
 #! Output: [...]
-#! Cycles: 2609
+#! Cycles: 1309
 export.generate_constraint_composition_coefficients
 
-    push.472
+    push.236
     swap
     exec.generate_random_coefficients
     #=> [...]
 end
 
 #! Draw deep composition polynomial random coefficients and save them into memory in the region from
-#! `deep_rand_coef_ptr` `deep_rand_coef_ptr + 86 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#! `deep_rand_coef_ptr` `deep_rand_coef_ptr + 90 - 1` as `(0, 0, r0_1, r0_0)`
 #! The number of equal coefficients is equal to:
-#! (72 + 9) * 4 Felt for the trace.
+#! (73 + 9) * 2 Felt for the trace.
 #! 8 * 2 Felt for constraint polynomial.
-#! 2 Felt for degree correction.
-#! Total: 172 tuples of type (Felt, Felt)
+#! Total: 90 tuples of type (Felt, Felt)
 #!
 #! Input: [deep_rand_coef_ptr, ...]
 #! Output: [...]
-#! Cycles: 992
+#! Cycles: 1693
 export.generate_deep_composition_random_coefficients
 
-    push.172
+    push.92
     swap
-    exec.generate_random_coefficients
+    exec.generate_random_coefficients_pad
     #=> [...]
 end
 
@@ -300,25 +420,35 @@ end
 # OOD POINT GENERATION
 # =============================================================================================
 
-#! Generate the OOD challenge point `z = (z0, z1)` and compute `z^8`. The resulting word
-#! `[z^8_1, z^8_0, z1, z0]` is stored in the global memory address reserved for it.
+#! Generate the OOD challenge point `z = (z0, z1)` and compute `z^N` where N is the trace length.
+#! The resulting word `[z^N_1, z^N_0, z1, z0]` is stored in the global memory address reserved
+#! for it.
 #!
 #! Input: [...]
 #! Output: [...]
-#! Cycles: 22
-export.generate_z_z8
-    # z is just the first two felts of the random coin state
+#! Cycles: 21 + 10 * log(N)
+export.generate_z_zN
+    # Load z (first two felts of the random coin state) and trace length N
     mem_loadw.R1_PTR
-    drop drop
+    push.0.0
+    mem_loadw.PARAMETERS_PTR
+    movdn.3
+    drop drop drop
 
-    # Store OOD challenge z and z^8 as [z^8_1, z^8_0, z1, z0]
-    dup.1
-    dup.1
-    repeat.3
-        dup.1
-        dup.1
+    # Compute z^N
+    dup.2
+    dup.2
+    push.1
+    while.true
+        dup.1 dup.1
         ext2mul
+        dup.2 sub.1 swap.3
+        push.1
+        neq
     end
+    movup.2 drop
+    
+    # Store z and z^N
     mem_storew.Z_PTR
     dropw
 end
@@ -450,7 +580,7 @@ end
 #! Cycles: 797
 export.generate_list_indices
     # Create mask
-    push.0.0.0.0
+    padw
     mem_loadw.TMP0
     movup.2 drop
     movup.2 drop
@@ -462,7 +592,7 @@ export.generate_list_indices
     #=> [query_ptr, mask, depth]
 
     # Load the state of the random coin
-    push.0.0.0.0
+    padw
     mem_loadw.R1_PTR
 
     repeat.3
@@ -474,9 +604,9 @@ export.generate_list_indices
         #=> [X, query_ptr, mask, depth, ...]
 
         mem_loadw.C_PTR
-        push.0.0.0.0
+        padw
         mem_loadw.R1_PTR
-        push.0.0.0.0
+        padw
         mem_loadw.R2_PTR
 
         hperm
@@ -512,11 +642,11 @@ export.check_pow
     #=> [mask, ...]
 
     # Load Capacity portion
-    push.0.0.0.0
+    padw
     mem_loadw.C_PTR
 
     # Load first half of rate portion and add pow witness to first element of rate
-    push.0.0.0.0
+    padw
     mem_loadw.R1_PTR
     adv_push.1
     dup.4
@@ -525,7 +655,7 @@ export.check_pow
     drop
 
     # Load the second half of rate portion and apply the permutation
-    push.0.0.0.0
+    padw
     mem_loadw.R2_PTR
     hperm
     #=> [R2, R1, C, mask, ...]

@@ -14,15 +14,15 @@ const.ROOT_UNITY=7277203076849721926
 # Global memory (sorted by increasing addresses)
 const.PUBLIC_INPUTS_PTR=4294960000
 const.CURRENT_TRACE_ROW_PTR=4294964000    # PUBLIC_INPUTS_PTR + 4000
-const.OOD_TRACE_CURRENT_PTR=4294965000    # CURRENT_TRACE_ROW_PTR + 1000
-const.OOD_TRACE_NEXT_PTR=4294965041       # OOD_TRACE_CURRENT_PTR + 41
-const.OOD_CONSTRAINT_EVALS_PTR=4294965082 # OOD_TRACE_NEXT_PTR + 41
+const.OOD_TRACE_PTR=4294965000            # CURRENT_TRACE_ROW_PTR + 1000
+const.OOD_CONSTRAINT_EVALS_PTR=4294965082 # OOD_TRACE_PTR + 82
 const.AUX_RAND_ELEM_PTR=4294966000        # OOD_CONSTRAINT_EVALS_PTR + 918
 const.COMPOSITION_COEF_PTR=4294966016     # AUX_RAND_ELEM_PTR + 16
 const.DEEP_RAND_CC_PTR=4294966338         # COMPOSITION_COEF_PTR + 322
 const.FRI_QUERIES_PTR=4294966473          # DEEP_RAND_CC_PTR + 135
 const.FRI_COM_PTR=4294966500              # FRI_QUERIES_PTR + 27
-const.PARAMETERS_PTR=4294967276           # FRI_COM_PTR + 776
+const.TRACE_LENGTH_PTR=4294967275         # FRI_COM_PTR + 775
+const.PARAMETERS_PTR=4294967276           # TRACE_LENGTH_PTR + 1
 const.ZERO_ZERO_ZERO_ONE_PTR=4294967277   # PARAMETERS_PTR + 1
 const.ZERO_WORD_PTR=4294967278            # ZERO_ZERO_ZERO_ONE_PTR + 1
 const.TMP8=4294967279                     # ZERO_WORD_PTR + 1
@@ -47,9 +47,9 @@ const.LDE_SIZE_PTR=4294967292             # Z_PTR + 1
 #!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
 #!   to public inputs.
 #!   - There are two trace segments, main and auxiliary. It is assumed that the main trace segment
-#!   is 72 columns wide while the auxiliary trace segment is 9 columns wide.
-#!   - The OOD evaluation frame is composed of two rows, current and next, each composed of 72 elements
-#!   representing the main trace portion and 9 elements for the auxiliary trace one.
+#!   is 73 columns wide while the auxiliary trace segment is 9 columns wide.
+#!   - The OOD evaluation frame is composed of two interleaved rows, current and next, each composed
+#!    of 73 elements representing the main trace portion and 9 elements for the auxiliary trace one.
 #!   - To boost soundness, the protocol is run on a quadratic extension field and this means that
 #!    the OOD evaluation frame is composed of elements in a quadratic extension field i.e. tuples.
 #!    Similarly, elements of the auxiliary trace are quadratic extension field elements.
@@ -59,16 +59,15 @@ const.LDE_SIZE_PTR=4294967292             # Z_PTR + 1
 #!   * ZERO_ZERO_ZERO_ONE_PTR. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
 #!   * ZERO_WORD_PTR. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
 #!   * LDE_SIZE_PTR. [lde_size, log2(lde_size), 0, 0]
-#!   * Z_PTR. [z8_1, z8_0, z1, z0] where z = (z_0, z_1) is the OOD random element
+#!   * Z_PTR. [zN_1, zN_0, z1, z0] where z = (z_0, z_1) is the OOD random element and ZN is z to the power trace length
 #!   * MAIN_TRACE_COM_PTR. Main trace commitment
 #!   * AUX_TRACE_COM_PTR. Aux trace commitment
 #!   * COMPOSITION_POLY_COM_PTR. Constraint polynomial columns trace commitment
 #!   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
 #!   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
 #!   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
-#!   * OOD_TRACE_CURRENT_PTR.    Current row of the OOD evaluation frame
-#!   * OOD_TRACE_NEXT_PTR.    Next row of the OOD evaluation frame
-#!   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^i and H is the constraint compostion polynomial
+#!   * OOD_TRACE_PTR.    The OOD evaluation frame with current and next rows interleaved
+#!   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^(N*i) and H is the constraint compostion polynomial
 #!   * DEEP_RAND_CC_PTR.    Deep query coefficients
 #!   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
 #!   * PARAMETERS_PTR.   [log(trace_length), num_queries, log(blowup), grinding]
@@ -79,13 +78,15 @@ const.LDE_SIZE_PTR=4294967292             # Z_PTR + 1
 #!   * TMP5.   [lde_size, log2(lde_size), lde_domain_generator, 0]
 #!   * TMP6.   [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
 #!   * TMP7.   Remainder commitment
-#!   * TMP8.   [ptr_remainder, remainder_size, lde_size, lde_size]
+#!   * TMP8.   [remainder_ptr, remainder_size, lde_size, lde_size]
 #!
 #! Input: [log(trace_length), num_queries, log(blowup), grinding]
 #! Output: []
 #! Cycles:
-#!  1- Remainder codeword size 32: 5721 + num_queries * (40 + num_fri_layers * 76 + 26 + 8445) + 83 * num_fri_layers + 1498
-#!  2- Remainder codeword size 64: 5721 + num_queries * (40 + num_fri_layers * 76 + 26 + 8445) + 83 * num_fri_layers + 2792
+#!  1- Remainder codeword size 32:
+#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1498
+#!  2- Remainder codeword size 64:
+#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 2792
 export.verify
 
     #==============================================================================================
@@ -116,7 +117,7 @@ export.verify
     # Load main trace commitment and re-seed with it
     #
     # Cycles: 61
-    push.0.0.0.0
+    padw
     adv_loadw
     mem_storew.MAIN_TRACE_COM_PTR
     #=> [main_trace_commitment]
@@ -133,7 +134,7 @@ export.verify
     # Reseed with auxiliary trace commitment
     #
     # Cycles: 60
-    push.0.0.0.0
+    padw
     adv_loadw
     mem_storew.AUX_TRACE_COM_PTR
     exec.random_coin::reseed
@@ -143,7 +144,7 @@ export.verify
     #       III) Draw constraint composition coefficients
     #==============================================================================================
 
-    # Cycles: 2610
+    # Cycles: 1309
     push.COMPOSITION_COEF_PTR
     exec.random_coin::generate_constraint_composition_coefficients
     #=> [...]
@@ -155,12 +156,12 @@ export.verify
 
     # Reseed with constraint composition polynomial commitment
     #
-    # Cycles: 61
-    push.0.0.0.0
+    # Cycles: 60 + 10 * log(trace_length)
+    padw
     adv_loadw
     mem_storew.COMPOSITION_POLY_COM_PTR
     exec.random_coin::reseed
-    exec.random_coin::generate_z_z8
+    exec.random_coin::generate_z_zN
     #=> [...]
 
     #==============================================================================================
@@ -168,15 +169,14 @@ export.verify
     #           of H over the LDE domain.
     #==============================================================================================
 
-    # Cycles: 207
+    # Cycles: 106
     exec.ood_frames::load_evaluation_frame
-    #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
+    #=> [OOD_FRAME_HASH, ...]
 
-    # Cycles: 108
-    exec.random_coin::reseed
+    # Cycles: 54
     exec.random_coin::reseed
 
-    # Cycles: 29
+    # Cycles: 112
     exec.ood_frames::load_constraint_evaluations
     #=> [CONSTR_EVAL_HASH, ...]
 
@@ -206,7 +206,7 @@ export.verify
     #       DEEP composition polynomial.
     #============================================
 
-    # Cycles: 993
+    # Cycles: 1693
     push.DEEP_RAND_CC_PTR
     exec.random_coin::generate_deep_composition_random_coefficients
 
@@ -254,7 +254,7 @@ export.verify
     #============================================
 
     # Cycles: 53
-    push.0.0.0.0
+    padw
     mem_loadw.PARAMETERS_PTR
     drop drop drop
     exec.random_coin::check_pow
@@ -264,41 +264,49 @@ export.verify
     #   6) Compute evaluations of DEEP composition
     #   polynomial at randomly chosen query positions
     #============================================
+    
+    # Compute the pointer to the first query using the poiner to
+    # the first layer commitment and total number of queries.
+    push.FRI_COM_PTR
+    padw mem_loadw.PARAMETERS_PTR drop swap.2 drop drop
+    sub
+    #=> [query_ptr, ...]
 
     # Draw random query indices
     #
     # Cycles: 798
-    push.FRI_QUERIES_PTR
+    dup
     exec.random_coin::generate_list_indices
-    #=> [...]
+    #=> [query_ptr, ...]
 
     # Compute deep compostion polynomial queries
     #
-    # Cycles: 44 + 27 * 8445 = 228059
+    # Cycles: 14 + num_queries * 465
+    #=> [query_ptr, ...]
     exec.deep_queries::compute_deep_composition_polynomial_queries
-    #=> [...]
+    #=> [query_ptr, ...]
 
     #============================================
     #   7) Call the FRI verifier
     #============================================
 
-    # Get domain generator and a pointer to the remainder codeword
+    # Get domain generator and pointer to the remainder codeword
     #
     # Cycles: 15
-    push.0.0.0.0
+    padw
     mem_loadw.TMP0
     push.0.0
     mem_loadw.TMP8
     swap.3
-    drop drop drop
-    #=>[ptr_remainder, g]
+    drop drop drop movup.2 drop
+    #=>[remainder_ptr, g, query_ptr, ...]
 
     # Get the pointer to the first layer commitment
     push.FRI_COM_PTR
 
-    # Get the pointer to the first FRI query
-    push.FRI_QUERIES_PTR
-    #=> [ptr_query, ptr_layer, ptr_remainder, domain_gen]
+    # Get the pointer to the first FRI query to the top
+    movup.3
+    #=> [query_ptr, fri_layer_ptr, remainder_ptr, domain_gen]
 
     # Call FRI verifier
     #
