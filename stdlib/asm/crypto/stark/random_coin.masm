@@ -9,7 +9,8 @@ const.LDE_SIZE_PTR=4294967292
 const.ZERO_WORD_PTR=4294967278
 const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
 
-const.TRACE_LENGTH_PTR=4294967296
+const.TRACE_LENGTH_LOG_PTR=4294959999
+const.TRACE_LENGTH_PTR=4294959998
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -86,8 +87,9 @@ export.init_seed
     u32split assertz
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
-    ## Save the trace length to memory
-    dup.0 push.TRACE_LENGTH_PTR mem_store
+    ## Save the trace length and its log to memory
+    dup.0 mem_store.TRACE_LENGTH_PTR
+    dup.1 mem_store.TRACE_LENGTH_LOG_PTR
 
     ## Assert blowup is equal to 8
     ##  Cycles: 6
