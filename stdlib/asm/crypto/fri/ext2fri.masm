@@ -34,7 +34,7 @@ proc.compute_tau_64
 
     # Consume `q` into Rescue state
     repeat.16
-        mem_stream
+        mem_stream hperm
     end
 
     movup.12
@@ -44,7 +44,7 @@ proc.compute_tau_64
 
     # Consume `p` into Rescue state
     repeat.2
-        adv_pipe
+        adv_pipe hperm
     end
 
     movup.12
@@ -93,7 +93,7 @@ proc.compute_tau_32
 
     # Consume `q` into Rescue state
     repeat.8
-        mem_stream
+        mem_stream hperm
     end
 
     movup.12
@@ -102,7 +102,7 @@ proc.compute_tau_32
     movdn.12
 
     # Consume `p` into Rescue state
-    adv_pipe
+    adv_pipe hperm
 
     movup.12
     drop

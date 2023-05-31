@@ -237,7 +237,7 @@ export.load_and_verify_remainder
         push.0.0.0.0
         push.0.0.0.0
         repeat.8
-            adv_pipe
+            adv_pipe hperm
         end
     else
         # Remainder length equal to 64
@@ -291,7 +291,7 @@ export.load_and_verify_remainder
         push.0.0.0.0
         push.0.0.0.0
         repeat.16
-            adv_pipe
+            adv_pipe hperm
         end
     end
     # => [Y, R, Y, Y] where R = [y, y, tau1, tau0]

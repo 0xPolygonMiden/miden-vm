@@ -68,15 +68,14 @@ $$
 Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
 - $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address from which the values are to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
-
-Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $5$.
@@ -97,15 +96,14 @@ $$
 Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
 - $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address from which the value is to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
-
-Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **No change** starting from position $1$.
@@ -126,15 +124,14 @@ $$
 Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
 - $op_{mem\_write}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory write operation.
+- $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address into which the values from the stack are to be saved.
 - $clk$ is the current clock cycle of the VM.
-
-Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
@@ -157,15 +154,59 @@ $$
 Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write}  + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
 - $op_{mem\_write} $ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory write operation.
+- $ctx$ is the identifier of the current memory context.
 - $s_0$ is the memory address into which the value from the stack is to be saved.
 - $clk$ is the current clock cycle of the VM.
 
-Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
-
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
+
+### MSTREAM
+
+The `MSTREAM` operation loads two words from memory, and replaces the top 8 elements of the stack with them, element-wise, in stack order. The memory address from which the words are loaded is stored in the 13th stack element (position 12). The diagram below illustrates this graphically.
+
+![mstream](../../assets/design/stack/io_ops/MSTREAM.png)
+
+After the operation, the memory address is incremented by 2.
+
+$$
+s_{12}' = s_{12} + 2
+$$
+
+To simplify description of the memory access request value, we first define variables for the values that represent the state of memory after the operation:
+
+$$
+v_1 = \sum_{i=0}^3\alpha_{i+5} \cdot s_{7-i}'
+$$
+
+$$
+v_2 = \sum_{i=0}^3\alpha_{i+5} \cdot s_{3-i}'
+$$
+
+Using the above variables, we define the values representing the memory access request as follows:
+
+$$
+u_{mem, 1} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{12} + \alpha_4 \cdot clk + v_1
+$$
+
+$$
+u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot (s_{12} + 1) + \alpha_4 \cdot clk + v_2
+$$
+
+$$
+u_{mem} = u_{mem, 1} \cdot u_{mem, 2}
+$$
+
+In the above:
+- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
+- $ctx$ is the identifier of the current memory context.
+- $s_{12}$ and $s_{12} + 1$ are the memory addresses from which the values are to be loaded onto the stack.
+- $clk$ is the current clock cycle of the VM.
+
+The effect of this operation on the rest of the stack is:
+* **No change** starting from position $8$ except position $12$.

@@ -68,7 +68,7 @@ export.pipe_double_words_to_memory.0
   # loop until write_ptr reaches end_ptr (9 cycles per iteration + 1)
   # LOOP: [b, C, B, A, write_ptr, end_ptr, ...]
   while.true
-    adv_pipe # (2 cycles)
+    adv_pipe hperm # (2 cycles)
     # => [C', B', A', write_ptr', end_ptr, ...]
 
     dup.13 dup.13 neq # (4 cycles)

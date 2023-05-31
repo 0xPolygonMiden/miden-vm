@@ -60,8 +60,35 @@ fn adv_loadw_invalid() {
 fn adv_pipe() {
     let source = "
         begin
-            push.12 push.11 push.10 push.9 push.8 push.7 push.6 push.5 push.4 push.3 push.2 push.1
+            push.12.11.10.9.8.7.6.5.4.3.2.1
             adv_pipe
+        end";
+
+    let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    // the state is built by replacing the values on the top of the stack with the top 8 values
+    // from the head of the advice stack (i.e. values 1 through 8). Thus, the first 8 elements on
+    // the stack will be 1-8 in stack order (stack[0] = 8), and the remaining 4 are untouched
+    // (i.e., 9, 10, 11, 12).
+    let state: [Felt; 12] =
+        [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
+
+    // to get the final state of the stack, reverse the above state and push the expected address
+    // to the end (the address will be 2 since 0 + 2 = 2).
+    let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
+    final_stack.reverse();
+    final_stack.push(2);
+
+    let test = build_test!(source, &[], &advice_stack);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
+fn adv_pipe_with_hperm() {
+    let source = "
+        begin
+            push.12.11.10.9.8.7.6.5.4.3.2.1
+            adv_pipe hperm
         end";
 
     let advice_stack = [1, 2, 3, 4, 5, 6, 7, 8];
