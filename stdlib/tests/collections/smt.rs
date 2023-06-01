@@ -109,6 +109,76 @@ fn smtget_depth_48() {
     assert_smt_get_opens_correctly(&smt, key_e, EMPTY_VALUE);
 }
 
+// INSERTS
+// ================================================================================================
+
+#[test]
+fn tsmt_insert() {
+    let mut smt = TieredSmt::default();
+
+    let raw_a = 0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64;
+    let key_a = build_key(raw_a);
+    let val_a1 = [ONE, ZERO, ZERO, ZERO];
+    let val_a2 = [ONE, ONE, ZERO, ZERO];
+
+    // insert a value under key_a into an empty tree
+    let store = MerkleStore::new();
+    let old_root = smt.root();
+    smt.insert(key_a.into(), val_a1);
+    assert_insert(key_a, [ZERO; 4], val_a1, old_root.into(), smt.root().into(), store, Vec::new());
+
+    // update a value under key_a
+    let store = MerkleStore::from(&smt);
+    let old_root = smt.root();
+    let adv_map = vec![build_adv_map_entry(key_a, val_a1, 16)];
+
+    smt.insert(key_a.into(), val_a2);
+    assert_insert(key_a, val_a1, val_a2, old_root.into(), smt.root().into(), store, adv_map);
+}
+
+fn assert_insert(
+    key: Word,
+    old_value: Word,
+    new_value: Word,
+    old_root: Word,
+    new_root: Word,
+    store: MerkleStore,
+    adv_map: Vec<([u8; 32], Vec<Felt>)>,
+) {
+    let source = r#"
+        use.std::collections::smt
+
+        begin
+            exec.smt::insert
+        end
+    "#;
+    let initial_stack = [
+        old_root[0].as_int(),
+        old_root[1].as_int(),
+        old_root[2].as_int(),
+        old_root[3].as_int(),
+        key[0].as_int(),
+        key[1].as_int(),
+        key[2].as_int(),
+        key[3].as_int(),
+        new_value[0].as_int(),
+        new_value[1].as_int(),
+        new_value[2].as_int(),
+        new_value[3].as_int(),
+    ];
+    let expected_output = [
+        old_value[3].as_int(),
+        old_value[2].as_int(),
+        old_value[1].as_int(),
+        old_value[0].as_int(),
+        new_root[3].as_int(),
+        new_root[2].as_int(),
+        new_root[1].as_int(),
+        new_root[0].as_int(),
+    ];
+    build_test!(source, &initial_stack, &[], store, adv_map).expect_stack(&expected_output);
+}
+
 // TEST HELPERS
 // ================================================================================================
 

@@ -163,18 +163,20 @@ fn inject_smtinsert() {
     // insertion should happen at depth 16 and thus 16_or_32 and 16_or_48 flags should be set to ONE;
     // since we are replacing a node which is an empty subtree, the is_empty flag should also be ONE
     let expected_stack = [ONE, ONE, ONE];
-    let process = prepare_smt_insert(key_a, val_a, &smt, expected_stack.len());
+    let process = prepare_smt_insert(key_a, val_a, &smt, expected_stack.len(), Vec::new());
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 
     // --- update same key with different value -------------------------------
 
+    // insert val_a into the tree so that val_b overwrites it
+    smt.insert(key_a.into(), val_a);
     let val_b = [ONE, ONE, ZERO, ZERO];
-    smt.insert(key_a.into(), val_b);
 
     // we are updating a node at depth 16 and thus 16_or_32 and 16_or_48 flags should be set to ONE;
     // since we are updating an existing leaf, the is_empty flag should be set to ZERO
     let expected_stack = [ZERO, ONE, ONE];
-    let process = prepare_smt_insert(key_a, val_b, &smt, expected_stack.len());
+    let adv_map = vec![build_adv_map_entry(key_a, val_a, 16)];
+    let process = prepare_smt_insert(key_a, val_b, &smt, expected_stack.len(), adv_map);
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 }
 
@@ -183,12 +185,13 @@ fn prepare_smt_insert(
     value: Word,
     smt: &TieredSmt,
     adv_stack_depth: usize,
+    adv_map: Vec<([u8; 32], Vec<Felt>)>,
 ) -> Process<MemAdviceProvider> {
     let root: Word = smt.root().into();
     let store = MerkleStore::from(smt);
 
     let stack_inputs = build_stack_inputs(value, key, root);
-    let advice_inputs = AdviceInputs::default().with_merkle_store(store);
+    let advice_inputs = AdviceInputs::default().with_merkle_store(store).with_map(adv_map);
     let mut process = build_process(stack_inputs, advice_inputs);
 
     process.execute_op(Operation::Noop).unwrap();
@@ -287,4 +290,14 @@ fn move_adv_to_stack(process: &mut Process<MemAdviceProvider>, adv_stack_depth: 
     for _ in 0..adv_stack_depth {
         process.execute_op(Operation::AdvPop).unwrap();
     }
+}
+
+fn build_adv_map_entry(key: Word, val: Word, depth: u8) -> ([u8; 32], Vec<Felt>) {
+    let remaining_key = get_smt_remaining_key(key, depth);
+    let node = Rpo256::merge_in_domain(&[remaining_key.into(), val.into()], Felt::from(depth));
+    println!("node: {node:?}");
+    let mut elements = Vec::new();
+    elements.extend_from_slice(&remaining_key);
+    elements.extend_from_slice(&val);
+    (node.into(), elements)
 }

@@ -16,6 +16,9 @@ const.EMPTY_48_1=5634734408638476525
 const.EMPTY_48_2=9233115969432897632
 const.EMPTY_48_3=1437907447409278328
 
+# HELPER METHODS
+# =================================================================================================
+
 #! Extracts 16 most significant bits from the passed-in value.
 #!
 #! Input:  [v, ...]
@@ -42,6 +45,9 @@ proc.get_top_48_bits
     mul.65536
     add
 end
+
+# GET
+# =================================================================================================
 
 #! Get the leaf value for depth 16.
 #!
@@ -275,6 +281,7 @@ end
 #! Depth 16: 91 cycles
 #! Depth 32: 87 cycles
 #! Depth 48: 94 cycles
+#! Depth 64: unimplemented
 export.get
     # invoke adv and fetch target depth flags
     adv.push_smtget adv_push.2
@@ -296,6 +303,125 @@ export.get
         else
             # depth 64
             # currently not implemented
+            push.0 assert
+        end
+    end
+    # => [V, R, ...]
+end
+
+# INSERT
+# =================================================================================================
+
+# Input: [V, K, R, ...];
+# Output:[V_old, R', ...]
+proc.insert16.1
+  # split the k3 into index and remainder (8 cylces)
+  swapw
+  exec.split_16
+  # => [rem, idx, k2, k1, k0, V, R, ...]
+
+  # move idx out of the way and save the updated key to memory (5 cycles)
+  swap
+  movdn.8
+  loc_storew.0
+  # => [rem, k2, k1, k0, V, idx, R, ...]
+
+  # TODO: put (node |-> (key', value)) into advice map
+
+  # prepare hasher state (5 cyles)
+  push.0.16.0.0
+  swapw.2
+  # => [V, rem, k2, k1, k0, 0, 0, 16, 0, idx, R, ...]
+
+  # hash the value + rem_key to get new node value (10 cycles)
+  hperm
+  dropw swapw dropw
+  # => [N, idx, R, ...]
+
+  # arrange the stack and update the Merkle tree; if we update mtree_set instruction to take
+  # input as [d, i, V, R], then instructions below marked as "not needed" can be removed
+  movup.4
+  movdn.8  # not needed
+  swapw    # not needed
+  movup.8  # not needed
+  push.16
+  mtree_set
+  # => [N_old, R_new, ...]
+
+  # if N_old is an empty subtree go into the `true` branch; otherwise go into `else` branch
+  adv_push.1
+  if.true
+    # push root of an empty subtree of depth 16 onto the stack (4 cycles)
+    push.EMPTY_16_0.EMPTY_16_1.EMPTY_16_2.EMPTY_16_3
+    # => [E, N_old, R_new, ...]
+
+    # make sure the node is in fact a root of an empty subtree and return zeros (15 cycles)
+    assert_eqw
+    push.0.0.0.0
+  else
+    # prepare hasher state (13 cycles)
+    push.0.16.0.0
+    push.0.0.0.0
+    loc_loadw.0
+    adv_push.4
+    # => [V_old, rem, k2, k1, k0, 0, 0, 16, 0, N_old, R_new, ...]    
+
+    # save the old value to memory (3 cycle)
+    loc_storew.0
+
+    # compute the hash (10 cycles)
+    hperm
+    dropw swapw dropw
+    # => [N_old_computed, N_old, R_new, ...]
+
+    # make sure the old node value from mtree_set is the same as computed one (11 cycles)
+    assert_eqw
+    # => [R_new, ...]
+
+    # load and return old value (7 cycles)
+    push.0.0.0.0
+    loc_loadw.0
+    # => [V_old, R_new, ...]
+  end
+end
+
+#! Inserts the specified value into a Sparse Merkle Tree with the specified root under the
+#! specified key.
+#!
+#! The value previously stored in the SMT under this key is left on the stack together with
+#! the updated tree root.
+#!
+#! This assumes that the value is not [ZERO; 4]. If it is, the procedure fails.
+#!
+#! Input: [V, K, R, ...];
+#! Output:[V_old, R', ...]
+export.insert
+    # make sure the value is not [ZERO; 4] (17 cycles)
+    repeat.4
+        dup.3 eq.0
+    end
+    and and and assertz
+    # => [V, K, R, ...]
+
+    # invoke adv and fetch target depth flags (2 cycles)
+    adv.smtinsert adv_push.2
+    # => [d ∈ {16, 32}, d ∈ {16, 48}, V, K, R, ...]
+
+    # call the inner procedure depending on the depth
+    if.true
+        if.true
+            # depth 16
+            exec.insert16
+        else
+            # depth 32 - TODO
+            push.0 assert
+        end
+    else
+        if.true
+            # depth 48 - TODO
+            push.0 assert
+        else
+            # depth 64 - currently not implemented
             push.0 assert
         end
     end
