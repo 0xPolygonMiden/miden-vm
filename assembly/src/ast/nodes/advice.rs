@@ -18,6 +18,7 @@ pub enum AdviceInjectorNode {
     PushU64div,
     PushExt2intt,
     PushSmtGet,
+    PushSmtInsert,
     PushMapVal,
     PushMapValImm { offset: u8 },
     PushMapValN,
@@ -35,6 +36,7 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             PushU64div => Self::DivU64,
             PushExt2intt => Self::Ext2Intt,
             PushSmtGet => Self::SmtGet,
+            PushSmtInsert => Self::SmtInsert,
             PushMapVal => Self::MapValueToStack {
                 include_len: false,
                 key_offset: 0,
@@ -68,6 +70,7 @@ impl fmt::Display for AdviceInjectorNode {
             PushU64div => write!(f, "push_u64div"),
             PushExt2intt => write!(f, "push_ext2intt"),
             PushSmtGet => write!(f, "push_smtget"),
+            PushSmtInsert => write!(f, "push_smtinsert"),
             PushMapVal => write!(f, "push_mapval"),
             PushMapValImm { offset } => write!(f, "push_mapval.{offset}"),
             PushMapValN => write!(f, "push_mapvaln"),
@@ -86,14 +89,15 @@ impl fmt::Display for AdviceInjectorNode {
 const PUSH_U64DIV: u8 = 0;
 const PUSH_EXT2INTT: u8 = 1;
 const PUSH_SMTGET: u8 = 2;
-const PUSH_MAPVAL: u8 = 3;
-const PUSH_MAPVAL_IMM: u8 = 4;
-const PUSH_MAPVALN: u8 = 5;
-const PUSH_MAPVALN_IMM: u8 = 6;
-const PUSH_MTNODE: u8 = 7;
-const INSERT_MEM: u8 = 8;
-const INSERT_HDWORD: u8 = 9;
-const INSERT_HDWORD_IMM: u8 = 10;
+const PUSH_SMTINSERT: u8 = 3;
+const PUSH_MAPVAL: u8 = 4;
+const PUSH_MAPVAL_IMM: u8 = 5;
+const PUSH_MAPVALN: u8 = 6;
+const PUSH_MAPVALN_IMM: u8 = 7;
+const PUSH_MTNODE: u8 = 8;
+const INSERT_MEM: u8 = 9;
+const INSERT_HDWORD: u8 = 10;
+const INSERT_HDWORD_IMM: u8 = 11;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -102,6 +106,7 @@ impl Serializable for AdviceInjectorNode {
             PushU64div => target.write_u8(PUSH_U64DIV),
             PushExt2intt => target.write_u8(PUSH_EXT2INTT),
             PushSmtGet => target.write_u8(PUSH_SMTGET),
+            PushSmtInsert => target.write_u8(PUSH_SMTINSERT),
             PushMapVal => target.write_u8(PUSH_MAPVAL),
             PushMapValImm { offset } => {
                 target.write_u8(PUSH_MAPVAL_IMM);
@@ -129,6 +134,7 @@ impl Deserializable for AdviceInjectorNode {
             PUSH_U64DIV => Ok(AdviceInjectorNode::PushU64div),
             PUSH_EXT2INTT => Ok(AdviceInjectorNode::PushExt2intt),
             PUSH_SMTGET => Ok(AdviceInjectorNode::PushSmtGet),
+            PUSH_SMTINSERT => Ok(AdviceInjectorNode::PushSmtInsert),
             PUSH_MAPVAL => Ok(AdviceInjectorNode::PushMapVal),
             PUSH_MAPVAL_IMM => {
                 let offset = source.read_u8()?;
