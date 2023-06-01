@@ -22,7 +22,7 @@ mod memory;
 use memory::{Memory, MemoryLookup};
 
 mod kernel_rom;
-use kernel_rom::KernelRom;
+use kernel_rom::{KernelProcLookup, KernelRom};
 
 mod bus;
 pub use bus::{AuxTraceBuilder, ChipletsBus};
@@ -454,9 +454,13 @@ impl Chiplets {
     /// Returns an error if the procedure with the specified hash does not exist in the kernel
     /// with which the kernel ROM was instantiated.
     pub fn access_kernel_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
-        self.kernel_rom.access_proc(proc_hash)
+        self.kernel_rom.access_proc(proc_hash)?;
 
-        // TODO: record the access in the chiplet bus
+        // record the access in the chiplet bus
+        let kernel_proc_lookup = KernelProcLookup::new(proc_hash.into());
+        self.bus.request_kernel_proc_call(kernel_proc_lookup, self.clk);
+
+        Ok(())
     }
 
     // CONTEXT MANAGEMENT
@@ -576,7 +580,7 @@ impl Chiplets {
         let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment, &mut bus, bitwise_start);
         memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
-        kernel_rom.fill_trace(&mut kernel_rom_fragment);
+        kernel_rom.fill_trace(&mut kernel_rom_fragment, &mut bus, kernel_rom_start);
 
         (hasher_aux_builder, bus.into_aux_builder())
     }

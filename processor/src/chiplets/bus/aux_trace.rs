@@ -60,13 +60,13 @@ impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for AuxTraceBuilder {
         inv_row_values: &[E],
     ) -> E {
         let mut mult = if let Some(response_idx) = hint.response() {
-            row_values[response_idx]
+            row_values[response_idx as usize]
         } else {
             E::ONE
         };
 
         for request_idx in hint.requests() {
-            mult *= inv_row_values[*request_idx];
+            mult *= inv_row_values[*request_idx as usize];
         }
 
         mult

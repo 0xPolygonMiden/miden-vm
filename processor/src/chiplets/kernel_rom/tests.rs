@@ -1,4 +1,4 @@
-use super::{Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
+use super::{ChipletsBus, Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
 use vm_core::utils::collections::Vec;
 
 // CONSTANTS
@@ -111,9 +111,10 @@ fn build_kernel() -> Kernel {
 /// Builds a trace of the specified length and fills it with data from the provided KernelRom
 /// instance.
 fn build_trace(kernel_rom: KernelRom, num_rows: usize) -> Vec<Vec<Felt>> {
+    let mut chiplets_bus = ChipletsBus::default();
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    kernel_rom.fill_trace(&mut fragment);
+    kernel_rom.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 
     trace
 }

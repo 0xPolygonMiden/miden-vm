@@ -263,7 +263,7 @@ fn verify_bus(
     bitwise_lookup: &BitwiseLookup,
 ) {
     let expected_lookup = ChipletLookup::Bitwise(*bitwise_lookup);
-    let expected_hint = ChipletsBusRow::new(&[], Some(index));
+    let expected_hint = ChipletsBusRow::new(&[], Some(index as u32));
 
     let lookup = chiplets_bus.get_response_row(index);
     let hint = chiplets_bus.get_lookup_hint(cycle).unwrap();

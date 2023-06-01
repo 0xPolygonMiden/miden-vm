@@ -385,7 +385,7 @@ fn verify_memory_access(
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
     let expected_row = build_trace_row(memory_access, op_selectors, prev_row);
     let expected_lookup = ChipletLookup::Memory(*memory_access);
-    let expected_hint = ChipletsBusRow::new(&[], Some(row as usize));
+    let expected_hint = ChipletsBusRow::new(&[], Some(row));
 
     let lookup = chiplets_bus.get_response_row(row as usize);
     let hint = chiplets_bus.get_lookup_hint(row).unwrap();
