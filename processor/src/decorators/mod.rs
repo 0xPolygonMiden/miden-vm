@@ -170,7 +170,7 @@ where
     /// # Errors
     /// Returns an error if the required key was not found in the key-value map.
     fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
-        let top_word = self.stack.get_top_word();
+        let top_word = self.stack.get_word(0);
         self.advice_provider.push_stack(AdviceSource::Map { key: top_word })?;
 
         Ok(())
@@ -194,7 +194,7 @@ where
                 self.chiplets.get_mem_value(ctx, start_addr + i).unwrap_or([ZERO; WORD_SIZE]);
             values.extend_from_slice(&mem_value);
         }
-        let top_word = self.stack.get_top_word();
+        let top_word = self.stack.get_word(0);
         self.advice_provider.insert_into_map(top_word, values)?;
 
         Ok(())
