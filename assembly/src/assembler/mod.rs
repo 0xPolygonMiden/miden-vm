@@ -134,7 +134,7 @@ impl Assembler {
         let program_root = self.compile_in_context(program, &mut context)?;
 
         // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache.borrow());
+        let cb_table = context.into_cb_table(&self.proc_cache.borrow())?;
 
         // build and return the program
         Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
@@ -361,6 +361,19 @@ impl Assembler {
         }
 
         Ok(())
+    }
+
+    // CODE BLOCK BUILDER
+    // --------------------------------------------------------------------------------------------
+    /// Returns the [CodeBlockTable] associated with the [AssemblyContext].
+    ///
+    /// # Errors
+    /// Retuns an error if a required procedure is not found in the [Assembler] prodedure cache.
+    pub fn build_cb_table(
+        &self,
+        context: AssemblyContext,
+    ) -> Result<CodeBlockTable, AssemblyError> {
+        context.into_cb_table(&self.proc_cache.borrow())
     }
 }
 
