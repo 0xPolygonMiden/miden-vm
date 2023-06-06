@@ -315,7 +315,7 @@ end
 # Input: [V, K, R, ...];
 # Output:[V_old, R', ...]
 proc.insert16.1
-  # split the k3 into index and remainder (8 cylces)
+  # split the k3 into index and remainder (8 cycles)
   swapw
   exec.split_16
   # => [rem, idx, k2, k1, k0, V, R, ...]
@@ -326,12 +326,13 @@ proc.insert16.1
   loc_storew.0
   # => [rem, k2, k1, k0, V, idx, R, ...]
 
-  # TODO: put (node |-> (key', value)) into advice map
-
-  # prepare hasher state (5 cyles)
+  # prepare hasher state (5 cycles)
   push.0.16.0.0
   swapw.2
   # => [V, rem, k2, k1, k0, 0, 0, 16, 0, idx, R, ...]
+
+  # put (node |-> (key', value)) into the advice map
+  adv.insert_hdword.16
 
   # hash the value + rem_key to get new node value (10 cycles)
   hperm
@@ -404,7 +405,7 @@ export.insert
     # => [V, K, R, ...]
 
     # invoke adv and fetch target depth flags (2 cycles)
-    adv.smtinsert adv_push.2
+    adv.push_smtinsert adv_push.2
     # => [d ∈ {16, 32}, d ∈ {16, 48}, V, K, R, ...]
 
     # call the inner procedure depending on the depth

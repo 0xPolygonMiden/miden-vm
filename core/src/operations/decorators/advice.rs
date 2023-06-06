@@ -181,7 +181,7 @@ pub enum AdviceInjector {
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
     HdwordToMap { domain: Felt },
-    
+
     /// TODO: add docs
     SmtInsert,
 }

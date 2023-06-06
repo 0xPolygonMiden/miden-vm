@@ -229,7 +229,7 @@ fn assert_case_smtget(
     expected_stack: &[Felt],
 ) {
     // build the process
-    let stack_inputs = build_stack_inputs(key, root, Word::default());
+    let stack_inputs = build_stack_inputs(key, root.into(), Word::default());
     let remaining = get_smt_remaining_key(key, depth);
     let mapped = remaining.into_iter().chain(value.into_iter()).collect();
     let advice_inputs = AdviceInputs::default()

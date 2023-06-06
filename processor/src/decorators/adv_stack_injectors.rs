@@ -338,6 +338,52 @@ where
 
         Ok(())
     }
+
+    /// TODO: add docs
+    pub(super) fn push_smtinsert_inputs(&mut self) -> Result<(), ExecutionError> {
+        let key = [self.stack.get(7), self.stack.get(6), self.stack.get(5), self.stack.get(4)];
+        let root = [self.stack.get(11), self.stack.get(10), self.stack.get(9), self.stack.get(8)];
+
+        // determine the depth of the first leaf or an empty tree node
+        let index = &key[3];
+        let depth = self.advice_provider.get_leaf_depth(root, &SMT_MAX_TREE_DEPTH, index)?;
+        debug_assert!(depth < 65);
+
+        // map the depth value to its tier; this rounds up depth to 16, 32, 48, or 64
+        let depth = SMT_NORMALIZED_DEPTHS[depth as usize];
+        if depth == 64 {
+            unimplemented!("handling of depth=64 tier hasn't been implemented yet");
+        }
+
+        // get the value of the node a this index/depth
+        let index = index.as_int() >> (64 - depth);
+        let index = Felt::new(index);
+        let node = self.advice_provider.get_tree_node(root, &Felt::new(depth as u64), &index)?;
+
+        // if the node is a root of an empty subtree; push ONE onto the advice stack
+        let empty = EmptySubtreeRoots::empty_hashes(64);
+        if Word::from(empty[depth as usize]) == node {
+            self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+        } else {
+            // if the node is a leaf node, push the value stored under they key followed by ONE;
+            // here, we first push the entire pre-image of the leaf node onto the advice stack, which
+            // is [KEY, VALUE], and then drop the KEY, leaving only the VALUE on the advice stack
+            self.advice_provider.push_stack(AdviceSource::Map {
+                key: node,
+                include_len: false,
+            })?;
+            self.advice_provider.pop_stack_word()?;
+            self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+        }
+
+        // set the flags used to determine which tier the insert is happening at
+        let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
+        let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+
+        Ok(())
+    }
 }
 
 // HELPER FUNCTIONS
