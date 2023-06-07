@@ -1,76 +1,34 @@
 const.Z_PTR=4294967291
-const.OOD_TRACE_CURRENT_PTR=4294965000
-const.OOD_TRACE_NEXT_PTR=4294965041
+const.OOD_TRACE_PTR=4294965000
 const.OOD_CONSTRAINT_EVALS_PTR=4294965082
 
-#! Loads and computes ROW_HASH which is the hash of either
-#! [ood_main_trace_frame.current(), aux_trace_frame.current()]
-#! or [ood_main_trace_frame.next(), aux_trace_frame.next()]
-#!
-#! Input: [ood_frame_ptr, ...]
-#! Output: [ROW_HASH, ...]
-#! Cycles: 102
-export.load_ood_eval_frame
-    push.1.0.0.0
-    push.0.0.0.0
-    push.0.0.0.0
-    repeat.20
-        adv_pipe hperm
-    end
 
-    # adv_pipe the last two elements
-    dropw dropw
-    adv_push.1
-    adv_push.1
-    push.1
-    push.0
-    dup.8
-    add.1
-    swap.9
-    mem_storew
-    push.0.0.0.0
-    hperm
+#! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
+#! the hash of the OOD for reseeding the random coin.
+#! 
+#! Input: [...]
+#! Output: [OOD_FRAME_HASH, ...]
+#! Cycles: 106
+export.load_evaluation_frame
+    # We have 73 main trace columns and 9 aux trace columns for a total of 164 base field elements
+    # per row. Since we have two rows, i.e. current and next, the total number of field elements
+    # making up the OOD evaluation frame is:
+    # 328 = 41 * 8
+    # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
+    # current row and a1 from the next row.
+    
+    push.OOD_TRACE_PTR
+    padw padw padw
+    repeat.41
+        adv_pipe
+        hperm
+    end
 
     dropw
     swapw
     dropw
     movup.4
     drop
-end
-
-
-#! Loads OOD evaluation frame (both current and next rows) into memory and reseeds the random coin.
-#!
-#! Input: [...]
-#! Output: [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
-#! Cycles: 207
-export.load_evaluation_frame
-    # Read [ood_main_trace_frame.current(), aux_trace_frame.current()]
-    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
-    # 162 = 20 * 8 + 2
-    # [ood_main_trace_frame.current(), aux_trace_frame.current()] is stored in
-    # OOD_TRACE_CURRENT_PTR to OOD_TRACE_CURRENT_PTR + 41 - 1.
-    # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for the last tuple
-    # OOD_TRACE_CURRENT_PTR + 40 which is stored from the stack as (a1, a0, 1, 0)
-
-    push.OOD_TRACE_CURRENT_PTR
-    exec.load_ood_eval_frame
-    #=> [CURENT_ROW_HASH, ...]
-
-
-    # Read [ood_main_trace_frame.next(), aux_trace_frame.next()]
-    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
-    # 162 = 20 * 8 + 2
-    # [ood_main_trace_frame.next(), aux_trace_frame.next()] is stored in OOD_TRACE_CURRENT_PTR + 41
-    # to OOD_TRACE_CURRENT_PTR + 2 * 41 - 1.
-    # They are stored from the stack as (a1_1, a1_0, a0_1, a0_0) except for the last tuple
-    # which is stored from the stack as (a1, a0, 1, 0)
-
-    push.OOD_TRACE_NEXT_PTR
-    exec.load_ood_eval_frame
-
-    swapw
-    #=> [CURENT_ROW_HASH, NEXT_ROW_HASH, ...]
 end
 
 #! Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
@@ -78,23 +36,69 @@ end
 #!
 #! Input: [...]
 #! Output: [EVAL_HASH, ...]
-#! Cycles: 29
+#! Cycles: 112
 export.load_constraint_evaluations
-    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of
-    # constraint evaluation function at `z` `H(z)` equals `\sum_0^7 z^i value_i`.
-    # The values are stored from locaddr.2334 to locaddr.2337
-    push.OOD_CONSTRAINT_EVALS_PTR
-    push.0.0.0.0
-    push.0.0.0.0
-    push.0.0.0.0
-    adv_pipe hperm
-    adv_pipe hperm
+    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
+    # constraint evaluation polynomial at `z` `H(z)` equals `\sum_0^7 z^(N * i) value_i` where N
+    # is the execution trace length.
+    # In order to facilitate the computation of the DEEP composition polynomial queries, we lay out
+    # the values in memory as [v0, v1, 0, 0] where v := (v0, v1) ranges over the 8 values `value_i`.
+    
+    # Load value_0 and value_1
+    padw
+    padw
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    mem_storew.OOD_CONSTRAINT_EVALS_PTR
     dropw
+
+    dup.1 dup.1 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.1
+    mem_storew
+
+    # Load value_2 and value_3
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.2
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.3
+    mem_storew
+
+    dropw
+    hperm
+
+    # Load value_4 and value_5
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.4
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.5
+    mem_storew
+    dropw
+
     swapw
+
+    # Load value_6 and value_7
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.6
+    mem_storew
     dropw
-    movup.4
-    drop
-    # => [CONSTR_EVAL_HASH, ...]
+
+    dup.1 dup.1 push.0.0
+    push.OOD_CONSTRAINT_EVALS_PTR add.7
+    mem_storew
+    dropw
+
+    hperm
+
+    dropw swapw dropw
 end
 
 #! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
@@ -107,7 +111,7 @@ export.compute_Hz
     push.OOD_CONSTRAINT_EVALS_PTR
     add.4
     repeat.3
-        push.0.0.0.0
+        padw
     end
 
     # Compute `H(z)`
@@ -129,14 +133,15 @@ export.compute_Hz
 
     movup.12
     sub.1
-    push.0.0.0.0
+    padw
     movup.4
     mem_loadw
 
-    ## Load z
-    push.0.0.0.0
+    ## Load z^N where N is the length of the execution trace
+    padw
     mem_loadw.Z_PTR
-    drop drop
+    movup.2 drop
+    movup.2 drop
     # => [z1, z0, value_7, ... ,value_0]
 
     # Horner evaluation

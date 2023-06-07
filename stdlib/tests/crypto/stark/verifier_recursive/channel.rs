@@ -135,11 +135,8 @@ impl VerifierChannel {
     /// For computations requiring multiple trace segments, evaluations of auxiliary trace
     /// polynomials are also included as the second value of the returned tuple. Otherwise, the
     /// second value is None.
-    pub fn read_ood_trace_frame(
-        &mut self,
-    ) -> (EvaluationFrame<QuadExt>, Option<EvaluationFrame<QuadExt>>) {
-        let frame = self.ood_trace_frame.take().expect("already read");
-        (frame.main_frame(), frame.aux_frame())
+    pub fn read_ood_trace_frame(&mut self) -> TraceOodFrame<QuadExt> {
+        self.ood_trace_frame.take().expect("already read")
     }
 
     /// Returns evaluations of composition polynomial columns at z^m, where z is the out-of-domain
@@ -477,6 +474,10 @@ impl<E: FieldElement> TraceOodFrame<E> {
             }
             Some(EvaluationFrame::from_rows(current_aux, next_aux))
         }
+    }
+
+    pub fn values(&self) -> &[E] {
+        &self.values
     }
 }
 
