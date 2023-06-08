@@ -1,5 +1,5 @@
 
-const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
+const.ZERO_ZERO_ZERO_ONE_PTR=4294903309
 
 #! Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
 #! In parallel, compute the hash of the public inputs being loaded. The hashing starts with

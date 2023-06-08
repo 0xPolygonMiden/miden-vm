@@ -1,6 +1,6 @@
-const.Z_PTR=4294967291
-const.OOD_TRACE_PTR=4294965000
-const.OOD_CONSTRAINT_EVALS_PTR=4294965082
+const.Z_PTR=4294903304
+const.OOD_TRACE_PTR=4294900000
+const.OOD_CONSTRAINT_EVALS_PTR=4294900082
 
 
 #! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
