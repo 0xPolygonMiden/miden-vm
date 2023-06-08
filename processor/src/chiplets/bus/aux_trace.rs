@@ -1,5 +1,5 @@
 use super::{
-    build_lookup_table_row_values, AuxColumnBuilder, ChipletsLookup, ChipletsLookupRow, ColMatrix,
+    build_lookup_table_row_values, AuxColumnBuilder, ChipletLookup, ChipletsBusRow, ColMatrix,
     Felt, FieldElement, LookupTableRow, Vec,
 };
 
@@ -9,9 +9,9 @@ use super::{
 /// Describes how to construct execution traces of auxiliary trace columns that depend on multiple
 /// chiplets in the Chiplets module (used in multiset checks).
 pub struct AuxTraceBuilder {
-    pub(super) lookup_hints: Vec<(u32, ChipletsLookup)>,
-    pub(super) request_rows: Vec<ChipletsLookupRow>,
-    pub(super) response_rows: Vec<ChipletsLookupRow>,
+    pub(super) lookup_hints: Vec<(u32, ChipletsBusRow)>,
+    pub(super) requests: Vec<ChipletLookup>,
+    pub(super) responses: Vec<ChipletLookup>,
 }
 
 impl AuxTraceBuilder {
@@ -34,10 +34,10 @@ impl AuxTraceBuilder {
 // CHIPLETS LOOKUPS
 // ================================================================================================
 
-impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilder {
+impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for AuxTraceBuilder {
     /// This method is required, but because it is only called inside `build_row_values` which is
     /// overridden below, it is not used here and should not be called.
-    fn get_table_rows(&self) -> &[ChipletsLookupRow] {
+    fn get_table_rows(&self) -> &[ChipletLookup] {
         unimplemented!()
     }
 
@@ -47,7 +47,7 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilde
     /// Internally, each update hint also contains an index of the row into the full list of request
     /// rows or response rows, depending on whether it is a request, a response, or both (in which
     /// case it contains 2 indices).
-    fn get_table_hints(&self) -> &[(u32, ChipletsLookup)] {
+    fn get_table_hints(&self) -> &[(u32, ChipletsBusRow)] {
         &self.lookup_hints
     }
 
@@ -55,17 +55,21 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilde
     /// hint value.
     fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
-        hint: ChipletsLookup,
+        hint: ChipletsBusRow,
         row_values: &[E],
         inv_row_values: &[E],
     ) -> E {
-        match hint {
-            ChipletsLookup::Request(request_row) => inv_row_values[request_row],
-            ChipletsLookup::Response(response_row) => row_values[response_row],
-            ChipletsLookup::RequestAndResponse((request_row, response_row)) => {
-                inv_row_values[request_row] * row_values[response_row]
-            }
+        let mut mult = if let Some(response_idx) = hint.response() {
+            row_values[response_idx]
+        } else {
+            E::ONE
+        };
+
+        for request_idx in hint.requests() {
+            mult *= inv_row_values[*request_idx];
         }
+
+        mult
     }
 
     /// Build the row values and inverse values used to build the auxiliary column.
@@ -80,13 +84,12 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilde
     {
         // get the row values from the resonse rows
         let row_values = self
-            .response_rows
+            .responses
             .iter()
             .map(|response| response.to_value(main_trace, alphas))
             .collect();
         // get the inverse values from the request rows
-        let (_, inv_row_values) =
-            build_lookup_table_row_values(&self.request_rows, main_trace, alphas);
+        let (_, inv_row_values) = build_lookup_table_row_values(&self.requests, main_trace, alphas);
 
         (row_values, inv_row_values)
     }
