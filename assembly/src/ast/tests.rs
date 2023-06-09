@@ -193,7 +193,7 @@ fn test_ast_parsing_adv_ops() {
 
 #[test]
 fn test_ast_parsing_adv_injection() {
-    use crate::parsers::AdviceInjector::*;
+    use super::AdviceInjector::*;
     use Instruction::AdvInject;
 
     let source = "begin adv.u64div adv.keyval adv.smtget adv.mem end";

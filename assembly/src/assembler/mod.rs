@@ -1,10 +1,10 @@
 use super::{
+    ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
     btree_map,
     crypto::hash::RpoDigest,
-    parsers::{Instruction, Node, ProcedureAst, ProgramAst},
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
-    LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, ProcedureName,
-    Program, ToString, Vec, ONE, ZERO,
+    LibraryError, LibraryPath, Module, Operation, Procedure, ProcedureId, ProcedureName, Program,
+    ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};

@@ -1,5 +1,5 @@
 use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
-use crate::{LibraryNamespace, LibraryPath, ModuleAst, Version};
+use crate::{ast::ModuleAst, LibraryNamespace, LibraryPath, Version};
 use core::slice::Iter;
 
 // TESTS

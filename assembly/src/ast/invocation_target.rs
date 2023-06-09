@@ -1,4 +1,4 @@
-use super::{decode_hex_rpo_digest_label, LibraryPath, ParsingError, RpoDigest, Token};
+use super::{parsers::decode_hex_rpo_digest_label, LibraryPath, ParsingError, RpoDigest, Token};
 
 /// Invocation target that holds the information about the target of an invocation. This
 /// information is used to resolve the target for exec, calls and syscall instructions.

@@ -4,6 +4,8 @@ use core::fmt;
 mod advice;
 pub use advice::AdviceInjector;
 
+mod serde;
+
 // NODES
 // ================================================================================================
 
