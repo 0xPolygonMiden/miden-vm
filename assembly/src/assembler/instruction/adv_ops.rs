@@ -1,6 +1,6 @@
-use super::{validate_param, AdviceInjector, AssemblyError, Decorator, SpanBuilder};
-use crate::ADVICE_READ_LIMIT;
-use vm_core::{code_blocks::CodeBlock, Operation::*};
+use super::{validate_param, AssemblyError, Decorator, SpanBuilder};
+use crate::{parsers::AdviceInjector, ADVICE_READ_LIMIT};
+use vm_core::{code_blocks::CodeBlock, Operation};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================
@@ -14,15 +14,26 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 /// than 16.
 pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
-    span.push_op_many(AdvPop, n as usize);
+    span.push_op_many(Operation::AdvPop, n as usize);
     Ok(None)
 }
 
 // ADVICE INJECTORS
 // ================================================================================================
 
-/// Appends adv.mem advice injector to the span. This operation copies n number of words from
-/// memory the starting at address a into the advice provider's key-value map.
-pub fn adv_mem(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_decorator(Decorator::Advice(AdviceInjector::Memory))
+/// Appends advice injector decorator to the span.
+pub fn adv_inject(
+    span: &mut SpanBuilder,
+    injector: &AdviceInjector,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    use super::AdviceInjector::*;
+
+    match injector {
+        AdviceInjector::PushU64div => span.add_decorator(Decorator::Advice(DivResultU64)),
+        AdviceInjector::PushMapVal => span.add_decorator(Decorator::Advice(MapValue)),
+        AdviceInjector::PushExt2inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
+        AdviceInjector::PushExt2intt => span.add_decorator(Decorator::Advice(Ext2INTT)),
+        AdviceInjector::PushSmtGet => span.add_decorator(Decorator::Advice(SmtGet)),
+        AdviceInjector::InsertMem => span.add_decorator(Decorator::Advice(Memory)),
+    }
 }

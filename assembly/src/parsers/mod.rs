@@ -11,7 +11,7 @@ use body::CodeBody;
 mod nodes;
 use crate::utils::bound_into_included_u64;
 pub use nodes::display_hex_bytes;
-pub use nodes::{Instruction, Node};
+pub use nodes::{AdviceInjector, Instruction, Node};
 mod context;
 use context::ParserContext;
 mod labels;

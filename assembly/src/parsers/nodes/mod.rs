@@ -1,6 +1,9 @@
 use super::{CodeBody, Felt, ProcedureId, RpoDigest, Vec};
 use core::fmt;
 
+mod advice;
+pub use advice::AdviceInjector;
+
 // NODES
 // ================================================================================================
 
@@ -264,12 +267,7 @@ pub enum Instruction {
     AdvPush(u8),
     AdvLoadW,
 
-    AdvU64Div,
-    AdvKeyval,
-    AdvMem,
-    AdvExt2Inv,
-    AdvExt2INTT,
-    AdvSmtGet,
+    AdvInject(AdviceInjector),
 
     // ----- cryptographic operations -------------------------------------------------------------
     Hash,
@@ -279,6 +277,8 @@ pub enum Instruction {
     MTreeSet,
     MTreeMerge,
     MTreeVerify,
+
+    // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4,
 
     // ----- exec / call --------------------------------------------------------------------------
@@ -542,12 +542,7 @@ impl fmt::Display for Instruction {
             Self::AdvPush(value) => write!(f, "adv_push.{value}"),
             Self::AdvLoadW => write!(f, "adv_loadw"),
 
-            Self::AdvU64Div => write!(f, "adv.u64div"),
-            Self::AdvKeyval => write!(f, "adv.keyval"),
-            Self::AdvMem => write!(f, "adv.mem"),
-            Self::AdvExt2Inv => write!(f, "adv.ext2inv"),
-            Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
-            Self::AdvSmtGet => write!(f, "adv.smtget"),
+            Self::AdvInject(injector) => write!(f, "adv.{injector}"),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::Hash => write!(f, "hash"),
