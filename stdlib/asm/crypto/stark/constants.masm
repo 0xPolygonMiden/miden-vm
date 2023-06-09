@@ -3,8 +3,8 @@
 
 # General constants
 const.ROOT_UNITY=7277203076849721926
-const.OFFSET=7
-const.INV_OFFSET=2635249152773512046
+const.DOMAIN_OFFSET=7
+const.DOMAIN_OFFSET_INV=2635249152773512046
 
 
 # MEMORY POINTERS
@@ -144,12 +144,12 @@ export.root_unity
     push.ROOT_UNITY
 end
 
-export.offset
-    push.OFFSET
+export.domain_offset
+    push.DOMAIN_OFFSET
 end
 
-export.inv_offset
-    push.INV_OFFSET
+export.domain_offset_inv
+    push.DOMAIN_OFFSET_INV
 end
 
 export.public_inputs_ptr

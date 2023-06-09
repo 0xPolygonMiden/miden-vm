@@ -1,17 +1,5 @@
-const.C_PTR=4294903310
-const.R1_PTR=4294903311
-const.R2_PTR=4294903312
+use.std::crypto::stark::constants
 
-const.Z_PTR=4294903304
-const.TMP0=4294903313
-const.LDE_SIZE_PTR=4294903303
-
-const.ZERO_WORD_PTR=4294903308
-const.ZERO_ZERO_ZERO_ONE_PTR=4294903309
-
-const.PARAMETERS_PTR=4294903305
-const.TRACE_LENGTH_PTR=4294903306
-const.TRACE_LENGTH_LOG_PTR=4294903307
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -45,7 +33,7 @@ end
 #! Input: [...]
 #! Output: [R1]
 export.get_rate_1
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
@@ -66,15 +54,15 @@ export.init_seed
     #
     # Cycles: 22
     padw
-    mem_storew.ZERO_WORD_PTR
-    mem_storew.C_PTR
-    mem_storew.R1_PTR
-    mem_storew.R2_PTR
+    exec.constants::zero_word mem_storew    
+    exec.constants::c_ptr mem_storew
+    exec.constants::r1_ptr mem_storew
+    exec.constants::r2_ptr mem_storew
 
     drop
     push.1
     swap.3
-    mem_storew.ZERO_ZERO_ZERO_ONE_PTR
+    exec.constants::zero_zero_zero_one_word mem_storew
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -89,8 +77,8 @@ export.init_seed
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
     ## Save the trace length and its log to memory
-    dup.0 mem_store.TRACE_LENGTH_PTR
-    dup.1 mem_store.TRACE_LENGTH_LOG_PTR
+    dup.0 exec.constants::trace_length_ptr mem_store
+    dup.1 exec.constants::trace_length_log_ptr mem_store
 
     ## Assert blowup is equal to 8
     ##  Cycles: 6
@@ -116,7 +104,7 @@ export.init_seed
     movdn.2
     push.0
     movdn.2
-    mem_storew.LDE_SIZE_PTR
+    exec.constants::lde_size_ptr mem_storew
     #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
 
 
@@ -156,25 +144,25 @@ end
 #! Cycles: 54
 export.reseed
     padw
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
     exec.add_two_words
 
     padw
-    mem_loadw.C_PTR
+    exec.constants::c_ptr mem_loadw
     swapw
 
     padw
-    mem_loadw.R2_PTR
+    exec.constants::r2_ptr mem_loadw
 
     hperm
 
-    mem_storew.R2_PTR
+    exec.constants::r2_ptr mem_storew
     dropw
 
-    mem_storew.R1_PTR
+    exec.constants::r1_ptr mem_storew
     dropw
 
-    mem_storew.C_PTR
+    exec.constants::c_ptr mem_storew        
     dropw
 end
 
@@ -204,16 +192,16 @@ proc.generate_random_coefficients
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
     padw
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
     dup.5 mem_storew
 
     padw
-    mem_loadw.R2_PTR
+    exec.constants::r2_ptr mem_loadw
     dup.9 add.1 mem_storew
     #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
 
     padw
-    mem_loadw.C_PTR
+    exec.constants::c_ptr mem_loadw
     swapdw
     swapw
     swap add.2 swap
@@ -249,11 +237,11 @@ proc.generate_random_coefficients
 
     # Save the new state of the random coin
     dropw
-    mem_storew.R1_PTR
+    exec.constants::r1_ptr mem_storew
     dropw
-    mem_storew.C_PTR
+    exec.constants::c_ptr mem_storew        
     dropw
-    mem_storew.R2_PTR
+    exec.constants::r2_ptr mem_storew
     dropw
     #=> [...]
 end
@@ -280,7 +268,7 @@ proc.generate_random_coefficients_pad
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
     padw
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
     dup.5
     #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
     dup.4
@@ -295,7 +283,7 @@ proc.generate_random_coefficients_pad
     movup.4 add.1 mem_storew
     #=> [0, 0, a11, a10, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
 
-    mem_loadw.R2_PTR
+    exec.constants::r2_ptr mem_loadw
     dup.9  add.4 swap.10
     #=> [dest_ptr, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
 
@@ -310,7 +298,7 @@ proc.generate_random_coefficients_pad
     movup.4 add.3 mem_storew
     #=> [0, 0, a31, a30, a31, a30, a21, a20, a11, a10, a01, a00, loop_ctr, dest_ptr+4, x, x, ...]
 
-    mem_loadw.C_PTR
+    exec.constants::c_ptr mem_loadw
     swapdw
     swapw
     #=> [loop_ctr, dest_ptr, 0, 0, R1, C, R2, ..]
@@ -362,11 +350,11 @@ proc.generate_random_coefficients_pad
 
     # Save the new state of the random coin
     dropw
-    mem_storew.R1_PTR
+    exec.constants::r1_ptr mem_storew
     dropw
-    mem_storew.C_PTR
+    exec.constants::c_ptr mem_storew        
     dropw
-    mem_storew.R2_PTR
+    exec.constants::r2_ptr mem_storew
     dropw
     #=> [...]
 end
@@ -429,9 +417,9 @@ end
 #! Cycles: 21 + 10 * log(N)
 export.generate_z_zN
     # Load z (first two felts of the random coin state) and trace length N
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
     push.0.0
-    mem_loadw.PARAMETERS_PTR
+    exec.constants::parameters_ptr mem_loadw
     movdn.3
     drop drop drop
 
@@ -449,7 +437,7 @@ export.generate_z_zN
     movup.2 drop
     
     # Store z and z^N
-    mem_storew.Z_PTR
+    exec.constants::z_ptr mem_storew
     dropw
 end
 
@@ -581,7 +569,7 @@ end
 export.generate_list_indices
     # Create mask
     padw
-    mem_loadw.TMP0
+    exec.constants::tmp0 mem_loadw
     movup.2 drop
     movup.2 drop
     sub.1
@@ -593,30 +581,30 @@ export.generate_list_indices
 
     # Load the state of the random coin
     padw
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
 
     repeat.3
         exec.generate_four_integers
         #=> [X, query_ptr, mask, depth, ...]
 
-        mem_loadw.R2_PTR
+        exec.constants::r2_ptr mem_loadw
         exec.generate_four_integers
         #=> [X, query_ptr, mask, depth, ...]
 
-        mem_loadw.C_PTR
+        exec.constants::c_ptr mem_loadw
         padw
-        mem_loadw.R1_PTR
+        exec.constants::r1_ptr mem_loadw
         padw
-        mem_loadw.R2_PTR
+        exec.constants::r2_ptr mem_loadw
 
         hperm
 
-        mem_storew.R2_PTR
+        exec.constants::r2_ptr mem_storew
         dropw
         swapw
-        mem_storew.C_PTR
+        exec.constants::c_ptr mem_storew    
         dropw
-        mem_storew.R1_PTR
+        exec.constants::r1_ptr mem_storew
 
     end
 
@@ -643,11 +631,11 @@ export.check_pow
 
     # Load Capacity portion
     padw
-    mem_loadw.C_PTR
+    exec.constants::c_ptr mem_loadw
 
     # Load first half of rate portion and add pow witness to first element of rate
     padw
-    mem_loadw.R1_PTR
+    exec.constants::r1_ptr mem_loadw
     adv_push.1
     dup.4
     add
@@ -656,16 +644,16 @@ export.check_pow
 
     # Load the second half of rate portion and apply the permutation
     padw
-    mem_loadw.R2_PTR
+    exec.constants::r2_ptr mem_loadw
     hperm
     #=> [R2, R1, C, mask, ...]
 
     # Save the new random coin state
-    mem_storew.R2_PTR
+    exec.constants::r2_ptr mem_storew
     dropw
-    mem_storew.R1_PTR
+    exec.constants::r1_ptr mem_storew
     dropw
-    mem_storew.C_PTR
+    exec.constants::c_ptr mem_storew       
     drop drop drop
     #=> [C0, mask]
 

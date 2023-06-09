@@ -7,42 +7,8 @@ use.std::crypto::stark::random_coin
 use.std::crypto::stark::ood_frames
 use.std::crypto::stark::public_inputs
 use.std::crypto::stark::utils
+use.std::crypto::stark::constants
 
-# Constants
-const.ROOT_UNITY=7277203076849721926
-
-# Global memory (sorted by increasing addresses)
-const.PUBLIC_INPUTS_PTR=4294800000                                   
-const.OOD_TRACE_PTR=4294900000                                   
-const.CURRENT_TRACE_ROW_PTR=4294900100                                   
-const.AUX_RAND_ELEM_PTR=4294900150                                   
-const.COMPOSITION_COEF_PTR=4294900200
-const.DEEP_RAND_CC_PTR=4294903000
-const.FRI_COM_PTR=4294903200
-const.MAIN_TRACE_COM_PTR=4294903300
-const.AUX_TRACE_COM_PTR=4294903301
-const.COMPOSITION_POLY_COM_PTR=4294903302
-const.LDE_SIZE_PTR=4294903303
-const.Z_PTR=4294903304
-const.PARAMETERS_PTR=4294903305
-const.TRACE_LENGTH_PTR=4294903306
-const.TRACE_LENGTH_LOG_PTR=4294903307
-const.ZERO_WORD_PTR=4294903308
-const.ZERO_ZERO_ZERO_ONE_PTR=4294903309
-const.C_PTR=4294903310
-const.R1_PTR=4294903311
-const.R2_PTR=4294903312
-const.TMP0=4294903313
-const.TMP1=4294903314
-const.TMP2=4294903316
-const.TMP3=4294903317
-const.TMP4=4294903318
-const.TMP5=4294903319
-const.TMP6=4294903320
-const.TMP7=4294903321
-const.TMP8=4294903322
-
-const.FRI_QUERIES_PTR=4294903173
 
 #!   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
 #!   The following simplifying assumptions are currently made:
@@ -57,32 +23,8 @@ const.FRI_QUERIES_PTR=4294903173
 #!   - To boost soundness, the protocol is run on a quadratic extension field and this means that
 #!    the OOD evaluation frame is composed of elements in a quadratic extension field i.e. tuples.
 #!    Similarly, elements of the auxiliary trace are quadratic extension field elements.
-#!   - The following procedure makes use of global memory address beyond 3 * 2^30. More precisely,
-#!   the following is a list of pointers used by `stark::verify`:
-#!
-#!   * ZERO_ZERO_ZERO_ONE_PTR. [0, 0, 0, 1] used for hmerge in case the number of elements to be hashed is not divisible by 8
-#!   * ZERO_WORD_PTR. [0, 0, 0, 0] used for hmerge in case the number of elements to be hashed is divisible by 8
-#!   * LDE_SIZE_PTR. [lde_size, log2(lde_size), 0, 0]
-#!   * Z_PTR. [zN_1, zN_0, z1, z0] where z = (z_0, z_1) is the OOD random element and ZN is z to the power trace length
-#!   * MAIN_TRACE_COM_PTR. Main trace commitment
-#!   * AUX_TRACE_COM_PTR. Aux trace commitment
-#!   * COMPOSITION_POLY_COM_PTR. Constraint polynomial columns trace commitment
-#!   * PUBLIC_INPUTS_PTR. Points to the memory region containing the public inputs.
-#!   * AUX_RAND_ELEM_PTR.    Auxiliary trace random coefficients
-#!   * COMPOSITION_COEF_PTR.    Constraint composition coefficients
-#!   * OOD_TRACE_PTR.    The OOD evaluation frame with current and next rows interleaved
-#!   * OOD_CONSTRAINT_EVALS_PTR.    value_i for i in 0..=7 where H(z) := \sum_0^7 value_i * z^(N*i) and H is the constraint compostion polynomial
-#!   * DEEP_RAND_CC_PTR.    Deep query coefficients
-#!   * FRI_QUERIES_PTR.    [poe, query_index, evaluation_1, evaluation_0] for the 27 FRI queries where poe = lde_domain_generator^query_index
-#!   * PARAMETERS_PTR.   [log(trace_length), num_queries, log(blowup), grinding]
-#!   * TMP1.   [gz1, gz0, z1, z0]
-#!   * TMP2.   [x, _, _, _] where x := offset * lde_domain_generator^query_index
-#!   * TMP3.   Leaf value at index `query_index` of the commitment tree to either main, auxiliary or constraint traces.
-#!   * TMP4.   [query_index, depth, _, _] where query_index is the current deep FRI query being computed.
-#!   * TMP5.   [lde_size, log2(lde_size), lde_domain_generator, 0]
-#!   * TMP6.   [num_fri_layers, remainder_size, lde_size, lde_domain_generator]
-#!   * TMP7.   Remainder commitment
-#!   * TMP8.   [remainder_ptr, remainder_size, lde_size, lde_size]
+#!   - The following procedure makes use of global memory address beyond 3 * 2^30 and these are
+#!    defined in `constants.masm`.
 #!
 #! Input: [log(trace_length), num_queries, log(blowup), grinding]
 #! Output: []
@@ -98,7 +40,7 @@ export.verify
     #==============================================================================================
 
     # Save the parameters in memory for later use
-    mem_storew.PARAMETERS_PTR
+    exec.constants::parameters_ptr mem_storew
 
     # Initialize the seed using proof context
     #
@@ -109,7 +51,7 @@ export.verify
     # Load public inputs
     #
     # Cycles: 93
-    push.PUBLIC_INPUTS_PTR
+    exec.constants::public_inputs_ptr
     exec.public_inputs::load
     exec.random_coin::reseed
     #=> [...]
@@ -123,7 +65,7 @@ export.verify
     # Cycles: 61
     padw
     adv_loadw
-    mem_storew.MAIN_TRACE_COM_PTR
+    exec.constants::main_trace_com_ptr mem_storew
     #=> [main_trace_commitment]
     exec.random_coin::reseed
     #=> [...]
@@ -131,7 +73,7 @@ export.verify
     # Draw random ExtFelt for the auxiliary trace
     #
     # Cycles: 150
-    push.AUX_RAND_ELEM_PTR
+    exec.constants::aux_rand_elem_ptr
     exec.random_coin::generate_aux_randomness
     #=> [...]
 
@@ -140,7 +82,7 @@ export.verify
     # Cycles: 60
     padw
     adv_loadw
-    mem_storew.AUX_TRACE_COM_PTR
+    exec.constants::aux_trace_com_ptr mem_storew
     exec.random_coin::reseed
     #=> [...]
 
@@ -149,7 +91,7 @@ export.verify
     #==============================================================================================
 
     # Cycles: 1309
-    push.COMPOSITION_COEF_PTR
+    exec.constants::composition_coef_ptr
     exec.random_coin::generate_constraint_composition_coefficients
     #=> [...]
 
@@ -163,7 +105,7 @@ export.verify
     # Cycles: 60 + 10 * log(trace_length)
     padw
     adv_loadw
-    mem_storew.COMPOSITION_POLY_COM_PTR
+    exec.constants::composition_poly_com_ptr mem_storew
     exec.random_coin::reseed
     exec.random_coin::generate_z_zN
     #=> [...]
@@ -211,7 +153,7 @@ export.verify
     #============================================
 
     # Cycles: 1693
-    push.DEEP_RAND_CC_PTR
+    exec.constants::deep_rand_coef_ptr
     exec.random_coin::generate_deep_composition_random_coefficients
 
     #============================================
@@ -234,7 +176,7 @@ export.verify
     #============================================
 
     # Cycles: 22 + 83 * num_fri_layers
-    push.FRI_COM_PTR
+    exec.constants::fri_com_ptr
     exec.helper::load_fri_layer_commitments
     #=> [...]
 
@@ -259,7 +201,7 @@ export.verify
 
     # Cycles: 53
     padw
-    mem_loadw.PARAMETERS_PTR
+    exec.constants::parameters_ptr mem_loadw
     drop drop drop
     exec.random_coin::check_pow
     #=> [...]
@@ -269,10 +211,12 @@ export.verify
     #   polynomial at randomly chosen query positions
     #============================================
     
-    # Compute the pointer to the first query using the poiner to
+    # Compute the pointer to the first query using the pointer to
     # the first layer commitment and total number of queries.
-    push.FRI_COM_PTR
-    padw mem_loadw.PARAMETERS_PTR drop swap.2 drop drop
+    exec.constants::fri_com_ptr
+    padw
+    exec.constants::parameters_ptr mem_loadw
+    drop swap.2 drop drop
     sub
     #=> [query_ptr, ...]
 
@@ -298,15 +242,15 @@ export.verify
     #
     # Cycles: 15
     padw
-    mem_loadw.TMP0
+    exec.constants::tmp0 mem_loadw
     push.0.0
-    mem_loadw.TMP8
+    exec.constants::tmp8 mem_loadw
     swap.3
     drop drop drop movup.2 drop
     #=>[remainder_ptr, g, query_ptr, ...]
 
     # Get the pointer to the first layer commitment
-    push.FRI_COM_PTR
+    exec.constants::fri_com_ptr
 
     # Get the pointer to the first FRI query to the top
     movup.3

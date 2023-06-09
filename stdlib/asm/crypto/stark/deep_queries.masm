@@ -1,24 +1,5 @@
-const.FRI_COM_PTR=4294903200
-const.FRI_QUERIES_PTR=4294903173
-const.MAIN_TRACE_COM_PTR=4294903300
-const.AUX_TRACE_COM_PTR=4294903301
-const.COMPOSITION_POLY_COM_PTR=4294903302
-const.DEEP_RAND_CC_PTR=4294903000
-const.OOD_TRACE_PTR=4294900000
-const.Z_PTR=4294903304
+use.std::crypto::stark::constants
 
-const.TMP0=4294903313
-const.TMP1=4294903314
-const.TMP2=4294903316
-const.TMP3=4294903317
-const.TMP4=4294903318
-
-const.CURRENT_TRACE_ROW_PTR=4294900100
-const.ZERO_ZERO_ZERO_ONE_PTR=4294903309
-const.ZERO_WORD_PTR=4294903308
-
-const.OFFSET=7
-const.INV_OFFSET=2635249152773512046
 
 #! Computes a single step of the random linear combination defining the DEEP composition polynomial
 #! that is the input to the FRI protocol. More precisely, the sum in question is:
@@ -285,20 +266,20 @@ proc.load_query_row
     ## Get main trace commitment and use it to get the leaf
     movup.3 movup.3
     push.0.0
-    mem_loadw.MAIN_TRACE_COM_PTR
+    exec.constants::main_trace_com_ptr mem_loadw
     #=>[R, depth, index, query_ptr, ...]
         
     ## Get the leaf in the main trace commitment and save it
     dup.5 dup.5
     mtree_get
-    mem_storew.TMP3
+    exec.constants::tmp3 mem_storew
     adv.keyval
     #=>[V, R, depth, index, query_ptr, ...]
     drop
-    push.CURRENT_TRACE_ROW_PTR
+    exec.constants::current_trace_row_ptr
     swapw
     #=>[R, ptr, y, y, y, depth, index, query_ptr, ...]
-    mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
+    exec.constants::zero_zero_zero_one_word mem_loadw
     padw
     padw
     #=> [Y, Y, 0, 0, 0, 1, ptr, y, y, y]
@@ -311,7 +292,7 @@ proc.load_query_row
     push.0.0
     dup.12 mem_storew
     swapw
-    mem_loadw.ZERO_WORD_PTR
+    exec.constants::zero_word mem_loadw
         
     ## Since combine_main follows a mem_stream we need to store (i.e. pad with) the all zero word in
     ## order to avoid over-stepping into the auxiliary columns.
@@ -323,7 +304,7 @@ proc.load_query_row
     #=> [Y, L, Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## Load the leaf value we got using mtree_get
-    mem_loadw.TMP3
+    exec.constants::tmp3 mem_loadw
 
     ## Check correctness of unhashing
     movup.4
@@ -342,18 +323,18 @@ proc.load_query_row
     # Aux trace part
 
     ## Load aux trace commitment and get leaf
-    mem_loadw.AUX_TRACE_COM_PTR
+    exec.constants::aux_trace_com_ptr mem_loadw
     dup.9
     dup.9
     mtree_get
+    exec.constants::tmp3 mem_storew
     adv.keyval
-    mem_storew.TMP3
     #=> [L, R, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## adv_pipe aux trace portion
-    mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
-    swapw
     padw
+    exec.constants::zero_zero_zero_one_word mem_loadw
+    swapw.2
     adv_pipe hperm
     adv_pipe hperm
     dropw
@@ -368,7 +349,7 @@ proc.load_query_row
     ## Since combine_aux follows a mem_stream we need to store (i.e. pad with) the all zero word in
     ## order to avoid over-stepping into the constraint polynomial columns.
     swapw
-    mem_loadw.ZERO_WORD_PTR
+    exec.constants::zero_word mem_loadw
     dup.12 add.1
     mem_storew
 
@@ -377,7 +358,7 @@ proc.load_query_row
     #=> [Y, L, Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## Check correctness of unhashing
-    mem_loadw.TMP3
+    exec.constants::tmp3 mem_loadw
     movup.4
     assert_eq
     movup.3
@@ -394,22 +375,22 @@ proc.load_query_row
     # Constraint composition trace part
 
     ## Load commitment constraint trace and get leaf
-    mem_loadw.COMPOSITION_POLY_COM_PTR
+    exec.constants::composition_poly_com_ptr mem_loadw
     dup.9
     dup.9
     mtree_get
+    exec.constants::tmp3 mem_storew
     adv.keyval
-    mem_storew.TMP3
     #=>[L, R, ptr, y, y, y, depth, index, query_ptr, ...]
-    mem_loadw.ZERO_WORD_PTR
-    swapw
     padw
+    exec.constants::zero_word mem_loadw
+    swapw.2
     adv_pipe hperm
     adv_pipe hperm
     #=> [Y, L, Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## Check correctness of unhashing
-    mem_loadw.TMP3
+    exec.constants::tmp3 mem_loadw
     movup.4
     assert_eq
     movup.3
@@ -433,19 +414,19 @@ end
 proc.compute_denominators
     # Compute x = offset * domain_gen^index
     padw
-    mem_loadw.TMP0
+    exec.constants::tmp0 mem_loadw
     #=> [lde_size, depth, domain_gen, 0, index, ...]
     movup.2
     dup.4
     exp.u32
-    push.OFFSET mul
+    exec.constants::domain_offset mul
     #=> [x, lde_size, depth, 0, index, ...]
 
     # Get z and gz from memory
     movdn.3
     #=> [lde_size, depth, 0, x, index, ...]
     push.0
-    mem_loadw.TMP1
+    exec.constants::tmp1 mem_loadw
     #=> [gz1, gz0, z1, z0, x, index, ...]
 
     # Compute Z := [-z1, x - z0, -gz1, x -gz0]
@@ -559,7 +540,7 @@ end
 proc.combine_constraint_poly_columns
     # Save Acc
     swapw.2
-    mem_storew.TMP3
+    exec.constants::tmp3 mem_storew
     swapw.2
 
     # Combine
@@ -574,7 +555,7 @@ proc.combine_constraint_poly_columns
     dropw
     dropw
     swapw
-    mem_loadw.TMP3
+    exec.constants::tmp3 mem_loadw
     #=> [Acc3, Acc2, y, y, y, y, Acc1`, Acc0`, ...]
     movdn.5 movdn.5
     #=> [y, y, y, y, Acc3, Acc2, Acc1`, Acc0`, ...]
@@ -615,7 +596,7 @@ end
 #! Output: [...]
 #! Cycles: 6 + num_queries * 465
 export.compute_deep_composition_polynomial_queries
-    push.FRI_COM_PTR
+    exec.constants::fri_com_ptr
     dup.1
     #=>[query_ptr, query_end_ptr, ...]
 
@@ -651,9 +632,9 @@ export.compute_deep_composition_polynomial_queries
         ##
         ## Cycles: 4
         push.0
-        push.DEEP_RAND_CC_PTR
-        push.OOD_TRACE_PTR
-        push.CURRENT_TRACE_ROW_PTR
+        exec.constants::deep_rand_coef_ptr
+        exec.constants::ood_trace_ptr
+        exec.constants::current_trace_row_ptr
         #=> [P, Z, x, index, query_ptr, query_end_ptr, ...] 
         # where P := [CURRENT_TRACE_ROW_PTR, OOD_TRACE_PTR, DEEP_RAND_CC_PTR, 0]
 
@@ -693,7 +674,8 @@ export.compute_deep_composition_polynomial_queries
         ## a) Compute poe
         ##
         ## Cycles: 4
-        movup.3 movup.3 push.INV_OFFSET mul
+        movup.3 movup.3
+        exec.constants::domain_offset_inv mul
         #=> [poe, index, eval1, eval0, query_ptr, query_end_ptr, ...]
 
         ## b) Store [eval0, eval1, index, poe]
