@@ -9,7 +9,8 @@ mod serde;
 // NODES
 // ================================================================================================
 
-/// A node in a AST that can represent a block, instruction or a control flow.
+/// A node in a AST which can represent either a single instruction or a body of a control flow
+/// expression.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Node {
     Instruction(Instruction),
@@ -26,9 +27,7 @@ pub enum Node {
     },
 }
 
-/// This holds the list of instructions supported in a Miden program.
-/// This instruction list is used to hold reference to the instruction, and future be
-/// used for MAST generation.
+/// An instruction of Miden assembly program, excluding control flow instruction.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
     Assert,

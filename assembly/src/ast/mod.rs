@@ -1,11 +1,18 @@
+//! Abstract syntax tree (AST) components of Miden programs, modules, and procedures.
+//!
+//! Structs in this module (specifically [ProgramAst] and [ModuleAst]) can be used to parse source
+//! code into relevant ASTs. This can be done via their `parse()` methods.
+
 use super::{
     crypto::hash::RpoDigest, BTreeMap, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Felt, LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName,
-    Serializable, SliceReader, SourceLocation, StarkField, String, ToString, Token, TokenStream,
-    Vec, MAX_LABEL_LEN,
+    Serializable, SliceReader, StarkField, String, ToString, Token, TokenStream, Vec,
+    MAX_LABEL_LEN,
 };
 use core::{iter, str::from_utf8};
 use vm_core::utils::bound_into_included_u64;
+
+pub use super::tokens::SourceLocation;
 
 mod nodes;
 pub use nodes::{AdviceInjector, Instruction, Node};
@@ -19,7 +26,7 @@ pub use invocation_target::InvocationTarget;
 mod parsers;
 use parsers::{parse_constants, parse_imports, ParserContext};
 
-pub use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+pub(crate) use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
 #[cfg(test)]
 pub mod tests;
@@ -41,9 +48,9 @@ type LocalConstMap = BTreeMap<String, u64>;
 // EXECUTABLE PROGRAM AST
 // ================================================================================================
 
-/// An abstract syntax tree (AST) of a Miden program.
+/// An abstract syntax tree of an executable Miden program.
 ///
-/// A program AST consists of a list of internal procedure ASTs and a list of body nodes.
+/// A program AST consists of a list of internal procedure ASTs and a body of the program.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramAst {
     local_procs: Vec<ProcedureAst>,
@@ -54,7 +61,7 @@ pub struct ProgramAst {
 impl ProgramAst {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Constructs a [ProgramAst].
+    /// Returns a new [ProgramAst].
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
     pub fn new(local_procs: Vec<ProcedureAst>, body: Vec<Node>) -> Result<Self, ParsingError> {
@@ -70,13 +77,17 @@ impl ProgramAst {
         })
     }
 
-    /// Binds the provided `locations` into the ast nodes.
+    /// Binds the provided `locations` to the nodes of this program's body.
     ///
-    /// The `start` location points to the first node of this block.
+    /// The `start` location points to the `begin` token which does not have its own node.
+    ///
+    /// # Panics
+    /// Panics if source location information has already been associated with this program.
     pub fn with_source_locations<L>(mut self, locations: L, start: SourceLocation) -> Self
     where
         L: IntoIterator<Item = SourceLocation>,
     {
+        assert!(!self.body.has_locations(), "source locations have already been loaded");
         self.start = start;
         self.body = self.body.with_source_locations(locations);
         self
@@ -229,7 +240,7 @@ impl ProgramAst {
 // MODULE AST
 // ================================================================================================
 
-/// An abstract syntax tree (AST) of a Miden code module.
+/// An abstract syntax tree of a Miden module.
 ///
 /// A module AST consists of a list of procedure ASTs and module documentation. Procedures in the
 /// list could be local or exported.
@@ -242,7 +253,7 @@ pub struct ModuleAst {
 impl ModuleAst {
     // AST
     // --------------------------------------------------------------------------------------------
-    /// Constructs a [ModuleAst].
+    /// Returns a new [ModuleAst].
     ///
     /// A module consists of internal and exported procedures but does not contain a body.
     pub fn new(local_procs: Vec<ProcedureAst>, docs: Option<String>) -> Result<Self, ParsingError> {
@@ -462,7 +473,7 @@ impl ProcedureAst {
     /// Clears the source locations from this Ast.
     pub fn clear_locations(&mut self) {
         self.start = SourceLocation::default();
-        self.body.replace_locations([].to_vec());
+        self.body.clear_locations();
     }
 
     // SERIALIZATION / DESERIALIZATION
@@ -470,7 +481,7 @@ impl ProcedureAst {
 
     /// Loads the [SourceLocation] from the `source`.
     ///
-    /// It expects the `start` location at the first position, and will subsequentially load the
+    /// It expects the `start` location at the first position, and will subsequently load the
     /// body via [CodeBody::load_source_locations].
     pub fn load_source_locations<R: ByteReader>(
         &mut self,

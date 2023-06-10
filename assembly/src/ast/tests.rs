@@ -885,7 +885,7 @@ fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>
 /// cleaned before equality is checked for tests
 fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
     module.local_procs.iter_mut().for_each(|m| {
-        m.body.replace_locations([].to_vec());
+        m.body.clear_locations();
         m.start = SourceLocation::default();
     });
     module
@@ -898,10 +898,10 @@ fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
 fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
     program.start = SourceLocation::default();
     program.local_procs.iter_mut().for_each(|m| {
-        m.body.replace_locations([].to_vec());
+        m.body.clear_locations();
         m.start = SourceLocation::default();
     });
-    program.body.replace_locations([].to_vec());
+    program.body.clear_locations();
     program
 }
 

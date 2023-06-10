@@ -4,14 +4,13 @@
 #[macro_use]
 extern crate alloc;
 
-use core::fmt;
-
 use vm_core::{
     code_blocks::CodeBlock,
     crypto,
     utils::{
         collections::{btree_map, BTreeMap, BTreeSet, Vec},
         string::{String, ToString},
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
@@ -23,23 +22,10 @@ mod procedures;
 use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
-//mod parsers;
-//pub use parsers::{InvocationTarget, ModuleAst, ProcedureAst, ProgramAst};
-
-//pub mod ast2 {
-//    pub use crate::parsers::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst};
-//    pub use crate::procedures::ProcedureName;
-//}
-
 pub mod ast;
 use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
-pub use vm_core::utils::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
-};
-
 mod tokens;
-pub use tokens::SourceLocation;
 use tokens::{Token, TokenStream};
 
 mod errors;
@@ -81,12 +67,3 @@ const MAX_LABEL_LEN: usize = 255;
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` masm operation without period separators.
 const HEX_CHUNK_SIZE: usize = 16;
-
-/// Builds a hex string from a byte slice
-pub fn display_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "0x")?;
-    for byte in bytes {
-        write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-}

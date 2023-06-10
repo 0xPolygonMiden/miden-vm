@@ -28,9 +28,9 @@ mod tests;
 
 // ASSEMBLER
 // ================================================================================================
-/// Miden Assembler which can be used to convert Miden assembly source code into program MAST (
-/// represented by the [Program] struct). The assembler can be instantiated in several ways using
-/// a "builder" patter. Specifically:
+/// Miden Assembler which can be used to convert Miden assembly source code into program MAST.
+///
+/// The assembler can be instantiated in several ways using a "builder" pattern. Specifically:
 /// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
 ///   instantiated with a default empty kernel. Programs compiled using such assembler
 ///   cannot make calls to kernel procedures via `syscall` instruction.

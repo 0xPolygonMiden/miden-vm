@@ -19,7 +19,7 @@ pub struct AssemblyContext {
     kernel: Option<Kernel>,
 }
 
-/// The [ContextType] enum specifies how the [AssemblyContext] will be used.
+/// Describes which type of Miden assembly modules can be compiled with a given [AssemblyContext].
 #[derive(PartialEq)]
 pub enum AssemblyContextType {
     Kernel,
@@ -30,8 +30,10 @@ pub enum AssemblyContextType {
 impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [AssemblyContext]. The `context_type` speicifies how the context will be used
-    /// and the `AssmeblyContext` is instantiated accordingly.
+    /// Returns a new [AssemblyContext].
+    ///
+    /// The `context_type` specifies how the context will be used and the [AssemblyContext] is
+    /// instantiated accordingly.
     pub fn new(context_type: AssemblyContextType) -> Self {
         let modules = match context_type {
             AssemblyContextType::Kernel | AssemblyContextType::Module => Vec::new(),
