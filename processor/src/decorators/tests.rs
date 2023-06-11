@@ -1,6 +1,6 @@
 use super::{
     super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
-    Process, ZERO,
+    Process,
 };
 use crate::{MemAdviceProvider, StackInputs, Word};
 use test_utils::{crypto::get_smt_remaining_key, rand::seeded_word};
@@ -10,7 +10,7 @@ use vm_core::{
         merkle::{EmptySubtreeRoots, MerkleStore, MerkleTree, NodeIndex},
     },
     utils::IntoBytes,
-    AdviceInjector, Decorator, ONE,
+    AdviceInjector, Decorator, ONE, ZERO,
 };
 
 #[test]

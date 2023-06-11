@@ -1,16 +1,20 @@
 use core::fmt;
 
-/// TODO: add docs
+// ADVICE INJECTORS
+// ================================================================================================
+
+/// Defines a set of actions which can be initiated from the VM to inject new data into the advice
+/// provider.
+///
+/// These actions can affect all 3 components of the advice provider: Merkle store, advice stack,
+/// and advice map.
+///
+/// Most of these actions are exposed to the user via Miden assembly instructions, but some actions
+/// are used only within higher-level instructions.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AdviceInjector {
-    /// Pushes a node of the Merkle tree specified by the values on the top of the operand stack
-    /// onto the advice stack. The operand stack is expected to be arranged as follows (from the
-    /// top):
-    /// - depth of the node, 1 element
-    /// - index of the node, 1 element
-    /// - root of the tree, 4 elements
-    MerkleNode,
-
+    // MERKLE STORE INJECTORS
+    // --------------------------------------------------------------------------------------------
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
     /// specified roots. The root of the new tree is defined as `Hash(left_root, right_root)`.
     ///
@@ -22,6 +26,21 @@ pub enum AdviceInjector {
     /// provider (i.e., the input trees are not removed).
     MerkleMerge,
 
+    // ADVICE STACK INJECTORS
+    // --------------------------------------------------------------------------------------------
+    /// Pushes a node of the Merkle tree specified by the values on the top of the operand stack
+    /// onto the advice stack. The operand stack is expected to be arranged as follows (from the
+    /// top):
+    /// - depth of the node, 1 element
+    /// - index of the node, 1 element
+    /// - root of the tree, 4 elements
+    MerkleNode,
+
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the
+    /// key-value map maintained by the advice provider using the top 4 elements of the operand
+    /// stack as key.
+    MapValue,
+
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack. The operand stack is expected to be arranged as follows (from the top):
     /// - divisor split into two 32-bit elements
@@ -31,24 +50,16 @@ pub enum AdviceInjector {
     /// then the quotient.
     DivResultU64,
 
-    /// Pushes a list of field elements onto the advice stack. The list is looked up in the
-    /// key-value map maintained by the advice provider using the top 4 elements of the operand
-    /// stack as key.
-    MapValue,
-
-    /// Reads words from memory range `start_addr .. start_addr + num_words` and insert into the
-    /// advice map under the key `WORD`.
-    ///
-    /// Expects the operand stack to be [WORD, start_addr, num_words, ...].
-    Memory,
-
     /// Given an element of quadratic extension field, it computes multiplicative inverse and
     /// push the result into the advice stack.
     Ext2Inv,
 
-    /// Given ( power of 2 many ) evaluations of a polynomial over some specified domain, this
-    /// routine interpolates ( using inverse NTT ) the evaluations into a polynomial in
-    /// coefficient form and pushes the result into the advice stack.
+    /// Given evaluations of a polynomial over some specified domain, this routine interpolates
+    /// the evaluations into a polynomial in coefficient form and pushes the result into the advice
+    /// stack.
+    ///
+    /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
+    /// in the quadratic extension field of the VM's base field.
     Ext2INTT,
 
     /// Pushes the value and depth flags of a leaf indexed by `key` on a Sparse Merkle tree with
@@ -68,19 +79,27 @@ pub enum AdviceInjector {
     /// - value word; will be zeroed if the tree don't contain a mapped value for the key.
     /// - boolean flag set to `1` if a remaining key is not zero.
     SmtGet,
+
+    // ADVICE MAP INJECTORS
+    // --------------------------------------------------------------------------------------------
+    /// Reads words from memory range `start_addr .. end_addr` and insert into the advice map
+    /// under the key `KEY`.
+    ///
+    /// Expects the operand stack to be [KEY, start_addr, end_addr, ...].
+    Memory,
 }
 
 impl fmt::Display for AdviceInjector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MerkleNode => write!(f, "merkle_node"),
             Self::MerkleMerge => write!(f, "merkle_merge"),
+            Self::MerkleNode => write!(f, "merkle_node"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
             Self::MapValue => write!(f, "map_value"),
-            Self::Memory => write!(f, "mem"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2INTT => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
+            Self::Memory => write!(f, "mem"),
         }
     }
 }
