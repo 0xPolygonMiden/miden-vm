@@ -2,7 +2,7 @@ use super::{
     bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt,
     Instruction, InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node,
     ParsingError, ProcedureAst, ProcedureId, RpoDigest, SliceReader, StarkField, Token,
-    TokenStream, Vec, MAX_DOCS_LEN, MAX_LABEL_LEN,
+    TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN, MAX_IMPORTS, MAX_LABEL_LEN,
 };
 use core::{fmt::Display, ops::RangeBounds};
 
@@ -49,6 +49,9 @@ pub fn parse_imports(
         }
     }
 
+    if imports.len() > MAX_IMPORTS {
+        return Err(ParsingError::too_many_imports(imports.len(), MAX_IMPORTS));
+    }
     Ok(imports)
 }
 

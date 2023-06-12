@@ -1,31 +1,24 @@
 use super::{
     adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction, InvocationTarget,
     LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token,
-    TokenStream, MAX_DOCS_LEN,
+    TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
     string::{String, ToString},
 };
 
-// CONSTANTS
-// ================================================================================================
-
-/// Maximum number of nodes in statement body (e.g., procedure body, loop body etc.).
-const MAX_BODY_LEN: usize = u16::MAX as usize;
-
 // PARSER CONTEXT
 // ================================================================================================
 
 /// AST Parser context that holds internal state to generate correct ASTs.
-#[derive(Default)]
-pub struct ParserContext {
-    pub imports: BTreeMap<String, LibraryPath>,
+pub struct ParserContext<'a> {
+    pub imports: &'a BTreeMap<String, LibraryPath>,
     pub local_procs: LocalProcMap,
     pub local_constants: LocalConstMap,
 }
 
-impl ParserContext {
+impl ParserContext<'_> {
     // STATEMENT PARSERS
     // --------------------------------------------------------------------------------------------
 
