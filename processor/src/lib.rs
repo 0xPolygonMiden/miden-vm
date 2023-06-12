@@ -50,7 +50,7 @@ pub use trace::ExecutionTrace;
 use trace::TraceFragment;
 
 mod errors;
-pub use errors::ExecutionError;
+pub use errors::{ExecutionError, Ext2InttError};
 
 pub mod utils;
 
@@ -439,7 +439,7 @@ where
         self.chiplets.kernel()
     }
 
-    pub fn get_memory_value(&self, ctx: u32, addr: u64) -> Option<Word> {
+    pub fn get_memory_value(&self, ctx: u32, addr: u32) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)
     }
 

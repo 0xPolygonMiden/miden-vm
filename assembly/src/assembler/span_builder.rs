@@ -2,7 +2,7 @@ use super::{
     AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
     Instruction, Operation, ToString, Vec,
 };
-use vm_core::AssemblyOp;
+use vm_core::{AdviceInjector, AssemblyOp};
 
 // SPAN BUILDER
 // ================================================================================================
@@ -87,6 +87,11 @@ impl SpanBuilder {
     /// Add ths specified decorator to the list of span decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
+    }
+
+    /// Adds the specified advice injector to the list of span decorators.
+    pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
+        self.push_decorator(Decorator::Advice(injector));
     }
 
     /// Adds the specified decorator to the list of span decorators and returns Ok(None).

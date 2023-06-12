@@ -35,7 +35,7 @@ fn inject_merkle_node() {
 
     // push the node onto the advice stack
     process
-        .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
+        .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNodeToStack))
         .unwrap();
 
     // pop the node from the advice stack and push it onto the operand stack

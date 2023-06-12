@@ -29,11 +29,11 @@ pub fn adv_inject(
     use super::AdviceInjector::*;
 
     match injector {
-        AdviceInjector::PushU64div => span.add_decorator(Decorator::Advice(DivResultU64)),
-        AdviceInjector::PushMapVal => span.add_decorator(Decorator::Advice(MapValue)),
+        AdviceInjector::PushU64div => span.add_decorator(Decorator::Advice(DivU64)),
+        AdviceInjector::PushMapVal => span.add_decorator(Decorator::Advice(MapValueToStack)),
         AdviceInjector::PushExt2inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
-        AdviceInjector::PushExt2intt => span.add_decorator(Decorator::Advice(Ext2INTT)),
+        AdviceInjector::PushExt2intt => span.add_decorator(Decorator::Advice(Ext2Intt)),
         AdviceInjector::PushSmtGet => span.add_decorator(Decorator::Advice(SmtGet)),
-        AdviceInjector::InsertMem => span.add_decorator(Decorator::Advice(Memory)),
+        AdviceInjector::InsertMem => span.add_decorator(Decorator::Advice(MemToMap)),
     }
 }
