@@ -507,17 +507,20 @@ proc.generate_four_integers
     dropw
 end
 
-# Helper function for generating a list of indices that takes a word of random felts and saves
-# to memory region referenced by `ptr` 3 random integers in the range 0..=(mask+1).
+# Helper function for generating a list of indices. It takes a word of random felts and saves
+# to a memory region, referenced by `ptr`, 3 random integers in the range 0..=(mask+1). This procedure
+# is used to generate a list of random indices that are used in FRI. Moreover, this procedure
+# is called first, and right after the PoW check, thus the first element in the rate portion of
+# the state is discarded.
 # `depth` is saved next to each of the 3 integers for use in subsequent steps.
 #
 # Input: [R, ptr, mask, depth, ...]
-# Output:[...]
+# Output:[R, ptr + 3, mask, depth, ...]
 #
 # Cycles: 75
 proc.generate_three_integers
-    # Get the first random felt
-    dup.3               # [r0, R1, ptr, mask, depth, ...]
+    # Get the second random felt
+    dup.2               # [r0, R1, ptr, mask, depth, ...]
     u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
     u32checked_and      # [r, r0_hi, R1, ptr, mask, depth, ...]
@@ -530,7 +533,7 @@ proc.generate_three_integers
     dropw               # [R1, ptr + 1, mask, depth, ...]
 
     # Get the second random felt
-    dup.2               # [r1, R1, ptr, mask, depth, ...]
+    dup.1               # [r1, R1, ptr, mask, depth, ...]
     u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
     u32checked_and      # [r, r1_hi, R1, ptr, mask, depth, ...]
@@ -543,7 +546,7 @@ proc.generate_three_integers
     dropw               # [R1, ptr + 1, mask, depth, ...]
 
     # Get the third random felt
-    dup.1
+    dup.0
     u32split swap
     dup.7
     u32checked_and
@@ -579,14 +582,13 @@ export.generate_list_indices
     movup.2
     #=> [query_ptr, mask, depth]
 
-    # Load the state of the random coin
+    # Load the first half of the rate portion of the state of the random coin. We discard the first
+    # element as it is used for PoW and use the remaining the 3.
     padw
     exec.constants::r1_ptr mem_loadw
+    exec.generate_three_integers
 
     repeat.3
-        exec.generate_four_integers
-        #=> [X, query_ptr, mask, depth, ...]
-
         exec.constants::r2_ptr mem_loadw
         exec.generate_four_integers
         #=> [X, query_ptr, mask, depth, ...]
@@ -605,10 +607,10 @@ export.generate_list_indices
         exec.constants::c_ptr mem_storew    
         dropw
         exec.constants::r1_ptr mem_storew
-
+        exec.generate_four_integers
+        #=> [X, query_ptr, mask, depth, ...]
     end
 
-    exec.generate_three_integers
     dropw drop drop drop
 end
 
@@ -652,16 +654,17 @@ export.check_pow
     exec.constants::r2_ptr mem_storew
     dropw
     exec.constants::r1_ptr mem_storew
+    swapw
+    exec.constants::c_ptr mem_storew
     dropw
-    exec.constants::c_ptr mem_storew       
     drop drop drop
-    #=> [C0, mask]
+    #=> [R10, mask]
 
-    # Make sure the lower 16 bits are zero
+    # Make sure the PoW is valid
     u32split
     drop
     u32checked_and
     assertz
     drop
-    #=> [R2, R1, C]
+    #=> [...]
 end

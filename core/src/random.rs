@@ -14,16 +14,18 @@ const STATE_WIDTH: usize = Rpo256::STATE_WIDTH;
 const RATE_START: usize = Rpo256::RATE_RANGE.start;
 const RATE_END: usize = Rpo256::RATE_RANGE.end;
 const HALF_RATE_WIDTH: usize = (Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.start) / 2;
-const SEED_HEAD: usize = Rpo256::CAPACITY_RANGE.start;
 
 // RPO RANDOM COIN
 // ================================================================================================
 /// A simplified version of the `SPONGE_PRG` reseedable pseudo-random number generator algorithm
 /// described in https://eprint.iacr.org/2011/499.pdf. The simplification is related to
 /// to the following facts:
-/// 1) A call to the reseed method implies one and only one call to the permutation function.
-///  This is possible because in our case we never reseed with more than a rate number of elements.
-/// 2) As a result of the previous point, we dont make use of input buffer to accumulate seed material.
+/// 1. A call to the reseed method implies one and only one call to the permutation function.
+///  This is possible because in our case we never reseed with more than 4 field elements.
+/// 2. As a result of the previous point, we dont make use of an input buffer to accumulate seed
+///  material.
+/// It is important to note that the current implementation of `RPORandomCoin` assumes that
+/// `draw_integers()` is called immediately after `reseed_with_int()`.
 pub struct RpoRandomCoin {
     state: [Felt; STATE_WIDTH],
     current: usize,
@@ -68,7 +70,7 @@ impl RandomCoin for RpoRandomCoin {
         // Reset buffer
         self.current = RATE_START;
 
-        // Add the seed to the first half of the rate portion
+        // Add the new seed material to the first half of the rate portion of the RPO state
         let data: Word = data.into();
 
         self.state[RATE_START] += data[0];
@@ -90,8 +92,8 @@ impl RandomCoin for RpoRandomCoin {
     }
 
     fn leading_zeros(&self) -> u32 {
-        let seed_head = self.state[SEED_HEAD].as_int();
-        seed_head.trailing_zeros()
+        let first_rate_element = self.state[RATE_START].as_int();
+        first_rate_element.trailing_zeros()
     }
 
     fn check_leading_zeros(&self, value: u64) -> u32 {
@@ -102,8 +104,8 @@ impl RandomCoin for RpoRandomCoin {
 
         Rpo256::apply_permutation(&mut state_tmp);
 
-        let seed_head = state_tmp[SEED_HEAD].as_int();
-        seed_head.trailing_zeros()
+        let first_rate_element = state_tmp[RATE_START].as_int();
+        first_rate_element.trailing_zeros()
     }
 
     fn draw<E: FieldElement<BaseField = Felt>>(&mut self) -> Result<E, RandomCoinError> {
@@ -124,6 +126,10 @@ impl RandomCoin for RpoRandomCoin {
     ) -> Result<Vec<usize>, RandomCoinError> {
         assert!(domain_size.is_power_of_two(), "domain size must be a power of two");
         assert!(num_values < domain_size, "number of values must be smaller than domain size");
+
+        // Since the first element of the rate portion is used for proof-of-work and thus is not
+        // random, we need to make sure that it is not used for generating a random index.
+        self.current += 1;
 
         // determine how many bits are needed to represent valid values in the domain
         let v_mask = (domain_size - 1) as u64;
