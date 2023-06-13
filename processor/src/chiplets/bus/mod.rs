@@ -1,7 +1,7 @@
 use super::{
     hasher::HasherLookup,
     trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
-    BTreeMap, BitwiseLookup, ColMatrix, Felt, FieldElement, MemoryLookup, Vec,
+    BTreeMap, BitwiseLookup, ColMatrix, Felt, FieldElement, KernelProcLookup, MemoryLookup, Vec,
 };
 
 mod aux_trace;
@@ -22,9 +22,9 @@ pub use aux_trace::AuxTraceBuilder;
 
 #[derive(Default)]
 pub struct ChipletsBus {
-    lookup_hints: BTreeMap<u32, ChipletsLookup>,
-    request_rows: Vec<ChipletsLookupRow>,
-    response_rows: Vec<ChipletsLookupRow>,
+    lookup_hints: BTreeMap<u32, ChipletsBusRow>,
+    requests: Vec<ChipletLookup>,
+    responses: Vec<ChipletLookup>,
     // TODO: remove queued requests by refactoring the hasher/decoder interactions so that the
     // lookups are built as they are requested. This will be made easier by removing state info from
     // the HasherLookup struct. Primarily it will require a refactor of `hash_span_block`,
@@ -39,38 +39,25 @@ impl ChipletsBus {
     /// Requests lookups for a single operation at the specified cycle. A Hasher operation request
     /// can contain one or more lookups, while Bitwise and Memory requests will only contain a
     /// single lookup.
-    fn request_lookup(&mut self, request_cycle: u32) {
-        let request_idx = self.request_rows.len();
+    fn request_lookups(&mut self, request_cycle: u32, request_indices: &mut Vec<u32>) {
         self.lookup_hints
             .entry(request_cycle)
-            .and_modify(|lookup| match lookup {
-                // Requests might share a cycle with a response which has already been sent.
-                ChipletsLookup::Response(response_idx) => {
-                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, *response_idx));
-                }
-                // Requests are guaranteed not to share cycles with other requests.
-                _ => debug_assert!(false, "bus already contains a Request"),
+            .and_modify(|bus_row| {
+                bus_row.send_requests(request_indices);
             })
-            .or_insert_with(|| ChipletsLookup::Request(request_idx));
+            .or_insert_with(|| ChipletsBusRow::new(request_indices, None));
     }
 
     /// Provides lookup data at the specified cycle, which is the row of the Chiplets execution
     /// trace that contains this lookup row.
     fn provide_lookup(&mut self, response_cycle: u32) {
-        let response_idx = self.response_rows.len();
+        let response_idx = self.responses.len() as u32;
         self.lookup_hints
             .entry(response_cycle)
-            .and_modify(|lookup| {
-                match lookup {
-                    // Responses might share a cycle with a request which has already been sent.
-                    ChipletsLookup::Request(request_idx) => {
-                        *lookup = ChipletsLookup::RequestAndResponse((*request_idx, response_idx));
-                    }
-                    // Responses are guaranteed not to share cycles with other results.
-                    _ => debug_assert!(false, "bus already contains a Request"),
-                }
+            .and_modify(|bus_row| {
+                bus_row.send_response(response_idx);
             })
-            .or_insert_with(|| ChipletsLookup::Response(response_idx));
+            .or_insert_with(|| ChipletsBusRow::new(&[], Some(response_idx)));
     }
 
     // HASHER LOOKUPS
@@ -86,16 +73,20 @@ impl ChipletsBus {
             lookups.len() == 2 || lookups.len() == 4,
             "incorrect number of lookup rows for hasher operation request"
         );
-        self.request_lookup(cycle);
-        self.request_rows.push(ChipletsLookupRow::HasherMulti(lookups.to_vec()));
+        let mut request_indices = vec![0; lookups.len()];
+        for (idx, lookup) in lookups.iter().enumerate() {
+            request_indices[idx] = self.requests.len() as u32;
+            self.requests.push(ChipletLookup::Hasher(*lookup));
+        }
+        self.request_lookups(cycle, &mut request_indices);
     }
 
     /// Requests the specified lookup from the Hash Chiplet at the specified `cycle`. Single lookup
     /// requests are expected to originate from the decoder during control block decoding. This
     /// lookup can be for either the initial or the final row of the hash operation.
     pub fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: u32) {
-        self.request_lookup(cycle);
-        self.request_rows.push(ChipletsLookupRow::Hasher(lookup));
+        self.request_lookups(cycle, &mut vec![self.requests.len() as u32]);
+        self.requests.push(ChipletLookup::Hasher(lookup));
     }
 
     /// Adds the request for the specified lookup to a queue from which it can be sent later when
@@ -126,7 +117,7 @@ impl ChipletsBus {
     /// operation cycle.
     pub fn provide_hasher_lookup(&mut self, lookup: HasherLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
-        self.response_rows.push(ChipletsLookupRow::Hasher(lookup));
+        self.responses.push(ChipletLookup::Hasher(lookup));
     }
 
     /// Provides multiple hash lookup values and their response cycles, which are the rows of the
@@ -144,8 +135,8 @@ impl ChipletsBus {
     /// Requests the specified bitwise lookup at the specified `cycle`. This request is expected to
     /// originate from operation executors.
     pub fn request_bitwise_operation(&mut self, lookup: BitwiseLookup, cycle: u32) {
-        self.request_lookup(cycle);
-        self.request_rows.push(ChipletsLookupRow::Bitwise(lookup));
+        self.request_lookups(cycle, &mut vec![self.requests.len() as u32]);
+        self.requests.push(ChipletLookup::Bitwise(lookup));
     }
 
     /// Provides the data of a bitwise operation contained in the [Bitwise] table. The bitwise value
@@ -153,7 +144,7 @@ impl ChipletsBus {
     /// this Bitwise row. It will always be the final row of a Bitwise operation cycle.
     pub fn provide_bitwise_operation(&mut self, lookup: BitwiseLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
-        self.response_rows.push(ChipletsLookupRow::Bitwise(lookup));
+        self.responses.push(ChipletLookup::Bitwise(lookup));
     }
 
     // MEMORY LOOKUPS
@@ -163,14 +154,16 @@ impl ChipletsBus {
     /// requests are made at the specified `cycle` and are expected to originate from operation
     /// executors.
     pub fn request_memory_operation(&mut self, lookups: &[MemoryLookup], cycle: u32) {
-        self.request_lookup(cycle);
-        let request = match lookups.len() {
-            1 => ChipletsLookupRow::Memory(lookups[0]),
-            2 => ChipletsLookupRow::MemoryMulti([lookups[0], lookups[1]]),
-            _ => panic!("invalid number of requested memory operations"),
-        };
-
-        self.request_rows.push(request);
+        debug_assert!(
+            lookups.len() == 1 || lookups.len() == 2,
+            "invalid number of requested memory operations"
+        );
+        let mut request_indices = vec![0; lookups.len()];
+        for (idx, lookup) in lookups.iter().enumerate() {
+            request_indices[idx] = self.requests.len() as u32;
+            self.requests.push(ChipletLookup::Memory(*lookup));
+        }
+        self.request_lookups(cycle, &mut request_indices);
     }
 
     /// Provides the data of the specified memory access. The memory access data is provided at
@@ -178,7 +171,25 @@ impl ChipletsBus {
     /// row.
     pub fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
-        self.response_rows.push(ChipletsLookupRow::Memory(lookup));
+        self.responses.push(ChipletLookup::Memory(lookup));
+    }
+
+    // KERNEL ROM LOOKUPS
+    // --------------------------------------------------------------------------------------------
+
+    /// Requests the specified kernel procedure lookup at the specified `cycle`. This request is
+    /// expected to originate from operation executors.
+    pub fn request_kernel_proc_call(&mut self, lookup: KernelProcLookup, cycle: u32) {
+        self.request_lookups(cycle, &mut vec![self.requests.len() as u32]);
+        self.requests.push(ChipletLookup::KernelRom(lookup));
+    }
+
+    /// Provides a kernel procedure call contained in the [KernelRom] chiplet. The procedure access
+    /// is provided at cycle `response_cycle`, which is the row of the execution trace that contains
+    /// this [KernelRom] row.
+    pub fn provide_kernel_proc_call(&mut self, lookup: KernelProcLookup, response_cycle: u32) {
+        self.provide_lookup(response_cycle);
+        self.responses.push(ChipletLookup::KernelRom(lookup));
     }
 
     // AUX TRACE BUILDER GENERATION
@@ -191,8 +202,8 @@ impl ChipletsBus {
 
         AuxTraceBuilder {
             lookup_hints,
-            request_rows: self.request_rows,
-            response_rows: self.response_rows,
+            requests: self.requests,
+            responses: self.responses,
         }
     }
 
@@ -201,53 +212,74 @@ impl ChipletsBus {
 
     /// Returns an option with the lookup hint for the specified cycle.
     #[cfg(test)]
-    pub(super) fn get_lookup_hint(&self, cycle: u32) -> Option<&ChipletsLookup> {
+    pub(super) fn get_lookup_hint(&self, cycle: u32) -> Option<&ChipletsBusRow> {
         self.lookup_hints.get(&cycle)
     }
 
     /// Returns the ith lookup response provided by the Chiplets module.
     #[cfg(test)]
-    pub(super) fn get_response_row(&self, i: usize) -> ChipletsLookupRow {
-        self.response_rows[i].clone()
+    pub(super) fn get_response_row(&self, i: usize) -> ChipletLookup {
+        self.responses[i].clone()
     }
 }
 
 // CHIPLETS LOOKUPS
 // ================================================================================================
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum ChipletsLookup {
-    Request(usize),
-    Response(usize),
-    RequestAndResponse((usize, usize)),
-}
-
-// TODO: investigate alternative approaches, since this is heavy (e.g. read from execution trace)
+/// This represents all communication with the Chiplets Bus at a single cycle. Multiple requests can
+/// be sent to the bus in any given cycle, but only one response can be provided.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum ChipletsLookupRow {
-    Hasher(HasherLookup),
-    HasherMulti(Vec<HasherLookup>),
-    Bitwise(BitwiseLookup),
-    Memory(MemoryLookup),
-    MemoryMulti([MemoryLookup; 2]),
+pub(super) struct ChipletsBusRow {
+    requests: Vec<u32>,
+    response: Option<u32>,
 }
 
-impl LookupTableRow for ChipletsLookupRow {
+impl ChipletsBusRow {
+    pub(super) fn new(requests: &[u32], response: Option<u32>) -> Self {
+        ChipletsBusRow {
+            requests: requests.to_owned(),
+            response,
+        }
+    }
+
+    pub(super) fn requests(&self) -> &[u32] {
+        &self.requests
+    }
+
+    pub(super) fn response(&self) -> Option<u32> {
+        self.response
+    }
+
+    fn send_requests(&mut self, requests: &mut Vec<u32>) {
+        self.requests.append(requests);
+    }
+
+    fn send_response(&mut self, response: u32) {
+        debug_assert!(self.response.is_none(), "bus row already contains a response");
+        self.response = Some(response);
+    }
+}
+
+/// Data representing a single lookup row in one of the [Chiplets].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum ChipletLookup {
+    Bitwise(BitwiseLookup),
+    Hasher(HasherLookup),
+    KernelRom(KernelProcLookup),
+    Memory(MemoryLookup),
+}
+
+impl LookupTableRow for ChipletLookup {
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &ColMatrix<Felt>,
         alphas: &[E],
     ) -> E {
         match self {
-            ChipletsLookupRow::HasherMulti(lookups) => {
-                lookups.iter().fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas))
-            }
-            ChipletsLookupRow::Hasher(row) => row.to_value(main_trace, alphas),
-            ChipletsLookupRow::Bitwise(row) => row.to_value(main_trace, alphas),
-            ChipletsLookupRow::Memory(row) => row.to_value(main_trace, alphas),
-            ChipletsLookupRow::MemoryMulti(lookups) => {
-                lookups.iter().fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas))
-            }
+            ChipletLookup::Bitwise(row) => row.to_value(main_trace, alphas),
+            ChipletLookup::Hasher(row) => row.to_value(main_trace, alphas),
+            ChipletLookup::KernelRom(row) => row.to_value(main_trace, alphas),
+            ChipletLookup::Memory(row) => row.to_value(main_trace, alphas),
         }
     }
 }

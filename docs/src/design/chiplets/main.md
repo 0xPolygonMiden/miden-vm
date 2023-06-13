@@ -89,7 +89,7 @@ The labels are composed from the flag values of the chiplet selector(s) and inte
 
 | Operation              | Chiplet Selector Flag | Internal Selector Flag | Combined Flag    | Label |
 | ---------------------- | --------------------- | :--------------------: | ---------------- | :---: |
-| `HASHER_LINER_HASH`    |        $\{0\}$        |     $\{1, 0, 0\}$      | $\{0, 1, 0, 0\}$ |   3   |
+| `HASHER_LINEAR_HASH`   |        $\{0\}$        |     $\{1, 0, 0\}$      | $\{0, 1, 0, 0\}$ |   3   |
 | `HASHER_MP_VERIFY`     |        $\{0\}$        |     $\{1, 0, 1\}$      | $\{0, 1, 0, 1\}$ |  11   |
 | `HASHER_MR_UPDATE_OLD` |        $\{0\}$        |     $\{1, 1, 0\}$      | $\{0, 1, 1, 0\}$ |   7   |
 | `HASHER_MR_UPDATE_NEW` |        $\{0\}$        |     $\{1, 1, 1\}$      | $\{0, 1, 1, 1\}$ |  15   |
@@ -97,8 +97,9 @@ The labels are composed from the flag values of the chiplet selector(s) and inte
 | `HASHER_RETURN_STATE`  |        $\{0\}$        |     $\{0, 0, 1\}$      | $\{0, 0, 0, 1\}$ |   9   |
 | `BITWISE_AND`          |      $\{1, 0\}$       |       $\{0\}$          | $\{1, 0, 0\}$    |   2   |
 | `BITWISE_XOR`          |      $\{1, 0\}$       |       $\{1\}$          | $\{1, 0, 1\}$    |   6   |
-| `MEMORY_READ`          |     $\{1, 1, 0\}$     |       $\{1\}$          | $\{1, 1, 0, 1\}$ |   12  |
+| `MEMORY_READ`          |     $\{1, 1, 0\}$     |       $\{1\}$          | $\{1, 1, 0, 1\}$ |  12   |
 | `MEMORY_WRITE`         |     $\{1, 1, 0\}$     |       $\{0\}$          | $\{1, 1, 0, 0\}$ |   4   |
+| `KERNEL_PROC_CALL`     |    $\{1, 1, 1, 0\}$   |                        | $\{1, 1, 1, 0}$  |   8   |
 
 ## Chiplets module constraints
 
