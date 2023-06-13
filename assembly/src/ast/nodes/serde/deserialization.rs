@@ -1,6 +1,6 @@
 use super::{
-    ByteReader, CodeBody, Deserializable, DeserializationError, Felt, Instruction, Node, OpCode,
-    ProcedureId, RpoDigest, MAX_PUSH_INPUTS,
+    super::AdviceInjector, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
+    Instruction, Node, OpCode, ProcedureId, RpoDigest, MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION
@@ -330,14 +330,10 @@ impl Deserializable for Instruction {
             OpCode::MemStream => Ok(Instruction::MemStream),
             OpCode::AdvPipe => Ok(Instruction::AdvPipe),
 
-            OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
-            OpCode::AdvKeyval => Ok(Instruction::AdvKeyval),
-            OpCode::AdvMem => Ok(Instruction::AdvMem),
             OpCode::AdvPush => Ok(Instruction::AdvPush(source.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
-            OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),
-            OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
-            OpCode::AdvSmtGet => Ok(Instruction::AdvSmtGet),
+
+            OpCode::AdvInject => Ok(Instruction::AdvInject(AdviceInjector::read_from(source)?)),
 
             // ----- cryptographic operations -----------------------------------------------------
             OpCode::Hash => Ok(Instruction::Hash),
@@ -347,6 +343,8 @@ impl Deserializable for Instruction {
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
             OpCode::MTreeMerge => Ok(Instruction::MTreeMerge),
             OpCode::MTreeVerify => Ok(Instruction::MTreeVerify),
+
+            // ----- STARK proof verification -----------------------------------------------------
             OpCode::FriExt2Fold4 => Ok(Instruction::FriExt2Fold4),
 
             // ----- exec / call ------------------------------------------------------------------

@@ -1,6 +1,6 @@
 use crate::{
-    Assembler, AssemblyContextType, Library, LibraryNamespace, LibraryPath, Module, ModuleAst,
-    ProgramAst, Version,
+    ast::{ModuleAst, ProgramAst},
+    Assembler, AssemblyContextType, Library, LibraryNamespace, LibraryPath, Module, Version,
 };
 use core::slice::Iter;
 

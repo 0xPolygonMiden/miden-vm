@@ -1,5 +1,6 @@
 use super::{
-    Instruction::*,
+    AdviceInjector::*,
+    Instruction::AdvInject,
     Node::{self, Instruction},
     ParsingError, Token,
 };
@@ -19,43 +20,45 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
         return Err(ParsingError::missing_param(op));
     }
 
-    match op.parts()[1] {
+    let injector = match op.parts()[1] {
         "u64div" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
-            Ok(Instruction(AdvU64Div))
+            AdvInject(PushU64div)
         }
         "keyval" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
-            Ok(Instruction(AdvKeyval))
+            AdvInject(PushMapVal)
         }
         "mem" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
-            Ok(Instruction(AdvMem))
+            AdvInject(InsertMem)
         }
         "ext2inv" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
-            Ok(Instruction(AdvExt2Inv))
+            AdvInject(PushExt2inv)
         }
         "ext2intt" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
-            Ok(Instruction(AdvExt2INTT))
+            AdvInject(PushExt2intt)
         }
         "smtget" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
-            Ok(Instruction(AdvSmtGet))
+            AdvInject(PushSmtGet)
         }
-        _ => Err(ParsingError::invalid_op(op)),
-    }
+        _ => return Err(ParsingError::invalid_op(op)),
+    };
+
+    Ok(Instruction(injector))
 }

@@ -1,5 +1,5 @@
 use crate::{ModuleMap, Renderer};
-use assembly::{ModuleAst, ProcedureAst};
+use assembly::ast::{ModuleAst, ProcedureAst};
 use std::{
     fs::{self, File},
     io::Write,

@@ -1,12 +1,14 @@
 use super::{
-    crypto::hash::RpoDigest, display_hex_bytes, LibraryNamespace, ProcedureId, SourceLocation,
-    String, ToString, Token, Vec,
+    crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace, ProcedureId, String,
+    ToString, Token, Vec,
 };
 use core::fmt;
+use vm_core::utils::write_hex_bytes;
 
 // ASSEMBLY ERROR
 // ================================================================================================
 
+/// An error which can be generated while compiling a Miden assembly program into a MAST.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AssemblyError {
     CallInKernel(String),
@@ -127,7 +129,7 @@ impl fmt::Display for AssemblyError {
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
             ProcMastRootNotFound(digest) => {
                 write!(f, "procedure mast root not found for digest - ")?;
-                display_hex_bytes(f, &digest.as_bytes())
+                write_hex_bytes(f, &digest.as_bytes())
             },
             ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
@@ -156,6 +158,7 @@ impl std::error::Error for AssemblyError {}
 // PARSING ERROR
 // ================================================================================================
 
+/// An error which can be generated while parsing a Miden assembly source code into an AST.
 #[derive(Clone, Eq, PartialEq)]
 pub struct ParsingError {
     message: String,

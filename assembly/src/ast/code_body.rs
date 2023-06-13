@@ -7,49 +7,21 @@ use core::{iter, slice};
 // CODE BODY
 // ================================================================================================
 
-/// A parsed code container to bind a contiguous sequence of [Node] to their optional
-/// [SourceLocation].
+/// A contiguous sequence of [Node]s with optional [SourceLocation] specified for each node.
 ///
-/// Will yield an iterator of each [Node] with its respective [SourceLocation]. The iterator will
-/// be empty if the [SourceLocation] isn't provided.
+/// When present, the number of locations is equal to the number of nodes + 1. This is because the
+/// last location tracks the `end` token of a body which does not have its own node.
 #[derive(Clone, Default, Eq, Debug)]
 pub struct CodeBody {
     nodes: Vec<Node>,
     locations: Vec<SourceLocation>,
 }
 
-impl PartialEq for CodeBody {
-    fn eq(&self, other: &Self) -> bool {
-        // TODO deserialized node will not restore location, but equality must hold
-        let nodes = self.nodes == other.nodes;
-        let locations = self.locations == other.locations;
-        let left_empty = self.locations.is_empty();
-        let right_empty = other.locations.is_empty();
-        nodes && (locations || left_empty || right_empty)
-    }
-}
-
-impl FromIterator<Node> for CodeBody {
-    fn from_iter<T: IntoIterator<Item = Node>>(nodes: T) -> Self {
-        Self {
-            nodes: nodes.into_iter().collect(),
-            locations: Vec::new(),
-        }
-    }
-}
-
-impl FromIterator<(Node, SourceLocation)> for CodeBody {
-    fn from_iter<T: IntoIterator<Item = (Node, SourceLocation)>>(nodes: T) -> Self {
-        let (nodes, locations) = nodes.into_iter().unzip();
-        Self { nodes, locations }
-    }
-}
-
 impl CodeBody {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new instance with the provided `nodes`.
+    /// Creates a new instance of [CodeBody] populated with the provided `nodes`.
     pub fn new<N>(nodes: N) -> Self
     where
         N: IntoIterator<Item = Node>,
@@ -60,31 +32,41 @@ impl CodeBody {
         }
     }
 
-    /// Binds [SourceLocation] to their respective [Node].
+    /// Binds [SourceLocation]s to their respective [Node].
     ///
-    /// It is expected to have the `locations` length equal to the `self.nodes` length.
+    /// It is expected that `locations` have the length one greater than the length of `self.nodes`.
     pub fn with_source_locations<L>(mut self, locations: L) -> Self
     where
         L: IntoIterator<Item = SourceLocation>,
     {
         self.locations = locations.into_iter().collect();
+        // TODO: add an assert to check that locations.len() == nodes.len() + 1; this is currently
+        // not possible because the true branch of an IfElse block when there is a false branch
+        // will not have location for the end token appended at construction time. this location
+        // is appended via `add_final_location()` method.
         self
     }
 
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Pushes the provided location to the structure.
+    /// Adds the provided location to the end of location list.
     ///
-    /// Locations are expected to map `1:1` to their nodes; except for the block termination that
-    /// is always the last location.
-    pub fn push_location(&mut self, location: SourceLocation) {
+    /// It is expected that prior to calling this method the number of nodes and locations
+    /// contained in this code body is the same. Thus, after calling this method there will be one
+    /// more location than node. This is because locations should map `1:1` to their nodes, except
+    /// for the block termination that is always the last location.
+    ///
+    /// # Panics
+    /// Panics if the final location has been added previously.
+    pub fn add_final_location(&mut self, location: SourceLocation) {
+        assert_eq!(self.locations.len(), self.nodes.len());
         self.locations.push(location);
     }
 
-    /// Replaces the source locations for this instance.
-    pub fn replace_locations(&mut self, locations: Vec<SourceLocation>) {
-        self.locations = locations;
+    /// Removes source location information from this code body.
+    pub fn clear_locations(&mut self) {
+        self.locations.clear();
     }
 
     // SERIALIZATION / DESERIALIZATION
@@ -132,10 +114,15 @@ impl CodeBody {
         &self.locations
     }
 
+    /// Returns true if this code body contain source location information.
+    pub fn has_locations(&self) -> bool {
+        !self.locations.is_empty()
+    }
+
     // DESTRUCTURING
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the internal parts of this parsed code.
+    /// Returns the internal parts of this code body.
     pub fn into_parts(self) -> (Vec<Node>, Vec<SourceLocation>) {
         (self.nodes, self.locations)
     }
@@ -147,5 +134,32 @@ impl<'a> IntoIterator for &'a CodeBody {
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.iter().zip(self.locations.iter())
+    }
+}
+
+impl FromIterator<Node> for CodeBody {
+    fn from_iter<T: IntoIterator<Item = Node>>(nodes: T) -> Self {
+        Self {
+            nodes: nodes.into_iter().collect(),
+            locations: Vec::new(),
+        }
+    }
+}
+
+impl FromIterator<(Node, SourceLocation)> for CodeBody {
+    fn from_iter<T: IntoIterator<Item = (Node, SourceLocation)>>(nodes: T) -> Self {
+        let (nodes, locations) = nodes.into_iter().unzip();
+        Self { nodes, locations }
+    }
+}
+
+impl PartialEq for CodeBody {
+    fn eq(&self, other: &Self) -> bool {
+        // TODO deserialized node will not restore location, but equality must hold
+        let nodes = self.nodes == other.nodes;
+        let locations = self.locations == other.locations;
+        let left_empty = self.locations.is_empty();
+        let right_empty = other.locations.is_empty();
+        nodes && (locations || left_empty || right_empty)
     }
 }

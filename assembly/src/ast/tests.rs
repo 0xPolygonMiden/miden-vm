@@ -193,12 +193,15 @@ fn test_ast_parsing_adv_ops() {
 
 #[test]
 fn test_ast_parsing_adv_injection() {
-    let source = "begin adv.u64div adv.keyval adv.mem adv.smtget end";
+    use super::AdviceInjector::*;
+    use Instruction::AdvInject;
+
+    let source = "begin adv.u64div adv.keyval adv.smtget adv.mem end";
     let nodes: Vec<Node> = vec![
-        Node::Instruction(Instruction::AdvU64Div),
-        Node::Instruction(Instruction::AdvKeyval),
-        Node::Instruction(Instruction::AdvMem),
-        Node::Instruction(Instruction::AdvSmtGet),
+        Node::Instruction(AdvInject(PushU64div)),
+        Node::Instruction(AdvInject(PushMapVal)),
+        Node::Instruction(AdvInject(PushSmtGet)),
+        Node::Instruction(AdvInject(InsertMem)),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);
@@ -882,7 +885,7 @@ fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>
 /// cleaned before equality is checked for tests
 fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
     module.local_procs.iter_mut().for_each(|m| {
-        m.body.replace_locations([].to_vec());
+        m.body.clear_locations();
         m.start = SourceLocation::default();
     });
     module
@@ -895,10 +898,10 @@ fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
 fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
     program.start = SourceLocation::default();
     program.local_procs.iter_mut().for_each(|m| {
-        m.body.replace_locations([].to_vec());
+        m.body.clear_locations();
         m.start = SourceLocation::default();
     });
-    program.body.replace_locations([].to_vec());
+    program.body.clear_locations();
     program
 }
 

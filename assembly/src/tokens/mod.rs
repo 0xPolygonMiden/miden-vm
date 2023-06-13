@@ -1,5 +1,5 @@
 use super::{
-    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, InvocationTarget,
+    ast::InvocationTarget, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError,
     LibraryPath, ParsingError, ProcedureName, Serializable, String, ToString, Vec,
 };
 use core::fmt;

@@ -442,17 +442,16 @@ impl Serializable for Instruction {
             Self::MemStream => OpCode::MemStream.write_into(target),
             Self::AdvPipe => OpCode::AdvPipe.write_into(target),
 
-            Self::AdvU64Div => OpCode::AdvU64Div.write_into(target),
-            Self::AdvKeyval => OpCode::AdvKeyval.write_into(target),
-            Self::AdvMem => OpCode::AdvMem.write_into(target),
             Self::AdvPush(v) => {
                 OpCode::AdvPush.write_into(target);
                 target.write_u8(*v);
             }
             Self::AdvLoadW => OpCode::AdvLoadW.write_into(target),
-            Self::AdvExt2Inv => OpCode::AdvExt2Inv.write_into(target),
-            Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target),
-            Self::AdvSmtGet => OpCode::AdvSmtGet.write_into(target),
+
+            Self::AdvInject(injector) => {
+                OpCode::AdvInject.write_into(target);
+                injector.write_into(target);
+            }
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::Hash => OpCode::Hash.write_into(target),
@@ -462,6 +461,8 @@ impl Serializable for Instruction {
             Self::MTreeSet => OpCode::MTreeSet.write_into(target),
             Self::MTreeMerge => OpCode::MTreeMerge.write_into(target),
             Self::MTreeVerify => OpCode::MTreeVerify.write_into(target),
+
+            // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),
 
             // ----- exec / call ------------------------------------------------------------------

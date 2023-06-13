@@ -1,4 +1,4 @@
-use assembly::{Library, LibraryNamespace, MaslLibrary, ModuleAst, Version};
+use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
 use std::{collections::BTreeMap, fs, io};
 
 mod md_renderer;
