@@ -89,7 +89,7 @@ impl MaslLibrary {
 #[cfg(feature = "std")]
 mod use_std {
     use super::*;
-    use crate::{BTreeMap, ModuleAst};
+    use crate::{ast::ModuleAst, BTreeMap};
     use std::{fs, io, path::Path};
 
     impl MaslLibrary {

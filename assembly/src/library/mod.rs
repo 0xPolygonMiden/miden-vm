@@ -1,5 +1,5 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, ModuleAst,
+    ast::ModuleAst, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError,
     PathError, Serializable, Vec, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
 };
 use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};

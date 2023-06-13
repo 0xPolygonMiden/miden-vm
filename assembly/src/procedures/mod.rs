@@ -177,8 +177,7 @@ impl Deserializable for ProcedureName {
 // PROCEDURE ID
 // ================================================================================================
 
-/// A procedure identifier computed as a digest truncated to [`Self::LEN`] bytes, product of the
-/// label of a procedure
+/// A procedure identifier computed as a hash of a fully qualified procedure path.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureId(pub [u8; Self::SIZE]);
 

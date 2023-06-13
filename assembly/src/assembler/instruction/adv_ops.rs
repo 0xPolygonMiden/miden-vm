@@ -1,5 +1,5 @@
 use super::{validate_param, AssemblyError, Decorator, SpanBuilder};
-use crate::{parsers::AdviceInjector, ADVICE_READ_LIMIT};
+use crate::{ast::AdviceInjector, ADVICE_READ_LIMIT};
 use vm_core::{code_blocks::CodeBlock, Operation};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS

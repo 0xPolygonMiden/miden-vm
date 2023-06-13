@@ -10,6 +10,7 @@ use vm_core::{
     utils::{
         collections::{btree_map, BTreeMap, BTreeSet, Vec},
         string::{String, ToString},
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
@@ -21,21 +22,10 @@ mod procedures;
 use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
-mod parsers;
-use parsers::{display_hex_bytes, NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
-pub use parsers::{InvocationTarget, ModuleAst, ProcedureAst, ProgramAst};
-
-pub mod ast {
-    pub use crate::parsers::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst};
-    pub use crate::procedures::ProcedureName;
-}
-
-pub use vm_core::utils::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
-};
+pub mod ast;
+use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
 mod tokens;
-pub use tokens::SourceLocation;
 use tokens::{Token, TokenStream};
 
 mod errors;

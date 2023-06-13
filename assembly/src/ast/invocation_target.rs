@@ -1,7 +1,6 @@
-use super::{decode_hex_rpo_digest_label, LibraryPath, ParsingError, RpoDigest, Token};
+use super::{parsers::decode_hex_rpo_digest_label, LibraryPath, ParsingError, RpoDigest, Token};
 
-/// Invocation target that holds the information about the target of an invocation. This
-/// information is used to resolve the target for exec, calls and syscall instructions.
+/// Describes targets of `exec`, `call`, and `syscall` instructions.
 pub enum InvocationTarget<'a> {
     MastRoot(RpoDigest),
     ProcedureName(&'a str),
@@ -10,6 +9,7 @@ pub enum InvocationTarget<'a> {
 
 impl<'a> InvocationTarget<'a> {
     /// Parses the provided label into an invocation target.
+    ///
     /// A label of an invoked procedure must comply with the following rules:
     /// - It can be a hexadecimal string representing a MAST root digest ([RpoDigest]). In this case,
     ///   the label must start with "0x" and must be followed by a valid hexadecimal string

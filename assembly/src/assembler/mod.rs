@@ -1,10 +1,10 @@
 use super::{
+    ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
     btree_map,
     crypto::hash::RpoDigest,
-    parsers::{Instruction, Node, ProcedureAst, ProgramAst},
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
-    LibraryError, LibraryPath, Module, ModuleAst, Operation, Procedure, ProcedureId, ProcedureName,
-    Program, ToString, Vec, ONE, ZERO,
+    LibraryError, LibraryPath, Module, Operation, Procedure, ProcedureId, ProcedureName, Program,
+    ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
@@ -28,9 +28,9 @@ mod tests;
 
 // ASSEMBLER
 // ================================================================================================
-/// Miden Assembler which can be used to convert Miden assembly source code into program MAST (
-/// represented by the [Program] struct). The assembler can be instantiated in several ways using
-/// a "builder" patter. Specifically:
+/// Miden Assembler which can be used to convert Miden assembly source code into program MAST.
+///
+/// The assembler can be instantiated in several ways using a "builder" pattern. Specifically:
 /// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
 ///   instantiated with a default empty kernel. Programs compiled using such assembler
 ///   cannot make calls to kernel procedures via `syscall` instruction.

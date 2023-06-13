@@ -1,6 +1,6 @@
 #![no_std]
 
-use assembly::{Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
+use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
 
 // STANDARD LIBRARY
 // ================================================================================================

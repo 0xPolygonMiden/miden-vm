@@ -66,7 +66,7 @@ impl ParserContext {
                                 // maintained over the assumption that a body is always terminated
                                 // with an `end` location - in this case, both `if.true` and `else`
                                 // have points to the same `end`.
-                                true_case.push_location(*token.location());
+                                true_case.add_final_location(*token.location());
                                 token.validate_end()
                             }
                             Token::ELSE => Err(ParsingError::dangling_else(token)),
@@ -324,15 +324,9 @@ impl ParserContext {
         let mut locations = Vec::new();
 
         while let Some(token) = tokens.read() {
-            // locations are tracked inside the body, except for nested block declaration that have
-            // their locations tracked on the node
-            if !matches!(token.parts()[0], Token::EXPORT | Token::PROC | Token::BEGIN | Token::ELSE)
-            {
-                locations.push(*token.location());
-            }
-
             match token.parts()[0] {
                 Token::IF => {
+                    locations.push(*token.location());
                     let body = self.parse_if(tokens)?;
                     nodes.push(body);
                 }
@@ -344,14 +338,17 @@ impl ParserContext {
                     return Err(ParsingError::dangling_else(token));
                 }
                 Token::WHILE => {
+                    locations.push(*token.location());
                     let body = self.parse_while(tokens)?;
                     nodes.push(body);
                 }
                 Token::REPEAT => {
+                    locations.push(*token.location());
                     let body = self.parse_repeat(tokens)?;
                     nodes.push(body);
                 }
                 Token::END => {
+                    locations.push(*token.location());
                     token.validate_end()?;
                     break;
                 }
@@ -364,6 +361,7 @@ impl ParserContext {
                     break;
                 }
                 _ => {
+                    locations.push(*token.location());
                     nodes.push(self.parse_op_token(token)?);
                     tokens.advance();
                 }
