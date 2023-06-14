@@ -1,5 +1,6 @@
 
-const.ZERO_ZERO_ZERO_ONE_PTR=4294967277
+use.std::crypto::stark::constants
+
 
 #! Load the public inputs in memory starting from the address referenced by `public_inputs_ptr`.
 #! In parallel, compute the hash of the public inputs being loaded. The hashing starts with
@@ -27,7 +28,7 @@ export.load
     end
     adv_loadw
     swapw
-    mem_loadw.ZERO_ZERO_ZERO_ONE_PTR
+    exec.constants::zero_zero_zero_one_word mem_loadw
     hperm
 
     dropw
