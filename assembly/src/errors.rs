@@ -13,6 +13,7 @@ use vm_core::utils::write_hex_bytes;
 pub enum AssemblyError {
     CallInKernel(String),
     CallerOutOKernel,
+    CallSetProcedureNotFound(ProcedureId),
     CircularModuleDependency(Vec<String>),
     DivisionByZero,
     DuplicateProcName(String, String),
@@ -122,6 +123,7 @@ impl fmt::Display for AssemblyError {
         match self {
             CallInKernel(proc_name) => write!(f, "call instruction used kernel procedure '{proc_name}'"),
             CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
+            CallSetProcedureNotFound(proc_id) => write!(f, "callset procedure not found in assembler cache for procedure  '{proc_id}'"),
             CircularModuleDependency(dep_chain) => write!(f, "circular module dependency in the following chain: {dep_chain:?}"),
             DivisionByZero => write!(f, "division by zero"),
             DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),

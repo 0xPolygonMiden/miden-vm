@@ -101,6 +101,16 @@ impl ProgramAst {
         iter::once(&self.start).chain(self.body.source_locations().iter())
     }
 
+    /// Returns a slice over the internal procedures of this program.
+    pub fn procedures(&self) -> &[ProcedureAst] {
+        &self.local_procs
+    }
+
+    /// Returns a reference to the body of this program.
+    pub fn body(&self) -> &CodeBody {
+        &self.body
+    }
+
     // PARSER
     // --------------------------------------------------------------------------------------------
     /// Parses the provided source into a [ProgramAst].

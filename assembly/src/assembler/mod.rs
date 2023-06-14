@@ -131,10 +131,10 @@ impl Assembler {
 
         // compile the program
         let mut context = AssemblyContext::new(AssemblyContextType::Program);
-        let program_root = self.compile_in_context(program, &mut context)?;
+        let program_root = self.compile_in_context(&program, &mut context)?;
 
         // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache.borrow());
+        let cb_table = context.into_cb_table(&self.proc_cache.borrow())?;
 
         // build and return the program
         Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
@@ -151,7 +151,7 @@ impl Assembler {
     /// - if compilation of the program body fails.
     pub fn compile_in_context(
         &self,
-        program: ProgramAst,
+        program: &ProgramAst,
         context: &mut AssemblyContext,
     ) -> Result<CodeBlock, AssemblyError> {
         // check to ensure that the context is appropriate for compiling a program
@@ -159,10 +159,8 @@ impl Assembler {
             return Err(AssemblyError::InvalidProgramAssemblyContext);
         }
 
-        let (local_procs, body) = program.into_parts();
-
         // compile all local procedures; this will add the procedures to the specified context
-        for proc_ast in local_procs.iter() {
+        for proc_ast in program.procedures() {
             if proc_ast.is_export {
                 return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
             }
@@ -170,7 +168,7 @@ impl Assembler {
         }
 
         // compile the program body
-        let program_root = self.compile_body(body.iter(), context, None)?;
+        let program_root = self.compile_body(program.body().nodes().iter(), context, None)?;
 
         Ok(program_root)
     }
@@ -361,6 +359,19 @@ impl Assembler {
         }
 
         Ok(())
+    }
+
+    // CODE BLOCK BUILDER
+    // --------------------------------------------------------------------------------------------
+    /// Returns the [CodeBlockTable] associated with the [AssemblyContext].
+    ///
+    /// # Errors
+    /// Retuns an error if a required procedure is not found in the [Assembler] prodedure cache.
+    pub fn build_cb_table(
+        &self,
+        context: AssemblyContext,
+    ) -> Result<CodeBlockTable, AssemblyError> {
+        context.into_cb_table(&self.proc_cache.borrow())
     }
 }
 

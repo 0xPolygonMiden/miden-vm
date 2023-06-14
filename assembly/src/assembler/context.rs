@@ -228,9 +228,14 @@ impl AssemblyContext {
     /// Panics if:
     /// - There is not exactly one module left on the module stack.
     /// - If this module is not an executable module.
-    /// - If any of the procedures in the module's callset cannot be found in the specified
-    ///   procedure cache or the local procedure set of the module.
-    pub fn into_cb_table(mut self, proc_cache: &ProcedureCache) -> CodeBlockTable {
+    ///
+    /// # Errors
+    /// Returns an error if any of the procedures in the module's callset cannot be found in the
+    /// specified procedure cache or the local procedure set of the module.
+    pub fn into_cb_table(
+        mut self,
+        proc_cache: &ProcedureCache,
+    ) -> Result<CodeBlockTable, AssemblyError> {
         // get the last module off the module stack
         assert_eq!(self.module_stack.len(), 1, "module stack must contain exactly one module");
         let mut main_module_context = self.module_stack.pop().unwrap();
@@ -246,12 +251,12 @@ impl AssemblyContext {
             let proc = proc_cache
                 .get_by_id(proc_id)
                 .or_else(|| main_module_context.find_local_proc(proc_id))
-                .expect("callset procedure not found");
+                .ok_or(AssemblyError::CallSetProcedureNotFound(*proc_id))?;
 
             cb_table.insert(proc.code_root().clone());
         }
 
-        cb_table
+        Ok(cb_table)
     }
 
     // HELPER METHODS
