@@ -12,7 +12,7 @@ use.std::crypto::stark::constants
 
 #!   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
 #!   The following simplifying assumptions are currently made:
-#!   - The blowup is set to 8, the grinding to 16bits and number of FRI queries to 27.
+#!   - The blowup is set to 8.
 #!   - The maximal allowed degree of the remainder polynomial is 7.
 #!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
 #!   to public inputs.
@@ -217,13 +217,14 @@ export.verify
     padw
     exec.constants::parameters_ptr mem_loadw
     drop swap.2 drop drop
+    dup movdn.2
     sub
-    #=> [query_ptr, ...]
+    #=> [query_ptr, num_queries, ...]
 
     # Draw random query indices
     #
     # Cycles: 798
-    dup
+    swap dup.1
     exec.random_coin::generate_list_indices
     #=> [query_ptr, ...]
 
@@ -258,7 +259,7 @@ export.verify
 
     # Call FRI verifier
     #
-    # Cycles: 7 + 4 + 27 * (40 + num_layers * 76 + 26)
+    # Cycles: 7 + 4 + num_queries * (40 + num_layers * 76 + 26)
     exec.frie2f4::verify
     #=> ()
 end

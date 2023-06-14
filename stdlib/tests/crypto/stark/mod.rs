@@ -57,7 +57,7 @@ pub fn generate_recursive_verifier_data(
     let advice_provider = MemAdviceProvider::from(advice_inputs);
 
     let options =
-        ProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
+        ProofOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
     let (stack_outputs, proof) =
         prove(&program, stack_inputs.clone(), advice_provider, options).unwrap();
