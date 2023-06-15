@@ -1,5 +1,7 @@
 use super::{
-    chiplets::{AuxTraceBuilder as ChipletsAuxTraceBuilder, HasherAuxTraceBuilder},
+    chiplets::{
+        BusTraceBuilder as ChipletsBusTraceBuilder, TableTraceBuilder as ChipletsTableTraceBuilder,
+    },
     crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
@@ -38,8 +40,8 @@ pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
-    pub(crate) hasher: HasherAuxTraceBuilder,
-    pub(crate) chiplets: ChipletsAuxTraceBuilder,
+    pub(crate) chiplets_table: ChipletsTableTraceBuilder,
+    pub(crate) chiplets_bus: ChipletsBusTraceBuilder,
 }
 
 /// Execution trace which is generated when a program is executed on the VM.
@@ -224,21 +226,25 @@ impl Trace for ExecutionTrace {
         let range_aux_columns =
             self.aux_trace_hints.range.build_aux_columns(&self.main_trace, rand_elements);
 
-        // add hasher's running product columns
-        let hasher_aux_columns =
-            self.aux_trace_hints.hasher.build_aux_columns(&self.main_trace, rand_elements);
+        // add the running product columns for the chiplets virtual table
+        let chiplets_table = self
+            .aux_trace_hints
+            .chiplets_table
+            .build_aux_columns(&self.main_trace, rand_elements);
 
-        // add running product columns for the chiplets module
-        let chiplets_aux_columns =
-            self.aux_trace_hints.chiplets.build_aux_columns(&self.main_trace, rand_elements);
+        // add the running product columns for the chiplets bus
+        let chiplets_bus = self
+            .aux_trace_hints
+            .chiplets_bus
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
             .chain(range_aux_columns)
-            .chain(hasher_aux_columns)
-            .chain(chiplets_aux_columns)
+            .chain(chiplets_table)
+            .chain(chiplets_bus)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
@@ -328,8 +334,8 @@ where
         decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
-        hasher: chiplets_trace.hasher_aux_builder,
-        chiplets: chiplets_trace.aux_builder,
+        chiplets_table: chiplets_trace.table_builder,
+        chiplets_bus: chiplets_trace.bus_builder,
     };
 
     (trace, aux_trace_hints)

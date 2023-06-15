@@ -1,9 +1,9 @@
 use super::{
-    init_state_from_words, lookups::HasherLookupContext, AuxTraceBuilder, Digest, Felt, Hasher,
-    HasherLookup, HasherState, Selectors, SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec,
-    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
-    TRACE_WIDTH,
+    init_state_from_words, lookups::HasherLookupContext, Digest, Felt, Hasher, HasherLookup,
+    HasherState, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
+    MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
+use crate::chiplets::virtual_table::{AuxTraceBuilder, SiblingTableRow, SiblingTableUpdate};
 use miden_air::trace::chiplets::hasher::{
     DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
     MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
