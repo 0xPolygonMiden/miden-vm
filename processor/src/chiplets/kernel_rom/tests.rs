@@ -1,7 +1,10 @@
 use super::{
-    super::bus::{ChipletLookup, ChipletsBusRow},
     ChipletsBus, Felt, Kernel, KernelProcLookup, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH,
     ZERO,
+};
+use crate::chiplets::{
+    aux_trace::{ChipletLookup, ChipletsBusRow},
+    TableTraceBuilder,
 };
 use vm_core::utils::collections::Vec;
 
@@ -126,9 +129,10 @@ fn build_kernel() -> Kernel {
 /// instance.
 fn build_trace(kernel_rom: KernelRom, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
     let mut chiplets_bus = ChipletsBus::default();
+    let mut virtual_table = TableTraceBuilder::default();
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    kernel_rom.fill_trace(&mut fragment, &mut chiplets_bus, 0);
+    kernel_rom.fill_trace(&mut fragment, &mut chiplets_bus, &mut virtual_table, 0);
 
     (trace, chiplets_bus)
 }

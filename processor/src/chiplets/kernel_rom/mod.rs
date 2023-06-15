@@ -1,6 +1,6 @@
 use super::{
-    trace::LookupTableRow, BTreeMap, ChipletsBus, ColMatrix, Digest, ExecutionError, Felt,
-    FieldElement, Kernel, TraceFragment, Word, ONE, ZERO,
+    trace::LookupTableRow, BTreeMap, ChipletsBus, ChipletsVTableTraceBuilder, ColMatrix, Digest,
+    ExecutionError, Felt, FieldElement, Kernel, TraceFragment, Word, ONE, ZERO,
 };
 use miden_air::trace::chiplets::kernel_rom::{KERNEL_PROC_LABEL, TRACE_WIDTH};
 
@@ -103,6 +103,7 @@ impl KernelRom {
         self,
         trace: &mut TraceFragment,
         chiplets_bus: &mut ChipletsBus,
+        virtual_table: &mut ChipletsVTableTraceBuilder,
         kernel_rom_start_row: usize,
     ) {
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace fragment width");
@@ -112,6 +113,9 @@ impl KernelRom {
 
             // write at least one row into the trace for each kernel procedure
             access_info.write_into_trace(trace, row, idx);
+            // add the procedure to the virtual table
+            virtual_table.add_kernel_proc(row as u32, idx, access_info.proc_hash);
+
             // provide the kernel procedure to the chiplets bus, if it was accessed at least once
             let lookup = KernelProcLookup::new(access_info.proc_hash);
             if access_info.num_accesses >= 1 {

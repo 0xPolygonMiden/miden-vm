@@ -24,8 +24,8 @@ use kernel_rom::{KernelProcLookup, KernelRom};
 
 mod aux_trace;
 #[cfg(test)]
-pub(crate) use aux_trace::SiblingTableRow;
-pub(crate) use aux_trace::{AuxTraceBuilder, ChipletsBus, TableTraceBuilder};
+pub(crate) use aux_trace::ChipletsVTableRow;
+pub(crate) use aux_trace::{AuxTraceBuilder, ChipletsBus, ChipletsVTableTraceBuilder};
 
 #[cfg(test)]
 mod tests;
@@ -570,10 +570,15 @@ impl Chiplets {
 
         // fill the fragments with the execution trace from each chiplet
         // TODO: this can be parallelized to fill the traces in multiple threads
-        let table_builder = hasher.fill_trace(&mut hasher_fragment);
+        let mut table_builder = hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment, &mut bus, bitwise_start);
         memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
-        kernel_rom.fill_trace(&mut kernel_rom_fragment, &mut bus, kernel_rom_start);
+        kernel_rom.fill_trace(
+            &mut kernel_rom_fragment,
+            &mut bus,
+            &mut table_builder,
+            kernel_rom_start,
+        );
 
         AuxTraceBuilder::new(bus.into_aux_builder(), table_builder)
     }

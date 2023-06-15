@@ -3,7 +3,7 @@ use super::{
     HasherState, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
     MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
-use crate::chiplets::aux_trace::{SiblingTableRow, SiblingTableUpdate, TableTraceBuilder};
+use crate::chiplets::aux_trace::{ChipletsTableRow, ChipletsTableUpdate, TableTraceBuilder};
 use miden_air::trace::chiplets::hasher::{
     DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
     MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
@@ -66,8 +66,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 8]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints().is_empty());
-    assert!(aux_hints.sibling_rows().is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- test two permutations ----------------------------------------------
 
@@ -104,8 +104,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 16]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints().is_empty());
-    assert!(aux_hints.sibling_rows().is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 }
 
 // MERKLE TREE TESTS
@@ -180,8 +180,8 @@ fn hasher_build_merkle_root() {
     assert_eq!(&node_idx_column[9..], &[ZERO; 7]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints().is_empty());
-    assert!(aux_hints.sibling_rows().is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -222,8 +222,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 0, leaves[5], &path, 5, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints().is_empty());
-    assert!(aux_hints.sibling_rows().is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
@@ -338,8 +338,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 72, leaves[3], &path3, 3, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints().is_empty());
-    assert!(aux_hints.sibling_rows().is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 }
 
 #[test]
@@ -439,19 +439,21 @@ fn hasher_update_merkle_root() {
     assert_eq!(&node_idx_column[25..], &[ZERO; 7]);
 
     // make sure sibling table hints were built correctly
-    let expected_sibling_hints = vec![
+    let expected_hints = vec![
         // first update
-        (0, SiblingTableUpdate::SiblingAdded(0)),
-        (8, SiblingTableUpdate::SiblingRemoved(0)),
+        (0, ChipletsTableUpdate::SiblingAdded(0)),
+        (8, ChipletsTableUpdate::SiblingRemoved(0)),
         // second update
-        (16, SiblingTableUpdate::SiblingAdded(1)),
-        (24, SiblingTableUpdate::SiblingRemoved(1)),
+        (16, ChipletsTableUpdate::SiblingAdded(1)),
+        (24, ChipletsTableUpdate::SiblingRemoved(1)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints());
+    assert_eq!(expected_hints, aux_hints.hints());
 
-    let expected_sibling_rows =
-        vec![SiblingTableRow::new(ZERO, path0[0]), SiblingTableRow::new(ONE, path1[0])];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows());
+    let expected_sibling_rows = vec![
+        ChipletsTableRow::new_sibling(ZERO, path0[0]),
+        ChipletsTableRow::new_sibling(ONE, path1[0]),
+    ];
+    assert_eq!(expected_sibling_rows, aux_hints.rows());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -585,46 +587,46 @@ fn hasher_update_merkle_root() {
     check_merkle_path(&trace, 120, new_leaf3_2, &path3_2, 3, MR_UPDATE_NEW);
 
     // make sure sibling table hints were built correctly
-    let expected_sibling_hints = vec![
+    let expected_hints = vec![
         // first update
-        (0, SiblingTableUpdate::SiblingAdded(0)),
-        (8, SiblingTableUpdate::SiblingAdded(1)),
-        (16, SiblingTableUpdate::SiblingAdded(2)),
-        (24, SiblingTableUpdate::SiblingRemoved(0)),
-        (32, SiblingTableUpdate::SiblingRemoved(1)),
-        (40, SiblingTableUpdate::SiblingRemoved(2)),
+        (0, ChipletsTableUpdate::SiblingAdded(0)),
+        (8, ChipletsTableUpdate::SiblingAdded(1)),
+        (16, ChipletsTableUpdate::SiblingAdded(2)),
+        (24, ChipletsTableUpdate::SiblingRemoved(0)),
+        (32, ChipletsTableUpdate::SiblingRemoved(1)),
+        (40, ChipletsTableUpdate::SiblingRemoved(2)),
         // second update
-        (48, SiblingTableUpdate::SiblingAdded(3)),
-        (56, SiblingTableUpdate::SiblingAdded(4)),
-        (64, SiblingTableUpdate::SiblingAdded(5)),
-        (72, SiblingTableUpdate::SiblingRemoved(3)),
-        (80, SiblingTableUpdate::SiblingRemoved(4)),
-        (88, SiblingTableUpdate::SiblingRemoved(5)),
+        (48, ChipletsTableUpdate::SiblingAdded(3)),
+        (56, ChipletsTableUpdate::SiblingAdded(4)),
+        (64, ChipletsTableUpdate::SiblingAdded(5)),
+        (72, ChipletsTableUpdate::SiblingRemoved(3)),
+        (80, ChipletsTableUpdate::SiblingRemoved(4)),
+        (88, ChipletsTableUpdate::SiblingRemoved(5)),
         // third update
-        (96, SiblingTableUpdate::SiblingAdded(6)),
-        (104, SiblingTableUpdate::SiblingAdded(7)),
-        (112, SiblingTableUpdate::SiblingAdded(8)),
-        (120, SiblingTableUpdate::SiblingRemoved(6)),
-        (128, SiblingTableUpdate::SiblingRemoved(7)),
-        (136, SiblingTableUpdate::SiblingRemoved(8)),
+        (96, ChipletsTableUpdate::SiblingAdded(6)),
+        (104, ChipletsTableUpdate::SiblingAdded(7)),
+        (112, ChipletsTableUpdate::SiblingAdded(8)),
+        (120, ChipletsTableUpdate::SiblingRemoved(6)),
+        (128, ChipletsTableUpdate::SiblingRemoved(7)),
+        (136, ChipletsTableUpdate::SiblingRemoved(8)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints());
+    assert_eq!(expected_hints, aux_hints.hints());
 
     let expected_sibling_rows = vec![
         // first update
-        SiblingTableRow::new(Felt::new(3), path3[0]),
-        SiblingTableRow::new(Felt::new(3 >> 1), path3[1]),
-        SiblingTableRow::new(Felt::new(3 >> 2), path3[2]),
+        ChipletsTableRow::new_sibling(Felt::new(3), path3[0]),
+        ChipletsTableRow::new_sibling(Felt::new(3 >> 1), path3[1]),
+        ChipletsTableRow::new_sibling(Felt::new(3 >> 2), path3[2]),
         // second update
-        SiblingTableRow::new(Felt::new(6), path6[0]),
-        SiblingTableRow::new(Felt::new(6 >> 1), path6[1]),
-        SiblingTableRow::new(Felt::new(6 >> 2), path6[2]),
+        ChipletsTableRow::new_sibling(Felt::new(6), path6[0]),
+        ChipletsTableRow::new_sibling(Felt::new(6 >> 1), path6[1]),
+        ChipletsTableRow::new_sibling(Felt::new(6 >> 2), path6[2]),
         // third update
-        SiblingTableRow::new(Felt::new(3), path3_2[0]),
-        SiblingTableRow::new(Felt::new(3 >> 1), path3_2[1]),
-        SiblingTableRow::new(Felt::new(3 >> 2), path3_2[2]),
+        ChipletsTableRow::new_sibling(Felt::new(3), path3_2[0]),
+        ChipletsTableRow::new_sibling(Felt::new(3 >> 1), path3_2[1]),
+        ChipletsTableRow::new_sibling(Felt::new(3 >> 2), path3_2[2]),
     ];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows());
+    assert_eq!(expected_sibling_rows, aux_hints.rows());
 }
 
 // MEMOIZATION TESTS

@@ -7,17 +7,17 @@ mod bus;
 pub(crate) use bus::{ChipletLookup, ChipletsBus, ChipletsBusRow};
 
 mod virtual_table;
-pub(crate) use virtual_table::{SiblingTableRow, SiblingTableUpdate};
+pub(crate) use virtual_table::{ChipletsVTableRow, ChipletsVTableUpdate};
 
 /// Contains all relevant information and describes how to construct the execution trace for
 /// chiplets-related auxiliary columns (used in multiset checks).
 pub struct AuxTraceBuilder {
     bus_builder: BusTraceBuilder,
-    table_builder: TableTraceBuilder,
+    table_builder: ChipletsVTableTraceBuilder,
 }
 
 impl AuxTraceBuilder {
-    pub fn new(bus_builder: BusTraceBuilder, table_builder: TableTraceBuilder) -> Self {
+    pub fn new(bus_builder: BusTraceBuilder, table_builder: ChipletsVTableTraceBuilder) -> Self {
         Self {
             bus_builder,
             table_builder,
@@ -129,85 +129,119 @@ impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for BusTraceBuilder {
 // VIRTUAL TABLE TRACE BUILDER
 // ================================================================================================
 
-/// Contains all relevant information and describes how to construct execution trace of hasher-
-/// related auxiliary trace columns (used in multiset checks).
+/// Describes how to construct the execution trace of the chiplets virtual table, used to manage
+/// internal updates and data required by the chiplets.
 ///
-/// Currently, this manages construction of a single column representing the state of the sibling
-/// table (used in Merkle root update computation).
+/// This manages construction of a single column which first represents the state of the sibling
+/// table (used in Merkle root update computation), and then is subsequently used to represent the
+/// procedures contained in the kernel ROM. Thus, it is expected that the initial value is ONE, the
+/// value after all sibling table updates are completed is again ONE, and the value at the end of
+/// the trace is the product of the representations of the kernel ROM procedures.
 #[derive(Debug, Clone, Default)]
-pub struct TableTraceBuilder {
-    pub(super) sibling_hints: Vec<(u32, SiblingTableUpdate)>,
-    pub(super) sibling_rows: Vec<SiblingTableRow>,
+pub struct ChipletsVTableTraceBuilder {
+    pub(super) hints: Vec<(u32, ChipletsVTableUpdate)>,
+    pub(super) rows: Vec<ChipletsVTableRow>,
 }
 
-impl TableTraceBuilder {
+impl ChipletsVTableTraceBuilder {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Specifies that an entry for the provided sibling was added to the sibling table at the
-    /// specified step.
+    /// Specifies that an entry for the provided sibling was added to the chiplets virtual table at
+    /// the specified step.
+    ///
+    /// It is assumed that the table is empty or contains only sibling entries at this point and has
+    /// not been used for any other chiplet updates.
     pub fn sibling_added(&mut self, step: u32, index: Felt, sibling: Word) {
-        let row_index = self.sibling_rows.len();
-        let update = SiblingTableUpdate::SiblingAdded(row_index as u32);
-        self.sibling_hints.push((step, update));
-        self.sibling_rows.push(SiblingTableRow::new(index, sibling));
+        let row_index = self.rows.len();
+        let update = ChipletsVTableUpdate::SiblingAdded(row_index as u32);
+        self.hints.push((step, update));
+        self.rows.push(ChipletsVTableRow::new_sibling(index, sibling));
     }
 
-    /// Specifies that an entry for a sibling was removed from the sibling table. The entry is
-    /// defined by the provided offset. For example, if row_offset = 2, the second from the last
+    /// Specifies that an entry for a sibling was removed from the chiplets virtual table. The entry
+    /// is defined by the provided offset. For example, if row_offset = 2, the second from the last
     /// entry was removed from the table.
+    ///
+    /// It is assumed that the table contains only sibling entries at this point and has not been
+    /// used for any other chiplet updates.
     pub fn sibling_removed(&mut self, step: u32, row_offset: usize) {
-        let row_index = self.sibling_rows.len() - row_offset - 1;
-        let update = SiblingTableUpdate::SiblingRemoved(row_index as u32);
-        self.sibling_hints.push((step, update));
+        let row_index = self.rows.len() - row_offset - 1;
+        let update = ChipletsVTableUpdate::SiblingRemoved(row_index as u32);
+        self.hints.push((step, update));
+    }
+
+    /// Specifies a kernel procedure that must be added to the virtual table.
+    ///
+    /// It is assumed that kernel procedures will only be added after all sibling updates have been
+    /// completed.
+    pub fn add_kernel_proc(&mut self, step: u32, addr: Felt, proc_hash: Word) {
+        let proc_index = self.rows.len();
+        let update = ChipletsVTableUpdate::KernelProcAdded(proc_index as u32);
+        self.hints.push((step, update));
+        self.rows.push(ChipletsVTableRow::new_kernel_proc(addr, proc_hash));
     }
 
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
     #[cfg(test)]
-    pub fn sibling_hints(&self) -> &[(u32, SiblingTableUpdate)] {
-        &self.sibling_hints
+    pub fn hints(&self) -> &[(u32, ChipletsVTableUpdate)] {
+        &self.hints
     }
 
     #[cfg(test)]
-    pub fn sibling_rows(&self) -> &[SiblingTableRow] {
-        &self.sibling_rows
+    pub fn rows(&self) -> &[ChipletsVTableRow] {
+        &self.rows
     }
 }
 
-impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow, u32> for TableTraceBuilder {
-    /// Returns a list of rows which were added to and then removed from the sibling table.
+impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for ChipletsVTableTraceBuilder {
+    /// Returns a list of rows which were added to and then removed from the chiplets virtual table.
     ///
     /// The order of the rows in the list is the same as the order in which the rows were added to
     /// the table.
-    fn get_table_rows(&self) -> &[SiblingTableRow] {
-        &self.sibling_rows
+    fn get_table_rows(&self) -> &[ChipletsVTableRow] {
+        &self.rows
     }
 
-    /// Returns hints which describe how the sibling table was updated during program execution.
-    /// Each update hint is accompanied by a clock cycle at which the update happened.
+    /// Returns hints which describe how the chiplets virtual table was updated during program
+    /// execution. Each update hint is accompanied by a clock cycle at which the update happened.
     ///
     /// Internally, each update hint also contains an index of the row into the full list of rows
     /// which was either added or removed.
-    fn get_table_hints(&self) -> &[(u32, SiblingTableUpdate)] {
-        &self.sibling_hints
+    fn get_table_hints(&self) -> &[(u32, ChipletsVTableUpdate)] {
+        &self.hints
     }
 
     /// Returns the value by which the running product column should be multiplied for the provided
     /// hint value.
     fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
-        hint: SiblingTableUpdate,
+        hint: ChipletsVTableUpdate,
         row_values: &[E],
         inv_row_values: &[E],
     ) -> E {
         match hint {
-            SiblingTableUpdate::SiblingAdded(inserted_row_idx) => {
+            ChipletsVTableUpdate::SiblingAdded(inserted_row_idx) => {
                 row_values[inserted_row_idx as usize]
             }
-            SiblingTableUpdate::SiblingRemoved(removed_row_idx) => {
+            ChipletsVTableUpdate::SiblingRemoved(removed_row_idx) => {
                 inv_row_values[removed_row_idx as usize]
             }
+            ChipletsVTableUpdate::KernelProcAdded(idx) => row_values[idx as usize],
         }
+    }
+
+    /// Returns the final value in the auxiliary column. Default implementation of this method
+    /// returns ONE.
+    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, row_values: &[E]) -> E {
+        let mut result = E::ONE;
+        for (_, table_update) in self.hints.iter() {
+            if let ChipletsVTableUpdate::KernelProcAdded(idx) = table_update {
+                result *= row_values[*idx as usize];
+            }
+        }
+
+        result
     }
 }
