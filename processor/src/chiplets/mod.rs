@@ -22,13 +22,10 @@ use memory::{Memory, MemoryLookup};
 mod kernel_rom;
 use kernel_rom::{KernelProcLookup, KernelRom};
 
-mod bus;
-pub use bus::{AuxTraceBuilder as BusTraceBuilder, ChipletsBus};
-
-mod virtual_table;
-pub use virtual_table::{
-    AuxTraceBuilder as TableTraceBuilder, SiblingTableRow, SiblingTableUpdate,
-};
+mod aux_trace;
+#[cfg(test)]
+pub(crate) use aux_trace::SiblingTableRow;
+pub(crate) use aux_trace::{AuxTraceBuilder, ChipletsBus, TableTraceBuilder};
 
 #[cfg(test)]
 mod tests;
@@ -499,13 +496,9 @@ impl Chiplets {
             .try_into()
             .expect("failed to convert vector to array");
 
-        let (table_builder, bus_builder) = self.fill_trace(&mut trace);
+        let aux_builder = self.fill_trace(&mut trace);
 
-        ChipletsTrace {
-            trace,
-            table_builder,
-            bus_builder,
-        }
+        ChipletsTrace { trace, aux_builder }
     }
 
     // HELPER METHODS
@@ -517,10 +510,7 @@ impl Chiplets {
     ///
     /// It returns the auxiliary trace builders for generating auxiliary trace columns that depend
     /// on data from [Chiplets].
-    fn fill_trace(
-        self,
-        trace: &mut [Vec<Felt>; CHIPLETS_WIDTH],
-    ) -> (TableTraceBuilder, BusTraceBuilder) {
+    fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH]) -> AuxTraceBuilder {
         // get the rows where chiplets begin.
         let bitwise_start = self.bitwise_start();
         let memory_start = self.memory_start();
@@ -585,6 +575,6 @@ impl Chiplets {
         memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
         kernel_rom.fill_trace(&mut kernel_rom_fragment, &mut bus, kernel_rom_start);
 
-        (table_builder, bus.into_aux_builder())
+        AuxTraceBuilder::new(bus.into_aux_builder(), table_builder)
     }
 }

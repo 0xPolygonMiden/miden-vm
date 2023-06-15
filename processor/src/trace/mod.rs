@@ -1,12 +1,9 @@
 use super::{
-    chiplets::{
-        BusTraceBuilder as ChipletsBusTraceBuilder, TableTraceBuilder as ChipletsTableTraceBuilder,
-    },
-    crypto::RpoRandomCoin,
+    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder,
-    AdviceProvider, ColMatrix, Digest, Felt, FieldElement, Process, StackTopState, Vec,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, AdviceProvider, ColMatrix, Digest, Felt,
+    FieldElement, Process, StackTopState, Vec,
 };
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -40,8 +37,7 @@ pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
-    pub(crate) chiplets_table: ChipletsTableTraceBuilder,
-    pub(crate) chiplets_bus: ChipletsBusTraceBuilder,
+    pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
 /// Execution trace which is generated when a program is executed on the VM.
@@ -226,25 +222,16 @@ impl Trace for ExecutionTrace {
         let range_aux_columns =
             self.aux_trace_hints.range.build_aux_columns(&self.main_trace, rand_elements);
 
-        // add the running product columns for the chiplets virtual table
-        let chiplets_table = self
-            .aux_trace_hints
-            .chiplets_table
-            .build_aux_columns(&self.main_trace, rand_elements);
-
-        // add the running product columns for the chiplets bus
-        let chiplets_bus = self
-            .aux_trace_hints
-            .chiplets_bus
-            .build_aux_columns(&self.main_trace, rand_elements);
+        // add the running product columns for the chiplets
+        let chiplets =
+            self.aux_trace_hints.chiplets.build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
             .chain(range_aux_columns)
-            .chain(chiplets_table)
-            .chain(chiplets_bus)
+            .chain(chiplets)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
@@ -334,8 +321,7 @@ where
         decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
-        chiplets_table: chiplets_trace.table_builder,
-        chiplets_bus: chiplets_trace.bus_builder,
+        chiplets: chiplets_trace.aux_builder,
     };
 
     (trace, aux_trace_hints)
