@@ -570,7 +570,12 @@ end
 #! Input: [query_ptr, num_queries, ...]
 #! Output: [...]
 #!
-#! Cycles: 797
+#! Cycles: 267 + q * 236 + r * 29 where q = num_queries / 8 and r = num_queries % 8
+#!
+#! NOTE: This procedure is called first, and right after the PoW check, thus the first element
+#! in the rate portion of the state is discarded.
+#! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
+#!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
     # Create mask
     padw

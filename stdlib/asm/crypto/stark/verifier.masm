@@ -30,9 +30,9 @@ use.std::crypto::stark::constants
 #! Output: []
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1498
+#!   4683 + num_queries * (70 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1498
 #!  2- Remainder codeword size 64:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 2792
+#!   4683 + num_queries * (70 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 2792
 export.verify
 
     #==============================================================================================
@@ -216,7 +216,7 @@ export.verify
 
     # Draw random query indices
     #
-    # Cycles: 798
+    # Cycles: 470 + 236 * (num_queries / 8)
     swap dup.1
     exec.random_coin::generate_list_indices
     #=> [query_ptr, ...]
