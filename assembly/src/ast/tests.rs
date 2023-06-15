@@ -196,7 +196,7 @@ fn test_ast_parsing_adv_injection() {
     use super::AdviceInjector::*;
     use Instruction::AdvInject;
 
-    let source = "begin adv.u64div adv.keyval adv.smtget adv.mem end";
+    let source = "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end";
     let nodes: Vec<Node> = vec![
         Node::Instruction(AdvInject(PushU64div)),
         Node::Instruction(AdvInject(PushMapVal)),

@@ -8,8 +8,7 @@ use super::{
 // INSTRUCTION PARSERS
 // ================================================================================================
 
-/// Returns `AdvU64Div`, `AdvKeyval`, `AdvMem`, `AdvExt2Inv`, `AdvExt2INTT`, or `AdvSmtGet`
-/// instruction node.
+/// Returns `AdvInject` instruction node with an appropriate internal advice injector variant.
 ///
 /// # Errors
 /// Returns an error if:
@@ -21,41 +20,35 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
     }
 
     let injector = match op.parts()[1] {
-        "u64div" => {
+        "push_u64div" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
             AdvInject(PushU64div)
         }
-        "keyval" => {
-            if op.num_parts() > 2 {
-                return Err(ParsingError::extra_param(op));
-            }
-            AdvInject(PushMapVal)
-        }
-        "mem" => {
-            if op.num_parts() > 2 {
-                return Err(ParsingError::extra_param(op));
-            }
-            AdvInject(InsertMem)
-        }
-        "ext2inv" => {
-            if op.num_parts() > 2 {
-                return Err(ParsingError::extra_param(op));
-            }
-            AdvInject(PushExt2inv)
-        }
-        "ext2intt" => {
+        "push_ext2intt" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
             AdvInject(PushExt2intt)
         }
-        "smtget" => {
+        "push_smtget" => {
             if op.num_parts() > 2 {
                 return Err(ParsingError::extra_param(op));
             }
             AdvInject(PushSmtGet)
+        }
+        "push_mapval" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
+            }
+            AdvInject(PushMapVal)
+        }
+        "insert_mem" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
+            }
+            AdvInject(InsertMem)
         }
         _ => return Err(ParsingError::invalid_op(op)),
     };

@@ -38,7 +38,7 @@ In both case the values must still encode valid field elements.
 | adv_push.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow stack.pop()$ <br> Pops $n$ values from the advice stack and pushes them onto the operand stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice stack has fewer than $n$ values. |
 | adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow stack.pop(4)$ <br> Pop the next word (4 elements) from the advice stack and overwrites the first word of the operand stack (4 elements) with them. <br> Fails if the advice stack has fewer than $4$ values. |
 | adv_pipe <br> - *(1 cycle)*     | [C, B, A, a, ... ] | [E, D, A, a', ... ] | $[D, E] \leftarrow [adv_stack.pop(4), adv_stack.pop(4)]$ <br> $a' \leftarrow a + 2$ <br> Pops the next two words from the advice stack, overwrites the top of the operand stack with them and also writes these words into memory at address $a$ and $a + 1$.<br> Fails if the advice stack has fewer than $8$ values. |
-| adv.mem <br> - *(0 cycles)*     | [W, b, a, ... ] | [W, b, a, ... ] | Reads words $data \leftarrow mem[b] .. mem[b + a]$ from memory, and save the data $advice_map[W] \leftarrow data$. |
+| adv.insert_mem <br> - *(0 cycles)*     | [W, b, a, ... ] | [W, b, a, ... ] | Reads words $data \leftarrow mem[b] .. mem[b + a]$ from memory, and save the data $advice_map[W] \leftarrow data$. |
 
 > **Note**: The opcodes above always push data onto the operand stack so that the first element is placed deepest in the stack. For example, if the data on the stack is `a,b,c,d` and you use the opcode `adv_push.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.
 

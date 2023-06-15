@@ -273,7 +273,7 @@ proc.load_query_row
     dup.5 dup.5
     mtree_get
     exec.constants::tmp3 mem_storew
-    adv.keyval
+    adv.push_mapval
     #=>[V, R, depth, index, query_ptr, ...]
     drop
     exec.constants::current_trace_row_ptr
@@ -328,7 +328,7 @@ proc.load_query_row
     dup.9
     mtree_get
     exec.constants::tmp3 mem_storew
-    adv.keyval
+    adv.push_mapval
     #=> [L, R, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## adv_pipe aux trace portion
@@ -380,7 +380,7 @@ proc.load_query_row
     dup.9
     mtree_get
     exec.constants::tmp3 mem_storew
-    adv.keyval
+    adv.push_mapval
     #=>[L, R, ptr, y, y, y, depth, index, query_ptr, ...]
     padw
     exec.constants::zero_word mem_loadw

@@ -222,7 +222,7 @@ end
 #!    16, i.e. `round_up((num_of_peaks - 16) / 2)`
 export.unpack
   # load the num_leaves and peaks to the advice_stack (0 cycles)
-  adv.keyval
+  adv.push_mapval
   # operand_stack => [HASH, mmr_ptr, ...]
   # advice_stack => [NUM_LEAVES, peaks*, ...]
 
@@ -300,12 +300,12 @@ export.pack
   exec.native::state_to_digest
   # => [HASH, peaks_end, peaks_end, mmr_ptr, ...]
 
-  # prepare stack for adv.mem (4 cycles)
+  # prepare stack for adv.insert_mem (4 cycles)
   movup.4 drop movup.4 movdn.5
   # => [HASH, mmr_ptr, peaks_end, ...]
 
   # copy the data to advice map
-  adv.mem
+  adv.insert_mem
 
   # drop the extra addresses (4 cycles)
   movup.4 drop movup.4 drop

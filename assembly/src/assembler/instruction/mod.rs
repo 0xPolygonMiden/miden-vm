@@ -1,5 +1,5 @@
 use super::{
-    Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
+    Assembler, AssemblyContext, AssemblyError, CodeBlock, Felt, Instruction, Operation,
     ProcedureId, RpoDigest, SpanBuilder, ONE, ZERO,
 };
 use crate::utils::bound_into_included_u64;

@@ -283,7 +283,7 @@ end
 #! Depth 48: 93 cycles
 export.get
     # invoke adv and fetch target depth flags
-    adv.smtget adv_push.2
+    adv.push_smtget adv_push.2
     # => [d ∈ {16, 32}, d ∈ {16, 48}, K, R, ...]
 
     # call the inner procedure depending on the depth

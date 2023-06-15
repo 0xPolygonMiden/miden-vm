@@ -6,7 +6,7 @@ use test_utils::{build_test, rand::rand_value};
 #[test]
 fn advice_inject_u64div() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "begin adv.u64div adv_push.4 end";
+    let source = "begin adv.push_u64div adv_push.4 end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -42,7 +42,7 @@ fn advice_inject_u64div_repeat() {
     // Finally the first 2 elements of the stack are removed
     let source = "begin
         repeat.7
-            adv.u64div
+            adv.push_u64div
             drop drop
             adv_push.2
             push.2
@@ -78,7 +78,7 @@ fn advice_inject_u64div_repeat() {
 #[test]
 fn advice_inject_u64div_local_procedure() {
     // push a/b onto the advice stack and then move these values onto the operand stack.
-    let source = "proc.foo adv.u64div adv_push.4 end begin exec.foo end";
+    let source = "proc.foo adv.push_u64div adv_push.4 end begin exec.foo end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -106,7 +106,7 @@ fn advice_inject_u64div_local_procedure() {
 
 #[test]
 fn advice_inject_u64div_conditional_execution() {
-    let source = "begin eq if.true adv.u64div adv_push.4 else padw end end";
+    let source = "begin eq if.true adv.push_u64div adv_push.4 else padw end end";
 
     // if branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
@@ -134,12 +134,12 @@ fn advice_inject_mem() {
     # the key used is in the reverse order of the field elements in the word at the top of the
     # stack.
     push.2.4 movdn.4 movdn.4
-    adv.mem
+    adv.insert_mem
     # State Transition:
     # advice_map: k: [8, 7, 6, 5], v: [4, 3, 2, 1, 8, 7, 6, 5]
 
     # copy from advice map to advice stack
-    adv.keyval dropw
+    adv.push_mapval dropw
     # State Transition:
     # stack: [0, 0, 0, 0]
     # advice_stack: [4, 3, 2, 1, 8, 7, 6, 5]
