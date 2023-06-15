@@ -29,12 +29,18 @@ impl<A> Process<A>
 where
     A: AdviceProvider,
 {
-    /// Pushes a node of the Merkle tree specified by the word on the top of the operand stack onto
-    /// the advice stack.
+    /// Pushes a node of the Merkle tree specified by the values on the top of the operand stack
+    /// onto the advice stack.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [depth, index, TREE_ROOT, ...]
+    ///   Advice stack: [...]
+    ///   Merkle store: {TREE_ROOT<-NODE}
     ///
-    /// [depth, index, TREE_ROOT, ...]
+    /// Outputs:
+    ///   Operand stack: [depth, index, TREE_ROOT, ...]
+    ///   Advice stack: [NODE, ...]
+    ///   Merkle store: {TREE_ROOT<-NODE}
     ///
     /// # Errors
     /// Returns an error if:
@@ -64,6 +70,16 @@ where
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
     /// map using the top 4 elements (i.e. word) from the operand stack as the key.
     ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ...]
+    ///   Advice stack: [values, ...]
+    ///   Advice map: {KEY: values}
+    ///
     /// # Errors
     /// Returns an error if the required key was not found in the key-value map.
     pub(super) fn copy_map_value_to_adv_stack(&mut self) -> Result<(), ExecutionError> {
@@ -74,13 +90,18 @@ where
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
     ///
-    /// The operand stack is expected to be arranged as follows (from the top):
-    /// - divisor split into two 32-bit elements
-    /// - dividend split into two 32-bit elements
+    /// Inputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [...]
     ///
-    /// The result is pushed onto the advice stack as follows: the remainder is pushed first, then
-    /// the quotient is pushed. This guarantees that when popping values from the advice stack, the
-    /// quotient will be returned first, and the remainder will be returned next.
+    /// Outputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [q0, q1, r0, r1, ...]
+    ///
+    /// Where (a0, a1) and (b0, b1) are the 32-bit limbs of the dividend and the divisor
+    /// respectively (with a0 representing the 32 lest significant bits and a1 representing the
+    /// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
+    /// the remainder respectively.
     ///
     /// # Errors
     /// Returns an error if the divisor is ZERO.
@@ -114,13 +135,16 @@ where
     /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
     /// computes its multiplicative inverse and push the result onto the advice stack.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [a1, a0, ...]
+    ///   Advice stack: [...]
     ///
-    /// [a1, a0, ...]
+    /// Outputs:
+    ///   Operand stack: [a1, a0, ...]
+    ///   Advice stack: [b0, b1...]
     ///
-    /// The result (i.e., b0, b1) is pushed onto the advice stack as follows: first b1 is pushed,
-    /// then b0 is pushed. Thus, when the VM reads data from the advice stack, it will first read
-    /// b0, and then b1.
+    /// Where (b0, b1) is the multiplicative inverse of the extension field element (a0, a1) at the
+    /// top of the stack.
     ///
     /// # Errors
     /// Returns an error if the input is a zero element in the extension field.
@@ -140,26 +164,28 @@ where
         Ok(())
     }
 
-    /// Given evaluations of a polynomial over some specified domain, this routine interpolates the
-    /// evaluations into a polynomial in coefficient form, and pushes the results onto the advice
-    /// stack.
+    /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
+    ///  into a polynomial in coefficient form and pushes the result into the advice stack.
     ///
     /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
     /// in the quadratic extension.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [...]
     ///
-    /// [output_size, input_size, input_ptr, ...]
+    /// Outputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [coefficients...]
     ///
     /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
     ///   Must be a power of 2 and greater 1.
     /// - `output_size` is the number of coefficients in the interpolated polynomial (each
     ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
     ///   input evaluations.
-    /// - `input_ptr` is the memory address of the first evaluation.
-    ///
-    /// The result is pushed onto the advice stack such that the high-degree coefficients are
-    /// pushed first, and the zero-degree coefficient is pushed last.
+    /// - `input_start_ptr` is the memory address of the first evaluation.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
+    ///   degree coefficients are located at the top of the advice stack.
     ///
     /// # Errors
     /// Returns an error if:
@@ -217,22 +243,27 @@ where
         Ok(())
     }
 
-    /// Pushes the value and depth flags of a leaf indexed by `KEY` on a Sparse Merkle tree with
-    /// the provided `ROOT`.
+    /// Pushes values onto the advice stack which are required for successful retrieval of a
+    /// value from a Sparse Merkle Tree data structure.
     ///
     /// The Sparse Merkle tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
     /// The depth flags define the tier on which the leaf is located.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
     ///
-    /// [KEY, ROOT, ...]
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [f0, f1, K, V, f2]
     ///
-    /// After a successful operation, the advice stack will look as follows (from the top):
-    /// - boolean flag set to `1` if the depth is `16` or `48`.
-    /// - boolean flag set to `1` if the depth is `16` or `32`.
-    /// - remaining key word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - value word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - boolean flag set to `1` if a remaining key is not zero.
+    /// Where:
+    /// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - K is the remaining key word; will be zeroed if the tree don't contain a mapped value
+    ///   for the key.
+    /// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - f2 is a boolean flag set to `1` if a remaining key is not zero.
     ///
     /// # Errors
     /// Will return an error if:

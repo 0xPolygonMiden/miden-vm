@@ -35,7 +35,7 @@ where
     /// Process the specified advice injector.
     pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
-            AdviceInjector::MerkleTreeMerge => self.merge_merkle_trees(),
+            AdviceInjector::MerkleNodeMerge => self.merge_merkle_nodes(),
             AdviceInjector::MerkleNodeToStack => self.copy_merkle_node_to_adv_stack(),
             AdviceInjector::MapValueToStack => self.copy_map_value_to_adv_stack(),
             AdviceInjector::DivU64 => self.push_u64_div_result(),
@@ -43,6 +43,7 @@ where
             AdviceInjector::Ext2Intt => self.push_ext2_intt_result(),
             AdviceInjector::SmtGet => self.push_smtget_inputs(),
             AdviceInjector::MemToMap => self.insert_mem_values_into_adv_map(),
+            AdviceInjector::HdwordToMap { domain } => self.insert_hdword_into_adv_map(*domain),
         }
     }
 
@@ -52,9 +53,13 @@ where
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
     /// specified roots. The root of the new tree is defined as `Hash(LEFT_ROOT, RIGHT_ROOT)`.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [RIGHT_ROOT, LEFT_ROOT, ...]
+    ///   Merkle store: {RIGHT_ROOT, LEFT_ROOT}
     ///
-    /// [RIGHT_ROOT, LEFT_ROOT, ...]
+    /// Outputs:
+    ///   Operand stack: [RIGHT_ROOT, LEFT_ROOT, ...]
+    ///   Merkle store: {RIGHT_ROOT, LEFT_ROOT, hash(LEFT_ROOT, RIGHT_ROOT)}
     ///
     /// After the operation, both the original trees and the new tree remains in the advice
     /// provider (i.e., the input trees are not removed).
@@ -62,7 +67,7 @@ where
     /// # Errors
     /// Return an error if a Merkle tree for either of the specified roots cannot be found in this
     /// advice provider.
-    fn merge_merkle_trees(&mut self) -> Result<(), ExecutionError> {
+    fn merge_merkle_nodes(&mut self) -> Result<(), ExecutionError> {
         // fetch the arguments from the stack
         let lhs = self.stack.get_word(1);
         let rhs = self.stack.get_word(0);

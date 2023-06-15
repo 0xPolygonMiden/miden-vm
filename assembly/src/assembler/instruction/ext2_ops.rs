@@ -1,5 +1,5 @@
 use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::{AdviceInjector::Ext2Inv, Decorator};
+use vm_core::AdviceInjector::Ext2Inv;
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
@@ -52,7 +52,7 @@ pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 ///
 /// This operation takes 11 VM cycles.
 pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_decorator(Decorator::Advice(Ext2Inv))?;
+    span.push_advice_injector(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
         AdvPop,      // [b0', b1, b0, a1, a0, ...]
@@ -112,7 +112,7 @@ pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 ///
 /// This operation takes 8 VM cycles.
 pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_decorator(Decorator::Advice(Ext2Inv))?;
+    span.push_advice_injector(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
         AdvPop,   // [a0', a1, a0, ...]

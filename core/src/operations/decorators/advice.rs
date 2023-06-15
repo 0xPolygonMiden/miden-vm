@@ -1,3 +1,4 @@
+use crate::Felt;
 use core::fmt;
 
 // ADVICE INJECTORS
@@ -9,8 +10,8 @@ use core::fmt;
 /// These actions can affect all 3 components of the advice provider: Merkle store, advice stack,
 /// and advice map.
 ///
-/// Most of these actions are exposed to the user via Miden assembly instructions, but some actions
-/// are used only within higher-level instructions.
+/// All actions, except for `MerkleNodeMerge` and `Ext2Inv`, can be invoked directly from Miden
+/// assembly via dedicated instructions.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AdviceInjector {
     // MERKLE STORE INJECTORS
@@ -18,107 +19,163 @@ pub enum AdviceInjector {
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
     /// specified roots. The root of the new tree is defined as `Hash(LEFT_ROOT, RIGHT_ROOT)`.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [RIGHT_ROOT, LEFT_ROOT, ...]
+    ///   Merkle store: {RIGHT_ROOT, LEFT_ROOT}
     ///
-    /// [RIGHT_ROOT, LEFT_ROOT, ...]
+    /// Outputs:
+    ///   Operand stack: [RIGHT_ROOT, LEFT_ROOT, ...]
+    ///   Merkle store: {RIGHT_ROOT, LEFT_ROOT, hash(LEFT_ROOT, RIGHT_ROOT)}
     ///
     /// After the operation, both the original trees and the new tree remains in the advice
     /// provider (i.e., the input trees are not removed).
-    MerkleTreeMerge,
+    MerkleNodeMerge,
 
     // ADVICE STACK INJECTORS
     // --------------------------------------------------------------------------------------------
     /// Pushes a node of the Merkle tree specified by the values on the top of the operand stack
     /// onto the advice stack.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [depth, index, TREE_ROOT, ...]
+    ///   Advice stack: [...]
+    ///   Merkle store: {TREE_ROOT<-NODE}
     ///
-    /// [depth, index, TREE_ROOT, ...]
+    /// Outputs:
+    ///   Operand stack: [depth, index, TREE_ROOT, ...]
+    ///   Advice stack: [NODE, ...]
+    ///   Merkle store: {TREE_ROOT<-NODE}
     MerkleNodeToStack,
 
-    /// Pushes a list of field elements onto the advice stack. The list is looked up in the
-    /// key-value map maintained by the advice provider using the top 4 elements of the operand
-    /// stack as key.
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map using the top 4 elements (i.e. word) from the operand stack as the key.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ...]
+    ///   Advice stack: [values, ...]
+    ///   Advice map: {KEY: values}
     MapValueToStack,
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
     ///
-    /// The operand stack is expected to be arranged as follows (from the top):
-    /// - divisor split into two 32-bit elements
-    /// - dividend split into two 32-bit elements
+    /// Inputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [...]
     ///
-    /// The result is pushed onto the advice stack as follows: first the remainder is pushed,
-    /// then the quotient.
+    /// Outputs:
+    ///   Operand stack: [b1, b0, a1, a0, ...]
+    ///   Advice stack: [q0, q1, r0, r1, ...]
+    ///
+    /// Where (a0, a1) and (b0, b1) are the 32-bit limbs of the dividend and the divisor
+    /// respectively (with a0 representing the 32 lest significant bits and a1 representing the
+    /// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
+    /// the remainder respectively.
     DivU64,
 
     /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
     /// computes its multiplicative inverse and push the result onto the advice stack.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [a1, a0, ...]
+    ///   Advice stack: [...]
     ///
-    /// [a1, a0, ...]
+    /// Outputs:
+    ///   Operand stack: [a1, a0, ...]
+    ///   Advice stack: [b0, b1...]
     ///
-    /// The result (i.e., b0, b1) is pushed onto the advice stack as follows: first b1 is pushed,
-    /// then b0 is pushed. Thus, when the VM reads data from the advice stack, it will first read
-    /// b0, and then b1.
+    /// Where (b0, b1) is the multiplicative inverse of the extension field element (a0, a1) at the
+    /// top of the stack.
     Ext2Inv,
 
-    /// Given evaluations of a polynomial over some specified domain, this routine interpolates
-    /// the evaluations into a polynomial in coefficient form and pushes the result into the advice
-    /// stack.
+    /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
+    ///  into a polynomial in coefficient form and pushes the result into the advice stack.
     ///
     /// The interpolation is performed using the iNTT algorithm. The evaluations are expected to be
     /// in the quadratic extension.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [...]
     ///
-    /// [output_size, input_size, input_start_ptr, ...]
+    /// Outputs:
+    ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
+    ///   Advice stack: [coefficients...]
     ///
     /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
     ///   Must be a power of 2 and greater 1.
     /// - `output_size` is the number of coefficients in the interpolated polynomial (each
     ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
     ///   input evaluations.
-    /// - Memory address of the first evaluation.
-    ///
-    /// The result is pushed onto the advice stack such that the high-degree coefficients are
-    /// pushed first, and the zero-degree coefficient is pushed last.
+    /// - `input_start_ptr` is the memory address of the first evaluation.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
+    ///   degree coefficients are located at the top of the advice stack.
     Ext2Intt,
 
-    /// Pushes the value and depth flags of a leaf indexed by `KEY` on a Sparse Merkle tree with
-    /// the provided `ROOT`.
+    /// Pushes values onto the advice stack which are required for successful retrieval of a
+    /// value from a Sparse Merkle Tree data structure.
     ///
     /// The Sparse Merkle tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
     /// The depth flags define the tier on which the leaf is located.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
     ///
-    /// [KEY, ROOT, ...]
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [f0, f1, K, V, f2]
     ///
-    /// After a successful operation, the advice stack will look as follows:
-    /// - boolean flag set to `1` if the depth is `16` or `48`.
-    /// - boolean flag set to `1` if the depth is `16` or `32`.
-    /// - remaining key word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - value word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - boolean flag set to `1` if a remaining key is not zero.
+    /// Where:
+    /// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - K is the remaining key word; will be zeroed if the tree don't contain a mapped value
+    ///   for the key.
+    /// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - f2 is a boolean flag set to `1` if a remaining key is not zero.
     SmtGet,
 
     // ADVICE MAP INJECTORS
     // --------------------------------------------------------------------------------------------
-    /// Reads words from memory range `start_addr .. end_addr` and insert into the advice map
-    /// under the key `KEY`.
+    /// Reads words from memory at the specified range and inserts them into the advice map under
+    /// the key `KEY` located at the top of the stack.
     ///
-    /// The operand stack is expected to be arranged as follows:
+    /// Inputs:
+    ///   Operand stack: [KEY, start_addr, end_addr, ...]
+    ///   Advice map: {...}
     ///
-    /// [KEY, start_addr, end_addr, ...]
+    /// Outputs:
+    ///   Operand stack: [KEY, start_addr, end_addr, ...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Where `values` are the elements located in memory[start_addr..end_addr].
     MemToMap,
+
+    /// Reads two word from the operand stack and inserts them into the advice map under the key
+    /// defined by the hash of these words.
+    ///
+    /// Inputs:
+    ///   Operand stack: [B, A, ...]
+    ///   Advice map: {...}
+    ///
+    /// Outputs:
+    ///   Operand stack: [B, A, ...]
+    ///   Advice map: {KEY: [a0, a1, a2, a3, b0, b1, b2, b3]}
+    ///
+    /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
+    /// value.
+    HdwordToMap { domain: Felt },
 }
 
 impl fmt::Display for AdviceInjector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MerkleTreeMerge => write!(f, "merkle_tree_merge"),
+            Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
             Self::MapValueToStack => write!(f, "map_value_to_stack"),
             Self::DivU64 => write!(f, "div_u64"),
@@ -126,6 +183,7 @@ impl fmt::Display for AdviceInjector {
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
             Self::MemToMap => write!(f, "mem_to_map"),
+            Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
         }
     }
 }

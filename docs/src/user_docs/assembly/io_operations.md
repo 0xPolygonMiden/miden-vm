@@ -1,12 +1,10 @@
 ## Input / output operations
-Miden assembly provides a set of instructions for moving data between the stack and several other sources. These sources include:
+Miden assembly provides a set of instructions for moving data between the operand stack and several other sources. These sources include:
 
-* **Program code**: values to be moved onto the stack can be hard-coded in a program's source code.
-* **Environment**: values can be moved onto the stack from environment variables. Currently, the available environment variables are *stack_depth*, which holds the current depth of the stack, and *local_address*, which stores absolute addresses of local variables. In the future, other environment variables may be added.
-* **Advice stack**: values can be moved onto the stack from the advice provider by popping them from the advice stack. There is no limit on the number of values in the advice stack.
+* **Program code**: values to be moved onto the operand stack can be hard-coded in a program's source code.
+* **Environment**: values can be moved onto the operand stack from environment variables. These include current clock cycle, current stack depth, and a few others.
+* **Advice provider**: values can be moved onto the operand stack from the advice provider by popping them from the advice stack (see more about the advice provider [here](../../intro/overview.md#nondeterministic-inputs)). The VM can also inject new data into the advice provider via *advice injector* instructions.
 * **Memory**: values can be moved between the stack and random-access memory. The memory is word-addressable, meaning, four elements are located at each address, and we can read and write elements to/from memory in batches of four. Memory can be accessed via absolute memory references (i.e., via memory addresses) as well as via local procedure references (i.e., local index). The latter approach ensures that a procedure does not access locals of another procedure.
-
-In the future several other sources such as *storage* and *logs* may be added.
 
 ### Constant inputs
 
@@ -26,21 +24,36 @@ In both case the values must still encode valid field elements.
 
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
+| clk <br> - *(1 cycle)*           | [ ... ] | [t, ... ] | $t \leftarrow clock\_value()$ <br> Pushes the current value of the clock cycle counter onto the stack. |
 | sdepth <br> - *(1 cycle)*        | [ ... ] | [d, ... ] | $d \leftarrow stack.depth()$ <br> Pushes the current depth of the stack onto the stack. |
 | caller <br> - *(1 cycle)*        | [A, b, ... ] | [H, b, ... ] | $H \leftarrow context.fn\_hash()$ <br> Overwrites the top four stack items with the hash of a function which initiated the current SYSCALL. <br> Executing this instruction outside of SYSCALL context will fail. |
 | locaddr.*i* <br> - *(2 cycles)*  | [ ... ] | [a, ... ] | $a \leftarrow address\_of(i)$ <br> Pushes the absolute memory address of local memory at index $i$ onto the stack. |
-| clk <br> - *(1 cycle)*           | [ ... ] | [t, ... ] | $t \leftarrow clock\_value()$ <br> Pushes the current value of the clock cycle counter onto the stack. |
 
-### Non-deterministic inputs
+### Nondeterministic inputs
+
+As mentioned above, nondeterministic inputs are provided to the VM via the advice provider. Instructs which access the advice provider fall into two categories. The first category consists of instructions which move data from the advice stack onto the operand stack and/or memory.
 
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
 | adv_push.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow stack.pop()$ <br> Pops $n$ values from the advice stack and pushes them onto the operand stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice stack has fewer than $n$ values. |
 | adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow stack.pop(4)$ <br> Pop the next word (4 elements) from the advice stack and overwrites the first word of the operand stack (4 elements) with them. <br> Fails if the advice stack has fewer than $4$ values. |
-| adv_pipe <br> - *(1 cycle)*     | [C, B, A, a, ... ] | [E, D, A, a', ... ] | $[D, E] \leftarrow [adv_stack.pop(4), adv_stack.pop(4)]$ <br> $a' \leftarrow a + 2$ <br> Pops the next two words from the advice stack, overwrites the top of the operand stack with them and also writes these words into memory at address $a$ and $a + 1$.<br> Fails if the advice stack has fewer than $8$ values. |
-| adv.insert_mem <br> - *(0 cycles)*     | [W, b, a, ... ] | [W, b, a, ... ] | Reads words $data \leftarrow mem[b] .. mem[b + a]$ from memory, and save the data $advice_map[W] \leftarrow data$. |
+| adv_pipe <br> - *(1 cycle)*     | [C, B, A, a, ... ] | [E, D, A, a', ... ] | $[D, E] \leftarrow [adv\_stack.pop(4), adv\_stack.pop(4)]$ <br> $a' \leftarrow a + 2$ <br> Pops the next two words from the advice stack, overwrites the top of the operand stack with them and also writes these words into memory at address $a$ and $a + 1$.<br> Fails if the advice stack has fewer than $8$ values. |
 
 > **Note**: The opcodes above always push data onto the operand stack so that the first element is placed deepest in the stack. For example, if the data on the stack is `a,b,c,d` and you use the opcode `adv_push.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.
+
+The second category injects new data into the advice provider. These operations are called *advice injectors* and they affect only the advice provider state. That is, the state of all other VM components (e.g., stack, memory) are unaffected. Executing advice injectors does not consume any VM cycles (i.e., these instructions are executed in $0$ cycles).
+
+Advice injectors fall into two categories: (1) injectors which push new data onto the advice stack, and (2) injectors which insert new data into the advice map.
+
+| Instruction       | Stack_input | Stack_output | Notes                                      |
+| ----------------- | ----------- | ------------ | ------------------------------------------ |
+| adv.push_mapval   | [K, ... ]   | [K, ... ]    | Pushes a list of field elements onto the advice stack. The list is looked up in the advice map using workd $K$ as the key. |
+| adv.push_mtnode   | [d, i, R, ... ] | [d, i, R, ... ] | Pushes a node of a Merkle tree with root $R$ at depth $d$ and index $i$ from Merkle store onto the advice stack. |
+| adv.push_u64div   | [b1, b0, a1, a0, ...] | [b1, b0, a1, a0, ...] | Pushes the result of `u64` division $a / b$ onto the advice stack. Both $a$ and $b$ are represented using 32-bit limbs. The result consists of both the quotient and the remainder. |
+| adv.push_ext2intt | [osize, isize, iptr, ... ] | [osize, isize, iptr, ... ] | Given evaluations of a polynomial over some specified domain, interpolates the evaluations into a polynomial in coefficient form and pushes the result into the advice stack. |
+| adv.smt_get       | [K, R, ... ] | [K, R, ... ] | Pushes values onto the advice stack which are required for successful retrieval of a  value under the key $K$ from a Sparse Merkle Tree with root $R$. |
+| adv.insert_mem    | [K, a, b, ... ] | [K, a, b, ... ] | Reads words $data \leftarrow mem[a] .. mem[b]$ from memory, and save the data into $advice\_map[K] \leftarrow data$. |
+| adv.insert_hdword <br> adv.insert_hdword.*d* | [B, A, ... ] | [B, A, ... ] | Reads top two words from the stack, computes a key as $K \leftarrow hash(A || b, d)$, and saves the data into $advice\_map[K] \leftarrow [A, B]$. $d$ is an optional domain value which can be between $0$ and $255$, default value $0$. |
 
 ### Random access memory
 

@@ -94,15 +94,6 @@ impl SpanBuilder {
         self.push_decorator(Decorator::Advice(injector));
     }
 
-    /// Adds the specified decorator to the list of span decorators and returns Ok(None).
-    pub fn add_decorator(
-        &mut self,
-        decorator: Decorator,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        self.push_decorator(decorator);
-        Ok(None)
-    }
-
     /// Adds an AsmOp decorator to the list of span decorators.
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for

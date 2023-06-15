@@ -193,7 +193,7 @@ fn test_ast_parsing_adv_ops() {
 
 #[test]
 fn test_ast_parsing_adv_injection() {
-    use super::AdviceInjector::*;
+    use super::AdviceInjectorNode::*;
     use Instruction::AdvInject;
 
     let source = "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end";

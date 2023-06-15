@@ -14,7 +14,7 @@ use vm_core::{
 };
 
 #[test]
-fn inject_merkle_node() {
+fn push_merkle_node() {
     let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
     let tree = MerkleTree::new(leaves.to_vec()).unwrap();
     let store = MerkleStore::from(&tree);
@@ -60,7 +60,7 @@ fn inject_merkle_node() {
 }
 
 #[test]
-fn inject_smtget() {
+fn push_smtget() {
     // setup the test
     let empty = EmptySubtreeRoots::empty_hashes(64);
     let initial_root = Word::from(empty[0]);

@@ -1,5 +1,5 @@
 use super::{
-    super::AdviceInjector, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
+    super::AdviceInjectorNode, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
     Instruction, Node, OpCode, ProcedureId, RpoDigest, MAX_PUSH_INPUTS,
 };
 
@@ -333,7 +333,7 @@ impl Deserializable for Instruction {
             OpCode::AdvPush => Ok(Instruction::AdvPush(source.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
 
-            OpCode::AdvInject => Ok(Instruction::AdvInject(AdviceInjector::read_from(source)?)),
+            OpCode::AdvInject => Ok(Instruction::AdvInject(AdviceInjectorNode::read_from(source)?)),
 
             // ----- cryptographic operations -----------------------------------------------------
             OpCode::Hash => Ok(Instruction::Hash),
