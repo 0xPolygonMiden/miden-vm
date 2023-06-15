@@ -47,6 +47,11 @@ end
 #! Cycles: 104
 export.init_seed
 
+    # Save the parameters in memory for later use
+    dup exec.constants::trace_length_log_ptr mem_store
+    dup.1 exec.constants::number_queries_ptr mem_store
+    dup.3 exec.constants::grinding_factor_ptr mem_store
+
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
@@ -78,7 +83,6 @@ export.init_seed
 
     ## Save the trace length and its log to memory
     dup.0 exec.constants::trace_length_ptr mem_store
-    dup.1 exec.constants::trace_length_log_ptr mem_store
 
     ## Assert blowup is equal to 8
     ##  Cycles: 6
@@ -416,14 +420,12 @@ end
 #! Output: [...]
 #! Cycles: 21 + 10 * log(N)
 export.generate_z_zN
-    # Load z (first two felts of the random coin state) and trace length N
+    # Load z (first two felts of the random coin state) and log trace length N
     exec.constants::r1_ptr mem_loadw
-    push.0.0
-    exec.constants::parameters_ptr mem_loadw
-    movdn.3
-    drop drop drop
+    drop drop
+    exec.constants::trace_length_log_ptr mem_load
 
-    # Compute z^N
+    # Compute z^N using the fact that z^N = z^(2^log(N))
     dup.2
     dup.2
     push.1

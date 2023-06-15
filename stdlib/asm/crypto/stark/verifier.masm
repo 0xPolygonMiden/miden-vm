@@ -39,9 +39,6 @@ export.verify
     #       I)  Hash proof context and hash-&-load public inputs
     #==============================================================================================
 
-    # Save the parameters in memory for later use
-    exec.constants::parameters_ptr mem_storew
-
     # Initialize the seed using proof context
     #
     # Cycles: 82
@@ -200,9 +197,7 @@ export.verify
     #============================================
 
     # Cycles: 53
-    padw
-    exec.constants::parameters_ptr mem_loadw
-    drop drop drop
+    exec.constants::grinding_factor_ptr mem_load
     exec.random_coin::check_pow
     #=> [...]
 
@@ -214,9 +209,7 @@ export.verify
     # Compute the pointer to the first query using the pointer to
     # the first layer commitment and total number of queries.
     exec.constants::fri_com_ptr
-    padw
-    exec.constants::parameters_ptr mem_loadw
-    drop swap.2 drop drop
+    exec.constants::number_queries_ptr mem_load
     dup movdn.2
     sub
     #=> [query_ptr, num_queries, ...]
