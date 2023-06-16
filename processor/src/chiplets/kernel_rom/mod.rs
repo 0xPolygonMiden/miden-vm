@@ -112,13 +112,12 @@ impl KernelRom {
 
             // write at least one row into the trace for each kernel procedure
             access_info.write_into_trace(trace, row, idx);
-            row += 1;
-
             // provide the kernel procedure to the chiplets bus, if it was accessed at least once
             let lookup = KernelProcLookup::new(access_info.proc_hash);
-            if access_info.num_accesses == 1 {
+            if access_info.num_accesses >= 1 {
                 chiplets_bus.provide_kernel_proc_call(lookup, (kernel_rom_start_row + row) as u32);
             }
+            row += 1;
 
             // if the procedure was accessed more than once, we need write a row and provide the
             // procedure to the bus per additional access

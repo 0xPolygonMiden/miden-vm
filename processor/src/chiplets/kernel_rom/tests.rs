@@ -1,4 +1,8 @@
-use super::{ChipletsBus, Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
+use super::{
+    super::bus::{ChipletLookup, ChipletsBusRow},
+    ChipletsBus, Felt, Kernel, KernelProcLookup, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH,
+    ZERO,
+};
 use vm_core::utils::collections::Vec;
 
 // CONSTANTS
@@ -38,7 +42,7 @@ fn kernel_rom_no_access() {
     assert_eq!(expected_trace_len, rom.trace_len());
 
     // generate trace
-    let trace = build_trace(rom, expected_trace_len);
+    let (trace, _) = build_trace(rom, expected_trace_len);
 
     // first row of the trace should correspond to the first procedure
     let row = 0;
@@ -77,7 +81,7 @@ fn kernel_rom_with_access() {
     assert_eq!(expected_trace_len, rom.trace_len());
 
     // generate trace
-    let trace = build_trace(rom, expected_trace_len);
+    let (trace, chiplets_bus) = build_trace(rom, expected_trace_len);
 
     // first 3 rows of the trace should correspond to the first procedure
     for row in 0..3 {
@@ -98,6 +102,16 @@ fn kernel_rom_with_access() {
         assert_eq!(trace[4][row], PROC2_HASH[2]);
         assert_eq!(trace[5][row], PROC2_HASH[3]);
     }
+
+    // make sure the lookups were sent to the bus correctly from the kernel rom chiplet
+    let proc1_lookup = KernelProcLookup::new(PROC1_HASH);
+    let proc2_lookup = KernelProcLookup::new(PROC2_HASH);
+
+    verify_bus(&chiplets_bus, 0, 0, &proc1_lookup);
+    verify_bus(&chiplets_bus, 1, 1, &proc1_lookup);
+    verify_bus(&chiplets_bus, 2, 2, &proc1_lookup);
+    verify_bus(&chiplets_bus, 3, 3, &proc2_lookup);
+    verify_bus(&chiplets_bus, 4, 4, &proc2_lookup);
 }
 
 // HELPER FUNCTIONS
@@ -110,11 +124,29 @@ fn build_kernel() -> Kernel {
 
 /// Builds a trace of the specified length and fills it with data from the provided KernelRom
 /// instance.
-fn build_trace(kernel_rom: KernelRom, num_rows: usize) -> Vec<Vec<Felt>> {
+fn build_trace(kernel_rom: KernelRom, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
     let mut chiplets_bus = ChipletsBus::default();
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     kernel_rom.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 
-    trace
+    (trace, chiplets_bus)
+}
+
+/// Verifies that the chiplet bus received the specified KernelProcLookup response at `cycle` which
+/// was added to the list of responses at `index`.
+fn verify_bus(
+    chiplets_bus: &ChipletsBus,
+    index: usize,
+    cycle: u32,
+    proc_lookup: &KernelProcLookup,
+) {
+    let expected_lookup = ChipletLookup::KernelRom(*proc_lookup);
+    let expected_hint = ChipletsBusRow::new(&[], Some(index as u32));
+
+    let lookup = chiplets_bus.get_response_row(index);
+    let hint = chiplets_bus.get_lookup_hint(cycle).unwrap();
+
+    assert_eq!(expected_lookup, lookup);
+    assert_eq!(&expected_hint, hint);
 }

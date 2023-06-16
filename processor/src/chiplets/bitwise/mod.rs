@@ -244,15 +244,16 @@ pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
 // ================================================================================================
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BitwiseLookup {
-    op_id: Felt,
+    // unique label identifying the bitwise operation
+    label: Felt,
     a: Felt,
     b: Felt,
     z: Felt,
 }
 
 impl BitwiseLookup {
-    pub fn new(op_id: Felt, a: Felt, b: Felt, z: Felt) -> Self {
-        Self { op_id, a, b, z }
+    pub fn new(label: Felt, a: Felt, b: Felt, z: Felt) -> Self {
+        Self { label, a, b, z }
     }
 }
 
@@ -265,7 +266,7 @@ impl LookupTableRow for BitwiseLookup {
         alphas: &[E],
     ) -> E {
         alphas[0]
-            + alphas[1].mul_base(self.op_id)
+            + alphas[1].mul_base(self.label)
             + alphas[2].mul_base(self.a)
             + alphas[3].mul_base(self.b)
             + alphas[4].mul_base(self.z)
