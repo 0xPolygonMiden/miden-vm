@@ -56,7 +56,7 @@ let stack_inputs = StackInputs::default();
 let mut advice_provider = MemAdviceProvider::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut advice_provider).unwrap();
+let trace = execute(&program, stack_inputs.clone(), advice_provider.clone()).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
 for vm_state in execute_iter(&program, stack_inputs, advice_provider) {

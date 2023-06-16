@@ -124,6 +124,10 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
     let path0 = tree.get_path(NodeIndex::new(1, 0).unwrap()).unwrap();
+    let path0 = Vec::<Digest>::from(path0)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
 
@@ -146,6 +150,10 @@ fn hasher_build_merkle_root() {
     );
 
     let path1 = tree.get_path(NodeIndex::new(1, 1).unwrap()).unwrap();
+    let path1 = Vec::<Digest>::from(path1)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[1], &path1, ONE, &mut lookups);
 
@@ -194,6 +202,10 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
     let path = tree.get_path(NodeIndex::new(3, 5).unwrap()).unwrap();
+    let path = Vec::<Digest>::from(path)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[5], &path, Felt::new(5), &mut lookups);
 
@@ -233,6 +245,10 @@ fn hasher_build_merkle_root() {
     let mut hasher = Hasher::default();
 
     let path0 = tree.get_path(NodeIndex::new(3, 0).unwrap()).unwrap();
+    let path0 = Vec::<Digest>::from(path0)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
 
@@ -255,6 +271,10 @@ fn hasher_build_merkle_root() {
     );
 
     let path3 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
+    let path3 = Vec::<Digest>::from(path3)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[3], &path3, Felt::new(3), &mut lookups);
 
@@ -281,6 +301,10 @@ fn hasher_build_merkle_root() {
     );
 
     let path7 = tree.get_path(NodeIndex::new(3, 7).unwrap()).unwrap();
+    let path7 = Vec::<Digest>::from(path7)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[7], &path7, Felt::new(7), &mut lookups);
 
@@ -356,6 +380,10 @@ fn hasher_update_merkle_root() {
     let mut hasher = Hasher::default();
 
     let path0 = tree.get_path(NodeIndex::new(1, 0).unwrap()).unwrap();
+    let path0 = Vec::<Digest>::from(path0)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let new_leaf0 = init_leaf(3);
     let mut lookups = Vec::new();
     let lookup_start_addr = 1;
@@ -388,6 +416,10 @@ fn hasher_update_merkle_root() {
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     let path1 = tree.get_path(NodeIndex::new(1, 1).unwrap()).unwrap();
+    let path1 = Vec::<Digest>::from(path1)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let new_leaf1 = init_leaf(4);
     let mut lookups = Vec::new();
 
@@ -467,6 +499,10 @@ fn hasher_update_merkle_root() {
     let mut hasher = Hasher::default();
 
     let path3 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
+    let path3 = Vec::<Digest>::from(path3)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let new_leaf3 = init_leaf(23);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(leaves[3], new_leaf3, &path3, Felt::new(3), &mut lookups);
@@ -504,6 +540,10 @@ fn hasher_update_merkle_root() {
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     let path6 = tree.get_path(NodeIndex::new(3, 6).unwrap()).unwrap();
+    let path6 = Vec::<Digest>::from(path6)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let new_leaf6 = init_leaf(25);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6), &mut lookups);
@@ -542,6 +582,10 @@ fn hasher_update_merkle_root() {
 
     // update leaf 3 again
     let path3_2 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
+    let path3_2 = Vec::<Digest>::from(path3_2)
+        .into_iter()
+        .map(|node| node.into())
+        .collect::<Vec<_>>();
     let new_leaf3_2 = init_leaf(27);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3), &mut lookups);

@@ -377,6 +377,6 @@ impl SmtLeaf {
 
     /// Insert the leaf onto the [MerkleStore], returning the new root value.
     pub fn insert(&self, store: &mut MerkleStore, root: Word) -> Word {
-        store.set_node(root.into(), self.index, self.node.into()).unwrap().root.into()
+        *store.set_node(root.into(), self.index, self.node.into()).unwrap().root
     }
 }

@@ -1,7 +1,9 @@
 use super::{
-    AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
-    MerklePath, MerkleStore, NodeIndex, StarkField, Vec, Word,
+    AdviceInputs, BTreeMap, Felt, KvMap, MerkleMap, MerkleStore, StackMapStoreProvider, Vec,
 };
+
+#[cfg(test)]
+use super::{NodeIndex, Word};
 
 // MEMORY ADVICE PROVIDER
 // ================================================================================================
@@ -31,60 +33,27 @@ impl From<AdviceInputs> for MemAdviceProvider {
     }
 }
 
-impl AdviceProvider for MemAdviceProvider {
-    // ADVICE STACK
-    // --------------------------------------------------------------------------------------------
+impl StackMapStoreProvider for MemAdviceProvider {
+    type Map = MerkleMap;
 
-    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
-        self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(self.step))
+    fn get_step(&self) -> u32 {
+        self.step
     }
 
-    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
-        if self.stack.len() < 4 {
-            return Err(ExecutionError::AdviceStackReadFailed(self.step));
-        }
-
-        let idx = self.stack.len() - 4;
-        let result =
-            [self.stack[idx + 3], self.stack[idx + 2], self.stack[idx + 1], self.stack[idx]];
-
-        self.stack.truncate(idx);
-
-        Ok(result)
+    fn get_step_mut(&mut self) -> &mut u32 {
+        &mut self.step
     }
 
-    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.pop_stack_word()?;
-        let word1 = self.pop_stack_word()?;
-
-        Ok([word0, word1])
+    fn get_stack(&self) -> &[Felt] {
+        &self.stack
     }
 
-    fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
-        match source {
-            AdviceSource::Value(value) => {
-                self.stack.push(value);
-                Ok(())
-            }
-
-            AdviceSource::Map { key, include_len } => {
-                let values = self
-                    .map
-                    .get(&key.into_bytes())
-                    .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
-
-                self.stack.extend(values.iter().rev());
-                if include_len {
-                    self.stack.push(Felt::from(values.len() as u64));
-                }
-                Ok(())
-            }
-        }
+    fn get_stack_mut(&mut self) -> &mut Vec<Felt> {
+        &mut self.stack
     }
 
-    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
-        self.map.insert(key.into_bytes(), values);
-        Ok(())
+    fn get_map(&self) -> &dyn KvMap<[u8; 32], Vec<Felt>> {
+        &self.map
     }
 
     // ADVISE SETS
@@ -170,6 +139,18 @@ impl AdviceProvider for MemAdviceProvider {
 
     fn advance_clock(&mut self) {
         self.step += 1;
+    }
+    
+    fn get_map_mut(&mut self) -> &mut dyn KvMap<[u8; 32], Vec<Felt>> {
+        &mut self.map
+    }
+
+    fn get_store(&self) -> &MerkleStore {
+        &self.store
+    }
+
+    fn get_store_mut(&mut self) -> &mut MerkleStore {
+        &mut self.store
     }
 }
 

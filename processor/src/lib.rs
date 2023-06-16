@@ -40,7 +40,9 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
+pub use advice::{
+    AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider,
+};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -68,7 +70,7 @@ pub mod math {
 pub mod crypto {
     pub use vm_core::crypto::{
         hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, RpoDigest},
-        merkle::{MerkleError, MerklePath, MerkleStore, MerkleTree, SimpleSmt},
+        merkle::{MerkleError, MerklePath, MerkleStore, MerkleTree, RecordingMerkleStore, SimpleSmt},
         random::{RandomCoin, RpoRandomCoin, WinterRandomCoin},
     };
 }

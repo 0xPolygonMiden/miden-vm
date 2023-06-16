@@ -10,8 +10,9 @@ pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
         pub use ::crypto::merkle::{
-            EmptySubtreeRoots, InnerNodeInfo, MerkleError, MerklePath, MerklePathSet, MerkleStore,
-            MerkleTree, Mmr, MmrPeaks, NodeIndex, SimpleSmt,
+            EmptySubtreeRoots, GenericMerkleStore, InnerNodeInfo, MerkleError, MerkleMap,
+            MerkleMapT, MerklePath, MerklePathSet, MerkleStore, MerkleTree, Mmr, MmrPeaks,
+            NodeIndex, RecordingMerkleMap, RecordingMerkleStore, SimpleSmt,
         };
     }
 
@@ -21,6 +22,10 @@ pub mod crypto {
             rpo::{Rpo256, RpoDigest},
             ElementHasher, Hasher,
         };
+    }
+
+    pub mod data {
+        pub use ::crypto::data::{KvMap, RecordingMap};
     }
 
     pub mod random {
