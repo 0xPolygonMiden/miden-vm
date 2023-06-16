@@ -62,13 +62,6 @@ const.DEEP_RAND_CC_PTR=4294903000
 # The total number of slots thus becomes 66. 
 const.FRI_COM_PTR=4294903200
 
-# This is defined to be FRI_COM_PTR - number_of_fri_queries. Allocating a 100 slots is ample for
-# all practical purposes.
-# Note that, once the recursive verifier is generalized over the number of FRI queries, this pointer
-# will be determined dynamically but will always fall between memory locations FRI_COM_PTR - 100 
-# and FRI_COM_PTR and hence these should always be allocated for FRI queries.
-const.FRI_QUERIES_PTR=4294903173
-
 # Commitment to main, auxiliary and composition polynomials traces
 const.MAIN_TRACE_COM_PTR=4294903300
 const.AUX_TRACE_COM_PTR=4294903301
@@ -77,22 +70,23 @@ const.COMPOSITION_POLY_COM_PTR=4294903302
 # Instant-specific constants
 const.LDE_SIZE_PTR=4294903303
 const.Z_PTR=4294903304
-const.PARAMETERS_PTR=4294903305
+const.NUM_QUERIES_PTR=4294903305
 const.TRACE_LENGTH_PTR=4294903306
 const.TRACE_LENGTH_LOG_PTR=4294903307
+const.GRINDING_FACTOR_PTR=4294903308
 
 # RPO capacity initialization words
-const.ZERO_WORD_PTR=4294903308
-const.ZERO_ZERO_ZERO_ONE_PTR=4294903309
+const.ZERO_WORD_PTR=4294903309
+const.ZERO_ZERO_ZERO_ONE_PTR=4294903310
 
 # State of RPO-based random coin
-const.C_PTR=4294903310
-const.R1_PTR=4294903311
-const.R2_PTR=4294903312
+const.C_PTR=4294903311
+const.R1_PTR=4294903312
+const.R2_PTR=4294903313
 
 # Address used for storing temporary values:
-const.TMP0=4294903313
-const.TMP1=4294903314
+const.TMP0=4294903314
+const.TMP1=4294903315
 const.TMP2=4294903316
 const.TMP3=4294903317
 const.TMP4=4294903318
@@ -100,6 +94,8 @@ const.TMP5=4294903319
 const.TMP6=4294903320
 const.TMP7=4294903321
 const.TMP8=4294903322
+
+
 
 #   The following is a table summarizing the memory pointers used:
 #   +------------------------------------------+-------------------------+
@@ -118,16 +114,17 @@ const.TMP8=4294903322
 #   | COMPOSITION_POLY_COM_PTR                 |       4294903302        |
 #   | LDE_SIZE_PTR                             |       4294903303        |
 #   | Z_PTR                                    |       4294903304        |
-#   | PARAMETERS_PTR                           |       4294903305        |
+#   | NUM_QUERIES_PTR                          |       4294903305        |
 #   | TRACE_LENGTH_PTR                         |       4294903306        |
 #   | TRACE_LENGTH_LOG_PTR                     |       4294903307        |
-#   | ZERO_WORD_PTR                            |       4294903308        |
-#   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294903309        |
-#   | C_PTR                                    |       4294903310        |
-#   | R1_PTR                                   |       4294903311        |
-#   | R2_PTR                                   |       4294903312        |
-#   | TMP0                                     |       4294903313        |
-#   | TMP1                                     |       4294903314        |
+#   | GRINDING_FACTOR_PTR                      |       4294903308        |
+#   | ZERO_WORD_PTR                            |       4294903309        |
+#   | ZERO_ZERO_ZERO_ONE_PTR                   |       4294903310        |
+#   | C_PTR                                    |       4294903311        |
+#   | R1_PTR                                   |       4294903312        |
+#   | R2_PTR                                   |       4294903313        |
+#   | TMP0                                     |       4294903314        |
+#   | TMP1                                     |       4294903315        |
 #   | TMP2                                     |       4294903316        |
 #   | TMP3                                     |       4294903317        |
 #   | TMP4                                     |       4294903318        |
@@ -204,8 +201,8 @@ export.z_ptr
     push.Z_PTR
 end
 
-export.parameters_ptr
-    push.PARAMETERS_PTR
+export.number_queries_ptr
+    push.NUM_QUERIES_PTR
 end
 
 export.trace_length_ptr
@@ -214,6 +211,10 @@ end
 
 export.trace_length_log_ptr
     push.TRACE_LENGTH_LOG_PTR
+end
+
+export.grinding_factor_ptr
+    push.GRINDING_FACTOR_PTR
 end
 
 export.zero_word

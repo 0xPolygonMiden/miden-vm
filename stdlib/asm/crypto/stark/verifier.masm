@@ -12,7 +12,7 @@ use.std::crypto::stark::constants
 
 #!   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
 #!   The following simplifying assumptions are currently made:
-#!   - The blowup is set to 8, the grinding to 16bits and number of FRI queries to 27.
+#!   - The blowup is set to 8.
 #!   - The maximal allowed degree of the remainder polynomial is 7.
 #!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
 #!   to public inputs.
@@ -30,17 +30,14 @@ use.std::crypto::stark::constants
 #! Output: []
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1498
+#!   4683 + num_queries * (70 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1498
 #!  2- Remainder codeword size 64:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 2792
+#!   4683 + num_queries * (70 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 2792
 export.verify
 
     #==============================================================================================
     #       I)  Hash proof context and hash-&-load public inputs
     #==============================================================================================
-
-    # Save the parameters in memory for later use
-    exec.constants::parameters_ptr mem_storew
 
     # Initialize the seed using proof context
     #
@@ -200,9 +197,7 @@ export.verify
     #============================================
 
     # Cycles: 53
-    padw
-    exec.constants::parameters_ptr mem_loadw
-    drop drop drop
+    exec.constants::grinding_factor_ptr mem_load
     exec.random_coin::check_pow
     #=> [...]
 
@@ -214,16 +209,15 @@ export.verify
     # Compute the pointer to the first query using the pointer to
     # the first layer commitment and total number of queries.
     exec.constants::fri_com_ptr
-    padw
-    exec.constants::parameters_ptr mem_loadw
-    drop swap.2 drop drop
+    exec.constants::number_queries_ptr mem_load
+    dup movdn.2
     sub
-    #=> [query_ptr, ...]
+    #=> [query_ptr, num_queries, ...]
 
     # Draw random query indices
     #
-    # Cycles: 798
-    dup
+    # Cycles: 470 + 236 * (num_queries / 8)
+    swap dup.1
     exec.random_coin::generate_list_indices
     #=> [query_ptr, ...]
 
@@ -258,7 +252,7 @@ export.verify
 
     # Call FRI verifier
     #
-    # Cycles: 7 + 4 + 27 * (40 + num_layers * 76 + 26)
+    # Cycles: 7 + 4 + num_queries * (40 + num_layers * 76 + 26)
     exec.frie2f4::verify
     #=> ()
 end

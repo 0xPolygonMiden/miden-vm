@@ -38,14 +38,19 @@ end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
 #! the trace length, number of queries, logarithm of blowup factor and the number of bits of
-#! grinding. Currently, this part, as well as the rest of the STARK verifier has the blowup factor
-#! fixed to 8, number of queries to 27.
+#! grinding. Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
+#! equal to 8.
 #! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
 #!
 #! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
 #! Cycles: 104
 export.init_seed
+
+    # Save the parameters in memory for later use
+    dup exec.constants::trace_length_log_ptr mem_store
+    dup.1 exec.constants::number_queries_ptr mem_store
+    dup.3 exec.constants::grinding_factor_ptr mem_store
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
@@ -78,7 +83,6 @@ export.init_seed
 
     ## Save the trace length and its log to memory
     dup.0 exec.constants::trace_length_ptr mem_store
-    dup.1 exec.constants::trace_length_log_ptr mem_store
 
     ## Assert blowup is equal to 8
     ##  Cycles: 6
@@ -416,14 +420,12 @@ end
 #! Output: [...]
 #! Cycles: 21 + 10 * log(N)
 export.generate_z_zN
-    # Load z (first two felts of the random coin state) and trace length N
+    # Load z (first two felts of the random coin state) and log trace length N
     exec.constants::r1_ptr mem_loadw
-    push.0.0
-    exec.constants::parameters_ptr mem_loadw
-    movdn.3
-    drop drop drop
+    drop drop
+    exec.constants::trace_length_log_ptr mem_load
 
-    # Compute z^N
+    # Compute z^N using the fact that z^N = z^(2^log(N))
     dup.2
     dup.2
     push.1
@@ -559,16 +561,21 @@ proc.generate_three_integers
     dropw
 end
 
-#! Generate a list of random indices in the range [0, lde_size] and store it in memory starting
-#! from `query_ptr`. The list is stored as `(r, depth, y, y)` where `depth` is
-#! `log(lde_domain_size)`. `depth` is needed when computing the deep queries.
+#! Generate a list of `num_queries` number of random indices in the range
+#! [0, lde_size] and store it in memory starting from `query_ptr`.
+#! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`. 
+#!`depth` is needed when computing the deep queries.
 #! TODO: the case of duplicate queries
-#! TODO: generalize to any number of queries
 #!
-#! Input: [query_ptr, ...]
+#! Input: [query_ptr, num_queries, ...]
 #! Output: [...]
 #!
-#! Cycles: 797
+#! Cycles: 267 + q * 236 + r * 29 where q = num_queries / 8 and r = num_queries % 8
+#!
+#! NOTE: This procedure is called first, and right after the PoW check, thus the first element
+#! in the rate portion of the state is discarded.
+#! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
+#!  470 + 236 * (num_queries / 8)
 export.generate_list_indices
     # Create mask
     padw
@@ -576,11 +583,11 @@ export.generate_list_indices
     movup.2 drop
     movup.2 drop
     sub.1
-    #=> [mask, depth, query_ptr] where depth = log(lde_size)
+    #=> [mask, depth, query_ptr, num_queries] where depth = log(lde_size)
 
     # Get address holding the integers (this will later hold the FRI queries)
     movup.2
-    #=> [query_ptr, mask, depth]
+    #=> [query_ptr, mask, depth, num_queries]
 
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.
@@ -588,30 +595,90 @@ export.generate_list_indices
     exec.constants::r1_ptr mem_loadw
     exec.generate_three_integers
 
-    repeat.3
+    # Load the second half of the rate portion of the state of the random coin.
+    exec.constants::r2_ptr mem_loadw
+    exec.generate_four_integers
+    #=> [R2, query_ptr, mask, depth, num_queries, ...]
+
+    # Squeeze
+    exec.constants::c_ptr mem_loadw
+    padw
+    exec.constants::r1_ptr mem_loadw
+    padw
+    exec.constants::r2_ptr mem_loadw
+    hperm
+
+    dropw swapw dropw
+    #=> [R1, query_ptr, mask, depth, num_queries, ...]
+
+    
+    # Use `num_queries` to iterate.
+
+    ## Subtract the 7 elements we have already generated above. 
+    movup.7
+    push.7 sub
+
+    ## Divide by 8 to get the number of iterations
+    u32checked_divmod.8
+    #=> [remainder, quotient, X, query_ptr, mask, depth, ...]
+
+    ## Save remainder for later use
+    movdn.8
+
+    ## Use `quotient` to iterate
+    dup movdn.8
+    push.0 neq
+    while.true
+        exec.generate_four_integers
+
         exec.constants::r2_ptr mem_loadw
         exec.generate_four_integers
-        #=> [X, query_ptr, mask, depth, ...]
+        #=> [R2, query_ptr, mask, depth, num_queries, ...]
 
+        # Squeeze
         exec.constants::c_ptr mem_loadw
         padw
         exec.constants::r1_ptr mem_loadw
         padw
         exec.constants::r2_ptr mem_loadw
-
         hperm
 
-        exec.constants::r2_ptr mem_storew
-        dropw
-        swapw
-        exec.constants::c_ptr mem_storew    
-        dropw
-        exec.constants::r1_ptr mem_storew
-        exec.generate_four_integers
-        #=> [X, query_ptr, mask, depth, ...]
+        dropw swapw dropw
+        #=> [R1, query_ptr, mask, depth, num_queries, ...]
+        movup.7 sub.1 dup movdn.8
+        push.0 neq
     end
 
-    dropw drop drop drop
+
+    ## Use remainder
+    
+    ### Put the remaining number of queries to generate in the appropriate stack position
+    movup.8 movdn.7  
+
+    ### Load the second half of the rate portion of the state of the random coin.
+    padw exec.constants::r2_ptr mem_loadw
+    #=> [R2, R1, query_ptr, mask, depth, num_queries, ...]
+
+    ### Iterate over remainder
+    dup.11 sub.1 swap.12
+    neq.0
+    while.true
+        movup.7  
+        u32split swap       # [r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
+        dup.10              # [mask, r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
+        u32checked_and      # [r, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
+        dup.11 swap         # [r, depth, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
+        push.0 movdn.3      # [r, depth, r0_hi, 0, R2, r3, r2, r1, ptr, mask, depth, ...]
+
+        # Store and update pointer
+        dup.11 add.1 swap.12  # [ptr, r, depth, r0_hi, 0, R2, r3, r2, r1, ptr + 1, mask, depth, ...]
+        mem_storew
+        drop drop drop               # [x, R2, r3, r2, r1, ptr + 1, mask, depth, ...]
+        dup.11 sub.1 swap.12
+        push.0 neq
+    end
+
+    dropw dropw  dropw drop
 end
 
 
