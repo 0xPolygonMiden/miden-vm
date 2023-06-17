@@ -37,7 +37,10 @@ where
         match injector {
             AdviceInjector::MerkleNodeMerge => self.merge_merkle_nodes(),
             AdviceInjector::MerkleNodeToStack => self.copy_merkle_node_to_adv_stack(),
-            AdviceInjector::MapValueToStack => self.copy_map_value_to_adv_stack(),
+            AdviceInjector::MapValueToStack {
+                include_len,
+                key_offset,
+            } => self.copy_map_value_to_adv_stack(*include_len, *key_offset),
             AdviceInjector::DivU64 => self.push_u64_div_result(),
             AdviceInjector::Ext2Inv => self.push_ext2_inv_result(),
             AdviceInjector::Ext2Intt => self.push_ext2_intt_result(),

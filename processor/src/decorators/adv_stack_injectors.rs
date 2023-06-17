@@ -68,23 +68,45 @@ where
     }
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
-    /// map using the top 4 elements (i.e. word) from the operand stack as the key.
+    /// map using the specified word from the operand stack as the key. If `include_len` is set to
+    /// true, the number of elements in the value is also pushed onto the advice stack.
     ///
     /// Inputs:
-    ///   Operand stack: [KEY, ...]
+    ///   Operand stack: [<key_offset>, KEY, ...]
     ///   Advice stack: [...]
     ///   Advice map: {KEY: values}
     ///
     /// Outputs:
-    ///   Operand stack: [KEY, ...]
-    ///   Advice stack: [values, ...]
+    ///   Operand stack: [<key_offset>, KEY, ...]
+    ///   Advice stack: [values_len?, values, ...]
     ///   Advice map: {KEY: values}
     ///
+    /// The `key_offset` value specifies the location of the `KEY` on the stack. For example,
+    /// offset value of 0 indicates that the top word on the stack should be used as the key, the
+    /// offset value of 4, indicates that the second word on the stack should be used as the key
+    /// etc.
+    ///
+    /// The valid values of `key_offset` are 0 through 12 (inclusive).
+    ///
     /// # Errors
-    /// Returns an error if the required key was not found in the key-value map.
-    pub(super) fn copy_map_value_to_adv_stack(&mut self) -> Result<(), ExecutionError> {
-        let key = self.stack.get_word(0);
-        self.advice_provider.push_stack(AdviceSource::Map { key })
+    /// Returns an error if the required key was not found in the key-value map or if stack offset
+    /// is greater than 12.
+    pub(super) fn copy_map_value_to_adv_stack(
+        &mut self,
+        include_len: bool,
+        key_offset: usize,
+    ) -> Result<(), ExecutionError> {
+        if key_offset > 12 {
+            return Err(ExecutionError::InvalidStackWordOffset(key_offset));
+        }
+
+        let key = [
+            self.stack.get(key_offset + 3),
+            self.stack.get(key_offset + 2),
+            self.stack.get(key_offset + 1),
+            self.stack.get(key_offset),
+        ];
+        self.advice_provider.push_stack(AdviceSource::Map { key, include_len })
     }
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
@@ -304,7 +326,10 @@ where
             self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
 
             // map is expected to contain `node |-> {K', V}`
-            self.advice_provider.push_stack(AdviceSource::Map { key: node })?;
+            self.advice_provider.push_stack(AdviceSource::Map {
+                key: node,
+                include_len: false,
+            })?;
         }
 
         // set the flags

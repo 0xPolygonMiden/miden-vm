@@ -46,6 +46,9 @@ const MAX_BODY_LEN: usize = u16::MAX as usize;
 /// Maximum number of imported libraries in a module or a program
 const MAX_IMPORTS: usize = u16::MAX as usize;
 
+/// Maximum stack index at which a full word can start.
+const MAX_STACK_WORD_OFFSET: u8 = 12;
+
 // TYPE ALIASES
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
