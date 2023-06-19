@@ -1,6 +1,7 @@
 mod blake3;
 mod ecdsa_secp256k1;
 mod falcon;
+mod falcon_rust;
 mod fri;
 mod keccak256;
 mod native;
