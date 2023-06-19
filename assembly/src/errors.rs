@@ -577,6 +577,16 @@ impl ParsingError {
         }
     }
 
+    pub fn too_many_imports(num_imports: usize, max_imports: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "a module cannot contain more than {max_imports} imports, but had {num_imports}"
+            ),
+            location: SourceLocation::default(),
+            op: "".to_string(),
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     pub fn message(&self) -> &String {
