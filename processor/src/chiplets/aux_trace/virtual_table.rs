@@ -40,6 +40,11 @@ impl ChipletsVTableRow {
             kernel_proc: Some(KernelProc::new(addr, proc_hash)),
         }
     }
+
+    #[cfg(test)]
+    pub fn kernel_proc(&self) -> Option<KernelProc> {
+        self.kernel_proc
+    }
 }
 
 impl LookupTableRow for ChipletsVTableRow {
@@ -129,6 +134,11 @@ pub struct KernelProc {
 impl KernelProc {
     pub fn new(addr: Felt, proc_hash: Word) -> Self {
         Self { addr, proc_hash }
+    }
+
+    #[cfg(test)]
+    pub fn proc_hash(&self) -> Word {
+        self.proc_hash
     }
 }
 

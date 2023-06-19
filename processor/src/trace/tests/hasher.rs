@@ -3,7 +3,7 @@ use super::{
     build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, LookupTableRow, Operation,
     Vec, Word, ONE, ZERO,
 };
-use crate::{chiplets::ChipletsTableRow, StackInputs};
+use crate::{chiplets::ChipletsVTableRow, StackInputs};
 use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
@@ -72,11 +72,11 @@ fn hasher_p1_mr_update() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        ChipletsTableRow::new_sibling(Felt::new(index), path[0])
+        ChipletsVTableRow::new_sibling(Felt::new(index), path[0])
             .to_value(&trace.main_trace, &alphas),
-        ChipletsTableRow::new_sibling(Felt::new(index >> 1), path[1])
+        ChipletsVTableRow::new_sibling(Felt::new(index >> 1), path[1])
             .to_value(&trace.main_trace, &alphas),
-        ChipletsTableRow::new_sibling(Felt::new(index >> 2), path[2])
+        ChipletsVTableRow::new_sibling(Felt::new(index >> 2), path[2])
             .to_value(&trace.main_trace, &alphas),
     ];
 
