@@ -131,8 +131,10 @@ $$
 To simplify the notation for describing bitwise constraints on the chiplet bus, we'll first define variable $u$, which represents how $a$, $b$, and $z$ in the execution trace are reduced to a single value. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved as follows.
 
 $$
-u = \alpha_1 \cdot a + \alpha_2 \cdot b + \alpha_3 \cdot z
+u = \alpha_0 + \alpha_1 \cdot op_{bit} + \alpha_2 \cdot a + \alpha_3 \cdot b + \alpha_4 \cdot z
 $$
+
+Where, $op_{bit}$ is the unique [operation label](./main.md#operation-labels) of the bitwise operation.
 
 The request side constraint for the bitwise operation is described in the [stack bitwise operation section](../stack/u32_ops.md#u32and).
 
@@ -147,13 +149,13 @@ $$
 Then, setting $m = 1 - k_1$, we can compute the permutation product from the bitwise chiplet as follows:
 
 $$
-\prod_{i=0}^n ((\alpha_0 + v_i) \cdot m_i + 1 - m_i)
+\prod_{i=0}^n (v_i \cdot m_i + 1 - m_i)
 $$
 
-The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-row cycle except for the last one), the product does not change. Otherwise, $(\alpha_0 + v_i)$ gets included into the product.
+The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-row cycle except for the last one), the product does not change. Otherwise, $v_i$ gets included into the product.
 
 The response side of the bus communication can be enforced with the following constraint:
 
 > $$
-b'_{chip} = b_{chip} \cdot ((\alpha_0 + v_i) \cdot m_i + 1 - m_i) \text{ | degree} = 4
+b'_{chip} = b_{chip} \cdot (v_i \cdot m_i + 1 - m_i) \text{ | degree} = 4
 $$
