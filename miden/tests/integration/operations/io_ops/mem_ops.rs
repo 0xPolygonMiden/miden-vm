@@ -28,10 +28,10 @@ fn mem_load() {
 #[test]
 fn mem_store() {
     let asm_op = "mem_store";
-    let addr = 0;
+    let addr = 0_u32;
 
     // --- address provided via the stack ---------------------------------------------------------
-    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
+    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr as u64]);
     test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 
     // --- address provided as a parameter --------------------------------------------------------
@@ -70,10 +70,10 @@ fn mem_loadw() {
 #[test]
 fn mem_storew() {
     let asm_op = "mem_storew";
-    let addr = 0;
+    let addr = 0_u32;
 
     // --- address provided via the stack ---------------------------------------------------------
-    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
+    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr as u64]);
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
 
     // --- address provided as a parameter --------------------------------------------------------

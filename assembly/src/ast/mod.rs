@@ -15,7 +15,7 @@ use vm_core::utils::bound_into_included_u64;
 pub use super::tokens::SourceLocation;
 
 mod nodes;
-pub use nodes::{AdviceInjector, Instruction, Node};
+pub use nodes::{AdviceInjectorNode, Instruction, Node};
 
 mod code_body;
 pub use code_body::CodeBody;

@@ -1,8 +1,8 @@
 use super::{
-    bound_into_included_u64, AdviceInjector, BTreeMap, CodeBody, Deserializable, Felt, Instruction,
-    InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError,
-    ProcedureAst, ProcedureId, RpoDigest, SliceReader, StarkField, Token, TokenStream, Vec,
-    MAX_DOCS_LEN, MAX_LABEL_LEN,
+    bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt,
+    Instruction, InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node,
+    ParsingError, ProcedureAst, ProcedureId, RpoDigest, SliceReader, StarkField, Token,
+    TokenStream, Vec, MAX_DOCS_LEN, MAX_LABEL_LEN,
 };
 use core::{fmt::Display, ops::RangeBounds};
 

@@ -155,7 +155,7 @@ impl Test {
     pub fn expect_stack_and_memory(
         &self,
         final_stack: &[u64],
-        mut mem_start_addr: u64,
+        mut mem_start_addr: u32,
         expected_mem: &[u64],
     ) {
         // compile the program

@@ -1,5 +1,5 @@
-use super::{validate_param, AssemblyError, Decorator, SpanBuilder};
-use crate::{ast::AdviceInjector, ADVICE_READ_LIMIT};
+use super::{validate_param, AssemblyError, SpanBuilder};
+use crate::{ast::AdviceInjectorNode, ADVICE_READ_LIMIT};
 use vm_core::{code_blocks::CodeBlock, Operation};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
@@ -24,16 +24,8 @@ pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, Asse
 /// Appends advice injector decorator to the span.
 pub fn adv_inject(
     span: &mut SpanBuilder,
-    injector: &AdviceInjector,
+    injector: &AdviceInjectorNode,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    use super::AdviceInjector::*;
-
-    match injector {
-        AdviceInjector::PushU64div => span.add_decorator(Decorator::Advice(DivResultU64)),
-        AdviceInjector::PushMapVal => span.add_decorator(Decorator::Advice(MapValue)),
-        AdviceInjector::PushExt2inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
-        AdviceInjector::PushExt2intt => span.add_decorator(Decorator::Advice(Ext2INTT)),
-        AdviceInjector::PushSmtGet => span.add_decorator(Decorator::Advice(SmtGet)),
-        AdviceInjector::InsertMem => span.add_decorator(Decorator::Advice(Memory)),
-    }
+    span.push_advice_injector(injector.into());
+    Ok(None)
 }

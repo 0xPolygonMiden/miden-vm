@@ -83,6 +83,9 @@ pub trait AdviceProvider {
     fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError>;
 
     /// Pushes the value(s) specified by the source onto the advice stack.
+    ///
+    /// # Errors
+    /// Returns an error if the value specified by the advice source cannot be obtained.
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
 
     /// Inserts the provided value into the advice map under the specified key.
@@ -90,8 +93,8 @@ pub trait AdviceProvider {
     /// The values in the advice map can be moved onto the advice stack by invoking
     /// [AdviceProvider::push_stack()] method.
     ///
-    /// # Errors
-    /// Returns an error if the key is already present in the advice map.
+    /// If the specified key is already present in the advice map, the values under the key
+    /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
 
     // ADVISE SETS

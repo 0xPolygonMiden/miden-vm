@@ -1,6 +1,6 @@
 use super::{
     super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
-    Process, ZERO,
+    Process,
 };
 use crate::{MemAdviceProvider, StackInputs, Word};
 use test_utils::{crypto::get_smt_remaining_key, rand::seeded_word};
@@ -10,11 +10,11 @@ use vm_core::{
         merkle::{EmptySubtreeRoots, MerkleStore, MerkleTree, NodeIndex},
     },
     utils::IntoBytes,
-    AdviceInjector, Decorator, ONE,
+    AdviceInjector, Decorator, ONE, ZERO,
 };
 
 #[test]
-fn inject_merkle_node() {
+fn push_merkle_node() {
     let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
     let tree = MerkleTree::new(leaves.to_vec()).unwrap();
     let store = MerkleStore::from(&tree);
@@ -35,7 +35,7 @@ fn inject_merkle_node() {
 
     // push the node onto the advice stack
     process
-        .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
+        .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNodeToStack))
         .unwrap();
 
     // pop the node from the advice stack and push it onto the operand stack
@@ -60,7 +60,7 @@ fn inject_merkle_node() {
 }
 
 #[test]
-fn inject_smtget() {
+fn push_smtget() {
     // setup the test
     let empty = EmptySubtreeRoots::empty_hashes(64);
     let initial_root = Word::from(empty[0]);

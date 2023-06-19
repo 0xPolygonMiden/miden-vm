@@ -428,8 +428,8 @@ impl Chiplets {
     ///
     /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
     /// the specified address (if one exists) without altering the memory access trace.
-    pub fn get_mem_value(&self, ctx: u32, addr: u64) -> Option<Word> {
-        self.memory.get_value(ctx, addr)
+    pub fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word> {
+        self.memory.get_value(ctx, addr as u64)
     }
 
     /// Returns the entire memory state for the specified execution context at the specified cycle.

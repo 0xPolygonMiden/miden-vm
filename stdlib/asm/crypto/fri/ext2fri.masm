@@ -22,7 +22,7 @@
 proc.compute_tau_64
     push.64
     push.8
-    adv.ext2intt # interpolate polynomial p, using advice provider
+    adv.push_ext2intt # interpolate polynomial p, using advice provider
 
     drop
     drop
@@ -81,7 +81,7 @@ end
 proc.compute_tau_32
     push.32
     push.4
-    adv.ext2intt # interpolate polynomial p, using advice provider
+    adv.push_ext2intt # interpolate polynomial p, using advice provider
 
     drop
     drop

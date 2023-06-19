@@ -366,8 +366,8 @@ fn test_mmr_unpack() {
 
     // Set up the VM stack with the MMR hash, and its target address
     let mut stack = stack_to_ints(&*hash);
-    let mmr_ptr = 1000;
-    stack.insert(0, mmr_ptr);
+    let mmr_ptr = 1000_u32;
+    stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in
     // the map and pushed to the advice stack by the MASM code)
@@ -490,8 +490,8 @@ fn test_mmr_unpack_large_mmr() {
 
     // Set up the VM stack with the MMR hash, and its target address
     let mut stack = stack_to_ints(&*hash);
-    let mmr_ptr = 1000;
-    stack.insert(0, mmr_ptr);
+    let mmr_ptr = 1000_u32;
+    stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in
     // the map and pushed to the advice stack by the MASM code)
@@ -735,7 +735,7 @@ fn test_mmr_large() {
 
 #[test]
 fn test_mmr_large_add_roundtrip() {
-    let mmr_ptr = 1000;
+    let mmr_ptr = 1000_u32;
 
     let mut mmr: Mmr = Mmr::from([
         [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)],
@@ -752,7 +752,7 @@ fn test_mmr_large_add_roundtrip() {
 
     // Set up the VM stack with the MMR hash, and its target address
     let mut stack = stack_to_ints(&hash);
-    stack.insert(0, mmr_ptr);
+    stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in
     // the map and pushed to the advice stack by the MASM code)

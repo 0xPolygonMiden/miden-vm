@@ -2,7 +2,7 @@ use super::{CodeBody, Felt, ProcedureId, RpoDigest, Vec};
 use core::fmt;
 
 mod advice;
-pub use advice::AdviceInjector;
+pub use advice::AdviceInjectorNode;
 
 mod serde;
 
@@ -268,7 +268,7 @@ pub enum Instruction {
     AdvPush(u8),
     AdvLoadW,
 
-    AdvInject(AdviceInjector),
+    AdvInject(AdviceInjectorNode),
 
     // ----- cryptographic operations -------------------------------------------------------------
     Hash,

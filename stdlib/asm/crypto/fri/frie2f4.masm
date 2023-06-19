@@ -115,7 +115,7 @@ export.verify_query_layer.3
     dup.5
     movup.5             # [t_depth, f_pos, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     mtree_get           # [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
-    adv.keyval
+    adv.push_mapval
     swapw
     # => [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     # where f_pos = p % d_size and d_seg = p / 4

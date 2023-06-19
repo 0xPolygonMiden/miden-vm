@@ -93,7 +93,7 @@ impl AdviceProvider for MemAdviceProvider {
         index: &Felt,
     ) -> Result<Word, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidNodeIndex {
+            ExecutionError::InvalidTreeNodeIndex {
                 depth: *depth,
                 value: *index,
             }
@@ -110,7 +110,7 @@ impl AdviceProvider for MemAdviceProvider {
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
         let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidNodeIndex {
+            ExecutionError::InvalidTreeNodeIndex {
                 depth: *depth,
                 value: *index,
             }
@@ -142,7 +142,7 @@ impl AdviceProvider for MemAdviceProvider {
         value: Word,
     ) -> Result<MerklePath, ExecutionError> {
         let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidNodeIndex {
+            ExecutionError::InvalidTreeNodeIndex {
                 depth: *depth,
                 value: *index,
             }

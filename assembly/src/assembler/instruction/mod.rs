@@ -1,10 +1,10 @@
 use super::{
-    Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
+    Assembler, AssemblyContext, AssemblyError, CodeBlock, Felt, Instruction, Operation,
     ProcedureId, RpoDigest, SpanBuilder, ONE, ZERO,
 };
 use crate::utils::bound_into_included_u64;
 use core::ops::RangeBounds;
-use vm_core::{AdviceInjector, FieldElement, StarkField};
+use vm_core::{FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;

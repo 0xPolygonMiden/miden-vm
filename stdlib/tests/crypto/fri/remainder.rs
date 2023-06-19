@@ -37,7 +37,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
         push.{}
         push.{}
 
-        adv.ext2intt
+        adv.push_ext2intt
 
         push.0
         dropw
