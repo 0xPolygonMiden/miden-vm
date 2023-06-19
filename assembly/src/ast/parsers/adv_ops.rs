@@ -66,10 +66,14 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             _ => return Err(ParsingError::extra_param(op)),
         },
         "insert_hdword" => match op.num_parts() {
-            2 => AdvInject(InsertHdword { domain: 0 }),
+            2 => AdvInject(InsertHdword),
             3 => {
                 let domain = parse_checked_param::<u8, _>(op, 2, 0..=u8::MAX)?;
-                AdvInject(InsertHdword { domain })
+                if domain == 0 {
+                    AdvInject(InsertHdword)
+                } else {
+                    AdvInject(InsertHdwordImm { domain })
+                }
             }
             _ => return Err(ParsingError::extra_param(op)),
         },

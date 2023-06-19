@@ -72,12 +72,12 @@ where
     /// true, the number of elements in the value is also pushed onto the advice stack.
     ///
     /// Inputs:
-    ///   Operand stack: [<key_offset>, KEY, ...]
+    ///   Operand stack: [..., KEY, ...]
     ///   Advice stack: [...]
     ///   Advice map: {KEY: values}
     ///
     /// Outputs:
-    ///   Operand stack: [<key_offset>, KEY, ...]
+    ///   Operand stack: [..., KEY, ...]
     ///   Advice stack: [values_len?, values, ...]
     ///   Advice map: {KEY: values}
     ///

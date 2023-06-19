@@ -3,7 +3,7 @@ use super::super::{
     MAX_STACK_WORD_OFFSET,
 };
 use core::fmt;
-use vm_core::{AdviceInjector, Felt};
+use vm_core::{AdviceInjector, Felt, ZERO};
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -24,7 +24,8 @@ pub enum AdviceInjectorNode {
     PushMapValNImm { offset: u8 },
     PushMtNode,
     InsertMem,
-    InsertHdword { domain: u8 },
+    InsertHdword,
+    InsertHdwordImm { domain: u8 },
 }
 
 impl From<&AdviceInjectorNode> for AdviceInjector {
@@ -52,7 +53,8 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             },
             PushMtNode => Self::MerkleNodeToStack,
             InsertMem => Self::MemToMap,
-            InsertHdword { domain } => Self::HdwordToMap {
+            InsertHdword => Self::HdwordToMap { domain: ZERO },
+            InsertHdwordImm { domain } => Self::HdwordToMap {
                 domain: Felt::from(*domain),
             },
         }
@@ -72,10 +74,8 @@ impl fmt::Display for AdviceInjectorNode {
             PushMapValNImm { offset } => write!(f, "push_mapvaln.{offset}"),
             PushMtNode => write!(f, "push_mtnode"),
             InsertMem => write!(f, "insert_mem"),
-            InsertHdword { domain } => match domain {
-                0 => write!(f, "insert_hdword"),
-                _ => write!(f, "insert_hdword.{domain}"),
-            },
+            InsertHdword => write!(f, "insert_hdword"),
+            InsertHdwordImm { domain } => write!(f, "insert_hdword.{domain}"),
         }
     }
 }
@@ -93,6 +93,7 @@ const PUSH_MAPVALN_IMM: u8 = 6;
 const PUSH_MTNODE: u8 = 7;
 const INSERT_MEM: u8 = 8;
 const INSERT_HDWORD: u8 = 9;
+const INSERT_HDWORD_IMM: u8 = 10;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -113,8 +114,9 @@ impl Serializable for AdviceInjectorNode {
             }
             PushMtNode => target.write_u8(PUSH_MTNODE),
             InsertMem => target.write_u8(INSERT_MEM),
-            InsertHdword { domain } => {
-                target.write_u8(INSERT_HDWORD);
+            InsertHdword => target.write_u8(INSERT_HDWORD),
+            InsertHdwordImm { domain } => {
+                target.write_u8(INSERT_HDWORD_IMM);
                 target.write_u8(*domain);
             }
         }
@@ -145,9 +147,10 @@ impl Deserializable for AdviceInjectorNode {
             }
             PUSH_MTNODE => Ok(AdviceInjectorNode::PushMtNode),
             INSERT_MEM => Ok(AdviceInjectorNode::InsertMem),
-            INSERT_HDWORD => {
+            INSERT_HDWORD => Ok(AdviceInjectorNode::InsertHdword),
+            INSERT_HDWORD_IMM => {
                 let domain = source.read_u8()?;
-                Ok(AdviceInjectorNode::InsertHdword { domain })
+                Ok(AdviceInjectorNode::InsertHdwordImm { domain })
             }
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
