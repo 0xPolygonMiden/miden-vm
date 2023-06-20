@@ -67,12 +67,16 @@ impl AdviceProvider for MemAdviceProvider {
                 Ok(())
             }
 
-            AdviceSource::Map { key } => {
-                let map = self
+            AdviceSource::Map { key, include_len } => {
+                let values = self
                     .map
                     .get(&key.into_bytes())
                     .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
-                self.stack.extend(map.iter().rev());
+
+                self.stack.extend(values.iter().rev());
+                if include_len {
+                    self.stack.push(Felt::from(values.len() as u64));
+                }
                 Ok(())
             }
         }

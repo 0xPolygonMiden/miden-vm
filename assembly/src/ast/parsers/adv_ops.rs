@@ -3,7 +3,7 @@ use super::{
     AdviceInjectorNode::*,
     Instruction::AdvInject,
     Node::{self, Instruction},
-    ParsingError, Token,
+    ParsingError, Token, MAX_STACK_WORD_OFFSET,
 };
 
 // INSTRUCTION PARSERS
@@ -35,6 +35,26 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
         },
         "push_mapval" => match op.num_parts() {
             2 => AdvInject(PushMapVal),
+            3 => {
+                let offset = parse_checked_param::<u8, _>(op, 2, 0..=MAX_STACK_WORD_OFFSET)?;
+                if offset == 0 {
+                    AdvInject(PushMapVal)
+                } else {
+                    AdvInject(PushMapValImm { offset })
+                }
+            }
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_mapvaln" => match op.num_parts() {
+            2 => AdvInject(PushMapValN),
+            3 => {
+                let offset = parse_checked_param::<u8, _>(op, 2, 0..=MAX_STACK_WORD_OFFSET)?;
+                if offset == 0 {
+                    AdvInject(PushMapValN)
+                } else {
+                    AdvInject(PushMapValNImm { offset })
+                }
+            }
             _ => return Err(ParsingError::extra_param(op)),
         },
         "push_mtnode" => match op.num_parts() {
@@ -46,10 +66,14 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             _ => return Err(ParsingError::extra_param(op)),
         },
         "insert_hdword" => match op.num_parts() {
-            2 => AdvInject(InsertHdword { domain: 0 }),
+            2 => AdvInject(InsertHdword),
             3 => {
                 let domain = parse_checked_param::<u8, _>(op, 2, 0..=u8::MAX)?;
-                AdvInject(InsertHdword { domain })
+                if domain == 0 {
+                    AdvInject(InsertHdword)
+                } else {
+                    AdvInject(InsertHdwordImm { domain })
+                }
             }
             _ => return Err(ParsingError::extra_param(op)),
         },

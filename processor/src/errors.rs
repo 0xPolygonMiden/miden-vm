@@ -27,6 +27,7 @@ pub enum ExecutionError {
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
     InvalidMemoryRange { start_addr: u64, end_addr: u64 },
     InvalidStackDepthOnReturn(usize),
+    InvalidStackWordOffset(usize),
     InvalidTreeDepth { depth: Felt },
     InvalidTreeNodeIndex { depth: Felt, value: Felt },
     MemoryAddressOutOfBounds(u64),
@@ -80,6 +81,9 @@ impl Display for ExecutionError {
             }
             InvalidStackDepthOnReturn(depth) => {
                 write!(f, "When returning from a call, stack depth must be {STACK_TOP_SIZE}, but was {depth}")
+            }
+            InvalidStackWordOffset(offset) => {
+                write!(f, "Stack word offset cannot exceed 12, but was {offset}")
             }
             InvalidTreeDepth { depth } => {
                 write!(f, "The provided {depth} is out of bounds and cannot be represented as an unsigned 8-bits integer")

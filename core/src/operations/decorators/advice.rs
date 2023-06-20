@@ -48,18 +48,29 @@ pub enum AdviceInjector {
     MerkleNodeToStack,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
-    /// map using the top 4 elements (i.e. word) from the operand stack as the key.
+    /// map using the specified word from the operand stack as the key. If `include_len` is set to
+    /// true, the number of elements in the value is also pushed onto the advice stack.
     ///
     /// Inputs:
-    ///   Operand stack: [KEY, ...]
+    ///   Operand stack: [..., KEY, ...]
     ///   Advice stack: [...]
     ///   Advice map: {KEY: values}
     ///
     /// Outputs:
-    ///   Operand stack: [KEY, ...]
-    ///   Advice stack: [values, ...]
+    ///   Operand stack: [..., KEY, ...]
+    ///   Advice stack: [values_len?, values, ...]
     ///   Advice map: {KEY: values}
-    MapValueToStack,
+    ///
+    /// The `key_offset` value specifies the location of the `KEY` on the stack. For example,
+    /// offset value of 0 indicates that the top word on the stack should be used as the key, the
+    /// offset value of 4, indicates that the second word on the stack should be used as the key
+    /// etc.
+    ///
+    /// The valid values of `key_offset` are 0 through 12 (inclusive).
+    MapValueToStack {
+        include_len: bool,
+        key_offset: usize,
+    },
 
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
@@ -177,7 +188,16 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
-            Self::MapValueToStack => write!(f, "map_value_to_stack"),
+            Self::MapValueToStack {
+                include_len,
+                key_offset,
+            } => {
+                if *include_len {
+                    write!(f, "map_value_to_stack_with_len.{key_offset}")
+                } else {
+                    write!(f, "map_value_to_stack.{key_offset}")
+                }
+            }
             Self::DivU64 => write!(f, "div_u64"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
