@@ -1,8 +1,10 @@
 use super::{
-    init_state_from_words, lookups::HasherLookupContext, AuxTraceBuilder, Digest, Felt, Hasher,
-    HasherLookup, HasherState, Selectors, SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec,
-    Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
-    TRACE_WIDTH,
+    init_state_from_words, lookups::HasherLookupContext, Digest, Felt, Hasher, HasherLookup,
+    HasherState, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
+    MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+};
+use crate::chiplets::aux_trace::{
+    ChipletsVTableRow, ChipletsVTableTraceBuilder, ChipletsVTableUpdate,
 };
 use miden_air::trace::chiplets::hasher::{
     DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
@@ -66,8 +68,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 8]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- test two permutations ----------------------------------------------
 
@@ -104,8 +106,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 16]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 }
 
 // MERKLE TREE TESTS
@@ -180,8 +182,8 @@ fn hasher_build_merkle_root() {
     assert_eq!(&node_idx_column[9..], &[ZERO; 7]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -222,8 +224,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 0, leaves[5], &path, 5, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
@@ -338,8 +340,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 72, leaves[3], &path3, 3, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 }
 
 #[test]
@@ -439,19 +441,21 @@ fn hasher_update_merkle_root() {
     assert_eq!(&node_idx_column[25..], &[ZERO; 7]);
 
     // make sure sibling table hints were built correctly
-    let expected_sibling_hints = vec![
+    let expected_hints = vec![
         // first update
-        (0, SiblingTableUpdate::SiblingAdded(0)),
-        (8, SiblingTableUpdate::SiblingRemoved(0)),
+        (0, ChipletsVTableUpdate::SiblingAdded(0)),
+        (8, ChipletsVTableUpdate::SiblingRemoved(0)),
         // second update
-        (16, SiblingTableUpdate::SiblingAdded(1)),
-        (24, SiblingTableUpdate::SiblingRemoved(1)),
+        (16, ChipletsVTableUpdate::SiblingAdded(1)),
+        (24, ChipletsVTableUpdate::SiblingRemoved(1)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
+    assert_eq!(expected_hints, aux_hints.hints());
 
-    let expected_sibling_rows =
-        vec![SiblingTableRow::new(ZERO, path0[0]), SiblingTableRow::new(ONE, path1[0])];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
+    let expected_sibling_rows = vec![
+        ChipletsVTableRow::new_sibling(ZERO, path0[0]),
+        ChipletsVTableRow::new_sibling(ONE, path1[0]),
+    ];
+    assert_eq!(expected_sibling_rows, aux_hints.rows());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -585,46 +589,46 @@ fn hasher_update_merkle_root() {
     check_merkle_path(&trace, 120, new_leaf3_2, &path3_2, 3, MR_UPDATE_NEW);
 
     // make sure sibling table hints were built correctly
-    let expected_sibling_hints = vec![
+    let expected_hints = vec![
         // first update
-        (0, SiblingTableUpdate::SiblingAdded(0)),
-        (8, SiblingTableUpdate::SiblingAdded(1)),
-        (16, SiblingTableUpdate::SiblingAdded(2)),
-        (24, SiblingTableUpdate::SiblingRemoved(0)),
-        (32, SiblingTableUpdate::SiblingRemoved(1)),
-        (40, SiblingTableUpdate::SiblingRemoved(2)),
+        (0, ChipletsVTableUpdate::SiblingAdded(0)),
+        (8, ChipletsVTableUpdate::SiblingAdded(1)),
+        (16, ChipletsVTableUpdate::SiblingAdded(2)),
+        (24, ChipletsVTableUpdate::SiblingRemoved(0)),
+        (32, ChipletsVTableUpdate::SiblingRemoved(1)),
+        (40, ChipletsVTableUpdate::SiblingRemoved(2)),
         // second update
-        (48, SiblingTableUpdate::SiblingAdded(3)),
-        (56, SiblingTableUpdate::SiblingAdded(4)),
-        (64, SiblingTableUpdate::SiblingAdded(5)),
-        (72, SiblingTableUpdate::SiblingRemoved(3)),
-        (80, SiblingTableUpdate::SiblingRemoved(4)),
-        (88, SiblingTableUpdate::SiblingRemoved(5)),
+        (48, ChipletsVTableUpdate::SiblingAdded(3)),
+        (56, ChipletsVTableUpdate::SiblingAdded(4)),
+        (64, ChipletsVTableUpdate::SiblingAdded(5)),
+        (72, ChipletsVTableUpdate::SiblingRemoved(3)),
+        (80, ChipletsVTableUpdate::SiblingRemoved(4)),
+        (88, ChipletsVTableUpdate::SiblingRemoved(5)),
         // third update
-        (96, SiblingTableUpdate::SiblingAdded(6)),
-        (104, SiblingTableUpdate::SiblingAdded(7)),
-        (112, SiblingTableUpdate::SiblingAdded(8)),
-        (120, SiblingTableUpdate::SiblingRemoved(6)),
-        (128, SiblingTableUpdate::SiblingRemoved(7)),
-        (136, SiblingTableUpdate::SiblingRemoved(8)),
+        (96, ChipletsVTableUpdate::SiblingAdded(6)),
+        (104, ChipletsVTableUpdate::SiblingAdded(7)),
+        (112, ChipletsVTableUpdate::SiblingAdded(8)),
+        (120, ChipletsVTableUpdate::SiblingRemoved(6)),
+        (128, ChipletsVTableUpdate::SiblingRemoved(7)),
+        (136, ChipletsVTableUpdate::SiblingRemoved(8)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
+    assert_eq!(expected_hints, aux_hints.hints());
 
     let expected_sibling_rows = vec![
         // first update
-        SiblingTableRow::new(Felt::new(3), path3[0]),
-        SiblingTableRow::new(Felt::new(3 >> 1), path3[1]),
-        SiblingTableRow::new(Felt::new(3 >> 2), path3[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(3), path3[0]),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3[1]),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3[2]),
         // second update
-        SiblingTableRow::new(Felt::new(6), path6[0]),
-        SiblingTableRow::new(Felt::new(6 >> 1), path6[1]),
-        SiblingTableRow::new(Felt::new(6 >> 2), path6[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(6), path6[0]),
+        ChipletsVTableRow::new_sibling(Felt::new(6 >> 1), path6[1]),
+        ChipletsVTableRow::new_sibling(Felt::new(6 >> 2), path6[2]),
         // third update
-        SiblingTableRow::new(Felt::new(3), path3_2[0]),
-        SiblingTableRow::new(Felt::new(3 >> 1), path3_2[1]),
-        SiblingTableRow::new(Felt::new(3 >> 2), path3_2[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(3), path3_2[0]),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3_2[1]),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3_2[2]),
     ];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
+    assert_eq!(expected_sibling_rows, aux_hints.rows());
 }
 
 // MEMOIZATION TESTS
@@ -1038,7 +1042,7 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
-fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuilder) {
+fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsVTableTraceBuilder) {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![Felt::new(0); num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     let aux_trace_builder = hasher.fill_trace(&mut fragment);

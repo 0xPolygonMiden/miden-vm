@@ -1,5 +1,5 @@
 use super::{
-    super::bus::{ChipletLookup, ChipletsBusRow},
+    super::aux_trace::{ChipletLookup, ChipletsBusRow},
     ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, Vec,
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE,
     V_COL_RANGE, ZERO,

@@ -1,6 +1,6 @@
 use super::{
-    trace::LookupTableRow, BTreeMap, ColMatrix, Felt, FieldElement, HasherState, MerkleRootUpdate,
-    OpBatch, StarkField, TraceFragment, Vec, Word, ONE, ZERO,
+    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
+    HasherState, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE, ZERO,
 };
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,
@@ -15,9 +15,6 @@ use lookups::HasherLookupContext;
 
 mod trace;
 use trace::HasherTrace;
-
-mod aux_trace;
-pub use aux_trace::{AuxTraceBuilder, SiblingTableRow, SiblingTableUpdate};
 
 #[cfg(test)]
 mod tests;
@@ -70,7 +67,7 @@ mod tests;
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
-    aux_trace: AuxTraceBuilder,
+    aux_trace: ChipletsVTableTraceBuilder,
     memoized_trace_map: BTreeMap<[u8; 32], (usize, usize)>,
 }
 
@@ -358,7 +355,7 @@ impl Hasher {
 
     /// Fills the provided trace fragment with trace data from this hasher trace instance. This
     /// also returns the trace builder for hasher-related auxiliary trace columns.
-    pub(super) fn fill_trace(self, trace: &mut TraceFragment) -> AuxTraceBuilder {
+    pub(super) fn fill_trace(self, trace: &mut TraceFragment) -> ChipletsVTableTraceBuilder {
         self.trace.fill_trace(trace);
 
         self.aux_trace

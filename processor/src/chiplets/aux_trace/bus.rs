@@ -1,11 +1,7 @@
 use super::{
-    hasher::HasherLookup,
-    trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
-    BTreeMap, BitwiseLookup, ColMatrix, Felt, FieldElement, KernelProcLookup, MemoryLookup, Vec,
+    super::{hasher::HasherLookup, BitwiseLookup, KernelProcLookup, MemoryLookup},
+    BTreeMap, BusTraceBuilder, ColMatrix, Felt, FieldElement, LookupTableRow, Vec,
 };
-
-mod aux_trace;
-pub use aux_trace::AuxTraceBuilder;
 
 // CHIPLETS BUS
 // ================================================================================================
@@ -68,7 +64,7 @@ impl ChipletsBus {
     /// executors requesting one or more hash operations for the Stack where all operation lookups
     /// must be included at the same cycle. For simple permutations this will require 2 lookups,
     /// while for a Merkle root update it will require 4, since two Hash operations are required.
-    pub fn request_hasher_operation(&mut self, lookups: &[HasherLookup], cycle: u32) {
+    pub(crate) fn request_hasher_operation(&mut self, lookups: &[HasherLookup], cycle: u32) {
         debug_assert!(
             lookups.len() == 2 || lookups.len() == 4,
             "incorrect number of lookup rows for hasher operation request"
@@ -84,7 +80,7 @@ impl ChipletsBus {
     /// Requests the specified lookup from the Hash Chiplet at the specified `cycle`. Single lookup
     /// requests are expected to originate from the decoder during control block decoding. This
     /// lookup can be for either the initial or the final row of the hash operation.
-    pub fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: u32) {
+    pub(crate) fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: u32) {
         self.request_lookups(cycle, &mut vec![self.requests.len() as u32]);
         self.requests.push(ChipletLookup::Hasher(lookup));
     }
@@ -95,14 +91,14 @@ impl ChipletsBus {
     /// required lookups), but the decoder does not request intermediate and final lookups until the
     /// end of the control block or until a `RESPAN`, in the case of `SPAN` blocks with more than
     /// one operation batch.
-    pub fn enqueue_hasher_request(&mut self, lookup: HasherLookup) {
+    pub(crate) fn enqueue_hasher_request(&mut self, lookup: HasherLookup) {
         self.queued_requests.push(lookup);
     }
 
     /// Pops the top HasherLookup request off the queue and sends it to the bus. This request is
     /// expected to originate from the decoder as it continues or finalizes control blocks with
     /// `RESPAN` or `END`.
-    pub fn send_queued_hasher_request(&mut self, cycle: u32) {
+    pub(crate) fn send_queued_hasher_request(&mut self, cycle: u32) {
         let lookup = self.queued_requests.pop();
         debug_assert!(lookup.is_some(), "no queued requests");
 
@@ -115,7 +111,7 @@ impl ChipletsBus {
     /// lookup value is provided at cycle `response_cycle`, which is the row of the execution trace
     /// that contains this Hasher row. It will always be either the first or last row of a Hasher
     /// operation cycle.
-    pub fn provide_hasher_lookup(&mut self, lookup: HasherLookup, response_cycle: u32) {
+    pub(crate) fn provide_hasher_lookup(&mut self, lookup: HasherLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.responses.push(ChipletLookup::Hasher(lookup));
     }
@@ -123,7 +119,7 @@ impl ChipletsBus {
     /// Provides multiple hash lookup values and their response cycles, which are the rows of the
     /// execution trace which contains the corresponding hasher row for either the start or end of
     /// a hasher operation cycle.
-    pub fn provide_hasher_lookups(&mut self, lookups: &[HasherLookup]) {
+    pub(crate) fn provide_hasher_lookups(&mut self, lookups: &[HasherLookup]) {
         for lookup in lookups.iter() {
             self.provide_hasher_lookup(*lookup, lookup.cycle());
         }
@@ -134,7 +130,7 @@ impl ChipletsBus {
 
     /// Requests the specified bitwise lookup at the specified `cycle`. This request is expected to
     /// originate from operation executors.
-    pub fn request_bitwise_operation(&mut self, lookup: BitwiseLookup, cycle: u32) {
+    pub(crate) fn request_bitwise_operation(&mut self, lookup: BitwiseLookup, cycle: u32) {
         self.request_lookups(cycle, &mut vec![self.requests.len() as u32]);
         self.requests.push(ChipletLookup::Bitwise(lookup));
     }
@@ -142,7 +138,7 @@ impl ChipletsBus {
     /// Provides the data of a bitwise operation contained in the [Bitwise] table. The bitwise value
     /// is provided at cycle `response_cycle`, which is the row of the execution trace that contains
     /// this Bitwise row. It will always be the final row of a Bitwise operation cycle.
-    pub fn provide_bitwise_operation(&mut self, lookup: BitwiseLookup, response_cycle: u32) {
+    pub(crate) fn provide_bitwise_operation(&mut self, lookup: BitwiseLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.responses.push(ChipletLookup::Bitwise(lookup));
     }
@@ -153,7 +149,7 @@ impl ChipletsBus {
     /// Sends the specified memory access requests. There must be exactly one or two requests. The
     /// requests are made at the specified `cycle` and are expected to originate from operation
     /// executors.
-    pub fn request_memory_operation(&mut self, lookups: &[MemoryLookup], cycle: u32) {
+    pub(crate) fn request_memory_operation(&mut self, lookups: &[MemoryLookup], cycle: u32) {
         debug_assert!(
             lookups.len() == 1 || lookups.len() == 2,
             "invalid number of requested memory operations"
@@ -169,7 +165,7 @@ impl ChipletsBus {
     /// Provides the data of the specified memory access. The memory access data is provided at
     /// cycle `response_cycle`, which is the row of the execution trace that contains this Memory
     /// row.
-    pub fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: u32) {
+    pub(crate) fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.responses.push(ChipletLookup::Memory(lookup));
     }
@@ -179,7 +175,7 @@ impl ChipletsBus {
 
     /// Requests the specified kernel procedure lookup at the specified `cycle`. This request is
     /// expected to originate from operation executors.
-    pub fn request_kernel_proc_call(&mut self, lookup: KernelProcLookup, cycle: u32) {
+    pub(crate) fn request_kernel_proc_call(&mut self, lookup: KernelProcLookup, cycle: u32) {
         self.request_lookups(cycle, &mut vec![self.requests.len() as u32]);
         self.requests.push(ChipletLookup::KernelRom(lookup));
     }
@@ -187,7 +183,11 @@ impl ChipletsBus {
     /// Provides a kernel procedure call contained in the [KernelRom] chiplet. The procedure access
     /// is provided at cycle `response_cycle`, which is the row of the execution trace that contains
     /// this [KernelRom] row.
-    pub fn provide_kernel_proc_call(&mut self, lookup: KernelProcLookup, response_cycle: u32) {
+    pub(crate) fn provide_kernel_proc_call(
+        &mut self,
+        lookup: KernelProcLookup,
+        response_cycle: u32,
+    ) {
         self.provide_lookup(response_cycle);
         self.responses.push(ChipletLookup::KernelRom(lookup));
     }
@@ -197,14 +197,10 @@ impl ChipletsBus {
 
     /// Converts this [ChipletsBus] into an auxiliary trace builder which can be used to construct
     /// the auxiliary trace column describing the [Chiplets] lookups at every cycle.
-    pub fn into_aux_builder(self) -> AuxTraceBuilder {
+    pub(crate) fn into_aux_builder(self) -> BusTraceBuilder {
         let lookup_hints = self.lookup_hints.into_iter().collect();
 
-        AuxTraceBuilder {
-            lookup_hints,
-            requests: self.requests,
-            responses: self.responses,
-        }
+        BusTraceBuilder::new(lookup_hints, self.requests, self.responses)
     }
 
     // PUBLIC ACCESSORS
@@ -212,13 +208,13 @@ impl ChipletsBus {
 
     /// Returns an option with the lookup hint for the specified cycle.
     #[cfg(test)]
-    pub(super) fn get_lookup_hint(&self, cycle: u32) -> Option<&ChipletsBusRow> {
+    pub(crate) fn get_lookup_hint(&self, cycle: u32) -> Option<&ChipletsBusRow> {
         self.lookup_hints.get(&cycle)
     }
 
     /// Returns the ith lookup response provided by the Chiplets module.
     #[cfg(test)]
-    pub(super) fn get_response_row(&self, i: usize) -> ChipletLookup {
+    pub(crate) fn get_response_row(&self, i: usize) -> ChipletLookup {
         self.responses[i].clone()
     }
 }
@@ -229,13 +225,13 @@ impl ChipletsBus {
 /// This represents all communication with the Chiplets Bus at a single cycle. Multiple requests can
 /// be sent to the bus in any given cycle, but only one response can be provided.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct ChipletsBusRow {
+pub struct ChipletsBusRow {
     requests: Vec<u32>,
     response: Option<u32>,
 }
 
 impl ChipletsBusRow {
-    pub(super) fn new(requests: &[u32], response: Option<u32>) -> Self {
+    pub(crate) fn new(requests: &[u32], response: Option<u32>) -> Self {
         ChipletsBusRow {
             requests: requests.to_owned(),
             response,
@@ -262,7 +258,7 @@ impl ChipletsBusRow {
 
 /// Data representing a single lookup row in one of the [Chiplets].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum ChipletLookup {
+pub(crate) enum ChipletLookup {
     Bitwise(BitwiseLookup),
     Hasher(HasherLookup),
     KernelRom(KernelProcLookup),

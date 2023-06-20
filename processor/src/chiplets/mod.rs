@@ -13,10 +13,8 @@ mod bitwise;
 use bitwise::{Bitwise, BitwiseLookup};
 
 mod hasher;
+pub use hasher::init_state_from_words;
 use hasher::Hasher;
-pub use hasher::{
-    init_state_from_words, AuxTraceBuilder as HasherAuxTraceBuilder, SiblingTableRow,
-};
 
 mod memory;
 use memory::{Memory, MemoryLookup};
@@ -24,8 +22,10 @@ use memory::{Memory, MemoryLookup};
 mod kernel_rom;
 use kernel_rom::{KernelProcLookup, KernelRom};
 
-mod bus;
-pub use bus::{AuxTraceBuilder, ChipletsBus};
+mod aux_trace;
+#[cfg(test)]
+pub(crate) use aux_trace::ChipletsVTableRow;
+pub(crate) use aux_trace::{AuxTraceBuilder, ChipletsBus, ChipletsVTableTraceBuilder};
 
 #[cfg(test)]
 mod tests;
@@ -496,13 +496,9 @@ impl Chiplets {
             .try_into()
             .expect("failed to convert vector to array");
 
-        let (hasher_aux_builder, aux_builder) = self.fill_trace(&mut trace);
+        let aux_builder = self.fill_trace(&mut trace);
 
-        ChipletsTrace {
-            trace,
-            hasher_aux_builder,
-            aux_builder,
-        }
+        ChipletsTrace { trace, aux_builder }
     }
 
     // HELPER METHODS
@@ -514,10 +510,7 @@ impl Chiplets {
     ///
     /// It returns the auxiliary trace builders for generating auxiliary trace columns that depend
     /// on data from [Chiplets].
-    fn fill_trace(
-        self,
-        trace: &mut [Vec<Felt>; CHIPLETS_WIDTH],
-    ) -> (HasherAuxTraceBuilder, AuxTraceBuilder) {
+    fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH]) -> AuxTraceBuilder {
         // get the rows where chiplets begin.
         let bitwise_start = self.bitwise_start();
         let memory_start = self.memory_start();
@@ -577,11 +570,16 @@ impl Chiplets {
 
         // fill the fragments with the execution trace from each chiplet
         // TODO: this can be parallelized to fill the traces in multiple threads
-        let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment);
+        let mut table_builder = hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment, &mut bus, bitwise_start);
         memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
-        kernel_rom.fill_trace(&mut kernel_rom_fragment, &mut bus, kernel_rom_start);
+        kernel_rom.fill_trace(
+            &mut kernel_rom_fragment,
+            &mut bus,
+            &mut table_builder,
+            kernel_rom_start,
+        );
 
-        (hasher_aux_builder, bus.into_aux_builder())
+        AuxTraceBuilder::new(bus.into_aux_builder(), table_builder)
     }
 }
