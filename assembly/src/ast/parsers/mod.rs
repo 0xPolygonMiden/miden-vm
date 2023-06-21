@@ -1,6 +1,6 @@
 use super::{
-    bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt, Instruction,
-    InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError,
+    bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt, ImportedModulesMap, Instruction,
+    InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, ModuleImportInfo, Node, ParsingError,
     ProcedureAst, ProcedureId, RpoDigest, SliceReader, StarkField, Token, TokenStream, Vec,
     MAX_BODY_LEN, MAX_DOCS_LEN, MAX_IMPORTS, MAX_LABEL_LEN, MAX_STACK_WORD_OFFSET,
 };
@@ -28,8 +28,8 @@ pub use labels::{
 /// its fully-qualified path (e.g., "std::math::u64").
 pub fn parse_imports(
     tokens: &mut TokenStream,
-) -> Result<BTreeMap<String, LibraryPath>, ParsingError> {
-    let mut imports = BTreeMap::<String, LibraryPath>::new();
+) -> Result<ImportedModulesMap, ParsingError> {
+    let mut imports = ImportedModulesMap::new();
     // read tokens from the token stream until all `use` tokens are consumed
     while let Some(token) = tokens.read() {
         match token.parts()[0] {
@@ -40,7 +40,7 @@ pub fn parse_imports(
                     return Err(ParsingError::duplicate_module_import(token, &module_path));
                 }
 
-                imports.insert(module_name.to_string(), module_path);
+                imports.insert(module_name.to_string(), ModuleImportInfo::new(module_path));
 
                 // consume the `use` token
                 tokens.advance();

@@ -1,24 +1,24 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction, InvocationTarget,
-    LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, ImportedModulesMap, Instruction, InvocationTarget,
+    LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token,
     TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
 use vm_core::utils::{
-    collections::{BTreeMap, Vec},
-    string::{String, ToString},
+    collections::Vec,
+    string::ToString,
 };
 
 // PARSER CONTEXT
 // ================================================================================================
 
 /// AST Parser context that holds internal state to generate correct ASTs.
-pub struct ParserContext<'a> {
-    pub imports: &'a BTreeMap<String, LibraryPath>,
+pub struct ParserContext {
+    pub imports: ImportedModulesMap,
     pub local_procs: LocalProcMap,
     pub local_constants: LocalConstMap,
 }
 
-impl ParserContext<'_> {
+impl ParserContext {
     // STATEMENT PARSERS
     // --------------------------------------------------------------------------------------------
 
@@ -589,11 +589,12 @@ impl ParserContext<'_> {
         module_name: &str,
         token: &Token,
     ) -> Result<ProcedureId, ParsingError> {
-        let module_path = self
+        let module = self
             .imports
             .get(module_name)
             .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module_name))?;
-        let proc_id = ProcedureId::from_name(proc_name, module_path);
+        module.add_procedure(proc_name);
+        let proc_id = ProcedureId::from_name(proc_name, &module.path);
         Ok(proc_id)
     }
 }

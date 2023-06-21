@@ -23,6 +23,9 @@ pub use code_body::CodeBody;
 mod invocation_target;
 pub use invocation_target::InvocationTarget;
 
+mod module_import;
+pub use module_import::ModuleImportInfo;
+
 mod parsers;
 use parsers::{parse_constants, parse_imports, ParserContext};
 
@@ -54,6 +57,9 @@ const MAX_STACK_WORD_OFFSET: u8 = 12;
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 type LocalConstMap = BTreeMap<String, u64>;
 
+/// Maps imported library names to information about that library.
+type ImportedModulesMap = BTreeMap<String, ModuleImportInfo>;
+    
 // EXECUTABLE PROGRAM AST
 // ================================================================================================
 
@@ -64,7 +70,7 @@ type LocalConstMap = BTreeMap<String, u64>;
 pub struct ProgramAst {
     body: CodeBody,
     local_procs: Vec<ProcedureAst>,
-    imports: BTreeMap<String, LibraryPath>,
+    imports: ImportedModulesMap,
     start: SourceLocation,
 }
 
@@ -77,7 +83,7 @@ impl ProgramAst {
     pub fn new(
         body: Vec<Node>,
         local_procs: Vec<ProcedureAst>,
-        imports: BTreeMap<String, LibraryPath>,
+        imports: ImportedModulesMap,
     ) -> Result<Self, ParsingError> {
         if imports.len() > MAX_IMPORTS {
             return Err(ParsingError::too_many_imports(imports.len(), MAX_LOCAL_PROCS));
@@ -137,16 +143,7 @@ impl ProgramAst {
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
     pub fn parse(source: &str) -> Result<ProgramAst, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
-        let imports = parse_imports(&mut tokens)?;
-        let local_constants = parse_constants(&mut tokens)?;
-
-        let mut context = ParserContext {
-            imports: &imports,
-            local_procs: LocalProcMap::default(),
-            local_constants,
-        };
-
-        context.parse_procedures(&mut tokens, false)?;
+        let context = parse_imports_constants_and_procedures(&mut tokens)?;
 
         // make sure program body is present
         let next_token = tokens
@@ -193,7 +190,7 @@ impl ProgramAst {
 
         let local_procs = sort_procs_into_vec(context.local_procs);
         let (nodes, locations) = body.into_parts();
-        Ok(Self::new(nodes, local_procs, imports)?.with_source_locations(locations, start))
+        Ok(Self::new(nodes, local_procs, context.imports)?.with_source_locations(locations, start))
     }
 
     // SERIALIZATION / DESERIALIZATION
@@ -221,7 +218,7 @@ impl ProgramAst {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
 
-        let imports = BTreeMap::<String, LibraryPath>::new();
+        let imports = ImportedModulesMap::new();
 
         let num_local_procs = source.read_u16()?;
         let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
@@ -278,7 +275,7 @@ impl ProgramAst {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleAst {
     local_procs: Vec<ProcedureAst>,
-    imports: BTreeMap<String, LibraryPath>,
+    imports: ImportedModulesMap,
     docs: Option<String>,
 }
 
@@ -290,7 +287,7 @@ impl ModuleAst {
     /// A module consists of internal and exported procedures but does not contain a body.
     pub fn new(
         local_procs: Vec<ProcedureAst>,
-        imports: BTreeMap<String, LibraryPath>,
+        imports: ImportedModulesMap,
         docs: Option<String>,
     ) -> Result<Self, ParsingError> {
         if imports.len() > MAX_IMPORTS {
@@ -318,15 +315,7 @@ impl ModuleAst {
     /// A module consists of internal and exported procedures but does not contain a body.
     pub fn parse(source: &str) -> Result<Self, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
-
-        let imports = parse_imports(&mut tokens)?;
-        let local_constants = parse_constants(&mut tokens)?;
-        let mut context = ParserContext {
-            imports: &imports,
-            local_procs: LocalProcMap::default(),
-            local_constants,
-        };
-        context.parse_procedures(&mut tokens, true)?;
+        let context = parse_imports_constants_and_procedures(&mut tokens)?;
 
         // make sure program body is absent and there are no more instructions.
         if let Some(token) = tokens.read() {
@@ -343,7 +332,7 @@ impl ModuleAst {
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
 
-        Self::new(local_procs, imports, docs)
+        Self::new(local_procs, context.imports, docs)
     }
 
     // PUBLIC ACCESSORS
@@ -427,7 +416,7 @@ impl Serializable for ModuleAst {
 
 impl Deserializable for ModuleAst {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let imports = BTreeMap::<String, LibraryPath>::new();
+        let imports = ImportedModulesMap::new();
 
         let docs_len = source.read_u16()? as usize;
         let docs = if docs_len != 0 {
@@ -611,4 +600,19 @@ fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
     procedures.sort_by_key(|(idx, _proc)| *idx);
 
     procedures.into_iter().map(|(_idx, proc)| proc).collect()
+}
+
+/// Parse imports, constant declarations and locally defined procedures.
+/// Shared between program and module parsers.
+fn parse_imports_constants_and_procedures(mut tokens: & mut TokenStream) -> Result<ParserContext, ParsingError> {
+    let imports = parse_imports(&mut tokens)?;
+    let local_constants = parse_constants(&mut tokens)?;
+    
+    let mut context = ParserContext {
+        imports: imports,
+        local_procs: LocalProcMap::default(),
+        local_constants,
+    };
+    context.parse_procedures(&mut tokens, true)?;
+    Ok(context)
 }
