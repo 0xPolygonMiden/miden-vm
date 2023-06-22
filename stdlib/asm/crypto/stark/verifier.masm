@@ -30,9 +30,9 @@ use.std::crypto::stark::constants
 #! Output: []
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   4683 + num_queries * (70 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1498
+#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
 #!  2- Remainder codeword size 64:
-#!   4683 + num_queries * (70 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 2792
+#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 465) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
 export.verify
 
     #==============================================================================================
@@ -187,8 +187,8 @@ export.verify
     #============================================
 
     # Cycles:
-    #  1- Remainder of size 32: 1498
-    #  2- Remainder of size 64: 2792
+    #  1- Remainder of size 32: 1633
+    #  2- Remainder of size 64: 3109
     exec.helper::load_and_verify_remainder
     #=> [...]
 

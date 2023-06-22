@@ -81,9 +81,9 @@ fn test_verify_remainder_64() {
     let source = "
     use.std::crypto::fri::ext2fri
 
-    proc.helper.32
-        locaddr.31
-        repeat.32
+    proc.helper.36
+        locaddr.35
+        repeat.36
             movdn.4
             dup.4
             mem_storew
@@ -92,7 +92,7 @@ fn test_verify_remainder_64() {
         end
         drop
 
-        locaddr.0
+        locaddr.0 movdn.2
         exec.ext2fri::verify_remainder_64
     end
 
@@ -103,13 +103,16 @@ fn test_verify_remainder_64() {
 
     let poly = rand_vector::<QuadFelt>(8);
     let twiddles = fft::get_twiddles(poly.len());
-    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
+    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, 8);
+    let tau = rand_vector::<QuadFelt>(1);
 
-    let ifelts = QuadFelt::slice_as_base_elements(&evals);
+    let mut ifelts = QuadFelt::slice_as_base_elements(&tau).to_vec();
+    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&evals));
+    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&poly));
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
     let test = build_test!(source, &iu64s);
-    assert!(test.execute().is_ok());
+    test.expect_stack(&[]);
 }
 
 #[test]
@@ -117,9 +120,9 @@ fn test_verify_remainder_32() {
     let source = "
     use.std::crypto::fri::ext2fri
 
-    proc.helper.16
-        locaddr.15
-        repeat.16
+    proc.helper.18
+        locaddr.17
+        repeat.18
             movdn.4
             dup.4
             mem_storew
@@ -128,7 +131,7 @@ fn test_verify_remainder_32() {
         end
         drop
 
-        locaddr.0
+        locaddr.0 movdn.2
         exec.ext2fri::verify_remainder_32
     end
 
@@ -139,11 +142,14 @@ fn test_verify_remainder_32() {
 
     let poly = rand_vector::<QuadFelt>(4);
     let twiddles = fft::get_twiddles(poly.len());
-    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, 8);
+    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, 8);
+    let tau = rand_vector::<QuadFelt>(1);
 
-    let ifelts = QuadFelt::slice_as_base_elements(&evals);
+    let mut ifelts = QuadFelt::slice_as_base_elements(&tau).to_vec();
+    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&evals));
+    ifelts.extend_from_slice(QuadFelt::slice_as_base_elements(&poly));
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();
 
     let test = build_test!(source, &iu64s);
-    assert!(test.execute().is_ok());
+    test.expect_stack(&[]);
 }

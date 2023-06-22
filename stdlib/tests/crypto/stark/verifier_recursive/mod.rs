@@ -98,7 +98,6 @@ pub fn generate_advice_inputs(
 
     let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_digests);
     tape.extend_from_slice(&fri_commitments);
-
     tape.extend_from_slice(&to_int_vec(&poly));
     tape.extend_from_slice(&to_int_vec(&fri_remainder));
 
