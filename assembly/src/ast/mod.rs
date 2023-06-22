@@ -28,6 +28,9 @@ use parsers::{parse_constants, parse_imports, ParserContext};
 
 pub(crate) use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
+mod serde;
+pub use serde::AstSerdeOptions;
+
 #[cfg(test)]
 pub mod tests;
 
@@ -205,11 +208,25 @@ impl ProgramAst {
     // --------------------------------------------------------------------------------------------
 
     /// Returns byte representation of this [ProgramAst].
-    pub fn to_bytes(&self) -> Vec<u8> {
+    ///
+    /// The serde options are serialized as header information for the purposes of deserialization.
+    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
         let mut target = Vec::<u8>::default();
+
+        // serialize the options, so that deserialization knows what to do
+        options.write_into(&mut target);
 
         // asserts below are OK because we enforce limits on the number of procedure and the
         // number of body instructions in relevant parsers
+
+        if options.serialize_imports {
+            assert!(self.imports.len() <= MAX_IMPORTS, "too many imports");
+            target.write_u16(self.imports.len() as u16);
+            // We don't need to serialize the library names (the keys),
+            // since the libraty paths (the values) contain the library
+            // names
+            self.imports.values().for_each(|path| path.write_into(&mut target));
+        }
 
         assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
@@ -223,10 +240,23 @@ impl ProgramAst {
     }
 
     /// Returns a [ProgramAst] struct deserialized from the provided bytes.
+    ///
+    /// This function assumes that the byte array contains a serialized [AstSerdeOptions] struct as
+    /// a header.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
 
-        let imports = BTreeMap::<String, LibraryPath>::new();
+        // Deserialize the serialization options used when serializing
+        let options = AstSerdeOptions::read_from(&mut source)?;
+
+        let mut imports = BTreeMap::<String, LibraryPath>::new();
+        if options.serialize_imports {
+            let num_imports = source.read_u16()?;
+            for _ in 0..num_imports {
+                let path = LibraryPath::read_from(&mut source)?;
+                imports.insert(path.last().to_string(), path);
+            }
+        }
 
         let num_local_procs = source.read_u16()?;
         let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
@@ -399,16 +429,108 @@ impl ModuleAst {
     // --------------------------------------------------------------------------------------------
 
     /// Returns byte representation of this [ModuleAst].
-    pub fn to_bytes(&self) -> Vec<u8> {
+    ///
+    /// The serde options are NOT serialized - the caller must keep track of the serialization
+    /// options used.
+    pub fn write_into<R: ByteWriter>(&self, target: &mut R, options: AstSerdeOptions) {
+        // asserts below are OK because we enforce limits on the number of procedure and length of
+        // module docs in the module parser
+
+        match &self.docs {
+            Some(docs) => {
+                assert!(docs.len() <= u16::MAX as usize, "docs too long");
+                target.write_u16(docs.len() as u16);
+                target.write_bytes(docs.as_bytes());
+            }
+            None => {
+                target.write_u16(0);
+            }
+        }
+
+        if options.serialize_imports {
+            assert!(self.imports.len() <= MAX_IMPORTS, "too many imports");
+            target.write_u16(self.imports.len() as u16);
+            // We don't need to serialize the library names (the keys),
+            // since the libraty paths (the values) contain the library
+            // names
+            self.imports.values().for_each(|i| i.write_into(target));
+        }
+
+        assert!(self.local_procs.len() <= u16::MAX as usize, "too many local procs");
+        assert!(
+            self.reexported_procs.len() <= MAX_REEXPORTED_PROCS,
+            "too many re-exported procs"
+        );
+        target.write_u16((self.reexported_procs.len()) as u16);
+        self.reexported_procs.write_into(target);
+        target.write_u16(self.local_procs.len() as u16);
+        self.local_procs.write_into(target);
+    }
+
+    /// Returns a [ModuleAst] struct deserialized from the provided source.
+    ///
+    /// The serde options must correspond to the options used for serialization.
+    pub fn read_from<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
+        // deserialize docs
+        let docs_len = source.read_u16()? as usize;
+        let docs = if docs_len != 0 {
+            let str = source.read_vec(docs_len)?;
+            let str =
+                from_utf8(&str).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+            Some(str.to_string())
+        } else {
+            None
+        };
+
+        // deserialize imports if required
+        let mut imports = BTreeMap::<String, LibraryPath>::new();
+        if options.serialize_imports {
+            let num_imports = source.read_u16()?;
+            for _ in 0..num_imports {
+                let path = LibraryPath::read_from(source)?;
+                imports.insert(path.last().to_string(), path);
+            }
+        }
+
+        // deserialize re-exports
+        let num_reexported_procs = source.read_u16()? as usize;
+        let reexported_procs = Deserializable::read_batch_from(source, num_reexported_procs)?;
+
+        // deserialize local procs
+        let num_local_procs = source.read_u16()? as usize;
+        let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
+
+        Self::new(local_procs, reexported_procs, imports, docs)
+            .map_err(|err| DeserializationError::UnknownError(err.message().clone()))
+    }
+
+    /// Returns byte representation of this [ModuleAst].
+    ///
+    /// The serde options are serialized as header information for the purposes of deserialization.
+    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
         let mut target = Vec::<u8>::default();
-        self.write_into(&mut target);
+
+        // serialize the options, so that deserialization knows what to do
+        options.write_into(&mut target);
+
+        self.write_into(&mut target, options);
         target
     }
 
     /// Returns a [ModuleAst] struct deserialized from the provided bytes.
+    ///
+    /// This function assumes that the byte array contains a serialized [AstSerdeOptions] struct as
+    /// a header.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
-        Self::read_from(&mut source)
+
+        // Deserialize the serialization options used when serializing
+        let options = AstSerdeOptions::read_from(&mut source)?;
+
+        Self::read_from(&mut source, options)
     }
 
     /// Loads the [SourceLocation] of the procedures via [ProcedureAst::load_source_locations].
@@ -428,72 +550,6 @@ impl ModuleAst {
     /// serialization can be simplified into a contiguous sequence of locations.
     pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
         self.local_procs.iter().for_each(|p| p.write_source_locations(target))
-    }
-}
-
-impl Serializable for ModuleAst {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // asserts below are OK because we enforce limits on the number of procedure and length of
-        // module docs in the module parser
-
-        match &self.docs {
-            Some(docs) => {
-                assert!(docs.len() <= MAX_DOCS_LEN, "docs too long");
-                target.write_u16(docs.len() as u16);
-                target.write_bytes(docs.as_bytes());
-            }
-            None => {
-                target.write_u16(0);
-            }
-        }
-        assert!(self.imports.len() <= MAX_IMPORTS, "too many imports");
-        assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
-        assert!(
-            self.reexported_procs.len() <= MAX_REEXPORTED_PROCS,
-            "too many re-exported procs"
-        );
-        target.write_u16(self.imports.len() as u16);
-        self.imports.values().for_each(|i| i.write_into(target));
-        target.write_u16((self.reexported_procs.len()) as u16);
-        self.reexported_procs.write_into(target);
-        target.write_u16((self.local_procs.len()) as u16);
-        self.local_procs.write_into(target);
-    }
-}
-
-impl Deserializable for ModuleAst {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        // deserialize docs
-        let docs_len = source.read_u16()? as usize;
-        let docs = if docs_len != 0 {
-            let str = source.read_vec(docs_len)?;
-            let str =
-                from_utf8(&str).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-            Some(str.to_string())
-        } else {
-            None
-        };
-
-        // deserialize imports (if any)
-        let num_imports = source.read_u16()? as usize;
-        let mut imports = BTreeMap::new();
-        for _ in 0..num_imports {
-            let path = LibraryPath::read_from(source)?;
-            imports.insert(path.last().to_string(), path);
-        }
-
-        // deserialize re-exports
-        let num_reexported_procs = source.read_u16()? as usize;
-        let reexported_procs = Deserializable::read_batch_from(source, num_reexported_procs)?;
-
-        // deserialize local procs
-        let num_local_procs = source.read_u16()? as usize;
-        let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
-
-        match Self::new(local_procs, reexported_procs, imports, docs) {
-            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => Ok(res),
-        }
     }
 }
 
