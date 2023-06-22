@@ -13,6 +13,12 @@ pub use path::LibraryPath;
 #[cfg(test)]
 mod tests;
 
+/// Maximum number of modules in a library.
+const MAX_MODULES: usize = u16::MAX as usize;
+
+/// Maximum number of dependencies in a library.
+const MAX_DEPENDENCIES: usize = u16::MAX as usize;
+
 // LIBRARY
 // ================================================================================================
 
@@ -31,6 +37,9 @@ pub trait Library {
 
     /// Iterate the modules available in the library.
     fn modules(&self) -> Self::ModuleIterator<'_>;
+
+    /// Returns the dependency libraries of this library.
+    fn dependencies(&self) -> &[LibraryNamespace];
 }
 
 impl<T> Library for &T
@@ -51,6 +60,10 @@ where
 
     fn modules(&self) -> Self::ModuleIterator<'_> {
         T::modules(self)
+    }
+
+    fn dependencies(&self) -> &[LibraryNamespace] {
+        T::dependencies(self)
     }
 }
 

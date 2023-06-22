@@ -13,7 +13,7 @@ const MAX_PATH_LEN: usize = 1023;
 // ================================================================================================
 
 /// Path to a module or a procedure.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LibraryPath {
     path: String,
     num_components: usize,

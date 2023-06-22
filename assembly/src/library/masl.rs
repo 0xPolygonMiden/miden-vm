@@ -1,7 +1,9 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Library, LibraryError,
-    LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec, Version,
+    LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec, Version, MAX_DEPENDENCIES,
+    MAX_MODULES,
 };
+
 use core::slice::Iter;
 
 // LIBRARY IMPLEMENTATION FOR MASL FILES
@@ -22,6 +24,8 @@ pub struct MaslLibrary {
     has_source_locations: bool,
     /// Available modules.
     modules: Vec<Module>,
+    /// Dependencies of the library.
+    dependencies: Vec<LibraryNamespace>,
 }
 
 impl Library for MaslLibrary {
@@ -38,6 +42,10 @@ impl Library for MaslLibrary {
     fn modules(&self) -> Self::ModuleIterator<'_> {
         self.modules.iter()
     }
+
+    fn dependencies(&self) -> &[LibraryNamespace] {
+        &self.dependencies
+    }
 }
 
 impl MaslLibrary {
@@ -48,6 +56,7 @@ impl MaslLibrary {
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns a new [Library] instantiated from the specified parameters.
     ///
     /// # Errors
@@ -58,14 +67,23 @@ impl MaslLibrary {
         version: Version,
         has_source_locations: bool,
         modules: Vec<Module>,
+        dependencies: Vec<LibraryNamespace>,
     ) -> Result<Self, LibraryError> {
         if modules.is_empty() {
             return Err(LibraryError::no_modules_in_library(namespace));
-        } else if modules.len() > u16::MAX as usize {
+        } else if modules.len() > MAX_MODULES {
             return Err(LibraryError::too_many_modules_in_library(
                 namespace,
                 modules.len(),
-                u16::MAX as usize,
+                MAX_MODULES,
+            ));
+        }
+
+        if dependencies.len() > MAX_DEPENDENCIES {
+            return Err(LibraryError::too_many_dependencies_in_library(
+                namespace,
+                dependencies.len(),
+                MAX_DEPENDENCIES,
             ));
         }
 
@@ -74,6 +92,7 @@ impl MaslLibrary {
             version,
             has_source_locations,
             modules,
+            dependencies,
         })
     }
 
@@ -126,12 +145,14 @@ mod use_std {
 
             let module_path = LibraryPath::new(&namespace)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-            let modules = read_from_dir_helper(Default::default(), path, &module_path)?
-                .into_iter()
-                .map(|(path, ast)| Module { path, ast })
-                .collect();
+            let mut dependencies = Vec::new();
+            let modules =
+                read_from_dir_helper(Default::default(), path, &module_path, &mut dependencies)?
+                    .into_iter()
+                    .map(|(path, ast)| Module { path, ast })
+                    .collect();
 
-            Self::new(namespace, version, with_source_locations, modules)
+            Self::new(namespace, version, with_source_locations, modules, dependencies)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
 
@@ -168,7 +189,7 @@ mod use_std {
     }
 
     // HELPER FUNCTIONS
-    // ============================================================================================
+    // --------------------------------------------------------------------------------------------
 
     /// Read a directory and recursively feed the state map with path->ast tuples.
     ///
@@ -177,6 +198,7 @@ mod use_std {
         mut state: BTreeMap<LibraryPath, ModuleAst>,
         dir: P,
         module_path: &LibraryPath,
+        deps: &mut Vec<LibraryNamespace>,
     ) -> io::Result<BTreeMap<LibraryPath, ModuleAst>>
     where
         P: AsRef<Path>,
@@ -194,7 +216,7 @@ mod use_std {
                 let module_path = module_path
                     .append(name)
                     .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-                state = read_from_dir_helper(state, path, &module_path)?;
+                state = read_from_dir_helper(state, path, &module_path, deps)?;
             // if file, check if `masm`, parse & append; skip otherwise
             } else if ty.is_file() {
                 let path = entry.path();
@@ -211,6 +233,8 @@ mod use_std {
                     let contents = fs::read_to_string(&path)?;
                     let ast = ModuleAst::parse(&contents)?;
 
+                    // add dependencies of this module to the dependencies of this library
+                    add_deps(deps, &ast)?;
                     let module = module_path
                         .append(name)
                         .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
@@ -256,7 +280,7 @@ impl Deserializable for MaslLibrary {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let namespace = LibraryNamespace::read_from(source)?;
         let version = Version::read_from(source)?;
-
+        let mut deps = Vec::new();
         let num_modules = source.read_u16()? as usize;
         let mut modules = Vec::with_capacity(num_modules);
         for _ in 0..num_modules {
@@ -264,6 +288,8 @@ impl Deserializable for MaslLibrary {
                 .prepend(&namespace)
                 .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
             let ast = ModuleAst::read_from(source)?;
+            add_deps(&mut deps, &ast)
+                .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
             modules.push(Module { path, ast });
         }
 
@@ -273,7 +299,21 @@ impl Deserializable for MaslLibrary {
             modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
         }
 
-        Self::new(namespace, version, has_source_locations, modules)
+        Self::new(namespace, version, has_source_locations, modules, deps)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
+}
+
+// HELPER FUNCTIONS
+// ============================================================================================
+
+/// Add the dependencies of the given module to the dependencies of the library.
+fn add_deps(deps: &mut Vec<LibraryNamespace>, ast: &ModuleAst) -> Result<(), LibraryError> {
+    for path in ast.imports().values() {
+        let ns = LibraryNamespace::new(path.first())?;
+        if !deps.contains(&ns) {
+            deps.push(ns);
+        }
+    }
+    Ok(())
 }

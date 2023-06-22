@@ -36,6 +36,10 @@ impl Library for StdLibrary {
     fn modules(&self) -> Self::ModuleIterator<'_> {
         self.0.modules()
     }
+
+    fn dependencies(&self) -> &[assembly::LibraryNamespace] {
+        self.0.dependencies()
+    }
 }
 
 #[test]

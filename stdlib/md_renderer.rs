@@ -1,5 +1,8 @@
 use crate::{ModuleMap, Renderer};
-use assembly::ast::{ModuleAst, ProcedureAst};
+use assembly::{
+    ast::{ModuleAst, ProcedureAst},
+    LibraryPath,
+};
 use std::{
     fs::{self, File},
     io::Write,
@@ -67,12 +70,12 @@ impl Renderer for MarkdownRenderer {
 // ================================================================================================
 
 fn get_module_name(ns: &str) -> String {
-    let parts: Vec<&str> = ns.split("::").collect();
+    let parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
     String::from(parts[parts.len() - 1])
 }
 
 fn get_module_section(ns: &str) -> String {
-    let parts: Vec<&str> = ns.split("::").collect();
+    let parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
     String::from(parts[parts.len() - 2])
 }
 

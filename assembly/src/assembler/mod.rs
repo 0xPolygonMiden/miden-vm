@@ -67,7 +67,16 @@ impl Assembler {
         L: Library,
         I: Iterator<Item = L>,
     {
-        libraries.try_fold(self, |slf, library| slf.with_library(&library))
+        let assembler = libraries.try_fold(self, |slf, library| slf.with_library(&library));
+        #[cfg(debug_assertions)]
+        {
+            let libraries_vec = libraries.collect::<Vec<L>>();
+            assert!(libraries_vec.iter().all(|lib| lib
+                .dependencies()
+                .iter()
+                .all(|dep| libraries_vec.iter().any(|l| l.root_ns() == dep))));
+        }
+        assembler
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided source.
@@ -190,6 +199,17 @@ impl Assembler {
         // compile all procedures in the module; once the compilation is complete, we get all
         // compiled procedures (and their combined callset) from the context
         context.begin_module(&module.path)?;
+        for reexporteed_proc in module.ast.reexported_procs().iter() {
+            let proc_name = reexporteed_proc.name();
+            let proc_id = ProcedureId::from_name(proc_name, &module.path);
+            let ref_proc_path = reexporteed_proc.ref_path();
+            let ref_proc_id = ProcedureId::new(ref_proc_path);
+            self.proc_cache
+                .try_borrow_mut()
+                .map_err(|_| AssemblyError::InvalidCacheLock)?
+                .insert_reexported(proc_id, ref_proc_id)?;
+            self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
+        }
         for proc_ast in module.ast.procs().iter() {
             self.compile_procedure(proc_ast, context)?;
         }
@@ -341,16 +361,19 @@ impl Assembler {
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
-        if !self.proc_cache.borrow().contains_id(proc_id) {
+        if !(self.proc_cache.borrow().contains_proc_id(proc_id)
+            || self.proc_cache.borrow().contains_reexported_proc_id(proc_id))
+        {
             // if procedure is not in cache, try to get its module and compile it
             let module = self
                 .module_provider
                 .get_module(proc_id)
                 .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
             self.compile_module(module, context)?;
-
             // if the procedure is still not in cache, then there was some error
-            if !self.proc_cache.borrow().contains_id(proc_id) {
+            if !(self.proc_cache.borrow().contains_proc_id(proc_id)
+                || self.proc_cache.borrow().contains_reexported_proc_id(proc_id))
+            {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
                     proc_id,
                     &module.path,

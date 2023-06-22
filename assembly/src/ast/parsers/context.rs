@@ -1,7 +1,7 @@
 use super::{
-    adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction, InvocationTarget,
-    LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst, ProcedureId, Token,
-    TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
+    super::ProcReExport, adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction,
+    InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst,
+    ProcedureId, ReExportedProcMap, Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
@@ -15,6 +15,7 @@ use vm_core::utils::{
 pub struct ParserContext<'a> {
     pub imports: &'a BTreeMap<String, LibraryPath>,
     pub local_procs: LocalProcMap,
+    pub reexported_procs: ReExportedProcMap,
     pub local_constants: LocalConstMap,
 }
 
@@ -231,6 +232,15 @@ impl ParserContext<'_> {
                         let proc_name = token.parts()[1];
                         return Err(ParsingError::proc_export_not_allowed(token, proc_name));
                     }
+                    if token.parts()[1].contains(LibraryPath::PATH_DELIM) {
+                        let proc = self.parse_reexported_procedure(tokens)?;
+                        self.reexported_procs.insert(
+                            proc.name.to_string(),
+                            (self.reexported_procs.len() as u16, proc),
+                        );
+                        tokens.advance();
+                        continue;
+                    }
                 }
                 Token::PROC => {
                     // no validation needed, parse the procedure below
@@ -238,10 +248,12 @@ impl ParserContext<'_> {
                 _ => break,
             }
 
-            // parse the procedure body and add it to the list of local procedures
-            let proc = self.parse_procedure(tokens)?;
-            self.local_procs
-                .insert(proc.name.to_string(), (self.local_procs.len() as u16, proc));
+            if tokens.read().is_some() {
+                // parse the procedure body and add it to the list of local procedures
+                let proc = self.parse_procedure(tokens)?;
+                self.local_procs
+                    .insert(proc.name.to_string(), (self.local_procs.len() as u16, proc));
+            }
         }
 
         Ok(())
@@ -299,6 +311,26 @@ impl ParserContext<'_> {
         let (nodes, locations) = body.into_parts();
         Ok(ProcedureAst::new(name, num_locals, nodes, is_export, docs)
             .with_source_locations(locations, start))
+    }
+
+    fn parse_reexported_procedure(
+        &self,
+        tokens: &mut TokenStream,
+    ) -> Result<ProcReExport, ParsingError> {
+        let header = tokens.read().expect("missing procedure header");
+        let (proc_name, ref_name, module) = header.parse_reexported_proc()?;
+
+        // validate the module exists
+        let module_path = self
+            .imports
+            .get(module)
+            .ok_or(ParsingError::procedure_module_not_imported(header, module))?;
+        let ref_path = LibraryPath::try_from(
+            [module_path.as_ref(), ref_name.as_str()].join(LibraryPath::PATH_DELIM).as_str(),
+        )
+        .map_err(|_| ParsingError::invalid_module_path(header, module_path))?;
+        ProcReExport::new(proc_name.to_string(), ref_path)
+            .map_err(|err| ParsingError::invalid_proc_name(header, err))
     }
 
     // BODY PARSER

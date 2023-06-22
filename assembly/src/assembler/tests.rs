@@ -21,6 +21,7 @@ fn nested_blocks() {
     pub struct DummyLibrary {
         namespace: LibraryNamespace,
         modules: Vec<Module>,
+        dependencies: Vec<LibraryNamespace>,
     }
 
     impl Default for DummyLibrary {
@@ -32,6 +33,7 @@ fn nested_blocks() {
             Self {
                 namespace,
                 modules: vec![Module { path, ast }],
+                dependencies: Vec::new(),
             }
         }
     }
@@ -49,6 +51,10 @@ fn nested_blocks() {
 
         fn modules(&self) -> Self::ModuleIterator<'_> {
             self.modules.iter()
+        }
+
+        fn dependencies(&self) -> &[LibraryNamespace] {
+            &self.dependencies
         }
     }
 

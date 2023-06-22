@@ -430,6 +430,14 @@ impl ParsingError {
         }
     }
 
+    pub fn invalid_reexported_procedure(token: &Token, label: &str) -> Self {
+        ParsingError {
+            message: format!("invalid re-exported procedure: {label}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn proc_name_too_long(token: &Token, label: &str, max_len: u8) -> Self {
         ParsingError {
             message: format!(
@@ -720,6 +728,11 @@ pub enum LibraryError {
     NoModulesInLibrary {
         name: LibraryNamespace,
     },
+    TooManyDependenciesInLibrary {
+        name: LibraryNamespace,
+        num_dependencies: usize,
+        max_dependencies: usize,
+    },
     TooManyModulesInLibrary {
         name: LibraryNamespace,
         num_modules: usize,
@@ -788,6 +801,18 @@ impl LibraryError {
         }
     }
 
+    pub fn too_many_dependencies_in_library(
+        name: LibraryNamespace,
+        num_dependencies: usize,
+        max_dependencies: usize,
+    ) -> Self {
+        Self::TooManyDependenciesInLibrary {
+            name,
+            num_dependencies,
+            max_dependencies,
+        }
+    }
+
     pub fn too_many_version_components(version: &str) -> Self {
         Self::TooManyVersionComponents {
             version: version.into(),
@@ -826,6 +851,17 @@ impl fmt::Display for LibraryError {
             NoModulesInLibrary { name } => {
                 write!(f, "library '{}' does not contain any modules", name.as_str())
             }
+            TooManyDependenciesInLibrary {
+                name,
+                num_dependencies,
+                max_dependencies,
+            } => {
+                write!(
+                    f,
+                    "library '{}' contains {num_dependencies} dependencies, but max is {max_dependencies}",
+                    name.as_str()
+                )
+            }
             TooManyModulesInLibrary {
                 name,
                 num_modules,
@@ -846,6 +882,13 @@ impl fmt::Display for LibraryError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for LibraryError {}
+
+#[cfg(feature = "std")]
+impl From<LibraryError> for std::io::Error {
+    fn from(err: LibraryError) -> std::io::Error {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, err)
+    }
+}
 
 impl From<PathError> for LibraryError {
     fn from(value: PathError) -> Self {

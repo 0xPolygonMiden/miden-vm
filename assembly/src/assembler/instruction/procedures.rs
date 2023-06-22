@@ -31,9 +31,19 @@ impl Assembler {
 
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
-        debug_assert!(proc.is_export(), "not imported procedure");
 
+        let proc = match proc_cache.get_reexported_proc_ref_id(proc_id) {
+            Some(ref_proc_id) => {
+                // get the re-exported procedure
+                proc_cache.get_by_id(ref_proc_id).expect("procedure not in cache")
+            }
+            None => {
+                // get the imported procedure
+                proc_cache.get_by_id(proc_id).expect("procedure not in cache")
+            }
+        };
+
+        debug_assert!(proc.is_export(), "not imported procedure");
         // register and "inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
         context.register_external_call(proc, true)?;
@@ -94,7 +104,18 @@ impl Assembler {
 
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
+
+        let proc = match proc_cache.get_reexported_proc_ref_id(proc_id) {
+            Some(ref_proc_id) => {
+                // get the re-exported procedure
+                proc_cache.get_by_id(ref_proc_id).expect("procedure not in cache")
+            }
+            None => {
+                // get the imported procedure
+                proc_cache.get_by_id(proc_id).expect("procedure not in cache")
+            }
+        };
+
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the

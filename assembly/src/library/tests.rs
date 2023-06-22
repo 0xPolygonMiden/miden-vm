@@ -34,7 +34,8 @@ fn masl_locations_serialization() {
     let namespace = LibraryNamespace::new("test").unwrap();
     let version = Version::MIN;
     let locations = true;
-    let bundle = MaslLibrary::new(namespace, version, locations, modules.clone()).unwrap();
+    let bundle =
+        MaslLibrary::new(namespace, version, locations, modules.clone(), Vec::new()).unwrap();
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
@@ -45,7 +46,7 @@ fn masl_locations_serialization() {
     // create the bundle without locations
     let namespace = LibraryNamespace::new("test").unwrap();
     let locations = false;
-    let mut bundle = MaslLibrary::new(namespace, version, locations, modules).unwrap();
+    let mut bundle = MaslLibrary::new(namespace, version, locations, modules, Vec::new()).unwrap();
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
