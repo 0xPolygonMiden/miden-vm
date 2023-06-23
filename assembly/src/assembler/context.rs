@@ -249,7 +249,7 @@ impl AssemblyContext {
         let mut cb_table = CodeBlockTable::default();
         for proc_id in main_module_context.callset.iter() {
             let proc = proc_cache
-                .get_by_id(proc_id)
+                .get_by_id(proc_id)?
                 .or_else(|| main_module_context.find_local_proc(proc_id))
                 .ok_or(AssemblyError::CallSetProcedureNotFound(*proc_id))?;
 

@@ -50,10 +50,11 @@ impl<'a> Token<'a> {
     pub const SYSCALL: &'static str = "syscall";
     pub const WHILE: &'static str = "while";
 
-    // COMMENT DELIMITERS
+    // DELIMITERS
     // --------------------------------------------------------------------------------------------
     pub const DOC_COMMENT_PREFIX: &str = "#!";
     pub const COMMENT_PREFIX: char = '#';
+    pub const EXPORT_ALIAS_DELIM: &str = "->";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -162,7 +163,7 @@ impl<'a> Token<'a> {
 
                 // get the alias name if it exists else export it with the original name
                 let (ref_name, proc_name) = proc_name_with_alias
-                    .split_once("->")
+                    .split_once(Self::EXPORT_ALIAS_DELIM)
                     .unwrap_or((proc_name_with_alias, proc_name_with_alias));
 
                 // validate the procedure names

@@ -361,9 +361,7 @@ impl Assembler {
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
-        if !(self.proc_cache.borrow().contains_proc_id(proc_id)
-            || self.proc_cache.borrow().contains_reexported_proc_id(proc_id))
-        {
+        if !self.proc_cache.borrow().contains_id(proc_id) {
             // if procedure is not in cache, try to get its module and compile it
             let module = self
                 .module_provider
@@ -371,9 +369,7 @@ impl Assembler {
                 .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
             self.compile_module(module, context)?;
             // if the procedure is still not in cache, then there was some error
-            if !(self.proc_cache.borrow().contains_proc_id(proc_id)
-                || self.proc_cache.borrow().contains_reexported_proc_id(proc_id))
-            {
+            if !self.proc_cache.borrow().contains_id(proc_id) {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
                     proc_id,
                     &module.path,

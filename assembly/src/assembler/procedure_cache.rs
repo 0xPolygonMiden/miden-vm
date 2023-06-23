@@ -6,15 +6,22 @@ use super::{btree_map::Entry, AssemblyError, BTreeMap, Procedure, ProcedureId, R
 pub struct ProcedureCache {
     proc_map: BTreeMap<ProcedureId, Procedure>,
     mast_map: BTreeMap<RpoDigest, ProcedureId>,
-    reexported_proc_map: BTreeMap<ProcedureId, ProcedureId>,
+    proc_aliases: BTreeMap<ProcedureId, ProcedureId>,
 }
 
 impl ProcedureCache {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
     /// Returns a [Procedure] reference corresponding to the [ProcedureId].
-    pub fn get_by_id(&self, id: &ProcedureId) -> Option<&Procedure> {
-        self.proc_map.get(id)
+    pub fn get_by_id(&self, id: &ProcedureId) -> Result<Option<&Procedure>, AssemblyError> {
+        match (self.proc_map.get(id), self.proc_aliases.get(id)) {
+            // TODO: Should we move the duplicate id check to insertion?
+            // TODO: Should the signature of this method be changed to Result<&Procedure, AssemblyError>?
+            (Some(_), Some(_)) => Err(AssemblyError::duplicate_proc_id(id)),
+            (Some(proc), None) => Ok(Some(proc)),
+            (None, Some(alias_id)) => Ok(self.proc_map.get(alias_id)),
+            (None, None) => Ok(None),
+        }
     }
 
     /// Returns a [Procedure] reference corresponding to the MAST root ([RpoDigest]).
@@ -22,22 +29,10 @@ impl ProcedureCache {
         self.mast_map.get(root).and_then(|proc_id| self.proc_map.get(proc_id))
     }
 
-    /// Returns a [Procedure] reference corresponding to the [ProcedureId] of a reexported
-    /// procedure.
-    pub fn get_reexported_proc_ref_id(&self, id: &ProcedureId) -> Option<&ProcedureId> {
-        self.reexported_proc_map.get(id)
-    }
-
     /// Returns true if the [ProcedureCache] contains a [Procedure] for the specified
     /// [ProcedureId].
-    pub fn contains_proc_id(&self, id: &ProcedureId) -> bool {
-        self.proc_map.contains_key(id)
-    }
-
-    /// Returns true if the [ProcedureCache] contains a re-exported proceducre for the specified
-    /// [ProcedureId].
-    pub fn contains_reexported_proc_id(&self, id: &ProcedureId) -> bool {
-        self.reexported_proc_map.contains_key(id)
+    pub fn contains_id(&self, id: &ProcedureId) -> bool {
+        self.proc_map.contains_key(id) || self.proc_aliases.contains_key(id)
     }
 
     /// Returns true if the [ProcedureCache] contains a [Procedure] for the specified root
@@ -80,14 +75,14 @@ impl ProcedureCache {
     pub fn insert_reexported(
         &mut self,
         proc_id: ProcedureId,
-        ref_proc_id: ProcedureId,
+        alias_proc_id: ProcedureId,
     ) -> Result<(), AssemblyError> {
-        // If the entry is `Vacant` then insert the ProcedureId of the referenced procedure. If
-        // the `ProcedureId` is already in the cache (i.e. it is a duplicate) then return an error.
-        match self.reexported_proc_map.entry(proc_id) {
+        // If the entry is `Vacant` then insert the ProcedureId of the alias procedure. If the
+        // `ProcedureId` is already in the cache (i.e. it is a duplicate) then return an error.
+        match self.proc_aliases.entry(proc_id) {
             Entry::Occupied(_) => Err(AssemblyError::duplicate_proc_id(&proc_id)),
             Entry::Vacant(entry) => {
-                entry.insert(ref_proc_id);
+                entry.insert(alias_proc_id);
                 Ok(())
             }
         }
