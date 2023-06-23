@@ -200,14 +200,13 @@ impl Assembler {
         // compiled procedures (and their combined callset) from the context
         context.begin_module(&module.path)?;
         for reexporteed_proc in module.ast.reexported_procs().iter() {
-            let proc_name = reexporteed_proc.name();
+            let proc_name = reexporteed_proc.alias();
             let proc_id = ProcedureId::from_name(proc_name, &module.path);
-            let ref_proc_path = reexporteed_proc.ref_path();
-            let ref_proc_id = ProcedureId::new(ref_proc_path);
+            let ref_proc_id = reexporteed_proc.proc_id();
             self.proc_cache
                 .try_borrow_mut()
                 .map_err(|_| AssemblyError::InvalidCacheLock)?
-                .insert_reexported(proc_id, ref_proc_id)?;
+                .insert_proc_alias(ref_proc_id, proc_id)?;
             self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
         }
         for proc_ast in module.ast.procs().iter() {

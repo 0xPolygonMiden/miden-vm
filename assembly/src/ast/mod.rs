@@ -648,41 +648,47 @@ impl Deserializable for ProcedureAst {
 /// the [ModuleAST].
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ProcReExport {
-    name: ProcedureName,
-    ref_path: LibraryPath,
+    proc_id: ProcedureId,
+    alias: ProcedureName,
 }
 
 impl ProcReExport {
-    /// Creates a new re-exported procedure with the provided name of the re-exported procedure and
-    /// reference path of the original procedure.
-    pub fn new(name: String, ref_path: LibraryPath) -> Result<Self, LabelError> {
-        let name = ProcedureName::try_from(name)?;
-        Ok(Self { name, ref_path })
+    /// Creates a new re-exported procedure.
+    pub fn new(proc_id: ProcedureId, alias: ProcedureName) -> Self {
+        Self { proc_id, alias }
     }
 
-    /// Returns the name of the re-exported procedure.
-    pub fn name(&self) -> &str {
-        &self.name
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the ID of the re-exported procedure.
+    pub fn proc_id(&self) -> ProcedureId {
+        self.proc_id
     }
 
-    /// Returns the reference path of the original procedure.
-    pub fn ref_path(&self) -> &LibraryPath {
-        &self.ref_path
+    /// Returns the alias of the re-exported procedure.
+    pub fn alias(&self) -> &ProcedureName {
+        &self.alias
+    }
+
+    /// Returns the ID of the re-exported procedure using the specified module.
+    pub fn get_alias_id(&self, module_path: &LibraryPath) -> ProcedureId {
+        ProcedureId::from_name(&self.alias, module_path)
     }
 }
 
 impl Serializable for ProcReExport {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.name.write_into(target);
-        self.ref_path.write_into(target);
+        self.proc_id.write_into(target);
+        self.alias.write_into(target);
     }
 }
 
 impl Deserializable for ProcReExport {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let name = ProcedureName::read_from(source)?;
-        let ref_path = LibraryPath::read_from(source)?;
-        Ok(Self { name, ref_path })
+        let proc_id = ProcedureId::read_from(source)?;
+        let alias = ProcedureName::read_from(source)?;
+        Ok(Self { proc_id, alias })
     }
 }
 

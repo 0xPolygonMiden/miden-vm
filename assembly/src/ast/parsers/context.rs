@@ -235,7 +235,7 @@ impl ParserContext<'_> {
                     if token.parts()[1].contains(LibraryPath::PATH_DELIM) {
                         let proc = self.parse_reexported_procedure(tokens)?;
                         self.reexported_procs.insert(
-                            proc.name.to_string(),
+                            proc.alias.to_string(),
                             (self.reexported_procs.len() as u16, proc),
                         );
                         tokens.advance();
@@ -325,12 +325,9 @@ impl ParserContext<'_> {
             .imports
             .get(module)
             .ok_or(ParsingError::procedure_module_not_imported(header, module))?;
-        let ref_path = LibraryPath::try_from(
-            [module_path.as_ref(), ref_name.as_str()].join(LibraryPath::PATH_DELIM).as_str(),
-        )
-        .map_err(|_| ParsingError::invalid_module_path(header, module_path))?;
-        ProcReExport::new(proc_name.to_string(), ref_path)
-            .map_err(|err| ParsingError::invalid_proc_name(header, err))
+
+        let proc_id = ProcedureId::from_name(&ref_name, module_path);
+        Ok(ProcReExport::new(proc_id, proc_name))
     }
 
     // BODY PARSER

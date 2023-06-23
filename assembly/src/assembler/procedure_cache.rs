@@ -72,17 +72,17 @@ impl ProcedureCache {
 
     /// Inserts a re-exported [ProcedureId] to reference [ProcedureId] map into the
     /// [ProcedureCache].
-    pub fn insert_reexported(
+    pub fn insert_proc_alias(
         &mut self,
         proc_id: ProcedureId,
         alias_proc_id: ProcedureId,
     ) -> Result<(), AssemblyError> {
         // If the entry is `Vacant` then insert the ProcedureId of the alias procedure. If the
         // `ProcedureId` is already in the cache (i.e. it is a duplicate) then return an error.
-        match self.proc_aliases.entry(proc_id) {
-            Entry::Occupied(_) => Err(AssemblyError::duplicate_proc_id(&proc_id)),
+        match self.proc_aliases.entry(alias_proc_id) {
+            Entry::Occupied(_) => Err(AssemblyError::duplicate_proc_id(&alias_proc_id)),
             Entry::Vacant(entry) => {
-                entry.insert(alias_proc_id);
+                entry.insert(proc_id);
                 Ok(())
             }
         }
