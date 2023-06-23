@@ -1,6 +1,7 @@
 use super::{
     trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
-    HasherState, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE, ZERO,
+    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
+    ZERO,
 };
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,
@@ -289,7 +290,7 @@ impl Hasher {
     pub(super) fn build_merkle_root(
         &mut self,
         value: Word,
-        path: &[Word],
+        path: &MerklePath,
         index: Felt,
         lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
@@ -321,7 +322,7 @@ impl Hasher {
         &mut self,
         old_value: Word,
         new_value: Word,
-        path: &[Word],
+        path: &MerklePath,
         index: Felt,
         lookups: &mut Vec<HasherLookup>,
     ) -> MerkleRootUpdate {
@@ -377,7 +378,7 @@ impl Hasher {
     fn verify_merkle_path(
         &mut self,
         value: Word,
-        path: &[Word],
+        path: &MerklePath,
         mut index: u64,
         context: MerklePathContext,
         lookups: &mut Vec<HasherLookup>,
@@ -449,7 +450,7 @@ impl Hasher {
     fn verify_mp_leg(
         &mut self,
         root: Word,
-        sibling: Word,
+        sibling: Digest,
         index: &mut u64,
         init_selectors: Selectors,
         final_selectors: Selectors,
@@ -505,13 +506,13 @@ impl Hasher {
         &mut self,
         context: MerklePathContext,
         index: u64,
-        sibling: Word,
+        sibling: Digest,
         depth: usize,
     ) {
         let step = self.trace.trace_len() as u32;
         match context {
             MerklePathContext::MrUpdateOld => {
-                self.aux_trace.sibling_added(step, Felt::new(index), sibling);
+                self.aux_trace.sibling_added(step, Felt::new(index), sibling.into());
             }
             MerklePathContext::MrUpdateNew => {
                 // we use node depth as row offset here because siblings are added to the table

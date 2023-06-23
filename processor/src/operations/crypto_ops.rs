@@ -335,7 +335,8 @@ mod tests {
 
         // appends only the input trees to the Merkle store
         let mut store = MerkleStore::default();
-        store.extend(tree_a.inner_nodes()).extend(tree_b.inner_nodes());
+        store.extend(tree_a.inner_nodes());
+        store.extend(tree_b.inner_nodes());
 
         // set the target coordinates to update the indexes 4..8
         let target_depth = 2;
