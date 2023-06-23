@@ -234,10 +234,15 @@ impl ParserContext<'_> {
                     }
                     if token.parts()[1].contains(LibraryPath::PATH_DELIM) {
                         let proc = self.parse_reexported_procedure(tokens)?;
-                        self.reexported_procs.insert(
+                        match self.reexported_procs.insert(
                             proc.alias.to_string(),
                             (self.reexported_procs.len() as u16, proc),
-                        );
+                        ) {
+                            None => (),
+                            Some((_, proc)) => {
+                                return Err(ParsingError::duplicate_proc_name(token, &proc.alias));
+                            }
+                        }
                         tokens.advance();
                         continue;
                     }
@@ -315,7 +320,7 @@ impl ParserContext<'_> {
 
     fn parse_reexported_procedure(
         &self,
-        tokens: &mut TokenStream,
+        tokens: &TokenStream,
     ) -> Result<ProcReExport, ParsingError> {
         let header = tokens.read().expect("missing procedure header");
         let (proc_name, ref_name, module) = header.parse_reexported_proc()?;

@@ -15,8 +15,6 @@ impl ProcedureCache {
     /// Returns a [Procedure] reference corresponding to the [ProcedureId].
     pub fn get_by_id(&self, id: &ProcedureId) -> Result<Option<&Procedure>, AssemblyError> {
         match (self.proc_map.get(id), self.proc_aliases.get(id)) {
-            // TODO: Should we move the duplicate id check to insertion?
-            // TODO: Should the signature of this method be changed to Result<&Procedure, AssemblyError>?
             (Some(_), Some(_)) => Err(AssemblyError::duplicate_proc_id(id)),
             (Some(proc), None) => Ok(Some(proc)),
             (None, Some(alias_id)) => Ok(self.proc_map.get(alias_id)),
@@ -57,6 +55,10 @@ impl ProcedureCache {
     // --------------------------------------------------------------------------------------------
     /// Inserts a [Procedure] into the [ProcedureCache].
     pub fn insert(&mut self, proc: Procedure) -> Result<(), AssemblyError> {
+        // if a re-exported procedure with the same id is already in the cache, return an error
+        if self.proc_aliases.contains_key(proc.id()) {
+            return Err(AssemblyError::duplicate_proc_id(proc.id()));
+        }
         // If the entry is `Vacant` then insert the Procedure. If the `ProcedureId` is already in
         // the cache (i.e. it is a duplicate) then return an error.
         match self.proc_map.entry(*proc.id()) {
@@ -74,9 +76,13 @@ impl ProcedureCache {
     /// [ProcedureCache].
     pub fn insert_proc_alias(
         &mut self,
-        proc_id: ProcedureId,
         alias_proc_id: ProcedureId,
+        proc_id: ProcedureId,
     ) -> Result<(), AssemblyError> {
+        // if a procedure with the same id is already in the cache, return an error
+        if self.proc_map.contains_key(&alias_proc_id) {
+            return Err(AssemblyError::duplicate_proc_id(&alias_proc_id));
+        }
         // If the entry is `Vacant` then insert the ProcedureId of the alias procedure. If the
         // `ProcedureId` is already in the cache (i.e. it is a duplicate) then return an error.
         match self.proc_aliases.entry(alias_proc_id) {

@@ -206,7 +206,7 @@ impl Assembler {
             self.proc_cache
                 .try_borrow_mut()
                 .map_err(|_| AssemblyError::InvalidCacheLock)?
-                .insert_proc_alias(ref_proc_id, proc_id)?;
+                .insert_proc_alias(proc_id, ref_proc_id)?;
             self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
         }
         for proc_ast in module.ast.procs().iter() {
