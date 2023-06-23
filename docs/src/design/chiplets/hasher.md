@@ -1,4 +1,4 @@
-# Hash Chiplet
+# Hash chiplet
 
 Miden VM "offloads" all hash-related computations to a separate _hash processor_. This chiplet supports executing the [Rescue Prime Optimized](https://eprint.iacr.org/2022/1577) hash function (or rather a [specific instantiation](https://docs.rs/miden-crypto/latest/miden_crypto/hash/rpo/struct.Rpo256.html) of it) in the following settings:
 
@@ -42,7 +42,7 @@ The meaning of the columns is as follows:
 
 In addition to the columns described above, the chiplet relies on two running product columns which are used to facilitate multiset checks (similar to the ones described [here](https://hackmd.io/@arielg/ByFgSDA7D)). These columns are:
 
-- $p_0$ - which is used to tie the chiplet table with the main VM's stack. That is, values representing inputs consumed by the chiplet and outputs produced by the chiplet are multiplied into $p_0$, while the main VM stack divides them out of $p_0$. Thus, if the sets of inputs and outputs between the main VM stack and hash chiplet are the same, value of $p_0$ should be equal to $1$ at the start and the end of the execution trace.
+- $b_{chip}$ - which is used to tie the chiplet table with the main VM's stack and decoder. That is, values representing inputs consumed by the chiplet and outputs produced by the chiplet are multiplied into $b_{chip}$, while the main VM stack (or decoder) divides them out of $b_{chip}$. Thus, if the sets of inputs and outputs between the main VM stack and hash chiplet are the same, the value of $b_{chip}$ should be equal to $1$ at the start and the end of the execution trace.
 - $p_1$ - which is used to keep track of the *sibling* table used for Merkle root update computations. Specifically, when a root for the old leaf value is computed, we add an entry for all sibling nodes to the table (i.e., we multiply $p_1$ by the values representing these entries). When the root for the new leaf value is computed, we remove the entries for the nodes from the table (i.e., we divide $p_1$ by the value representing these entries). Thus, if both computations used the same set of sibling nodes (in the same order), the sibling table should be empty by the time Merkle root update procedure completes (i.e., the value of $p_1$ would be $1$).
 
 ## Instruction flags
@@ -348,7 +348,7 @@ $$
 Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher state is unconstrained.
 
 ### Multiset check constraints
-In this sections we describe constraints which enforce updates for [multiset check columns](../multiset.md) $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
+In this sections we describe constraints which enforce updates for [multiset check columns](../multiset.md) $b_{chip}$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc.
 
@@ -368,35 +368,35 @@ In the above:
 - $v_a$, $v_b$, $v_c$ are the first, second, and third words (4 elements) of the hasher state.
 - $v_d$ is the third word of the hasher state but computed using the same $\alpha$ values as used for the second word. This is needed for computing the value of $v_{leaf}$ below to ensure that the same $\alpha$ values are used for the leaf node regardless of which part of the state the node comes from.
 
-#### Hash chiplet bus constraints
-As described previously, running product column $p_0$ is used to tie the hash chiplet with the main VM's stack. When receiving inputs from or returning results to the stack, hash chiplet multiplies $p_0$ by their respective values. On other other side, when sending inputs to the hash chiplet or receiving results from the chiplet, the stack divides $p_0$ by their values.
+#### Chiplets bus constraints
+As described previously, the [chiplets bus](./main.md#chiplets-bus) $b_{chip}$, implemented as a running product column, is used to tie the hash chiplet with the main VM's stack and decoder. When receiving inputs from or returning results to the stack (or decoder), the hash chiplet multiplies $b_{chip}$ by their respective values. On the other side, when sending inputs to the hash chiplet or receiving results from the chiplet, the stack (or decoder) divides $b_{chip}$ by their values.
 
-In the section below we describe only the hash chiplet side of the constraints (i.e., multiplying $p_0$ by relevant values). We define values which are to be multiplied into the $p_0$ for each operation as follows:
+In the section below we describe only the hash chiplet side of the constraints (i.e., multiplying $b_{chip}$ by relevant values). We define the values which are to be multiplied into $b_{chip}$ for each operation as follows:
 
-When starting a new simple or linear hash computation (i.e., $f_{bp}=1$) or when returning the entire state of the hasher ($f_{sout}=1$), the entire hasher state is included into $p_0$:
+When starting a new simple or linear hash computation (i.e., $f_{bp}=1$) or when returning the entire state of the hasher ($f_{sout}=1$), the entire hasher state is included into $b_{chip}$:
 $$
 v_{all} = v_h + v_a + v_b + v_c
 $$
 
-When starting a Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu} = 1$), we include the leaf of the path into $p_0$. The leaf is selected from the state based on value of $b$ (defined as in the previous section):
+When starting a Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu} = 1$), we include the leaf of the path into $b_{chip}$. The leaf is selected from the state based on value of $b$ (defined as in the previous section):
 $$
 v_{leaf} = v_h + (1-b) \cdot v_b + b \cdot v_d
 $$
 
-When absorbing a new set of elements into the state while computing a linear hash (i.e., $f_{abp}=1$), we include deltas between the last $8$ elements of the hasher state (the rate) into $p_0$:
+When absorbing a new set of elements into the state while computing a linear hash (i.e., $f_{abp}=1$), we include deltas between the last $8$ elements of the hasher state (the rate) into $b_{chip}$:
 $$
 v_{abp} = v_h + v'_b + v'_c - (v_b + v_c)
 $$
 
-When a computation is complete (i.e., $f_{hout}=1$), we include the second word of the hasher state (the result) into $p_0$:
+When a computation is complete (i.e., $f_{hout}=1$), we include the second word of the hasher state (the result) into $b_{chip}$:
 $$
 v_{res} = v_h + v_b
 $$
 
-Using the above values, we can describe the constraints for updating column $p_0$ as follows.
+Using the above values, we can describe the constraints for updating column $b_{chip}$ as follows.
 
 >$$
-p_0' = p_0 \cdot ((f_{bp} + f_{sout}) \cdot v_{all} + (f_{mp} + f_{mv} + f_{mu}) \cdot v_{leaf} + f_{abp} \cdot v_{abp} + f_{hout} \cdot v_{res} + \\
+b_{chip}' = b_{chip} \cdot ((f_{bp} + f_{sout}) \cdot v_{all} + (f_{mp} + f_{mv} + f_{mu}) \cdot v_{leaf} + f_{abp} \cdot v_{abp} + f_{hout} \cdot v_{res} + \\
 1 - (f_{bp} + f_{mp} + f_{mv} + f_{mu} + f_{abp} + f_{out}))
 $$
 
@@ -404,19 +404,21 @@ The above constraint reduces to the following under various flag conditions:
 
 | Condition      | Applied constraint |
 | -------------- | ------------------ |
-| $f_{bp} = 1$   | $p_0' = p_0 \cdot v_{all}$ |
-| $f_{sout} = 1$ | $p_0' = p_0 \cdot v_{all}$ |
-| $f_{mp} = 1$   | $p_0' = p_0 \cdot v_{leaf}$ |
-| $f_{mv} = 1$   | $p_0' = p_0 \cdot v_{leaf}$ |
-| $f_{mu} = 1$   | $p_0' = p_0 \cdot v_{leaf}$ |
-| $f_{abp} = 1$  | $p_0' = p_0 \cdot v_{abp}$ |
-| $f_{hout} = 1$ | $p_0' = p_0 \cdot v_{res}$ |
-| Otherwise      | $p_0' = p_0$ |
+| $f_{bp} = 1$   | $b_{chip}' = b_{chip} \cdot v_{all}$ |
+| $f_{sout} = 1$ | $b_{chip}' = b_{chip} \cdot v_{all}$ |
+| $f_{mp} = 1$   | $b_{chip}' = b_{chip} \cdot v_{leaf}$ |
+| $f_{mv} = 1$   | $b_{chip}' = b_{chip} \cdot v_{leaf}$ |
+| $f_{mu} = 1$   | $b_{chip}' = b_{chip} \cdot v_{leaf}$ |
+| $f_{abp} = 1$  | $b_{chip}' = b_{chip} \cdot v_{abp}$ |
+| $f_{hout} = 1$ | $b_{chip}' = b_{chip} \cdot v_{res}$ |
+| Otherwise      | $b_{chip}' = b_{chip}$ |
 
 Note that the degree of the above constraint is $7$.
 
 #### Sibling table constraints
-As mentioned previously, sibling table (represented by running column $p_1$) is used to keep track of sibling nodes used during Merkle root update computation. For this computation, we need to enforce the following rules:
+*Note: Although this table is described independently, it is implemented as part of the [chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines all virtual tables required by the any of the chiplets into a single master table.*
+
+As mentioned previously, the sibling table (represented by running column $p_1$) is used to keep track of sibling nodes used during Merkle root update computations. For this computation, we need to enforce the following rules:
 * When computing the old Merkle root, whenever a new sibling node is absorbed into the hasher state (i.e., $f_{mv} + f_{mva} = 1$), an entry for this sibling should be included into $p_1$.
 * When computing the new Merkle root, whenever a new sibling node is absorbed into the hasher state (i.e., $f_{mu} + f_{mua} = 1$), the entry for this sibling should be removed from $p_1$.
 
@@ -452,4 +454,4 @@ $$
 
 The above means that whenever we start a new computation which is not the computation of the new Merkle root, the sibling table must be empty. Thus, after the hash chiplet computes the old Merkle root, the only way to clear the table is to compute the new Merkle root.
 
-Together with boundary constraints enforcing that $p_1=1$ at the first and last rows, the above constraints ensure that if a node was included into $p_1$ as a part of computing the old Merkle root, the same node must be removed from $p_1$ as a part of computing the new Merkle root.
+Together with boundary constraints enforcing that $p_1=1$ at the first and last rows of the running product column which implements the sibling table, the above constraints ensure that if a node was included into $p_1$ as a part of computing the old Merkle root, the same node must be removed from $p_1$ as a part of computing the new Merkle root. These two boundary constraints are described as part of the [chiplets virtual table constraints](../chiplets/main.md#chiplets-virtual-table-constraints).

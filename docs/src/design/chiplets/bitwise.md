@@ -1,4 +1,4 @@
-# Bitwise Chiplet
+# Bitwise chiplet
 
 In this note we describe how to compute bitwise AND and XOR operations on 32-bit values and the constraints required for proving correct execution.
 
@@ -126,9 +126,9 @@ For `U32XOR`, this is enforced with the following constraint:
 s \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot (a_i + b_i - 2 \cdot a_i \cdot b_i)))\right) = 0 \text{ | degree} = 3
 $$
 
-## Bitwise chiplet bus constraints
+## Chiplets bus constraints
 
-To simplify the notation for describing bitwise constraints on the chiplet bus, we'll first define variable $u$, which represents how $a$, $b$, and $z$ in the execution trace are reduced to a single value. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved as follows.
+To simplify the notation for describing bitwise constraints on the chiplets bus, we'll first define variable $u$, which represents how $a$, $b$, and $z$ in the execution trace are reduced to a single value. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved as follows.
 
 $$
 u = \alpha_0 + \alpha_1 \cdot op_{bit} + \alpha_2 \cdot a + \alpha_3 \cdot b + \alpha_4 \cdot z
@@ -136,7 +136,7 @@ $$
 
 Where, $op_{bit}$ is the unique [operation label](./main.md#operation-labels) of the bitwise operation.
 
-The request side constraint for the bitwise operation is described in the [stack bitwise operation section](../stack/u32_ops.md#u32and).
+The request side of the constraint for the bitwise operation is described in the [stack bitwise operation section](../stack/u32_ops.md#u32and).
 
 To provide the results of bitwise operations to the chiplets bus, we want to include values of $a$, $b$ and $z$ at the last row of the cycle.
 

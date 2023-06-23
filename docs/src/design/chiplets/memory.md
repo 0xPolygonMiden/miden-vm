@@ -1,4 +1,4 @@
-# Memory Chiplet
+# Memory chiplet
 
 Miden VM supports linear read-write random access memory. This memory is word-addressable, meaning, four values are located at each address, and we can read and write values to/from memory in batches of four. Each value is a field element in a $64$-bit prime field with modulus $2^{64} - 2^{32} + 1$. Memory address can be any field element.
 
@@ -269,8 +269,8 @@ Lastly, we need to make sure that for the same context/address combination, the 
 s_1 \cdot (v_i' - v_i) = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 2
 $$
 
-#### Memory row value
-Communication between the memory chiplet and the stack is accomplished via the chiplet bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
+#### Chiplets bus constraints
+Communication between the memory chiplet and the stack is accomplished via the chiplets bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
 
 $$
 v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot c + \alpha_3 \cdot a + \alpha_4 \cdot i + \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j)
@@ -278,7 +278,7 @@ $$
 
 Where, $op_{mem}$ is the unique [operation label](./main.md#operation-labels) of the memory access operation.
 
-To ensure that values of memory table rows are included into the chiplet bus, we impose the following constraint:
+To ensure that values of memory table rows are included into the chiplets bus, we impose the following constraint:
 
 >$$
 b_{chip}' = b_{chip} \cdot v_{mem} \text{ | degree} = 2
