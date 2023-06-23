@@ -1,9 +1,8 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Library, LibraryError,
-    LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec, Version, MAX_DEPENDENCIES,
-    MAX_MODULES,
+    super::BTreeSet, ByteReader, ByteWriter, Deserializable, DeserializationError, Library,
+    LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec, Version,
+    MAX_DEPENDENCIES, MAX_MODULES,
 };
-
 use core::slice::Iter;
 
 // LIBRARY IMPLEMENTATION FOR MASL FILES
@@ -145,13 +144,18 @@ mod use_std {
 
             let module_path = LibraryPath::new(&namespace)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-            let mut dependencies = Vec::new();
-            let modules =
-                read_from_dir_helper(Default::default(), path, &module_path, &mut dependencies)?
-                    .into_iter()
-                    .map(|(path, ast)| Module { path, ast })
-                    .collect();
-
+            let mut dependencies_set = BTreeSet::new();
+            let modules = read_from_dir_helper(
+                Default::default(),
+                path,
+                &module_path,
+                &mut dependencies_set,
+            )?
+            .into_iter()
+            .map(|(path, ast)| Module { path, ast })
+            .collect();
+            let dependencies =
+                dependencies_set.into_iter().filter(|dep| dep != &namespace).collect();
             Self::new(namespace, version, with_source_locations, modules, dependencies)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
@@ -198,7 +202,7 @@ mod use_std {
         mut state: BTreeMap<LibraryPath, ModuleAst>,
         dir: P,
         module_path: &LibraryPath,
-        deps: &mut Vec<LibraryNamespace>,
+        deps: &mut BTreeSet<LibraryNamespace>,
     ) -> io::Result<BTreeMap<LibraryPath, ModuleAst>>
     where
         P: AsRef<Path>,
@@ -256,8 +260,13 @@ impl Serializable for MaslLibrary {
         self.version.write_into(target);
 
         let modules = self.modules();
+
+        // write dependencies
+        target.write_u16(self.dependencies.len() as u16);
+        self.dependencies.iter().for_each(|dep| dep.write_into(target));
+
         // this assert is OK because maximum number of modules is enforced by Library constructor
-        debug_assert!(modules.len() <= u16::MAX as usize, "too many modules");
+        debug_assert!(modules.len() <= MAX_MODULES, "too many modules");
 
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
@@ -280,7 +289,16 @@ impl Deserializable for MaslLibrary {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let namespace = LibraryNamespace::read_from(source)?;
         let version = Version::read_from(source)?;
-        let mut deps = Vec::new();
+
+        // read dependencies
+        let num_deps = source.read_u16()? as usize;
+        // TODO: should we return an error for duplicates? Should duplicate dependencies in a
+        // serialized library be illegal?
+        let deps_set: BTreeSet<LibraryNamespace> = (0..num_deps)
+            .map(|_| LibraryNamespace::read_from(source))
+            .collect::<Result<_, _>>()?;
+
+        // read modules
         let num_modules = source.read_u16()? as usize;
         let mut modules = Vec::with_capacity(num_modules);
         for _ in 0..num_modules {
@@ -288,8 +306,6 @@ impl Deserializable for MaslLibrary {
                 .prepend(&namespace)
                 .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
             let ast = ModuleAst::read_from(source)?;
-            add_deps(&mut deps, &ast)
-                .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
             modules.push(Module { path, ast });
         }
 
@@ -299,6 +315,7 @@ impl Deserializable for MaslLibrary {
             modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
         }
 
+        let deps = deps_set.into_iter().collect();
         Self::new(namespace, version, has_source_locations, modules, deps)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
@@ -308,12 +325,10 @@ impl Deserializable for MaslLibrary {
 // ============================================================================================
 
 /// Add the dependencies of the given module to the dependencies of the library.
-fn add_deps(deps: &mut Vec<LibraryNamespace>, ast: &ModuleAst) -> Result<(), LibraryError> {
+fn add_deps(deps: &mut BTreeSet<LibraryNamespace>, ast: &ModuleAst) -> Result<(), LibraryError> {
     for path in ast.imports().values() {
         let ns = LibraryNamespace::new(path.first())?;
-        if !deps.contains(&ns) {
-            deps.push(ns);
-        }
+        deps.insert(ns);
     }
     Ok(())
 }
