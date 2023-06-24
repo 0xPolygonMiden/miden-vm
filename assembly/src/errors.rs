@@ -129,20 +129,20 @@ impl fmt::Display for AssemblyError {
             DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
-            ProcMastRootNotFound(digest) => {
-                write!(f, "procedure mast root not found for digest - ")?;
-                write_hex_bytes(f, &digest.as_bytes())
-            },
             ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
             InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
             InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
+            Io(description) => write!(f, "I/O error: {description}"),
             KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
+            LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
+            ProcMastRootNotFound(digest) => {
+                write!(f, "procedure mast root not found for digest - ")?;
+                write_hex_bytes(f, &digest.as_bytes())
+            },
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
-            LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
-            Io(description) => write!(f, "I/O error: {description}"),
         }
     }
 }

@@ -649,13 +649,13 @@ impl Deserializable for ProcedureAst {
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ProcReExport {
     proc_id: ProcedureId,
-    alias: ProcedureName,
+    name: ProcedureName,
 }
 
 impl ProcReExport {
     /// Creates a new re-exported procedure.
-    pub fn new(proc_id: ProcedureId, alias: ProcedureName) -> Self {
-        Self { proc_id, alias }
+    pub fn new(proc_id: ProcedureId, name: ProcedureName) -> Self {
+        Self { proc_id, name }
     }
 
     // PUBLIC ACCESSORS
@@ -666,29 +666,29 @@ impl ProcReExport {
         self.proc_id
     }
 
-    /// Returns the alias of the re-exported procedure.
-    pub fn alias(&self) -> &ProcedureName {
-        &self.alias
+    /// Returns the name of the re-exported procedure.
+    pub fn name(&self) -> &ProcedureName {
+        &self.name
     }
 
     /// Returns the ID of the re-exported procedure using the specified module.
     pub fn get_alias_id(&self, module_path: &LibraryPath) -> ProcedureId {
-        ProcedureId::from_name(&self.alias, module_path)
+        ProcedureId::from_name(&self.name, module_path)
     }
 }
 
 impl Serializable for ProcReExport {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.proc_id.write_into(target);
-        self.alias.write_into(target);
+        self.name.write_into(target);
     }
 }
 
 impl Deserializable for ProcReExport {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let proc_id = ProcedureId::read_from(source)?;
-        let alias = ProcedureName::read_from(source)?;
-        Ok(Self { proc_id, alias })
+        let name = ProcedureName::read_from(source)?;
+        Ok(Self { proc_id, name })
     }
 }
 

@@ -235,12 +235,12 @@ impl ParserContext<'_> {
                     if token.parts()[1].contains(LibraryPath::PATH_DELIM) {
                         let proc = self.parse_reexported_procedure(tokens)?;
                         match self.reexported_procs.insert(
-                            proc.alias.to_string(),
+                            proc.name.to_string(),
                             (self.reexported_procs.len() as u16, proc),
                         ) {
                             None => (),
                             Some((_, proc)) => {
-                                return Err(ParsingError::duplicate_proc_name(token, &proc.alias));
+                                return Err(ParsingError::duplicate_proc_name(token, &proc.name));
                             }
                         }
                         tokens.advance();

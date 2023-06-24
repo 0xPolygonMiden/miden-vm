@@ -36,7 +36,7 @@ impl ModuleProvider {
         }
         let module_idx = self.modules.len();
         for proc in module.ast.reexported_procs().iter() {
-            let proc_name = module.path.append(proc.alias())?;
+            let proc_name = module.path.append(proc.name())?;
             let proc_id = ProcedureId::from(&proc_name);
             self.procedures.insert(proc_id, module_idx);
         }

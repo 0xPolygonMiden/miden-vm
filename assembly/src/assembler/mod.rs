@@ -200,7 +200,7 @@ impl Assembler {
         // compiled procedures (and their combined callset) from the context
         context.begin_module(&module.path)?;
         for reexporteed_proc in module.ast.reexported_procs().iter() {
-            let proc_name = reexporteed_proc.alias();
+            let proc_name = reexporteed_proc.name();
             let proc_id = ProcedureId::from_name(proc_name, &module.path);
             let ref_proc_id = reexporteed_proc.proc_id();
             self.proc_cache
