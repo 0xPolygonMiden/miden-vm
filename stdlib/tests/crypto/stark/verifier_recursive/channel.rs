@@ -251,18 +251,8 @@ impl VerifierChannel {
                 })
                 .collect();
 
-            let paths: Vec<MerklePath> = unbatched_proof
-                .iter()
-                .map(|list| {
-                    list.iter()
-                        .map(|digest| {
-                            let node = digest.as_elements();
-                            let node = [node[0], node[1], node[2], node[3]];
-                            node
-                        })
-                        .collect()
-                })
-                .collect();
+            let paths: Vec<MerklePath> =
+                unbatched_proof.into_iter().map(|list| list.into()).collect();
 
             let new_set = MerklePathSet::new((current_domain_size / N).ilog2() as u8);
 
@@ -272,7 +262,7 @@ impl VerifierChannel {
             let iter_paths = paths.into_iter();
             let mut tmp_vec = Vec::new();
             for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
-                tmp_vec.push((p, *node, path));
+                tmp_vec.push((p, RpoDigest::from(*node), path));
             }
 
             let new_set = new_set.with_paths(tmp_vec).expect("should not fail from paths");
@@ -501,18 +491,7 @@ pub fn unbatch_to_path_set(
         })
         .collect();
 
-    let paths: Vec<MerklePath> = unbatched_proof
-        .iter()
-        .map(|list| {
-            list.iter()
-                .map(|digest| {
-                    let node = digest.as_elements();
-                    let node = [node[0], node[1], node[2], node[3]];
-                    node
-                })
-                .collect()
-        })
-        .collect();
+    let paths: Vec<MerklePath> = unbatched_proof.into_iter().map(|list| list.into()).collect();
 
     let new_set = MerklePathSet::new(depth - 1);
 
@@ -522,7 +501,7 @@ pub fn unbatch_to_path_set(
     let iter_paths = paths.into_iter();
     let mut tmp_vec = vec![];
     for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
-        tmp_vec.push((p, *node, path));
+        tmp_vec.push((p, RpoDigest::from(*node), path));
     }
 
     let _empty: () = nodes

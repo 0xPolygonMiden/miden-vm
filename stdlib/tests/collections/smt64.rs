@@ -47,9 +47,9 @@ fn get() {
 
     for (index, value) in LEAVES {
         let mut initial_stack = Vec::new();
-        append_word_to_vec(&mut initial_stack, smt.root());
+        append_word_to_vec(&mut initial_stack, smt.root().into());
         initial_stack.push(index);
-        let expected_output = build_expected_stack(value, smt.root());
+        let expected_output = build_expected_stack(value, smt.root().into());
 
         let store = MerkleStore::from(&smt);
         build_test!(source, &initial_stack, &[], store, vec![]).expect_stack(&expected_output);
@@ -118,7 +118,8 @@ fn set() {
         let value = [ZERO; 4];
         let (init_stack, final_stack, store) = prepare_insert_or_set(*index, value, &mut smt);
 
-        let expected_final_stack = build_expected_stack(*old_value, old_roots.pop().unwrap());
+        let expected_final_stack =
+            build_expected_stack(*old_value, old_roots.pop().unwrap().into());
         assert_eq!(expected_final_stack, final_stack);
         build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
     }
@@ -136,7 +137,7 @@ fn prepare_insert_or_set(
 ) -> (Vec<u64>, Vec<u64>, MerkleStore) {
     // set initial state of the stack to be [VALUE, key, ROOT, ...]
     let mut initial_stack = Vec::new();
-    append_word_to_vec(&mut initial_stack, smt.root());
+    append_word_to_vec(&mut initial_stack, smt.root().into());
     initial_stack.push(index);
     append_word_to_vec(&mut initial_stack, value);
 
@@ -145,7 +146,7 @@ fn prepare_insert_or_set(
     let old_value = smt.update_leaf(index, value).unwrap();
 
     // after insert or set, the stack should be [OLD_VALUE, ROOT, ...]
-    let expected_output = build_expected_stack(old_value, smt.root());
+    let expected_output = build_expected_stack(old_value, smt.root().into());
 
     (initial_stack, expected_output, store)
 }

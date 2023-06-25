@@ -1,7 +1,7 @@
 use super::{
     init_state_from_words, lookups::HasherLookupContext, Digest, Felt, Hasher, HasherLookup,
-    HasherState, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
-    MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+    HasherState, MerklePath, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
+    MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use crate::chiplets::aux_trace::{
     ChipletsVTableRow, ChipletsVTableTraceBuilder, ChipletsVTableUpdate,
@@ -452,8 +452,8 @@ fn hasher_update_merkle_root() {
     assert_eq!(expected_hints, aux_hints.hints());
 
     let expected_sibling_rows = vec![
-        ChipletsVTableRow::new_sibling(ZERO, path0[0]),
-        ChipletsVTableRow::new_sibling(ONE, path1[0]),
+        ChipletsVTableRow::new_sibling(ZERO, path0[0].into()),
+        ChipletsVTableRow::new_sibling(ONE, path1[0].into()),
     ];
     assert_eq!(expected_sibling_rows, aux_hints.rows());
 
@@ -616,17 +616,17 @@ fn hasher_update_merkle_root() {
 
     let expected_sibling_rows = vec![
         // first update
-        ChipletsVTableRow::new_sibling(Felt::new(3), path3[0]),
-        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3[1]),
-        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(3), path3[0].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3[1].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3[2].into()),
         // second update
-        ChipletsVTableRow::new_sibling(Felt::new(6), path6[0]),
-        ChipletsVTableRow::new_sibling(Felt::new(6 >> 1), path6[1]),
-        ChipletsVTableRow::new_sibling(Felt::new(6 >> 2), path6[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(6), path6[0].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(6 >> 1), path6[1].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(6 >> 2), path6[2].into()),
         // third update
-        ChipletsVTableRow::new_sibling(Felt::new(3), path3_2[0]),
-        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3_2[1]),
-        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3_2[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(3), path3_2[0].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3_2[1].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3_2[2].into()),
     ];
     assert_eq!(expected_sibling_rows, aux_hints.rows());
 }
@@ -1055,7 +1055,7 @@ fn check_merkle_path(
     trace: &[Vec<Felt>],
     row_idx: usize,
     leaf: Word,
-    path: &[Word],
+    path: &MerklePath,
     node_index: u64,
     init_selectors: Selectors,
 ) {

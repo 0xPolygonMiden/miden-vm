@@ -3,8 +3,11 @@ use test_utils::{
         init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
         RpoDigest,
     },
-    hash_elements, stack_to_ints, Felt, StarkField, WORD_SIZE, ZERO,
+    hash_elements, stack_to_ints, Felt, StarkField, Word, ZERO,
 };
+
+// TESTS
+// ================================================================================================
 
 #[test]
 fn test_ilog2() {
@@ -221,9 +224,8 @@ fn test_mmr_get_two_peaks() -> Result<(), MerkleError> {
     let num_leaves = leaves1.len() + leaves2.len();
 
     let mut merkle_store = MerkleStore::new();
-    merkle_store
-        .extend(merkle_tree1.inner_nodes())
-        .extend(merkle_tree2.inner_nodes());
+    merkle_store.extend(merkle_tree1.inner_nodes());
+    merkle_store.extend(merkle_tree2.inner_nodes());
 
     let advice_stack: Vec<u64> = merkle_root1
         .iter()
@@ -284,9 +286,8 @@ fn test_mmr_tree_with_one_element() -> Result<(), MerkleError> {
     let merkle_root3 = init_merkle_leaves(leaves3)[0];
 
     let mut merkle_store = MerkleStore::new();
-    merkle_store
-        .extend(merkle_tree1.inner_nodes())
-        .extend(merkle_tree2.inner_nodes());
+    merkle_store.extend(merkle_tree1.inner_nodes());
+    merkle_store.extend(merkle_tree2.inner_nodes());
 
     // In the case of a single leaf, the leaf is itself also the root
     let stack: Vec<u64> = merkle_root3.iter().map(StarkField::as_int).rev().collect();
@@ -541,9 +542,9 @@ fn test_mmr_unpack_large_mmr() {
 #[test]
 fn test_mmr_pack_roundtrip() {
     let mut mmr = Mmr::new();
-    mmr.add(init_merkle_leaf(1));
-    mmr.add(init_merkle_leaf(2));
-    mmr.add(init_merkle_leaf(3));
+    mmr.add(init_merkle_leaf(1).into());
+    mmr.add(init_merkle_leaf(2).into());
+    mmr.add(init_merkle_leaf(3).into());
 
     let accumulator = mmr.accumulator();
     let hash = accumulator.hash_peaks();
@@ -560,7 +561,7 @@ fn test_mmr_pack_roundtrip() {
     let store = MerkleStore::new();
 
     let mut hash_data = accumulator.peaks.clone();
-    hash_data.resize(16, [ZERO; WORD_SIZE]);
+    hash_data.resize(16, RpoDigest::default());
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     map_data.extend_from_slice(&[
         Felt::new(accumulator.num_leaves.try_into().unwrap()),
@@ -568,7 +569,7 @@ fn test_mmr_pack_roundtrip() {
         ZERO,
         ZERO,
     ]);
-    map_data.extend_from_slice(&hash_data.as_slice().concat());
+    map_data.extend_from_slice(digests_to_elements(&hash_data).as_ref());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
@@ -590,7 +591,7 @@ fn test_mmr_pack_roundtrip() {
     // first the number of leaves
     expect_memory.extend_from_slice(&[accumulator.num_leaves as u64, 0, 0, 0]);
     // followed by the peaks
-    expect_memory.extend(accumulator.peaks.iter().flatten().map(|v| v.as_int()));
+    expect_memory.extend(digests_to_ints(&accumulator.peaks));
     // followed by padding data
     let size = 4 + 16 * 4;
     expect_memory.resize(size, 0);
@@ -679,8 +680,8 @@ fn test_mmr_two() {
     );
 
     let mut mmr = Mmr::new();
-    mmr.add([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]);
-    mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]);
+    mmr.add([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into());
+    mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into());
 
     let accumulator = mmr.accumulator();
     let peak = accumulator.peaks[0];
@@ -714,19 +715,19 @@ fn test_mmr_large() {
     );
 
     let mut mmr = Mmr::new();
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)]);
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)]);
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)]);
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)]);
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)]);
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)]);
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)]);
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)].into());
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)].into());
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)].into());
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)].into());
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)].into());
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)].into());
+    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)].into());
 
     let accumulator = mmr.accumulator();
 
     let num_leaves = accumulator.num_leaves.try_into().unwrap();
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
-    expected_memory.extend(accumulator.peaks.iter().flatten().map(|v| v.as_int()));
+    expected_memory.extend(digests_to_ints(&accumulator.peaks));
 
     let expect_stack: Vec<u64> =
         accumulator.hash_peaks().iter().rev().map(|v| v.as_int()).collect();
@@ -738,13 +739,13 @@ fn test_mmr_large_add_roundtrip() {
     let mmr_ptr = 1000_u32;
 
     let mut mmr: Mmr = Mmr::from([
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)],
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)],
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)],
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)],
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)],
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)],
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)],
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)].into(),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)].into(),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)].into(),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)].into(),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)].into(),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)].into(),
+        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)].into(),
     ]);
 
     let old_accumulator = mmr.accumulator();
@@ -760,12 +761,12 @@ fn test_mmr_large_add_roundtrip() {
     let store = MerkleStore::new();
 
     let mut hash_data = old_accumulator.peaks.clone();
-    hash_data.resize(16, [ZERO, ZERO, ZERO, ZERO]);
+    hash_data.resize(16, RpoDigest::default());
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     let num_leaves: u64 = old_accumulator.num_leaves as u64;
     map_data.extend_from_slice(&[Felt::from(num_leaves), ZERO, ZERO, ZERO]);
-    map_data.extend_from_slice(&hash_data.as_slice().concat());
+    map_data.extend_from_slice(&digests_to_elements(&hash_data));
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
@@ -784,19 +785,30 @@ fn test_mmr_large_add_roundtrip() {
     "
     );
 
-    mmr.add([ZERO, ZERO, ZERO, Felt::new(8)]);
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(8)].into());
 
     let new_accumulator = mmr.accumulator();
     let num_leaves = new_accumulator.num_leaves.try_into().unwrap();
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
     let mut new_peaks = new_accumulator.peaks.clone();
     // make sure the old peaks are zeroed
-    new_peaks.resize(16, [ZERO, ZERO, ZERO, ZERO]);
-    expected_memory.extend(new_peaks.iter().flatten().map(|v| v.as_int()));
+    new_peaks.resize(16, RpoDigest::default());
+    expected_memory.extend(digests_to_ints(&new_peaks));
 
     let expect_stack: Vec<u64> =
         new_accumulator.hash_peaks().iter().rev().map(|v| v.as_int()).collect();
 
     let test = build_test!(source, &stack, advice_stack, store, advice_map.iter().cloned());
     test.expect_stack_and_memory(&expect_stack, mmr_ptr, &expected_memory);
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn digests_to_elements(digests: &[RpoDigest]) -> Vec<Felt> {
+    digests.iter().map(|d| Word::from(d)).flatten().collect()
+}
+
+fn digests_to_ints(digests: &[RpoDigest]) -> Vec<u64> {
+    digests.iter().map(|d| Word::from(d)).flatten().map(|v| v.as_int()).collect()
 }

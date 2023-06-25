@@ -88,7 +88,8 @@ fn mtree_merge() {
     let root_b = tree_b.root();
     let root_merged = Rpo256::merge(&[root_a.into(), root_b.into()]);
     let mut store = MerkleStore::default();
-    store.extend(tree_a.inner_nodes()).extend(tree_b.inner_nodes());
+    store.extend(tree_a.inner_nodes());
+    store.extend(tree_b.inner_nodes());
 
     let stack_inputs = vec![
         0xbeef,

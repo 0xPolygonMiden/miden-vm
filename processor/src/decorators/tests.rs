@@ -6,7 +6,7 @@ use crate::{MemAdviceProvider, StackInputs, Word};
 use test_utils::{crypto::get_smt_remaining_key, rand::seeded_word};
 use vm_core::{
     crypto::{
-        hash::Rpo256,
+        hash::{Rpo256, RpoDigest},
         merkle::{EmptySubtreeRoots, MerkleStore, MerkleTree, NodeIndex},
     },
     utils::IntoBytes,
@@ -63,7 +63,7 @@ fn push_merkle_node() {
 fn push_smtget() {
     // setup the test
     let empty = EmptySubtreeRoots::empty_hashes(64);
-    let initial_root = Word::from(empty[0]);
+    let initial_root = RpoDigest::from(empty[0]);
     let mut seed = 0xfb;
     let key = seeded_word(&mut seed);
     let value = seeded_word(&mut seed);
@@ -76,7 +76,7 @@ fn push_smtget() {
         // compute node value
         let depth_element = Felt::from(depth);
         let store = MerkleStore::new();
-        let node = Rpo256::merge_in_domain(&[remaining.into(), value.into()], depth_element).into();
+        let node = Rpo256::merge_in_domain(&[remaining.into(), value.into()], depth_element);
 
         // expect absent value with constant depth 16
         let expected = [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE];
@@ -96,7 +96,7 @@ fn push_smtget() {
         let index = key[3].as_int() >> 64 - depth;
         let index = NodeIndex::new(depth, index).unwrap();
         let depth_element = Felt::from(depth);
-        let node = Rpo256::merge_in_domain(&[remaining.into(), value.into()], depth_element).into();
+        let node = Rpo256::merge_in_domain(&[remaining.into(), value.into()], depth_element);
 
         // set tier node value and expect the value from the injector
         let mut store = MerkleStore::new();
@@ -132,8 +132,7 @@ fn push_smtget() {
         let mut sibling_key = key;
         sibling_key[3] = Felt::new(sibling.value() >> depth.min(63));
         let sibling_node =
-            Rpo256::merge_in_domain(&[sibling_key.into(), value.into()], Felt::new(depth as u64))
-                .into();
+            Rpo256::merge_in_domain(&[sibling_key.into(), value.into()], depth.into());
 
         // run the text, expecting absent target node
         let mut store = MerkleStore::new();
@@ -163,8 +162,8 @@ fn assert_case_smtget(
     depth: u8,
     key: Word,
     value: Word,
-    node: Word,
-    root: Word,
+    node: RpoDigest,
+    root: RpoDigest,
     store: MerkleStore,
     expected_stack: &[Felt],
 ) {

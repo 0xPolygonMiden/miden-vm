@@ -103,7 +103,8 @@ impl AdviceProvider for MemAdviceProvider {
             }
         })?;
         self.store
-            .get_node(root, index)
+            .get_node(root.into(), index)
+            .map(|v| v.into())
             .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
@@ -120,7 +121,7 @@ impl AdviceProvider for MemAdviceProvider {
             }
         })?;
         self.store
-            .get_path(root, index)
+            .get_path(root.into(), index)
             .map(|value| value.path)
             .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
@@ -134,7 +135,7 @@ impl AdviceProvider for MemAdviceProvider {
         let tree_depth = u8::try_from(tree_depth.as_int())
             .map_err(|_| ExecutionError::InvalidTreeDepth { depth: *tree_depth })?;
         self.store
-            .get_leaf_depth(root, tree_depth, index.as_int())
+            .get_leaf_depth(root.into(), tree_depth, index.as_int())
             .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
@@ -152,13 +153,16 @@ impl AdviceProvider for MemAdviceProvider {
             }
         })?;
         self.store
-            .set_node(root, node_index, value)
+            .set_node(root.into(), node_index, value.into())
             .map(|root| root.path)
             .map_err(ExecutionError::MerkleStoreUpdateFailed)
     }
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
-        self.store.merge_roots(lhs, rhs).map_err(ExecutionError::MerkleStoreMergeFailed)
+        self.store
+            .merge_roots(lhs.into(), rhs.into())
+            .map(|v| v.into())
+            .map_err(ExecutionError::MerkleStoreMergeFailed)
     }
 
     // CONTEXT MANAGEMENT
@@ -175,7 +179,7 @@ impl MemAdviceProvider {
 
     /// Returns true if the Merkle root exists for the advice provider Merkle store.
     #[cfg(test)]
-    pub fn has_merkle_root(&self, root: Word) -> bool {
+    pub fn has_merkle_root(&self, root: crate::crypto::RpoDigest) -> bool {
         self.store.get_node(root, NodeIndex::root()).is_ok()
     }
 }

@@ -1,6 +1,6 @@
 use super::{
-    trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt, FieldElement,
-    RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, ONE, ZERO,
+    crypto::MerklePath, trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt,
+    FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, ONE, ZERO,
 };
 use miden_air::trace::chiplets::{
     bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
@@ -191,7 +191,12 @@ impl Chiplets {
     /// Panics if:
     /// - The provided path does not contain any nodes.
     /// - The provided index is out of range for the specified path.
-    pub fn build_merkle_root(&mut self, value: Word, path: &[Word], index: Felt) -> (Felt, Word) {
+    pub fn build_merkle_root(
+        &mut self,
+        value: Word,
+        path: &MerklePath,
+        index: Felt,
+    ) -> (Felt, Word) {
         let mut lookups = Vec::new();
         let (addr, root) = self.hasher.build_merkle_root(value, path, index, &mut lookups);
 
@@ -213,7 +218,7 @@ impl Chiplets {
         &mut self,
         old_value: Word,
         new_value: Word,
-        path: &[Word],
+        path: &MerklePath,
         index: Felt,
     ) -> MerkleRootUpdate {
         let mut lookups = Vec::new();

@@ -22,9 +22,9 @@ fn hasher_p1_mp_verify() {
 
     // build program inputs
     let mut init_stack = vec![];
-    append_word(&mut init_stack, node);
+    append_word(&mut init_stack, node.into());
     init_stack.extend_from_slice(&[3, 1]);
-    append_word(&mut init_stack, tree.root());
+    append_word(&mut init_stack, tree.root().into());
     init_stack.reverse();
     let stack_inputs = StackInputs::try_from_values(init_stack).unwrap();
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
@@ -54,9 +54,9 @@ fn hasher_p1_mr_update() {
 
     // build program inputs
     let mut init_stack = vec![];
-    append_word(&mut init_stack, old_node);
+    append_word(&mut init_stack, old_node.into());
     init_stack.extend_from_slice(&[3, index]);
-    append_word(&mut init_stack, tree.root());
+    append_word(&mut init_stack, tree.root().into());
     append_word(&mut init_stack, new_node);
 
     init_stack.reverse();
@@ -72,11 +72,11 @@ fn hasher_p1_mr_update() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        ChipletsVTableRow::new_sibling(Felt::new(index), path[0])
+        ChipletsVTableRow::new_sibling(Felt::new(index), path[0].into())
             .to_value(&trace.main_trace, &alphas),
-        ChipletsVTableRow::new_sibling(Felt::new(index >> 1), path[1])
+        ChipletsVTableRow::new_sibling(Felt::new(index >> 1), path[1].into())
             .to_value(&trace.main_trace, &alphas),
-        ChipletsVTableRow::new_sibling(Felt::new(index >> 2), path[2])
+        ChipletsVTableRow::new_sibling(Felt::new(index >> 2), path[2].into())
             .to_value(&trace.main_trace, &alphas),
     ];
 
