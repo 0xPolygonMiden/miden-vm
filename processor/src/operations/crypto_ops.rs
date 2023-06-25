@@ -1,4 +1,4 @@
-use super::{AdviceProvider, Digest, ExecutionError, Operation, Process};
+use super::{AdviceProvider, ExecutionError, Operation, Process};
 use vm_core::StarkField;
 
 // CRYPTOGRAPHIC OPERATIONS
@@ -64,7 +64,7 @@ where
     ///   identified by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     ///
-    /// # Panicsaewfrqwefsdfaewf
+    /// # Panics
     /// Panics if the computed root does not match the root provided via the stack.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
@@ -77,7 +77,6 @@ where
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
         let path = self.advice_provider.get_merkle_path(provided_root, &depth, &index)?;
-        let path = Vec::<Digest>::from(path).into_iter().map(|x| x.into()).collect::<Vec<_>>();
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
@@ -142,7 +141,6 @@ where
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
         let path = self.advice_provider.update_merkle_node(old_root, &depth, &index, new_node)?;
-        let path = Vec::<Digest>::from(path).into_iter().map(|x| x.into()).collect::<Vec<_>>();
         assert_eq!(path.len(), depth.as_int() as usize);
 
         let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
@@ -319,8 +317,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure both Merkle trees are still in the advice provider
-        assert!(process.advice_provider.has_merkle_root(*tree.root()));
-        assert!(process.advice_provider.has_merkle_root(*new_tree.root()));
+        assert!(process.advice_provider.has_merkle_root(tree.root()));
+        assert!(process.advice_provider.has_merkle_root(new_tree.root()));
     }
 
     #[test]
@@ -377,7 +375,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // assert the expected root doesn't exist before the merge operation
-        assert!(!process.advice_provider.has_merkle_root(*expected_root));
+        assert!(!process.advice_provider.has_merkle_root(expected_root));
 
         // update the previous root
         process.execute_op(Operation::MrUpdate).unwrap();
@@ -400,7 +398,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // assert the expected root now exists in the advice provider
-        assert!(process.advice_provider.has_merkle_root(*expected_root));
+        assert!(process.advice_provider.has_merkle_root(expected_root));
     }
 
     // HELPER FUNCTIONS

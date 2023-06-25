@@ -25,7 +25,6 @@ pub use prover::{prove, MemAdviceProvider, ProofOptions};
 pub use test_case::test_case;
 pub use verifier::{ProgramInfo, VerifierError};
 pub use vm_core::{
-    crypto::merkle::MerkleMap,
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
     Felt, FieldElement, Program, StarkField, Word, ONE, WORD_SIZE, ZERO,

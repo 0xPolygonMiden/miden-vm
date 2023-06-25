@@ -631,7 +631,7 @@ fn test_mmr_pack() {
 
     let process = build_test!(source).execute_process().unwrap();
 
-    let advice_data = process.advice_provider.map.get(&hash_u8).unwrap();
+    let advice_data = process.advice_provider.map().get(&hash_u8).unwrap();
     assert_eq!(stack_to_ints(advice_data), stack_to_ints(&expect_data));
 }
 

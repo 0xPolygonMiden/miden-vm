@@ -1,12 +1,11 @@
 use super::{ExecutionError, Felt, InputError, StarkField, Word};
 use vm_core::{
-    crypto::data::{KvMap, RecordingMap},
-    crypto::merkle::{
-        GenericMerkleStore, InnerNodeInfo, MerkleMap, MerkleMapT, MerklePath, MerkleStore,
-        NodeIndex, RecordingMerkleMap, RecordingMerkleStore,
+    crypto::{
+        hash::RpoDigest,
+        merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
     },
     utils::{
-        collections::{BTreeMap, Vec},
+        collections::{BTreeMap, KvMap, RecordingMap, Vec},
         IntoBytes,
     },
 };
@@ -14,11 +13,8 @@ use vm_core::{
 mod inputs;
 pub use inputs::AdviceInputs;
 
-mod mem_provider;
-pub use mem_provider::MemAdviceProvider;
-
-mod recorder;
-pub use recorder::RecAdviceProvider;
+mod providers;
+pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;
@@ -194,110 +190,29 @@ pub trait AdviceProvider {
     fn advance_clock(&mut self);
 }
 
-// STACK / MAP / STORE PROVIDER
-// ================================================================================================
-/// A trait that defines the interface for an [AdviceProvider] that consists of a stack
-/// (`Vec<Felt>`), a map (`KvMap<[u8; 32], Vec<Felt>>`) and a Merkle store
-/// (`GenericMerkleStore<MerkleMapT>`).
-pub trait StackMapStoreProvider {
-    /// The type of the map used to store Merkle data.
-    type Map: MerkleMapT;
-
-    /// Returns the current execution step.
-    fn get_step(&self) -> u32;
-
-    /// Returns a mutable reference to the current execution step.
-    fn get_step_mut(&mut self) -> &mut u32;
-
-    /// Returns a reference to the stack.
-    fn get_stack(&self) -> &[Felt];
-
-    /// Returns a mutable reference to the stack.
-    fn get_stack_mut(&mut self) -> &mut Vec<Felt>;
-
-    /// Returns a reference to the map.
-    fn get_map(&self) -> &dyn KvMap<[u8; 32], Vec<Felt>>;
-
-    /// Returns a mutable reference to the map.
-    fn get_map_mut(&mut self) -> &mut dyn KvMap<[u8; 32], Vec<Felt>>;
-
-    /// Returns a reference to the store of.
-    fn get_store(&self) -> &GenericMerkleStore<Self::Map>;
-
-    /// Returns a mutable reference to the store.
-    fn get_store_mut(&mut self) -> &mut GenericMerkleStore<Self::Map>;
-}
-
-/// Blanket implementation of [AdviceProvider] for types that implement the [StackMapStoreProvider]
-/// trait.
-impl<T> AdviceProvider for T
+impl<'a, T> AdviceProvider for &'a mut T
 where
-    T: StackMapStoreProvider,
+    T: AdviceProvider,
 {
-    // ADVICE STACK
-    // --------------------------------------------------------------------------------------------
-
     fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
-        self.get_stack_mut()
-            .pop()
-            .ok_or(ExecutionError::AdviceStackReadFailed(self.get_step()))
+        T::pop_stack(self)
     }
 
     fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
-        if self.get_stack().len() < 4 {
-            return Err(ExecutionError::AdviceStackReadFailed(self.get_step()));
-        }
-
-        let idx = self.get_stack().len() - 4;
-        let result = [
-            self.get_stack()[idx + 3],
-            self.get_stack()[idx + 2],
-            self.get_stack()[idx + 1],
-            self.get_stack()[idx],
-        ];
-
-        self.get_stack_mut().truncate(idx);
-
-        Ok(result)
+        T::pop_stack_word(self)
     }
 
     fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.pop_stack_word()?;
-        let word1 = self.pop_stack_word()?;
-
-        Ok([word0, word1])
+        T::pop_stack_dword(self)
     }
 
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
-        match source {
-            AdviceSource::Value(value) => {
-                self.get_stack_mut().push(value);
-                Ok(())
-            }
-
-            AdviceSource::Map { key, include_len } => {
-                let values = self
-                    .get_map()
-                    .get(&key.into_bytes())
-                    .cloned()
-                    .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
-
-                self.get_stack_mut().extend(values.iter().rev());
-                if include_len {
-                    self.get_stack_mut().push(Felt::from(values.len() as u64));
-                }
-                Ok(())
-            }
-        }
+        T::push_stack(self, source)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
-        self.get_map_mut().insert(key.into_bytes(), values);
-        Ok(())
+        T::insert_into_map(self, key, values)
     }
-
-    // ADVISE SETS
-    // --------------------------------------------------------------------------------------------
 
     fn get_tree_node(
         &self,
@@ -305,16 +220,7 @@ where
         depth: &Felt,
         index: &Felt,
     ) -> Result<Word, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidTreeNodeIndex {
-                depth: *depth,
-                value: *index,
-            }
-        })?;
-        self.get_store()
-            .get_node(root.into(), index)
-            .map(|value| value.into())
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+        T::get_tree_node(self, root, depth, index)
     }
 
     fn get_merkle_path(
@@ -323,16 +229,7 @@ where
         depth: &Felt,
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
-        let index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidTreeNodeIndex {
-                depth: *depth,
-                value: *index,
-            }
-        })?;
-        self.get_store()
-            .get_path(root.into(), index)
-            .map(|value| value.path)
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+        T::get_merkle_path(self, root, depth, index)
     }
 
     fn get_leaf_depth(
@@ -341,11 +238,7 @@ where
         tree_depth: &Felt,
         index: &Felt,
     ) -> Result<u8, ExecutionError> {
-        let tree_depth = u8::try_from(tree_depth.as_int())
-            .map_err(|_| ExecutionError::InvalidTreeDepth { depth: *tree_depth })?;
-        self.get_store()
-            .get_leaf_depth(root.into(), tree_depth, index.as_int())
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
+        T::get_leaf_depth(self, root, tree_depth, index)
     }
 
     fn update_merkle_node(
@@ -355,29 +248,14 @@ where
         index: &Felt,
         value: Word,
     ) -> Result<MerklePath, ExecutionError> {
-        let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
-            ExecutionError::InvalidTreeNodeIndex {
-                depth: *depth,
-                value: *index,
-            }
-        })?;
-        self.get_store_mut()
-            .set_node(root.into(), node_index, value.into())
-            .map(|root| root.path)
-            .map_err(ExecutionError::MerkleStoreUpdateFailed)
+        T::update_merkle_node(self, root, depth, index, value)
     }
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
-        self.get_store_mut()
-            .merge_roots(lhs.into(), rhs.into())
-            .map(|value| value.into())
-            .map_err(ExecutionError::MerkleStoreMergeFailed)
+        T::merge_roots(self, lhs, rhs)
     }
 
-    // CONTEXT MANAGEMENT
-    // --------------------------------------------------------------------------------------------
-
     fn advance_clock(&mut self) {
-        *self.get_step_mut() += 1;
+        T::advance_clock(self)
     }
 }

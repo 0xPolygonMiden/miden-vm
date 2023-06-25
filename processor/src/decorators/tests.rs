@@ -100,7 +100,7 @@ fn push_smtget() {
 
         // set tier node value and expect the value from the injector
         let mut store = MerkleStore::new();
-        let root = store.set_node(initial_root.into(), index, node).unwrap().root;
+        let root = store.set_node(initial_root, index, node).unwrap().root;
         let expected = [
             ONE,
             value[3],
@@ -114,7 +114,7 @@ fn push_smtget() {
             is_16_or_32,
             is_16_or_48,
         ];
-        assert_case_smtget(depth, key, value, node.into(), root.into(), store, &expected);
+        assert_case_smtget(depth, key, value, node, root, store, &expected);
     }
 
     // check absent siblings of non-empty trees
@@ -136,10 +136,10 @@ fn push_smtget() {
 
         // run the text, expecting absent target node
         let mut store = MerkleStore::new();
-        let root = store.set_node(initial_root.into(), sibling, sibling_node).unwrap().root;
+        let root = store.set_node(initial_root, sibling, sibling_node).unwrap().root;
         let expected =
             [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, is_16_or_32, is_16_or_48];
-        assert_case_smtget(depth, key, value, sibling_node.into(), root.into(), store, &expected);
+        assert_case_smtget(depth, key, value, sibling_node, root, store, &expected);
     }
 }
 

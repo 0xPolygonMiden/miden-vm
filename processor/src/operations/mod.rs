@@ -1,6 +1,4 @@
-use super::{
-    AdviceProvider, Digest, ExecutionError, Felt, FieldElement, Operation, Process, StarkField,
-};
+use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 use vm_core::stack::STACK_TOP_SIZE;
 
 mod crypto_ops;
