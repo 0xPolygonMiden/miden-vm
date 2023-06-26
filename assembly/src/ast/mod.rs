@@ -56,7 +56,7 @@ const MAX_STACK_WORD_OFFSET: u8 = 12;
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 type LocalConstMap = BTreeMap<String, u64>;
-type ReExportedProcMap = BTreeMap<String, (u16, ProcReExport)>;
+type ReExportedProcMap = BTreeMap<String, ProcReExport>;
 
 // EXECUTABLE PROGRAM AST
 // ================================================================================================
@@ -279,7 +279,7 @@ impl ProgramAst {
 /// An abstract syntax tree of a Miden module.
 ///
 /// A module AST consists of a list of imports, a list of procedure ASTs, a list of re-exported
-/// procedures and module documentation. Procedures in the list could be local or exported.
+/// procedures and module documentation. Local procedures could be internal or exported.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleAst {
     local_procs: Vec<ProcedureAst>,
@@ -352,11 +352,11 @@ impl ModuleAst {
             }
         }
 
-        // get a list of local procs and make sure the number of procs is within the limit
+        // build a list of local procs sorted by their declaration order
         let local_procs = sort_procs_into_vec(context.local_procs);
 
-        // get a list of re-exported procs and make sure the number of procs is within the limit
-        let reexported_procs = sort_reexported_procs_into_vec(context.reexported_procs);
+        // build a list of re-exported procedures sorted by procedure name
+        let reexported_procs = context.reexported_procs.into_values().collect();
 
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
@@ -463,6 +463,7 @@ impl Serializable for ModuleAst {
 
 impl Deserializable for ModuleAst {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        // deserialize docs
         let docs_len = source.read_u16()? as usize;
         let docs = if docs_len != 0 {
             let str = source.read_vec(docs_len)?;
@@ -472,13 +473,23 @@ impl Deserializable for ModuleAst {
         } else {
             None
         };
+
+        // deserialize imports (if any)
         let num_imports = source.read_u16()? as usize;
-        let imports_vec: Vec<LibraryPath> = Deserializable::read_batch_from(source, num_imports)?;
-        let imports = imports_vec.into_iter().map(|i| (i.last().to_string(), i)).collect();
+        let mut imports = BTreeMap::new();
+        for _ in 0..num_imports {
+            let path = LibraryPath::read_from(source)?;
+            imports.insert(path.last().to_string(), path);
+        }
+
+        // deserialize re-exports
         let num_reexported_procs = source.read_u16()? as usize;
         let reexported_procs = Deserializable::read_batch_from(source, num_reexported_procs)?;
+
+        // deserialize local procs
         let num_local_procs = source.read_u16()? as usize;
         let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
+
         match Self::new(local_procs, reexported_procs, imports, docs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
             Ok(res) => Ok(res),
@@ -697,14 +708,6 @@ impl Deserializable for ProcReExport {
 
 /// Sort a map of procedures into a vec, respecting the order set in the map
 fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
-    let mut procedures: Vec<_> = proc_map.into_values().collect();
-    procedures.sort_by_key(|(idx, _proc)| *idx);
-
-    procedures.into_iter().map(|(_idx, proc)| proc).collect()
-}
-
-/// Sort a map of re-exported procedures into a vec, respecting the order set in the map
-fn sort_reexported_procs_into_vec(proc_map: ReExportedProcMap) -> Vec<ProcReExport> {
     let mut procedures: Vec<_> = proc_map.into_values().collect();
     procedures.sort_by_key(|(idx, _proc)| *idx);
 

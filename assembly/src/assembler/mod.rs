@@ -67,16 +67,7 @@ impl Assembler {
         L: Library,
         I: Iterator<Item = L>,
     {
-        let assembler = libraries.try_fold(self, |slf, library| slf.with_library(&library));
-        #[cfg(debug_assertions)]
-        {
-            let libraries_vec = libraries.collect::<Vec<L>>();
-            assert!(libraries_vec.iter().all(|lib| lib
-                .dependencies()
-                .iter()
-                .all(|dep| libraries_vec.iter().any(|l| l.root_ns() == dep))));
-        }
-        assembler
+        libraries.try_fold(self, |slf, library| slf.with_library(&library))
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided source.
@@ -196,19 +187,33 @@ impl Assembler {
         module: &Module,
         context: &mut AssemblyContext,
     ) -> Result<Vec<RpoDigest>, AssemblyError> {
-        // compile all procedures in the module; once the compilation is complete, we get all
-        // compiled procedures (and their combined callset) from the context
+        // a variable to track MAST roots of all procedures exported from this module
+        let mut proc_roots = Vec::new();
+
         context.begin_module(&module.path)?;
+
+        // process all re-exported procedures
         for reexporteed_proc in module.ast.reexported_procs().iter() {
-            let proc_name = reexporteed_proc.name();
-            let proc_id = ProcedureId::from_name(proc_name, &module.path);
+            // make sure the re-exported procedure is loaded into the procedure cache
             let ref_proc_id = reexporteed_proc.proc_id();
-            self.proc_cache
+            self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
+
+            // build procedure ID for the alias, and add it to the procedure cache
+            let proc_name = reexporteed_proc.name();
+            let alias_proc_id = ProcedureId::from_name(proc_name, &module.path);
+            let proc_mast_root = self
+                .proc_cache
                 .try_borrow_mut()
                 .map_err(|_| AssemblyError::InvalidCacheLock)?
-                .insert_proc_alias(proc_id, ref_proc_id)?;
-            self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
+                .insert_proc_alias(alias_proc_id, ref_proc_id)?;
+
+            // add the MAST root of the re-exported procedure to the set of procedures exported
+            // from this module
+            proc_roots.push(proc_mast_root);
         }
+
+        // compile all local procedures in the module; once the compilation is complete, we get
+        // all compiled procedures (and their combined callset) from the context
         for proc_ast in module.ast.procs().iter() {
             self.compile_procedure(proc_ast, context)?;
         }
@@ -219,7 +224,6 @@ impl Assembler {
         // - a procedure is exported from the module, or
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
-        let mut proc_roots = Vec::new();
         for proc in module_procs.into_iter() {
             if proc.is_export() {
                 proc_roots.push(proc.code_root().hash());
@@ -384,7 +388,7 @@ impl Assembler {
     /// Returns the [CodeBlockTable] associated with the [AssemblyContext].
     ///
     /// # Errors
-    /// Retuns an error if a required procedure is not found in the [Assembler] prodedure cache.
+    /// Returns an error if a required procedure is not found in the [Assembler] procedure cache.
     pub fn build_cb_table(
         &self,
         context: AssemblyContext,

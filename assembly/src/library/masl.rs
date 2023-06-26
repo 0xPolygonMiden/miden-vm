@@ -142,9 +142,10 @@ mod use_std {
                 ));
             }
 
+            let mut dependencies_set = BTreeSet::new();
             let module_path = LibraryPath::new(&namespace)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-            let mut dependencies_set = BTreeSet::new();
+
             let modules = read_from_dir_helper(
                 Default::default(),
                 path,
@@ -154,8 +155,10 @@ mod use_std {
             .into_iter()
             .map(|(path, ast)| Module { path, ast })
             .collect();
+
             let dependencies =
                 dependencies_set.into_iter().filter(|dep| dep != &namespace).collect();
+
             Self::new(namespace, version, with_source_locations, modules, dependencies)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
@@ -238,7 +241,12 @@ mod use_std {
                     let ast = ModuleAst::parse(&contents)?;
 
                     // add dependencies of this module to the dependencies of this library
-                    add_deps(deps, &ast)?;
+                    for path in ast.imports().values() {
+                        let ns = LibraryNamespace::new(path.first())?;
+                        deps.insert(ns);
+                    }
+
+                    // build module path and add it to the map of modules
                     let module = module_path
                         .append(name)
                         .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
@@ -292,8 +300,7 @@ impl Deserializable for MaslLibrary {
 
         // read dependencies
         let num_deps = source.read_u16()? as usize;
-        // TODO: should we return an error for duplicates? Should duplicate dependencies in a
-        // serialized library be illegal?
+        // TODO: check for duplicate/self-referential dependencies?
         let deps_set: BTreeSet<LibraryNamespace> = (0..num_deps)
             .map(|_| LibraryNamespace::read_from(source))
             .collect::<Result<_, _>>()?;
@@ -319,16 +326,4 @@ impl Deserializable for MaslLibrary {
         Self::new(namespace, version, has_source_locations, modules, deps)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
-}
-
-// HELPER FUNCTIONS
-// ============================================================================================
-
-/// Add the dependencies of the given module to the dependencies of the library.
-fn add_deps(deps: &mut BTreeSet<LibraryNamespace>, ast: &ModuleAst) -> Result<(), LibraryError> {
-    for path in ast.imports().values() {
-        let ns = LibraryNamespace::new(path.first())?;
-        deps.insert(ns);
-    }
-    Ok(())
 }

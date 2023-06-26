@@ -226,53 +226,52 @@ impl ParserContext<'_> {
     ) -> Result<(), ParsingError> {
         // parse procedures until all `proc` or `exec` tokens have been consumed
         while let Some(token) = tokens.read() {
-            match token.parts()[0] {
+            let is_reexport = match token.parts()[0] {
                 Token::EXPORT => {
                     if !allow_export {
                         let proc_name = token.parts()[1];
                         return Err(ParsingError::proc_export_not_allowed(token, proc_name));
                     }
-                    if token.parts()[1].contains(LibraryPath::PATH_DELIM) {
-                        let proc = self.parse_reexported_procedure(tokens)?;
-                        match self.reexported_procs.insert(
-                            proc.name.to_string(),
-                            (self.reexported_procs.len() as u16, proc),
-                        ) {
-                            None => (),
-                            Some((_, proc)) => {
-                                return Err(ParsingError::duplicate_proc_name(token, &proc.name));
-                            }
-                        }
-                        tokens.advance();
-                        continue;
-                    }
+                    token.parts()[1].contains(LibraryPath::PATH_DELIM)
                 }
                 Token::PROC => {
                     // no validation needed, parse the procedure below
+                    false
                 }
                 _ => break,
-            }
+            };
 
-            if tokens.read().is_some() {
+            if is_reexport {
+                // parse procedure re-export and add it to the list of re-exported procedures
+                let proc = self.parse_reexported_procedure(tokens)?;
+                self.reexported_procs.insert(proc.name.to_string(), proc);
+            } else {
                 // parse the procedure body and add it to the list of local procedures
                 let proc = self.parse_procedure(tokens)?;
-                self.local_procs
-                    .insert(proc.name.to_string(), (self.local_procs.len() as u16, proc));
+                let proc_idx = self.local_procs.len() as u16;
+                self.local_procs.insert(proc.name.to_string(), (proc_idx, proc));
             }
         }
 
         Ok(())
     }
 
-    /// Parse procedure from token stream and add it to the procedure map in context.
+    /// Parses a procedure from token stream and add it to the set of local procedures defined
+    /// in this context.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Procedure declaration or procedure body is malformed.
+    /// - A procedure with the same name has already been either declared or re-exported from this
+    ///   context.
     fn parse_procedure(&self, tokens: &mut TokenStream) -> Result<ProcedureAst, ParsingError> {
         let proc_start = tokens.pos();
 
         // parse procedure declaration, make sure the procedure with the same name hasn't been
-        // declared previously, and consume the `proc` token.
+        // declared previously, and consume the `proc` or `export` token.
         let header = tokens.read().expect("missing procedure header");
         let (name, num_locals, is_export) = header.parse_proc()?;
-        if self.local_procs.contains_key(name.as_str()) {
+        if self.contains_proc_name(name.as_str()) {
             return Err(ParsingError::duplicate_proc_name(header, name.as_str()));
         }
         let start = *header.location();
@@ -318,18 +317,34 @@ impl ParserContext<'_> {
             .with_source_locations(locations, start))
     }
 
+    /// Parses procedure re-export from the token stream and adds it to the set of procedures
+    /// re-exported from this context.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The export instruction is malformed.
+    /// - A procedure with the same name as re-exported procedure has already been either
+    ///   declared or re-exported from this context.
     fn parse_reexported_procedure(
         &self,
-        tokens: &TokenStream,
+        tokens: &mut TokenStream,
     ) -> Result<ProcReExport, ParsingError> {
+        // parse the re-export declaration and make sure the procedure with the same name hasn't
+        // been declared previously
         let header = tokens.read().expect("missing procedure header");
         let (proc_name, ref_name, module) = header.parse_reexported_proc()?;
+        if self.contains_proc_name(proc_name.as_str()) {
+            return Err(ParsingError::duplicate_proc_name(header, proc_name.as_str()));
+        }
 
-        // validate the module exists
+        // check if the module from which the procedure is re-exported was imported
         let module_path = self
             .imports
             .get(module)
             .ok_or(ParsingError::procedure_module_not_imported(header, module))?;
+
+        // consume the `export` token
+        tokens.advance();
 
         let proc_id = ProcedureId::from_name(&ref_name, module_path);
         Ok(ProcReExport::new(proc_id, proc_name))
@@ -629,6 +644,12 @@ impl ParserContext<'_> {
             .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module_name))?;
         let proc_id = ProcedureId::from_name(proc_name, module_path);
         Ok(proc_id)
+    }
+
+    /// Returns true if a procedure with the specified name is present in the set of local or
+    /// re-exported procedures.
+    fn contains_proc_name(&self, proc_name: &str) -> bool {
+        self.local_procs.contains_key(proc_name) || self.reexported_procs.contains_key(proc_name)
     }
 }
 

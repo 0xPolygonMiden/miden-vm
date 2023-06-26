@@ -6,6 +6,7 @@ use core::slice::Iter;
 
 // SIMPLE PROGRAMS
 // ================================================================================================
+
 #[test]
 fn simple_instructions() {
     let assembler = super::Assembler::default();
@@ -110,6 +111,7 @@ fn span_and_simple_if() {
 
 // PROGRAM WITH #main CALL
 // ================================================================================================
+
 #[test]
 fn simple_main_call() {
     // instantiate assembler
@@ -154,6 +156,7 @@ fn simple_main_call() {
 
 // CONSTANTS
 // ================================================================================================
+
 #[test]
 fn simple_constant() {
     let assembler = super::Assembler::default();
@@ -549,6 +552,7 @@ fn program_with_exported_procedure() {
 
 // MAST ROOT CALLS
 // ================================================================================================
+
 #[test]
 fn program_with_incorrect_mast_root_length() {
     let assembler = super::Assembler::default();
@@ -596,6 +600,7 @@ fn program_with_mast_root_call_that_does_not_exist() {
 
 // IMPORTS
 // ================================================================================================
+
 #[test]
 fn program_with_one_import_and_hex_call() {
     const NAMESPACE: &str = "dummy";
@@ -1068,6 +1073,9 @@ fn invalid_while() {
         assert_eq!(error.to_string(), "while without matching end");
     }
 }
+
+// DUMMY LIBRARY
+// ================================================================================================
 
 struct DummyLibrary {
     namespace: LibraryNamespace,
