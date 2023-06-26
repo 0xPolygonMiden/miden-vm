@@ -32,7 +32,7 @@ pub use vm_core::{
 
 pub mod math {
     pub use winter_prover::math::{
-        fft, fields::QuadExtension, polynom, FieldElement, StarkField, ToElements,
+        fft, fields::QuadExtension, polynom, ExtensionOf, FieldElement, StarkField, ToElements,
     };
 }
 

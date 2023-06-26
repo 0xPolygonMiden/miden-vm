@@ -159,8 +159,8 @@ end
 #! Input: [...]
 #! Output: [...]
 #! Cycles:
-#!  1- Remainder of size 32: 1498
-#!  2- Remainder of size 64: 2792
+#!  1- Remainder of size 32: 1633
+#!  2- Remainder of size 64: 3109
 export.load_and_verify_remainder
     # Load remainder commitment and save it at `TMP7`
     push.0.0.0.0
@@ -180,9 +180,7 @@ export.load_and_verify_remainder
     add
     ## Store for later use
     exec.constants::tmp8 mem_storew
-    # => [ptr_remainder, remainder_size, y, y, Y, Y, ptr_remainder, 0, y, y]
-
-    #=> [ptr_remainder, remainder_size, y, y, ]
+    #=> [ptr_remainder, remainder_size, y, y]
 
     dup.1
     push.32
@@ -201,8 +199,6 @@ export.load_and_verify_remainder
         # On the other hand, we need to check that the hash of the polynomial coefficients agrees with
         # the commitment already received by the prover. Thus the need for hashing the polynomial
         # coefficients first.
-        # Also, this is redundant now since `verify_remainder_32` recomputes the polynomial coefficients
-        # from the remainder codeword.
         adv_loadw
         dup.12
         add.16
@@ -244,8 +240,6 @@ export.load_and_verify_remainder
         # On the other hand, we need to check that the hash of the polynomial coefficients agrees with
         # the commitment already received by the prover. Thus the need for hashing the polynomial
         # coefficients first.
-        # Also, this is redundant now since `verify_remainder_64` recomputes the polynomial coefficients
-        # from the remainder codeword.
         adv_loadw
         dup.12
         add.32
@@ -290,33 +284,23 @@ export.load_and_verify_remainder
     dropw
     swapw.2
     dropw
-    dropw
     drop
     drop
-    #=> [tau1, tau0] where tau is the challenge of ext2fri::verify_remainder_xx
+    #=> [Y, tau1, tau0] where tau is the challenge of ext2fri::verify_remainder_xx
 
     # Prepare for remainder verification procedure
-    push.0.0.0.0
     exec.constants::tmp8 mem_loadw
     movup.2 drop
     movup.2 drop
-    # => [ptr_remainder, remainder_size, y, y, tau1, tau0, Y, Y]
+    # => [ptr_remainder, remainder_size, tau1, tau0]
 
     # Call the correct remainder verification procedure
-    swap
+    movdn.3
     push.32
     eq
     if.true
-        # TODO: Modify verify_remainder_32 so that it uses (tau0, tau1) instead of
-        # recomputing them again.
-        # For the moment, we drop (tau0, tau1).
-        swap.2 drop drop
         exec.ext2fri::verify_remainder_32
     else
-        # TODO: Modify verify_remainder_64 so that it uses (tau0, tau1) instead of
-        # recomputing them again.
-        # For the moment, we drop (tau0, tau1).
-        swap.2 drop drop
         exec.ext2fri::verify_remainder_64
     end
     #=> [...]
