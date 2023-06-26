@@ -13,7 +13,7 @@ const MAX_PATH_LEN: usize = 1023;
 // ================================================================================================
 
 /// Path to a module or a procedure.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LibraryPath {
     path: String,
     num_components: usize,
@@ -296,7 +296,7 @@ impl TryFrom<&str> for LibraryPath {
 
 impl Serializable for LibraryPath {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.path.len() < u16::MAX as usize, "path too long");
+        debug_assert!(self.path.len() < MAX_PATH_LEN, "path too long");
         target.write_u16(self.path.len() as u16);
         target.write_bytes(self.path.as_bytes());
     }

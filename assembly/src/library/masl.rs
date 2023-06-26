@@ -1,6 +1,7 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Library, LibraryError,
-    LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec, Version,
+    super::BTreeSet, ByteReader, ByteWriter, Deserializable, DeserializationError, Library,
+    LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec, Version,
+    MAX_DEPENDENCIES, MAX_MODULES,
 };
 use core::slice::Iter;
 
@@ -22,6 +23,8 @@ pub struct MaslLibrary {
     has_source_locations: bool,
     /// Available modules.
     modules: Vec<Module>,
+    /// Dependencies of the library.
+    dependencies: Vec<LibraryNamespace>,
 }
 
 impl Library for MaslLibrary {
@@ -38,6 +41,10 @@ impl Library for MaslLibrary {
     fn modules(&self) -> Self::ModuleIterator<'_> {
         self.modules.iter()
     }
+
+    fn dependencies(&self) -> &[LibraryNamespace] {
+        &self.dependencies
+    }
 }
 
 impl MaslLibrary {
@@ -48,6 +55,7 @@ impl MaslLibrary {
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+
     /// Returns a new [Library] instantiated from the specified parameters.
     ///
     /// # Errors
@@ -58,14 +66,23 @@ impl MaslLibrary {
         version: Version,
         has_source_locations: bool,
         modules: Vec<Module>,
+        dependencies: Vec<LibraryNamespace>,
     ) -> Result<Self, LibraryError> {
         if modules.is_empty() {
             return Err(LibraryError::no_modules_in_library(namespace));
-        } else if modules.len() > u16::MAX as usize {
+        } else if modules.len() > MAX_MODULES {
             return Err(LibraryError::too_many_modules_in_library(
                 namespace,
                 modules.len(),
-                u16::MAX as usize,
+                MAX_MODULES,
+            ));
+        }
+
+        if dependencies.len() > MAX_DEPENDENCIES {
+            return Err(LibraryError::too_many_dependencies_in_library(
+                namespace,
+                dependencies.len(),
+                MAX_DEPENDENCIES,
             ));
         }
 
@@ -74,6 +91,7 @@ impl MaslLibrary {
             version,
             has_source_locations,
             modules,
+            dependencies,
         })
     }
 
@@ -124,14 +142,24 @@ mod use_std {
                 ));
             }
 
+            let mut dependencies_set = BTreeSet::new();
             let module_path = LibraryPath::new(&namespace)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-            let modules = read_from_dir_helper(Default::default(), path, &module_path)?
-                .into_iter()
-                .map(|(path, ast)| Module { path, ast })
-                .collect();
 
-            Self::new(namespace, version, with_source_locations, modules)
+            let modules = read_from_dir_helper(
+                Default::default(),
+                path,
+                &module_path,
+                &mut dependencies_set,
+            )?
+            .into_iter()
+            .map(|(path, ast)| Module { path, ast })
+            .collect();
+
+            let dependencies =
+                dependencies_set.into_iter().filter(|dep| dep != &namespace).collect();
+
+            Self::new(namespace, version, with_source_locations, modules, dependencies)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
 
@@ -168,7 +196,7 @@ mod use_std {
     }
 
     // HELPER FUNCTIONS
-    // ============================================================================================
+    // --------------------------------------------------------------------------------------------
 
     /// Read a directory and recursively feed the state map with path->ast tuples.
     ///
@@ -177,6 +205,7 @@ mod use_std {
         mut state: BTreeMap<LibraryPath, ModuleAst>,
         dir: P,
         module_path: &LibraryPath,
+        deps: &mut BTreeSet<LibraryNamespace>,
     ) -> io::Result<BTreeMap<LibraryPath, ModuleAst>>
     where
         P: AsRef<Path>,
@@ -194,7 +223,7 @@ mod use_std {
                 let module_path = module_path
                     .append(name)
                     .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-                state = read_from_dir_helper(state, path, &module_path)?;
+                state = read_from_dir_helper(state, path, &module_path, deps)?;
             // if file, check if `masm`, parse & append; skip otherwise
             } else if ty.is_file() {
                 let path = entry.path();
@@ -211,6 +240,13 @@ mod use_std {
                     let contents = fs::read_to_string(&path)?;
                     let ast = ModuleAst::parse(&contents)?;
 
+                    // add dependencies of this module to the dependencies of this library
+                    for path in ast.imports().values() {
+                        let ns = LibraryNamespace::new(path.first())?;
+                        deps.insert(ns);
+                    }
+
+                    // build module path and add it to the map of modules
                     let module = module_path
                         .append(name)
                         .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
@@ -232,8 +268,13 @@ impl Serializable for MaslLibrary {
         self.version.write_into(target);
 
         let modules = self.modules();
+
+        // write dependencies
+        target.write_u16(self.dependencies.len() as u16);
+        self.dependencies.iter().for_each(|dep| dep.write_into(target));
+
         // this assert is OK because maximum number of modules is enforced by Library constructor
-        debug_assert!(modules.len() <= u16::MAX as usize, "too many modules");
+        debug_assert!(modules.len() <= MAX_MODULES, "too many modules");
 
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
@@ -257,6 +298,14 @@ impl Deserializable for MaslLibrary {
         let namespace = LibraryNamespace::read_from(source)?;
         let version = Version::read_from(source)?;
 
+        // read dependencies
+        let num_deps = source.read_u16()? as usize;
+        // TODO: check for duplicate/self-referential dependencies?
+        let deps_set: BTreeSet<LibraryNamespace> = (0..num_deps)
+            .map(|_| LibraryNamespace::read_from(source))
+            .collect::<Result<_, _>>()?;
+
+        // read modules
         let num_modules = source.read_u16()? as usize;
         let mut modules = Vec::with_capacity(num_modules);
         for _ in 0..num_modules {
@@ -273,7 +322,8 @@ impl Deserializable for MaslLibrary {
             modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
         }
 
-        Self::new(namespace, version, has_source_locations, modules)
+        let deps = deps_set.into_iter().collect();
+        Self::new(namespace, version, has_source_locations, modules, deps)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
 }

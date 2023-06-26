@@ -35,9 +35,14 @@ impl ModuleProvider {
             return Err(LibraryError::duplicate_module_path(&module.path));
         }
         let module_idx = self.modules.len();
+        for proc in module.ast.reexported_procs().iter() {
+            let proc_path = module.path.append(proc.name())?;
+            let proc_id = ProcedureId::from(&proc_path);
+            self.procedures.insert(proc_id, module_idx);
+        }
         for proc in module.ast.procs().iter() {
-            let proc_name = module.path.append(&proc.name)?;
-            let proc_id = ProcedureId::from(&proc_name);
+            let proc_path = module.path.append(&proc.name)?;
+            let proc_id = ProcedureId::from(&proc_path);
             self.procedures.insert(proc_id, module_idx);
         }
         self.modules.push(module);

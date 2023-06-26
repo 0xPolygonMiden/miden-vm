@@ -1,4 +1,5 @@
 use super::{ByteWriter, Instruction, Node, OpCode, Serializable};
+use crate::ast::MAX_BODY_LEN;
 
 // NODE SERIALIZATION
 // ================================================================================================
@@ -18,11 +19,11 @@ impl Serializable for Node {
             } => {
                 OpCode::IfElse.write_into(target);
 
-                assert!(true_case.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                assert!(true_case.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(true_case.nodes().len() as u16);
                 true_case.nodes().write_into(target);
 
-                assert!(false_case.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                assert!(false_case.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(false_case.nodes().len() as u16);
                 false_case.nodes().write_into(target);
             }
@@ -30,14 +31,14 @@ impl Serializable for Node {
                 OpCode::Repeat.write_into(target);
                 target.write_u32(*times);
 
-                assert!(body.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                assert!(body.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(body.nodes().len() as u16);
                 body.nodes().write_into(target);
             }
             Self::While { body } => {
                 OpCode::While.write_into(target);
 
-                assert!(body.nodes().len() <= u16::MAX as usize, "too many body nodes");
+                assert!(body.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(body.nodes().len() as u16);
                 body.nodes().write_into(target);
             }

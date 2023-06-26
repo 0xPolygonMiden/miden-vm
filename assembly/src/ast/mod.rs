@@ -37,6 +37,9 @@ pub mod tests;
 /// Maximum number of procedures in a module.
 const MAX_LOCAL_PROCS: usize = u16::MAX as usize;
 
+/// Maximum number of re-exported procedures in a module.
+const MAX_REEXPORTED_PROCS: usize = u16::MAX as usize;
+
 /// Maximum number of bytes for a single documentation comment.
 const MAX_DOCS_LEN: usize = u16::MAX as usize;
 
@@ -53,6 +56,7 @@ const MAX_STACK_WORD_OFFSET: u8 = 12;
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 type LocalConstMap = BTreeMap<String, u64>;
+type ReExportedProcMap = BTreeMap<String, ProcReExport>;
 
 // EXECUTABLE PROGRAM AST
 // ================================================================================================
@@ -143,6 +147,7 @@ impl ProgramAst {
         let mut context = ParserContext {
             imports: &imports,
             local_procs: LocalProcMap::default(),
+            reexported_procs: ReExportedProcMap::default(),
             local_constants,
         };
 
@@ -273,11 +278,12 @@ impl ProgramAst {
 
 /// An abstract syntax tree of a Miden module.
 ///
-/// A module AST consists of a list of procedure ASTs and module documentation. Procedures in the
-/// list could be local or exported.
+/// A module AST consists of a list of imports, a list of procedure ASTs, a list of re-exported
+/// procedures and module documentation. Local procedures could be internal or exported.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleAst {
     local_procs: Vec<ProcedureAst>,
+    reexported_procs: Vec<ProcReExport>,
     imports: BTreeMap<String, LibraryPath>,
     docs: Option<String>,
 }
@@ -290,14 +296,21 @@ impl ModuleAst {
     /// A module consists of internal and exported procedures but does not contain a body.
     pub fn new(
         local_procs: Vec<ProcedureAst>,
+        reexported_procs: Vec<ProcReExport>,
         imports: BTreeMap<String, LibraryPath>,
         docs: Option<String>,
     ) -> Result<Self, ParsingError> {
         if imports.len() > MAX_IMPORTS {
-            return Err(ParsingError::too_many_imports(imports.len(), MAX_LOCAL_PROCS));
+            return Err(ParsingError::too_many_imports(imports.len(), MAX_IMPORTS));
         }
         if local_procs.len() > MAX_LOCAL_PROCS {
             return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
+        }
+        if reexported_procs.len() > MAX_REEXPORTED_PROCS {
+            return Err(ParsingError::too_many_module_procs(
+                reexported_procs.len(),
+                MAX_REEXPORTED_PROCS,
+            ));
         }
         if let Some(ref docs) = docs {
             if docs.len() > MAX_DOCS_LEN {
@@ -306,6 +319,7 @@ impl ModuleAst {
         }
         Ok(Self {
             local_procs,
+            reexported_procs,
             imports,
             docs,
         })
@@ -324,6 +338,7 @@ impl ModuleAst {
         let mut context = ParserContext {
             imports: &imports,
             local_procs: LocalProcMap::default(),
+            reexported_procs: ReExportedProcMap::default(),
             local_constants,
         };
         context.parse_procedures(&mut tokens, true)?;
@@ -337,13 +352,16 @@ impl ModuleAst {
             }
         }
 
-        // get a list of local procs and make sure the number of procs is within the limit
+        // build a list of local procs sorted by their declaration order
         let local_procs = sort_procs_into_vec(context.local_procs);
+
+        // build a list of re-exported procedures sorted by procedure name
+        let reexported_procs = context.reexported_procs.into_values().collect();
 
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
 
-        Self::new(local_procs, imports, docs)
+        Self::new(local_procs, reexported_procs, imports, docs)
     }
 
     // PUBLIC ACCESSORS
@@ -354,9 +372,19 @@ impl ModuleAst {
         &self.local_procs
     }
 
+    /// Returns a list of re-exported procedures in this module.
+    pub fn reexported_procs(&self) -> &[ProcReExport] {
+        &self.reexported_procs
+    }
+
     /// Returns doc comments for this module.
     pub fn docs(&self) -> Option<&String> {
         self.docs.as_ref()
+    }
+
+    /// Returns a map of imported modules in this module.
+    pub fn imports(&self) -> &BTreeMap<String, LibraryPath> {
+        &self.imports
     }
 
     // STATE MUTATORS
@@ -410,7 +438,7 @@ impl Serializable for ModuleAst {
 
         match &self.docs {
             Some(docs) => {
-                assert!(docs.len() <= u16::MAX as usize, "docs too long");
+                assert!(docs.len() <= MAX_DOCS_LEN, "docs too long");
                 target.write_u16(docs.len() as u16);
                 target.write_bytes(docs.as_bytes());
             }
@@ -418,17 +446,24 @@ impl Serializable for ModuleAst {
                 target.write_u16(0);
             }
         }
-
-        assert!(self.local_procs.len() <= u16::MAX as usize, "too many local procs");
-        target.write_u16(self.local_procs.len() as u16);
+        assert!(self.imports.len() <= MAX_IMPORTS, "too many imports");
+        assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
+        assert!(
+            self.reexported_procs.len() <= MAX_REEXPORTED_PROCS,
+            "too many re-exported procs"
+        );
+        target.write_u16(self.imports.len() as u16);
+        self.imports.values().for_each(|i| i.write_into(target));
+        target.write_u16((self.reexported_procs.len()) as u16);
+        self.reexported_procs.write_into(target);
+        target.write_u16((self.local_procs.len()) as u16);
         self.local_procs.write_into(target);
     }
 }
 
 impl Deserializable for ModuleAst {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let imports = BTreeMap::<String, LibraryPath>::new();
-
+        // deserialize docs
         let docs_len = source.read_u16()? as usize;
         let docs = if docs_len != 0 {
             let str = source.read_vec(docs_len)?;
@@ -439,10 +474,23 @@ impl Deserializable for ModuleAst {
             None
         };
 
+        // deserialize imports (if any)
+        let num_imports = source.read_u16()? as usize;
+        let mut imports = BTreeMap::new();
+        for _ in 0..num_imports {
+            let path = LibraryPath::read_from(source)?;
+            imports.insert(path.last().to_string(), path);
+        }
+
+        // deserialize re-exports
+        let num_reexported_procs = source.read_u16()? as usize;
+        let reexported_procs = Deserializable::read_batch_from(source, num_reexported_procs)?;
+
+        // deserialize local procs
         let num_local_procs = source.read_u16()? as usize;
         let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
 
-        match Self::new(local_procs, imports, docs) {
+        match Self::new(local_procs, reexported_procs, imports, docs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
             Ok(res) => Ok(res),
         }
@@ -472,7 +520,8 @@ impl ProcedureAst {
     // --------------------------------------------------------------------------------------------
     /// Constructs a [ProcedureAst].
     ///
-    /// A procedure consists of a name, a number of locals, a body, and a flag to signal whether the procedure is exported.
+    /// A procedure consists of a name, a number of locals, a body, and a flag to signal whether
+    /// the procedure is exported.
     pub fn new(
         name: ProcedureName,
         num_locals: u16,
@@ -555,7 +604,7 @@ impl Serializable for ProcedureAst {
         self.name.write_into(target);
         match &self.docs {
             Some(docs) => {
-                assert!(docs.len() <= u16::MAX as usize, "docs too long");
+                assert!(docs.len() <= MAX_DOCS_LEN, "docs too long");
                 target.write_u16(docs.len() as u16);
                 target.write_bytes(docs.as_bytes());
             }
@@ -566,7 +615,7 @@ impl Serializable for ProcedureAst {
 
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
-        assert!(self.body.nodes().len() <= u16::MAX as usize, "too many body instructions");
+        assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
         self.body.nodes().write_into(target);
     }
@@ -599,6 +648,58 @@ impl Deserializable for ProcedureAst {
             is_export,
             docs,
         })
+    }
+}
+
+/// Represents a re-exported procedure.
+///
+/// A re-exported procedure is a procedure that is defined in a different module in the same
+/// library or a different library and re-exported with the same or a different name. The
+/// re-exported procedure is not copied into the module, but rather a reference to it is added to
+/// the [ModuleAST].
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct ProcReExport {
+    proc_id: ProcedureId,
+    name: ProcedureName,
+}
+
+impl ProcReExport {
+    /// Creates a new re-exported procedure.
+    pub fn new(proc_id: ProcedureId, name: ProcedureName) -> Self {
+        Self { proc_id, name }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the ID of the re-exported procedure.
+    pub fn proc_id(&self) -> ProcedureId {
+        self.proc_id
+    }
+
+    /// Returns the name of the re-exported procedure.
+    pub fn name(&self) -> &ProcedureName {
+        &self.name
+    }
+
+    /// Returns the ID of the re-exported procedure using the specified module.
+    pub fn get_alias_id(&self, module_path: &LibraryPath) -> ProcedureId {
+        ProcedureId::from_name(&self.name, module_path)
+    }
+}
+
+impl Serializable for ProcReExport {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.proc_id.write_into(target);
+        self.name.write_into(target);
+    }
+}
+
+impl Deserializable for ProcReExport {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let proc_id = ProcedureId::read_from(source)?;
+        let name = ProcedureName::read_from(source)?;
+        Ok(Self { proc_id, name })
     }
 }
 

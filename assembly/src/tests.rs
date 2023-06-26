@@ -6,8 +6,9 @@ use core::slice::Iter;
 
 // SIMPLE PROGRAMS
 // ================================================================================================
+
 #[test]
-fn simple_new_instrctns() {
+fn simple_instructions() {
     let assembler = super::Assembler::default();
     let source = "begin push.0 assertz end";
     let program = assembler.compile(source).unwrap();
@@ -110,6 +111,7 @@ fn span_and_simple_if() {
 
 // PROGRAM WITH #main CALL
 // ================================================================================================
+
 #[test]
 fn simple_main_call() {
     // instantiate assembler
@@ -154,6 +156,7 @@ fn simple_main_call() {
 
 // CONSTANTS
 // ================================================================================================
+
 #[test]
 fn simple_constant() {
     let assembler = super::Assembler::default();
@@ -549,6 +552,7 @@ fn program_with_exported_procedure() {
 
 // MAST ROOT CALLS
 // ================================================================================================
+
 #[test]
 fn program_with_incorrect_mast_root_length() {
     let assembler = super::Assembler::default();
@@ -596,6 +600,7 @@ fn program_with_mast_root_call_that_does_not_exist() {
 
 // IMPORTS
 // ================================================================================================
+
 #[test]
 fn program_with_one_import_and_hex_call() {
     const NAMESPACE: &str = "dummy";
@@ -610,41 +615,13 @@ fn program_with_one_import_and_hex_call() {
             end
         end"#;
 
-    pub struct DummyLibrary {
-        namespace: LibraryNamespace,
-        modules: Vec<Module>,
-    }
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(PROCEDURE).unwrap();
+    let modules = vec![Module { path, ast }];
+    let library = DummyLibrary::new(namespace, modules);
 
-    impl Default for DummyLibrary {
-        fn default() -> Self {
-            let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
-            let path =
-                LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
-            let ast = ModuleAst::parse(PROCEDURE).unwrap();
-            Self {
-                namespace,
-                modules: vec![Module { path, ast }],
-            }
-        }
-    }
-
-    impl Library for DummyLibrary {
-        type ModuleIterator<'a> = Iter<'a, Module>;
-
-        fn root_ns(&self) -> &LibraryNamespace {
-            &self.namespace
-        }
-
-        fn version(&self) -> &Version {
-            &Version::MIN
-        }
-
-        fn modules(&self) -> Self::ModuleIterator<'_> {
-            self.modules.iter()
-        }
-    }
-
-    let assembler = super::Assembler::default().with_library(&DummyLibrary::default()).unwrap();
+    let assembler = super::Assembler::default().with_library(&library).unwrap();
     let source = format!(
         r#"
         use.{NAMESPACE}::{MODULE}
@@ -673,6 +650,158 @@ fn program_with_one_import_and_hex_call() {
             end \
         end";
     assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn program_with_reexported_proc_in_same_library() {
+    // exprted proc is in same library
+    const NAMESPACE: &str = "dummy1";
+    const REF_MODULE: &str = "math::u64";
+    const REF_MODULE_BODY: &str = r#"
+        export.checked_eqz
+            u32assert.2
+            eq.0
+            swap
+            eq.0
+            and
+        end
+        export.unchecked_eqz
+            eq.0
+            swap
+            eq.0
+            and
+        end
+    "#;
+
+    const MODULE: &str = "math::u256";
+    const MODULE_BODY: &str = r#"
+        use.dummy1::math::u64
+        export.u64::checked_eqz # re-export
+        export.u64::unchecked_eqz->notchecked_eqz # re-export with alias
+    "#;
+
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(MODULE_BODY).unwrap();
+    let ref_path = LibraryPath::try_from(REF_MODULE.to_string())
+        .unwrap()
+        .prepend(&namespace)
+        .unwrap();
+    let ref_ast = ModuleAst::parse(REF_MODULE_BODY).unwrap();
+    let modules = vec![
+        Module { path, ast },
+        Module {
+            path: ref_path,
+            ast: ref_ast,
+        },
+    ];
+    let assembler = super::Assembler::default()
+        .with_library(&DummyLibrary::new(namespace, modules))
+        .unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::checked_eqz
+            exec.u256::notchecked_eqz
+        end"#
+    );
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            span \
+                push(4) push(3) \
+                u32assert2 \
+                eqz swap eqz and \
+                eqz swap eqz and \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn program_with_reexported_proc_in_another_library() {
+    // when re-exported proc is part of a different library
+    const NAMESPACE: &str = "dummy1";
+    const REF_NAMESPACE: &str = "dummy2";
+    const REF_MODULE: &str = "math::u64";
+    const REF_MODULE_BODY: &str = r#"
+        export.checked_eqz
+            u32assert.2
+            eq.0
+            swap
+            eq.0
+            and
+        end
+        export.unchecked_eqz
+            eq.0
+            swap
+            eq.0
+            and
+        end
+    "#;
+
+    const MODULE: &str = "math::u256";
+    const MODULE_BODY: &str = r#"
+        use.dummy2::math::u64
+        export.u64::checked_eqz # re-export
+        export.u64::unchecked_eqz->notchecked_eqz # re-export with alias
+    "#;
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(MODULE_BODY).unwrap();
+
+    let ref_namespace = LibraryNamespace::try_from(REF_NAMESPACE.to_string()).unwrap();
+    let ref_path = LibraryPath::try_from(REF_MODULE.to_string())
+        .unwrap()
+        .prepend(&ref_namespace)
+        .unwrap();
+    let ref_ast = ModuleAst::parse(REF_MODULE_BODY).unwrap();
+    let modules = vec![Module { path, ast }];
+    let ref_modules = vec![Module {
+        path: ref_path,
+        ast: ref_ast,
+    }];
+    let dummy_library_1 = DummyLibrary::new(namespace, modules);
+    let dummy_library_2 = DummyLibrary::new(ref_namespace, ref_modules);
+    let assembler = super::Assembler::default()
+        .with_libraries([&dummy_library_1, &dummy_library_2].into_iter())
+        .unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::checked_eqz
+            exec.u256::notchecked_eqz
+        end"#
+    );
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            span \
+                push(4) push(3) \
+                u32assert2 \
+                eqz swap eqz and \
+                eqz swap eqz and \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+
+    // when the re-exported proc is part of a different library and the library is not passed to
+    // the assembler it should fail
+    let assembler = super::Assembler::default().with_library(&dummy_library_1).unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::checked_eqz
+            exec.u256::notchecked_eqz
+        end"#
+    );
+    assert!(assembler.compile(source).is_err());
 }
 
 #[test]
@@ -942,5 +1071,44 @@ fn invalid_while() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(error.to_string(), "while without matching end");
+    }
+}
+
+// DUMMY LIBRARY
+// ================================================================================================
+
+struct DummyLibrary {
+    namespace: LibraryNamespace,
+    modules: Vec<Module>,
+    dependencies: Vec<LibraryNamespace>,
+}
+
+impl DummyLibrary {
+    fn new(namespace: LibraryNamespace, modules: Vec<Module>) -> Self {
+        Self {
+            namespace,
+            modules,
+            dependencies: Vec::new(),
+        }
+    }
+}
+
+impl Library for DummyLibrary {
+    type ModuleIterator<'a> = Iter<'a, Module>;
+
+    fn root_ns(&self) -> &LibraryNamespace {
+        &self.namespace
+    }
+
+    fn version(&self) -> &Version {
+        &Version::MIN
+    }
+
+    fn modules(&self) -> Self::ModuleIterator<'_> {
+        self.modules.iter()
+    }
+
+    fn dependencies(&self) -> &[LibraryNamespace] {
+        &self.dependencies
     }
 }

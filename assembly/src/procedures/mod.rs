@@ -96,7 +96,7 @@ impl Procedure {
 ///
 /// # Type-safety
 /// Any instance of this type can be created only via the checked [`Self::try_from`].
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureName {
     name: String,
 }

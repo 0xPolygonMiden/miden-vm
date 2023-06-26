@@ -50,10 +50,11 @@ impl<'a> Token<'a> {
     pub const SYSCALL: &'static str = "syscall";
     pub const WHILE: &'static str = "while";
 
-    // COMMENT DELIMITERS
+    // DELIMITERS
     // --------------------------------------------------------------------------------------------
     pub const DOC_COMMENT_PREFIX: &str = "#!";
     pub const COMMENT_PREFIX: char = '#';
+    pub const EXPORT_ALIAS_DELIM: &str = "->";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -142,6 +143,39 @@ impl<'a> Token<'a> {
         ProcedureName::try_from(name_str.to_string())
             .map(|proc_name| (proc_name, num_locals, is_export))
             .map_err(|err| ParsingError::invalid_proc_name(self, err))
+    }
+
+    pub fn parse_reexported_proc(
+        &self,
+    ) -> Result<(ProcedureName, ProcedureName, &str), ParsingError> {
+        assert_eq!(Self::EXPORT, self.parts[0], "not an export");
+        match self.num_parts() {
+            0 => unreachable!(),
+            1 => Err(ParsingError::missing_param(self)),
+            2 => {
+                if self.parts[1].matches(LibraryPath::PATH_DELIM).count() != 1 {
+                    return Err(ParsingError::invalid_reexported_procedure(self, self.parts[1]));
+                }
+                // get module and proc name
+                let (module, proc_name_with_alias) = self.parts()[1]
+                    .split_once(LibraryPath::PATH_DELIM)
+                    .expect("Invalid procedure export {self.parts[1]}");
+
+                // get the alias name if it exists else export it with the original name
+                let (ref_name, proc_name) = proc_name_with_alias
+                    .split_once(Self::EXPORT_ALIAS_DELIM)
+                    .unwrap_or((proc_name_with_alias, proc_name_with_alias));
+
+                // validate the procedure names
+                let ref_name = ProcedureName::try_from(ref_name.to_string())
+                    .map_err(|err| ParsingError::invalid_proc_name(self, err))?;
+                let proc_name = ProcedureName::try_from(proc_name.to_string())
+                    .map_err(|err| ParsingError::invalid_proc_name(self, err))?;
+
+                Ok((proc_name, ref_name, module))
+            }
+            _ => Err(ParsingError::extra_param(self)),
+        }
     }
 
     pub fn validate_if(&self) -> Result<(), ParsingError> {

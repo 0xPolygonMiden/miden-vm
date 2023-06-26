@@ -529,12 +529,12 @@ fn test_ast_parsing_simple_docs() {
 #[test]
 fn test_ast_parsing_module_docs() {
     let source = "\
-#! Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet,
+#! Test documentation for the whole module in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 #! This comment is intentionally longer than 256 characters, since we need to be sure that the size
 #! of the comments is correctly parsed. There was a bug here earlier.
 
-#! Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
+#! Test documentation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 #! This comment is intentionally longer than 256 characters, since we need to be sure that the size
 #! of the comments is correctly parsed. There was a bug here earlier.
@@ -542,14 +542,14 @@ export.foo.1
     loc_load.0
 end
 
-#! Test documenation for internal procedure bar in parsing test. Lorem ipsum dolor sit amet,
+#! Test documentation for internal procedure bar in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
 #! aliqua.
 proc.bar.2
     padw
 end
 
-#! Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
+#! Test documentation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
 #! aliqua.
 export.baz.3
@@ -558,7 +558,7 @@ export.baz.3
 end";
     let mut procedures: LocalProcMap = BTreeMap::new();
     let docs_foo =
-        "Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
+        "Test documentation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 This comment is intentionally longer than 256 characters, since we need to be sure that the size
 of the comments is correctly parsed. There was a bug here earlier."
@@ -600,7 +600,7 @@ of the comments is correctly parsed. There was a bug here earlier."
     );
 
     let docs_baz =
-        "Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
+        "Test documentation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
 aliqua."
             .to_string();
@@ -631,7 +631,7 @@ aliqua."
     let module = ModuleAst::parse(source).unwrap();
 
     let module_docs =
-        "Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet,
+        "Test documentation for the whole module in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 This comment is intentionally longer than 256 characters, since we need to be sure that the size
 of the comments is correctly parsed. There was a bug here earlier."
