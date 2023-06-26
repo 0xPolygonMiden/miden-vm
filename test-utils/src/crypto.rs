@@ -6,8 +6,8 @@ use super::{Felt, FieldElement, StarkField, Vec, Word};
 pub use vm_core::crypto::{
     hash::{Rpo256, RpoDigest},
     merkle::{
-        EmptySubtreeRoots, MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree, Mmr,
-        MmrPeaks, NodeIndex, SimpleSmt,
+        EmptySubtreeRoots, MerkleError, MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks,
+        NodeIndex, PartialMerkleTree, SimpleSmt,
     },
 };
 

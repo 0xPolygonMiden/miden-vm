@@ -26,7 +26,7 @@ fn fri_fold4_ext2_remainder32() {
     let domain_size = 1 << depth;
 
     let FriResult {
-        merkle_sets,
+        partial_trees,
         advice_maps,
         positions,
         alphas,
@@ -49,8 +49,8 @@ fn fri_fold4_ext2_remainder32() {
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
-    for path_set in &merkle_sets {
-        store.add_merkle_path_set(&path_set).unwrap();
+    for partial_tree in &partial_trees {
+        store.extend(partial_tree.inner_nodes());
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
@@ -74,7 +74,7 @@ fn fri_fold4_ext2_remainder64() {
     let domain_size = 1 << depth;
 
     let FriResult {
-        merkle_sets,
+        partial_trees,
         advice_maps,
         positions,
         alphas,
@@ -97,8 +97,8 @@ fn fri_fold4_ext2_remainder64() {
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
-    for path_set in &merkle_sets {
-        store.add_merkle_path_set(&path_set).unwrap();
+    for partial_tree in &partial_trees {
+        store.extend(partial_tree.inner_nodes());
     }
     let test = build_test!(source, &[domain_generator], &advice_stack, store, advice_map.clone());
 
