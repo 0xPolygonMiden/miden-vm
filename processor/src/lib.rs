@@ -40,7 +40,9 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
+pub use advice::{
+    AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider,
+};
 
 mod chiplets;
 use chiplets::Chiplets;

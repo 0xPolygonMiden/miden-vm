@@ -1,8 +1,11 @@
 use super::{ExecutionError, Felt, InputError, StarkField, Word};
 use vm_core::{
-    crypto::merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex},
+    crypto::{
+        hash::RpoDigest,
+        merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
+    },
     utils::{
-        collections::{BTreeMap, Vec},
+        collections::{BTreeMap, KvMap, RecordingMap, Vec},
         IntoBytes,
     },
 };
@@ -10,8 +13,8 @@ use vm_core::{
 mod inputs;
 pub use inputs::AdviceInputs;
 
-mod mem_provider;
-pub use mem_provider::MemAdviceProvider;
+mod providers;
+pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;

@@ -10,9 +10,11 @@ use winter_utils::{collections::Vec, string::String};
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_slice_elements, group_vector_elements, string, uninit_vector, Box,
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    group_slice_elements, group_vector_elements, string, uninit_vector, Box, ByteReader,
+    ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
+
+pub use crypto::utils::collections;
 
 pub mod math {
     pub use math::{batch_inversion, log2};
