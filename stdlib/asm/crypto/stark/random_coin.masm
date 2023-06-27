@@ -412,32 +412,38 @@ end
 # OOD POINT GENERATION
 # =============================================================================================
 
-#! Generate the OOD challenge point `z = (z0, z1)` and compute `z^N` where N is the trace length.
-#! The resulting word `[z^N_1, z^N_0, z1, z0]` is stored in the global memory address reserved
-#! for it.
+#! Generate the OOD challenge point `z = (z0, z1)` and compute `z^N` where N is
+#! the trace length. The resulting word `[(z_1, z_0)^N, z1, z0]` is stored in the
+#! global memory address `exec.z_ptr` reservedfor it.
 #!
-#! Input: [...]
+#! Input: [X, ...]
 #! Output: [...]
+#! Note: The top word on the stack is consumed by this procedure.
 #! Cycles: 21 + 10 * log(N)
 export.generate_z_zN
     # Load z (first two felts of the random coin state) and log trace length N
     exec.constants::r1_ptr mem_loadw
     drop drop
     exec.constants::trace_length_log_ptr mem_load
+    # => [log(trace_len), z_1, z_0, ...]
+
+    dup.2 dup.2
+    # => [z_1, z_0, log(trace_len), z_1, z_0, ...]
 
     # Compute z^N using the fact that z^N = z^(2^log(N))
-    dup.2
-    dup.2
+    # Loop starts with `i=log(trace_len)`
     push.1
     while.true
-        dup.1 dup.1
-        ext2mul
-        dup.2 sub.1 swap.3
-        push.1
-        neq
+        dup.1 dup.1 ext2mul
+        # => [(z_1, z_0)^n, i, z_1, z_0, ...]
+
+        dup.2 sub.1 swap.3 push.1 neq
+        # => [b, (z_1, z_0)^n, i-1, z_1, z_0, ...]
     end
+
     movup.2 drop
-    
+    # => [(z_1, z_0)^n, z_1, z_0, ...]
+
     # Store z and z^N
     exec.constants::z_ptr mem_storew
     dropw
