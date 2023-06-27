@@ -178,24 +178,31 @@ end
 #! Ouput: [...]
 #! Cycles: 54
 export.reseed
+    # Load previous state and update it
+    # --------------------------------------------------------------------------------------------
     exec.get_rate_1
+    # => [R1, DATA, ...] (6 cycles)
+
     exec.add_two_words
+    # => [R1, ...] (16 cycles)
 
     exec.get_capacity
     swapw
-
     exec.get_rate_2
+    # => [R2, R1, C, ...] (13 cycles)
 
     hperm
+    # => [R2', R1', C', ...] (1 cycles)
 
+    # Save the new state to memory
+    # --------------------------------------------------------------------------------------------
     exec.constants::r2_ptr mem_storew
     dropw
-
     exec.constants::r1_ptr mem_storew
     dropw
-
     exec.constants::c_ptr mem_storew        
     dropw
+    # => [...] (18 cycles)
 end
 
 
