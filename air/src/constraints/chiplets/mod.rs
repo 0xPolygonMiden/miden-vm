@@ -1,6 +1,5 @@
 use super::super::{
-    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec,
-    CHIPLETS_OFFSET,
+    EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec, CHIPLETS_OFFSET,
 };
 use crate::utils::{are_equal, binary_not, is_binary};
 
@@ -11,9 +10,6 @@ pub use memory::MemoryFrameExt;
 
 // CONSTANTS
 // ================================================================================================
-
-/// The number of boundary constraints required by the Chiplets module.
-pub const NUM_ASSERTIONS: usize = hasher::NUM_ASSERTIONS;
 /// The number of constraints on the management of the Chiplets module. This does not include
 /// constraints for the individual chiplet components.
 pub const NUM_CONSTRAINTS: usize = 6;
@@ -61,11 +57,6 @@ pub fn get_transition_constraint_count() -> usize {
         + memory::get_transition_constraint_count()
 }
 
-/// Returns the boundary assertions for the chiplets at the first step.
-pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
-    hasher::get_assertions_first_step(result);
-}
-
 /// Enforces constraints for the chiplets module and all chiplet components.
 pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
@@ -82,7 +73,6 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
         &periodic_values[..hasher::NUM_PERIODIC_COLUMNS],
         &mut result[constraint_offset..],
         frame.hasher_flag(),
-        binary_not(frame.s_next(0)),
     );
     constraint_offset += hasher::get_transition_constraint_count();
 

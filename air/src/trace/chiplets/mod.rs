@@ -31,8 +31,6 @@ pub const MEMORY_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_MEMORY_SELECTORS;
 /// The column index range in the execution trace containing the selector columns in the hasher.
 pub const HASHER_SELECTOR_COL_RANGE: Range<usize> =
     create_range(HASHER_TRACE_OFFSET, hasher::NUM_SELECTORS);
-/// The index of the hasher's row column in the execution trace.
-pub const HASHER_ROW_COL_IDX: usize = HASHER_TRACE_OFFSET + hasher::ROW_COL_IDX;
 /// The range of columns in the execution trace that contain the hasher's state.
 pub const HASHER_STATE_COL_RANGE: Range<usize> = Range {
     start: HASHER_TRACE_OFFSET + hasher::STATE_COL_RANGE.start,

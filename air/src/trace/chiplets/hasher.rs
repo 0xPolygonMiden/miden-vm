@@ -25,11 +25,8 @@ pub type HasherState = [Felt; STATE_WIDTH];
 /// permutation.
 pub const STATE_WIDTH: usize = Hasher::STATE_WIDTH;
 
-/// Index of the column holding row addresses in the trace.
-pub const ROW_COL_IDX: usize = NUM_SELECTORS;
-
-/// The hasher state portion of the execution trace, located in 4 .. 16 columns.
-pub const STATE_COL_RANGE: Range<usize> = create_range(ROW_COL_IDX + 1, STATE_WIDTH);
+/// The hasher state portion of the execution trace, located in columns 3..15.
+pub const STATE_COL_RANGE: Range<usize> = create_range(NUM_SELECTORS, STATE_WIDTH);
 
 /// Number of field elements in the capacity portion of the hasher's state.
 pub const CAPACITY_LEN: usize = STATE_WIDTH - RATE_LEN;
@@ -37,7 +34,7 @@ pub const CAPACITY_LEN: usize = STATE_WIDTH - RATE_LEN;
 /// The index of the capacity register where the domain is set when initializing the hasher.
 pub const CAPACITY_DOMAIN_IDX: usize = 1;
 
-/// The capacity portion of the hasher state in the execution trace, located in 4 .. 8 columns.
+/// The capacity portion of the hasher state in the execution trace, located in columns 3..7.
 pub const CAPACITY_COL_RANGE: Range<usize> = Range {
     start: STATE_COL_RANGE.start,
     end: STATE_COL_RANGE.start + CAPACITY_LEN,
@@ -46,7 +43,7 @@ pub const CAPACITY_COL_RANGE: Range<usize> = Range {
 /// Number of field elements in the rate portion of the hasher's state.
 pub const RATE_LEN: usize = 8;
 
-/// The rate portion of the hasher state in the execution trace, located in 8 .. 16 columns.
+/// The rate portion of the hasher state in the execution trace, located in columns 7..15.
 pub const RATE_COL_RANGE: Range<usize> = Range {
     start: CAPACITY_COL_RANGE.end,
     end: CAPACITY_COL_RANGE.end + RATE_LEN,
@@ -55,7 +52,7 @@ pub const RATE_COL_RANGE: Range<usize> = Range {
 // The length of the output portion of the hash state.
 pub const DIGEST_LEN: usize = 4;
 
-/// The output portion of the hash state, located in state elements 4, 5, 6, and 7.
+/// The output portion of the hash state, located in state elements 3, 4, 5, and 6.
 pub const DIGEST_RANGE: Range<usize> = Hasher::DIGEST_RANGE;
 
 /// Number of needed to complete a single permutation.
@@ -70,9 +67,8 @@ pub const NUM_SELECTORS: usize = 3;
 /// Optimized. This is equal to 8.
 pub const HASH_CYCLE_LEN: usize = NUM_ROUNDS.next_power_of_two();
 
-/// Number of columns in Hasher execution trace. Additional two columns are for row address and
-/// node index columns.
-pub const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 2;
+/// Number of columns in Hasher execution trace. There is one additional column for the node index.
+pub const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 1;
 
 // --- Transition selectors -----------------------------------------------------------------------
 

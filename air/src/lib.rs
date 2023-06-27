@@ -87,8 +87,7 @@ impl Air for ProcessorAir {
 
         // Define the number of boundary constraints for the main execution trace segment.
         // TODO: determine dynamically
-        let num_main_assertions =
-            2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS + chiplets::NUM_ASSERTIONS;
+        let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
         let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
@@ -140,9 +139,6 @@ impl Air for ProcessorAir {
 
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
-
-        // Add initial assertions for the chiplets.
-        chiplets::get_assertions_first_step(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
