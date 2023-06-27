@@ -250,7 +250,10 @@ pub enum Operation {
     /// Swaps stack elements 0, 1, 2, and 3, with elements 12, 13, 14, and 15.
     SwapW3,
 
-    /// Swaps stack elements 0, 1, 2, 3, 4, 5, 6, and 7 with elements 8, 9, 10, 11, 12, 13, 14, and 15.
+    /// Swaps the top two words pair wise.
+    ///
+    /// Input: [D, C, B, A, ...]
+    /// Output: [B, A, D, C, ...]
     SwapDW,
 
     /// Moves stack element 2 to the top of the stack.
