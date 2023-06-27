@@ -117,10 +117,10 @@ If the stack depth becomes (or remains) $16$, the prover can set $h_0$ to any va
 ## AIR Constraints
 To simplify constraint descriptions, we'll assume that the VM exposes two binary flag values described below.
 
-| Flag      | Degree | Description |
-| --------- | ------ | ----------- |
+| Flag      | Degree | Description                                                                                      |
+| --------- | ------ | ------------------------------------------------------------------------------------------------ |
 | $f_{shr}$ | 6      | When this flag is set to $1$, the instruction executing on the VM is performing a "right shift". |
-| $f_{shl}$ | 5      | When this flag is set to $1$, the instruction executing on the VM is performing a "left shift". |
+| $f_{shl}$ | 5      | When this flag is set to $1$, the instruction executing on the VM is performing a "left shift".  |
 
 These flags are mutually exclusive. That is, if $f_{shl}=1$, then $f_{shr}=0$ and vice versa. However, both flags can be set to $0$ simultaneously. This happens when the executed instruction does not shift the stack. How these flags are computed is described [here](./op_constraints.md).
 
@@ -145,11 +145,11 @@ The above constraint can be satisfied only when either of the following holds:
 ### Stack depth constraints
 To make sure stack depth column $b_0$ is updated correctly, we need to impose the following constraints:
 
-| Condition   | Constraint__     | Description |
-| ----------- | ---------------- | ----------- |
-| $f_{shr}=1$ | $b'_0 = b_0 + 1$ | When the stack is shifted to the right, stack depth should be incremented by $1$. |
+| Condition                   | Constraint__     | Description                                                                                                          |
+| --------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| $f_{shr}=1$                 | $b'_0 = b_0 + 1$ | When the stack is shifted to the right, stack depth should be incremented by $1$.                                    |
 | $f_{shl}=1$ <br> $f_{ov}=1$ | $b'_0 = b_0 - 1$ | When the stack is shifted to the left and the overflow table is not empty, stack depth should be decremented by $1$. |
-| otherwise   | $b'_0 = b_0$     | In all other cases, stack depth should not change. |
+| otherwise                   | $b'_0 = b_0$     | In all other cases, stack depth should not change.                                                                   |
 
 We can combine the above constraints into a single expression as follows:
 

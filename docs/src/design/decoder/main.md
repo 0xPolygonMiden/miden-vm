@@ -19,18 +19,18 @@ Miden VM programs consist of a set of code blocks organized into a binary tree. 
 
 Managing control flow in the VM is accomplished by executing control flow operations listed in the table below. Each of these operations require exactly one VM cycle to execute.
 
-| Operation | Description |
-| --------- | ----------- |
-| `JOIN`    | Initiates processing of a new [Join block](../programs.md#join-block). |
-| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#split-block). |
-| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#loop-block). |
-| `REPEAT`  | Initiates a new iteration of an executing loop. |
-| `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block). |
-| `RESPAN`  | Initiates processing of a new operation batch within a span block. |
-| `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block). |
+| Operation | Description                                                                  |
+| --------- | ---------------------------------------------------------------------------- |
+| `JOIN`    | Initiates processing of a new [Join block](../programs.md#join-block).       |
+| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#split-block).     |
+| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#loop-block).       |
+| `REPEAT`  | Initiates a new iteration of an executing loop.                              |
+| `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block).       |
+| `RESPAN`  | Initiates processing of a new operation batch within a span block.           |
+| `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block).       |
 | `SYSCALL` | Initiates processing ofa new  [Syscall block](../programs.md#syscall-block). |
-| `END`     | Marks the end of a program block. |
-| `HALT`    | Marks the end of the entire program. |
+| `END`     | Marks the end of a program block.                                            |
+| `HALT`    | Marks the end of the entire program.                                         |
 
 Let's consider a simple program below:
 

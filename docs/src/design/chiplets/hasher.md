@@ -10,13 +10,13 @@ Miden VM "offloads" all hash-related computations to a separate _hash processor_
 
 The chiplet can be thought of as having a small instruction set of $11$ instructions. These instructions are listed below, and examples of how these instructions are used by the chiplet are described in the following sections.
 
-| Instruction | Description |
-| ----------- | ----------- |
-| `HR`       | Executes a single round of the VM's native hash function. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the chiplet executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                             |
-| `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                      |
-| `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                                                                       |
-| `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                    |
-| `MU`        | Initiates Merkle path verification for the "new" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                    |
+| Instruction | Description                                                                                                                                                                                                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `HR`        | Executes a single round of the VM's native hash function. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the chiplet executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.            |
+| `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                    |
+| `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                                                                     |
+| `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                  |
+| `MU`        | Initiates Merkle path verification for the "new" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with an `HR` instruction.                                                                  |
 | `HOUT`      | Returns the result of the currently running computation. This instruction can be executed only on cycles which are one less than a multiple of $8$ (e.g. $7$, $15$ etc.).                                                                                                                                          |
 | `SOUT`      | Returns the whole hasher state. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `BP` instruction.                                                                                                                         |
 | `ABP`       | Absorbs a new set of elements into the hasher state when computing a linear hash of many elements. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `BP` instruction.                                                      |
@@ -48,8 +48,8 @@ In addition to the columns described above, the chiplet relies on two running pr
 
 As mentioned above, chiplet instructions are encoded using a combination of periodic and selector columns. These columns can be used to compute a binary flag for each instruction. Thus, when a flag for a given instruction is set to $1$, the chiplet executes this instruction. Formulas for computing instruction flags are listed below.
 
-| Flag       | Value                                                 | Notes                       |
-| ---------- | ----------------------------------------------------- | --------------------------- |
+| Flag       | Value                                                 | Notes                                                                                             |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | $f_{rpr}$  | $1 - k_0$                                             | Set to $1$ on the first $7$ steps of every $8$-step cycle.                                        |
 | $f_{bp}$   | $k_2 \cdot s_0 \cdot (1 - s_1) \cdot (1 - s_2)$       | Set to $1$ when selector flags are $(1, 0, 0)$ on rows which are multiples of $8$.                |
 | $f_{mp}$   | $k_2 \cdot s_0 \cdot (1 - s_1) \cdot s_2$             | Set to $1$ when selector flags are $(1, 0, 1)$ on rows which are multiples of $8$.                |
@@ -383,16 +383,16 @@ $$
 
 The above constraint reduces to the following under various flag conditions:
 
-| Condition      | Applied constraint |
-| -------------- | ------------------ |
-| $f_{bp} = 1$   | $b_{chip}' = b_{chip} \cdot v_{all}$ |
-| $f_{sout} = 1$ | $b_{chip}' = b_{chip} \cdot v_{all}$ |
+| Condition      | Applied constraint                    |
+| -------------- | ------------------------------------- |
+| $f_{bp} = 1$   | $b_{chip}' = b_{chip} \cdot v_{all}$  |
+| $f_{sout} = 1$ | $b_{chip}' = b_{chip} \cdot v_{all}$  |
 | $f_{mp} = 1$   | $b_{chip}' = b_{chip} \cdot v_{leaf}$ |
 | $f_{mv} = 1$   | $b_{chip}' = b_{chip} \cdot v_{leaf}$ |
 | $f_{mu} = 1$   | $b_{chip}' = b_{chip} \cdot v_{leaf}$ |
-| $f_{abp} = 1$  | $b_{chip}' = b_{chip} \cdot v_{abp}$ |
-| $f_{hout} = 1$ | $b_{chip}' = b_{chip} \cdot v_{res}$ |
-| Otherwise      | $b_{chip}' = b_{chip}$ |
+| $f_{abp} = 1$  | $b_{chip}' = b_{chip} \cdot v_{abp}$  |
+| $f_{hout} = 1$ | $b_{chip}' = b_{chip} \cdot v_{res}$  |
+| Otherwise      | $b_{chip}' = b_{chip}$                |
 
 Note that the degree of the above constraint is $7$.
 
@@ -417,13 +417,13 @@ $$
 
 The above constraint reduces to the following under various flag conditions:
 
-| Condition      | Applied constraint |
-| -------------- | ------------------ |
+| Condition      | Applied constraint             |
+| -------------- | ------------------------------ |
 | $f_{mv} = 1$   | $p_1' \cdot v_{sibling} = p_1$ |
 | $f_{mva} = 1$  | $p_1' \cdot v_{sibling} = p_1$ |
 | $f_{mu} = 1$   | $p_1' = p_1 \cdot v_{sibling}$ |
 | $f_{mua} = 1$  | $p_1' = p_1 \cdot v_{sibling}$ |
-| Otherwise      | $p_1' = p_1$ |
+| Otherwise      | $p_1' = p_1$                   |
 
 Note that the degree of the above constraint is $7$.
 
