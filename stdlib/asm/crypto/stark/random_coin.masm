@@ -152,8 +152,7 @@ end
 #! Ouput: [...]
 #! Cycles: 54
 export.reseed
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     exec.add_two_words
 
     padw
@@ -200,8 +199,7 @@ proc.generate_random_coefficients
     #=> [loop_ctr, dest_ptr, x, x, ...]
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     dup.5 mem_storew
 
     padw
@@ -276,8 +274,7 @@ proc.generate_random_coefficients_pad
     #=> [loop_ctr, dest_ptr, x, x, ...]
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     dup.5
     #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
     dup.4
@@ -602,8 +599,7 @@ export.generate_list_indices
 
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     exec.generate_three_integers
 
     # Load the second half of the rate portion of the state of the random coin.
@@ -613,8 +609,7 @@ export.generate_list_indices
 
     # Squeeze
     exec.constants::c_ptr mem_loadw
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     padw
     exec.constants::r2_ptr mem_loadw
     hperm
@@ -648,8 +643,7 @@ export.generate_list_indices
 
         # Squeeze
         exec.constants::c_ptr mem_loadw
-        padw
-        exec.constants::r1_ptr mem_loadw
+        exec.get_rate_1
         padw
         exec.constants::r2_ptr mem_loadw
         hperm
@@ -714,8 +708,7 @@ export.check_pow
     exec.constants::c_ptr mem_loadw
 
     # Load first half of rate portion and add pow witness to first element of rate
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     adv_push.1
     dup.4
     add
