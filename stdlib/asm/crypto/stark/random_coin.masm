@@ -30,10 +30,41 @@ end
 
 #! Return the first half of the rate portion of the random coin state
 #!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
 #! Input: [...]
-#! Output: [R1]
+#! Output: [R1, ...]
+#! Cycles: 6
 export.get_rate_1
-    exec.constants::r1_ptr mem_loadw
+    padw exec.constants::r1_ptr mem_loadw
+end
+
+#! Return the second half of the rate portion of the random coin state
+#!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
+#! Input: [...]
+#! Output: [R2, ...]
+#! Cycles: 6
+export.get_rate_2
+    padw exec.constants::r2_ptr mem_loadw
+end
+
+#! Return the capacity portion of the random coin state
+#!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
+#! Input: [...]
+#! Output: [C, ...]
+#! Cycles: 6
+export.get_capacity
+    padw exec.constants::c_ptr mem_loadw
 end
 
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
@@ -147,27 +178,31 @@ end
 #! Ouput: [...]
 #! Cycles: 54
 export.reseed
-    padw
-    exec.constants::r1_ptr mem_loadw
+    # Load previous state and update it
+    # --------------------------------------------------------------------------------------------
+    exec.get_rate_1
+    # => [R1, DATA, ...] (6 cycles)
+
     exec.add_two_words
+    # => [R1, ...] (16 cycles)
 
-    padw
-    exec.constants::c_ptr mem_loadw
+    exec.get_capacity
     swapw
-
-    padw
-    exec.constants::r2_ptr mem_loadw
+    exec.get_rate_2
+    # => [R2, R1, C, ...] (13 cycles)
 
     hperm
+    # => [R2', R1', C', ...] (1 cycles)
 
+    # Save the new state to memory
+    # --------------------------------------------------------------------------------------------
     exec.constants::r2_ptr mem_storew
     dropw
-
     exec.constants::r1_ptr mem_storew
     dropw
-
     exec.constants::c_ptr mem_storew        
     dropw
+    # => [...] (18 cycles)
 end
 
 
@@ -195,17 +230,14 @@ proc.generate_random_coefficients
     #=> [loop_ctr, dest_ptr, x, x, ...]
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     dup.5 mem_storew
 
-    padw
-    exec.constants::r2_ptr mem_loadw
+    exec.get_rate_2
     dup.9 add.1 mem_storew
     #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
 
-    padw
-    exec.constants::c_ptr mem_loadw
+    exec.get_capacity
     swapdw
     swapw
     swap add.2 swap
@@ -271,8 +303,7 @@ proc.generate_random_coefficients_pad
     #=> [loop_ctr, dest_ptr, x, x, ...]
     # where loop_ctr = - num_tuples / 4; we negate the counter so that we can count up to 0
 
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     dup.5
     #=> [dest_ptr, a11, a10, a01, a00, loop_ctr, dest_ptr, x, x, ...]
     dup.4
@@ -597,8 +628,7 @@ export.generate_list_indices
 
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     exec.generate_three_integers
 
     # Load the second half of the rate portion of the state of the random coin.
@@ -608,10 +638,8 @@ export.generate_list_indices
 
     # Squeeze
     exec.constants::c_ptr mem_loadw
-    padw
-    exec.constants::r1_ptr mem_loadw
-    padw
-    exec.constants::r2_ptr mem_loadw
+    exec.get_rate_1
+    exec.get_rate_2
     hperm
 
     dropw swapw dropw
@@ -643,10 +671,8 @@ export.generate_list_indices
 
         # Squeeze
         exec.constants::c_ptr mem_loadw
-        padw
-        exec.constants::r1_ptr mem_loadw
-        padw
-        exec.constants::r2_ptr mem_loadw
+        exec.get_rate_1
+        exec.get_rate_2
         hperm
 
         dropw swapw dropw
@@ -705,12 +731,10 @@ export.check_pow
     #=> [mask, ...]
 
     # Load Capacity portion
-    padw
-    exec.constants::c_ptr mem_loadw
+    exec.get_capacity
 
     # Load first half of rate portion and add pow witness to first element of rate
-    padw
-    exec.constants::r1_ptr mem_loadw
+    exec.get_rate_1
     adv_push.1
     dup.4
     add

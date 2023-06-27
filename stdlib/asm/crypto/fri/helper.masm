@@ -110,7 +110,6 @@ export.load_fri_layer_commitments
         # => [num_layers, ptr_layer + 1, y, y, ...]
 
         push.0.0.0.0
-        push.0.0.0.0
         exec.random_coin::get_rate_1
         push.0.0
         exec.constants::tmp5 mem_loadw
