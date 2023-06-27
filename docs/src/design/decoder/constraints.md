@@ -99,7 +99,9 @@ For *join*, *split*, and *loop* blocks, the hash is computed directly from the h
 
 For *span* blocks, the hash is computed by absorbing a linear sequence of instructions (organized into operation groups and batches) into the hasher and then returning the result. The prover provides operation batches non-deterministically by populating registers $h_0, ..., h_7$. Similarly to other blocks, the hasher is initialized using the hash chiplet at the start of the block, and we use the address of the hasher as the ID of the first operation batch in the block. As we absorb additional operation batches into the hasher (by executing `RESPAN` operation), the batch address is incremented by $8$. This moves the "pointer" into the hasher table $8$ rows down with every new batch. We read the result from the hasher table at the time the `END` operation is executed for a given block.
 
-The way the decoder communicates with the hash chiplet is by dividing values of the multiset check column $p_0$ by the values of operations providing inputs to or reading outputs from the hash chiplet. A constraint to enforce this would look as $p_0' \cdot u = p_0$, where $u$ is the value which defines the operation.
+### Chiplets bus constraints
+
+The decoder communicates with the hash chiplet via the [chiplets bus](../chiplets/main.md#chiplets-bus). This works by dividing values of the multiset check column $b_{chip}$ by the values of operations providing inputs to or reading outputs from the hash chiplet. A constraint to enforce this would look as $b_{chip}' \cdot u = b_{chip}$, where $u$ is the value which defines the operation.
 
 In constructing value of $u$ for decoder AIR constraints, we will use the following labels (see [here](../chiplets/hasher.md#multiset-check-constraints) for an explanation of how values for these labels are computed):
 
@@ -128,10 +130,10 @@ $$
 In the above, $a$ represents the address value in the decoder which corresponds to the hasher chiplet address at which the hasher was initialized (or the last absorption took place).  As such, $a + 7$ corresponds to the hasher chiplet address at which the result is returned.
 
 $$
-f_{ctrli} = f_{join} + f_{split} + f_{loop} +  f_{call} + f_{syscall} \text{ | degree} = 5
+f_{ctrli} = f_{join} + f_{split} + f_{loop} +  f_{call} \text{ | degree} = 5
 $$
 
-In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$.
+In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$. An exception is made for the `SYSCALL` operation. Although it also signifies the initialization of a control block, it must additionally send a procedure access request to the [kernel ROM chiplet](../chiplets/kernel_rom.md) via the chiplets bus. Therefore, it is excluded from this flag and its communication with the chiplets bus is handled separately.
 
 $$
 d = \sum_{b=0}^6(b_i \cdot 2^i)
@@ -146,6 +148,20 @@ When a control block initializer operation (`JOIN`, `SPLIT`, `LOOP`, `CALL`, `SY
 $$
 u_{ctrli} = f_{ctrli} \cdot (h_{init} + \alpha_5 \cdot d) \text{ | degree} = 6
 $$
+
+As mentioned previously, the value sent by the `SYSCALL` operation is defined separately, since in addition to communicating with the hash chiplet it must also send a kernel procedure access request to the kernel ROM chiplet. This value of this kernel procedure request is described by $k_{proc}$.
+
+$$
+k_{proc} = \alpha_6 + \alpha_7 \cdot op_{krom} + \sum_{i=0}^3 (\alpha_{i + 8} \cdot h_i)
+$$
+
+In the above, $op_{krom}$ is the unique [operation label](./main.md#operation-labels) of the kernel procedure call operation. The values $h_0, h_1, h_2, h_3$ contain the root hash of the procedure being called, which is the procedure that must be requested from the kernel ROM chiplet.
+
+$$
+u_{syscall} = f_{syscall} \cdot (h_{init} + \alpha_5 \cdot d) \cdot k_{proc} \text{ | degree} = 7
+$$
+
+The above value sends both the hash initialization request and the kernel procedure access request to the chiplets bus when the `SYSCALL` operation is executed.
 
 When `SPAN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. The number of operation groups to be hashed is padded to a multiple of the rate width ($8$) and so the $\alpha_4$ is set to 0:
 
@@ -168,13 +184,13 @@ $$
 Using the above definitions, we can describe the constraint for computing block hashes as follows:
 
 > $$
-p_0' \cdot (u_{ctrli} + u_{span} + u_{respan} + u_{end} + \\
-1 - (f_{ctrli} + f_{span} + f_{respan} + f_{end})) = p_0
+b_{chip}' \cdot (u_{ctrli} + u_{syscall} + u_{span} + u_{respan} + u_{end} + \\
+1 - (f_{ctrli} + f_{syscall} + f_{span} + f_{respan} + f_{end})) = b_{chip}
 $$
 
-We need to add $1$ and subtract the sum of the relevant operation flags to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_0' = p_0$.
+We need to add $1$ and subtract the sum of the relevant operation flags to ensure that when none of the flags is set to $1$, the above constraint reduces to $b_{chip}' = b_{chip}$.
 
-The degree of this constraint is $7$.
+The degree of this constraint is $8$.
 
 ## Block stack table constraints
 As described [previously](./main.md#block-stack-table), block stack table keeps track of program blocks currently executing on the VM. Thus, whenever the VM starts executing a new block, an entry for this block is added to the block stack table. And when execution of a block completes, it is removed from the block stack table.
