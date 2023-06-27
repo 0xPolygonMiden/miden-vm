@@ -21,6 +21,7 @@ The maximum allowed constraint degree in Miden VM is $9$. If a constraint degree
 ## VM components
 Miden VM consists of several interconnected components, each providing a specific set of functionality. These components are:
 
+* **System**, which is responsible for managing system data, including the current VM cycle (`clk`), the free memory pointer (`fmp`) used for specifying the region of memory available to procedure locals, and the current and parent execution contexts.
 * **Program decoder**, which is responsible for computing a commitment to the executing program and converting the program into a sequence of operations executed by the VM.
 * **Operand stack**, which is a push-down stack which provides operands for all operations executed by the VM.
 * **Range checker**, which is responsible for providing 16-bit range checks needed by other components.
@@ -33,13 +34,13 @@ Miden VM consists of several interconnected components, each providing a specifi
 The above components are connected via **buses**, which are implemented using [multiset checks](./multiset.md). We also use multiset checks internally within components to describe **virtual tables**.
 
 ## VM execution trace
-Execution trace of Miden VM consists of $66$ main trace columns, $2$ buses, and $6$ virtual tables as shown in the diagram below.
+The execution trace of Miden VM consists of $73$ main trace columns, $2$ buses, and $6$ virtual tables, as shown in the diagram below.
 
 ![vm_trace.png](../assets/design/vm_trace.png)
 
-As can be seen from the above, decoder, stack, and range checker components use dedicated sets of columns, while all chiplets share the same $18$ columns. To differentiate between chiplets, we use a set of binary selector columns, a combination of which uniquely identifies each chiplet.
+As can be seen from the above, the system, decoder, stack, and range checker components use dedicated sets of columns, while all chiplets share the same $18$ columns. To differentiate between chiplets, we use a set of binary selector columns, a combination of which uniquely identifies each chiplet.
 
-In addition to the components described previously, execution trace also contains $2$ system columns:
+The system component does not yet have a dedicated documentation section, since the design is likely to change. However, the following two columns are not expected to change:
 
 * `clk` which is used to keep track of the current VM cycle. Values in this column start out at $0$ and are incremented by $1$ with each cycle.
 * `fmp` which contains the value of the free memory pointer used for specifying the region of memory available to procedure locals.
