@@ -1,6 +1,7 @@
 use super::{
-    ast::ModuleAst, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError,
-    PathError, Serializable, Vec, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
+    ast::{AstSerdeOptions, ModuleAst},
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, PathError,
+    Serializable, Vec, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
 };
 use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};
 
@@ -129,6 +130,24 @@ impl Module {
     pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
         self.ast.write_source_locations(target)
     }
+
+    /// Serialization of [Module] via [LibraryPath::write_into] and
+    /// [ModuleAst::write_into]. [AstSerdeOptions] are used to direct serialization of [ModuleAst].
+    pub fn write_into<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+        self.path.write_into(target);
+        self.ast.write_into(target, options);
+    }
+
+    /// Deserialization of [Module] via [LibraryPath::read_from] and
+    /// [ModuleAst::read_from]. [AstSerdeOptions] are used to direct deserialization of [ModuleAst].
+    pub fn read_from<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
+        let path = LibraryPath::read_from(source)?;
+        let ast = ModuleAst::read_from(source, options)?;
+        Ok(Self { path, ast })
+    }
 }
 
 impl PartialOrd for Module {
@@ -140,21 +159,6 @@ impl PartialOrd for Module {
 impl Ord for Module {
     fn cmp(&self, other: &Self) -> Ordering {
         self.path.cmp(&other.path)
-    }
-}
-
-impl Serializable for Module {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.path.write_into(target);
-        self.ast.write_into(target);
-    }
-}
-
-impl Deserializable for Module {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let path = LibraryPath::read_from(source)?;
-        let ast = ModuleAst::read_from(source)?;
-        Ok(Self { path, ast })
     }
 }
 

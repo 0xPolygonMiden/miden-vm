@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node, ParsingError,
-    ProcedureAst, ProcedureId, ProgramAst, SourceLocation, Token,
+    AstSerdeOptions, BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node,
+    ParsingError, ProcedureAst, ProcedureId, ProgramAst, SourceLocation, Token,
 };
 use vm_core::utils::SliceReader;
 
@@ -647,7 +647,7 @@ of the comments is correctly parsed. There was a bug here earlier."
             proc
         );
     }
-    let module_serialized = module.to_bytes();
+    let module_serialized = module.to_bytes(AstSerdeOptions::new(false));
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
     let module = clear_procs_loc_module(module);
@@ -727,7 +727,7 @@ fn test_ast_parsing_module_docs_fail() {
 #[test]
 fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
-    assert_correct_program_serialization(source);
+    assert_correct_program_serialization(source, false);
 }
 
 #[test]
@@ -743,7 +743,7 @@ fn test_ast_program_serde_local_procs() {
         exec.foo
         exec.bar
     end";
-    assert_correct_program_serialization(source);
+    assert_correct_program_serialization(source, false);
 }
 
 #[test]
@@ -755,7 +755,7 @@ fn test_ast_program_serde_exported_procs() {
     export.bar.2
         padw
     end";
-    assert_correct_module_serialization(source);
+    assert_correct_module_serialization(source, false);
 }
 
 #[test]
@@ -787,7 +787,7 @@ fn test_ast_program_serde_control_flow() {
         end
 
     end";
-    assert_correct_program_serialization(source);
+    assert_correct_program_serialization(source, false);
 }
 
 #[test]
@@ -840,7 +840,7 @@ fn assert_parsing_line_invalid_op() {
         end
 
     end";
-    let err = ProgramAst::parse(&source).err().unwrap();
+    let err = ProgramAst::parse(source).err().unwrap();
     let location = SourceLocation::new(28, 13);
     assert_eq!(err, ParsingError::invalid_op(&Token::new("u32overflowing_mulx", location)));
 }
@@ -859,6 +859,62 @@ fn assert_parsing_line_unexpected_token() {
     let err = ProgramAst::parse(&source).err().unwrap();
     let location = SourceLocation::new(5, 1);
     assert_eq!(err, ParsingError::unexpected_token(&Token::new("mul", location), "begin"));
+}
+
+#[test]
+fn test_ast_program_serde_imports_serialized() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    begin
+        push.0
+        push.1
+        exec.u64::checked_add
+    end";
+    assert_correct_program_serialization(source, true);
+}
+
+#[test]
+fn test_ast_program_serde_imports_not_serialized() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    begin
+        push.0
+        push.1
+        exec.u64::checked_add
+    end";
+    assert_correct_program_serialization(source, false);
+}
+
+#[test]
+fn test_ast_module_serde_imports_serialized() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    proc.foo.2
+        push.0
+        push.1
+        exec.u64::checked_add
+    end";
+    assert_correct_module_serialization(source, true);
+}
+
+#[test]
+fn test_ast_module_serde_imports_not_serialized() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    proc.foo.2
+        push.0
+        push.1
+        exec.u64::checked_add
+    end";
+    assert_correct_module_serialization(source, false);
 }
 
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {
@@ -882,7 +938,7 @@ fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>
 /// Clears the proc locations.
 ///
 /// Currently, the locations are not part of the serialized libraries; thus, they have to be
-/// cleaned before equality is checked for tests
+/// cleared before testing for equality
 fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
     module.local_procs.iter_mut().for_each(|m| {
         m.body.clear_locations();
@@ -894,7 +950,7 @@ fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
 /// Clears the proc locations.
 ///
 /// Currently, the locations are not part of the serialized libraries; thus, they have to be
-/// cleaned before equality is checked for tests
+/// cleared before testing for equality
 fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
     program.start = SourceLocation::default();
     program.local_procs.iter_mut().for_each(|m| {
@@ -905,13 +961,32 @@ fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
     program
 }
 
-fn assert_correct_program_serialization(source: &str) {
+/// Clears the module's imports.
+///
+/// Serialization of imports is optional, so if they are not serialized, then they have to be
+/// cleared before testing for equality
+fn clear_imports_module(module: &mut ModuleAst) {
+    module.imports.clear();
+}
+
+/// Clears the program's imports.
+///
+/// Serialization of imports is optional, so if they are not serialized, then they have to be
+/// cleared before testing for equality
+fn clear_imports_program(program: &mut ProgramAst) {
+    program.imports.clear();
+}
+
+fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
     let program = ProgramAst::parse(source).unwrap();
 
     // assert the correct program serialization
-    let program_serialized = program.to_bytes();
+    let program_serialized = program.to_bytes(AstSerdeOptions::new(serialize_imports));
     let mut program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-    let clear_program = clear_procs_loc_program(program.clone());
+    let mut clear_program = clear_procs_loc_program(program.clone());
+    if !serialize_imports {
+        clear_imports_program(&mut clear_program);
+    }
     assert_eq!(clear_program, program_deserialized);
 
     // assert the correct locations serialization
@@ -929,14 +1004,20 @@ fn assert_correct_program_serialization(source: &str) {
     program_deserialized
         .load_source_locations(&mut SliceReader::new(&locations))
         .unwrap();
+    if !serialize_imports {
+        program_deserialized.imports = program.imports.clone();
+    }
     assert_eq!(program, program_deserialized);
 }
 
-fn assert_correct_module_serialization(source: &str) {
+fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
     let module = ModuleAst::parse(source).unwrap();
-    let module_serialized = module.to_bytes();
+    let module_serialized = module.to_bytes(AstSerdeOptions::new(serialize_imports));
     let mut module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
-    let clear_module = clear_procs_loc_module(module.clone());
+    let mut clear_module = clear_procs_loc_module(module.clone());
+    if !serialize_imports {
+        clear_imports_module(&mut clear_module);
+    }
     assert_eq!(clear_module, module_deserialized);
 
     // assert the correct locations serialization
@@ -954,5 +1035,8 @@ fn assert_correct_module_serialization(source: &str) {
     module_deserialized
         .load_source_locations(&mut SliceReader::new(&locations))
         .unwrap();
+    if !serialize_imports {
+        module_deserialized.imports = module.imports.clone();
+    }
     assert_eq!(module, module_deserialized);
 }
