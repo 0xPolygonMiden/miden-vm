@@ -197,6 +197,9 @@ export.lde_size_ptr
     push.LDE_SIZE_PTR
 end
 
+#! Address for the point `z` and its exponentiation `z^N` where `N=trace_len`.
+#!
+#! Memory is `[(z_1, z_0)^n, z_1, z_0, ...]`
 export.z_ptr
     push.Z_PTR
 end
