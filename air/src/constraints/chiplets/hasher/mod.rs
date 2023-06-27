@@ -1,10 +1,9 @@
-use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
+use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::trace::chiplets::{
     hasher::{
         Hasher, CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, NUM_SELECTORS, STATE_WIDTH,
     },
-    HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_SELECTOR_COL_RANGE,
-    HASHER_STATE_COL_RANGE,
+    HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE,
 };
 use crate::utils::{are_equal, binary_not, is_binary, EvaluationResult};
 
@@ -13,11 +12,8 @@ mod tests;
 
 // CONSTANTs
 // ================================================================================================
-/// The number of boundary constraints required by the hash chiplet.
-pub const NUM_ASSERTIONS: usize = 1;
-
 /// The number of constraints on the management of the hash chiplet.
-pub const NUM_CONSTRAINTS: usize = 31;
+pub const NUM_CONSTRAINTS: usize = 30;
 
 /// The number of periodic columns which are used as selectors to specify a particular row or rows
 /// within the hash cycle.
@@ -43,22 +39,12 @@ pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
     result
 }
 
-// BOUNDARY CONSTRAINTS
-// ================================================================================================
-
-/// Returns the boundary assertions for the hash chiplet at the first step.
-pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
-    result.push(Assertion::single(HASHER_ROW_COL_IDX, 0, Felt::ONE));
-}
-
-// HASHER TRANSITION CONSTRAINTS
+// HASH CHIPLET TRANSITION CONSTRAINTS
 // ================================================================================================
 
 /// Builds the transition constraint degrees for the hash chiplet.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     let degrees: [TransitionConstraintDegree; NUM_CONSTRAINTS] = [
-        // Enforce that the row address increases by 1 at each step except the last.
-        TransitionConstraintDegree::new(3),
         // Ensure selector columns are binary.
         TransitionConstraintDegree::new(3),
         TransitionConstraintDegree::new(3),
@@ -118,16 +104,8 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     periodic_values: &[E],
     result: &mut [E],
     hasher_flag: E,
-    transition_flag: E,
 ) {
-    // Enforce that the row address increases by 1 at each step when the transition flag is set.
-    result.agg_constraint(
-        0,
-        hasher_flag * transition_flag,
-        frame.row_next() - frame.row() - E::ONE,
-    );
-    let mut index = 1;
-
+    let mut index = 0;
     index += enforce_hasher_selectors(frame, periodic_values, &mut result[index..], hasher_flag);
 
     index += enforce_node_index(frame, periodic_values, &mut result[index..], hasher_flag);
@@ -341,10 +319,6 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn s(&self, idx: usize) -> E;
     /// Gets the value of the selector column at the specified index in the next row.
     fn s_next(&self, idx: usize) -> E;
-    /// Gets the row address in the current row.
-    fn row(&self) -> E;
-    /// Gets the row address in the next row.
-    fn row_next(&self) -> E;
     /// Gets the full hasher state in the current row.
     fn hash_state(&self) -> &[E];
     /// Gets the full hasher state in the next row.
@@ -424,16 +398,6 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn s_next(&self, idx: usize) -> E {
         self.next()[HASHER_SELECTOR_COL_RANGE.start + idx]
-    }
-
-    #[inline(always)]
-    fn row(&self) -> E {
-        self.current()[HASHER_ROW_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn row_next(&self) -> E {
-        self.next()[HASHER_ROW_COL_IDX]
     }
 
     #[inline(always)]

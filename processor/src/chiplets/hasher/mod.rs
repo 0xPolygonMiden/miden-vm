@@ -32,15 +32,13 @@ mod tests;
 /// * Merkle root updates.
 ///
 /// ## Execution trace
-/// Hasher execution trace consists of 17 columns as illustrated below:
+/// Hasher execution trace consists of 16 columns as illustrated below:
 ///
-///   s0   s1   s2   addr   h0   h1   h2   h3   h4   h5   h6   h7   h8   h9   h10   h11   idx
-/// ├────┴────┴────┴──────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴─────┴─────┴─────┤
+///   s0   s1   s2   h0   h1   h2   h3   h4   h5   h6   h7   h8   h9   h10   h11   idx
+/// ├────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴─────┴─────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// * Selector columns s0, s1, and s2 used to help select transition function for a given row.
-/// * Row address column addr used to uniquely identify each row in the table. Values in this
-///   column start at 1 and are incremented by one with every subsequent row.
 /// * Hasher state columns h0 through h11 used to hold the hasher state for each round of hash
 ///   computation. The state is laid out as follows:
 ///   - The first four columns represent the capacity state of the sponge function.
@@ -62,9 +60,8 @@ mod tests;
 ///   Chiplet via the Chiplets Bus.
 /// - a map of memoized execution trace, which keeps track of start and end rows of the sections of
 ///   the trace of a control or span block that can be copied to be used later for program blocks
-///   encountered with the same digest instead of building it from scratch everytime. The only
-///   thing that changes in the copied trace are the `addr` column rows. The hash of the block
-///   is used as the key here after converting it to a bytes array.
+///   encountered with the same digest instead of building it from scratch everytime. The hash of
+///   the block is used as the key here after converting it to a bytes array.
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
