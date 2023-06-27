@@ -13,10 +13,10 @@ use miden_air::trace::{
             MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH,
             RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH,
         },
-        HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
+        HASHER_NODE_INDEX_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
     },
     decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
-    DECODER_TRACE_OFFSET,
+    CLK_COL_IDX, DECODER_TRACE_OFFSET,
 };
 use vm_core::{
     chiplets::hasher::apply_permutation,
@@ -593,7 +593,7 @@ fn build_expected_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize
     let label = get_label_from_selectors(selectors)
         .expect("unrecognized hasher operation label in hasher trace");
 
-    let addr = trace.main_trace.get_column(HASHER_ROW_COL_IDX)[row];
+    let addr = trace.main_trace.get_column(CLK_COL_IDX)[row] + ONE;
     let index = trace.main_trace.get_column(HASHER_NODE_INDEX_COL_IDX)[row];
 
     let cycle_row = addr_to_cycle_row(addr);

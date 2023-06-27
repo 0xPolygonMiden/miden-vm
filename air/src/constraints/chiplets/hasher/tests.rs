@@ -1,6 +1,6 @@
 use super::{
-    enforce_constraints, Hasher, HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX,
-    HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS,
+    enforce_constraints, Hasher, HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE,
+    HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS,
 };
 use crate::{
     trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
@@ -40,7 +40,7 @@ fn get_constraint_evaluation(
     let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
     let periodic_values = get_test_periodic_values(cycle_row_num);
 
-    enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE, Felt::ONE);
+    enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
 
     result
 }
@@ -77,10 +77,6 @@ fn get_test_hashing_frame(
     // Set the selectors for the hash operation.
     current[HASHER_SELECTOR_COL_RANGE].copy_from_slice(&current_selectors);
     next[HASHER_SELECTOR_COL_RANGE].copy_from_slice(&next_selectors);
-
-    // add the row values
-    current[HASHER_ROW_COL_IDX] = Felt::new(cycle_row_num as u64);
-    next[HASHER_ROW_COL_IDX] = Felt::new(cycle_row_num as u64 + 1);
 
     // Set the starting hasher state.
     let mut state = rand_array();
