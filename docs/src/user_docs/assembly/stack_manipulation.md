@@ -12,6 +12,7 @@ In addition to the typical stack manipulation instructions such as `drop`, `dup`
 | dupw.*n* <br> - *(4 cycles)*    | [ ..., A, ... ]   | [A, ..., A, ... ]  | Pushes a copy of the $n$th stack word onto the stack. `dupw` and `dupw.0` are the same instruction. Valid for $n \in \{0, 1, 2, 3\}$ |
 | swap.*n* <br> - *(1-6 cycles)*    | [a, ..., b, ... ] | [b, ..., a, ... ]  | Swaps the top stack item with the $n$th stack item. `swap` and `swap.1` are the same instruction. Valid for $n \in \{1, ..., 15\}$ |
 | swapw.*n* <br> - *(1 cycle)*   | [A, ..., B, ... ] | [B, ..., A, ... ]  | Swaps the top stack word with the $n$th stack word. `swapw` and `swapw.1` are the same instruction. Valid for $n \in \{1, 2, 3\}$ |
+| swapdw <br> - *(1 cycle)*   | [D, C, B, A, ... ] | [B, A, D, C ... ]  | Swaps words on the top of the stack. The 1st with the 3rd, and the 2nd with the 4th. |
 | movup.*n* <br> - *(1-4 cycles)*   | [ ..., a, ... ]   | [a, ... ]          | Moves the $n$th stack item to the top of the stack. Valid for $n \in \{2, ..., 15\}$ |
 | movupw.*n* <br> - *(2-3 cycles)*  | [ ..., A, ... ]   | [A, ... ]          | Moves the $n$th stack word to the top of the stack. Valid for $n \in \{2, 3\}$ |
 | movdn.*n* <br> - *(1-4 cycles)*   | [a, ... ]         | [ ..., a, ... ]    | Moves the top stack item to the $n$th position of the stack. Valid for $n \in \{2, ..., 15\}$ |

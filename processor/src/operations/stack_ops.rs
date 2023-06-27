@@ -137,7 +137,10 @@ where
         Ok(())
     }
 
-    /// Swaps stack elements 0, 1, 2, 3, 4, 5, 6, and 7 with elements 8, 9, 10, 11, 12, 13, 14, and 15.
+    /// Swaps the top two words pair wise.
+    ///
+    /// Input: [D, C, B, A, ...]
+    /// Output: [B, A, D, C, ...]
     pub(super) fn op_swapdw(&mut self) -> Result<(), ExecutionError> {
         let a0 = self.stack.get(0);
         let a1 = self.stack.get(1);
