@@ -252,7 +252,7 @@ end
 #! Input: [query_ptr, ...]
 #! Output: [index, query_ptr, ...]
 #!
-#! Cycles: 200
+#! Cycles: 198
 proc.load_query_row
     # Main trace portion of the query
 
@@ -332,8 +332,7 @@ proc.load_query_row
     #=> [L, R, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## adv_pipe aux trace portion
-    padw
-    exec.constants::zero_zero_zero_one_word mem_loadw
+    push.1.0.0.0
     swapw.2
     adv_pipe hperm
     adv_pipe hperm
