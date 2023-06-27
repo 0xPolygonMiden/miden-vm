@@ -228,14 +228,26 @@ export.zero_zero_zero_one_word
     push.ZERO_ZERO_ZERO_ONE_PTR
 end
 
+#! Returns the pointer to the capacity word of the random coin.
+#!
+#! Note: The random coin is implemented using a hash function, this returns the
+#! capacity portion of the RPO.
 export.c_ptr
     push.C_PTR
 end
 
+#! Returns the pointer to the first rate word of the random coin.
+#!
+#! Note: The random coin is implemented using a hash function, this returns the
+#! first rate word of the RPO.
 export.r1_ptr
     push.R1_PTR
 end
 
+#! Returns the pointer to the second rate word of the random coin.
+#!
+#! Note: The random coin is implemented using a hash function, this returns the
+#! second rate word of the RPO.
 export.r2_ptr
     push.R2_PTR
 end
