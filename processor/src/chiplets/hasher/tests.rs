@@ -62,7 +62,6 @@ fn hasher_permute() {
     let (trace, aux_hints) = build_trace(hasher, 8);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, LINEAR_HASH, RETURN_STATE);
     check_hasher_state_trace(&trace, 0, init_state);
     assert_eq!(trace.last().unwrap(), &[ZERO; 8]);
@@ -98,7 +97,6 @@ fn hasher_permute() {
     let (trace, aux_hints) = build_trace(hasher, 16);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, LINEAR_HASH, RETURN_STATE);
     check_selector_trace(&trace, 8, LINEAR_HASH, RETURN_STATE);
     check_hasher_state_trace(&trace, 0, init_state1);
@@ -171,7 +169,6 @@ fn hasher_build_merkle_root() {
     let (trace, aux_hints) = build_trace(hasher, 16);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, MP_VERIFY, RETURN_HASH);
     check_selector_trace(&trace, 8, MP_VERIFY, RETURN_HASH);
     check_hasher_state_trace(&trace, 0, init_state_from_words(&leaves[0], &path0[0]));
@@ -424,7 +421,6 @@ fn hasher_update_merkle_root() {
     let (trace, aux_hints) = build_trace(hasher, 32);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, MR_UPDATE_OLD, RETURN_HASH);
     check_selector_trace(&trace, 8, MR_UPDATE_NEW, RETURN_HASH);
     check_selector_trace(&trace, 16, MR_UPDATE_OLD, RETURN_HASH);
@@ -766,8 +762,6 @@ fn hash_memoization_control_blocks() {
 
     let (trace, _) = build_trace(hasher, copied_end_row + 1);
 
-    // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
-    check_row_addr_trace(&trace);
     //  check the row address at which memoized block starts.
     let hash_cycle_len: u64 = HASH_CYCLE_LEN.try_into().expect("Could not convert usize to u64");
     assert_eq!(Felt::new(hash_cycle_len * 2 + 1), addr);
@@ -1030,9 +1024,6 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
     let (trace, _) = build_trace(hasher, copied_end_row + 1);
 
-    // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
-    check_row_addr_trace(&trace);
-
     // check correct copy after memoization
     check_memoized_trace(&trace, start_row, end_row, copied_start_row, copied_end_row);
 }
@@ -1059,9 +1050,6 @@ fn check_merkle_path(
     node_index: u64,
     init_selectors: Selectors,
 ) {
-    // make sure row address is correct
-    check_row_addr_trace(trace);
-
     // make sure selectors were set correctly
     let mid_selectors = [ZERO, init_selectors[1], init_selectors[2]];
     check_selector_trace(trace, row_idx, init_selectors, init_selectors);
@@ -1077,10 +1065,10 @@ fn check_merkle_path(
         let index_bit = (node_index >> i) & 1;
         let old_root = root;
         let init_state = if index_bit == 0 {
-            root = hasher::merge(&[root.into(), node.into()]).into();
+            root = hasher::merge(&[root.into(), node]).into();
             init_state_from_words(&old_root, &node)
         } else {
-            root = hasher::merge(&[node.into(), root.into()]).into();
+            root = hasher::merge(&[node, root.into()]).into();
             init_state_from_words(&node, &old_root)
         };
         check_hasher_state_trace(trace, row_idx + i * 8, init_state);
@@ -1099,14 +1087,6 @@ fn check_merkle_path(
         for j in 0..8 {
             assert_eq!(Felt::new(node_index), node_idx_column[row_idx + i * 8 + j])
         }
-    }
-}
-
-/// Makes sure that values in the row address column (column 3) start out at 1 and are incremented
-/// by 1 with every row.
-fn check_row_addr_trace(trace: &[Vec<Felt>]) {
-    for (i, &addr) in trace[3].iter().enumerate() {
-        assert_eq!(Felt::new(i as u64 + 1), addr);
     }
 }
 
