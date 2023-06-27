@@ -41,6 +41,19 @@ export.get_rate_1
     padw exec.constants::r1_ptr mem_loadw
 end
 
+#! Return the second half of the rate portion of the random coin state
+#!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
+#! Input: [...]
+#! Output: [R2, ...]
+#! Cycles: 6
+export.get_rate_2
+    padw exec.constants::r2_ptr mem_loadw
+end
+
 #! Initializes the seed for randomness generation by computing the hash of the proof context using
 #! the trace length, number of queries, logarithm of blowup factor and the number of bits of
 #! grinding. Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
@@ -159,8 +172,7 @@ export.reseed
     exec.constants::c_ptr mem_loadw
     swapw
 
-    padw
-    exec.constants::r2_ptr mem_loadw
+    exec.get_rate_2
 
     hperm
 
@@ -202,8 +214,7 @@ proc.generate_random_coefficients
     exec.get_rate_1
     dup.5 mem_storew
 
-    padw
-    exec.constants::r2_ptr mem_loadw
+    exec.get_rate_2
     dup.9 add.1 mem_storew
     #=> [R2, R1, loop_ctr, dest_ptr, 0, 0, ..]
 
@@ -610,8 +621,7 @@ export.generate_list_indices
     # Squeeze
     exec.constants::c_ptr mem_loadw
     exec.get_rate_1
-    padw
-    exec.constants::r2_ptr mem_loadw
+    exec.get_rate_2
     hperm
 
     dropw swapw dropw
@@ -644,8 +654,7 @@ export.generate_list_indices
         # Squeeze
         exec.constants::c_ptr mem_loadw
         exec.get_rate_1
-        padw
-        exec.constants::r2_ptr mem_loadw
+        exec.get_rate_2
         hperm
 
         dropw swapw dropw
