@@ -26,7 +26,7 @@ The chiplet can be thought of as having a small instruction set of $11$ instruct
 
 ## Chiplet trace
 
-Execution trace table of the chiplet consists of $17$ trace columns and $3$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
+Execution trace table of the chiplet consists of $16$ trace columns and $3$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
 
 ![hash_execution_trace](../../assets/design/chiplets/hasher/hash_execution_trace.png)
 
@@ -34,7 +34,6 @@ The meaning of the columns is as follows:
 
 - Three periodic columns $k_0$, $k_1$, and $k_2$ are used to help select the instruction executed at a given row. All of these columns contain patterns which repeat every $8$ rows. For $k_0$ the pattern is $7$ zeros followed by $1$ one, helping us identify the last row in the cycle. For $k_1$ the pattern is $6$ zeros, $1$ one, and $1$ zero, which can be used to identify the second-to-last row in a cycle. For $k_2$ the pattern is $1$ one followed by $7$ zeros, which can identify the first row in the cycle.
 - Three selector columns $s_0$, $s_1$, and $s_2$. These columns can contain only binary values (ones or zeros), and they are also used to help select the instruction to execute at a given row.
-- One row address column $r$. This column starts out at $1$ and gets incremented by $1$ with every row.
 - Twelve hasher state columns $h_0, ..., h_{11}$. These columns are used to hold the hasher state for each round of the hash function permutation. The state is laid out as follows:
   - The first four columns ($h_0, ..., h_3$) are reserved for capacity elements of the state. When the state is initialized for hash computations, $h_0$ should be set to $0$ if the number of elements to be hashed is a multiple of the rate width ($8$). Otherwise, $h_0$ should be set to $1$. $h_1$ should be set to the domain value if a domain has been provided (as in the case of [control block hashing](../programs.md#program-hash-computation)).  All other capacity elements should be set to $0$'s.
   - The next eight columns ($h_4, ..., h_{11}$) are reserved for the rate elements of the state. These are used to absorb the values to be hashed. Once the permutation is complete, hash output is located in the first four rate columns ($h_4, ..., h_7$).
@@ -234,24 +233,6 @@ The semantics of `MV` and `MU` instructions are similar to the semantics of `MP`
 
 When describing AIR constraints, we adopt the following notation: for column $x$, we denote the value in the current row simply as $x$, and the value in the next row of the column as $x′$. Thus, all transition constraints described in this note work with two consecutive rows of the execution trace.
 
-### Row address constraint
-
-As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=1$ at the first row. The second condition can be enforced via the following transition constraint:
-
->$$
-r' - r - 1 = 0  \text{ | degree} = 1
-$$
-
-This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $chip\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
-
-The modified row address constraint which should be applied is the following:
-
->$$
-(1 - chip\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree} = 2
-$$
-
-_Note: this constraint should also be multiplied by Chiplets module's selector flag $s_0$, as is true for all constraints in this chiplet._
-
 ### Selector columns constraints
 
 For selector columns, first we must ensure that only binary values are allowed in these columns. This can be done with the following constraints:
@@ -354,7 +335,7 @@ To simplify description of the constraints, we define the following variables. B
 
 $$
 m = op_{label} + 2^4 \cdot k_0 + 2^5 \cdot k_2 \\
-v_h = \alpha_0 + \alpha_1 \cdot m + \alpha_2 \cdot r + \alpha_3 \cdot i \\
+v_h = \alpha_0 + \alpha_1 \cdot m + \alpha_2 \cdot (clk + 1) + \alpha_3 \cdot i \\
 v_a = \sum_{j=0}^{3}(\alpha_{j+4} \cdot h_j) \\
 v_b = \sum_{j=4}^{7}(\alpha_{j+4} \cdot h_j) \\
 v_c = \sum_{j=8}^{11}(\alpha_{j+4} \cdot h_j) \\
@@ -364,7 +345,7 @@ $$
 In the above:
 
 - $m$ is a _transition label_, composed of the [operation label](main.md#operation-labels) and the periodic columns that uniquely identify each transition function. The values in the $k_0$ and $k_2$ periodic columns are included to identify the row in the hash cycle where the operation occurs. They serve to differentiate between operations that share selectors but occur at different rows in the cycle, such as `BP`, which uses $op_{linhash}$ at the first row in the cycle to initiatiate a linear hash, and `ABP`, which uses $op_{linhash}$ at the last row in the cycle to absorb new elements.
-- $v_h$ is a _common header_ which is a combination of transition label, row address, and node index.
+- $v_h$ is a _common header_ which is a combination of the transition label, a unique row address, and the node index. For the unique row address, the `clk` column from the system component is used, but we add $1$, because the system's `clk` column starts at $0$.
 - $v_a$, $v_b$, $v_c$ are the first, second, and third words (4 elements) of the hasher state.
 - $v_d$ is the third word of the hasher state but computed using the same $\alpha$ values as used for the second word. This is needed for computing the value of $v_{leaf}$ below to ensure that the same $\alpha$ values are used for the leaf node regardless of which part of the state the node comes from.
 
