@@ -16,7 +16,7 @@ $$
 
 To compute bitwise operations for multi-bit values, we will decompose the values into individual bits, apply the operations to single bits, and then aggregate the bitwsie results into the final result.
 
-To perform this operation we will use a table with 11 columns, and computing a single AND or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
+To perform this operation we will use a table with 12 columns, and computing a single AND or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
 
 ![bitwise_execution_trace](../../assets/design/chiplets/bitwise/bitwise_execution_trace.png)
 
@@ -45,7 +45,7 @@ With every subsequent row, we inject the next-most-significant 4 bits of each va
 
 ## Constraints
 
-AIR constraints needed to ensure the correctness of the above table are described below.
+AIR constraints needed to ensure the correctness of the above table are described below. We also add one more column $s$ to the execution trace, to allow us to select between two bitwise operations (`U32AND` and `U32XOR`).
 
 ### Selectors
 
