@@ -1,7 +1,5 @@
 use.std::crypto::stark::constants
 
-const.BLOWUP_SIZE=8
-const.LOG_BLOWUP=3
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -75,119 +73,103 @@ end
 #! equal to 8.
 #! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
 #!
-#! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
+#! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
-#! Cycles: 97
+#! Cycles: 104
 export.init_seed
 
-    # Compute parameters and save them to memory
-    # ---------------------------------------------------------------------------------------------
-
-    # Save `log(trace_length)`, `num_queries`, and `grinding_factor` to memory
+    # Save the parameters in memory for later use
     dup exec.constants::trace_length_log_ptr mem_store
     dup.1 exec.constants::number_queries_ptr mem_store
     dup.3 exec.constants::grinding_factor_ptr mem_store
-    #=> [log(trace_length), num_queries, log(blowup), grinding, ...] (9 cycles)
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
     # the `verify` procedure.
+    #
+    # Cycles: 22
     padw
     exec.constants::zero_word mem_storew    
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
-    #=> [0, 0, 0, 0, log(trace_length), num_queries, log(blowup), grinding, ...] (12 cycles)
 
-    # Save `[0, 0, 0, 1]` to memory
     drop
     push.1
     swap.3
     exec.constants::zero_zero_zero_one_word mem_storew
     dropw
-    #=> [log(trace_length), num_queries, log(blowup), grinding, ...] (9 cycles)
+    #=> [log(trace_length), num_queries, log(blowup), grinding]
 
-    # Compute `trace_length` = `2^log2(trace_length)` and assert it is a u32 value
+
+    # Create the initial seed for randomness generation from proof context
+
+    ## Compute trace_length
+    ## Cycles: 20
     dup
     pow2
     u32split assertz
-    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (20 cycles)
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
-    # Save the `trace_length` to memory
+    ## Save the trace length and its log to memory
     dup.0 exec.constants::trace_length_ptr mem_store
-    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (3 cycles)
 
-    # Assert blowup is equal to 8
+    ## Assert blowup is equal to 8
+    ##  Cycles: 6
+    swap
     dup.3
-    push.LOG_BLOWUP
+    dup
+    push.3
     assert_eq
-    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (3 cycles)
 
-    # Compute `log(lde_size)` = `log(blowup) + log(trace_length)`
+    ## Compute log(lde_size) and lde_size and store them
+    ## Cycles: 32
+    add
     swap
     movup.3
-    add
-    #=> [log(lde_size), trace_length, num_queries, grinding, ...] (3 cycles)
-
-    # Compute `blowup_size` = `2^log(blowup)`
-    swap
-    push.BLOWUP_SIZE
-    #=> [blowup_size, trace_length, log(lde_size), num_queries, grinding, ...] (2 cycles)
-
-    # Compute `lde_size` = `trace_length*blowup_size`
+    pow2
     dup
     movdn.4
     swap
     dup
     movdn.3
     mul
-    #=> [lde_size, trace_length, log(lde_size), blowup_size, num_queries, grinding, ...] (6 cycles)
-
-    # Save `[lde_size, log(lde_size), 0, 0]` to memory
     push.0
     movdn.2
     push.0
     movdn.2
     exec.constants::lde_size_ptr mem_storew
-    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding, ...] (6 cycles)
+    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
 
-    # clean top of the stack
-    dropw
-    #=> [trace_length, num_queries, blowup, grinding, ...] (4 cycles)
-
-    # Create the initial seed for randomness generation from proof context
-    # ---------------------------------------------------------------------------------------------
 
     # Construct the proof context
-    # trace layout info
-    push.1224804624
-    # field modulus bytes (2 field elements)
+    # Cycles: 9
+    dropw
+
+    ##trace layout info
+    push.1208027408
+
+    ##field modulus bytes (2 field elements)
     push.1
     push.4294967295
-    # field extension and FRI parameters
+
+    ## field extension and FRI parameters
     push.132103
-    #=> [fri_parameters, M_1, M_0, trace_layout_info, trace_length, num_queries, blowup, grinding, ...] (4 cycles)
+
 
     # Hash proof context
-    # A=`[trace_length, num_queries, blowup, grinding]`
-    # B=`[fri_parameters, M_1, M_0, trace_layout_info]`
-
-    # push capacity
+    # Cycles: 15
     swapw
     push.1.0.0.0
-    #=> [0, 0, 0, 1, B, A, ..] (5 cycles)
-
-    # arange hasher state
+    #=> [0, 0, 0, 1, B, A, ..]
     swapw.2
     swapw
-    #=> [B, A, 0, 0, 0, 1, ..] (2 cycles)
-
-    # do permutation and keep only the capacity word
+    #=> [B, A, 0, 0, 0, 1, ..]
     hperm
     dropw
     dropw
-    #=> [C, ...] (9 cycles)
+    #=> [C]
 end
 
 #! Reseed the random coin with `DATA`
@@ -440,11 +422,11 @@ export.generate_constraint_composition_coefficients
 end
 
 #! Draw deep composition polynomial random coefficients and save them into memory in the region from
-#! `deep_rand_coef_ptr` `deep_rand_coef_ptr + 90 - 1` as `(0, 0, r0_1, r0_0)`
-#! The number of equal coefficients is equal to:
-#! (73 + 9) * 2 Felt for the trace.
-#! 8 * 2 Felt for constraint polynomial.
-#! Total: 90 tuples of type (Felt, Felt)
+#! `deep_rand_coef_ptr` to `deep_rand_coef_ptr + 89 - 1` as `(0, 0, r0_1, r0_0)`
+#! The number of coefficients is equal to:
+#! 1. (72 + 9) * 2 Felt for the main and auxiliary traces.
+#! 2. 8 * 2 Felt for constraint polynomial.
+#! Total: 89 tuples of type (Felt, Felt)
 #!
 #! Input: [deep_rand_coef_ptr, ...]
 #! Output: [...]

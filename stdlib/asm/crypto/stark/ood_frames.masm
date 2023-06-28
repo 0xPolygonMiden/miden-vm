@@ -8,19 +8,28 @@ use.std::crypto::stark::constants
 #! Output: [OOD_FRAME_HASH, ...]
 #! Cycles: 106
 export.load_evaluation_frame
-    # We have 73 main trace columns and 9 aux trace columns for a total of 164 base field elements
+    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
     # per row. Since we have two rows, i.e. current and next, the total number of field elements
     # making up the OOD evaluation frame is:
-    # 328 = 41 * 8
+    # 324 = 40 * 8 + 4
     # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
     # current row and a1 from the next row.
     
     exec.constants::ood_trace_ptr
-    padw padw padw
-    repeat.41
+
+    push.1.0.0.0
+    padw padw 
+    repeat.40
         adv_pipe
         hperm
     end
+    
+    # Load the last remaining word and pad with 1 followed by three 0
+    adv_loadw
+    dup.12 mem_storew
+    swapw
+    exec.constants::zero_zero_zero_one_word mem_loadw
+    hperm
 
     dropw
     swapw
