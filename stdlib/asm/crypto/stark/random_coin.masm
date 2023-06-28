@@ -117,14 +117,14 @@ export.init_seed
 
     ## Assert blowup is equal to 8
     ##  Cycles: 6
-    swap
     dup.3
-    dup
     push.3
     assert_eq
 
     ## Compute log(lde_size) and lde_size and store them
     ## Cycles: 32
+    swap
+    dup.3
     add
     swap
     movup.3
