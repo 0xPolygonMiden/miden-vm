@@ -1,5 +1,7 @@
 use.std::crypto::stark::constants
 
+const.BLOWUP_SIZE=8
+const.LOG_BLOWUP=3
 
 #! Helper procedure to compute addition of two words component-wise.
 #! Input: [b3, b2, b1, b0, a3, a2, a1, a0]
@@ -75,7 +77,7 @@ end
 #!
 #! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
 #! Output: [C]
-#! Cycles: 113
+#! Cycles: 97
 export.init_seed
 
     # Compute parameters and save them to memory
@@ -118,21 +120,20 @@ export.init_seed
 
     # Assert blowup is equal to 8
     dup.3
-    push.3
+    push.LOG_BLOWUP
     assert_eq
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (3 cycles)
 
     # Compute `log(lde_size)` = `log(blowup) + log(trace_length)`
     swap
-    dup.3
+    movup.3
     add
-    #=> [log(lde_size), trace_length, num_queries, log(blowup), grinding, ...] (3 cycles)
+    #=> [log(lde_size), trace_length, num_queries, grinding, ...] (3 cycles)
 
     # Compute `blowup_size` = `2^log(blowup)`
     swap
-    movup.3
-    pow2
-    #=> [blowup_size, trace_length, log(lde_size), num_queries, grinding, ...] (18 cycles)
+    push.BLOWUP_SIZE
+    #=> [blowup_size, trace_length, log(lde_size), num_queries, grinding, ...] (2 cycles)
 
     # Compute `lde_size` = `trace_length*blowup_size`
     dup
