@@ -112,7 +112,7 @@ export.init_seed
     u32split assertz
     #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
 
-    ## Save the trace length and its log to memory
+    ## Save the trace length
     dup.0 exec.constants::trace_length_ptr mem_store
 
     ## Assert blowup is equal to 8
