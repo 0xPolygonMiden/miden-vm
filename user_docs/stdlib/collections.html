@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>std::collections - Polygon Miden VM</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../intro/main.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../intro/overview.html"><strong aria-hidden="true">1.1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../../intro/usage.html"><strong aria-hidden="true">1.2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="../../intro/performance.html"><strong aria-hidden="true">1.3.</strong> Performance</a></li></ol></li><li class="chapter-item expanded "><a href="../../tools/main.html"><strong aria-hidden="true">2.</strong> Development tooling</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../tools/debugger.html"><strong aria-hidden="true">2.1.</strong> Debugger</a></li><li class="chapter-item expanded "><a href="../../tools/repl.html"><strong aria-hidden="true">2.2.</strong> REPL</a></li></ol></li><li class="chapter-item expanded "><a href="../../user_docs/main.html"><strong aria-hidden="true">3.</strong> User Documentation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../user_docs/assembly/main.html"><strong aria-hidden="true">3.1.</strong> Miden Assembly</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../user_docs/assembly/code_organization.html"><strong aria-hidden="true">3.1.1.</strong> Code Organization</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/execution_contexts.html"><strong aria-hidden="true">3.1.2.</strong> Execution contexts</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/flow_control.html"><strong aria-hidden="true">3.1.3.</strong> Flow Control</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/field_operations.html"><strong aria-hidden="true">3.1.4.</strong> Field Operations</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/u32_operations.html"><strong aria-hidden="true">3.1.5.</strong> u32 Operations</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/stack_manipulation.html"><strong aria-hidden="true">3.1.6.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/io_operations.html"><strong aria-hidden="true">3.1.7.</strong> Input / Output Operations</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/cryptographic_operations.html"><strong aria-hidden="true">3.1.8.</strong> Cryptographic Operations</a></li></ol></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/main.html"><strong aria-hidden="true">3.2.</strong> Miden Standard Library</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../user_docs/stdlib/collections.html" class="active"><strong aria-hidden="true">3.2.1.</strong> std::collections</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/crypto/fri.html"><strong aria-hidden="true">3.2.2.</strong> std::crypto::fri</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/crypto/hashes.html"><strong aria-hidden="true">3.2.3.</strong> std::crypto::hashes</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/math/u64.html"><strong aria-hidden="true">3.2.4.</strong> std::math::u64</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/mem.html"><strong aria-hidden="true">3.2.5.</strong> std::mem</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/sys.html"><strong aria-hidden="true">3.2.6.</strong> std:sys</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../design/main.html"><strong aria-hidden="true">4.</strong> Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/programs.html"><strong aria-hidden="true">4.1.</strong> Programs</a></li><li class="chapter-item expanded "><a href="../../design/decoder/main.html"><strong aria-hidden="true">4.2.</strong> Program decoder</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/decoder/constraints.html"><strong aria-hidden="true">4.2.1.</strong> Decoder constraints</a></li></ol></li><li class="chapter-item expanded "><a href="../../design/stack/main.html"><strong aria-hidden="true">4.3.</strong> Operand stack</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/stack/op_constraints.html"><strong aria-hidden="true">4.3.1.</strong> Operation constraints</a></li><li class="chapter-item expanded "><a href="../../design/stack/system_ops.html"><strong aria-hidden="true">4.3.2.</strong> System operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/field_ops.html"><strong aria-hidden="true">4.3.3.</strong> Field operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/u32_ops.html"><strong aria-hidden="true">4.3.4.</strong> u32 operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/stack_ops.html"><strong aria-hidden="true">4.3.5.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../../design/stack/io_ops.html"><strong aria-hidden="true">4.3.6.</strong> Input / output operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/crypto_ops.html"><strong aria-hidden="true">4.3.7.</strong> Cryptographic operations</a></li></ol></li><li class="chapter-item expanded "><a href="../../design/range.html"><strong aria-hidden="true">4.4.</strong> Range Checker</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/main.html"><strong aria-hidden="true">4.5.</strong> Chiplets</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/chiplets/hasher.html"><strong aria-hidden="true">4.5.1.</strong> Hash Chiplet</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/bitwise.html"><strong aria-hidden="true">4.5.2.</strong> Bitwise Chiplet</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/memory.html"><strong aria-hidden="true">4.5.3.</strong> Memory Chiplet</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/kernel_rom.html"><strong aria-hidden="true">4.5.4.</strong> Kernel ROM Chiplet</a></li></ol></li><li class="chapter-item expanded "><a href="../../design/multiset.html"><strong aria-hidden="true">4.6.</strong> Multiset checks</a></li></ol></li><li class="chapter-item expanded "><a href="../../background.html"><strong aria-hidden="true">5.</strong> Background Material</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Polygon Miden VM</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/0xPolygonMiden/miden-vm/" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<h1 id="collections"><a class="header" href="#collections">Collections</a></h1>
+<p>Namespace <code>std::collections</code> contains modules for commonly authenticated data structures.</p>
+<h2 id="merkle-mountain-range"><a class="header" href="#merkle-mountain-range">Merkle Mountain Range</a></h2>
+<p>Module <code>std::collections::mmr</code> contains procedures for manipulating <a href="https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md">Merkle Mountain Range</a> data structure which can be used as an append-only log.</p>
+<div class="table-wrapper"><table><thead><tr><th>Procedure</th><th>Description</th></tr></thead><tbody>
+<tr><td>get</td><td>Loads the leaf at the absolute <code>pos</code> in the MMR onto the stack.<br /><br />Valid range for <code>pos</code> is between <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span> and <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8974em;vertical-align:-0.0833em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">32</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> (both inclusive).<br /><br />Inputs:<br />- Operand stack: [pos, mmr_ptr, ...]<br /><br />Output:<br />- Operand stack: [N, ...]<br /><br />Where <code>N</code> is the leaf loaded from the MMR whose memory location starts at <code>mmr_ptr</code>.</td></tr>
+<tr><td>add</td><td>Adds a new leaf to the MMR.<br /><br />This will update the MMR peaks in the VM's memory and the advice provider with any merged nodes.<br /><br />Inputs:<br />- Operand stack: [N, mmr_ptr, ...]<br /><br />Outputs:<br />- Operand stack: [...]<br /><br />Where <code>N</code> is the leaf added to the MMR whose memory locations starts at <code>mmr_ptr</code>.</td></tr>
+<tr><td>pack</td><td>Computes the hash of the given MMR and copies it to the Advice Map using its hash as a key.<br /><br />Inputs:<br />- Operand stack: [mmr_ptr, ...]<br /><br />Outputs:<br />- Operand stack: [HASH, ...]<br /><br /></td></tr>
+<tr><td>unpack</td><td>Load the MMR peak data based on its hash.<br /><br />Inputs:<br />- Operand stack: [HASH, mmr_ptr, ...]<br /><br />Outputs:<br />- Operand stack: [...]<br /><br />Where:<br />- <code>HASH</code>: is the MMR peak hash, the hash is expected to be padded to an even length and to have a minimum size of 16 elements.<br />- The advice map must contain a key with <code>HASH</code>, and its value is <code>num_leaves \|\| hash_data</code>, and hash_data is the data used to computed <code>HASH</code><br />- <code>mmt_ptr</code>: the memory location where the MMR data will be written, starting with the MMR forest (the total count of its leaves) followed by its peaks.</td></tr>
+</tbody></table>
+</div>
+<h2 id="sparse-merkle-tree-64"><a class="header" href="#sparse-merkle-tree-64">Sparse Merkle Tree (64)</a></h2>
+<p>Module <code>std::collections::smt64</code> contains procedures for manipulating key-value maps with single-element keys and 4-element values. The current implementation is a thin wrapper over a simple Sparse Merkle Tree of depth 64. In the future, this will be replaced with a compact Sparse Merkle Tree implementation.</p>
+<div class="table-wrapper"><table><thead><tr><th>Procedure</th><th>Description</th></tr></thead><tbody>
+<tr><td>get</td><td>Returns the value located under the specified key in the Sparse Merkle Tree defined by the specified root.<br /><br />If no values had been previously inserted under the specified key, an empty word (i.e., [ZERO; 4]) is returned.<br /><br />Inputs:<br />- Operand stack: [key, ROOT, ...]<br /><br />Outputs:<br />-Operand stack: [VALUE, ROOT, ...]<br /><br />Fails if the tree with the specified root does not exist in the VM's advice provider.</td></tr>
+<tr><td>set</td><td>Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the specified root. If the insert is successful, the old value located under the specified key is returned via the stack.<br /><br />If <code>VALUE</code> is an empty word (i.e., [ZERO; 4]), the new state of the tree is guaranteed to be equivalent to the state as if the updated value was never inserted.<br /><br />Inputs:<br /> - Operand stack: [VALUE, key, ROOT, ...]<br /><br />Outputs:<br />- Operand stack: [OLD_VALUE, NEW_ROOT, ...]<br /><br />Fails if the tree with the specified root does not exits in the VM's advice provider.</td></tr>
+<tr><td>insert</td><td>Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the specified root. If the insert is successful, the old value located under the specified key is returned via the stack.<br /><br />This procedure requires that <code>VALUE</code> be a non-empty word (i.e., not [ZERO; 4]).<br /><br />Inputs:<br />- Operand stack: [VALUE, key, ROOT, ...]<br /><br />Outputs:<br /> -Operand stack: [OLD_VALUE, NEW_ROOT, ...]<br /><br />Fails if:<br />- The tree with the specified root does not exits in the VM's advice provider.<br />- The provided value is an empty word.</td></tr>
+</tbody></table>
+</div>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../user_docs/stdlib/main.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../user_docs/stdlib/crypto/fri.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../user_docs/stdlib/main.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../user_docs/stdlib/crypto/fri.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
