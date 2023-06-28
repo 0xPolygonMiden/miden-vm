@@ -18,6 +18,7 @@
     - [Input / Output Operations](./user_docs/assembly/io_operations.md)
     - [Cryptographic Operations](./user_docs/assembly/cryptographic_operations.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
+    - [std::collections](./user_docs/stdlib/collections.md)
     - [std::crypto::fri](./user_docs/stdlib/crypto/fri.md)
     - [std::crypto::hashes](./user_docs/stdlib/crypto/hashes.md)
     - [std::math::u64](./user_docs/stdlib/math/u64.md)

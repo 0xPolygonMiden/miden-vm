@@ -15,7 +15,7 @@ To compile Miden VM into a binary, we have a [Makefile](https://www.gnu.org/soft
 ```
 make exec
 ```
-This will place an optimized, multi-threaded `miden` executable in the `./target/optimized` directory. It is equivalent to executing:
+This will place an optimized, multi-threaded `miden` executable into the `./target/optimized` directory. It is equivalent to executing:
 ```
 cargo build --profile optimized --features concurrent,executable
 ```
@@ -31,6 +31,16 @@ In this case, the `miden` executable will be placed in the `./target/release` di
 
 ### Controlling parallelism
 Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
+
+### GPU acceleration
+Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via Metal). To compile Miden VM with Metal acceleration enabled, you can run the following command:
+```
+make exec-metal
+```
+
+Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized directory`.
+
+Currently, GPU acceleration is applicable only to recursive proofs which can be generated using `-r` flag.
 
 ### Running Miden VM
 Once the executable has been compiled, you can run Miden VM like so:
