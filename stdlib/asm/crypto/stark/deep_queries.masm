@@ -279,28 +279,13 @@ proc.load_query_row
     exec.constants::current_trace_row_ptr
     swapw
     #=>[R, ptr, y, y, y, depth, index, query_ptr, ...]
-    exec.constants::zero_zero_zero_one_word mem_loadw
+    exec.constants::zero_word mem_loadw
     padw
     padw
     #=> [Y, Y, 0, 0, 0, 1, ptr, y, y, y]
     repeat.9
         adv_pipe hperm
     end
-    dropw
-    adv_push.1
-    push.1
-    push.0.0
-    dup.12 mem_storew
-    swapw
-    exec.constants::zero_word mem_loadw
-        
-    ## Since combine_main follows a mem_stream we need to store (i.e. pad with) the all zero word in
-    ## order to avoid over-stepping into the auxiliary columns.
-    dup.12 add.1
-    mem_storew
-
-    ## Final hperm
-    hperm
     #=> [Y, L, Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## Load the leaf value we got using mtree_get
@@ -315,9 +300,6 @@ proc.load_query_row
     assert_eq
     assert_eq
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
-
-    ## increment ptr to account for column 73 and an additional +1 for the all zero word
-    swapw add.2 swapw
 
 
     # Aux trace part
@@ -457,7 +439,7 @@ end
 #! The procedure then outputs a stack in the same configuration but with the pointers and accumulators
 #! updated to [Y`, Y`, Acc`, P`, ...] where:
 #!
-#! 1. P` := [CURRENT_TRACE_ROW_PTR+20, OOD_TRACE_PTR+73, DEEP_RAND_CC_PTR+73, 0].
+#! 1. P` := [CURRENT_TRACE_ROW_PTR+18, OOD_TRACE_PTR+72, DEEP_RAND_CC_PTR+72, 0].
 #! 2. [Y`, Y`] is a "garbage" double-word used to later mem_stream auxiliary portion referenced now
 #! by CURRENT_TRACE_ROW_PTR`.
 #! 3. Acc` is the accumulator holding the updated numerator values i.e. with terms involving main
@@ -466,19 +448,14 @@ end
 #! Input: [Y, Y, Acc, P, ...]
 #! Output: [Y`, Y`, Acc`, P`, ...]
 #!
-#! Cycles: 83
+#! Cycles: 81
 proc.combine_main_trace_columns
-    # Compute the random linear combination for the first 72 main trace columns
     repeat.9
         mem_stream
         repeat.8
             exec.combine_main
         end
     end
-        
-    # and the 73rd main column
-    mem_stream
-    exec.combine_main
 end
 
 #! Computes the random linear combination involving the aux trace columns and accumulates
@@ -593,7 +570,7 @@ end
 #!
 #! Input: [query_ptr, ...]
 #! Output: [...]
-#! Cycles: 6 + num_queries * 465
+#! Cycles: 6 + num_queries * 463
 export.compute_deep_composition_polynomial_queries
     exec.constants::fri_com_ptr
     dup.1
@@ -652,7 +629,7 @@ export.compute_deep_composition_polynomial_queries
 
         ## d) Compute the random linear combination
         ##
-        ## Cycles: 83 + 12 + 33 = 128
+        ## Cycles: 81 + 12 + 33 = 126
         exec.combine_main_trace_columns
         exec.combine_aux_trace_columns
         exec.combine_constraint_poly_columns
