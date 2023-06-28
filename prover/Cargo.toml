@@ -26,4 +26,4 @@ winter-prover = { package = "winter-prover", version = "0.6", default-features =
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 ministark-gpu = { version = "0.1", features = [ "winterfell" ], optional = true }
 elsa = { version = "1.7", optional = true }
-pollster = { version = "0.2", optional = true }
+pollster = { version = "0.3", optional = true }

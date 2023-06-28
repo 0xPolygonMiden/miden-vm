@@ -1,9 +1,9 @@
 #! A key-value map with single-element keys and 4-element values.
 #!
-#! Current implementation is a thin wrapper over a simple Sparse Merkle tree of depth 64. In the
-#! future, this will be replaced with a compact Sparse Merkle tree implementation.
+#! Current implementation is a thin wrapper over a simple Sparse Merkle Tree of depth 64. In the
+#! future, this will be replaced with a compact Sparse Merkle Tree implementation.
 
-#! Returns the value located under the specified key in the Sparse Merkle tree defined by the
+#! Returns the value located under the specified key in the Sparse Merkle Tree defined by the
 #! specified root.
 #!
 #! If no values had been previously inserted under the specified key, an empty word (i.e.,
@@ -21,7 +21,7 @@ export.get
   mtree_get
 end
 
-#! Inserts the specified value under the specified key in a Sparse Merkle tree defined by the
+#! Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the
 #! specified root. If the insert is successful, the old value located under the specified key
 #! is returned via the stack.
 #!
@@ -51,7 +51,7 @@ export.insert
     # => [OLD_VALUE, NEW_ROOT, ...]
 end
 
-#! Inserts the specified value under the specified key in a Sparse Merkle tree defined by the
+#! Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the
 #! specified root. If the insert is successful, the old value located under the specified key
 #! is returned via the stack.
 #!

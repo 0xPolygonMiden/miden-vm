@@ -131,7 +131,7 @@ pub enum AdviceInjector {
     /// Pushes values onto the advice stack which are required for successful retrieval of a
     /// value from a Sparse Merkle Tree data structure.
     ///
-    /// The Sparse Merkle tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
     /// The depth flags define the tier on which the leaf is located.
     ///
     /// Inputs:

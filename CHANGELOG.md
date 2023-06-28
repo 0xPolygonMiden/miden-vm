@@ -1,13 +1,37 @@
 # Changelog
 
-## 0.6.0 (TBD)
+## 0.6.0 (2023-06-28)
 
 #### Assembly
-- Added new instructions: `mtree_verify`, `adv.smtget`.
+- Added new instructions: `mtree_verify`.
 - [BREAKING] Refactored `adv.mem` decorator to use parameters from operand stack instead of immediate values.
+- [BREAKING] Refactored `mem_stream` and `adv_pipe` instructions.
+- Added constant support for memory operations.
+- Enabled incremental compilation via `compile_in_context()` method.
+- Exposed ability to compile individual modules publicly via `compile_module()` method.
+- [BREAKING] Refactored advice injector instructions.
+- Implemented procedure re-exports from modules.
+
+#### CLI
+- Implemented support for all types of nondeterministic inputs (advice stack, advice map, and Merkle store).
+- Implemented ability to generate proofs suitable for recursion.
 
 #### Stdlib
-- Added new module: `collections::smt` with `smt::get`.
+- Added new module: `std::collections::smt` (only `smt::get` available).
+- Added new module: `std::collections::mmr`.
+- Added new module: `std::collections::smt64`.
+- Added several convenience procedures to `std::mem` module.
+- [BREAKING] Added procedures to compute 1-to-1 hashes in `std::crypto::hashes` module and renamed existing procedures to remove ambiguity.
+- Greatly optimized recursive STARK verifier (reduced number of cycles by 6x - 8x).
+
+#### VM Internals
+- Moved test framework from `miden-vm` crate to `miden-test-utils` crate.
+- Updated Winterfell dependency to v0.6.4.
+- Added support for GPU acceleration on Apple silicon (Metal).
+- Added source locations to all AST nodes.
+- Added 8 more instruction slots to the VM (not yet used).
+- Completed kernel ROM trace generation.
+- Implemented ability to record advice provider requests to the initial dataset via `RecAdviceProvider`.
 
 ## 0.5.0 (2023-03-29)
 
@@ -25,8 +49,6 @@
 - [BREAKING] Renamed `Read`, `ReadW` operations into `AdvPop`, `AdvPopW`.
 - [BREAKING] Replaced `AdviceSet` with `MerkleStore`.
 - Updated Winterfell dependency to v0.6.0.
-
-#### VM Internals
 - [BREAKING] Renamed `Read/ReadW` operations into `AdvPop/AdvPopW`.
 
 ## 0.4.0 (2023-02-27)

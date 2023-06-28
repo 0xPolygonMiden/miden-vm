@@ -22,7 +22,7 @@ impl MerkleSet {
         MerkleTree::new(leaves).map(Self::MerkleTree)
     }
 
-    /// Returns a new [MerkleSet] instantiated as a Sparse Merkle tree from the provided leaves.
+    /// Returns a new [MerkleSet] instantiated as a Sparse Merkle Tree from the provided leaves.
     ///
     /// For more information, check `[SimpleSmt::new]`.
     pub fn new_sparse_merkle_tree(

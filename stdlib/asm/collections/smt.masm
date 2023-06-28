@@ -271,7 +271,7 @@ proc.get48.2
     # => [V, R, ...]
 end
 
-#! Returns the value stored under the specified key in a Sparse Merkle tree with the specified root.
+#! Returns the value stored under the specified key in a Sparse Merkle Tree with the specified root.
 #!
 #! If the value for a given key has not been set, the returned `V` will consist of all zeroes.
 #!
