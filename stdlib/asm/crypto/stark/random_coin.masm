@@ -73,7 +73,7 @@ end
 #! equal to 8.
 #! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
 #!
-#! Input: [log(trace_length), num_queries, blowup, grinding, ...]
+#! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
 #! Output: [C]
 #! Cycles: 104
 export.init_seed
