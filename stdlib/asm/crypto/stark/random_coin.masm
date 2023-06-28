@@ -75,101 +75,118 @@ end
 #!
 #! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
 #! Output: [C]
-#! Cycles: 104
+#! Cycles: 113
 export.init_seed
 
-    # Save the parameters in memory for later use
+    # Compute parameters and save them to memory
+    # ---------------------------------------------------------------------------------------------
+
+    # Save `log(trace_length)`, `num_queries`, and `grinding_factor` to memory
     dup exec.constants::trace_length_log_ptr mem_store
     dup.1 exec.constants::number_queries_ptr mem_store
     dup.3 exec.constants::grinding_factor_ptr mem_store
+    #=> [log(trace_length), num_queries, log(blowup), grinding, ...] (9 cycles)
 
     # Pre-load constants used by hperm into memory and initialize the state of the random coin to zeros.
     # Since memory beyond 3 * 2^30 does not have any special meaning, we can use the memory region
     # starting from address 2^32 - 1 in decreasing order to hold constants that are used throughout
     # the `verify` procedure.
-    #
-    # Cycles: 22
     padw
     exec.constants::zero_word mem_storew    
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
+    #=> [0, 0, 0, 0, log(trace_length), num_queries, log(blowup), grinding, ...] (12 cycles)
 
+    # Save `[0, 0, 0, 1]` to memory
     drop
     push.1
     swap.3
     exec.constants::zero_zero_zero_one_word mem_storew
     dropw
-    #=> [log(trace_length), num_queries, log(blowup), grinding]
+    #=> [log(trace_length), num_queries, log(blowup), grinding, ...] (9 cycles)
 
-
-    # Create the initial seed for randomness generation from proof context
-
-    ## Compute trace_length
-    ## Cycles: 20
+    # Compute `trace_length` = `2^log2(trace_length)` and assert it is a u32 value
     dup
     pow2
     u32split assertz
-    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding]
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (20 cycles)
 
-    ## Save the trace length
+    # Save the `trace_length` to memory
     dup.0 exec.constants::trace_length_ptr mem_store
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (3 cycles)
 
-    ## Assert blowup is equal to 8
-    ##  Cycles: 6
+    # Assert blowup is equal to 8
     dup.3
     push.3
     assert_eq
+    #=> [trace_length, log(trace_length), num_queries, log(blowup), grinding, ...] (3 cycles)
 
-    ## Compute log(lde_size) and lde_size and store them
-    ## Cycles: 32
+    # Compute `log(lde_size)` = `log(blowup) + log(trace_length)`
     swap
     dup.3
     add
+    #=> [log(lde_size), trace_length, num_queries, log(blowup), grinding, ...] (3 cycles)
+
+    # Compute `blowup_size` = `2^log(blowup)`
     swap
     movup.3
     pow2
+    #=> [blowup_size, trace_length, log(lde_size), num_queries, grinding, ...] (18 cycles)
+
+    # Compute `lde_size` = `trace_length*blowup_size`
     dup
     movdn.4
     swap
     dup
     movdn.3
     mul
+    #=> [lde_size, trace_length, log(lde_size), blowup_size, num_queries, grinding, ...] (6 cycles)
+
+    # Save `[lde_size, log(lde_size), 0, 0]` to memory
     push.0
     movdn.2
     push.0
     movdn.2
     exec.constants::lde_size_ptr mem_storew
-    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
+    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding, ...] (6 cycles)
 
+    # clean top of the stack
+    dropw
+    #=> [trace_length, num_queries, blowup, grinding, ...] (4 cycles)
+
+    # Create the initial seed for randomness generation from proof context
+    # ---------------------------------------------------------------------------------------------
 
     # Construct the proof context
-    # Cycles: 9
-    dropw
-
-    ##trace layout info
+    # trace layout info
     push.1224804624
-
-    ##field modulus bytes (2 field elements)
+    # field modulus bytes (2 field elements)
     push.1
     push.4294967295
-
-    ## field extension and FRI parameters
+    # field extension and FRI parameters
     push.132103
-
+    #=> [fri_parameters, M_1, M_0, trace_layout_info, trace_length, num_queries, blowup, grinding, ...] (4 cycles)
 
     # Hash proof context
-    # Cycles: 15
+    # A=`[trace_length, num_queries, blowup, grinding]`
+    # B=`[fri_parameters, M_1, M_0, trace_layout_info]`
+
+    # push capacity
     swapw
     push.1.0.0.0
-    #=> [0, 0, 0, 1, B, A, ..]
+    #=> [0, 0, 0, 1, B, A, ..] (5 cycles)
+
+    # arange hasher state
     swapw.2
     swapw
-    #=> [B, A, 0, 0, 0, 1, ..]
+    #=> [B, A, 0, 0, 0, 1, ..] (2 cycles)
+
+    # do permutation and keep only the capacity word
     hperm
     dropw
     dropw
-    #=> [C]
+    #=> [C, ...] (9 cycles)
 end
 
 #! Reseed the random coin with `DATA`
