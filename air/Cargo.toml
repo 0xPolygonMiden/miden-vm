@@ -1,6 +1,6 @@
 [package]
 name = "miden-air"
-version = "0.6.0"
+version = "0.7.0"
 description = "Algebraic intermediate representation of Miden VM processor"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -28,7 +28,7 @@ default = ["std"]
 std = ["vm-core/std", "winter-air/std"]
 
 [dependencies]
-vm-core = { package = "miden-core", path = "../core", version = "0.6", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.7", default-features = false }
 winter-air = { package = "winter-air", version = "0.6", default-features = false }
 
 [dev-dependencies]
