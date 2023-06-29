@@ -17,7 +17,7 @@ where
     /// the first and second positions on the stack, c1 and c2 to the third and fourth positions,
     /// and leaves the rest of the stack unchanged.
     pub(super) fn op_ext2mul(&mut self) -> Result<(), ExecutionError> {
-        let [a0, a1, b0, b1] = self.stack.get_top_word();
+        let [a0, a1, b0, b1] = self.stack.get_word(0);
         self.stack.set(0, b1);
         self.stack.set(1, b0);
         self.stack.set(2, (b0 + b1) * (a1 + a0) - b0 * a0);

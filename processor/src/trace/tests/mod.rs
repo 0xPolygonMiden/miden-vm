@@ -1,5 +1,6 @@
 use super::{
-    ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, Vec, NUM_RAND_ROWS,
+    super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, LookupTableRow,
+    Process, Trace, Vec, NUM_RAND_ROWS,
 };
 use crate::{AdviceInputs, MemAdviceProvider, StackInputs};
 use rand_utils::rand_array;

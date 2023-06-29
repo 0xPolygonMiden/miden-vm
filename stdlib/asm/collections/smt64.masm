@@ -1,0 +1,75 @@
+#! A key-value map with single-element keys and 4-element values.
+#!
+#! Current implementation is a thin wrapper over a simple Sparse Merkle Tree of depth 64. In the
+#! future, this will be replaced with a compact Sparse Merkle Tree implementation.
+
+#! Returns the value located under the specified key in the Sparse Merkle Tree defined by the
+#! specified root.
+#!
+#! If no values had been previously inserted under the specified key, an empty word (i.e.,
+#! [ZERO; 4]) is returned.
+#!
+#! Inputs:
+#!   Operand stack: [key, ROOT, ...]
+#!
+#! Outputs:
+#!   Operand stack: [VALUE, ROOT, ...]
+#!
+#! Fails if the tree with the specified root does not exits in the VM's advice provider.
+export.get
+  push.64
+  mtree_get
+end
+
+#! Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the
+#! specified root. If the insert is successful, the old value located under the specified key
+#! is returned via the stack.
+#!
+#! This procedure assumes that VALUE is a non-empty word (i.e., not [ZERO; 4]).
+#!
+#! Inputs:
+#!   Operand stack: [VALUE, key, ROOT, ...]
+#!
+#! Outputs:
+#!   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
+#!
+#! Fails if:
+#! - The tree with the specified root does not exits in the VM's advice provider.
+#! - The provided value is an empty word.
+export.insert
+    # make sure the value is not [ZERO; 4] (17 cycles)
+    repeat.4
+        dup.3 eq.0
+    end
+    and and and assertz
+
+    # prepare the stack for mtree_set operation
+    movup.4 movdn.8 swapw movup.8 push.64
+    # => [64, key, ROOT, VALUE, ...]
+
+    mtree_set
+    # => [OLD_VALUE, NEW_ROOT, ...]
+end
+
+#! Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the
+#! specified root. If the insert is successful, the old value located under the specified key
+#! is returned via the stack.
+#!
+#! If the VALUE is an empty word (i.e., [ZERO; 4]), the new state of the tree is guaranteed to
+#! be equivalent to the state as if the updated value was never inserted.
+#!
+#! Inputs:
+#!   Operand stack: [VALUE, key, ROOT, ...]
+#!
+#! Outputs:
+#!   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
+#!
+#! Fails if the tree with the specified root does not exits in the VM's advice provider.
+export.set
+    # prepare the stack for mtree_set operation
+    movup.4 movdn.8 swapw movup.8 push.64
+    # => [64, key, ROOT, VALUE, ...]
+
+    mtree_set
+    # => [OLD_VALUE, NEW_ROOT, ...]
+end

@@ -4,7 +4,7 @@ use super::{
     BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
     Vec, Word, ONE, ZERO,
 };
-use vm_core::chiplets::memory::{
+use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
 };
 

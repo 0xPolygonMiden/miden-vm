@@ -1,14 +1,15 @@
 use super::{Felt, HasherState, Selectors, TraceFragment, Vec, STATE_WIDTH, TRACE_WIDTH, ZERO};
 use core::ops::Range;
-use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS};
+use miden_air::trace::chiplets::hasher::NUM_ROUNDS;
+use vm_core::chiplets::hasher::apply_round;
+
 // HASHER TRACE
 // ================================================================================================
 
 /// Execution trace of the hasher component.
 ///
-/// The trace consists of 17 columns grouped logically as follows:
+/// The trace consists of 16 columns grouped logically as follows:
 /// - 3 selector columns.
-/// - 1 row address column.
 /// - 12 columns describing hasher state.
 /// - 1 node index column used for Merkle path related computations.
 #[derive(Default)]
@@ -27,7 +28,7 @@ impl HasherTrace {
         self.selectors[0].len()
     }
 
-    /// Returns next row address. The address is equal to the current trace length + 1.
+    /// Returns the next row address. The address is equal to the current trace length + 1.
     ///
     /// The above means that row addresses start at ONE (rather than ZERO), and are incremented by
     /// ONE at every row. Starting at ONE is needed for the decoder so that the address of the
@@ -128,16 +129,10 @@ impl HasherTrace {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
-        let size: u64 = self.trace_len() as u64;
 
         // collect all trace columns into a single vector
         let mut columns = Vec::new();
         self.selectors.into_iter().for_each(|c| columns.push(c));
-
-        // collects the row_addr column, this column is a strictly monotonically increasing column,
-        // starting at one and going up to the trace length.
-        let row_addr = (1..=size).map(Felt::new).collect();
-        columns.push(row_addr);
 
         self.hasher_state.into_iter().for_each(|c| columns.push(c));
         columns.push(self.node_index);

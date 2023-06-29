@@ -1,5 +1,5 @@
 use super::{
-    super::bus::{ChipletsLookup, ChipletsLookupRow},
+    super::aux_trace::{ChipletLookup, ChipletsBusRow},
     Bitwise, BitwiseLookup, ChipletsBus, Felt, StarkField, TraceFragment, Vec, A_COL_IDX,
     A_COL_RANGE, BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, B_COL_IDX,
     B_COL_RANGE, OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
@@ -262,8 +262,8 @@ fn verify_bus(
     cycle: u32,
     bitwise_lookup: &BitwiseLookup,
 ) {
-    let expected_lookup = ChipletsLookupRow::Bitwise(*bitwise_lookup);
-    let expected_hint = ChipletsLookup::Response(index);
+    let expected_lookup = ChipletLookup::Bitwise(*bitwise_lookup);
+    let expected_hint = ChipletsBusRow::new(&[], Some(index as u32));
 
     let lookup = chiplets_bus.get_response_row(index);
     let hint = chiplets_bus.get_lookup_hint(cycle).unwrap();

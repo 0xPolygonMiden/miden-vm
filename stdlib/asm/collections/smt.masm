@@ -1,0 +1,309 @@
+# Constant value for empty sub-tree root at depth 16
+const.EMPTY_16_0=17483286922353768131
+const.EMPTY_16_1=353378057542380712
+const.EMPTY_16_2=1935183237414585408
+const.EMPTY_16_3=4820339620987989650
+
+# Constant value for empty sub-tree root at depth 32
+const.EMPTY_32_0=11677748883385181208
+const.EMPTY_32_1=15891398395707500576
+const.EMPTY_32_2=3790704659934033620
+const.EMPTY_32_3=2126099371106695189
+
+# Constant value for empty sub-tree root at depth 48
+const.EMPTY_48_0=10650694022550988030
+const.EMPTY_48_1=5634734408638476525
+const.EMPTY_48_2=9233115969432897632
+const.EMPTY_48_3=1437907447409278328
+
+#! Produces a remaining path key and index for depth 16
+#!
+#! Input:  [v, ...]
+#! Output: [(v << 16) >> 16, v >> 48, ...]
+#!
+#! Cycles: 7
+proc.split_16
+    u32split
+    u32unchecked_divmod.65536
+    mul.4294967296
+    movup.2
+    add
+end
+
+#! Produces a remaining path key and index for depth 48
+#!
+#! Input:  [v, ...]
+#! Output: [v >> 16, (v << 48) >> 48, ...]
+#!
+#! Cycles: 9
+proc.split_48
+    u32split
+    swap
+    u32unchecked_divmod.65536
+    swap
+    movup.2
+    mul.65536
+    add
+end
+
+#! Get the leaf value for depth 16
+#!
+#! Input:  [K, R, ...]
+#! Output: [V, R, ...]
+#!
+#! Cycles: 86
+proc.get16.2
+    # compute the remaining path (9 cycles)
+    exec.split_16 swap movdn.4
+    # => [K', i, R, ...]
+
+    # save [0, 0, 0, 0] into loc[0] (7 cycles)
+    padw loc_storew.0
+
+    # load Ka from advice provider and compare it to K' (16 cycles)
+    # Ka is expected to be the remaining key for the node stored at
+    # depth; it could be either equal to K', or could be something
+    # different
+    adv_loadw eqw
+    # => [Ka ?= K', Ka, K', i, R, ...]
+
+    # move the comparison result out of the way (1 cycle)
+    movdn.8
+    # => [Ka, K', Ka ?= K', i, R, ...]
+
+    # load the value from adv provider and prepare hash (6 cycles)
+    push.0.16.0.0 swapw.2 adv_loadw
+    # => [V, Ka, D, Ka ?= K', i, R, ...]
+
+    # save the value into loc[1] (4 cycles)
+    loc_storew.1
+    # => [V, Ka, D, Ka ?= K', i, R, ...]
+
+    # compute hash(K', V, domain=16) (10 cycles)
+    hperm dropw swapw dropw
+    # => [N, Ka ?= K', i, R, ...]
+
+    # push the root of the empty subtree (5 cycles)
+    push.EMPTY_16_0.EMPTY_16_1.EMPTY_16_2.EMPTY_16_3 swapw
+    # => [N, E, Ka ?= K', i, R, ...]
+
+    # read the flag if the node is empty subtree (5 cycles)
+    adv_push.1 movdn.8 dup.8
+    # => [not_empty?, N, E, not_empty?, Ka ?= K', i, R, ...]
+
+    # conditionally select node (5 cycles)
+    cdropw
+    # => [N', not_empty?, Ka ?= K', i, R, ...]
+
+    # compute the flag indicating if value is not zero (3 cycles)
+    movup.5 movup.5 and
+    # => [take_val?, N', i, R, ...]
+
+    # move take_val out of the way (4 cycles)
+    movdn.9
+    # => [N', i, R, take_val?, ...]
+
+    # verify Merkle path from N' to R (3 cycles)
+    push.16 movdn.4 mtree_verify
+    # => [N', 16, i, R, take_val?, ...]
+
+    # reorganize stack (4 cycles)
+    movup.4 drop movup.4 drop movup.8
+    # => [take_val?, N', R, ...]
+
+    # compute the address of the return value based on `take_val`
+    # and return it, being either zero or V (3 cycles)
+    locaddr.0 add
+    # => [addr, N', R, ...]
+
+    # load the selected value and return (1 cycle)
+    mem_loadw
+    # => [V, R, ...]
+end
+
+#! Get the leaf value for depth 32
+#!
+#! Input:  [K, R, ...]
+#! Output: [V, R, ...]
+#!
+#! Cycles: 79
+proc.get32.2
+    # compute the remaining path (2 cycles)
+    u32split movdn.4
+    # => [K', i, R, ...]
+
+    # save [0, 0, 0, 0] into loc[0] (7 cycles)
+    padw loc_storew.0
+
+    # load Ka from advice provider and compare it to K' (16 cycles)
+    # Ka is expected to be the remaining key for the node stored at
+    # depth; it could be either equal to K', or could be something
+    # different
+    adv_loadw eqw
+    # => [Ka ?= K', Ka, K', i, R, ...]
+
+    # move the comparison result out of the way (1 cycle)
+    movdn.8
+    # => [Ka, K', Ka ?= K', i, R, ...]
+
+    # load the value from adv provider and prepare hash (6 cycles)
+    push.0.32.0.0 swapw.2 adv_loadw
+    # => [V, Ka, D, Ka ?= K', i, R, ...]
+
+    # save the value into loc[1] (4 cycles)
+    loc_storew.1
+    # => [V, Ka, D, Ka ?= K', i, R, ...]
+
+    # compute hash(K', V, domain=32) (10 cycles)
+    hperm dropw swapw dropw
+    # => [N, Ka ?= K', i, R, ...]
+
+    # push the root of the empty subtree (5 cycles)
+    push.EMPTY_32_0.EMPTY_32_1.EMPTY_32_2.EMPTY_32_3 swapw
+    # => [N, E, Ka ?= K', i, R, ...]
+
+    # read the flag if the node is empty subtree (5 cycles)
+    adv_push.1 movdn.8 dup.8
+    # => [not_empty?, N, E, not_empty?, Ka ?= K', i, R, ...]
+
+    # conditionally select node (5 cycles)
+    cdropw
+    # => [N', not_empty?, Ka ?= K', i, R, ...]
+
+    # compute the flag indicating if value is not zero (3 cycles)
+    movup.5 movup.5 and
+    # => [take_val?, N', i, R, ...]
+
+    # move take_val out of the way (4 cycles)
+    movdn.9
+    # => [N', i, R, take_val?, ...]
+
+    # verify Merkle path from N' to R (3 cycles)
+    push.32 movdn.4 mtree_verify
+    # => [N', 32, i, R, take_val?, ...]
+
+    # reorganize stack (4 cycles)
+    movup.4 drop movup.4 drop movup.8
+    # => [take_val?, N', R, ...]
+
+    # compute the address of the return value based on `take_val`
+    # and return it, being either zero or V (3 cycles)
+    locaddr.0 add
+    # => [addr, N', R, ...]
+
+    # load the selected value and return (1 cycle)
+    mem_loadw
+    # => [V, R, ...]
+end
+
+#! Get the leaf value for depth 48
+#!
+#! Input:  [K, R, ...]
+#! Output: [V, R, ...]
+#!
+#! Cycles: 87
+proc.get48.2
+    # compute the remaining path (10 cycles)
+    exec.split_48 movdn.4
+    # => [K', i, R, ...]
+
+    # save [0, 0, 0, 0] into loc[0] (7 cycles)
+    padw loc_storew.0
+
+    # load Ka from advice provider and compare it to K' (16 cycles)
+    # Ka is expected to be the remaining key for the node stored at
+    # depth; it could be either equal to K', or could be something
+    # different
+    adv_loadw eqw
+    # => [Ka ?= K', Ka, K', i, R, ...]
+
+    # move the comparison result out of the way (1 cycle)
+    movdn.8
+    # => [Ka, K', Ka ?= K', i, R, ...]
+
+    # load the value from adv provider and prepare hash (6 cycles)
+    push.0.48.0.0 swapw.2 adv_loadw
+    # => [V, Ka, D, Ka ?= K', i, R, ...]
+
+    # save the value into loc[1] (4 cycles)
+    loc_storew.1
+    # => [V, Ka, D, Ka ?= K', i, R, ...]
+
+    # compute hash(K', V, domain=48) (10 cycles)
+    hperm dropw swapw dropw
+    # => [N, Ka ?= K', i, R, ...]
+
+    # push the root of the empty subtree (5 cycles)
+    push.EMPTY_48_0.EMPTY_48_1.EMPTY_48_2.EMPTY_48_3 swapw
+    # => [N, E, Ka ?= K', i, R, ...]
+
+    # read the flag if the node is empty subtree (5 cycles)
+    adv_push.1 movdn.8 dup.8
+    # => [not_empty?, N, E, not_empty?, Ka ?= K', i, R, ...]
+
+    # conditionally select node (5 cycles)
+    cdropw
+    # => [N', not_empty?, Ka ?= K', i, R, ...]
+
+    # compute the flag indicating if value is not zero (3 cycles)
+    movup.5 movup.5 and
+    # => [take_val?, N', i, R, ...]
+
+    # move take_val out of the way (4 cycles)
+    movdn.9
+    # => [N', i, R, take_val?, ...]
+
+    # verify Merkle path from N' to R (3 cycles)
+    push.48 movdn.4 mtree_verify
+    # => [N', 48, i, R, take_val?, ...]
+
+    # reorganize stack (4 cycles)
+    movup.4 drop movup.4 drop movup.8
+    # => [take_val?, N', R, ...]
+
+    # compute the address of the return value based on `take_val`
+    # and return it, being either zero or V (3 cycles)
+    locaddr.0 add
+    # => [addr, N', R, ...]
+
+    # load the selected value and return (1 cycle)
+    mem_loadw
+    # => [V, R, ...]
+end
+
+#! Returns the value stored under the specified key in a Sparse Merkle Tree with the specified root.
+#!
+#! If the value for a given key has not been set, the returned `V` will consist of all zeroes.
+#!
+#! Input:  [K, R, ...]
+#! Output: [V, R, ...]
+#!
+#! Depth 16: 92 cycles
+#! Depth 32: 95 cycles
+#! Depth 48: 93 cycles
+export.get
+    # invoke adv and fetch target depth flags
+    adv.push_smtget adv_push.2
+    # => [d ∈ {16, 32}, d ∈ {16, 48}, K, R, ...]
+
+    # call the inner procedure depending on the depth
+    if.true
+        if.true
+            # depth 16
+            exec.get16
+        else
+            # depth 32
+            exec.get32
+        end
+    else
+        if.true
+            # depth 48
+            exec.get48
+        else
+            # depth 64
+            # currently not implemented
+            push.0 assert
+        end
+    end
+    # => [V, R, ...]
+end

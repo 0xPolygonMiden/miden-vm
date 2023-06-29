@@ -1,5 +1,5 @@
 use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::{AdviceInjector, Decorator};
+use vm_core::AdviceInjector;
 
 // HASHING
 // ================================================================================================
@@ -168,10 +168,25 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, A
 
     // invoke the advice provider function to merge 2 Merkle trees defined by the roots on the top
     // of the operand stack
-    span.push_decorator(Decorator::Advice(AdviceInjector::MerkleMerge));
+    span.push_advice_injector(AdviceInjector::MerkleNodeMerge);
 
     // perform the `hmerge`, updating the operand stack
     hmerge(span)
+}
+
+/// Verifies if the node value `V`, on depth `d` and index `i` opens to the root `R` of a Merkle
+/// tree by appending a [Operation::MpVerify]. The stack is expected to be arranged as follows
+/// (from the top):
+/// - node value `V`, 4 elements
+/// - depth of the node `d`, 1 element
+/// - index of the node `i`, 1 element
+/// - root of the tree `R`, 4 elements
+///
+/// After the operation is executed, the stack remains unchanged.
+///
+/// This operation takes 1 VM cycle.
+pub(super) fn mtree_verify(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.add_op(MpVerify)
 }
 
 // MERKLE TREES - HELPERS
@@ -201,7 +216,7 @@ fn read_mtree_node(span: &mut SpanBuilder) {
     // new node value post the tree root: [d, i, R, V_new]
     //
     // pops the value of the node we are looking for from the advice stack
-    span.push_decorator(Decorator::Advice(AdviceInjector::MerkleNode));
+    span.push_advice_injector(AdviceInjector::MerkleNodeToStack);
 
     // pops the old node value from advice the stack => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]

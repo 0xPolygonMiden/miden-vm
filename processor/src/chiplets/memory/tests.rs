@@ -1,10 +1,10 @@
 use super::{
-    super::bus::{ChipletsLookup, ChipletsLookupRow},
+    super::aux_trace::{ChipletLookup, ChipletsBusRow},
     ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, Vec,
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE,
     V_COL_RANGE, ZERO,
 };
-use vm_core::chiplets::memory::{
+use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
     MEMORY_WRITE_LABEL, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
 };
@@ -384,8 +384,8 @@ fn verify_memory_access(
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
     let expected_row = build_trace_row(memory_access, op_selectors, prev_row);
-    let expected_lookup = ChipletsLookupRow::Memory(*memory_access);
-    let expected_hint = ChipletsLookup::Response(row as usize);
+    let expected_lookup = ChipletLookup::Memory(*memory_access);
+    let expected_hint = ChipletsBusRow::new(&[], Some(row));
 
     let lookup = chiplets_bus.get_response_row(row as usize);
     let hint = chiplets_bus.get_lookup_hint(row).unwrap();

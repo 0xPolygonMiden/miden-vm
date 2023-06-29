@@ -1,34 +1,37 @@
 use super::{
     build_span_with_respan_ops, build_trace_from_block, build_trace_from_ops_with_inputs,
-    rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation, Trace,
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+    init_state_from_words, rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation,
+    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::StackInputs;
 use core::ops::Range;
-use vm_core::{
+use miden_air::trace::{
     chiplets::{
         hasher::{
-            apply_permutation, init_state_from_words, HasherState, Selectors, CAPACITY_DOMAIN_IDX,
-            CAPACITY_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY,
-            MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD,
-            MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL,
-            STATE_WIDTH,
+            HasherState, Selectors, CAPACITY_DOMAIN_IDX, CAPACITY_LEN, DIGEST_RANGE,
+            HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL,
+            MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH,
+            RETURN_HASH_LABEL, RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH,
         },
-        HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
+        HASHER_NODE_INDEX_COL_IDX, HASHER_STATE_COL_RANGE, HASHER_TRACE_OFFSET,
     },
+    decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
+    CLK_COL_IDX, DECODER_TRACE_OFFSET,
+};
+use vm_core::{
+    chiplets::hasher::apply_permutation,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    decoder::{NUM_OP_BITS, OP_BITS_OFFSET},
     utils::{collections::Vec, range},
-    StarkField, Word, DECODER_TRACE_OFFSET,
+    StarkField, Word,
 };
 
 // CONSTANTS
 // ================================================================================================
 
 const DECODER_HASHER_STATE_RANGE: Range<usize> = range(
-    DECODER_TRACE_OFFSET + vm_core::decoder::HASHER_STATE_OFFSET,
-    vm_core::decoder::NUM_HASHER_COLUMNS,
+    DECODER_TRACE_OFFSET + miden_air::trace::decoder::HASHER_STATE_OFFSET,
+    miden_air::trace::decoder::NUM_HASHER_COLUMNS,
 );
 
 /// Location of operation bits columns relative to the main trace.
@@ -420,7 +423,7 @@ fn b_chip_mpverify() {
         leaves[index][3].as_int(),
     ];
     let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-    let store = MerkleStore::new().with_merkle_tree(leaves.clone()).unwrap();
+    let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     let mut trace =
@@ -450,7 +453,7 @@ fn b_chip_mpverify() {
     // at cycle 1 a merkle path verification is executed and the initialization and result of the
     // hash are both requested by the stack.
     let path = tree
-        .get_path(NodeIndex::new(tree.depth(), index as u64))
+        .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
         &[path[0][0], path[0][1], path[0][2], path[0][3]],
@@ -590,7 +593,7 @@ fn build_expected_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize
     let label = get_label_from_selectors(selectors)
         .expect("unrecognized hasher operation label in hasher trace");
 
-    let addr = trace.main_trace.get_column(HASHER_ROW_COL_IDX)[row];
+    let addr = trace.main_trace.get_column(CLK_COL_IDX)[row] + ONE;
     let index = trace.main_trace.get_column(HASHER_NODE_INDEX_COL_IDX)[row];
 
     let cycle_row = addr_to_cycle_row(addr);

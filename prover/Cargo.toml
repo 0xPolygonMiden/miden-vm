@@ -1,6 +1,6 @@
 [package]
 name = "miden-prover"
-version = "0.5.0"
+version = "0.6.0"
 description = "Miden VM prover"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -14,10 +14,16 @@ rust-version = "1.67"
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
+metal = ["dep:ministark-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
 std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.5", default-features = false }
-log = { version = "0.4", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.5", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.6", default-features = false }
+log = { version = "0.4", default-features = false, optional = true }
+processor = { package = "miden-processor", path = "../processor", version = "0.6", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
+
+[target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
+ministark-gpu = { version = "0.1", features = [ "winterfell" ], optional = true }
+elsa = { version = "1.7", optional = true }
+pollster = { version = "0.3", optional = true }

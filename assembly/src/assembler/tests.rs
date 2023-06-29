@@ -1,5 +1,5 @@
 use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
-use crate::{parse_module, LibraryNamespace, ModulePath, Version};
+use crate::{ast::ModuleAst, LibraryNamespace, LibraryPath, Version};
 use core::slice::Iter;
 
 // TESTS
@@ -21,16 +21,19 @@ fn nested_blocks() {
     pub struct DummyLibrary {
         namespace: LibraryNamespace,
         modules: Vec<Module>,
+        dependencies: Vec<LibraryNamespace>,
     }
 
     impl Default for DummyLibrary {
         fn default() -> Self {
             let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
-            let path = ModulePath::try_from(MODULE.to_string()).unwrap().to_absolute(&namespace);
-            let ast = parse_module(PROCEDURE).unwrap();
+            let path =
+                LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+            let ast = ModuleAst::parse(PROCEDURE).unwrap();
             Self {
                 namespace,
                 modules: vec![Module { path, ast }],
+                dependencies: Vec::new(),
             }
         }
     }
@@ -48,6 +51,10 @@ fn nested_blocks() {
 
         fn modules(&self) -> Self::ModuleIterator<'_> {
             self.modules.iter()
+        }
+
+        fn dependencies(&self) -> &[LibraryNamespace] {
+            &self.dependencies
         }
     }
 

@@ -1,11 +1,11 @@
-use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS};
-use crate::{ONE, ZERO};
-use rand_utils::rand_array;
-use vm_core::{
+use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
+use miden_air::trace::{
     chiplets::hasher::HASH_CYCLE_LEN,
     range::{P0_COL_IDX, P1_COL_IDX, Q_COL_IDX},
-    Operation, AUX_TRACE_RAND_ELEMENTS,
+    AUX_TRACE_RAND_ELEMENTS,
 };
+use rand_utils::rand_array;
+use vm_core::Operation;
 
 #[test]
 fn p0_trace() {

@@ -1,6 +1,6 @@
 [package]
 name = "miden-stdlib"
-version = "0.4.0"
+version = "0.5.0"
 description = "Miden VM standard library"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -15,8 +15,24 @@ rust-version = "1.67"
 bench = false
 doctest = false
 
+[[test]]
+name = "stdlib"
+path = "tests/main.rs"
+
 [dependencies]
-assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.5" }
+assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.6" }
+
+[dev-dependencies]
+blake3 = "1.3.3"
+miden-air = { package = "miden-air", path = "../air", version = "0.6", default-features = false }
+num-bigint = "0.4.3"
+processor = { package = "miden-processor", path = "../processor", version = "0.6", features = ["internals"], default-features = false }
+serde_json = "1.0.94"
+sha2 = "0.10.6"
+sha3 = "0.10.6"
+test-utils = { package = "miden-test-utils", path = "../test-utils", version = "0.1" }
+winter-air = { package = "winter-air", version = "0.6" }
+winter-fri = { package = "winter-fri", version = "0.6" }
 
 [build-dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.5" }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.6" }

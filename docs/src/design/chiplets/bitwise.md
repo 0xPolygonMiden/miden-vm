@@ -1,4 +1,4 @@
-# Bitwise Chiplet
+# Bitwise chiplet
 
 In this note we describe how to compute bitwise AND and XOR operations on 32-bit values and the constraints required for proving correct execution.
 
@@ -16,7 +16,7 @@ $$
 
 To compute bitwise operations for multi-bit values, we will decompose the values into individual bits, apply the operations to single bits, and then aggregate the bitwsie results into the final result.
 
-To perform this operation we will use a table with 11 columns, and computing a single AND or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
+To perform this operation we will use a table with 12 columns, and computing a single AND or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
 
 ![bitwise_execution_trace](../../assets/design/chiplets/bitwise/bitwise_execution_trace.png)
 
@@ -45,11 +45,11 @@ With every subsequent row, we inject the next-most-significant 4 bits of each va
 
 ## Constraints
 
-AIR constraints needed to ensure the correctness of the above table are described below.
+AIR constraints needed to ensure the correctness of the above table are described below. We also add one more column $s$ to the execution trace, to allow us to select between two bitwise operations (`U32AND` and `U32XOR`).
 
 ### Selectors
 
-The Bitwise chiplet supports three operations with the following operation selectors:
+The Bitwise chiplet supports two operations with the following operation selectors:
 
 - `U32AND`: $s = 0$
 - `U32XOR`: $s = 1$
@@ -126,19 +126,17 @@ For `U32XOR`, this is enforced with the following constraint:
 s \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot (a_i + b_i - 2 \cdot a_i \cdot b_i)))\right) = 0 \text{ | degree} = 3
 $$
 
-## Bitwise chiplet bus constraints
+## Chiplets bus constraints
 
-To simplify the notation for describing bitwise constraints on the chiplet bus, we'll first define variable $u$, which represents how $a$, $b$, and $z$ in the execution trace are reduced to a single value. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved as follows.
-
-$$
-u = \alpha_1 \cdot a + \alpha_2 \cdot b + \alpha_3 \cdot z
-$$
-
-To request a bitwise operation, the prover will provide the values of $a$, $b$, and $z$ non-deterministically to the [stack](../stack/u32_ops.md#u32and) (the component that makes bitwise requests). The lookup can then be performed by dividing $\left(\alpha_0 + u\right)$ out of the bus column:
+To simplify the notation for describing bitwise constraints on the chiplets bus, we'll first define variable $u$, which represents how $a$, $b$, and $z$ in the execution trace are reduced to a single value. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved as follows.
 
 $$
-b'_{chip} \cdot \left(\alpha_0 + u\right) = b_{chip}
+u = \alpha_0 + \alpha_1 \cdot op_{bit} + \alpha_2 \cdot a + \alpha_3 \cdot b + \alpha_4 \cdot z
 $$
+
+Where, $op_{bit}$ is the unique [operation label](./main.md#operation-labels) of the bitwise operation.
+
+The request side of the constraint for the bitwise operation is described in the [stack bitwise operation section](../stack/u32_ops.md#u32and).
 
 To provide the results of bitwise operations to the chiplets bus, we want to include values of $a$, $b$ and $z$ at the last row of the cycle.
 
@@ -151,13 +149,13 @@ $$
 Then, setting $m = 1 - k_1$, we can compute the permutation product from the bitwise chiplet as follows:
 
 $$
-\prod_{i=0}^n ((\alpha_0 + v_i) \cdot m_i + 1 - m_i)
+\prod_{i=0}^n (v_i \cdot m_i + 1 - m_i)
 $$
 
-The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-row cycle except for the last one), the product does not change. Otherwise, $(\alpha_0 + v_i)$ gets included into the product.
+The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-row cycle except for the last one), the product does not change. Otherwise, $v_i$ gets included into the product.
 
-The constraints for the two sides of the bus communication are combined as follows:
+The response side of the bus communication can be enforced with the following constraint:
 
 > $$
-b'_{chip} \cdot \left(\alpha_0 + u_i\right) = b_{chip} \cdot ((\alpha_0 + v_i) \cdot m_i + 1 - m_i) \text{ | degree} = 4
+b'_{chip} = b_{chip} \cdot (v_i \cdot m_i + 1 - m_i) \text{ | degree} = 4
 $$

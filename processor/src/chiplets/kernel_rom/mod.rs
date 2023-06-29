@@ -1,5 +1,8 @@
-use super::{BTreeMap, Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
-use vm_core::chiplets::kernel_rom::TRACE_WIDTH;
+use super::{
+    trace::LookupTableRow, BTreeMap, ChipletsBus, ChipletsVTableTraceBuilder, ColMatrix, Digest,
+    ExecutionError, Felt, FieldElement, Kernel, TraceFragment, Word, ONE, ZERO,
+};
+use miden_air::trace::chiplets::kernel_rom::{KERNEL_PROC_LABEL, TRACE_WIDTH};
 
 #[cfg(test)]
 mod tests;
@@ -47,7 +50,7 @@ impl KernelRom {
     /// Returns a new [KernelRom] instantiated from the specified Kernel.
     ///
     /// The kernel ROM is populated with all procedures from the provided kernel. For each
-    /// procedure access count is set to 0.
+    /// procedure the access count is set to 0.
     pub fn new(kernel: Kernel) -> Self {
         let trace_len = kernel.proc_hashes().len();
         let mut access_map = BTreeMap::new();
@@ -96,7 +99,13 @@ impl KernelRom {
     // --------------------------------------------------------------------------------------------
 
     /// Populates the provided execution trace fragment with execution trace of this kernel ROM.
-    pub fn fill_trace(self, trace: &mut TraceFragment) {
+    pub fn fill_trace(
+        self,
+        trace: &mut TraceFragment,
+        chiplets_bus: &mut ChipletsBus,
+        virtual_table: &mut ChipletsVTableTraceBuilder,
+        kernel_rom_start_row: usize,
+    ) {
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace fragment width");
         let mut row = 0;
         for (idx, access_info) in self.access_map.values().enumerate() {
@@ -104,12 +113,21 @@ impl KernelRom {
 
             // write at least one row into the trace for each kernel procedure
             access_info.write_into_trace(trace, row, idx);
+            // add the procedure to the virtual table
+            virtual_table.add_kernel_proc(row as u32, idx, access_info.proc_hash);
+
+            // provide the kernel procedure to the chiplets bus, if it was accessed at least once
+            let lookup = KernelProcLookup::new(access_info.proc_hash);
+            if access_info.num_accesses >= 1 {
+                chiplets_bus.provide_kernel_proc_call(lookup, (kernel_rom_start_row + row) as u32);
+            }
             row += 1;
 
-            // if the procedure was accessed more than once, we need write a row per additional
-            // access
+            // if the procedure was accessed more than once, we need write a row and provide the
+            // procedure to the bus per additional access
             for _ in 1..access_info.num_accesses {
                 access_info.write_into_trace(trace, row, idx);
+                chiplets_bus.provide_kernel_proc_call(lookup, (kernel_rom_start_row + row) as u32);
                 row += 1;
             }
         }
@@ -151,5 +169,35 @@ impl ProcAccessInfo {
         trace.set(row, 3, self.proc_hash[1]);
         trace.set(row, 4, self.proc_hash[2]);
         trace.set(row, 5, self.proc_hash[3]);
+    }
+}
+
+// KERNEL ROM PROCEDURE LOOKUPS
+// ================================================================================================
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct KernelProcLookup {
+    proc_hash: Word,
+}
+
+impl KernelProcLookup {
+    pub fn new(proc_hash: Word) -> Self {
+        Self { proc_hash }
+    }
+}
+
+impl LookupTableRow for KernelProcLookup {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 6 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &ColMatrix<Felt>,
+        alphas: &[E],
+    ) -> E {
+        alphas[0]
+            + alphas[1].mul_base(KERNEL_PROC_LABEL)
+            + alphas[2].mul_base(self.proc_hash[0])
+            + alphas[3].mul_base(self.proc_hash[1])
+            + alphas[4].mul_base(self.proc_hash[2])
+            + alphas[5].mul_base(self.proc_hash[3])
     }
 }

@@ -1,6 +1,5 @@
-use crate::helpers::TestError;
-use crate::{build_op_test, build_test};
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
+use test_utils::{build_op_test, build_test, Felt, StarkField, TestError, ToElements};
+use vm_core::chiplets::hasher::apply_permutation;
 
 mod adv_ops;
 mod constant_ops;
@@ -16,7 +15,7 @@ fn mem_stream_pipe() {
     let source = "
         begin
             # pipe elements from advice to memory and hash them on the stack
-            adv_pipe
+            adv_pipe hperm
 
             # keep only the output elements from the adv_pipe hash
             dropw
@@ -30,8 +29,8 @@ fn mem_stream_pipe() {
                 push.0
             end
 
-            # use mem_stream to put the elements from memory on the stack and hash them
-            mem_stream
+            # use mem_stream and hperm to put the elements from memory on the stack and hash them
+            mem_stream hperm
 
             # keep only the output elements from the mem_stream hash
             dropw

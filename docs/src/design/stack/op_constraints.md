@@ -8,7 +8,7 @@ To describe how operation-specific constraints work, let's use an example with `
 
 $$
 f_{dup} \cdot (s'_0 - s_0) = 0 \\
-f_{dup} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in \{0, .., 14\}
+f_{dup} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in [0, 15)
 $$
 
 The first constraint enforces that the top stack item in the next row is the same as the top stack item in the current row. The second constraint enforces that all stack items (starting from item $0$) are shifted to the right by $1$. We also need to impose all the constraints discussed in the previous section, be we omit them here.
@@ -17,7 +17,7 @@ Let's write similar constraints for `DUP1` operation, which pushes a copy of the
 
 $$
 f_{dup1} \cdot (s'_0 - s_1) = 0 \\
-f_{dup1} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in \{0, .., 14\}
+f_{dup1} \cdot (s'_{i+1} - s_i) = 0 \ \text{ for } i \in [0, 15)
 $$
 
 It is easy to notice that while the first constraint changed, the second constraint remained the same - i.e., we are still just shifting the stack to the right.
@@ -29,36 +29,38 @@ As mentioned above, operation flags are used as selectors to enforce operation-s
 
 Operation flags are mutually exclusive. That is, if one flag is set to $1$, all other flags are set to $0$. Also, one of the flags is always guaranteed to be set to $1$.
 
-To compute values of operation flags we use _op bits_ registers located in the [decoder](../decoder/main.md#decoder-trace). These registers contain binary representations of operation codes (opcodes). Each opcode consists of $7$ bits, and thus, there are $7$ _op bits_ registers. We denote these registers as $b_0, ..., b_6$. The values are computed by multiplying the op bit registers in various combinations.
+To compute values of operation flags we use _op bits_ registers located in the [decoder](../decoder/main.md#decoder-trace). These registers contain binary representations of operation codes (opcodes). Each opcode consists of $7$ bits, and thus, there are $7$ _op bits_ registers. We denote these registers as $b_0, ..., b_6$. The values are computed by multiplying the op bit registers in various combinations. Notice that binary encoding down below is showed in big-endian order, so the flag bits correspond to the reverse order of the _op bits_ registers, from $b_6$ to $b_0$.
 
 For example, the value of the flag for `NOOP`, which is encoded as `0000000`, is computed as follows:
 
 $$
-f_{noop} = (1 - b_0) \cdot (1 - b_1) \cdot (1 - b_2) \cdot (1 - b_3) \cdot (1 - b_4) \cdot (1 - b_5) \cdot (1 - b_6)
+f_{noop} = (1 - b_6) \cdot (1 - b_5) \cdot (1 - b_4) \cdot (1 - b_3) \cdot (1 - b_2) \cdot (1 - b_1) \cdot (1 - b_0)
 $$
 
 While the value of the `DROP` operation, which is encoded as `0101001` is computed as follows:
 
 $$
-f_{drop} = (1 - b_0) \cdot b_1 \cdot (1 - b_2) \cdot b_3 \cdot (1 - b_4) \cdot (1 - b_5) \cdot b_6
+f_{drop} = (1 - b_6) \cdot b_5 \cdot (1 - b_4) \cdot b_3 \cdot (1 - b_2) \cdot (1 - b_1) \cdot b_0
 $$
 
 As can be seen from above, the degree for both of these flags is $7$. Since degree of constraints in Miden VM can go up to $9$, this means that operation-specific constraints cannot exceed degree $2$. However, there are some operations which require constraints of higher degree (e.g., $3$ or even $5$). To support such constraints, we adopt the following scheme.
 
-We organize the operations into $3$ groups as shown below and also introduce an extra register for degree reduction:
+We organize the operations into $4$ groups as shown below and also introduce two extra registers $e_0$ and $e_1$ for degree reduction:
 
-| $b_6$ | $b_5$ | $b_4$ | $b_3$ | $b_2$  | $b_1$ | $b_0$ | extra  | # of ops | degree  |
-| :---: | :---: | :---: | :---: | :----: | :---: | :---: | :----: |:-------: | :-----: |
-| 0     |  x    | x     | x     | x      | x     | x     |  0     | 64       |  7      |
-| 1     |  0    | x     | x     | x      | x     | -     |  0     | 16       |  6      |
-| 1     |  1    | x     | x     | x      | -     | -     |  1     | 8        |  4      |
+| $b_6$ | $b_5$ | $b_4$ | $b_3$ | $b_2$  | $b_1$ | $b_0$ | $e_0$ | $e_1$  |# of ops | degree  |
+| :---: | :---: | :---: | :---: | :----: | :---: | :---: | :---: | :----: | :-----: | :-----: |
+| 0     |  x    | x     | x     | x      | x     | x     | 0     | 0      | 64      | 7       |
+| 1     |  0    | 0     | x     | x      | x     | -     | 0     | 0      | 8       | 6       |
+| 1     |  0    | 1     | x     | x      | x     | x     | 1     | 0      | 16      | 5       |
+| 1     |  1    | x     | x     | x      | -     | -     | 0     | 1      | 8       | 4       |
 
 In the above:
 * Operation flags for operations in the first group (with prefix `0`), are computed using all $7$ op bits, and thus their degree is $7$.
-* Operation flags for operations in the second group (with prefix `10`), are computed using only the first $6$ op bits, and thus, their degree is $6$.
-* Operation flags for operations in the third group (with prefix `11`), are computed using only the first $5$ op bits, and we also use the extra register (which is set to $b_6 \cdot b_5$) to reduce the degree by $1$. Thus, the degree of op flags in this group is $4$.
+* Operation flags for operations in the second group (with prefix `100`), are computed using only the first $6$ op bits, and thus their degree is $6$.
+* Operation flags for operations in the third group (with prefix `101`), are computed using all $7$ op bits. We use the extra register $e_0$ (which is set to $b_6 \cdot (1-b_5) \cdot b_4$) to reduce the degree by $2$. Thus, the degree of op flags in this group is $5$.
+* Operation flags for operations in the fourth group (with prefix `11`), are computed using only the first $5$ op bits. We use the extra register $e_1$ (which is set to $b_6 \cdot b_5$) to reduce the degree by $1$. Thus, the degree of op flags in this group is $4$.
 
-How operations are distributed between these $3$ groups is described in the sections below.
+How operations are distributed between these $4$ groups is described in the sections below.
 
 ### No stack shift operations
 This group contains $32$ operations which do not shift the stack (this is almost all such operations). Since the op flag degree for these operations is $7$, constraints for these operations cannot exceed degree $2$.
@@ -138,7 +140,7 @@ This group contains $16$ operations which shift the stack to the right (i.e., pu
 | `DUP11`      | $58$         | `011_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `DUP13`      | $59$         | `011_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `DUP15`      | $60$         | `011_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `ADVPOP`     | $61$         | `011_1101`      | [Stack ops](./io_ops.md)      | $7$         |
+| `ADVPOP`     | $61$         | `011_1101`      | [I/O ops](./io_ops.md)        | $7$         |
 | `SDEPTH`     | $62$         | `011_1110`      | [I/O ops](./io_ops.md)        | $7$         |
 | `CLK`        | $63$         | `011_1111`      | [System ops](./system_ops.md) | $7$         |
 
@@ -165,42 +167,57 @@ The degree of this flag is $3$, which is acceptable for a selector for degree $5
 As mentioned previously, the last bit of the opcode is not used in computation of the flag for these operations. We force this bit to always be set to $0$ with the following constraint:
 
 >$$
-b_6 \cdot (1 - b_5) \cdot b_0 = 0 \text{ | degree} = 3
+b_6 \cdot (1 - b_5) \cdot (1 - b_4) \cdot b_0 = 0 \text{ | degree} = 4
 $$
 
 Putting these operations into a group with flag degree $6$ is important for two other reasons:
-* Constraints for `U32SPLIT` operation have degree $3$, and thus, degree of op flag for this operation cannot exceed $6$.
-* Operations `U32ADD3` and `U32MADD` shift the stack to the left. Thus, having these two operations in this group and putting them under the common prefix `10011`, allows us to create a common flag for these operations of degree $5$ (recall that left-shift flag cannot exceed degree $5$).
+* Constraints for the `U32SPLIT` operation have degree $3$. Thus, the degree of the op flag for this operation cannot exceed $6$.
+* Operations `U32ADD3` and `U32MADD` shift the stack to the left. Thus, having these two operations in this group and putting them under the common prefix `10011` allows us to create a common flag for these operations of degree $5$ (recall that the left-shift flag cannot exceed degree $5$).
 
 ### High-degree operations
-This group contains operations which require constraints with degree up to $3$. Similar to the previous group, the last op bit is not used in the computation of flag values for these operations.
+This group contains operations which require constraints with degree up to $3$. All $7$ operation bits are used for these flags. The extra $e_0$ column is used for degree reduction of the three high-degree bits.
 
 | Operation    | Opcode value | Binary encoding | Operation group                        | Flag degree |
 | ------------ | :----------: | :-------------: | :-------------------------------------:| :---------: |
-| `HPERM`      | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
-| `MPVERIFY`   | $82$         | `101_0010`      | [Crypto ops](./crypto_ops.md)          | $6$         |
-| `PIPE`       | $84$         | `101_0100`      | [I/O ops](./io_ops.md)                 | $6$         |
-| `MSTREAM`    | $86$         | `101_0110`      | [I/O ops](./io_ops.md)                 | $6$         |
-| `SPAN`       | $88$         | `101_1000`      | [Flow control ops](../decoder/main.md) | $6$         |
-| `JOIN`       | $90$         | `101_1010`      | [Flow control ops](../decoder/main.md) | $6$         |
-| `SPLIT`      | $92$         | `101_1100`      | [Flow control ops](../decoder/main.md) | $6$         |
-| `LOOP`       | $94$         | `101_1110`      | [Flow control ops](../decoder/main.md) | $6$         |
+| `HPERM`      | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $5$         |
+| `MPVERIFY`   | $81$         | `101_0001`      | [Crypto ops](./crypto_ops.md)          | $5$         |
+| `PIPE`       | $82$         | `101_0010`      | [I/O ops](./io_ops.md)                 | $5$         |
+| `MSTREAM`    | $83$         | `101_0011`      | [I/O ops](./io_ops.md)                 | $5$         |
+| `SPLIT`      | $84$         | `101_0100`      | [Flow control ops](../decoder/main.md) | $5$         |
+| `LOOP`       | $85$         | `101_0101`      | [Flow control ops](../decoder/main.md) | $5$         |
+| `SPAN`       | $86$         | `101_0110`      | [Flow control ops](../decoder/main.md) | $5$         |
+| `JOIN`       | $87$         | `101_0111`      | [Flow control ops](../decoder/main.md) | $5$         |
+| `<unused>`   | $88$         | `101_1000`      |                                        | $5$         |
+| `<unused>`   | $89$         | `101_1001`      |                                        | $5$         |
+| `<unused>`   | $90$         | `101_1010`      |                                        | $5$         |
+| `<unused>`   | $91$         | `101_1011`      |                                        | $5$         |
+| `<unused>`   | $92$         | `101_1100`      |                                        | $5$         |
+| `<unused>`   | $93$         | `101_1101`      |                                        | $5$         |
+| `<unused>`   | $94$         | `101_1110`      |                                        | $5$         |
+| `<unused>`   | $95$         | `101_1111`      |                                        | $5$         |
 
-Note that `SPLIT` and `LOOP` operations are grouped together under the common prefix `10111`, and thus, can have a common flag of degree $5$. This is important because both of these operations shift the stack to the left.
+Note that the `SPLIT` and `LOOP` operations are grouped together under the common prefix `101010`, and thus can have a common flag of degree $4$ (using $e_0$ for degree reduction). This is important because both of these operations shift the stack to the left.
+
+
+Also, we need to make sure that `extra` register $e_0$, which is used to reduce the flag degree by $2$, is set to $1$ when $b_6 = 1$, $b_5 = 0$, and $b_4 = 1$:
+
+>$$
+e_0 - b_6 \cdot (1 - b_5) \cdot b_4 = 0 \text{ | degree} = 3
+$$
 
 ### Very high-degree operations
 This group contains operations which require constraints with degree up to $5$.
 
 | Operation    | Opcode value | Binary encoding | Operation group                        | Flag degree |
 | ------------ | :----------: | :-------------: | :-------------------------------------:| :---------: |
-| `MRUPDATE`   | $96$         | `11_00000`      | [Crypto ops](./crypto_ops.md)          | $4$         |
-| `PUSH`       | $100$        | `11_00100`      | [I/O ops](./io_ops.md)                 | $4$         |
-| `SYSCALL`    | $104$        | `11_01000`      | [Flow control ops](../decoder/main.md) | $4$         |
-| `CALL`       | $108$        | `11_01100`      | [Flow control ops](../decoder/main.md) | $4$         |
-| `END`        | $112$        | `11_10000`      | [Flow control ops](../decoder/main.md) | $4$         |
-| `REPEAT`     | $116$        | `11_10100`      | [Flow control ops](../decoder/main.md) | $4$         |
-| `RESPAN`     | $120$        | `11_11000`      | [Flow control ops](../decoder/main.md) | $4$         |
-| `HALT`       | $124$        | `11_11100`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `MRUPDATE`   | $96$         | `110_0000`      | [Crypto ops](./crypto_ops.md)          | $4$         |
+| `PUSH`       | $100$        | `110_0100`      | [I/O ops](./io_ops.md)                 | $4$         |
+| `SYSCALL`    | $104$        | `110_1000`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `CALL`       | $108$        | `110_1100`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `END`        | $112$        | `111_0000`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `REPEAT`     | $116$        | `111_0100`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `RESPAN`     | $120$        | `111_1000`      | [Flow control ops](../decoder/main.md) | $4$         |
+| `HALT`       | $124$        | `111_1100`      | [Flow control ops](../decoder/main.md) | $4$         |
 
 As mentioned previously, the last two bits of the opcode are not used in computation of the flag for these operations. We force these bits to always be set to $0$ with the following constraints:
 
@@ -210,6 +227,12 @@ $$
 
 >$$
 b_6 \cdot b_5 \cdot b_1 = 0 \text{ | degree} = 3
+$$
+
+Also, we need to make sure that `extra` register $e_1$, which is used to reduce the flag degree by $1$, is set to $1$ when both $b_6$ and $b_5$ columns are set to $1$:
+
+>$$
+e_1 - b_6 \cdot b_5 = 0 \text{ | degree} = 2
 $$
 
 ## Composite flags
@@ -236,7 +259,7 @@ $$
 A flag which is set to $1$ when $f_{split} = 1$ or $f_{loop} = 1$:
 
 $$
-f_{split\_loop} = b_6 \cdot (1 - b_5) \cdot b_4 \cdot b_3 \cdot b_2 \text{ | degree} = 5
+f_{split\_loop} = e_0 \cdot (1 - b_3) \cdot b_2 \cdot (1 - b_1) \text{ | degree} = 4
 $$
 
 Using the above variables, we compute left-shift flag as follows:
@@ -261,15 +284,13 @@ $$
 However, this can be computed more efficiently via the common operation prefixes for the two groups of control flow operations as follows.
 
 $$
-f_{span,join,split,loop} = b_6 \cdot (1 - b_5) \cdot b_4 \cdot b_3 \text{ | degree} = 4
+f_{span,join,split,loop} = e_0 \cdot (1 - b_3) \cdot b_2 \text{ | degree} = 3
 $$
 
 $$
-f_{end,repeat,respan,halt} = b_6 \cdot b_5 \cdot b_4  \text{ | degree} = 3
+f_{end,repeat,respan,halt} = e_1 \cdot b_4  \text{ | degree} = 2
 $$
 
 $$
-f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{call} + f_{syscall} \text{ | degree} = 4
+f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{call} + f_{syscall} \text{ | degree} = 3
 $$
-
-Note that the degree of $f_{end,repeat,respan,halt}$ can be reduced to degree 2 using the extra column, but this will not affect the degree of the $f_{ctrl}$ constraint.

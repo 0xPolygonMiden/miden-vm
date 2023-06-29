@@ -10,9 +10,11 @@ use winter_utils::{collections::Vec, string::String};
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_slice_elements, group_vector_elements, string, uninit_vector, Box,
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+    group_slice_elements, group_vector_elements, string, uninit_vector, Box, ByteReader,
+    ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
+
+pub use crypto::utils::collections;
 
 pub mod math {
     pub use math::{batch_inversion, log2};
@@ -137,4 +139,13 @@ pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
     }
 
     Ok(s)
+}
+
+/// Writes a hex string representation of provided bytes into the formatter.
+pub fn write_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
+    write!(f, "0x")?;
+    for byte in bytes {
+        write!(f, "{byte:02x}")?;
+    }
+    Ok(())
 }

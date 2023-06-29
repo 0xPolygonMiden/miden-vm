@@ -1,4 +1,4 @@
-use assembly::{Library, LibraryNamespace, MaslLibrary, ModuleAst, Version};
+use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
 use std::{collections::BTreeMap, fs, io};
 
 mod md_renderer;
@@ -30,7 +30,8 @@ fn main() -> io::Result<()> {
 
     let namespace = LibraryNamespace::try_from("std".to_string()).expect("invalid base namespace");
     let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, version)?;
+    let locations = true; // store & load locations by default
+    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, locations, version)?;
     let docs = stdlib
         .modules()
         .map(|module| (module.path.to_string(), module.ast.clone()))

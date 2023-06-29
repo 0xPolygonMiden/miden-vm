@@ -1,18 +1,17 @@
 use super::{
-    chiplets::{AuxTraceBuilder as ChipletsAuxTraceBuilder, HasherAuxTraceBuilder},
-    crypto::RpoRandomCoin,
+    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder,
-    AdviceProvider, ColMatrix, Digest, Felt, FieldElement, Process, StackTopState, Vec,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, AdviceProvider, ColMatrix, Digest, Felt,
+    FieldElement, Process, StackTopState, Vec,
 };
-use vm_core::{
+use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    stack::STACK_TOP_SIZE,
-    ProgramInfo, StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
-    MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
+    STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
-use winter_prover::{EvaluationFrame, Trace, TraceLayout};
+use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
+use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
 use vm_core::StarkField;
@@ -38,7 +37,6 @@ pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
-    pub(crate) hasher: HasherAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
@@ -224,12 +222,8 @@ impl Trace for ExecutionTrace {
         let range_aux_columns =
             self.aux_trace_hints.range.build_aux_columns(&self.main_trace, rand_elements);
 
-        // add hasher's running product columns
-        let hasher_aux_columns =
-            self.aux_trace_hints.hasher.build_aux_columns(&self.main_trace, rand_elements);
-
-        // add running product columns for the chiplets module
-        let chiplets_aux_columns =
+        // add the running product columns for the chiplets
+        let chiplets =
             self.aux_trace_hints.chiplets.build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
@@ -237,8 +231,7 @@ impl Trace for ExecutionTrace {
             .into_iter()
             .chain(stack_aux_columns)
             .chain(range_aux_columns)
-            .chain(hasher_aux_columns)
-            .chain(chiplets_aux_columns)
+            .chain(chiplets)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
@@ -328,7 +321,6 @@ where
         decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
-        hasher: chiplets_trace.hasher_aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };
 

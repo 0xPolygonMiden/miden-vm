@@ -2,7 +2,7 @@ use super::{
     trace::LookupTableRow, utils::get_trace_len, ChipletsBus, ColMatrix, ExecutionError, Felt,
     FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL,
 };
-use vm_core::chiplets::bitwise::{
+use miden_air::trace::chiplets::bitwise::{
     A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
     OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
@@ -244,15 +244,16 @@ pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
 // ================================================================================================
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BitwiseLookup {
-    op_id: Felt,
+    // unique label identifying the bitwise operation
+    label: Felt,
     a: Felt,
     b: Felt,
     z: Felt,
 }
 
 impl BitwiseLookup {
-    pub fn new(op_id: Felt, a: Felt, b: Felt, z: Felt) -> Self {
-        Self { op_id, a, b, z }
+    pub fn new(label: Felt, a: Felt, b: Felt, z: Felt) -> Self {
+        Self { label, a, b, z }
     }
 }
 
@@ -265,7 +266,7 @@ impl LookupTableRow for BitwiseLookup {
         alphas: &[E],
     ) -> E {
         alphas[0]
-            + alphas[1].mul_base(self.op_id)
+            + alphas[1].mul_base(self.label)
             + alphas[2].mul_base(self.a)
             + alphas[3].mul_base(self.b)
             + alphas[4].mul_base(self.z)

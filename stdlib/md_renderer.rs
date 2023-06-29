@@ -1,5 +1,8 @@
 use crate::{ModuleMap, Renderer};
-use assembly::{ModuleAst, ProcedureAst};
+use assembly::{
+    ast::{ModuleAst, ProcedureAst},
+    LibraryPath,
+};
 use std::{
     fs::{self, File},
     io::Write,
@@ -33,11 +36,11 @@ impl MarkdownRenderer {
     }
 
     fn write_docs_module(mut writer: &File, module: &ModuleAst) {
-        if module.docs.is_none() {
+        if module.docs().is_none() {
             return;
         }
         writer
-            .write_all(module.docs.clone().unwrap().replace('\n', "<br />").as_bytes())
+            .write_all(module.docs().unwrap().replace('\n', "<br />").as_bytes())
             .expect("unable to write module comments");
     }
 }
@@ -56,7 +59,7 @@ impl Renderer for MarkdownRenderer {
                 .expect("unable to open stdlib markdown file");
             Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, ns);
-            for proc in module.local_procs.iter() {
+            for proc in module.procs().iter() {
                 Self::write_docs_procedure(&f, proc);
             }
         }
@@ -67,12 +70,12 @@ impl Renderer for MarkdownRenderer {
 // ================================================================================================
 
 fn get_module_name(ns: &str) -> String {
-    let parts: Vec<&str> = ns.split("::").collect();
+    let parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
     String::from(parts[parts.len() - 1])
 }
 
 fn get_module_section(ns: &str) -> String {
-    let parts: Vec<&str> = ns.split("::").collect();
+    let parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
     String::from(parts[parts.len() - 2])
 }
 

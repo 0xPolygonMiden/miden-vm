@@ -117,32 +117,32 @@ The effect of this operation on the rest of the stack is:
 * **No change** starting from position $16$.
 
 ## SWAPDW
-The `SWAPDW` operation swaps stack elements $\{0, ..., 7\}$ with elements $\{8, ..., 15\}$. The diagram below illustrates this graphically.
+The `SWAPDW` operation swaps stack elements $[0, 8)$ with elements $[8, 16)$. The diagram below illustrates this graphically.
 
 ![swapdw](../../assets/design/stack/stack_ops/SWAPDW.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i' - s_{i+8} = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree} = 1
+s_i' - s_{i+8} = 0 \text{ for } i \in [0, 8)   \text{ | degree} = 1
 $$
 
 >$$
-s_{i+8}' - s_i = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree} = 1
+s_{i+8}' - s_i = 0 \text{ for } i \in [0, 8)   \text{ | degree} = 1
 $$
 
 The effect of this operation on the rest of the stack is:
 * **No change** starting from position $16$.
 
 ## MOVUP(n)
-The `MOVUP(n)` operation moves the $n$-th element of the stack to the top of the stack. For example, `MOVUP2` moves element at depth $2$ to the top of the stack. All elements with depth less than $n$ are shifted to the right by one, while elements with depth greater than $n$ remain in place, and the depth of the stack does not change. This operation is valid for $n \in \{2, ..., 8\}$. The diagram below illustrates this graphically.
+The `MOVUP(n)` operation moves the $n$-th element of the stack to the top of the stack. For example, `MOVUP2` moves element at depth $2$ to the top of the stack. All elements with depth less than $n$ are shifted to the right by one, while elements with depth greater than $n$ remain in place, and the depth of the stack does not change. This operation is valid for $n \in [2, 9)$. The diagram below illustrates this graphically.
 
 ![movup](../../assets/design/stack/stack_ops/MOVUP(n).png)
 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - s_n = 0 \text{ for } n \in \{2, ..., 8\} \text{ | degree} = 1
+s_0' - s_n = 0 \text{ for } n \in [2, 9) \text{ | degree} = 1
 $$
 
 where $n$ is the depth of the element which is moved moved to the top of the stack.
@@ -152,20 +152,20 @@ The effect of this operation on the rest of the stack is:
 * **No change** starting from position $n+1$.
 
 ## MOVDN(n)
-The `MOVDN(n)` operation moves the top element of the stack to the $n$-th position. For example, `MOVDN2` moves the top element of the stack to depth $2$. All the elements with depth less than $n$ are shifted to the left by one, while elements with depth greater than $n$ remain in place, and the depth of the stack does not change. This operation is valid for $n \in \{2, ..., 8\}$. The diagram below illustrates this graphically.
+The `MOVDN(n)` operation moves the top element of the stack to the $n$-th position. For example, `MOVDN2` moves the top element of the stack to depth $2$. All the elements with depth less than $n$ are shifted to the left by one, while elements with depth greater than $n$ remain in place, and the depth of the stack does not change. This operation is valid for $n \in [2, 9)$. The diagram below illustrates this graphically.
 
 ![movdn](../../assets/design/stack/stack_ops/MOVDN(n).png)
 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_n' - s_0 = 0 \text{ for } n \in \{2, ..., 8\} \text{ | degree} = 1
+s_n' - s_0 = 0 \text{ for } n \in [2, 9) \text{ | degree} = 1
 $$
 
 where $n$ is the depth to which the top stack element is moved.
 
 The effect of this operation on the rest of the stack is:
-* **Right shift** for elements between $0$ and $n-1$.
+* **Left shift** for elements between $1$ and $n$.
 * **No change** starting from position $n+1$.
 
 ## CSWAP
@@ -212,11 +212,11 @@ $$
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i' - s_0 \cdot s_{i+5} - (1-s_0) \cdot s_{i+1} = 0 \text{ for } i \in \{0..3\}  \text{ | degree} = 2
+s_i' - s_0 \cdot s_{i+5} - (1-s_0) \cdot s_{i+1} = 0 \text{ for } i \in [0, 4)  \text{ | degree} = 2
 $$
 
 >$$
-s_{i+4}' - s_0 \cdot s_{i+1} + (1-s_0) \cdot s_{i+5} = 0 \text{ for } i \in \{0..3\} \text{ | degree} = 2
+s_{i+4}' - s_0 \cdot s_{i+1} - (1-s_0) \cdot s_{i+5} = 0 \text{ for } i \in [0, 4) \text{ | degree} = 2
 $$
 
 We also need to enforce that the value in $s_0$ is binary. This can be done with the following constraint:

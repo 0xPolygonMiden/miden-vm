@@ -1,6 +1,6 @@
 use assembly::{Library, MaslLibrary};
 use miden::{
-    crypto::MerkleStore,
+    crypto::{MerkleStore, MerkleTree, SimpleSmt},
     math::Felt,
     utils::{Deserializable, SliceReader},
     AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
@@ -36,14 +36,14 @@ impl Debug {
 // ================================================================================================
 
 /// Struct used to deserialize merkle data from input file. Merkle data can be represented as a
-/// merkle tree or a sparse merkle tree.
+/// merkle tree or a Sparse Merkle Tree.
 #[derive(Deserialize, Debug)]
 pub enum MerkleData {
     /// String representation of a merkle tree.  The merkle tree is represented as a vector of
     /// 32 byte hex strings where each string represents a leaf in the tree.
     #[serde(rename = "merkle_tree")]
     MerkleTree(Vec<String>),
-    /// String representation of a sparse merkle tree. The sparse merkle tree is represented as a
+    /// String representation of a Sparse Merkle Tree. The Sparse Merkle Tree is represented as a
     /// vector of tuples where each tuple consists of a u64 node index and a 32 byte hex string
     /// representing the value of the node.
     #[serde(rename = "sparse_merkle_tree")]
@@ -191,15 +191,15 @@ impl InputFile {
             match data {
                 MerkleData::MerkleTree(data) => {
                     let leaves = Self::parse_merkle_tree(data)?;
-                    merkle_store
-                        .add_merkle_tree(leaves)
-                        .map_err(|e| format!("failed to add merkle tree to merkle store - {e}"))?;
+                    let tree = MerkleTree::new(leaves)
+                        .map_err(|e| format!("failed to parse a Merkle tree: {e}"))?;
+                    merkle_store.extend(tree.inner_nodes());
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
-                    merkle_store.add_sparse_merkle_tree(entries).map_err(|e| {
-                        format!("failed to add sparse merkle tree to merkle store - {e}")
-                    })?;
+                    let tree = SimpleSmt::with_leaves(u64::BITS as u8, entries)
+                        .map_err(|e| format!("failed to parse a Sparse Merkle Tree: {e}"))?;
+                    merkle_store.extend(tree.inner_nodes());
                 }
             }
         }
@@ -217,7 +217,7 @@ impl InputFile {
             .collect()
     }
 
-    /// Parse and return sparse merkle tree entries.
+    /// Parse and return Sparse Merkle Tree entries.
     fn parse_sparse_merkle_tree(tree: &[(u64, String)]) -> Result<Vec<(u64, Word)>, String> {
         tree.iter()
             .map(|(index, v)| {

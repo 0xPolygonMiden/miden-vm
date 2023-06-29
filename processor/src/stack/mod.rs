@@ -3,8 +3,7 @@ use super::{
     STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
-use vm_core::stack::STACK_TOP_SIZE;
-use vm_core::Word;
+use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
 
 mod trace;
 use trace::StackTrace;
@@ -153,11 +152,24 @@ impl Stack {
         self.trace.get_stack_value_at(self.clk, pos)
     }
 
-    /// Returns four values located at the top of the stack. The word is created in reverse order,
-    /// so that the top element of the stack will be at the last position in the word. Creating a
-    /// word does not change the state of the stack.
-    pub fn get_top_word(&self) -> Word {
-        [self.get(3), self.get(2), self.get(1), self.get(0)]
+    /// Returns a word located at the specified word index on the stack.
+    ///
+    /// Specifically, word 0 is defined by the first 4 elements of the stack, word 1 is defined
+    /// by the next 4 elements etc. Since the top of the stack contains 4 word, the highest valid
+    /// word index is 3.
+    ///
+    /// The words are created in reverse order. For example, for word 0 the top element of the
+    /// stack will be at the last position in the word.
+    ///
+    /// Creating a word does not change the state of the stack.
+    pub fn get_word(&self, word_idx: usize) -> Word {
+        let offset = word_idx * WORD_SIZE;
+        [
+            self.get(offset + 3),
+            self.get(offset + 2),
+            self.get(offset + 1),
+            self.get(offset),
+        ]
     }
 
     /// Sets the value at the specified position on the stack at the next clock cycle.
@@ -319,7 +331,7 @@ impl Stack {
 
     /// Returns state of helper columns at the current clock cycle.
     #[cfg(test)]
-    pub fn helpers_state(&self) -> [Felt; vm_core::stack::NUM_STACK_HELPER_COLS] {
+    pub fn helpers_state(&self) -> [Felt; miden_air::trace::stack::NUM_STACK_HELPER_COLS] {
         self.trace.get_helpers_state_at(self.clk)
     }
 }

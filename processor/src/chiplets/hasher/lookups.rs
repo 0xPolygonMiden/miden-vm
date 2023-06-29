@@ -1,6 +1,6 @@
 use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec};
 use core::ops::Range;
-use vm_core::chiplets::{
+use miden_air::trace::chiplets::{
     hasher::{
         CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH_LABEL, MP_VERIFY_LABEL,
         MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH_LABEL, RETURN_STATE_LABEL,

@@ -4,6 +4,10 @@
 #[macro_use]
 extern crate alloc;
 
+use miden_air::trace::{
+    CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
+    SYS_TRACE_WIDTH,
+};
 pub use vm_core::{
     chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
     Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
@@ -14,9 +18,9 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
-    StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
-    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    StackTopState, StarkField, ONE, ZERO,
 };
+
 use winter_prover::ColMatrix;
 
 mod decorators;
@@ -36,7 +40,9 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
+pub use advice::{
+    AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider,
+};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -46,7 +52,7 @@ pub use trace::ExecutionTrace;
 use trace::TraceFragment;
 
 mod errors;
-pub use errors::ExecutionError;
+pub use errors::{ExecutionError, Ext2InttError};
 
 pub mod utils;
 
@@ -63,8 +69,8 @@ pub mod math {
 
 pub mod crypto {
     pub use vm_core::crypto::{
-        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256},
-        merkle::{MerkleError, MerkleStore, MerkleTree, SimpleSmt},
+        hash::{Blake3_192, Blake3_256, ElementHasher, Hasher, Rpo256, RpoDigest},
+        merkle::{MerkleError, MerklePath, MerkleStore, MerkleTree, SimpleSmt},
         random::{RandomCoin, RpoRandomCoin, WinterRandomCoin},
     };
 }
@@ -93,7 +99,6 @@ pub struct RangeCheckTrace {
 
 pub struct ChipletsTrace {
     trace: [Vec<Felt>; CHIPLETS_WIDTH],
-    hasher_aux_builder: chiplets::HasherAuxTraceBuilder,
     aux_builder: chiplets::AuxTraceBuilder,
 }
 
@@ -435,7 +440,7 @@ where
         self.chiplets.kernel()
     }
 
-    pub fn get_memory_value(&self, ctx: u32, addr: u64) -> Option<Word> {
+    pub fn get_memory_value(&self, ctx: u32, addr: u32) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)
     }
 

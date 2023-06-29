@@ -1,8 +1,8 @@
 use super::{
-    AbsolutePath, AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure,
-    ProcedureCache, ProcedureId, String, ToString, Vec,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, Procedure,
+    ProcedureCache, ProcedureId, ToString, Vec,
 };
-use crate::{ProcedureName, MODULE_PATH_DELIM};
+use crate::ProcedureName;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -19,24 +19,32 @@ pub struct AssemblyContext {
     kernel: Option<Kernel>,
 }
 
+/// Describes which type of Miden assembly modules can be compiled with a given [AssemblyContext].
+#[derive(PartialEq)]
+pub enum AssemblyContextType {
+    Kernel,
+    Module,
+    Program,
+}
+
 impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [AssemblyContext]. When is_kernel is set to true, the context is instantiated
-    /// for compiling a kernel module. Otherwise, the context is instantiated for compiling
-    /// executable programs.
-    pub fn new(is_kernel: bool) -> Self {
-        let modules = if is_kernel {
-            Vec::new()
-        } else {
+    /// Returns a new [AssemblyContext].
+    ///
+    /// The `context_type` specifies how the context will be used and the [AssemblyContext] is
+    /// instantiated accordingly.
+    pub fn new(context_type: AssemblyContextType) -> Self {
+        let modules = match context_type {
+            AssemblyContextType::Kernel | AssemblyContextType::Module => Vec::new(),
             // for executable programs we initialize the module stack with the context of the
             // executable module itself
-            vec![ModuleContext::for_program()]
+            AssemblyContextType::Program => vec![ModuleContext::for_program()],
         };
 
         Self {
             module_stack: modules,
-            is_kernel,
+            is_kernel: context_type == AssemblyContextType::Kernel,
             kernel: None,
         }
     }
@@ -64,18 +72,17 @@ impl AssemblyContext {
     ///
     /// # Errors
     /// Returns an error if a module with the same path already exists in the module stack.
-    pub fn begin_module(&mut self, module_path: &str) -> Result<(), AssemblyError> {
+    pub fn begin_module(&mut self, module_path: &LibraryPath) -> Result<(), AssemblyError> {
         if self.is_kernel && self.module_stack.is_empty() {
             // a kernel context must be initialized with a kernel module path
-            debug_assert_eq!(
-                module_path,
-                AbsolutePath::KERNEL_PATH,
+            debug_assert!(
+                module_path.is_kernel_path(),
                 "kernel context not initialized with kernel module"
             );
         }
 
         // make sure this module is not in the chain of modules which are currently being compiled
-        if self.module_stack.iter().any(|m| m.path == module_path) {
+        if self.module_stack.iter().any(|m| &m.path == module_path) {
             let dep_chain =
                 self.module_stack.iter().map(|m| m.path.to_string()).collect::<Vec<_>>();
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
@@ -221,9 +228,14 @@ impl AssemblyContext {
     /// Panics if:
     /// - There is not exactly one module left on the module stack.
     /// - If this module is not an executable module.
-    /// - If any of the procedures in the module's callset cannot be found in the specified
-    ///   procedure cache or the local procedure set of the module.
-    pub fn into_cb_table(mut self, proc_cache: &ProcedureCache) -> CodeBlockTable {
+    ///
+    /// # Errors
+    /// Returns an error if any of the procedures in the module's callset cannot be found in the
+    /// specified procedure cache or the local procedure set of the module.
+    pub fn into_cb_table(
+        mut self,
+        proc_cache: &ProcedureCache,
+    ) -> Result<CodeBlockTable, AssemblyError> {
         // get the last module off the module stack
         assert_eq!(self.module_stack.len(), 1, "module stack must contain exactly one module");
         let mut main_module_context = self.module_stack.pop().unwrap();
@@ -237,14 +249,14 @@ impl AssemblyContext {
         let mut cb_table = CodeBlockTable::default();
         for proc_id in main_module_context.callset.iter() {
             let proc = proc_cache
-                .get(proc_id)
+                .get_by_id(proc_id)
                 .or_else(|| main_module_context.find_local_proc(proc_id))
-                .expect("callset procedure not found");
+                .ok_or(AssemblyError::CallSetProcedureNotFound(*proc_id))?;
 
             cb_table.insert(proc.code_root().clone());
         }
 
-        cb_table
+        Ok(cb_table)
     }
 
     // HELPER METHODS
@@ -277,7 +289,7 @@ struct ModuleContext {
     /// List of local procedures which have already been compiled for this module.
     compiled_procs: Vec<Procedure>,
     /// Fully qualified path of this module.
-    path: String,
+    path: LibraryPath,
     /// A combined callset of all procedure callsets in this module.
     callset: CallSet,
 }
@@ -296,7 +308,7 @@ impl ModuleContext {
         Self {
             proc_stack: vec![main_proc_context],
             compiled_procs: Vec::new(),
-            path: MODULE_PATH_DELIM.to_string(),
+            path: LibraryPath::exec_path(),
             callset: CallSet::default(),
         }
     }
@@ -304,11 +316,11 @@ impl ModuleContext {
     /// Returns a new [ModuleContext] instantiated for compiling library modules.
     ///
     /// A library module must be identified by a unique module path.
-    pub fn for_module(module_path: &str) -> Self {
+    pub fn for_module(module_path: &LibraryPath) -> Self {
         Self {
             proc_stack: Vec::new(),
             compiled_procs: Vec::new(),
-            path: module_path.to_string(),
+            path: module_path.clone(),
             callset: CallSet::default(),
         }
     }
@@ -318,8 +330,7 @@ impl ModuleContext {
 
     /// Returns true if this module is the executable module of a program.
     pub fn is_executable(&self) -> bool {
-        // module path for executable modules is "::"
-        self.path == MODULE_PATH_DELIM
+        self.path.is_exec_path()
     }
 
     /// Returns a [Procedure] with the specified ID, or None if a compiled procedure with such ID

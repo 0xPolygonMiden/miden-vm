@@ -1,10 +1,10 @@
 use super::{
-    Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
-    ProcedureId, SpanBuilder, ONE, ZERO,
+    Assembler, AssemblyContext, AssemblyError, CodeBlock, Felt, Instruction, Operation,
+    ProcedureId, RpoDigest, SpanBuilder, ONE, ZERO,
 };
 use crate::utils::bound_into_included_u64;
 use core::ops::RangeBounds;
-use vm_core::{AdviceInjector, FieldElement, StarkField};
+use vm_core::{FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;
@@ -27,7 +27,6 @@ impl Assembler {
         span: &mut SpanBuilder,
         ctx: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
-        use AdviceInjector::*;
         use Operation::*;
 
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
@@ -265,11 +264,11 @@ impl Assembler {
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, ctx),
             Instruction::Clk => span.add_op(Clk),
-            Instruction::AdvPipe => span.add_ops([Pipe, HPerm]),
+            Instruction::AdvPipe => span.add_op(Pipe),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
             Instruction::AdvLoadW => span.add_op(AdvPopW),
 
-            Instruction::MemStream => span.add_ops([MStream, HPerm]),
+            Instruction::MemStream => span.add_op(MStream),
 
             Instruction::Locaddr(v) => env_ops::locaddr(span, *v, ctx),
             Instruction::MemLoad => mem_ops::mem_read(span, ctx, None, false, true),
@@ -285,11 +284,7 @@ impl Assembler {
             Instruction::LocStore(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, true),
             Instruction::LocStoreW(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, false),
 
-            Instruction::AdvU64Div => span.add_decorator(Decorator::Advice(DivResultU64)),
-            Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
-            Instruction::AdvMem(a, n) => adv_ops::adv_mem(span, *a, *n),
-            Instruction::AdvExt2Inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
-            Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
+            Instruction::AdvInject(injector) => adv_ops::adv_inject(span, injector),
 
             // ----- cryptographic instructions ---------------------------------------------------
             Instruction::Hash => crypto_ops::hash(span),
@@ -298,12 +293,16 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeMerge => crypto_ops::mtree_merge(span),
+            Instruction::MTreeVerify => crypto_ops::mtree_verify(span),
+
+            // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => span.add_op(FriE2F4),
 
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::ExecLocal(idx) => self.exec_local(*idx, ctx),
             Instruction::ExecImported(id) => self.exec_imported(id, ctx),
             Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
+            Instruction::CallMastRoot(root) => self.call_mast_root(root, ctx),
             Instruction::CallImported(id) => self.call_imported(id, ctx),
             Instruction::SysCall(id) => self.syscall(id, ctx),
 

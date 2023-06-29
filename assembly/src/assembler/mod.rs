@@ -1,7 +1,9 @@
 use super::{
-    parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
-    AbsolutePath, AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel,
-    Library, LibraryError, Module, ModuleAst, Operation, Procedure, ProcedureId, Program, String,
+    ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
+    btree_map,
+    crypto::hash::RpoDigest,
+    AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
+    LibraryError, LibraryPath, Module, Operation, Procedure, ProcedureId, ProcedureName, Program,
     ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
@@ -16,21 +18,19 @@ mod span_builder;
 use span_builder::SpanBuilder;
 
 mod context;
-use context::AssemblyContext;
+pub use context::{AssemblyContext, AssemblyContextType};
+
+mod procedure_cache;
+use procedure_cache::ProcedureCache;
 
 #[cfg(test)]
 mod tests;
 
-// TYPE ALIASES
-// ================================================================================================
-
-type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
-
 // ASSEMBLER
 // ================================================================================================
-/// Miden Assembler which can be used to convert Miden assembly source code into program MAST (
-/// represented by the [Program] struct). The assembler can be instantiated in several ways using
-/// a "builder" patter. Specifically:
+/// Miden Assembler which can be used to convert Miden assembly source code into program MAST.
+///
+/// The assembler can be instantiated in several ways using a "builder" pattern. Specifically:
 /// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
 ///   instantiated with a default empty kernel. Programs compiled using such assembler
 ///   cannot make calls to kernel procedures via `syscall` instruction.
@@ -67,7 +67,7 @@ impl Assembler {
         L: Library,
         I: Iterator<Item = L>,
     {
-        libraries.try_fold(self, |slf, library| slf.with_library(library.borrow()))
+        libraries.try_fold(self, |slf, library| slf.with_library(&library))
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided source.
@@ -78,7 +78,7 @@ impl Assembler {
     /// # Panics
     /// Panics if the assembler has already been used to compile programs.
     pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
-        let kernel_ast = parsers::parse_module(kernel_source)?;
+        let kernel_ast = ModuleAst::parse(kernel_source)?;
         self.with_kernel_module(kernel_ast)
     }
 
@@ -88,7 +88,7 @@ impl Assembler {
     /// Returns an error if compiling kernel source results in an error.
     pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
-        let mut context = AssemblyContext::new(true);
+        let mut context = AssemblyContext::new(AssemblyContextType::Kernel);
         let kernel = Module::kernel(module);
         self.compile_module(&kernel, &mut context)?;
 
@@ -127,40 +127,94 @@ impl Assembler {
     {
         // parse the program into an AST
         let source = source.as_ref();
-        let ProgramAst { local_procs, body } = parsers::parse_program(source)?;
+        let program = ProgramAst::parse(source)?;
 
-        // compile all local procedures; this will add the procedures to the specified context
-        let mut context = AssemblyContext::new(false);
-        for proc_ast in local_procs.iter() {
-            if proc_ast.is_export {
-                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
-            }
-            self.compile_procedure(proc_ast, &mut context)?;
-        }
-
-        // compile the program body
-        let program_root = self.compile_body(body.iter(), &mut context, None)?;
+        // compile the program
+        let mut context = AssemblyContext::new(AssemblyContextType::Program);
+        let program_root = self.compile_in_context(&program, &mut context)?;
 
         // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache.borrow());
+        let cb_table = context.into_cb_table(&self.proc_cache.borrow())?;
 
         // build and return the program
         Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
     }
 
+    /// Compiles the provided [ProgramAst] into a program and returns the program root
+    /// ([CodeBlock]).  Mutates the provided context by adding all of the call targets of
+    /// the program to the [CallSet].
+    ///
+    /// # Errors
+    /// - If the provided context is not appropriate for compiling a program.
+    /// - If any of the local procedures defined in the program are exported.
+    /// - If compilation of any of the local procedures fails.
+    /// - if compilation of the program body fails.
+    pub fn compile_in_context(
+        &self,
+        program: &ProgramAst,
+        context: &mut AssemblyContext,
+    ) -> Result<CodeBlock, AssemblyError> {
+        // check to ensure that the context is appropriate for compiling a program
+        if context.current_context_name() != ProcedureName::main().as_str() {
+            return Err(AssemblyError::InvalidProgramAssemblyContext);
+        }
+
+        // compile all local procedures; this will add the procedures to the specified context
+        for proc_ast in program.procedures() {
+            if proc_ast.is_export {
+                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
+            }
+            self.compile_procedure(proc_ast, context)?;
+        }
+
+        // compile the program body
+        let program_root = self.compile_body(program.body().nodes().iter(), context, None)?;
+
+        Ok(program_root)
+    }
     // MODULE COMPILER
     // --------------------------------------------------------------------------------------------
 
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
-    fn compile_module(
+    /// Returns a vector of procedure digests for all exported procedures in the module.
+    ///
+    /// # Errors
+    /// - If a module with the same path already exists in the module stack of the
+    ///   [AssemblyContext].
+    /// - If a lock to the [ProcedureCache] can not be attained.
+    pub fn compile_module(
         &self,
         module: &Module,
         context: &mut AssemblyContext,
-    ) -> Result<(), AssemblyError> {
-        // compile all procedures in the module; once the compilation is complete, we get all
-        // compiled procedures (and their combined callset) from the context
+    ) -> Result<Vec<RpoDigest>, AssemblyError> {
+        // a variable to track MAST roots of all procedures exported from this module
+        let mut proc_roots = Vec::new();
+
         context.begin_module(&module.path)?;
-        for proc_ast in module.ast.local_procs.iter() {
+
+        // process all re-exported procedures
+        for reexporteed_proc in module.ast.reexported_procs().iter() {
+            // make sure the re-exported procedure is loaded into the procedure cache
+            let ref_proc_id = reexporteed_proc.proc_id();
+            self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
+
+            // build procedure ID for the alias, and add it to the procedure cache
+            let proc_name = reexporteed_proc.name();
+            let alias_proc_id = ProcedureId::from_name(proc_name, &module.path);
+            let proc_mast_root = self
+                .proc_cache
+                .try_borrow_mut()
+                .map_err(|_| AssemblyError::InvalidCacheLock)?
+                .insert_proc_alias(alias_proc_id, ref_proc_id)?;
+
+            // add the MAST root of the re-exported procedure to the set of procedures exported
+            // from this module
+            proc_roots.push(proc_mast_root);
+        }
+
+        // compile all local procedures in the module; once the compilation is complete, we get
+        // all compiled procedures (and their combined callset) from the context
+        for proc_ast in module.ast.procs().iter() {
             self.compile_procedure(proc_ast, context)?;
         }
         let (module_procs, module_callset) = context.complete_module();
@@ -170,17 +224,21 @@ impl Assembler {
         // - a procedure is exported from the module, or
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
-        for proc in module_procs {
+        for proc in module_procs.into_iter() {
+            if proc.is_export() {
+                proc_roots.push(proc.code_root().hash());
+            }
+
             if proc.is_export() || module_callset.contains(proc.id()) {
                 // this is safe because we fail if the cache is borrowed.
                 self.proc_cache
                     .try_borrow_mut()
-                    .map(|mut cache| cache.insert(*proc.id(), proc))
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?;
+                    .map_err(|_| AssemblyError::InvalidCacheLock)?
+                    .insert(proc)?;
             }
         }
 
-        Ok(())
+        Ok(proc_roots)
     }
 
     // PROCEDURE COMPILER
@@ -204,9 +262,9 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.body.iter(), context, Some(wrapper))?
+            self.compile_body(proc.body.nodes().iter(), context, Some(wrapper))?
         } else {
-            self.compile_body(proc.body.iter(), context, None)?
+            self.compile_body(proc.body.nodes().iter(), context, None)?
         };
 
         context.complete_proc(code_root);
@@ -233,47 +291,48 @@ impl Assembler {
 
         for node in body {
             match node.borrow() {
-                Node::Instruction(instruction) => {
-                    if let Some(block) =
-                        self.compile_instruction(instruction, &mut span, context)?
-                    {
+                Node::Instruction(inner) => {
+                    if let Some(block) = self.compile_instruction(inner, &mut span, context)? {
                         span.extract_span_into(&mut blocks);
                         blocks.push(block);
                     }
                 }
 
-                Node::IfElse(t, f) => {
+                Node::IfElse {
+                    true_case,
+                    false_case,
+                } => {
                     span.extract_span_into(&mut blocks);
 
-                    let t = self.compile_body(t.iter(), context, None)?;
+                    let true_case = self.compile_body(true_case.nodes().iter(), context, None)?;
 
                     // else is an exception because it is optional; hence, will have to be replaced
                     // by noop span
-                    let f = if !f.is_empty() {
-                        self.compile_body(f.iter(), context, None)?
+                    let false_case = if !false_case.nodes().is_empty() {
+                        self.compile_body(false_case.nodes().iter(), context, None)?
                     } else {
                         CodeBlock::new_span(vec![Operation::Noop])
                     };
 
-                    let block = CodeBlock::new_split(t, f);
+                    let block = CodeBlock::new_split(true_case, false_case);
 
                     blocks.push(block);
                 }
 
-                Node::Repeat(n, nodes) => {
+                Node::Repeat { times, body } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, None)?;
+                    let block = self.compile_body(body.nodes().iter(), context, None)?;
 
-                    for _ in 0..*n {
+                    for _ in 0..*times {
                         blocks.push(block.clone());
                     }
                 }
 
-                Node::While(nodes) => {
+                Node::While { body } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, None)?;
+                    let block = self.compile_body(body.nodes().iter(), context, None)?;
                     let block = CodeBlock::new_loop(block);
 
                     blocks.push(block);
@@ -292,8 +351,8 @@ impl Assembler {
     // PROCEDURE CACHE
     // --------------------------------------------------------------------------------------------
 
-    /// Ensure a procedure exists in the cache. Otherwise, attempt to fetch it from the module
-    /// provider, compile, and check again.
+    /// Ensures that a procedure with the specified [ProcedureId] exists in the cache. Otherwise,
+    /// attempt to fetch it from the module provider, compile, and check again.
     ///
     /// If `Ok` is returned, the procedure can be safely unwrapped from the cache.
     ///
@@ -305,16 +364,15 @@ impl Assembler {
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
-        if !self.proc_cache.borrow().contains_key(proc_id) {
+        if !self.proc_cache.borrow().contains_id(proc_id) {
             // if procedure is not in cache, try to get its module and compile it
             let module = self
                 .module_provider
                 .get_module(proc_id)
                 .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
             self.compile_module(module, context)?;
-
             // if the procedure is still not in cache, then there was some error
-            if !self.proc_cache.borrow().contains_key(proc_id) {
+            if !self.proc_cache.borrow().contains_id(proc_id) {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
                     proc_id,
                     &module.path,
@@ -323,6 +381,19 @@ impl Assembler {
         }
 
         Ok(())
+    }
+
+    // CODE BLOCK BUILDER
+    // --------------------------------------------------------------------------------------------
+    /// Returns the [CodeBlockTable] associated with the [AssemblyContext].
+    ///
+    /// # Errors
+    /// Returns an error if a required procedure is not found in the [Assembler] procedure cache.
+    pub fn build_cb_table(
+        &self,
+        context: AssemblyContext,
+    ) -> Result<CodeBlockTable, AssemblyError> {
+        context.into_cb_table(&self.proc_cache.borrow())
     }
 }
 

@@ -78,7 +78,7 @@ export.mod_12289
     u32split
     push.12289.0
 
-    adv.u64div
+    adv.push_u64div
 
     adv_push.2
     u32assert.2

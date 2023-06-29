@@ -19,18 +19,18 @@ Miden VM programs consist of a set of code blocks organized into a binary tree. 
 
 Managing control flow in the VM is accomplished by executing control flow operations listed in the table below. Each of these operations require exactly one VM cycle to execute.
 
-| Operation | Description |
-| --------- | ----------- |
-| `JOIN`    | Initiates processing of a new [Join block](../programs.md#join-block). |
-| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#split-block). |
-| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#loop-block). |
-| `REPEAT`  | Initiates a new iteration of an executing loop. |
-| `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block). |
-| `RESPAN`  | Initiates processing of a new operation batch within a span block. |
-| `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block). |
+| Operation | Description                                                                  |
+| --------- | ---------------------------------------------------------------------------- |
+| `JOIN`    | Initiates processing of a new [Join block](../programs.md#join-block).       |
+| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#split-block).     |
+| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#loop-block).       |
+| `REPEAT`  | Initiates a new iteration of an executing loop.                              |
+| `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block).       |
+| `RESPAN`  | Initiates processing of a new operation batch within a span block.           |
+| `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block).       |
 | `SYSCALL` | Initiates processing ofa new  [Syscall block](../programs.md#syscall-block). |
-| `END`     | Marks the end of a program block. |
-| `HALT`    | Marks the end of the entire program. |
+| `END`     | Marks the end of a program block.                                            |
+| `HALT`    | Marks the end of the entire program.                                         |
 
 Let's consider a simple program below:
 
@@ -129,11 +129,11 @@ To compute hashes of program blocks, the decoder relies on the [hash chiplet](..
 1. A simple 2-to-1 hash, where we provide a sequence of $8$ field elements, and get back $4$ field elements representing the result. Computing such a hash requires $8$ rows in the hash chiplet.
 2. A sequential hash of $n$ elements. Computing such a hash requires multiple absorption steps, and at each step $8$ field elements are absorbed into the hasher. Thus, computing a sequential hash of $n$ elements requires $\lceil {n/8} \rceil$ rows in the hash chiplet. At the end, we also get $4$ field elements representing the result.
 
-We denote the running product column used to keep track of hash chiplet state as $p_0$. To make hashing requests to the hash chiplet and to read the results from it, we will need to divide out relevant values from this column as described below.
+To make hashing requests to the hash chiplet and to read the results from it, we will need to divide out relevant values from the [chiplets bus](../chiplets/main.md#chiplets-bus) column $b_{chip}$ as described below.
 
 #### Simple 2-to-1 hash
 
-To initiate a 2-to-1 hash of $8$ elements ($v_0, ..., v_7$) we need to divide $p_0$ by the following value:
+To initiate a 2-to-1 hash of $8$ elements ($v_0, ..., v_7$) we need to divide $b_{chip}$ by the following value:
 
 $$
 \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot r + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_i)
@@ -144,7 +144,7 @@ where:
 * $r$ is the address of the row at which the hashing begins.
 * Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduced to field elements (described [here](../chiplets/hasher.md#multiset-check-constraints)). For example, $\alpha_3$ is used as a coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.  The $\alpha_4$ term is omitted when the number of items being hashed is a multiple of the rate width ($8$) because it is multiplied by 0 - the value of the first capacity register as determined by the [hasher chiplet logic](../chiplets/hasher.md#simple-2-to-1-hash).
 
-To read the $4$-element result ($u_0, ..., u_3$), we need to divide $p_0$ by the following value:
+To read the $4$-element result ($u_0, ..., u_3$), we need to divide $b_{chip}$ by the following value:
 
 $$
 \alpha_0 + \alpha_1 \cdot m_{hout} + \alpha_2 \cdot (r + 7) + \sum_{i=0}^3 (\alpha_{i+8} \cdot u_i)
@@ -156,13 +156,13 @@ where:
 
 #### Sequential hash
 
-To initiate a sequential hash of $n$ elements ($v_0, ..., v_{n-1}$), we need to divide $p_0$ by the following value:
+To initiate a sequential hash of $n$ elements ($v_0, ..., v_{n-1}$), we need to divide $b_{chip}$ by the following value:
 
 $$
 \alpha_0 + \alpha_1 \cdot m_{bp} + \alpha_2 \cdot r + \alpha_4 \cdot n + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_i)
 $$
 
-This also absorbs the first $8$ elements of the sequence into the hasher state. Then, to absorb the next sequence of $8$ elements (e.g., $v_8, ..., v_{15}$), we need to divide $p_0$ by the following value:
+This also absorbs the first $8$ elements of the sequence into the hasher state. Then, to absorb the next sequence of $8$ elements (e.g., $v_8, ..., v_{15}$), we need to divide $b_{chip}$ by the following value:
 
 $$
 \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot (r + 7) + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_{i + 8})
@@ -170,7 +170,7 @@ $$
 
 Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../chiplets/hasher.md#multiset-check-constraints).
 
-We can keep absorbing elements into the hasher in the similar manner until all elements have been absorbed. Then, to read the result (e.g., $u_0, ..., u_3$), we need to divide $p_0$ by the following value:
+We can keep absorbing elements into the hasher in the similar manner until all elements have been absorbed. Then, to read the result (e.g., $u_0, ..., u_3$), we need to divide $b_{chip}$ by the following value:
 
 $$
 \alpha_0 + \alpha_1 \cdot m_{hout} + \alpha_2 \cdot (r + \lceil n / 8 \rceil \cdot 8  - 1) + \sum_{i=0}^3 (\alpha_{i+8} \cdot u_i)
@@ -287,9 +287,9 @@ In the above diagram, `blk` is the ID of the *split* block which is about to be 
 When the VM executes a `SPLIT` operation, it does the following:
 
 1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
-2. Pops the stack and:
-   a. If the popped value is $1$, adds a tuple `(blk, true_branch_hash, 0, 0)` to the block hash table.
-   b. If the popped value is $0$, adds a tuple `(blk, false_branch_hash, 0, 0)` to the block hash table.
+2. Pops the stack and:\
+   a. If the popped value is $1$, adds a tuple `(blk, true_branch_hash, 0, 0)` to the block hash table.\
+   b. If the popped value is $0$, adds a tuple `(blk, false_branch_hash, 0, 0)` to the block hash table.\
    c. If the popped value is neither $1$ nor $0$, the execution fails.
 3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 
@@ -303,9 +303,9 @@ In the above diagram, `blk` is the ID of the *loop* block which is about to be e
 
 When the VM executes a `LOOP` operation, it does the following:
 
-1. Pops the stack and:
-   a. If the popped value is $1$ adds a tuple `(blk, prnt, 1)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.
-   b. If the popped value is $0$, adds `(blk, prnt, 0)` to the block stack table. In this case, nothing is added to the block hash table.
+1. Pops the stack and:\
+   a. If the popped value is $1$ adds a tuple `(blk, prnt, 1)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.\
+   b. If the popped value is $0$, adds `(blk, prnt, 0)` to the block stack table. In this case, nothing is added to the block hash table.\
    c. If the popped value is neither $1$ nor $0$, the execution fails.
 2. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
 
@@ -517,7 +517,7 @@ Then, with every step the next operation is removed from $g_0$, and by step $9$,
 1. Decrements `group_count` register by $1$.
 2. Sets `op bits` registers at the next step to the first operation of $g_1$.
 3. Sets `hasher` register $h_0$ to the value of $g_1$ with the first operation removed (denoted as $g_1'$).
-4. Removes row `(blk, 7, g1)` from the op group table. This row can be obtained by taking values from registers: `addr`, `group_count`, and $h_0' + \sum_{i=0}^6(2^i \cdot b_i')$ for $i \in 0..6$, where $h_0'$ and $b_i'$ refer to values in the next row for the first hasher column and `op_bits` columns respectively.
+4. Removes row `(blk, 7, g1)` from the op group table. This row can be obtained by taking values from registers: `addr`, `group_count`, and $h_0' + \displaystyle\sum_{i=0}^6(2^i \cdot b_i')$ for $i \in [0, 7)$, where $h_0'$ and $b_i'$ refer to values in the next row for the first hasher column and `op_bits` columns respectively.
 
 Note that we rely on the `group_count` column to construct the row to be removed from the op group table. Since group count is decremented from the total number of groups to $0$, to remove groups from the op group table in correct order, we need to assign group position to groups in the op group table in the reverse order. For example, the first group to be removed should have position $7$, the second group to be removed should have position $6$ etc.
 

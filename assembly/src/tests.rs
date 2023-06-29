@@ -1,10 +1,14 @@
-use crate::{parse_module, Assembler, Library, LibraryNamespace, Module, ModulePath, Version};
+use crate::{
+    ast::{ModuleAst, ProgramAst},
+    Assembler, AssemblyContextType, Library, LibraryNamespace, LibraryPath, Module, Version,
+};
 use core::slice::Iter;
 
 // SIMPLE PROGRAMS
 // ================================================================================================
+
 #[test]
-fn simple_new_instrctns() {
+fn simple_instructions() {
     let assembler = super::Assembler::default();
     let source = "begin push.0 assertz end";
     let program = assembler.compile(source).unwrap();
@@ -105,8 +109,54 @@ fn span_and_simple_if() {
     assert_eq!(expected, format!("{program}"));
 }
 
+// PROGRAM WITH #main CALL
+// ================================================================================================
+
+#[test]
+fn simple_main_call() {
+    // instantiate assembler
+    let assembler = super::Assembler::default();
+
+    // compile account module
+    let account_path = LibraryPath::new("context::account").unwrap();
+    let account_code = ModuleAst::parse(
+        "\
+    export.account_method_1
+        push.2.1 add
+    end
+    
+    export.account_method_2
+        push.3.1 sub
+    end
+    ",
+    )
+    .unwrap();
+    let account_module = Module::new(account_path, account_code);
+    let _method_roots = assembler
+        .compile_module(
+            &account_module,
+            &mut super::AssemblyContext::new(AssemblyContextType::Module),
+        )
+        .unwrap();
+
+    // compile note 1 program
+    let note_1 =
+        ProgramAst::parse("use.context::account begin call.account::account_method_1 end").unwrap();
+    let _note_1_root = assembler
+        .compile_in_context(&note_1, &mut super::AssemblyContext::new(AssemblyContextType::Program))
+        .unwrap();
+
+    // compile note 2 program
+    let note_2 =
+        ProgramAst::parse("use.context::account begin call.account::account_method_2 end").unwrap();
+    let _note_2_root = assembler
+        .compile_in_context(&note_2, &mut super::AssemblyContext::new(AssemblyContextType::Program))
+        .unwrap();
+}
+
 // CONSTANTS
 // ================================================================================================
+
 #[test]
 fn simple_constant() {
     let assembler = super::Assembler::default();
@@ -232,6 +282,160 @@ fn constant_not_found() {
     assert_eq!(expected_error, err.to_string());
 }
 
+#[test]
+fn mem_operations_with_constants() {
+    let assembler = super::Assembler::default();
+
+    // Define constant values
+    const PROC_LOC_STORE_PTR: u64 = 0;
+    const PROC_LOC_LOAD_PTR: u64 = 1;
+    const PROC_LOC_STOREW_PTR: u64 = 2;
+    const PROC_LOC_LOADW_PTR: u64 = 3;
+    const GLOBAL_STORE_PTR: u64 = 4;
+    const GLOBAL_LOAD_PTR: u64 = 5;
+    const GLOBAL_STOREW_PTR: u64 = 6;
+    const GLOBAL_LOADW_PTR: u64 = 7;
+
+    let source = format!(
+        "\
+    const.PROC_LOC_STORE_PTR={PROC_LOC_STORE_PTR}
+    const.PROC_LOC_LOAD_PTR={PROC_LOC_LOAD_PTR}
+    const.PROC_LOC_STOREW_PTR={PROC_LOC_STOREW_PTR}
+    const.PROC_LOC_LOADW_PTR={PROC_LOC_LOADW_PTR}
+    const.GLOBAL_STORE_PTR={GLOBAL_STORE_PTR}
+    const.GLOBAL_LOAD_PTR={GLOBAL_LOAD_PTR}
+    const.GLOBAL_STOREW_PTR={GLOBAL_STOREW_PTR}
+    const.GLOBAL_LOADW_PTR={GLOBAL_LOADW_PTR}
+
+    proc.test_const_loc.4
+        # constant should resolve using locaddr operation
+        locaddr.PROC_LOC_STORE_PTR
+
+        # constant should resolve using loc_store operation
+        loc_store.PROC_LOC_STORE_PTR
+
+        # constant should resolve using loc_load operation
+        loc_load.PROC_LOC_LOAD_PTR
+
+        # constant should resolve using loc_storew operation
+        loc_storew.PROC_LOC_STOREW_PTR
+
+        # constant should resolve using loc_loadw opeartion
+        loc_loadw.PROC_LOC_LOADW_PTR
+    end
+
+    begin
+        # inline procedure
+        exec.test_const_loc
+
+        # constant should resolve using mem_store operation
+        mem_store.GLOBAL_STORE_PTR
+
+        # constant should resolve using mem_load operation
+        mem_load.GLOBAL_LOAD_PTR
+
+        # constant should resolve using mem_storew operation
+        mem_storew.GLOBAL_STOREW_PTR
+
+        # constant should resolve using mem_loadw operation
+        mem_loadw.GLOBAL_LOADW_PTR
+    end
+    "
+    );
+    let program = assembler.compile(source).unwrap();
+
+    // Define expected
+    let expected = format!(
+        "\
+    proc.test_const_loc.4
+        # constant should resolve using locaddr operation
+        locaddr.{PROC_LOC_STORE_PTR}
+
+        # constant should resolve using loc_store operation
+        loc_store.{PROC_LOC_STORE_PTR}
+
+        # constant should resolve using loc_load operation
+        loc_load.{PROC_LOC_LOAD_PTR}
+
+        # constant should resolve using loc_storew operation
+        loc_storew.{PROC_LOC_STOREW_PTR}
+
+        # constant should resolve using loc_loadw opeartion
+        loc_loadw.{PROC_LOC_LOADW_PTR}
+    end
+
+    begin
+        # inline procedure
+        exec.test_const_loc
+
+        # constant should resolve using mem_store operation
+        mem_store.{GLOBAL_STORE_PTR}
+
+        # constant should resolve using mem_load operation
+        mem_load.{GLOBAL_LOAD_PTR}
+
+        # constant should resolve using mem_storew operation
+        mem_storew.{GLOBAL_STOREW_PTR}
+
+        # constant should resolve using mem_loadw operation
+        mem_loadw.{GLOBAL_LOADW_PTR}
+    end
+    "
+    );
+    let expected_program = assembler.compile(expected).unwrap();
+    assert_eq!(expected_program.to_string(), program.to_string());
+}
+
+#[test]
+fn const_conversion_failed_to_u16() {
+    // Define constant value greater than u16::MAX
+    let constant_value: u64 = u16::MAX as u64 + 1;
+
+    let source = format!(
+        "\
+    const.CONSTANT={constant_value}
+
+    proc.test_constant_overflow.1
+        loc_load.CONSTANT
+    end
+
+    begin
+        exec.test_constant_overflow
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error =
+        "failed to convert u64 constant used in `loc_load.CONSTANT` to required type u16";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn const_conversion_failed_to_u32() {
+    // Define constant value greater than u16::MAX
+    let constant_value: u64 = u32::MAX as u64 + 1;
+
+    let source = format!(
+        "\
+    const.CONSTANT={constant_value}
+
+    begin
+        mem_load.CONSTANT
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error =
+        "failed to convert u64 constant used in `mem_load.CONSTANT` to required type u32";
+    assert_eq!(expected_error, err.to_string());
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 
@@ -346,11 +550,59 @@ fn program_with_exported_procedure() {
     assert!(assembler.compile(source).is_err());
 }
 
+// MAST ROOT CALLS
+// ================================================================================================
+
+#[test]
+fn program_with_incorrect_mast_root_length() {
+    let assembler = super::Assembler::default();
+    let source = "begin call.0x1234 end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "invalid procedure root invocation: 0x1234 - rpo digest hex label must have 66 characters, but was 6";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn program_with_invalid_mast_root_chars() {
+    let assembler = super::Assembler::default();
+    let source =
+        "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "invalid procedure root invocation: 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb - \
+    '0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb' contains invalid hex characters";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn program_with_invalid_rpo_digest_call() {
+    let assembler = super::Assembler::default();
+    let source =
+        "begin call.0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "invalid procedure root invocation: 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff - \
+    '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' is not a valid Rpo Digest hex label";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn program_with_mast_root_call_that_does_not_exist() {
+    let assembler = super::Assembler::default();
+    let source =
+        "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae end";
+    let result = assembler.compile(source);
+    let err = result.err().unwrap();
+    let expected_error = "procedure mast root not found for digest - 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae";
+    assert_eq!(expected_error, err.to_string());
+}
+
 // IMPORTS
 // ================================================================================================
 
 #[test]
-fn program_with_one_import() {
+fn program_with_one_import_and_hex_call() {
     const NAMESPACE: &str = "dummy";
     const MODULE: &str = "math::u256";
     const PROCEDURE: &str = r#"
@@ -363,46 +615,96 @@ fn program_with_one_import() {
             end
         end"#;
 
-    pub struct DummyLibrary {
-        namespace: LibraryNamespace,
-        modules: Vec<Module>,
-    }
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(PROCEDURE).unwrap();
+    let modules = vec![Module { path, ast }];
+    let library = DummyLibrary::new(namespace, modules);
 
-    impl Default for DummyLibrary {
-        fn default() -> Self {
-            let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
-            let path = ModulePath::try_from(MODULE.to_string()).unwrap().to_absolute(&namespace);
-            let ast = parse_module(PROCEDURE).unwrap();
-            Self {
-                namespace,
-                modules: vec![Module { path, ast }],
-            }
-        }
-    }
-
-    impl Library for DummyLibrary {
-        type ModuleIterator<'a> = Iter<'a, Module>;
-
-        fn root_ns(&self) -> &LibraryNamespace {
-            &self.namespace
-        }
-
-        fn version(&self) -> &Version {
-            &Version::MIN
-        }
-
-        fn modules(&self) -> Self::ModuleIterator<'_> {
-            self.modules.iter()
-        }
-    }
-
-    let assembler = super::Assembler::default().with_library(&DummyLibrary::default()).unwrap();
+    let assembler = super::Assembler::default().with_library(&library).unwrap();
     let source = format!(
         r#"
         use.{NAMESPACE}::{MODULE}
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
+            call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
+        end"#
+    );
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            join \
+                span \
+                    push(4) push(3) \
+                    eqz \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                    swap eqz and \
+                end \
+                call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn program_with_reexported_proc_in_same_library() {
+    // exprted proc is in same library
+    const NAMESPACE: &str = "dummy1";
+    const REF_MODULE: &str = "math::u64";
+    const REF_MODULE_BODY: &str = r#"
+        export.checked_eqz
+            u32assert.2
+            eq.0
+            swap
+            eq.0
+            and
+        end
+        export.unchecked_eqz
+            eq.0
+            swap
+            eq.0
+            and
+        end
+    "#;
+
+    const MODULE: &str = "math::u256";
+    const MODULE_BODY: &str = r#"
+        use.dummy1::math::u64
+        export.u64::checked_eqz # re-export
+        export.u64::unchecked_eqz->notchecked_eqz # re-export with alias
+    "#;
+
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(MODULE_BODY).unwrap();
+    let ref_path = LibraryPath::try_from(REF_MODULE.to_string())
+        .unwrap()
+        .prepend(&namespace)
+        .unwrap();
+    let ref_ast = ModuleAst::parse(REF_MODULE_BODY).unwrap();
+    let modules = vec![
+        Module { path, ast },
+        Module {
+            path: ref_path,
+            ast: ref_ast,
+        },
+    ];
+    let assembler = super::Assembler::default()
+        .with_library(&DummyLibrary::new(namespace, modules))
+        .unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::checked_eqz
+            exec.u256::notchecked_eqz
         end"#
     );
     let program = assembler.compile(source).unwrap();
@@ -410,17 +712,96 @@ fn program_with_one_import() {
         begin \
             span \
                 push(4) push(3) \
-                eqz \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
-                swap eqz and \
+                u32assert2 \
+                eqz swap eqz and \
+                eqz swap eqz and \
             end \
         end";
     assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn program_with_reexported_proc_in_another_library() {
+    // when re-exported proc is part of a different library
+    const NAMESPACE: &str = "dummy1";
+    const REF_NAMESPACE: &str = "dummy2";
+    const REF_MODULE: &str = "math::u64";
+    const REF_MODULE_BODY: &str = r#"
+        export.checked_eqz
+            u32assert.2
+            eq.0
+            swap
+            eq.0
+            and
+        end
+        export.unchecked_eqz
+            eq.0
+            swap
+            eq.0
+            and
+        end
+    "#;
+
+    const MODULE: &str = "math::u256";
+    const MODULE_BODY: &str = r#"
+        use.dummy2::math::u64
+        export.u64::checked_eqz # re-export
+        export.u64::unchecked_eqz->notchecked_eqz # re-export with alias
+    "#;
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(MODULE_BODY).unwrap();
+
+    let ref_namespace = LibraryNamespace::try_from(REF_NAMESPACE.to_string()).unwrap();
+    let ref_path = LibraryPath::try_from(REF_MODULE.to_string())
+        .unwrap()
+        .prepend(&ref_namespace)
+        .unwrap();
+    let ref_ast = ModuleAst::parse(REF_MODULE_BODY).unwrap();
+    let modules = vec![Module { path, ast }];
+    let ref_modules = vec![Module {
+        path: ref_path,
+        ast: ref_ast,
+    }];
+    let dummy_library_1 = DummyLibrary::new(namespace, modules);
+    let dummy_library_2 = DummyLibrary::new(ref_namespace, ref_modules);
+    let assembler = super::Assembler::default()
+        .with_libraries([&dummy_library_1, &dummy_library_2].into_iter())
+        .unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::checked_eqz
+            exec.u256::notchecked_eqz
+        end"#
+    );
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            span \
+                push(4) push(3) \
+                u32assert2 \
+                eqz swap eqz and \
+                eqz swap eqz and \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+
+    // when the re-exported proc is part of a different library and the library is not passed to
+    // the assembler it should fail
+    let assembler = super::Assembler::default().with_library(&dummy_library_1).unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::checked_eqz
+            exec.u256::notchecked_eqz
+        end"#
+    );
+    assert!(assembler.compile(source).is_err());
 }
 
 #[test]
@@ -690,5 +1071,44 @@ fn invalid_while() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(error.to_string(), "while without matching end");
+    }
+}
+
+// DUMMY LIBRARY
+// ================================================================================================
+
+struct DummyLibrary {
+    namespace: LibraryNamespace,
+    modules: Vec<Module>,
+    dependencies: Vec<LibraryNamespace>,
+}
+
+impl DummyLibrary {
+    fn new(namespace: LibraryNamespace, modules: Vec<Module>) -> Self {
+        Self {
+            namespace,
+            modules,
+            dependencies: Vec::new(),
+        }
+    }
+}
+
+impl Library for DummyLibrary {
+    type ModuleIterator<'a> = Iter<'a, Module>;
+
+    fn root_ns(&self) -> &LibraryNamespace {
+        &self.namespace
+    }
+
+    fn version(&self) -> &Version {
+        &Version::MIN
+    }
+
+    fn modules(&self) -> Self::ModuleIterator<'_> {
+        self.modules.iter()
+    }
+
+    fn dependencies(&self) -> &[LibraryNamespace] {
+        &self.dependencies
     }
 }

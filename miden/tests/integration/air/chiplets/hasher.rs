@@ -1,11 +1,7 @@
-use crate::build_op_test;
-use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
-use rand_utils::rand_vector;
-use vm_core::{
-    crypto::{
-        hash::Rpo256,
-        merkle::{MerkleStore, MerkleTree},
-    },
+use test_utils::{
+    build_op_test,
+    crypto::{init_merkle_leaf, init_merkle_store, MerkleStore, MerkleTree, Rpo256},
+    rand::rand_vector,
     StarkField, Word,
 };
 
@@ -56,21 +52,44 @@ fn mtree_set() {
 }
 
 #[test]
+fn mtree_verify() {
+    let asm_op = "mtree_verify";
+
+    let index = 3_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        index as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    build_op_test!(asm_op, &stack_inputs, &[], store)
+        .prove_and_verify(stack_inputs.to_vec(), false);
+}
+
+#[test]
 fn mtree_merge() {
     let asm_op = "mtree_merge";
 
     let leaves_a = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]).0;
     let leaves_b = init_merkle_store(&[9, 10, 11, 12, 13, 14, 15, 16]).0;
     let tree_a = MerkleTree::new(leaves_a.clone()).unwrap();
-    let tree_b = MerkleTree::new(leaves_a.clone()).unwrap();
+    let tree_b = MerkleTree::new(leaves_b.clone()).unwrap();
     let root_a = tree_a.root();
     let root_b = tree_b.root();
     let root_merged = Rpo256::merge(&[root_a.into(), root_b.into()]);
-    let store = MerkleStore::new()
-        .with_merkle_tree(leaves_a)
-        .unwrap()
-        .with_merkle_tree(leaves_b)
-        .unwrap();
+    let mut store = MerkleStore::default();
+    store.extend(tree_a.inner_nodes());
+    store.extend(tree_b.inner_nodes());
 
     let stack_inputs = vec![
         0xbeef,

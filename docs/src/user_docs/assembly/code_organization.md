@@ -92,8 +92,22 @@ In the above example we import `std::math::u64` module from the [standard librar
 
 The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
 
+#### Re-exporting procedures
+A procedure defined in one module can be re-exported from a different module under the same or a different name. For example:
+```
+use.std::math::u64
+
+export.u64::add
+export.u64::mul->mul64
+
+export.foo
+    <instructions>
+end
+```
+In addition to the locally-defined procedure `foo`, the above module also exports procedures `add` and `mul64` implementations of which will be identical to `add` and `mul` procedures from the `std::math::u64` module respectively.
+
 ### Constants
-Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Currently only `push` instruction supports this.
+Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`.
 
 Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100.
 
@@ -102,10 +116,12 @@ use.std::math::u64
 
 const.CONSTANT_1=100
 const.CONSTANT_2=200
+const.ADDR_1=3
 
 begin
     push.CONSTANT_1.CONSTANT_2
     exec.u64::checked_add
+    mem_store.ADDR_1
 end
 
 ```

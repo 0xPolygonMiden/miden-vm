@@ -2,12 +2,12 @@ use super::{
     build_trace_from_ops, rand_array, rand_value, ExecutionTrace, Felt, FieldElement, Operation,
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
 };
-use vm_core::chiplets::{
+use miden_air::trace::chiplets::{
     bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
     BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
 };
 
-/// Tests the generation of the `b_aux` bus column when only bitwise lookups are included. It
+/// Tests the generation of the `b_chip` bus column when only bitwise lookups are included. It
 /// ensures that trace generation is correct when all of the following are true.
 ///
 /// - All possible bitwise operations are called by the stack.
@@ -18,7 +18,7 @@ use vm_core::chiplets::{
 /// values are requested & provided.
 #[test]
 #[allow(clippy::needless_range_loop)]
-fn b_aux_trace_bitwise() {
+fn b_chip_trace_bitwise() {
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let stack = [a as u64, b as u64];
@@ -50,14 +50,14 @@ fn b_aux_trace_bitwise() {
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let b_aux = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
-    assert_eq!(trace.length(), b_aux.len());
-    assert_eq!(ONE, b_aux[0]);
+    assert_eq!(trace.length(), b_chip.len());
+    assert_eq!(ONE, b_chip[0]);
 
     // At cycle 0 the span hash initialization is requested from the decoder and provided by the
     // hash chiplet, so the trace should still equal one.
-    assert_eq!(ONE, b_aux[1]);
+    assert_eq!(ONE, b_chip[1]);
 
     // The first bitwise request from the stack is sent when the `U32and` operation is executed at
     // cycle 1, so the request is included in the next row. (The trace begins by executing `span`).
@@ -69,11 +69,11 @@ fn b_aux_trace_bitwise() {
         Felt::from(a & b),
     );
     let mut expected = value.inv();
-    assert_eq!(expected, b_aux[2]);
+    assert_eq!(expected, b_chip[2]);
 
     // Nothing changes during user operations with no requests to the Chiplets.
     for row in 3..5 {
-        assert_eq!(expected, b_aux[row]);
+        assert_eq!(expected, b_chip[row]);
     }
 
     // The second bitwise request from the stack is sent when the `U32and` operation is executed at
@@ -86,22 +86,22 @@ fn b_aux_trace_bitwise() {
         Felt::from(a & b),
     );
     expected *= value.inv();
-    assert_eq!(expected, b_aux[5]);
+    assert_eq!(expected, b_chip[5]);
 
     // Nothing changes during user operations with no requests to the Chiplets.
     for row in 6..8 {
-        assert_eq!(expected, b_aux[row]);
+        assert_eq!(expected, b_chip[row]);
     }
 
     // At cycle 7 the hasher provides the result of the `SPAN` hash. Since this test is for changes
     // from bitwise lookups, just set it explicitly and save the multiplied-in value for later.
-    assert_ne!(expected, b_aux[8]);
-    let span_result = b_aux[8] * b_aux[7].inv();
-    expected = b_aux[8];
+    assert_ne!(expected, b_chip[8]);
+    let span_result = b_chip[8] * b_chip[7].inv();
+    expected = b_chip[8];
 
     // Nothing changes during user operations with no requests to the Chiplets.
     for row in 9..16 {
-        assert_eq!(expected, b_aux[row]);
+        assert_eq!(expected, b_chip[row]);
     }
 
     // Bitwise responses will be provided during the bitwise segment of the Chiplets trace,
@@ -122,42 +122,42 @@ fn b_aux_trace_bitwise() {
     );
     expected *= value.inv();
     expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_1_row - 1);
-    assert_eq!(expected, b_aux[response_1_row]);
+    assert_eq!(expected, b_chip[response_1_row]);
 
     // Nothing changes until the decoder requests the result of the `SPAN` hash at cycle 21.
     for row in response_1_row..21 {
-        assert_eq!(expected, b_aux[row]);
+        assert_eq!(expected, b_chip[row]);
     }
 
     // At cycle 21 the decoder requests the span hash. We set this as the inverse of the previously
     // identified `span_result`, since this test is for consistency of the bitwise lookups.
-    assert_ne!(expected, b_aux[22]);
+    assert_ne!(expected, b_chip[22]);
     expected *= span_result.inv();
-    assert_eq!(expected, b_aux[22]);
+    assert_eq!(expected, b_chip[22]);
 
     // Nothing changes until the next time the Bitwise chiplet responds.
     for row in 23..response_2_row {
-        assert_eq!(expected, b_aux[row]);
+        assert_eq!(expected, b_chip[row]);
     }
 
     // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
     expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_2_row - 1);
-    assert_eq!(expected, b_aux[response_2_row]);
+    assert_eq!(expected, b_chip[response_2_row]);
 
     // Nothing changes until the next time the Bitwise chiplet responds.
     for row in response_2_row..response_3_row {
-        assert_eq!(expected, b_aux[row]);
+        assert_eq!(expected, b_chip[row]);
     }
 
     // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
     expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_3_row - 1);
-    assert_eq!(expected, b_aux[response_3_row]);
+    assert_eq!(expected, b_chip[response_3_row]);
 
-    // The value in b_aux should be ONE now and for the rest of the trace.
+    // The value in b_chip should be ONE now and for the rest of the trace.
     for row in response_3_row..trace.length() - NUM_RAND_ROWS {
-        assert_eq!(ONE, b_aux[row]);
+        assert_eq!(ONE, b_chip[row]);
     }
 }
 

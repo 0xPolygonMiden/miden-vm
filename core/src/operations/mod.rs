@@ -250,7 +250,10 @@ pub enum Operation {
     /// Swaps stack elements 0, 1, 2, and 3, with elements 12, 13, 14, and 15.
     SwapW3,
 
-    /// Swaps stack elements 0, 1, 2, 3, 4, 5, 6, and 7 with elements 8, 9, 10, 11, 12, 13, 14, and 15.
+    /// Swaps the top two words pair wise.
+    ///
+    /// Input: [D, C, B, A, ...]
+    /// Output: [B, A, D, C, ...]
     SwapDW,
 
     /// Moves stack element 2 to the top of the stack.
@@ -363,10 +366,12 @@ pub enum Operation {
     Pipe,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
-    /// rate part of the sponge is assumed to be on top of the stack, and the capacity is expected
-    /// to be deepest in the stack, starting at stack[8]. For an RPO permutation of [A, B, C] where
-    /// A is the capacity, the stack should look like [C, B, A, ...] from the top.
+    /// Performs a Rescue Prime Optimized permutation on the top 3 words of the operand stack,
+    /// where the top 2 words are the rate (words C and B), the deepest word is the capacity (word
+    /// A), and the digest output is the middle word E.
+    ///
+    /// Stack transition:
+    /// [C, B, A, ...] -> [F, E, D, ...]
     HPerm,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This
@@ -503,13 +508,21 @@ impl Operation {
             Self::U32madd   => 0b0100_1110,
 
             Self::HPerm     => 0b0101_0000,
-            Self::MpVerify  => 0b0101_0010,
-            Self::Pipe      => 0b0101_0100,
-            Self::MStream   => 0b0101_0110,
-            Self::Span      => 0b0101_1000,
-            Self::Join      => 0b0101_1010,
-            Self::Split     => 0b0101_1100,
-            Self::Loop      => 0b0101_1110,
+            Self::MpVerify  => 0b0101_0001,
+            Self::Pipe      => 0b0101_0010,
+            Self::MStream   => 0b0101_0011,
+            Self::Split     => 0b0101_0100,
+            Self::Loop      => 0b0101_0101,
+            Self::Span      => 0b0101_0110,
+            Self::Join      => 0b0101_0111,
+            // <empty>      => 0b0101_1000,
+            // <empty>      => 0b0101_1001,
+            // <empty>      => 0b0101_1010,
+            // <empty>      => 0b0101_1011,
+            // <empty>      => 0b0101_1100,
+            // <empty>      => 0b0101_1101,
+            // <empty>      => 0b0101_1110,
+            // <empty>      => 0b0101_1111,
 
             Self::MrUpdate  => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,

@@ -1,16 +1,19 @@
 use super::{
-    init_state_from_words, AuxTraceBuilder, Digest, Felt, Hasher, HasherState, Selectors,
-    SiblingTableRow, SiblingTableUpdate, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
+    init_state_from_words, lookups::HasherLookupContext, Digest, Felt, Hasher, HasherLookup,
+    HasherState, MerklePath, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
     MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
-use crate::chiplets::hasher::{lookups::HasherLookupContext, HasherLookup};
+use crate::chiplets::aux_trace::{
+    ChipletsVTableRow, ChipletsVTableTraceBuilder, ChipletsVTableUpdate,
+};
+use miden_air::trace::chiplets::hasher::{
+    DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
+    MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
+    STATE_COL_RANGE,
+};
 use rand_utils::rand_array;
 use vm_core::{
-    chiplets::hasher::{
-        self, DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
-        MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
-        STATE_COL_RANGE,
-    },
+    chiplets::hasher,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
     Operation, StarkField, ONE, ZERO,
@@ -59,14 +62,13 @@ fn hasher_permute() {
     let (trace, aux_hints) = build_trace(hasher, 8);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, LINEAR_HASH, RETURN_STATE);
     check_hasher_state_trace(&trace, 0, init_state);
     assert_eq!(trace.last().unwrap(), &[ZERO; 8]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- test two permutations ----------------------------------------------
 
@@ -95,7 +97,6 @@ fn hasher_permute() {
     let (trace, aux_hints) = build_trace(hasher, 16);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, LINEAR_HASH, RETURN_STATE);
     check_selector_trace(&trace, 8, LINEAR_HASH, RETURN_STATE);
     check_hasher_state_trace(&trace, 0, init_state1);
@@ -103,8 +104,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 16]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 }
 
 // MERKLE TREE TESTS
@@ -120,7 +121,7 @@ fn hasher_build_merkle_root() {
 
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
-    let path0 = tree.get_path(NodeIndex::new(1, 0)).unwrap();
+    let path0 = tree.get_path(NodeIndex::new(1, 0).unwrap()).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
 
@@ -142,7 +143,7 @@ fn hasher_build_merkle_root() {
         vec![expected_lookup_start, expected_lookup_end],
     );
 
-    let path1 = tree.get_path(NodeIndex::new(1, 1)).unwrap();
+    let path1 = tree.get_path(NodeIndex::new(1, 1).unwrap()).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[1], &path1, ONE, &mut lookups);
 
@@ -168,7 +169,6 @@ fn hasher_build_merkle_root() {
     let (trace, aux_hints) = build_trace(hasher, 16);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, MP_VERIFY, RETURN_HASH);
     check_selector_trace(&trace, 8, MP_VERIFY, RETURN_HASH);
     check_hasher_state_trace(&trace, 0, init_state_from_words(&leaves[0], &path0[0]));
@@ -179,8 +179,8 @@ fn hasher_build_merkle_root() {
     assert_eq!(&node_idx_column[9..], &[ZERO; 7]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -190,7 +190,7 @@ fn hasher_build_merkle_root() {
 
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
-    let path = tree.get_path(NodeIndex::new(3, 5)).unwrap();
+    let path = tree.get_path(NodeIndex::new(3, 5).unwrap()).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[5], &path, Felt::new(5), &mut lookups);
 
@@ -221,15 +221,15 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 0, leaves[5], &path, 5, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
 
-    let path0 = tree.get_path(NodeIndex::new(3, 0)).unwrap();
+    let path0 = tree.get_path(NodeIndex::new(3, 0).unwrap()).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
 
@@ -251,7 +251,7 @@ fn hasher_build_merkle_root() {
         vec![expected_lookup_start, expected_lookup_end],
     );
 
-    let path3 = tree.get_path(NodeIndex::new(3, 3)).unwrap();
+    let path3 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[3], &path3, Felt::new(3), &mut lookups);
 
@@ -277,7 +277,7 @@ fn hasher_build_merkle_root() {
         vec![expected_lookup_start, expected_lookup_end],
     );
 
-    let path7 = tree.get_path(NodeIndex::new(3, 7)).unwrap();
+    let path7 = tree.get_path(NodeIndex::new(3, 7).unwrap()).unwrap();
     let mut lookups = Vec::new();
     hasher.build_merkle_root(leaves[7], &path7, Felt::new(7), &mut lookups);
 
@@ -337,8 +337,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 72, leaves[3], &path3, 3, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_hints.is_empty());
-    assert!(aux_hints.sibling_rows.is_empty());
+    assert!(aux_hints.hints().is_empty());
+    assert!(aux_hints.rows().is_empty());
 }
 
 #[test]
@@ -352,7 +352,7 @@ fn hasher_update_merkle_root() {
     // initialize the hasher and update both leaves
     let mut hasher = Hasher::default();
 
-    let path0 = tree.get_path(NodeIndex::new(1, 0)).unwrap();
+    let path0 = tree.get_path(NodeIndex::new(1, 0).unwrap()).unwrap();
     let new_leaf0 = init_leaf(3);
     let mut lookups = Vec::new();
     let lookup_start_addr = 1;
@@ -384,7 +384,7 @@ fn hasher_update_merkle_root() {
     ];
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
-    let path1 = tree.get_path(NodeIndex::new(1, 1)).unwrap();
+    let path1 = tree.get_path(NodeIndex::new(1, 1).unwrap()).unwrap();
     let new_leaf1 = init_leaf(4);
     let mut lookups = Vec::new();
 
@@ -421,7 +421,6 @@ fn hasher_update_merkle_root() {
     let (trace, aux_hints) = build_trace(hasher, 32);
 
     // make sure the trace is correct
-    check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, MR_UPDATE_OLD, RETURN_HASH);
     check_selector_trace(&trace, 8, MR_UPDATE_NEW, RETURN_HASH);
     check_selector_trace(&trace, 16, MR_UPDATE_OLD, RETURN_HASH);
@@ -438,19 +437,21 @@ fn hasher_update_merkle_root() {
     assert_eq!(&node_idx_column[25..], &[ZERO; 7]);
 
     // make sure sibling table hints were built correctly
-    let expected_sibling_hints = vec![
+    let expected_hints = vec![
         // first update
-        (0, SiblingTableUpdate::SiblingAdded(0)),
-        (8, SiblingTableUpdate::SiblingRemoved(0)),
+        (0, ChipletsVTableUpdate::SiblingAdded(0)),
+        (8, ChipletsVTableUpdate::SiblingRemoved(0)),
         // second update
-        (16, SiblingTableUpdate::SiblingAdded(1)),
-        (24, SiblingTableUpdate::SiblingRemoved(1)),
+        (16, ChipletsVTableUpdate::SiblingAdded(1)),
+        (24, ChipletsVTableUpdate::SiblingRemoved(1)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
+    assert_eq!(expected_hints, aux_hints.hints());
 
-    let expected_sibling_rows =
-        vec![SiblingTableRow::new(ZERO, path0[0]), SiblingTableRow::new(ONE, path1[0])];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
+    let expected_sibling_rows = vec![
+        ChipletsVTableRow::new_sibling(ZERO, path0[0].into()),
+        ChipletsVTableRow::new_sibling(ONE, path1[0].into()),
+    ];
+    assert_eq!(expected_sibling_rows, aux_hints.rows());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -461,7 +462,7 @@ fn hasher_update_merkle_root() {
     // initialize the hasher
     let mut hasher = Hasher::default();
 
-    let path3 = tree.get_path(NodeIndex::new(3, 3)).unwrap();
+    let path3 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
     let new_leaf3 = init_leaf(23);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(leaves[3], new_leaf3, &path3, Felt::new(3), &mut lookups);
@@ -498,7 +499,7 @@ fn hasher_update_merkle_root() {
     ];
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
-    let path6 = tree.get_path(NodeIndex::new(3, 6)).unwrap();
+    let path6 = tree.get_path(NodeIndex::new(3, 6).unwrap()).unwrap();
     let new_leaf6 = init_leaf(25);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6), &mut lookups);
@@ -536,7 +537,7 @@ fn hasher_update_merkle_root() {
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     // update leaf 3 again
-    let path3_2 = tree.get_path(NodeIndex::new(3, 3)).unwrap();
+    let path3_2 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
     let new_leaf3_2 = init_leaf(27);
     let mut lookups = Vec::new();
     hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3), &mut lookups);
@@ -584,46 +585,46 @@ fn hasher_update_merkle_root() {
     check_merkle_path(&trace, 120, new_leaf3_2, &path3_2, 3, MR_UPDATE_NEW);
 
     // make sure sibling table hints were built correctly
-    let expected_sibling_hints = vec![
+    let expected_hints = vec![
         // first update
-        (0, SiblingTableUpdate::SiblingAdded(0)),
-        (8, SiblingTableUpdate::SiblingAdded(1)),
-        (16, SiblingTableUpdate::SiblingAdded(2)),
-        (24, SiblingTableUpdate::SiblingRemoved(0)),
-        (32, SiblingTableUpdate::SiblingRemoved(1)),
-        (40, SiblingTableUpdate::SiblingRemoved(2)),
+        (0, ChipletsVTableUpdate::SiblingAdded(0)),
+        (8, ChipletsVTableUpdate::SiblingAdded(1)),
+        (16, ChipletsVTableUpdate::SiblingAdded(2)),
+        (24, ChipletsVTableUpdate::SiblingRemoved(0)),
+        (32, ChipletsVTableUpdate::SiblingRemoved(1)),
+        (40, ChipletsVTableUpdate::SiblingRemoved(2)),
         // second update
-        (48, SiblingTableUpdate::SiblingAdded(3)),
-        (56, SiblingTableUpdate::SiblingAdded(4)),
-        (64, SiblingTableUpdate::SiblingAdded(5)),
-        (72, SiblingTableUpdate::SiblingRemoved(3)),
-        (80, SiblingTableUpdate::SiblingRemoved(4)),
-        (88, SiblingTableUpdate::SiblingRemoved(5)),
+        (48, ChipletsVTableUpdate::SiblingAdded(3)),
+        (56, ChipletsVTableUpdate::SiblingAdded(4)),
+        (64, ChipletsVTableUpdate::SiblingAdded(5)),
+        (72, ChipletsVTableUpdate::SiblingRemoved(3)),
+        (80, ChipletsVTableUpdate::SiblingRemoved(4)),
+        (88, ChipletsVTableUpdate::SiblingRemoved(5)),
         // third update
-        (96, SiblingTableUpdate::SiblingAdded(6)),
-        (104, SiblingTableUpdate::SiblingAdded(7)),
-        (112, SiblingTableUpdate::SiblingAdded(8)),
-        (120, SiblingTableUpdate::SiblingRemoved(6)),
-        (128, SiblingTableUpdate::SiblingRemoved(7)),
-        (136, SiblingTableUpdate::SiblingRemoved(8)),
+        (96, ChipletsVTableUpdate::SiblingAdded(6)),
+        (104, ChipletsVTableUpdate::SiblingAdded(7)),
+        (112, ChipletsVTableUpdate::SiblingAdded(8)),
+        (120, ChipletsVTableUpdate::SiblingRemoved(6)),
+        (128, ChipletsVTableUpdate::SiblingRemoved(7)),
+        (136, ChipletsVTableUpdate::SiblingRemoved(8)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
+    assert_eq!(expected_hints, aux_hints.hints());
 
     let expected_sibling_rows = vec![
         // first update
-        SiblingTableRow::new(Felt::new(3), path3[0]),
-        SiblingTableRow::new(Felt::new(3 >> 1), path3[1]),
-        SiblingTableRow::new(Felt::new(3 >> 2), path3[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(3), path3[0].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3[1].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3[2].into()),
         // second update
-        SiblingTableRow::new(Felt::new(6), path6[0]),
-        SiblingTableRow::new(Felt::new(6 >> 1), path6[1]),
-        SiblingTableRow::new(Felt::new(6 >> 2), path6[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(6), path6[0].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(6 >> 1), path6[1].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(6 >> 2), path6[2].into()),
         // third update
-        SiblingTableRow::new(Felt::new(3), path3_2[0]),
-        SiblingTableRow::new(Felt::new(3 >> 1), path3_2[1]),
-        SiblingTableRow::new(Felt::new(3 >> 2), path3_2[2]),
+        ChipletsVTableRow::new_sibling(Felt::new(3), path3_2[0].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 1), path3_2[1].into()),
+        ChipletsVTableRow::new_sibling(Felt::new(3 >> 2), path3_2[2].into()),
     ];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
+    assert_eq!(expected_sibling_rows, aux_hints.rows());
 }
 
 // MEMOIZATION TESTS
@@ -761,8 +762,6 @@ fn hash_memoization_control_blocks() {
 
     let (trace, _) = build_trace(hasher, copied_end_row + 1);
 
-    // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
-    check_row_addr_trace(&trace);
     //  check the row address at which memoized block starts.
     let hash_cycle_len: u64 = HASH_CYCLE_LEN.try_into().expect("Could not convert usize to u64");
     assert_eq!(Felt::new(hash_cycle_len * 2 + 1), addr);
@@ -1025,9 +1024,6 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
     let (trace, _) = build_trace(hasher, copied_end_row + 1);
 
-    // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
-    check_row_addr_trace(&trace);
-
     // check correct copy after memoization
     check_memoized_trace(&trace, start_row, end_row, copied_start_row, copied_end_row);
 }
@@ -1037,7 +1033,7 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
-fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuilder) {
+fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsVTableTraceBuilder) {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![Felt::new(0); num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     let aux_trace_builder = hasher.fill_trace(&mut fragment);
@@ -1050,13 +1046,10 @@ fn check_merkle_path(
     trace: &[Vec<Felt>],
     row_idx: usize,
     leaf: Word,
-    path: &[Word],
+    path: &MerklePath,
     node_index: u64,
     init_selectors: Selectors,
 ) {
-    // make sure row address is correct
-    check_row_addr_trace(trace);
-
     // make sure selectors were set correctly
     let mid_selectors = [ZERO, init_selectors[1], init_selectors[2]];
     check_selector_trace(trace, row_idx, init_selectors, init_selectors);
@@ -1072,10 +1065,10 @@ fn check_merkle_path(
         let index_bit = (node_index >> i) & 1;
         let old_root = root;
         let init_state = if index_bit == 0 {
-            root = hasher::merge(&[root.into(), node.into()]).into();
+            root = hasher::merge(&[root.into(), node]).into();
             init_state_from_words(&old_root, &node)
         } else {
-            root = hasher::merge(&[node.into(), root.into()]).into();
+            root = hasher::merge(&[node, root.into()]).into();
             init_state_from_words(&node, &old_root)
         };
         check_hasher_state_trace(trace, row_idx + i * 8, init_state);
@@ -1094,14 +1087,6 @@ fn check_merkle_path(
         for j in 0..8 {
             assert_eq!(Felt::new(node_index), node_idx_column[row_idx + i * 8 + j])
         }
-    }
-}
-
-/// Makes sure that values in the row address column (column 3) start out at 1 and are incremented
-/// by 1 with every row.
-fn check_row_addr_trace(trace: &[Vec<Felt>]) {
-    for (i, &addr) in trace[3].iter().enumerate() {
-        assert_eq!(Felt::new(i as u64 + 1), addr);
     }
 }
 

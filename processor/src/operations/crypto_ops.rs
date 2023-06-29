@@ -10,11 +10,12 @@ where
 {
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
-    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
-    /// stack is assumed to be arranged so that the 8 elements of the rate are at the top of the
-    /// stack. The capacity word follows, with the element that specifies the padding rule at the
-    /// deepest position in stack[11]. For an RPO permutation of [A, B, C] where A is the capacity,
-    /// the stack should be arranged (from the top) as [C, B, A, ...].
+    /// Performs a Rescue Prime Optimized permutation to the top 12 elements of the operand stack,
+    /// where the top two words are the rate (words C and B), the deepest word is the capacity
+    /// (word A), and the digest output is the middle word E.
+    ///
+    /// Stack transition:
+    /// [C, B, A, ...] -> [F, E, D, ...]
     pub(super) fn op_hperm(&mut self) -> Result<(), ExecutionError> {
         let input_state = [
             self.stack.get(11),
@@ -184,7 +185,12 @@ mod tests {
     #[test]
     fn op_hperm() {
         // --- test hashing [ONE, ONE] ------------------------------------------------------------
-        let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+        #[rustfmt::skip]
+        let inputs: [u64; STATE_WIDTH] = [
+            1, 0, 0, 0,      // capacity: first element set to 1 because padding is used
+            1, 1,            // data: [ONE, ONE]
+            1, 0, 0, 0, 0, 0 // padding: ONE followed by the necessary ZEROs
+        ];
         let stack = StackInputs::try_from_values(inputs).unwrap();
         let mut process = Process::new_dummy(stack);
 
@@ -221,7 +227,7 @@ mod tests {
         let index = 5usize;
         let nodes = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let tree = MerkleTree::new(nodes.to_vec()).unwrap();
-        let store = MerkleStore::new().with_merkle_tree(nodes.clone()).unwrap();
+        let store = MerkleStore::from(&tree);
         let root = tree.root();
         let node = nodes[index];
         let index = index as u64;
@@ -284,7 +290,7 @@ mod tests {
             leaves[leaf_index][3].as_int(),
         ];
 
-        let store = MerkleStore::new().with_merkle_tree(leaves.to_vec()).unwrap();
+        let store = MerkleStore::from(&tree);
         let advice_inputs = AdviceInputs::default().with_merkle_store(store);
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
         let mut process =
@@ -328,11 +334,9 @@ mod tests {
         let tree_c = MerkleTree::new(leaves_c.clone()).unwrap();
 
         // appends only the input trees to the Merkle store
-        let store = MerkleStore::new()
-            .with_merkle_tree(leaves_a.to_vec())
-            .unwrap()
-            .with_merkle_tree(leaves_b.to_vec())
-            .unwrap();
+        let mut store = MerkleStore::default();
+        store.extend(tree_a.inner_nodes());
+        store.extend(tree_b.inner_nodes());
 
         // set the target coordinates to update the indexes 4..8
         let target_depth = 2;
@@ -345,7 +349,7 @@ mod tests {
         // fetch the node to be replaced
         let replaced_root = tree_a.root();
         let replaced_node = store
-            .get_node(replaced_root, NodeIndex::new(target_depth as u8, target_index))
+            .get_node(replaced_root, NodeIndex::new(target_depth as u8, target_index).unwrap())
             .unwrap();
 
         // setup the process

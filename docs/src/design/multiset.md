@@ -76,8 +76,10 @@ Miden VM currently makes use of 6 virtual tables across 4 components:
     - [Op group table](./decoder/main.md#op-group-table)
 - Range checker:
     - [8-bit range checks table](./range.md#8-bit-range-checks-table)
-- Hash chiplet:
-    - [Sibling table](./chiplets/hasher.md#sibling-table-constraints)
+- Chiplets:
+    - [Chiplets virtual table](./chiplets/main.md#chiplet-virtual-table), which combines the following two tables into one:
+        - [Hash chiplet sibling table](./chiplets/hasher.md#sibling-table-constraints)
+        - [Kernel ROM chiplet procedure table](./chiplets/kernel_rom.md#kernel-procedure-table-constraints)
 
 ## Communication buses
 

@@ -6,23 +6,24 @@ extern crate alloc;
 
 use vm_core::{
     utils::{collections::Vec, ByteWriter, Serializable},
-    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE,
-    STACK_TRACE_OFFSET, ZERO,
+    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,
     ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree,
 };
 
-mod chiplets;
+mod constraints;
+pub use constraints::stack;
+use constraints::{chiplets, range};
+
+pub mod trace;
+use trace::*;
+
 mod proof;
-mod range;
 
 mod utils;
 use utils::TransitionConstraintRange;
-
-// exported publicly for benchmarking purposes
-pub mod stack;
 
 // EXPORTS
 // ================================================================================================
@@ -86,8 +87,7 @@ impl Air for ProcessorAir {
 
         // Define the number of boundary constraints for the main execution trace segment.
         // TODO: determine dynamically
-        let num_main_assertions =
-            2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS + chiplets::NUM_ASSERTIONS;
+        let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
         let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
@@ -139,9 +139,6 @@ impl Air for ProcessorAir {
 
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
-
-        // Add initial assertions for the chiplets.
-        chiplets::get_assertions_first_step(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();

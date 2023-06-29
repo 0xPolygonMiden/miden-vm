@@ -1,0 +1,173 @@
+use.std::crypto::stark::constants
+
+
+#! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
+#! the hash of the OOD for reseeding the random coin.
+#! 
+#! Input: [...]
+#! Output: [OOD_FRAME_HASH, ...]
+#! Cycles: 106
+export.load_evaluation_frame
+    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
+    # per row. Since we have two rows, i.e. current and next, the total number of field elements
+    # making up the OOD evaluation frame is:
+    # 324 = 40 * 8 + 4
+    # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
+    # current row and a1 from the next row.
+    
+    exec.constants::ood_trace_ptr
+
+    push.1.0.0.0
+    padw padw 
+    repeat.40
+        adv_pipe
+        hperm
+    end
+    
+    # Load the last remaining word and pad with 1 followed by three 0
+    adv_loadw
+    dup.12 mem_storew
+    swapw
+    exec.constants::zero_zero_zero_one_word mem_loadw
+    hperm
+
+    dropw
+    swapw
+    dropw
+    movup.4
+    drop
+end
+
+#! Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
+#! coin.
+#!
+#! Input: [...]
+#! Output: [EVAL_HASH, ...]
+#! Cycles: 112
+export.load_constraint_evaluations
+    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
+    # constraint evaluation polynomial at `z` `H(z)` equals `\sum_0^7 z^(N * i) value_i` where N
+    # is the execution trace length.
+    # In order to facilitate the computation of the DEEP composition polynomial queries, we lay out
+    # the values in memory as [v0, v1, 0, 0] where v := (v0, v1) ranges over the 8 values `value_i`.
+    
+    # Load value_0 and value_1
+    padw
+    padw
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.1
+    mem_storew
+
+    # Load value_2 and value_3
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.2
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.3
+    mem_storew
+
+    dropw
+    hperm
+
+    # Load value_4 and value_5
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.4
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.5
+    mem_storew
+    dropw
+
+    swapw
+
+    # Load value_6 and value_7
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.6
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.7
+    mem_storew
+    dropw
+
+    hperm
+
+    dropw swapw dropw
+end
+
+#! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
+#!
+#! Input: [...]
+#! Output: [res1, res0, ...]
+#! Cycles: 118
+export.compute_Hz
+    # TODO: remove this
+    exec.constants::ood_constraint_evals_ptr
+    add.4
+    repeat.3
+        padw
+    end
+
+    # Compute `H(z)`
+    ## Load `value_i`'s
+
+    dup.12
+    sub.4
+    mem_loadw
+    swapw.2
+
+    dup.12
+    sub.3
+    mem_loadw
+    swapw
+
+    dup.12
+    sub.2
+    mem_loadw
+
+    movup.12
+    sub.1
+    padw
+    movup.4
+    mem_loadw
+
+    ## Load z^N where N is the length of the execution trace
+    padw
+    exec.constants::z_ptr mem_loadw
+    movup.2 drop
+    movup.2 drop
+    # => [z1, z0, value_7, ... ,value_0]
+
+    # Horner evaluation
+    # TODO: maybe can be done faster in another way
+    repeat.6
+        dup
+        movdn.6
+        dup.1
+        movdn.7
+        # => [z1, z0, value_7, value_6, z1, z0, value_5, ... ,value_0]
+
+        ext2mul
+        ext2add
+        # => [acc1, acc0, z1, z0, value_5, ... ,value_0]
+
+        movup.3
+        movup.3
+        # => [z1, z0, acc1, acc0, value_5, ... ,value_0]
+    end
+    ext2mul
+    ext2add
+end

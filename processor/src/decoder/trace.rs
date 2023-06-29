@@ -1,14 +1,14 @@
 use super::{
-    get_num_groups_in_next_batch, Felt, Operation, StarkField, Vec, Word, DIGEST_LEN,
-    MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, ONE, OP_BATCH_1_GROUPS,
-    OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
+    super::utils::get_trace_len, get_num_groups_in_next_batch, Felt, Operation, StarkField, Vec,
+    Word, DIGEST_LEN, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS,
+    NUM_OP_BITS_EXTRA_COLS, ONE, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
+    OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
 };
-use crate::utils::get_trace_len;
 use core::ops::Range;
 use vm_core::utils::new_array_vec;
 
 #[cfg(test)]
-use vm_core::decoder::NUM_USER_OP_HELPERS;
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
 // CONSTANTS
 // ================================================================================================
@@ -36,7 +36,7 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 /// - 1 column to keep track of the index of a currently executing operation within an operation
 ///   group.
 /// - 3 columns for keeping track of operation batch flags.
-/// - 1 column used for op flag degree reduction (to support degree 5 operations).
+/// - 2 columns used for op flag degree reduction (to support degree 4 and 5 operations).
 pub struct DecoderTrace {
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],
@@ -45,7 +45,7 @@ pub struct DecoderTrace {
     group_count_trace: Vec<Felt>,
     op_idx_trace: Vec<Felt>,
     op_batch_flag_trace: [Vec<Felt>; NUM_OP_BATCH_FLAGS],
-    op_bit_extra_trace: Vec<Felt>,
+    op_bit_extra_trace: [Vec<Felt>; NUM_OP_BITS_EXTRA_COLS],
 }
 
 impl DecoderTrace {
@@ -61,7 +61,7 @@ impl DecoderTrace {
             in_span_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_idx_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_batch_flag_trace: new_array_vec(MIN_TRACE_LEN),
-            op_bit_extra_trace: Vec::with_capacity(MIN_TRACE_LEN),
+            op_bit_extra_trace: new_array_vec(MIN_TRACE_LEN),
         }
     }
 
@@ -425,14 +425,23 @@ impl DecoderTrace {
             trace.push(column);
         }
 
-        // put ONEs into the unfilled rows of op bit extra column; we put ONE because the two
-        // most significant bits of HALT operation are ONE and this column is computed as the
-        // product of the two most significant op bits.
+        // finalize the op bit extra columns
+        let [mut op_bit_extra_0, mut op_bit_extra_1] = self.op_bit_extra_trace;
+        debug_assert_eq!(own_len, op_bit_extra_0.len());
+        debug_assert_eq!(own_len, op_bit_extra_1.len());
+
+        // put ZEROs into the unfilled rows of the first op bit extra column, because the HALT
+        // operation does not use this column.
+        op_bit_extra_0.resize(trace_len, ZERO);
+        trace.push(op_bit_extra_0);
+
+        // put ONEs into the unfilled rows of the second op bit extra column. we put ONE because the
+        // two most significant bits of the HALT operation are ONE and this column is computed as
+        // the product of the two most significant op bits.
         debug_assert_eq!(1, (halt_opcode >> 6) & 1);
         debug_assert_eq!(1, (halt_opcode >> 5) & 1);
-        debug_assert_eq!(own_len, self.op_bit_extra_trace.len());
-        self.op_bit_extra_trace.resize(trace_len, ONE);
-        trace.push(self.op_bit_extra_trace);
+        op_bit_extra_1.resize(trace_len, ONE);
+        trace.push(op_bit_extra_1);
 
         trace
     }
@@ -473,11 +482,13 @@ impl DecoderTrace {
             self.op_bits_trace[i].push(bit);
         }
 
-        // populate extra op bit column with the product of the two most significant bits
-        let clk = self.op_bit_extra_trace.len();
+        // populate the op bit extra columns used for degree reduction
+        let clk = self.op_bit_extra_trace[0].len();
         let bit6 = self.op_bits_trace[NUM_OP_BITS - 1][clk];
         let bit5 = self.op_bits_trace[NUM_OP_BITS - 2][clk];
-        self.op_bit_extra_trace.push(bit6 * bit5);
+        let bit4 = self.op_bits_trace[NUM_OP_BITS - 3][clk];
+        self.op_bit_extra_trace[0].push(bit6 * (ONE - bit5) * bit4);
+        self.op_bit_extra_trace[1].push(bit6 * bit5);
     }
 
     /// Add all provided values to the helper registers in the order provided, starting from the

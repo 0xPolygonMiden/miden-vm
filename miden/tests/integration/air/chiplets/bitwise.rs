@@ -1,4 +1,4 @@
-use crate::{build_op_test, build_test};
+use test_utils::{build_op_test, build_test};
 
 #[test]
 fn bitwise_and() {

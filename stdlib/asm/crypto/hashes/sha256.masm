@@ -1,6 +1,9 @@
-#! Given [x, ...] on stack top, this routine computes [y, ...]
-#! such that y = σ_0(x), as defined in SHA specification
+#! Computes SHA2 small sigma 0.
 #!
+#! Input: [x, ...]
+#! Output: [y, ...]
+#!
+#! Where y = σ_0(x), as defined in SHA specification
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
@@ -19,9 +22,12 @@ proc.small_sigma_0
     u32checked_xor
 end
 
-#! Given [x, ...] on stack top, this routine computes [y, ...]
-#! such that y = σ_1(x), as defined in SHA specification
+#! Computes SHA2 small sigma 1.
 #!
+#! Input: [x, ...]
+#! Output: [y, ...]
+#!
+#! Where y = σ_1(x), as defined in SHA specification
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
@@ -40,9 +46,12 @@ proc.small_sigma_1
     u32checked_xor
 end
 
-#! Given [x, ...] on stack top, this routine computes [y, ...]
-#! such that y = Σ_0(x), as defined in SHA specification
+#! Computes SHA2 big sigma 0.
 #!
+#! Input: [x, ...]
+#! Output: [y, ...]
+#!
+#! Where y = Σ_0(x), as defined in SHA specification
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
@@ -61,9 +70,12 @@ proc.cap_sigma_0
     u32checked_xor
 end
 
-#! Given [x, ...] on stack top, this routine computes [y, ...]
-#! such that y = Σ_1(x), as defined in SHA specification
+#! Computes SHA2 big sigma 1.
 #!
+#! Input: [x, ...]
+#! Output: [y, ...]
+#!
+#! Where y = Σ_1(x), as defined in SHA specification
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
@@ -82,9 +94,12 @@ proc.cap_sigma_1
     u32checked_xor
 end
 
-#! Given [x, y, z, ...] on stack top, this routine computes [o, ...]
-#! such that o = ch(x, y, z), as defined in SHA specification
+#! Computes SHA2 ch.
 #!
+#! Input: [x, y, z, ...]
+#! Output: [o, ...]
+#!
+#! Where o = ch(x, y, z), as defined in SHA specification
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L37-L45
 proc.ch
     swap
@@ -100,9 +115,12 @@ proc.ch
     u32checked_xor
 end
 
-#! Given [x, y, z, ...] on stack top, this routine computes [o, ...]
-#! such that o = maj(x, y, z), as defined in SHA specification
+#! Computes SHA2 maj.
 #!
+#! Input: [x, y, z, ...]
+#! Output: [o, ...]
+#!
+#! Where o = maj(x, y, z), as defined in SHA specification
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L47-L55
 proc.maj
     dup.1
@@ -121,21 +139,23 @@ proc.maj
     u32checked_xor
 end
 
-#! Given [a, b, c, d, ...] on stack top, this routine reverses order of first
-#! four elements on stack top such that final stack state looks like [d, c, b, a, ...]
+#! Reverses order of first four elements on stack
+#!
+#! Input: [a, b, c, d, ...]
+#! Output: [d, c, b, a, ...]
+#! Cycles: 3
 proc.rev_element_order
     swap
     movup.2
     movup.3
 end
 
-#! Given [a, b, c, d, ...] on stack top, this routine computes next message schedule word
-#! using following formula
+#! Computes next message schedule word
 #!
-#! t0 = small_sigma_1(a) + b
-#! t1 = small_sigma_0(c) + d
-#! return t0 + t1
+#! Input: [a, b, c, d, ...]
+#! Output: [r, ...]
 #!
+#! Where:
 #! If to be computed message schedule word has index i ∈ [16, 64), then
 #! a, b, c, d will have following indices in message schedule
 #!
@@ -143,6 +163,10 @@ end
 #! b = msg[i - 7]
 #! c = msg[i - 15]
 #! d = msg[i - 16]
+#!
+#! t0 = small_sigma_1(a) + b
+#! t1 = small_sigma_0(c) + d
+#! r = t0 + t1
 proc.compute_message_schedule_word
     exec.small_sigma_1
     movup.2
@@ -153,18 +177,14 @@ proc.compute_message_schedule_word
     u32wrapping_add
 end
 
-#! Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant &
-#! 32 -bit message word on stack top, this routine consumes constant & message word into
-#! hash state.
+#! Consumes constant and message word into hash state according to SHA256 specification.
 #!
-#! Expected stack state looks like
+#! Input: [a, b, c, d, e, f, g, h, CONST_i, WORD_i]
+#! Output: [a', b', c', d', e', f', g', h']
 #!
-#! [a, b, c, d, e, f, g, h, CONST_i, WORD_i] | i ∈ [0, 64)
-#!
-#! After finishing execution, stack looks like
-#!
-#! [a', b', c', d', e', f', g', h']
-#!
+#! Where:
+#! - i ∈ [0, 64)
+#! - a through h are working variables of SHA256 ( i.e. hash state )
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L165-L175
 proc.consume_message_word
     dup.6
@@ -203,20 +223,14 @@ proc.consume_message_word
     u32wrapping_add
 end
 
-#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input
-#! message ( in terms of 16 SHA256 words ) on stack top, this routine computes
-#! whole message schedule of 64 message words and consumes them into hash state.
+#! Computes whole message schedule of 64 message words and consumes them into hash state.
 #!
-#! Expected stack state:
+#! Input: [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
+#! Output: [state0', state1', state2', state3', state4', state5', state6', state7']
 #!
-#! [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
-#!
-#! Final stack state after completion of execution
-#!
-#! [state0', state1', state2', state3', state4', state5', state6', state7']
-#!
-#! Note, each SHA256 word is 32 -bit wide
-#!
+#! Where:
+#! - state0 through state7 are the hash state (in terms of 8 SHA256 words)
+#! - msg0 through msg15 are the 64 -bytes input message (in terms of 16 SHA256 words)
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
 #! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
 proc.prepare_message_schedule_and_consume.2
@@ -1079,22 +1093,15 @@ proc.prepare_message_schedule_and_consume.2
     movdn.7
 end
 
-#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message
-#! schedule of padding bytes ( in terms of 64 message words ), this routine consumes
-#! that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
+#! Consumes precomputed message schedule of padding bytes into hash state, returns final hash state.
+#!
+#! Input: [state0, state1, state2, state3, state4, state5, state6, state7, ...]
+#! Output: [state0', state1', state2', state3', state4', state5', state6', state7']
 #!
 #! Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
 #! block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating
 #! message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here
 #! ( in this routine ) into provided hash state.
-#!
-#! Expected stack state:
-#!
-#! [state0, state1, state2, state3, state4, state5, state6, state7, ...]
-#!
-#! Final stack state after completion of execution
-#!
-#! [state0', state1', state2', state3', state4', state5', state6', state7']
 #!
 #! Note, each SHA256 word is 32 -bit wide
 #!
@@ -1529,17 +1536,14 @@ end
 
 #! Given 64 -bytes input, this routine computes 32 -bytes SHA256 digest
 #!
-#! Expected stack state:
+#! Input: [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15, ...]
+#! Output: [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
-#! [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15, ...] | m[0,16) = 32 -bit word
+#! Where: m[0,16) = 32 -bit word
 #!
 #! Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
 #! As you've 64 -bytes, consider packing 4 consecutive bytes into single word,
 #! maintaining big endian byte order.
-#!
-#! Final stack state:
-#!
-#! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
 #! SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
 export.hash_2to1
@@ -1554,15 +1558,14 @@ end
 #!
 #! Expected stack state:
 #!
-#! [m0, m1, m2, m3, m4, m5, m6, m7, ...] | m[0,8) = 32 -bit word
+#! Input: [m0, m1, m2, m3, m4, m5, m6, m7, ...]
+#! Output: [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
+#!
+#! Where: m[0,8) = 32 -bit word
 #!
 #! Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
 #! As you've 32 -bytes, consider packing 4 consecutive bytes into single word,
 #! maintaining big endian byte order.
-#!
-#! Final stack state:
-#!
-#! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
 #! SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
 export.hash_1to1

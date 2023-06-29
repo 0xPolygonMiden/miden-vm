@@ -7,11 +7,11 @@ The `NOOP` operation advances the cycle counter but does not change the state of
 The `NOOP` operation does not impose any constraints besides the ones needed to ensure that the entire state of the stack is copied over. This constraint looks like so:
 
 >$$
-s'_i - s_i = 0 \ \text{ for } i \in \{0, .., 15\} \text { | degree} = 1
+s'_i - s_i = 0 \ \text{ for } i \in [0, 16) \text { | degree} = 1
 $$
 
 ## ASSERT
-The `ASSERT` operation pops an element off the stack and checks if the popped element is equal to $1$. If the element is not equal to $1$, program execution fails..
+The `ASSERT` operation pops an element off the stack and checks if the popped element is equal to $1$. If the element is not equal to $1$, program execution fails.
 
 ![assert](../../assets/design/stack/system_ops/ASSERT.png)
 

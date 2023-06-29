@@ -1,12 +1,12 @@
 use super::{
-    trace::LookupTableRow, BTreeMap, ColMatrix, Felt, FieldElement, HasherState, MerkleRootUpdate,
-    OpBatch, StarkField, TraceFragment, Vec, Word, ZERO,
+    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
+    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
+    ZERO,
 };
-use vm_core::chiplets::hasher::{
-    absorb_into_state, get_digest, init_state, init_state_from_words,
-    init_state_from_words_with_domain, Digest, Selectors, HASH_CYCLE_LEN, LINEAR_HASH,
-    LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
-    MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
+use miden_air::trace::chiplets::hasher::{
+    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,
+    MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD,
+    MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
     RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
 };
 
@@ -16,9 +16,6 @@ use lookups::HasherLookupContext;
 
 mod trace;
 use trace::HasherTrace;
-
-mod aux_trace;
-pub use aux_trace::{AuxTraceBuilder, SiblingTableRow, SiblingTableUpdate};
 
 #[cfg(test)]
 mod tests;
@@ -35,15 +32,13 @@ mod tests;
 /// * Merkle root updates.
 ///
 /// ## Execution trace
-/// Hasher execution trace consists of 17 columns as illustrated below:
+/// Hasher execution trace consists of 16 columns as illustrated below:
 ///
-///   s0   s1   s2   addr   h0   h1   h2   h3   h4   h5   h6   h7   h8   h9   h10   h11   idx
-/// ├────┴────┴────┴──────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴─────┴─────┴─────┤
+///   s0   s1   s2   h0   h1   h2   h3   h4   h5   h6   h7   h8   h9   h10   h11   idx
+/// ├────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴─────┴─────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// * Selector columns s0, s1, and s2 used to help select transition function for a given row.
-/// * Row address column addr used to uniquely identify each row in the table. Values in this
-///   column start at 1 and are incremented by one with every subsequent row.
 /// * Hasher state columns h0 through h11 used to hold the hasher state for each round of hash
 ///   computation. The state is laid out as follows:
 ///   - The first four columns represent the capacity state of the sponge function.
@@ -65,13 +60,12 @@ mod tests;
 ///   Chiplet via the Chiplets Bus.
 /// - a map of memoized execution trace, which keeps track of start and end rows of the sections of
 ///   the trace of a control or span block that can be copied to be used later for program blocks
-///   encountered with the same digest instead of building it from scratch everytime. The only
-///   thing that changes in the copied trace are the `addr` column rows. The hash of the block
-///   is used as the key here after converting it to a bytes array.
+///   encountered with the same digest instead of building it from scratch everytime. The hash of
+///   the block is used as the key here after converting it to a bytes array.
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
-    aux_trace: AuxTraceBuilder,
+    aux_trace: ChipletsVTableTraceBuilder,
     memoized_trace_map: BTreeMap<[u8; 32], (usize, usize)>,
 }
 
@@ -293,7 +287,7 @@ impl Hasher {
     pub(super) fn build_merkle_root(
         &mut self,
         value: Word,
-        path: &[Word],
+        path: &MerklePath,
         index: Felt,
         lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
@@ -325,7 +319,7 @@ impl Hasher {
         &mut self,
         old_value: Word,
         new_value: Word,
-        path: &[Word],
+        path: &MerklePath,
         index: Felt,
         lookups: &mut Vec<HasherLookup>,
     ) -> MerkleRootUpdate {
@@ -359,7 +353,7 @@ impl Hasher {
 
     /// Fills the provided trace fragment with trace data from this hasher trace instance. This
     /// also returns the trace builder for hasher-related auxiliary trace columns.
-    pub(super) fn fill_trace(self, trace: &mut TraceFragment) -> AuxTraceBuilder {
+    pub(super) fn fill_trace(self, trace: &mut TraceFragment) -> ChipletsVTableTraceBuilder {
         self.trace.fill_trace(trace);
 
         self.aux_trace
@@ -381,13 +375,16 @@ impl Hasher {
     fn verify_merkle_path(
         &mut self,
         value: Word,
-        path: &[Word],
+        path: &MerklePath,
         mut index: u64,
         context: MerklePathContext,
         lookups: &mut Vec<HasherLookup>,
     ) -> Word {
         assert!(!path.is_empty(), "path is empty");
-        assert!(index >> path.len() == 0, "invalid index for the path");
+        assert!(
+            index.checked_shr(path.len() as u32).unwrap_or(0) == 0,
+            "invalid index for the path"
+        );
         let mut root = value;
         let mut depth = path.len() - 1;
 
@@ -450,7 +447,7 @@ impl Hasher {
     fn verify_mp_leg(
         &mut self,
         root: Word,
-        sibling: Word,
+        sibling: Digest,
         index: &mut u64,
         init_selectors: Selectors,
         final_selectors: Selectors,
@@ -506,13 +503,13 @@ impl Hasher {
         &mut self,
         context: MerklePathContext,
         index: u64,
-        sibling: Word,
+        sibling: Digest,
         depth: usize,
     ) {
         let step = self.trace.trace_len() as u32;
         match context {
             MerklePathContext::MrUpdateOld => {
-                self.aux_trace.sibling_added(step, Felt::new(index), sibling);
+                self.aux_trace.sibling_added(step, Felt::new(index), sibling.into());
             }
             MerklePathContext::MrUpdateNew => {
                 // we use node depth as row offset here because siblings are added to the table
@@ -629,4 +626,73 @@ pub fn get_selector_context_label(
             }
         }
     }
+}
+
+// TODO: Move these to another file.
+
+// HASHER STATE MUTATORS
+// ================================================================================================
+
+/// Initializes hasher state with the first 8 elements to be absorbed. In accordance with the RPO
+/// padding rule, the first capacity element is set with the provided padding flag, which is assumed
+/// to be ZERO or ONE, depending on whether the number of elements to be absorbed is a multiple of
+/// the rate or not. The remaining elements in the capacity portion of the state are set to ZERO.
+#[inline(always)]
+pub fn init_state(init_values: &[Felt; RATE_LEN], padding_flag: Felt) -> [Felt; STATE_WIDTH] {
+    debug_assert!(
+        padding_flag == ZERO || padding_flag == ONE,
+        "first capacity element must be 0 or 1"
+    );
+    [
+        padding_flag,
+        ZERO,
+        ZERO,
+        ZERO,
+        init_values[0],
+        init_values[1],
+        init_values[2],
+        init_values[3],
+        init_values[4],
+        init_values[5],
+        init_values[6],
+        init_values[7],
+    ]
+}
+
+/// Initializes hasher state with the elements from the provided words. Because the length of the
+/// input is a multiple of the rate, all capacity elements are initialized to zero, as specified by
+/// the Rescue Prime Optimized padding rule.
+#[inline(always)]
+pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
+    init_state_from_words_with_domain(w1, w2, ZERO)
+}
+
+/// Initializes hasher state with elements from the provided words.  Sets the second element of the
+/// capacity register to the provided domain.  All other elements of the capacity register are set to 0.
+#[inline(always)]
+pub fn init_state_from_words_with_domain(
+    w1: &Word,
+    w2: &Word,
+    domain: Felt,
+) -> [Felt; STATE_WIDTH] {
+    [ZERO, domain, ZERO, ZERO, w1[0], w1[1], w1[2], w1[3], w2[0], w2[1], w2[2], w2[3]]
+}
+
+/// Absorbs the specified values into the provided state by overwriting the corresponding elements
+/// in the rate portion of the state.
+#[inline(always)]
+pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_LEN]) {
+    state[4] = values[0];
+    state[5] = values[1];
+    state[6] = values[2];
+    state[7] = values[3];
+    state[8] = values[4];
+    state[9] = values[5];
+    state[10] = values[6];
+    state[11] = values[7];
+}
+
+/// Returns elements representing the digest portion of the provided hasher's state.
+pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> [Felt; DIGEST_LEN] {
+    state[DIGEST_RANGE].try_into().expect("failed to get digest from hasher state")
 }

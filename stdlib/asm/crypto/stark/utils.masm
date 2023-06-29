@@ -1,0 +1,18 @@
+use.std::crypto::stark::constants
+
+
+#! Compute the LDE domain generator from the log2 of its size.
+#!
+#! Input: [log2(domain_size), ..]
+#! Output: [domain_gen, ..]
+#! Cycles: 63
+export.compute_lde_generator
+    push.32
+    swap
+    sub
+    pow2
+    exec.constants::root_unity
+    swap
+    exp.u32
+    # => [domain_gen, ..]
+end

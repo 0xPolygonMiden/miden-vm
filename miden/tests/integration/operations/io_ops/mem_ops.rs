@@ -28,10 +28,10 @@ fn mem_load() {
 #[test]
 fn mem_store() {
     let asm_op = "mem_store";
-    let addr = 0;
+    let addr = 0_u32;
 
     // --- address provided via the stack ---------------------------------------------------------
-    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
+    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr as u64]);
     test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 
     // --- address provided as a parameter --------------------------------------------------------
@@ -70,10 +70,10 @@ fn mem_loadw() {
 #[test]
 fn mem_storew() {
     let asm_op = "mem_storew";
-    let addr = 0;
+    let addr = 0_u32;
 
     // --- address provided via the stack ---------------------------------------------------------
-    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
+    let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr as u64]);
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
 
     // --- address provided as a parameter --------------------------------------------------------
@@ -95,12 +95,44 @@ fn mem_stream() {
         begin
             push.1
             mem_storew
-            drop drop drop drop
+            dropw
             push.0
             mem_storew
-            drop drop drop drop
-            push.12 push.11 push.10 push.9 push.8 push.7 push.6 push.5 push.4 push.3 push.2 push.1
+            dropw
+            push.12.11.10.9.8.7.6.5.4.3.2.1
             mem_stream
+        end";
+
+    let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    // the state is built by replacing the values on the top of the stack with the values in memory
+    // addresses 0 and 1 (i.e., 1 through 8). Thus, the first 8 elements on the stack will be 1
+    // through 8 (in stack order, with 8 at stack[0]), and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
+    let state: [Felt; 12] =
+        [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
+
+    // to get the final state of the stack, reverse the above state and push the expected address
+    // to the end (the address will be 2 since 0 + 2 = 2).
+    let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
+    final_stack.reverse();
+    final_stack.push(2);
+
+    let test = build_test!(source, &inputs);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
+fn mem_stream_with_hperm() {
+    let source = "
+        begin
+            push.1
+            mem_storew
+            dropw
+            push.0
+            mem_storew
+            dropw
+            push.12.11.10.9.8.7.6.5.4.3.2.1
+            mem_stream hperm
         end";
 
     let inputs = [1, 2, 3, 4, 5, 6, 7, 8];

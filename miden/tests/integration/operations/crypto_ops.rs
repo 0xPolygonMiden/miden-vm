@@ -1,12 +1,9 @@
-use rand_utils::rand_vector;
-use vm_core::{
-    chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
-    crypto::merkle::{MerkleTree, NodeIndex},
-    Felt, FieldElement, StarkField,
+use test_utils::{
+    build_expected_hash, build_expected_perm, build_op_test,
+    crypto::{init_merkle_leaf, init_merkle_store, MerkleTree, NodeIndex},
+    rand::rand_vector,
+    Felt, StarkField,
 };
-
-use crate::build_op_test;
-use crate::helpers::crypto::{init_merkle_leaf, init_merkle_store};
 
 // TESTS
 // ================================================================================================
@@ -41,7 +38,12 @@ fn hperm() {
     assert_eq!(expected, &last_state[0..12]);
 
     // --- test hashing # of values that's not a multiple of the rate: [ONE, ONE] -----------------
-    let values: Vec<u64> = vec![1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0];
+    #[rustfmt::skip]
+    let values: Vec<u64> = vec![
+        1, 0, 0, 0,      // capacity: first element set to 1 because padding is used
+        1, 1,            // data: [ONE, ONE]
+        1, 0, 0, 0, 0, 0 // padding: ONE followed by the necessary ZEROs
+    ];
     let expected = build_expected_perm(&values);
 
     let test = build_op_test!(asm_op, &values);
@@ -132,6 +134,84 @@ fn mtree_get() {
 }
 
 #[test]
+fn mtree_verify() {
+    let asm_op = "mtree_verify";
+
+    let index = 3_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        index as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let final_stack = [
+        leaves[index][3].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][0].as_int(),
+        tree.depth() as u64,
+        index as u64,
+        tree.root()[3].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[0].as_int(),
+    ];
+
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
+#[should_panic]
+fn mtree_verify_negative() {
+    let asm_op = "mtree_verify";
+
+    let index = 3_usize;
+    let tampered_index = 2_usize;
+    let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = MerkleTree::new(leaves.clone()).unwrap();
+
+    let stack_inputs = [
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+        tampered_index as u64,
+        tree.depth() as u64,
+        leaves[index][0].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][3].as_int(),
+    ];
+
+    let final_stack = [
+        leaves[index][3].as_int(),
+        leaves[index][2].as_int(),
+        leaves[index][1].as_int(),
+        leaves[index][0].as_int(),
+        tree.depth() as u64,
+        index as u64,
+        tree.root()[3].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[0].as_int(),
+    ];
+
+    let test = build_op_test!(asm_op, &stack_inputs, &[], store);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
 fn mtree_update() {
     let index = 5usize;
     let (leaves, store) = init_merkle_store(&[1, 2, 3, 4, 5, 6, 7, 8]);
@@ -160,7 +240,7 @@ fn mtree_update() {
     let asm_op = "mtree_set";
 
     let old_node = tree
-        .get_node(NodeIndex::new(tree.depth(), index as u64))
+        .get_node(NodeIndex::new(tree.depth(), index as u64).unwrap())
         .expect("Value should have been set on initialization");
 
     // expected state has the new leaf and the new root of the tree
@@ -177,26 +257,4 @@ fn mtree_update() {
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], store.clone());
     test.expect_stack(&final_stack);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
-    let mut expected = [Felt::ZERO; STATE_WIDTH];
-    for (&value, result) in values.iter().zip(expected.iter_mut()) {
-        *result = Felt::new(value);
-    }
-    apply_permutation(&mut expected);
-    expected.reverse();
-
-    expected
-}
-
-fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
-    let digest = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
-    let mut expected: [Felt; 4] = digest.into();
-    expected.reverse();
-
-    expected
 }

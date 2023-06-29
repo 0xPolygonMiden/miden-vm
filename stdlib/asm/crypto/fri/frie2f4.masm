@@ -4,7 +4,7 @@ use.std::crypto::fri::ext2fri
 #! 1) d_size is the domain size divided by 4 of the domain corresponding to C.
 #! 2) t_depth is the tree depth of the Merkle tree with commitment C.
 #! 3) (a0, a1) is the folding challenge to create the next layer.
-#! 4) p is the query index and (e0, e1) is the evaluation at the first layer and poe is g^p with 
+#! 4) p is the query index and (e0, e1) is the evaluation at the first layer and poe is g^p with
 #!  g being the initial domain generator.
 #! TODO: This pre-processing function should in fact compute d_size and t_depth for each C
 #! starting from the original domain size.
@@ -20,7 +20,7 @@ export.preprocess.4
         u32wrapping_add.1               #[ptr+1, Q, num_queries, ptr, ..]
         swap.6                          #[ptr, Q, num_queries, ptr+1, ..]
         mem_storew                      #[Q, num_queries, ptr+1, ..]
-        dup.4                           
+        dup.4
         sub.1                           #[num_queries-1, Q, num_queries, ptr+1, ..]
         swap.5                          #[num_queries, Q, num_queries-1, ptr+1, ..]
         neq.0                           #[?, Q, num_queries-1, ptr+1, ..]
@@ -29,7 +29,7 @@ export.preprocess.4
 
     drop
     #=> [X, layer_ptr, g]
-    
+
     dup.4
     movdn.5
     #=> [X, layer_ptr, layer_ptr, g]
@@ -42,21 +42,21 @@ export.preprocess.4
 
     push.1
     while.true
-        adv_loadw                        
-        dup.5                            
-        u32wrapping_add.1                
-        swap.6                          
-        mem_storew                       
-        dup.4                           
-        sub.1                            
-        swap.5                           
-        neq.0                            
+        adv_loadw
+        dup.5
+        u32wrapping_add.1
+        swap.6
+        mem_storew
+        dup.4
+        sub.1
+        swap.5
+        neq.0
     end
     #=> [X, x, remainder_ptr, layer_ptr, g]
 
     drop
     #=> [X, remainder_ptr, layer_ptr, g]
-    
+
     dup.4
     movdn.5
     #=> [X, remainder_ptr, remainder_ptr, layer_ptr, g]
@@ -68,15 +68,15 @@ export.preprocess.4
 
     push.1
     while.true
-        adv_loadw                        
-        dup.5                            
-        u32wrapping_add.1                
-        swap.6                           
-        mem_storew                       
-        dup.4                           
-        sub.1                            
-        swap.5                          
-        neq.0                            
+        adv_loadw
+        dup.5
+        u32wrapping_add.1
+        swap.6
+        mem_storew
+        dup.4
+        sub.1
+        swap.5
+        neq.0
     end
     #=> [X, x, x, remainder_ptr, layer_ptr, g]
     dropw drop drop
@@ -115,7 +115,7 @@ export.verify_query_layer.3
     dup.5
     movup.5             # [t_depth, f_pos, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     mtree_get           # [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
-    adv.keyval
+    adv.push_mapval
     swapw
     # => [V, C, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ...]
     # where f_pos = p % d_size and d_seg = p / 4
@@ -128,6 +128,7 @@ export.verify_query_layer.3
     swapw
     push.0.0.0.0
     adv_pipe
+    hperm
     # => [T2, T1, T0, ptr, V, f_pos, d_seg, poe, e1, e0, a1, a0, layer_ptr, rem_ptr, ..]
 
     # assert T1 == V (16 cycles)

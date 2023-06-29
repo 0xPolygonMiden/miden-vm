@@ -1,8 +1,11 @@
-use super::{ExecutionError, Felt, InputError, Word};
+use super::{ExecutionError, Felt, InputError, StarkField, Word};
 use vm_core::{
-    crypto::merkle::{MerklePath, MerkleStore, NodeIndex},
+    crypto::{
+        hash::RpoDigest,
+        merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
+    },
     utils::{
-        collections::{BTreeMap, Vec},
+        collections::{BTreeMap, KvMap, RecordingMap, Vec},
         IntoBytes,
     },
 };
@@ -10,8 +13,8 @@ use vm_core::{
 mod inputs;
 pub use inputs::AdviceInputs;
 
-mod mem_provider;
-pub use mem_provider::MemAdviceProvider;
+mod providers;
+pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;
@@ -83,6 +86,9 @@ pub trait AdviceProvider {
     fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError>;
 
     /// Pushes the value(s) specified by the source onto the advice stack.
+    ///
+    /// # Errors
+    /// Returns an error if the value specified by the advice source cannot be obtained.
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
 
     /// Inserts the provided value into the advice map under the specified key.
@@ -90,8 +96,8 @@ pub trait AdviceProvider {
     /// The values in the advice map can be moved onto the advice stack by invoking
     /// [AdviceProvider::push_stack()] method.
     ///
-    /// # Errors
-    /// Returns an error if the key is already present in the advice map.
+    /// If the specified key is already present in the advice map, the values under the key
+    /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
 
     // ADVISE SETS
@@ -123,6 +129,21 @@ pub trait AdviceProvider {
         depth: &Felt,
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError>;
+
+    /// Reconstructs a path from the root until a leaf or empty node and returns its depth.
+    ///
+    /// For more information, check [MerkleStore::get_leaf_depth].
+    ///
+    /// # Errors
+    /// Will return an error if:
+    /// - The provided `tree_depth` doesn't fit `u8`.
+    /// - The conditions of [MerkleStore::get_leaf_depth] aren't met.
+    fn get_leaf_depth(
+        &self,
+        root: Word,
+        tree_depth: &Felt,
+        index: &Felt,
+    ) -> Result<u8, ExecutionError>;
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root.
@@ -209,6 +230,15 @@ where
         index: &Felt,
     ) -> Result<MerklePath, ExecutionError> {
         T::get_merkle_path(self, root, depth, index)
+    }
+
+    fn get_leaf_depth(
+        &self,
+        root: Word,
+        tree_depth: &Felt,
+        index: &Felt,
+    ) -> Result<u8, ExecutionError> {
+        T::get_leaf_depth(self, root, tree_depth, index)
     }
 
     fn update_merkle_node(

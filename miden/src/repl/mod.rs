@@ -3,7 +3,6 @@ use miden::{
     math::{Felt, StarkField},
     MemAdviceProvider, StackInputs, Word,
 };
-use processor::Process;
 use rustyline::{error::ReadlineError, Editor};
 
 /// This work is in continuation to the amazing work done by team `Scribe`
@@ -270,18 +269,18 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     let stack_inputs = StackInputs::default();
     let advice_provider = MemAdviceProvider::default();
 
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
-    let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
-
-    let (sys, _, stack, _, chiplets, _) = process.into_parts();
+    let state_iter = processor::execute_iter(&program, stack_inputs, advice_provider);
+    let (system, _, stack, chiplets, err) = state_iter.into_parts();
+    if let Some(err) = err {
+        return Err(ProgramError::ExecutionError(err));
+    }
 
     // loads the memory at the latest clock cycle.
-    let mem = chiplets.get_mem_state_at(0, sys.clk());
-
+    let mem_state = chiplets.get_mem_state_at(0, system.clk());
     // loads the stack along with the overflow values at the latest clock cycle.
-    let stack_state = stack.get_state_at(sys.clk());
+    let stack_state = stack.get_state_at(system.clk());
 
-    Ok((mem, stack_state))
+    Ok((mem_state, stack_state))
 }
 
 /// Parses the address in integer form from "!mem[addr]" command, otherwise throws an error.
