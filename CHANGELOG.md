@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.7.0 (TBD)
+
 ## 0.6.1 (2023-06-29)
 
 - Fixed `no-std` compilation for `miden-core`, `miden-assembly`, and `miden-processor` crates.
