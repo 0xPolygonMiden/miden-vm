@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.6.1 (2023-06-29) - `miden-core` only
+## 0.6.1 (2023-06-29)
 
-- Fix macro use in `miden-core` for `no-std`.
+- Fixed `no-std` compilation for `miden-core`, `miden-assembly`, and `miden-processor` crates.
 
 ## 0.6.0 (2023-06-28)
 
