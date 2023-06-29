@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
 
 // IMPORTS
@@ -119,7 +120,7 @@ impl Test {
 
     /// Asserts that running the test for the expected TestError variant will result in an error
     /// that contains the TestError's error substring in its error message.
-    #[cfg(not(target_family = "wasm"))]
+    #[cfg(all(feature = "std", not(target_family = "wasm")))]
     pub fn expect_error(&self, error: TestError) {
         match error {
             TestError::AssemblyError(substr) => {

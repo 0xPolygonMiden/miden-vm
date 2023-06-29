@@ -1,4 +1,4 @@
-use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest};
+use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest, ToString};
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;
 

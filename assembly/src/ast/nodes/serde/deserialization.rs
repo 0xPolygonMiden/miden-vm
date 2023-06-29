@@ -1,6 +1,6 @@
 use super::{
     super::AdviceInjectorNode, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
-    Instruction, Node, OpCode, ProcedureId, RpoDigest, MAX_PUSH_INPUTS,
+    Instruction, Node, OpCode, ProcedureId, RpoDigest, ToString, MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION

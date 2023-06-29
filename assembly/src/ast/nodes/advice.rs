@@ -1,5 +1,5 @@
 use super::super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
     MAX_STACK_WORD_OFFSET,
 };
 use core::fmt;
