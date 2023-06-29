@@ -550,6 +550,20 @@ impl ParsingError {
         }
     }
 
+    pub fn too_many_imported_procs_invoked(
+        token: &Token,
+        num_procs: usize,
+        max_procs: usize,
+    ) -> Self {
+        ParsingError {
+            message: format!(
+                "a module cannot invoke more than {max_procs} imported procedures, but had {num_procs}"
+            ),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 

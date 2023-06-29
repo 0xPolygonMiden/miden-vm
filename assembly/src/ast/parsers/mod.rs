@@ -1,8 +1,8 @@
 use super::{
-    bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt,
-    Instruction, InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node,
-    ParsingError, ProcedureAst, ProcedureId, ReExportedProcMap, RpoDigest, SliceReader, StarkField,
-    String, ToString, Token, TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN, MAX_IMPORTS,
+    bound_into_included_u64, AdviceInjectorNode, CodeBody, Deserializable, Felt, Instruction,
+    InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node,
+    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap, RpoDigest,
+    SliceReader, StarkField, String, ToString, Token, TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN,
     MAX_LABEL_LEN, MAX_STACK_WORD_OFFSET,
 };
 use core::{fmt::Display, ops::RangeBounds};
@@ -24,37 +24,6 @@ pub use labels::{
 
 // PARSERS FUNCTIONS
 // ================================================================================================
-
-/// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
-/// its fully-qualified path (e.g., "std::math::u64").
-pub fn parse_imports(
-    tokens: &mut TokenStream,
-) -> Result<BTreeMap<String, LibraryPath>, ParsingError> {
-    let mut imports = BTreeMap::<String, LibraryPath>::new();
-    // read tokens from the token stream until all `use` tokens are consumed
-    while let Some(token) = tokens.read() {
-        match token.parts()[0] {
-            Token::USE => {
-                let module_path = token.parse_use()?;
-                let module_name = module_path.last();
-                if imports.contains_key(module_name) {
-                    return Err(ParsingError::duplicate_module_import(token, &module_path));
-                }
-
-                imports.insert(module_name.to_string(), module_path);
-
-                // consume the `use` token
-                tokens.advance();
-            }
-            _ => break,
-        }
-    }
-
-    if imports.len() > MAX_IMPORTS {
-        return Err(ParsingError::too_many_imports(imports.len(), MAX_IMPORTS));
-    }
-    Ok(imports)
-}
 
 /// Parses all `const` statements into a map which maps a const name to a value
 pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, ParsingError> {

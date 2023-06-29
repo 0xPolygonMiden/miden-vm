@@ -1,6 +1,7 @@
 use super::{
     AstSerdeOptions, BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node,
-    ParsingError, ProcedureAst, ProcedureId, ProgramAst, SourceLocation, Token,
+    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ProgramAst, SourceLocation, String,
+    ToString, Token,
 };
 use vm_core::utils::SliceReader;
 
@@ -85,6 +86,10 @@ fn test_ast_parsing_program_u32() {
     assert_program_output(source, BTreeMap::new(), nodes);
 }
 
+fn str_to_proc_name(name: &str) -> ProcedureName {
+    ProcedureName::try_from(name).unwrap()
+}
+
 #[test]
 fn test_ast_parsing_program_proc() {
     let source = "\
@@ -101,7 +106,7 @@ fn test_ast_parsing_program_proc() {
 
     let mut procedures: LocalProcMap = BTreeMap::new();
     procedures.insert(
-        String::from("foo"),
+        str_to_proc_name("foo"),
         (
             0,
             ProcedureAst::new(
@@ -118,7 +123,7 @@ fn test_ast_parsing_program_proc() {
         ),
     );
     procedures.insert(
-        String::from("bar"),
+        str_to_proc_name("bar"),
         (
             1,
             ProcedureAst::new(
@@ -149,7 +154,7 @@ fn test_ast_parsing_module() {
     end";
     let mut procedures: LocalProcMap = BTreeMap::new();
     procedures.insert(
-        String::from("foo"),
+        str_to_proc_name("foo"),
         (
             0,
             ProcedureAst::new(
@@ -280,7 +285,7 @@ fn test_ast_parsing_module_nested_if() {
     let proc_body_locations =
         [SourceLocation::new(2, 9), SourceLocation::new(3, 9), SourceLocation::new(14, 5)];
     procedures.insert(
-        String::from("foo"),
+        str_to_proc_name("foo"),
         (
             0,
             ProcedureAst::new(
@@ -369,7 +374,7 @@ fn test_ast_parsing_module_sequential_if() {
         SourceLocation::new(14, 5),
     ];
     procedures.insert(
-        String::from("foo"),
+        str_to_proc_name("foo"),
         (
             0,
             ProcedureAst::new(
@@ -564,7 +569,7 @@ This comment is intentionally longer than 256 characters, since we need to be su
 of the comments is correctly parsed. There was a bug here earlier."
             .to_string();
     procedures.insert(
-        String::from("foo"),
+        str_to_proc_name("foo"),
         (
             0,
             ProcedureAst::new(
@@ -582,7 +587,7 @@ of the comments is correctly parsed. There was a bug here earlier."
     );
 
     procedures.insert(
-        String::from("bar"),
+        str_to_proc_name("bar"),
         (
             1,
             ProcedureAst::new(
@@ -605,7 +610,7 @@ consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolor
 aliqua."
             .to_string();
     procedures.insert(
-        String::from("baz"),
+        str_to_proc_name("baz"),
         (
             2,
             ProcedureAst::new(
@@ -647,7 +652,7 @@ of the comments is correctly parsed. There was a bug here earlier."
             proc
         );
     }
-    let module_serialized = module.to_bytes(AstSerdeOptions::new(false));
+    let module_serialized = module.to_bytes(AstSerdeOptions::new(true));
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
     let module = clear_procs_loc_module(module);
@@ -727,7 +732,7 @@ fn test_ast_parsing_module_docs_fail() {
 #[test]
 fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
-    assert_correct_program_serialization(source, false);
+    assert_correct_program_serialization(source, true);
 }
 
 #[test]
@@ -743,7 +748,7 @@ fn test_ast_program_serde_local_procs() {
         exec.foo
         exec.bar
     end";
-    assert_correct_program_serialization(source, false);
+    assert_correct_program_serialization(source, true);
 }
 
 #[test]
@@ -755,7 +760,7 @@ fn test_ast_program_serde_exported_procs() {
     export.bar.2
         padw
     end";
-    assert_correct_module_serialization(source, false);
+    assert_correct_module_serialization(source, true);
 }
 
 #[test]
@@ -787,7 +792,7 @@ fn test_ast_program_serde_control_flow() {
         end
 
     end";
-    assert_correct_program_serialization(source, false);
+    assert_correct_program_serialization(source, true);
 }
 
 #[test]
@@ -966,7 +971,7 @@ fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
 /// Serialization of imports is optional, so if they are not serialized, then they have to be
 /// cleared before testing for equality
 fn clear_imports_module(module: &mut ModuleAst) {
-    module.imports.clear();
+    module.clear_imports();
 }
 
 /// Clears the program's imports.
@@ -974,7 +979,7 @@ fn clear_imports_module(module: &mut ModuleAst) {
 /// Serialization of imports is optional, so if they are not serialized, then they have to be
 /// cleared before testing for equality
 fn clear_imports_program(program: &mut ProgramAst) {
-    program.imports.clear();
+    program.clear_imports();
 }
 
 fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
@@ -1005,7 +1010,7 @@ fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
         .load_source_locations(&mut SliceReader::new(&locations))
         .unwrap();
     if !serialize_imports {
-        program_deserialized.imports = program.imports.clone();
+        program_deserialized.import_info = program.import_info.clone();
     }
     assert_eq!(program, program_deserialized);
 }
@@ -1036,7 +1041,7 @@ fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
         .load_source_locations(&mut SliceReader::new(&locations))
         .unwrap();
     if !serialize_imports {
-        module_deserialized.imports = module.imports.clone();
+        module_deserialized.import_info = module.import_info.clone();
     }
     assert_eq!(module, module_deserialized);
 }

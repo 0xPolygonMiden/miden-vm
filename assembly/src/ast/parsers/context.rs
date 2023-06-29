@@ -1,19 +1,17 @@
 use super::{
     super::ProcReExport, adv_ops, field_ops, io_ops, stack_ops, u32_ops, CodeBody, Instruction,
-    InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap, Node, ParsingError, ProcedureAst,
-    ProcedureId, ReExportedProcMap, Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
+    InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node, ParsingError,
+    ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap, Token, TokenStream, MAX_BODY_LEN,
+    MAX_DOCS_LEN,
 };
-use vm_core::utils::{
-    collections::{BTreeMap, Vec},
-    string::{String, ToString},
-};
+use vm_core::utils::{collections::Vec, string::ToString};
 
 // PARSER CONTEXT
 // ================================================================================================
 
 /// AST Parser context that holds internal state to generate correct ASTs.
 pub struct ParserContext<'a> {
-    pub imports: &'a BTreeMap<String, LibraryPath>,
+    pub import_info: &'a mut ModuleImports,
     pub local_procs: LocalProcMap,
     pub reexported_procs: ReExportedProcMap,
     pub local_constants: LocalConstMap,
@@ -24,7 +22,7 @@ impl ParserContext<'_> {
     // --------------------------------------------------------------------------------------------
 
     /// Parses an if-else statement from the provided token stream into an AST node.
-    fn parse_if(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
+    fn parse_if(&mut self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the if-else block and consume the 'if' token
         let if_start = tokens.pos();
         let if_token = tokens.read().expect("no if token");
@@ -99,7 +97,7 @@ impl ParserContext<'_> {
     }
 
     /// Parses a while statement from the provided token stream into an AST node.
-    fn parse_while(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
+    fn parse_while(&mut self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the while block and consume the 'while' token
         let while_start = tokens.pos();
         let while_token = tokens.read().expect("no while token");
@@ -130,7 +128,7 @@ impl ParserContext<'_> {
     }
 
     /// Parses a repeat statement from the provided token stream into an AST node.
-    fn parse_repeat(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
+    fn parse_repeat(&mut self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the repeat block and consume the 'repeat' token
         let repeat_start = tokens.pos();
         let repeat_token = tokens.read().expect("no repeat token");
@@ -164,7 +162,7 @@ impl ParserContext<'_> {
     // --------------------------------------------------------------------------------------------
 
     /// Parse an `exec` token into an instruction node.
-    fn parse_exec(&self, token: &Token) -> Result<Node, ParsingError> {
+    fn parse_exec(&mut self, token: &Token) -> Result<Node, ParsingError> {
         match token.parse_invocation(token.parts()[0])? {
             InvocationTarget::MastRoot(_) => Err(ParsingError::exec_with_mast_root(token)),
             InvocationTarget::ProcedureName(proc_name) => {
@@ -173,7 +171,7 @@ impl ParserContext<'_> {
                 Ok(Node::Instruction(inner))
             }
             InvocationTarget::ProcedurePath { name, module } => {
-                let proc_id = self.get_imported_proc_id(name, module, token)?;
+                let proc_id = self.import_info.add_invoked_proc(&name, module, token)?;
                 let inner = Instruction::ExecImported(proc_id);
                 Ok(Node::Instruction(inner))
             }
@@ -181,7 +179,7 @@ impl ParserContext<'_> {
     }
 
     /// Parse a `call` token into an instruction node.
-    fn parse_call(&self, token: &Token) -> Result<Node, ParsingError> {
+    fn parse_call(&mut self, token: &Token) -> Result<Node, ParsingError> {
         match token.parse_invocation(token.parts()[0])? {
             InvocationTarget::MastRoot(root_hash) => {
                 let inner = Instruction::CallMastRoot(root_hash);
@@ -193,7 +191,7 @@ impl ParserContext<'_> {
                 Ok(Node::Instruction(inner))
             }
             InvocationTarget::ProcedurePath { name, module } => {
-                let proc_id = self.get_imported_proc_id(name, module, token)?;
+                let proc_id = self.import_info.add_invoked_proc(&name, module, token)?;
                 let inner = Instruction::CallImported(proc_id);
                 Ok(Node::Instruction(inner))
             }
@@ -205,7 +203,7 @@ impl ParserContext<'_> {
         match token.parse_invocation(token.parts()[0])? {
             InvocationTarget::MastRoot(_) => Err(ParsingError::syscall_with_mast_root(token)),
             InvocationTarget::ProcedureName(proc_name) => {
-                let proc_id = ProcedureId::from_kernel_name(proc_name);
+                let proc_id = ProcedureId::from_kernel_name(proc_name.as_ref());
                 let inner = Instruction::SysCall(proc_id);
                 Ok(Node::Instruction(inner))
             }
@@ -244,12 +242,12 @@ impl ParserContext<'_> {
             if is_reexport {
                 // parse procedure re-export and add it to the list of re-exported procedures
                 let proc = self.parse_reexported_procedure(tokens)?;
-                self.reexported_procs.insert(proc.name.to_string(), proc);
+                self.reexported_procs.insert(proc.name.clone(), proc);
             } else {
                 // parse the procedure body and add it to the list of local procedures
                 let proc = self.parse_procedure(tokens)?;
                 let proc_idx = self.local_procs.len() as u16;
-                self.local_procs.insert(proc.name.to_string(), (proc_idx, proc));
+                self.local_procs.insert(proc.name.clone(), (proc_idx, proc));
             }
         }
 
@@ -264,14 +262,14 @@ impl ParserContext<'_> {
     /// - Procedure declaration or procedure body is malformed.
     /// - A procedure with the same name has already been either declared or re-exported from this
     ///   context.
-    fn parse_procedure(&self, tokens: &mut TokenStream) -> Result<ProcedureAst, ParsingError> {
+    fn parse_procedure(&mut self, tokens: &mut TokenStream) -> Result<ProcedureAst, ParsingError> {
         let proc_start = tokens.pos();
 
         // parse procedure declaration, make sure the procedure with the same name hasn't been
         // declared previously, and consume the `proc` or `export` token.
         let header = tokens.read().expect("missing procedure header");
         let (name, num_locals, is_export) = header.parse_proc()?;
-        if self.contains_proc_name(name.as_str()) {
+        if self.contains_proc_name(&name) {
             return Err(ParsingError::duplicate_proc_name(header, name.as_str()));
         }
         let start = *header.location();
@@ -334,14 +332,14 @@ impl ParserContext<'_> {
         // been declared previously
         let header = tokens.read().expect("missing procedure header");
         let (proc_name, ref_name, module) = header.parse_reexported_proc()?;
-        if self.contains_proc_name(proc_name.as_str()) {
+        if self.contains_proc_name(&proc_name) {
             return Err(ParsingError::duplicate_proc_name(header, proc_name.as_str()));
         }
 
         // check if the module from which the procedure is re-exported was imported
         let module_path = self
-            .imports
-            .get(module)
+            .import_info
+            .get_module_path(module)
             .ok_or(ParsingError::procedure_module_not_imported(header, module))?;
 
         // consume the `export` token
@@ -369,7 +367,7 @@ impl ParserContext<'_> {
     /// Nodes are added to the list until `if`, `else`, `while`, `repeat`, `end`, `export`, `proc`,
     /// or `begin` tokens are encountered, or an error occurs.
     pub fn parse_body(
-        &self,
+        &mut self,
         tokens: &mut TokenStream,
         break_on_else: bool,
     ) -> Result<CodeBody, ParsingError> {
@@ -434,7 +432,7 @@ impl ParserContext<'_> {
     // --------------------------------------------------------------------------------------------
 
     /// Parses a token into an instruction node.
-    fn parse_op_token(&self, op: &Token) -> Result<Node, ParsingError> {
+    fn parse_op_token(&mut self, op: &Token) -> Result<Node, ParsingError> {
         use Instruction::*;
 
         // based on the instruction, invoke the correct parser for the operation
@@ -632,35 +630,20 @@ impl ParserContext<'_> {
     ///
     /// # Errors
     /// Returns an error if a local procedure with the specified name has not been parsed ye.
-    fn get_local_proc_index(&self, proc_name: &str, token: &Token) -> Result<u16, ParsingError> {
-        self.local_procs
-            .get(proc_name)
-            .ok_or_else(|| ParsingError::undefined_local_proc(token, proc_name))
-            .map(|(index, _)| *index)
-    }
-
-    /// Returns procedure ID of a procedure imported from the specified module.
-    ///
-    /// # Errors
-    /// Return an error if the module with the specified name has not been imported via the `use`
-    /// statement.
-    fn get_imported_proc_id(
+    fn get_local_proc_index(
         &self,
-        proc_name: &str,
-        module_name: &str,
+        proc_name: ProcedureName,
         token: &Token,
-    ) -> Result<ProcedureId, ParsingError> {
-        let module_path = self
-            .imports
-            .get(module_name)
-            .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module_name))?;
-        let proc_id = ProcedureId::from_name(proc_name, module_path);
-        Ok(proc_id)
+    ) -> Result<u16, ParsingError> {
+        self.local_procs
+            .get(&proc_name)
+            .ok_or_else(|| ParsingError::undefined_local_proc(token, proc_name.as_ref()))
+            .map(|(index, _)| *index)
     }
 
     /// Returns true if a procedure with the specified name is present in the set of local or
     /// re-exported procedures.
-    fn contains_proc_name(&self, proc_name: &str) -> bool {
+    fn contains_proc_name(&self, proc_name: &ProcedureName) -> bool {
         self.local_procs.contains_key(proc_name) || self.reexported_procs.contains_key(proc_name)
     }
 }
