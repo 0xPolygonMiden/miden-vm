@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1 (2023-06-29) - `miden-core` only
+
+- Fix macro use in `miden-core` for `no-std`.
+
 ## 0.6.0 (2023-06-28)
 
 #### Assembly
