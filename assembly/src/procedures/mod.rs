@@ -182,6 +182,12 @@ impl Deserializable for ProcedureName {
     }
 }
 
+impl fmt::Display for ProcedureName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 // PROCEDURE ID
 // ================================================================================================
 

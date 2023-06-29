@@ -1,14 +1,13 @@
 use super::{
-    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath,
-    ParsingError, ProcedureId, ProcedureName, Serializable, String, ToString, Token, TokenStream,
-    Vec, MAX_IMPORTS, MAX_INVOKED_IMPORTED_PROCS,
+    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, InvokedProcsMap,
+    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, String, ToString, Token,
+    TokenStream, Vec, MAX_IMPORTS, MAX_INVOKED_IMPORTED_PROCS,
 };
 
 // TYPE ALIASES
 // ================================================================================================
 
 type ImportedModulesMap = BTreeMap<String, LibraryPath>;
-type InvokedProcsMap = BTreeMap<ProcedureId, (ProcedureName, LibraryPath)>;
 
 // MODULE IMPORTS
 // ================================================================================================
@@ -87,6 +86,11 @@ impl ModuleImports {
     /// Return the paths of all imported module
     pub fn import_paths(&self) -> Vec<&LibraryPath> {
         self.imports.values().collect()
+    }
+
+    /// Returns a reference to the invoked procedure map which maps procedure IDs to their names.
+    pub fn invoked_procs(&self) -> &InvokedProcsMap {
+        &self.invoked_procs
     }
 
     // STATE MUTATORS

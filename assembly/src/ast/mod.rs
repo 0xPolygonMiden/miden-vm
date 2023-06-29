@@ -9,16 +9,20 @@ use super::{
     Serializable, SliceReader, StarkField, String, ToString, Token, TokenStream, Vec,
     MAX_LABEL_LEN,
 };
-use core::{iter, str::from_utf8};
+use core::{fmt, iter, str::from_utf8};
 use vm_core::utils::bound_into_included_u64;
 
 pub use super::tokens::SourceLocation;
 
 mod nodes;
+use nodes::FormattableNode;
 pub use nodes::{AdviceInjectorNode, Instruction, Node};
 
 mod code_body;
 pub use code_body::CodeBody;
+
+mod format;
+use format::*;
 
 mod imports;
 pub use imports::ModuleImports;
@@ -66,6 +70,7 @@ const MAX_STACK_WORD_OFFSET: u8 = 12;
 type LocalProcMap = BTreeMap<ProcedureName, (u16, ProcedureAst)>;
 type LocalConstMap = BTreeMap<String, u64>;
 type ReExportedProcMap = BTreeMap<ProcedureName, ProcReExport>;
+type InvokedProcsMap = BTreeMap<ProcedureId, (ProcedureName, LibraryPath)>;
 
 // EXECUTABLE PROGRAM AST
 // ================================================================================================
@@ -211,7 +216,6 @@ impl ProgramAst {
 
         let local_procs = sort_procs_into_vec(context.local_procs);
         let (nodes, locations) = body.into_parts();
-
         Ok(Self::new(nodes, local_procs)?
             .with_source_locations(locations, start)
             .with_import_info(import_info))
@@ -322,6 +326,46 @@ impl ProgramAst {
     /// Clear import info from the program
     pub fn clear_imports(&mut self) {
         self.import_info = None;
+    }
+}
+
+impl fmt::Display for ProgramAst {
+    /// Writes this [ProgramAst] as formatted MASM code into the formatter.
+    ///
+    /// The formatted code puts each instruction on a separate line and preserves correct indentation
+    /// for instruction blocks.
+    ///
+    /// # Panics
+    /// Panics if import info is not associated with this program.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        assert!(self.import_info.is_some(), "Program imports not instantiated");
+
+        // Imports
+        if let Some(ref info) = self.import_info {
+            let paths = info.import_paths();
+            for path in paths.iter() {
+                writeln!(f, "use.{path}")?;
+            }
+            if !paths.is_empty() {
+                writeln!(f)?;
+            }
+        }
+
+        let tmp_procs = InvokedProcsMap::new();
+        let invoked_procs =
+            self.import_info.as_ref().map(|info| info.invoked_procs()).unwrap_or(&tmp_procs);
+
+        let context = AstFormatterContext::new(&self.local_procs, invoked_procs);
+
+        // Local procedures
+        for proc in self.local_procs.iter() {
+            writeln!(f, "{}", FormattableProcedureAst::new(proc, &context))?;
+        }
+
+        // Main progrma
+        writeln!(f, "begin")?;
+        write!(f, "{}", FormattableCodeBody::new(&self.body, &context.inner_scope_context()))?;
+        writeln!(f, "end")
     }
 }
 
@@ -591,6 +635,54 @@ impl ModuleAst {
     /// Clear import info from the module
     pub fn clear_imports(&mut self) {
         self.import_info = None;
+    }
+}
+
+impl fmt::Display for ModuleAst {
+    /// Writes this [ModuleAst] as formatted MASM code into the formatter.
+    ///
+    /// The formatted code puts each instruction on a separate line and preserves correct indentation
+    /// for instruction blocks.
+    ///
+    /// # Panics
+    /// Panics if import info is not associated with this module.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        assert!(self.import_info.is_some(), "Program imports not instantiated");
+
+        // Docs
+        if let Some(ref doc) = self.docs {
+            writeln!(f, "#! {doc}")?;
+            writeln!(f)?;
+        }
+
+        // Imports
+        if let Some(ref info) = self.import_info {
+            let paths = info.import_paths();
+            for path in paths.iter() {
+                writeln!(f, "use.{path}")?;
+            }
+            if !paths.is_empty() {
+                writeln!(f)?;
+            }
+        }
+
+        // Re-exports
+        for proc in self.reexported_procs.iter() {
+            writeln!(f, "export.{}", proc.name)?;
+            writeln!(f)?;
+        }
+
+        // Local procedures
+        let tmp_procs = InvokedProcsMap::new();
+        let invoked_procs =
+            self.import_info.as_ref().map(|info| info.invoked_procs()).unwrap_or(&tmp_procs);
+
+        let context = AstFormatterContext::new(&self.local_procs, invoked_procs);
+
+        for proc in self.local_procs.iter() {
+            writeln!(f, "{}", FormattableProcedureAst::new(proc, &context))?;
+        }
+        Ok(())
     }
 }
 
