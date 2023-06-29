@@ -3,6 +3,7 @@ use super::{
     SourceLocation,
 };
 use core::{iter, slice};
+use vm_core::utils::collections::Vec;
 
 // CODE BODY
 // ================================================================================================

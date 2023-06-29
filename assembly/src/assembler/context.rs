@@ -83,8 +83,11 @@ impl AssemblyContext {
 
         // make sure this module is not in the chain of modules which are currently being compiled
         if self.module_stack.iter().any(|m| &m.path == module_path) {
-            let dep_chain =
-                self.module_stack.iter().map(|m| m.path.to_string()).collect::<Vec<_>>();
+            let dep_chain = self
+                .module_stack
+                .iter()
+                .map(|m| m.path.as_ref().to_string())
+                .collect::<Vec<_>>();
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
         }
 
@@ -359,7 +362,7 @@ impl ModuleContext {
         if self.compiled_procs.iter().any(|p| p.label() == name)
             || self.proc_stack.iter().any(|p| &p.name == name)
         {
-            return Err(AssemblyError::duplicate_proc_name(name, &self.path));
+            return Err(AssemblyError::duplicate_proc_name(name, self.path.as_ref()));
         }
 
         let name = ProcedureName::try_from(name.to_string())?;
@@ -412,7 +415,7 @@ impl ModuleContext {
         let called_proc = self
             .compiled_procs
             .get(proc_idx as usize)
-            .ok_or_else(|| AssemblyError::local_proc_not_found(proc_idx, &self.path))?;
+            .ok_or_else(|| AssemblyError::local_proc_not_found(proc_idx, self.path.as_ref()))?;
 
         // get the context of the procedure currently being compiled
         let context = self.proc_stack.last_mut().expect("no proc context");

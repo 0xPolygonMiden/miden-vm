@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+
 use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest};
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;

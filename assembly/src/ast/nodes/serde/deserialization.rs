@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+
 use super::{
     super::AdviceInjectorNode, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
     Instruction, Node, OpCode, ProcedureId, RpoDigest, MAX_PUSH_INPUTS,

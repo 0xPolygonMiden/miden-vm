@@ -1,3 +1,8 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+
+use vm_core::utils::string::String;
+
 use super::{
     bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt,
     Instruction, InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node,
@@ -38,7 +43,7 @@ pub fn parse_imports(
                 let module_path = token.parse_use()?;
                 let module_name = module_path.last();
                 if imports.contains_key(module_name) {
-                    return Err(ParsingError::duplicate_module_import(token, &module_path));
+                    return Err(ParsingError::duplicate_module_import(token, module_path.as_ref()));
                 }
 
                 imports.insert(module_name.to_string(), module_path);
@@ -65,7 +70,7 @@ pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, Parsin
     while let Some(token) = tokens.read() {
         match token.parts()[0] {
             Token::CONST => {
-                let (name, value) = parse_constant(token)?;
+                let (name, value): (String, u64) = parse_constant(token)?;
 
                 if constants.contains_key(&name) {
                     return Err(ParsingError::duplicate_const_name(token, &name));

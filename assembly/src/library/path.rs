@@ -1,8 +1,12 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable,
     MAX_LABEL_LEN,
 };
 use core::{ops::Deref, str::from_utf8};
+use vm_core::utils::string::String;
 
 // CONSTANTS
 // ================================================================================================
@@ -127,7 +131,8 @@ impl LibraryPath {
     /// - The joined path is either for a kernel or an executable module.
     /// - The resulting path requires more than 1KB to serialize.
     pub fn join(&self, other: &Self) -> Result<Self, PathError> {
-        if other.path.starts_with(Self::KERNEL_PATH) || other.starts_with(Self::EXEC_PATH) {
+        if other.path.starts_with(Self::KERNEL_PATH) || other.as_ref().starts_with(Self::EXEC_PATH)
+        {
             return Err(PathError::component_invalid_char(&other.path));
         }
 

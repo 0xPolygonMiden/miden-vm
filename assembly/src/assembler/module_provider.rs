@@ -32,7 +32,7 @@ impl ModuleProvider {
     /// Will error if there is a duplicated module path.
     fn add_module(&mut self, module: Module) -> Result<(), LibraryError> {
         if self.modules.iter().any(|m| module.path == m.path) {
-            return Err(LibraryError::duplicate_module_path(&module.path));
+            return Err(LibraryError::duplicate_module_path(module.path.as_ref()));
         }
         let module_idx = self.modules.len();
         for proc in module.ast.reexported_procs().iter() {

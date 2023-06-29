@@ -1,9 +1,13 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+
 use super::{
     ast::{AstSerdeOptions, ModuleAst},
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, PathError,
     Serializable, Vec, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
 };
 use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};
+use vm_core::utils::string::String;
 
 mod masl;
 pub use masl::MaslLibrary;
@@ -102,8 +106,8 @@ impl Module {
 
     /// Validate if the module belongs to the provided namespace.
     pub fn check_namespace(&self, namespace: &LibraryNamespace) -> Result<(), LibraryError> {
-        (self.path.first() == namespace.as_str()).then_some(()).ok_or_else(|| {
-            LibraryError::inconsistent_namespace(self.path.first(), namespace.as_str())
+        (self.path.first() == namespace.as_ref()).then_some(()).ok_or_else(|| {
+            LibraryError::inconsistent_namespace(self.path.first(), namespace.as_ref())
         })
     }
 

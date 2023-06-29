@@ -1,4 +1,8 @@
 use super::{Deserializable, LabelError, RpoDigest, SliceReader, MAX_LABEL_LEN};
+use vm_core::utils::collections::Vec;
+
+#[cfg(not(feature = "std"))]
+use crate::alloc::string::ToString;
 
 // LABEL PARSERS
 // ================================================================================================

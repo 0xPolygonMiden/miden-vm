@@ -375,7 +375,7 @@ impl Assembler {
             if !self.proc_cache.borrow().contains_id(proc_id) {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
                     proc_id,
-                    &module.path,
+                    module.path.as_ref(),
                 ));
             }
         }

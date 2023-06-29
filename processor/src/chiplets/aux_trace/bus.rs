@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use crate::alloc::borrow::ToOwned;
+
 use super::{
     super::{hasher::HasherLookup, BitwiseLookup, KernelProcLookup, MemoryLookup},
     BTreeMap, BusTraceBuilder, ColMatrix, Felt, FieldElement, LookupTableRow, Vec,

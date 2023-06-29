@@ -849,7 +849,7 @@ impl fmt::Display for LibraryError {
             }
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
             NoModulesInLibrary { name } => {
-                write!(f, "library '{}' does not contain any modules", name.as_str())
+                write!(f, "library '{}' does not contain any modules", name.as_ref())
             }
             TooManyDependenciesInLibrary {
                 name,
@@ -859,7 +859,7 @@ impl fmt::Display for LibraryError {
                 write!(
                     f,
                     "library '{}' contains {num_dependencies} dependencies, but max is {max_dependencies}",
-                    name.as_str()
+                    name.as_ref()
                 )
             }
             TooManyModulesInLibrary {
@@ -870,7 +870,7 @@ impl fmt::Display for LibraryError {
                 write!(
                     f,
                     "library '{}' contains {num_modules} modules, but max is {max_modules}",
-                    name.as_str()
+                    name.as_ref()
                 )
             }
             TooManyVersionComponents { version } => {

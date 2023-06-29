@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
+
 use super::super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
     MAX_STACK_WORD_OFFSET,
