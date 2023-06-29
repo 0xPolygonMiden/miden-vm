@@ -233,7 +233,7 @@ pub struct ChipletsBusRow {
 impl ChipletsBusRow {
     pub(crate) fn new(requests: &[u32], response: Option<u32>) -> Self {
         ChipletsBusRow {
-            requests: requests.to_owned(),
+            requests: requests.to_vec(),
             response,
         }
     }

@@ -1,4 +1,4 @@
-use super::{CodeBody, Felt, ProcedureId, RpoDigest, Vec};
+use super::{CodeBody, Felt, ProcedureId, RpoDigest, ToString, Vec};
 use core::fmt;
 
 mod advice;
