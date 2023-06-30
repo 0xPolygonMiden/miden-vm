@@ -395,7 +395,7 @@ end
 proc.compute_denominators
     # Compute x = offset * domain_gen^index
     padw
-    exec.constants::tmp0 mem_loadw
+    exec.constants::lde_size_ptr mem_loadw
     #=> [lde_size, depth, domain_gen, 0, index, ...]
     movup.2
     dup.4

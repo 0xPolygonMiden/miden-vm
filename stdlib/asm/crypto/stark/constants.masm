@@ -85,7 +85,6 @@ const.R1_PTR=4294903312
 const.R2_PTR=4294903313
 
 # Address used for storing temporary values:
-const.TMP0=4294903314
 const.TMP1=4294903315
 const.TMP2=4294903316
 const.TMP3=4294903317
@@ -123,7 +122,6 @@ const.TMP8=4294903322
 #   | C_PTR                                    |       4294903311        |
 #   | R1_PTR                                   |       4294903312        |
 #   | R2_PTR                                   |       4294903313        |
-#   | TMP0                                     |       4294903314        |
 #   | TMP1                                     |       4294903315        |
 #   | TMP2                                     |       4294903316        |
 #   | TMP3                                     |       4294903317        |
@@ -195,7 +193,7 @@ end
 
 #! Address to store details about the lde size.
 #!
-#! Memory is `[lde_size, log(lde_size), 0, 0]`
+#! Memory is `[lde_size, log(lde_size), lde_g, 0]`
 export.lde_size_ptr
     push.LDE_SIZE_PTR
 end
@@ -253,13 +251,6 @@ end
 #! second rate word of the RPO.
 export.r2_ptr
     push.R2_PTR
-end
-
-#! Address to store details to compute deep queries.
-#!
-#! Memory is `[lde_size, log2(lde_size), lde_generator, 0]`
-export.tmp0
-    push.TMP0
 end
 
 #! Address to store details to compute deep query denominators.

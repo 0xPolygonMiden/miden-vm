@@ -236,7 +236,7 @@ export.verify
     #
     # Cycles: 15
     padw
-    exec.constants::tmp0 mem_loadw
+    exec.constants::lde_size_ptr mem_loadw
     push.0.0
     exec.constants::tmp8 mem_loadw
     swap.3

@@ -1,4 +1,5 @@
 use.std::crypto::stark::constants
+use.std::crypto::stark::utils
 
 
 #! Helper procedure to compute addition of two words component-wise.
@@ -75,7 +76,7 @@ end
 #!
 #! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
-#! Cycles: 104
+#! Cycles: 168
 export.init_seed
 
     # Save the parameters in memory for later use
@@ -124,7 +125,6 @@ export.init_seed
     assert_eq
 
     ## Compute log(lde_size) and lde_size and store them
-    ## Cycles: 32
     add
     swap
     movup.3
@@ -135,17 +135,23 @@ export.init_seed
     dup
     movdn.3
     mul
-    push.0
-    movdn.2
-    push.0
-    movdn.2
-    exec.constants::lde_size_ptr mem_storew
-    #=> [lde_size, log(lde_size), 0, 0, trace_length, num_queries, blowup, grinding]
 
+    # Compute lde_domain generator
+    dup.1
+    exec.utils::compute_lde_generator
+    movdn.2
+    #=> [lde_size, log(lde_size), lde_g, trace_length, num_queries, blowup, grinding]
+
+    push.0
+    movdn.3
+    #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
+
+    # Save `[lde_size, log(lde_size), lde_g, 0]` and clean stack
+    exec.constants::lde_size_ptr mem_storew
+    dropw
+    #=> [trace_length, num_queries, blowup, grinding]
 
     # Construct the proof context
-    # Cycles: 9
-    dropw
 
     ##trace layout info
     push.1208027408
@@ -616,7 +622,7 @@ end
 export.generate_list_indices
     # Create mask
     padw
-    exec.constants::tmp0 mem_loadw
+    exec.constants::lde_size_ptr mem_loadw
     movup.2 drop
     movup.2 drop
     sub.1
