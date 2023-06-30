@@ -1,4 +1,5 @@
 use super::{ExecutionError, Felt, InputError, StarkField, Word};
+use core::borrow::Borrow;
 use vm_core::{
     crypto::{
         hash::RpoDigest,
@@ -100,6 +101,11 @@ pub trait AdviceProvider {
     /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
 
+    // ADVICE MAP
+    // --------------------------------------------------------------------------------------------
+    /// Returns a reference to the value(s) associated with the specified key in the advice map.
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]>;
+
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
@@ -177,6 +183,15 @@ pub trait AdviceProvider {
     /// advice provider.
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
 
+    /// Returns a subset of this Merkle store such that the returned Merkle store contains all
+    /// nodes which are descendants of the specified roots.
+    ///
+    /// The roots for which no descendants exist in this Merkle store are ignored.
+    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
+    where
+        I: Iterator<Item = R>,
+        R: Borrow<RpoDigest>;
+
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 
@@ -212,6 +227,10 @@ where
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         T::insert_into_map(self, key, values)
+    }
+
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+        T::get_mapped_values(self, key)
     }
 
     fn get_tree_node(
@@ -253,6 +272,14 @@ where
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         T::merge_roots(self, lhs, rhs)
+    }
+
+    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
+    where
+        I: Iterator<Item = R>,
+        R: Borrow<RpoDigest>,
+    {
+        T::get_store_subset(self, roots)
     }
 
     fn advance_clock(&mut self) {

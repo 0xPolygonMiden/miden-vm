@@ -106,6 +106,12 @@ where
         Ok(())
     }
 
+    // ADVICE MAP
+    // --------------------------------------------------------------------------------------------
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+        self.map.get(key).map(|v| v.as_slice())
+    }
+
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
@@ -184,6 +190,14 @@ where
             .map_err(ExecutionError::MerkleStoreMergeFailed)
     }
 
+    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
+    where
+        I: Iterator<Item = R>,
+        R: core::borrow::Borrow<RpoDigest>,
+    {
+        self.store.subset(roots).into_inner().into_iter().collect()
+    }
+
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 
@@ -257,6 +271,10 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+        self.provider.get_mapped_values(key)
+    }
+
     fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, ExecutionError> {
         self.provider.get_tree_node(root, depth, index)
     }
@@ -275,6 +293,13 @@ impl AdviceProvider for MemAdviceProvider {
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
+    }
+
+    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
+        where
+            I: Iterator<Item = R>,
+            R: core::borrow::Borrow<RpoDigest> {
+        self.provider.get_store_subset(roots)
     }
 
     fn advance_clock(&mut self) {
@@ -383,6 +408,10 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+        self.provider.get_mapped_values(key)
+    }
+
     fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt) -> Result<Word, ExecutionError> {
         self.provider.get_tree_node(root, depth, index)
     }
@@ -401,6 +430,13 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
+    }
+
+    fn get_store_subset<I, R>(&self, roots: I) -> MerkleStore
+        where
+            I: Iterator<Item = R>,
+            R: core::borrow::Borrow<RpoDigest> {
+        self.provider.get_store_subset(roots)
     }
 
     fn advance_clock(&mut self) {
