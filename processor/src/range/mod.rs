@@ -3,7 +3,6 @@ use super::{
     utils::uninit_vector,
     BTreeMap, ColMatrix, Felt, FieldElement, RangeCheckTrace, Vec, ONE, ZERO,
 };
-use core::cmp::Ordering;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -278,20 +277,18 @@ fn lookups_to_rows(num_lookups: usize) -> usize {
 /// Calculates the number of bridge rows that are need to be added to the trace between two values
 /// to be range checked.
 pub fn get_num_bridge_rows(delta: u16) -> usize {
-    let mut exp = 7;
     let mut gap = delta;
     let mut bridge_rows = 0_usize;
-    let mut stride = 3_u16.pow(exp);
-    while gap > 0 {
-        if gap >= stride {
+    let mut stride = 3_u16.pow(7);
+    while gap != stride {
+        if gap > stride {
             bridge_rows += 1;
             gap -= stride;
         } else {
-            exp = exp.saturating_sub(1);
-            stride = 3_u16.pow(exp);
+            stride /= 3;
         }
     }
-    bridge_rows.saturating_sub(1)
+    bridge_rows
 }
 
 /// Adds a row for the values to be range checked. In case the difference between the current and
@@ -304,30 +301,19 @@ fn write_rows(
     prev_value: u16,
     row_flags: &mut [RangeCheckFlag],
 ) {
-    let mut exp = 7;
     let mut gap = value - prev_value;
     let mut prev_val = prev_value;
-    let mut stride = 3_u16.pow(exp);
-    if gap == 0 {
-        write_value(trace, step, num_lookups, value as u64, row_flags);
-    }
-    while gap > 0 {
-        match gap.cmp(&stride) {
-            Ordering::Equal => {
-                gap -= stride;
-                write_value(trace, step, num_lookups, value as u64, row_flags);
-            }
-            Ordering::Greater => {
-                gap -= stride;
-                prev_val += stride;
-                write_value(trace, step, 0, prev_val as u64, row_flags);
-            }
-            Ordering::Less => {
-                exp = exp.saturating_sub(1);
-                stride = 3_u16.pow(exp);
-            }
+    let mut stride = 3_u16.pow(7);
+    while gap != stride {
+        if gap > stride {
+            gap -= stride;
+            prev_val += stride;
+            write_value(trace, step, 0, prev_val as u64, row_flags);
+        } else {
+            stride /= 3;
         }
     }
+    write_value(trace, step, num_lookups, value as u64, row_flags);
 }
 
 /// Populates the trace with the rows needed to support the specified number of lookups against

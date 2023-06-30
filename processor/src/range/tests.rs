@@ -147,21 +147,16 @@ fn validate_bridge_rows(
     curr_value: u64,
     next_value: u64,
 ) {
-    let mut exp = 7;
     let mut gap = next_value - curr_value;
     let mut bridge_val = curr_value;
-    let mut stride = 3_u64.pow(exp);
-    while gap > 0 {
-        if gap == stride {
-            break;
-        }
+    let mut stride = 3_u64.pow(7);
+    while gap != stride {
         if gap > stride {
             gap -= stride;
             bridge_val += stride;
             validate_row(trace, row_idx, bridge_val, 0);
         } else {
-            exp = exp.saturating_sub(1);
-            stride = 3_u64.pow(exp);
+            stride /= 3;
         }
     }
 }

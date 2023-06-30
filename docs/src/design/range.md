@@ -121,7 +121,7 @@ $$
 
 This constraint has a degree 9. This construction allows the minimum trace length to be 1024.
 
-We could even go further and allow the gaps between two consecutive rows to only be 0 or powers of 3. In this case we would enforce the constraint:
+We could go even further and allow the gaps between two consecutive rows to only be 0 or powers of 3. In this case we would enforce the constraint:
 
 $$
 \Delta u \cdot (\Delta u - 1)  \cdot (\Delta u - 3)  \cdot (\Delta u - 9)  \cdot (\Delta u - 27)  \cdot (\Delta u - 81)  \cdot (\Delta u - 243)  \cdot (\Delta u - 729)  \cdot (\Delta u - 2187) = 0
@@ -139,7 +139,7 @@ Then for each $x_i$ except the first, we add a bridge row at a gap of $3^i$.
 
 ## Miden approach
 
-This construction is implemented in Miden with the following requirements, capabilities, and constraints.
+This construction is implemented in Miden with the following requirements, capabilities and constraints.
 
 ### Requirements
 
@@ -148,10 +148,10 @@ This construction is implemented in Miden with the following requirements, capab
 
 ### Capabilities
 
-TODO: Update this section
 The construction gives us the following capabilities:
-- For long traces (when $n > 2^{16}$), we can do over $3n$ arbitrary 16-bit range-checks.
-- For short traces ($2^{10} < n \le 2^{16}$), we can range-check at slightly fewer than $n$ unique values, but if there are duplicates, we may be able to range-check up to $3n$ total values.
+- For long traces (when $n > 2^{16}$), we can do over $4n$ arbitrary 16-bit range-checks.
+- For short traces ($2^5 < n \le 2^{16}$), we can range-check at slightly fewer than $n$ unique values, but if there are duplicates, we may be able to range-check up to $4n$ total values.
+
 
 ### Execution trace
 
