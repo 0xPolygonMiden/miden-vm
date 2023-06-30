@@ -10,6 +10,9 @@ const.DOMAIN_OFFSET_INV=2635249152773512046
 # MEMORY POINTERS
 # =================================================================================================
 
+# Trace domain generator
+const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
+
 # Public inputs
 const.PUBLIC_INPUTS_PTR=4294800000
 
@@ -100,6 +103,7 @@ const.TMP8=4294903322
 #   +------------------------------------------+-------------------------+
 #   |                  ID                      |        Address          |
 #   +------------------------------------------+-------------------------+
+#   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
 #   | OOD_TRACE_PTR                            |       4294900000        |
 #   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900081        |
@@ -137,6 +141,15 @@ const.TMP8=4294903322
 
 export.root_unity
     push.ROOT_UNITY
+end
+
+# Procedure to push the trace domain generator address to the stack.
+#
+# Input: [...]
+# Output: [ptr, ...] wher ptr is the memory address of the trace domain generator
+# Cycles: 1
+export.trace_domain_generator_ptr
+    push.TRACE_DOMAIN_GENERATOR_PTR
 end
 
 export.domain_offset

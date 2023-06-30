@@ -76,7 +76,7 @@ end
 #!
 #! Input: [log(trace_length), num_queries, blowup, grinding, ...]
 #! Output: [C]
-#! Cycles: 168
+#! Cycles: 175
 export.init_seed
 
     # Save the parameters in memory for later use
@@ -146,9 +146,26 @@ export.init_seed
     movdn.3
     #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
 
-    # Save `[lde_size, log(lde_size), lde_g, 0]` and clean stack
+    # Save `[lde_size, log(lde_size), lde_g, 0]`
     exec.constants::lde_size_ptr mem_storew
-    dropw
+    #=> [lde_size, log(lde_size), lde_g, 0, trace_length, num_queries, blowup, grinding]
+
+    # clean stack
+    drop drop
+    #=> [lde_g, 0, trace_length, num_queries, blowup, grinding]
+
+    # Compute trace generator `trace_g` = `lde_g^blowup_factor`
+    repeat.3
+        dup mul
+    end
+    #=> [trace_g, 0, trace_length, num_queries, blowup, grinding]
+
+    # Save `trace_g` to memory
+    exec.constants::trace_domain_generator_ptr mem_store
+    #=> [0, trace_length, num_queries, blowup, grinding]
+
+    # clean satck
+    drop
     #=> [trace_length, num_queries, blowup, grinding]
 
     # Construct the proof context

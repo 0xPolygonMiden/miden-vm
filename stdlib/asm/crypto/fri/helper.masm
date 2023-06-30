@@ -7,7 +7,7 @@ use.std::crypto::stark::constants
 #!
 #! Input: [...]
 #! Output: [num_fri_layers, ...]
-#! Cycles: 55
+#! Cycles: 52
 export.generate_fri_parameters
     # Load FRI verifier data
     padw exec.constants::lde_size_ptr mem_loadw
@@ -31,21 +31,20 @@ export.generate_fri_parameters
     dup.1
     dup.1
     dup.6
-    #=> [lde_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (5 cycles)
+    drop
+    #=> [z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
 
-    # Compute trace generator `trace_g` = `lde_g^blowup_factor`
-    repeat.3
-        dup mul
-    end
-    #=> [trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
+    # Load `trace_g` from memory
+    exec.constants::trace_domain_generator_ptr mem_load
+    #=> [trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
 
-    # Compute `gz0` = `trace_g * g_0`
+    # Compute `gz0` = `trace_g * z_0`
     dup
     movup.3
     mul
     #=> [gz0, trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (3 cycles)
 
-    # Compute `gz1` = `trace_g * g_1`
+    # Compute `gz1` = `trace_g * z_1`
     swap.2
     mul
     #=> [gz1, gz0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
