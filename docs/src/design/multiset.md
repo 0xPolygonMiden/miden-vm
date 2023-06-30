@@ -74,8 +74,6 @@ Miden VM currently makes use of 6 virtual tables across 4 components:
     - [Block stack table](./decoder/main.md#block-stack-table)
     - [Block hash table](./decoder/main.md#block-hash-table)
     - [Op group table](./decoder/main.md#op-group-table)
-- Range checker:
-    - [8-bit range checks table](./range.md#8-bit-range-checks-table)
 - Chiplets:
     - [Chiplets virtual table](./chiplets/main.md#chiplet-virtual-table), which combines the following two tables into one:
         - [Hash chiplet sibling table](./chiplets/hasher.md#sibling-table-constraints)
