@@ -1,6 +1,5 @@
 use.std::crypto::fri::ext2fri
 use.std::crypto::stark::random_coin
-use.std::crypto::stark::utils
 use.std::crypto::stark::constants
 
 #! Compute the number of FRI layers given log2 of the size of LDE domain. It also computes the
@@ -8,17 +7,11 @@ use.std::crypto::stark::constants
 #!
 #! Input: [...]
 #! Output: [num_fri_layers, ...]
-#! Cycles: 123
+#! Cycles: 52
 export.generate_fri_parameters
     # Load FRI verifier data
     padw exec.constants::lde_size_ptr mem_loadw
-    #=> [lde_size, log(lde_size), 0, 0, ...] (6 cycles)
-
-    # Compute lde_domain generator
-    dup.1
-    exec.utils::compute_lde_generator
-    movdn.2
-    #=> [lde_size, log2(lde_size), lde_g, 0, 0, ...] (65 cycles)
+    #=> [lde_size, log(lde_size), lde_g, 0, ...] (6 cycles)
 
     # Store in `TMP5` in order to use it for fri layer loading
     exec.constants::tmp5 mem_storew
@@ -30,7 +23,7 @@ export.generate_fri_parameters
     # load z from memory 
     padw
     exec.constants::z_ptr mem_loadw
-    #=> [(z1, z0)^n, z1, z0, lde_size, log2(lde_size), lde_g, 0, 0, ...] (6 cycles)
+    #=> [(z1, z0)^n, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
 
     # prepare stack
     drop
@@ -38,33 +31,28 @@ export.generate_fri_parameters
     dup.1
     dup.1
     dup.6
-    #=> [lde_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, 0, ...] (5 cycles)
+    drop
+    #=> [z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
 
-    # Compute trace generator `trace_g` = `lde_g^blowup_factor`
-    repeat.3
-        dup mul
-    end
-    #=> [trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, 0, ...] (6 cycles)
+    # Load `trace_g` from memory
+    exec.constants::trace_domain_generator_ptr mem_load
+    #=> [trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
 
-    # Compute `gz0` = `trace_g * g_0`
+    # Compute `gz0` = `trace_g * z_0`
     dup
     movup.3
     mul
-    #=> [gz0, trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, 0, ...] (3 cycles)
+    #=> [gz0, trace_g, z1, z0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (3 cycles)
 
-    # Compute `gz1` = `trace_g * g_1`
+    # Compute `gz1` = `trace_g * z_1`
     swap.2
     mul
-    #=> [gz1, gz0, z1, z0, lde_size, log2(lde_size), lde_g, 0, 0, ...] (2 cycles)
+    #=> [gz1, gz0, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (2 cycles)
 
     # Save `[gz1, gz0, z1, z0]` and clean the stack
     exec.constants::tmp1 mem_storew
     dropw
-    #=> [lde_size, log2(lde_size), lde_g, 0, 0, ...] (6 cycles)
-
-    # This is the same as the word referenced by `TMP5` but is immutable.
-    exec.constants::tmp0 mem_storew
-    # => [lde_size, log2(lde_size), lde_generator, 0, 0, ...] (2 cycles)
+    #=> [lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)
 
     # Compute the number of FRI layers
     dup
@@ -82,13 +70,12 @@ export.generate_fri_parameters
         sub.6
         div.2
     end
-    # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, 0, ...] (12 cycles)
+    # => [num_fri_layers, remainder_size, lde_size, lde_size, log2(lde_size), domain_gen, 0, ...] (12 cycles)
 
     # Save `[num_fri_layers, remainder_size, lde_size, lde_size]` in memory
     exec.constants::tmp6 mem_storew
-    movdn.7
+    movdn.6
     dropw
-    drop
     drop
     drop
     # => [num_fri_layers, ...] (10 cycles)
