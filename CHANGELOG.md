@@ -2,6 +2,10 @@
 
 ## 0.7.0 (TBD)
 
+#### VM Internals
+
+- Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
+
 ## 0.6.1 (2023-06-29)
 
 - Fixed `no-std` compilation for `miden-core`, `miden-assembly`, and `miden-processor` crates.
