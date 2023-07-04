@@ -1,5 +1,6 @@
 use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
-use miden::ProofOptions;
+use air::ExecutionOptions;
+use miden::ProvingOptions;
 use std::{io::Write, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -38,13 +39,22 @@ pub struct ProveCmd {
     /// Paths to .masl library files
     #[structopt(short = "l", long = "libraries", parse(from_os_str))]
     library_paths: Vec<PathBuf>,
+
+    /// Maximum number of cycles a program is allowed to consume
+    #[structopt(short = "m", long = "max-cycles")]
+    max_cycles: Option<u32>,
+
+    /// Expected number of cycles
+    #[structopt(short = "e", long = "exp-cycles", default_value = "64")]
+    expected_cycles: u32,
 }
 
 impl ProveCmd {
-    pub fn get_proof_options(&self) -> ProofOptions {
+    pub fn get_proof_options(&self) -> ProvingOptions {
+        let exec_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles);
         match self.security.as_str() {
-            "96bits" => ProofOptions::with_96_bit_security(self.recursive),
-            "128bits" => ProofOptions::with_128_bit_security(self.recursive),
+            "96bits" => ProvingOptions::with_96_bit_security(self.recursive, exec_options),
+            "128bits" => ProvingOptions::with_128_bit_security(self.recursive, exec_options),
             other => panic!("{} is not a valid security setting", other),
         }
     }

@@ -4,9 +4,12 @@
 #[macro_use]
 extern crate alloc;
 
-use miden_air::trace::{
-    CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
-    SYS_TRACE_WIDTH,
+use miden_air::{
+    trace::{
+        CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH,
+        STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
+    },
+    ExecutionOptions,
 };
 pub use vm_core::{
     chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
@@ -111,11 +114,13 @@ pub fn execute<A>(
     program: &Program,
     stack_inputs: StackInputs,
     advice_provider: A,
+    _options: ExecutionOptions,
 ) -> Result<ExecutionTrace, ExecutionError>
 where
     A: AdviceProvider,
 {
     let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_provider);
+    // TODO: use ExecutionOptions to limit program execution
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -128,6 +133,7 @@ pub fn execute_iter<A>(
     program: &Program,
     stack_inputs: StackInputs,
     advice_provider: A,
+    _options: ExecutionOptions,
 ) -> VmStateIterator
 where
     A: AdviceProvider,

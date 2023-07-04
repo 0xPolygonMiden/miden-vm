@@ -43,6 +43,7 @@ executable = ["env_logger", "hex/std", "std", "serde/std", "serde_derive", "serd
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
+air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.7", default-features = false }
 env_logger = { version = "0.10", default-features = false, optional = true }
 hex = { version = "0.4", optional = true }

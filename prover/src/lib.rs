@@ -24,7 +24,7 @@ mod gpu;
 // EXPORTS
 // ================================================================================================
 
-pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProofOptions};
+pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
     crypto, math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
     MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
@@ -34,8 +34,8 @@ pub use winter_prover::StarkProof;
 // PROVER
 // ================================================================================================
 
-/// Executes and proves the specified `program` and returns the result together with a STARK-based proof of
-/// the program's execution.
+/// Executes and proves the specified `program` and returns the result together with a STARK-based
+/// proof of the program's execution.
 ///
 /// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
 ///   inputs for the VM.
@@ -47,7 +47,7 @@ pub fn prove<A>(
     program: &Program,
     stack_inputs: StackInputs,
     advice_provider: A,
-    options: ProofOptions,
+    proving_options: ProvingOptions,
 ) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
 where
     A: AdviceProvider,
@@ -55,7 +55,12 @@ where
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, stack_inputs.clone(), advice_provider)?;
+    let trace = processor::execute(
+        program,
+        stack_inputs.clone(),
+        advice_provider,
+        proving_options.get_execution_options(),
+    )?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",
@@ -65,25 +70,25 @@ where
     );
 
     let stack_outputs = trace.stack_outputs().clone();
-    let hash_fn = options.hash_fn();
+    let hash_fn = proving_options.hash_fn();
 
     // generate STARK proof
     let proof = match hash_fn {
         HashFunction::Blake3_192 => ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
-            options,
+            proving_options,
             stack_inputs,
             stack_outputs.clone(),
         )
         .prove(trace),
         HashFunction::Blake3_256 => ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
-            options,
+            proving_options,
             stack_inputs,
             stack_outputs.clone(),
         )
         .prove(trace),
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
-                options,
+                proving_options,
                 stack_inputs,
                 stack_outputs.clone(),
             );
@@ -118,7 +123,7 @@ where
     R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
     pub fn new(
-        options: ProofOptions,
+        options: ProvingOptions,
         stack_inputs: StackInputs,
         stack_outputs: StackOutputs,
     ) -> Self {

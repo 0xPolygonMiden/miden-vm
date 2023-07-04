@@ -7,6 +7,7 @@ The processor exposes two functions which can be used to execute programs: `exec
 * `program: &Program` - a reference to a Miden program to be executed.
 * `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
 * `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
+* `options: ExecutionOptions` - an instance of the execution options that yields maximum number of cycles and expected number of cycles.
 
 The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. Internally, the VM then passes this execution trace to the prover to generate a proof of a correct execution of the program.
 
@@ -16,6 +17,7 @@ For example:
 ```Rust
 use miden_assembly::Assembler;
 use miden_processor::{execute, execute_iter, MemAdviceProvider, StackInputs};
+use miden_air::ExecutionOptions;
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -29,11 +31,14 @@ let stack_inputs = StackInputs::default();
 // instantiate an empty advice provider
 let mut advice_provider = MemAdviceProvider::default();
 
+// instantiate a default execution options
+let execution_options = ExecutionOptions::default();
+
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut advice_provider).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, execution_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, advice_provider) {
+for vm_state in execute_iter(&program, stack_inputs, advice_provider, execution_options) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),

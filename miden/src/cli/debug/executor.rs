@@ -1,4 +1,5 @@
 use super::DebugCommand;
+use air::ExecutionOptions;
 use miden::{
     math::{Felt, StarkField},
     MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
@@ -21,8 +22,10 @@ impl DebugExecutor {
         program: Program,
         stack_inputs: StackInputs,
         advice_provider: MemAdviceProvider,
+        exec_options: ExecutionOptions,
     ) -> Result<Self, String> {
-        let mut vm_state_iter = processor::execute_iter(&program, stack_inputs, advice_provider);
+        let mut vm_state_iter =
+            processor::execute_iter(&program, stack_inputs, advice_provider, exec_options);
         let vm_state = vm_state_iter
             .next()
             .ok_or(format!(

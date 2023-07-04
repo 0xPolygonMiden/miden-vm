@@ -22,13 +22,16 @@ use trace::*;
 
 mod proof;
 
+mod execution;
+
 mod utils;
 use utils::TransitionConstraintRange;
 
 // EXPORTS
 // ================================================================================================
 
-pub use proof::{ExecutionProof, HashFunction, ProofOptions};
+pub use execution::ExecutionOptions;
+pub use proof::{ExecutionProof, HashFunction, ProvingOptions};
 pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,

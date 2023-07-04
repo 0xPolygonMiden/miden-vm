@@ -1,4 +1,5 @@
 use super::{cli::InputFile, ProgramError};
+use air::ExecutionOptions;
 use core::fmt;
 use miden::{utils::collections::Vec, AdviceProvider, Assembler, Operation, StackInputs};
 use processor::AsmOpInfo;
@@ -159,7 +160,9 @@ where
         .map_err(ProgramError::AssemblyError)?
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
-    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, advice_provider);
+    let execution_options = ExecutionOptions::default();
+    let vm_state_iterator =
+        processor::execute_iter(&program, stack_inputs, advice_provider, execution_options);
     let mut execution_details = ExecutionDetails::default();
 
     for state in vm_state_iterator {

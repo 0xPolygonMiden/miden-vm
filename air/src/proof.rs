@@ -1,4 +1,4 @@
-use super::DeserializationError;
+use super::{DeserializationError, ExecutionOptions};
 use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
     utils::collections::Vec,
@@ -86,74 +86,72 @@ impl ExecutionProof {
 
 /// A set of parameters specifying how Miden VM execution proofs are to be generated.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ProofOptions {
-    pub options: WinterProofOptions,
+pub struct ProvingOptions {
     pub hash_fn: HashFunction,
+    pub exec_options: ExecutionOptions,
+    pub proof_options: WinterProofOptions,
 }
 
-impl ProofOptions {
+impl ProvingOptions {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Creates a new instance of [ProofOptions] from the specified parameters.
+    /// Creates a new instance of [ProvingOptions] from the specified parameters.
     pub fn new(
-        num_queries: usize,
-        blowup_factor: usize,
-        grinding_factor: u32,
-        field_extension: FieldExtension,
-        fri_folding_factor: usize,
-        fri_max_remainder_size: usize,
+        proof_options: WinterProofOptions,
+        exec_options: ExecutionOptions,
         hash_fn: HashFunction,
     ) -> Self {
-        let options = WinterProofOptions::new(
-            num_queries,
-            blowup_factor,
-            grinding_factor,
-            field_extension,
-            fri_folding_factor,
-            fri_max_remainder_size,
-        );
-        Self { options, hash_fn }
+        Self {
+            hash_fn,
+            exec_options,
+            proof_options,
+        }
     }
 
-    /// Creates a new preset instance of [ProofOptions] targeting 96-bit security level.
+    /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level.
     ///
     /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
     /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
     /// but may take significantly longer to generate.
-    pub fn with_96_bit_security(recursive: bool) -> Self {
+    pub fn with_96_bit_security(recursive: bool, exec_options: ExecutionOptions) -> Self {
         if recursive {
-            let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
+            let proof_options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
             Self {
                 hash_fn: HashFunction::Rpo256,
-                options,
+                exec_options,
+                proof_options,
             }
         } else {
-            let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
+            let proof_options =
+                WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
             Self {
                 hash_fn: HashFunction::Blake3_192,
-                options,
+                exec_options,
+                proof_options,
             }
         }
     }
 
-    /// Creates a new preset instance of [ProofOptions] targeting 128-bit security level.
+    /// Creates a new preset instance of [ProvingOptions] targeting 128-bit security level.
     ///
     /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
     /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
     /// but may take significantly longer to generate.
-    pub fn with_128_bit_security(recursive: bool) -> Self {
+    pub fn with_128_bit_security(recursive: bool, exec_options: ExecutionOptions) -> Self {
         if recursive {
-            let options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
+            let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
             Self {
                 hash_fn: HashFunction::Rpo256,
-                options,
+                exec_options,
+                proof_options,
             }
         } else {
-            let options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
+            let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
             Self {
                 hash_fn: HashFunction::Blake3_256,
-                options,
+                exec_options,
+                proof_options,
             }
         }
     }
@@ -165,17 +163,22 @@ impl ProofOptions {
     pub const fn hash_fn(&self) -> HashFunction {
         self.hash_fn
     }
-}
 
-impl Default for ProofOptions {
-    fn default() -> Self {
-        Self::with_96_bit_security(false)
+    /// Returns the execution options specified for this [ProvingOptions]
+    pub const fn get_execution_options(&self) -> ExecutionOptions {
+        self.exec_options
     }
 }
 
-impl From<ProofOptions> for WinterProofOptions {
-    fn from(options: ProofOptions) -> Self {
-        options.options
+impl Default for ProvingOptions {
+    fn default() -> Self {
+        Self::with_96_bit_security(false, ExecutionOptions::default())
+    }
+}
+
+impl From<ProvingOptions> for WinterProofOptions {
+    fn from(options: ProvingOptions) -> Self {
+        options.proof_options
     }
 }
 

@@ -4,10 +4,11 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 
 use crate::build_test;
 use assembly::Assembler;
-use miden_air::{FieldExtension, HashFunction, PublicInputs};
+use miden_air::{ExecutionOptions, FieldExtension, HashFunction, PublicInputs};
 use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProofOptions, StackInputs, VerifierError,
+    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs, VerifierError,
 };
+use winter_air::ProofOptions as WinterProofOptions;
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
@@ -56,8 +57,10 @@ pub fn generate_recursive_verifier_data(
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
 
-    let options =
-        ProofOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
+    let proof_options = WinterProofOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7);
+    let exec_options = ExecutionOptions::new(None, 64);
+
+    let options = ProvingOptions::new(proof_options, exec_options, HashFunction::Rpo256);
 
     let (stack_outputs, proof) =
         prove(&program, stack_inputs.clone(), advice_provider, options).unwrap();

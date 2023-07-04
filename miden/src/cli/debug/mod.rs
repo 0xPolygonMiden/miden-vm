@@ -1,4 +1,5 @@
 use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use air::ExecutionOptions;
 use rustyline::{error::ReadlineError, Config, EditMode, Editor};
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -24,6 +25,12 @@ pub struct DebugCmd {
     /// Paths to .masl library files
     #[structopt(short = "l", long = "libraries", parse(from_os_str))]
     library_paths: Vec<PathBuf>,
+    /// Maximum number of cycles a program is allowed to consume
+    #[structopt(short = "m", long = "max-cycles")]
+    max_cycles: Option<u32>,
+    /// Expected number of cycles
+    #[structopt(short = "e", long = "exp-cycles", default_value = "64")]
+    expected_cycles: u32,
 }
 
 impl DebugCmd {
@@ -44,12 +51,16 @@ impl DebugCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
+        // get execution options
+        let execution_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles);
+
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs()?;
         let advice_provider = input_data.parse_advice_provider()?;
 
         // Instantiate DebugExecutor
-        let mut debug_executor = DebugExecutor::new(program, stack_inputs, advice_provider)?;
+        let mut debug_executor =
+            DebugExecutor::new(program, stack_inputs, advice_provider, execution_options)?;
 
         // build readline config
         let mut rl_config = Config::builder().auto_add_history(true);

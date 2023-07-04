@@ -1,4 +1,5 @@
-use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProofOptions, StackInputs};
+use air::ExecutionOptions;
+use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProvingOptions, StackInputs};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -49,10 +50,14 @@ pub enum ExampleType {
 }
 
 impl ExampleOptions {
-    pub fn get_proof_options(&self) -> ProofOptions {
+    pub fn get_proof_options(&self) -> ProvingOptions {
         match self.security.as_str() {
-            "96bits" => ProofOptions::with_96_bit_security(self.recursive),
-            "128bits" => ProofOptions::with_128_bit_security(self.recursive),
+            "96bits" => {
+                ProvingOptions::with_96_bit_security(self.recursive, ExecutionOptions::default())
+            }
+            "128bits" => {
+                ProvingOptions::with_128_bit_security(self.recursive, ExecutionOptions::default())
+            }
             other => panic!("{} is not a valid security level", other),
         }
     }
@@ -139,7 +144,7 @@ where
     } = example;
 
     let (mut outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
+        miden::prove(&program, stack_inputs.clone(), advice_provider, ProvingOptions::default())
             .unwrap();
 
     assert_eq!(
