@@ -1,6 +1,6 @@
 use test_utils::{
-    build_expected_hash, build_expected_perm, stack_to_ints, AdviceInputs, MemAdviceProvider,
-    Process, StackInputs, ONE, ZERO,
+    build_expected_hash, build_expected_perm, stack_to_ints, AdviceInputs, ExecutionOptions,
+    MemAdviceProvider, Process, StackInputs, ONE, ZERO,
 };
 
 #[test]
@@ -31,6 +31,7 @@ fn test_memcopy() {
         program.kernel().clone(),
         StackInputs::default(),
         MemAdviceProvider::from(AdviceInputs::default()),
+        ExecutionOptions::default(),
     );
     process.execute(&program).unwrap();
 

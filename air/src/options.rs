@@ -1,4 +1,5 @@
 use super::{ExecutionOptionsError, HashFunction};
+use crate::trace::MIN_TRACE_LEN;
 use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
 
 // PROVING OPTIONS
@@ -133,15 +134,15 @@ impl From<ProvingOptions> for WinterProofOptions {
 /// - `expected_cycles` specifies the number of cycles a program is expected to execute.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExecutionOptions {
-    max_cycles: Option<u32>,
+    max_cycles: u32,
     expected_cycles: u32,
 }
 
 impl Default for ExecutionOptions {
     fn default() -> Self {
         ExecutionOptions {
-            max_cycles: None,
-            expected_cycles: 64,
+            max_cycles: u32::MAX,
+            expected_cycles: MIN_TRACE_LEN as u32,
         }
     }
 }
@@ -151,19 +152,37 @@ impl ExecutionOptions {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new instance of [ExecutionOptions] from the specified parameters.
+    ///
+    /// If the `max_cycles` is `None` the maximum number of cycles will be set to `u32::MAX`
     pub fn new(
         max_cycles: Option<u32>,
         expected_cycles: u32,
     ) -> Result<Self, ExecutionOptionsError> {
-        if max_cycles.is_some_and(|max_cycles| max_cycles < expected_cycles) {
-            return Err(ExecutionOptionsError::ExpectedCyclesTooBig(
-                max_cycles.unwrap(),
-                expected_cycles,
-            ));
+        let max_cycles = max_cycles.unwrap_or(u32::MAX);
+        if max_cycles < MIN_TRACE_LEN as u32 {
+            return Err(ExecutionOptionsError::MaxCycleNumTooSmall(expected_cycles));
         }
+        if max_cycles < expected_cycles {
+            return Err(ExecutionOptionsError::ExpectedCyclesTooBig(max_cycles, expected_cycles));
+        }
+
+        // Round up the expected number of cycles to the next power of two. If it is smaller than
+        // MIN_TRACE_LEN -- pad expected number to it.
+        let expected_cycles = expected_cycles.next_power_of_two().max(MIN_TRACE_LEN as u32);
+
         Ok(ExecutionOptions {
             max_cycles,
             expected_cycles,
         })
+    }
+
+    /// Returns maximum number of cycles
+    pub fn max_cycles(&self) -> u32 {
+        self.max_cycles
+    }
+
+    /// Returns number of the expected cycles
+    pub fn expected_cycles(&self) -> u32 {
+        self.expected_cycles
     }
 }

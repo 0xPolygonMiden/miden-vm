@@ -2,7 +2,7 @@ use super::{
     super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, LookupTableRow,
     Process, Trace, Vec, NUM_RAND_ROWS,
 };
-use crate::{AdviceInputs, MemAdviceProvider, StackInputs};
+use crate::{AdviceInputs, ExecutionOptions, MemAdviceProvider, StackInputs};
 use rand_utils::rand_array;
 use vm_core::{
     code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, StackOutputs, Word, ONE, ZERO,
@@ -20,7 +20,8 @@ mod stack;
 pub fn build_trace_from_block(program: &CodeBlock, stack_inputs: &[u64]) -> ExecutionTrace {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
     let advice_provider = MemAdviceProvider::default();
-    let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
+    let mut process =
+        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }
@@ -41,7 +42,8 @@ pub fn build_trace_from_ops_with_inputs(
     advice_inputs: AdviceInputs,
 ) -> ExecutionTrace {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
+    let mut process =
+        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())

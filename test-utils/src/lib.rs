@@ -164,8 +164,12 @@ impl Test {
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
 
         // execute the test
-        let mut process =
-            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
+        let mut process = Process::new(
+            program.kernel().clone(),
+            self.stack_inputs.clone(),
+            advice_provider,
+            ExecutionOptions::default(),
+        );
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -236,8 +240,12 @@ impl Test {
     pub fn execute_process(&self) -> Result<Process<MemAdviceProvider>, ExecutionError> {
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        let mut process =
-            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
+        let mut process = Process::new(
+            program.kernel().clone(),
+            self.stack_inputs.clone(),
+            advice_provider,
+            ExecutionOptions::default(),
+        );
         process.execute(&program)?;
         Ok(process)
     }

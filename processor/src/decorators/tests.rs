@@ -1,5 +1,5 @@
 use super::{
-    super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
+    super::{AdviceInputs, ExecutionOptions, Felt, FieldElement, Kernel, Operation, StarkField},
     Process,
 };
 use crate::{MemAdviceProvider, StackInputs, Word};
@@ -30,7 +30,8 @@ fn push_merkle_node() {
     let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
+    let mut process =
+        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
     process.execute_op(Operation::Noop).unwrap();
 
     // push the node onto the advice stack
@@ -185,7 +186,8 @@ fn assert_case_smtget(
         .with_merkle_store(store)
         .with_map([(node.into_bytes(), mapped)]);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
+    let mut process =
+        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
 
     // call the injector and clear the stack
     process.execute_op(Operation::Noop).unwrap();
