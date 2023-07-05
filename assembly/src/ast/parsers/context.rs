@@ -329,6 +329,7 @@ impl ParserContext<'_> {
         &self,
         tokens: &mut TokenStream,
     ) -> Result<ProcReExport, ParsingError> {
+        let proc_start = tokens.pos();
         // parse the re-export declaration and make sure the procedure with the same name hasn't
         // been declared previously
         let header = tokens.read().expect("missing procedure header");
@@ -346,8 +347,19 @@ impl ParserContext<'_> {
         // consume the `export` token
         tokens.advance();
 
+        // attach doc comments (if any) to re-exported procedures
+        let docs = tokens.take_doc_comment_at(proc_start);
+
+        // make sure procedure docs don't exceed the allowed limit
+        if let Some(ref docs) = docs {
+            if docs.len() > MAX_DOCS_LEN {
+                let token = tokens.read_at(proc_start).expect("no proc token");
+                return Err(ParsingError::proc_docs_too_long(token, docs.len(), MAX_DOCS_LEN));
+            }
+        }
+
         let proc_id = ProcedureId::from_name(&ref_name, module_path);
-        Ok(ProcReExport::new(proc_id, proc_name))
+        Ok(ProcReExport::new(proc_id, proc_name, docs))
     }
 
     // BODY PARSER

@@ -717,12 +717,17 @@ impl Deserializable for ProcedureAst {
 pub struct ProcReExport {
     proc_id: ProcedureId,
     name: ProcedureName,
+    docs: Option<String>,
 }
 
 impl ProcReExport {
     /// Creates a new re-exported procedure.
-    pub fn new(proc_id: ProcedureId, name: ProcedureName) -> Self {
-        Self { proc_id, name }
+    pub fn new(proc_id: ProcedureId, name: ProcedureName, docs: Option<String>) -> Self {
+        Self {
+            proc_id,
+            name,
+            docs,
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -738,6 +743,11 @@ impl ProcReExport {
         &self.name
     }
 
+    /// Returns the documentation of the re-exported procedure, if present.
+    pub fn docs(&self) -> Option<&str> {
+        self.docs.as_deref()
+    }
+
     /// Returns the ID of the re-exported procedure using the specified module.
     pub fn get_alias_id(&self, module_path: &LibraryPath) -> ProcedureId {
         ProcedureId::from_name(&self.name, module_path)
@@ -748,6 +758,16 @@ impl Serializable for ProcReExport {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.proc_id.write_into(target);
         self.name.write_into(target);
+        match &self.docs {
+            Some(docs) => {
+                assert!(docs.len() <= MAX_DOCS_LEN, "docs too long");
+                target.write_u16(docs.len() as u16);
+                target.write_bytes(docs.as_bytes());
+            }
+            None => {
+                target.write_u16(0);
+            }
+        }
     }
 }
 
@@ -755,7 +775,20 @@ impl Deserializable for ProcReExport {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let proc_id = ProcedureId::read_from(source)?;
         let name = ProcedureName::read_from(source)?;
-        Ok(Self { proc_id, name })
+        let docs_len = source.read_u16()? as usize;
+        let docs = if docs_len != 0 {
+            let str = source.read_vec(docs_len)?;
+            let str =
+                from_utf8(&str).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+            Some(str.to_string())
+        } else {
+            None
+        };
+        Ok(Self {
+            proc_id,
+            name,
+            docs,
+        })
     }
 }
 
