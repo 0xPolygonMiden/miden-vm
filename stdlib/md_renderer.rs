@@ -6,7 +6,7 @@ use assembly::{
 use std::{
     fs::{self, File},
     io::Write,
-    path::Path,
+    path::PathBuf,
 };
 
 // MARKDOWN RENDERER
@@ -49,14 +49,18 @@ impl Renderer for MarkdownRenderer {
     fn render(stdlib: &ModuleMap, output_dir: &str) {
         // Write per module markdown file
         for (ns, module) in stdlib.iter() {
-            let file_name = markdown_file_name(ns);
-            let file_path = Path::new(output_dir).join(file_name);
+            let (dir_path, file_path) = get_dir_and_file_paths(ns, output_dir);
+
+            // Create the directories if they don't exist
+            fs::create_dir_all(dir_path).expect("Failed to create directory");
+
             let f = fs::OpenOptions::new()
                 .write(true)
                 .append(true)
                 .create(true)
                 .open(file_path)
                 .expect("unable to open stdlib markdown file");
+
             Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, ns);
             for proc in module.procs().iter() {
@@ -69,16 +73,13 @@ impl Renderer for MarkdownRenderer {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn get_module_name(ns: &str) -> String {
-    let parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
-    String::from(parts[parts.len() - 1])
-}
-
-fn get_module_section(ns: &str) -> String {
-    let parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
-    String::from(parts[parts.len() - 2])
-}
-
-fn markdown_file_name(ns: &str) -> String {
-    format!("{}_{}.md", get_module_name(ns), get_module_section(ns))
+fn get_dir_and_file_paths(ns: &str, output_dir: &str) -> (PathBuf, PathBuf) {
+    let mut dir_parts: Vec<&str> = ns.split(LibraryPath::PATH_DELIM).collect();
+    let file_name = dir_parts.pop().unwrap();
+    let dir_path = dir_parts
+        .iter()
+        .skip(1)
+        .fold(PathBuf::from(output_dir), |acc, part| acc.join(part));
+    let file_path = dir_path.join(format!("{}.md", file_name));
+    (dir_path, file_path)
 }
