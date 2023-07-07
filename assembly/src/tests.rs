@@ -676,13 +676,30 @@ fn program_with_reexported_proc_in_same_library() {
     const MODULE: &str = "math::u256";
     const MODULE_BODY: &str = r#"
         use.dummy1::math::u64
+
+        #! checked_eqz checks if the value is u32 and zero and returns 1 if it is, 0 otherwise
         export.u64::checked_eqz # re-export
+
+        #! unchecked_eqz checks if the value is zero and returns 1 if it is, 0 otherwise
         export.u64::unchecked_eqz->notchecked_eqz # re-export with alias
     "#;
 
     let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
     let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
     let ast = ModuleAst::parse(MODULE_BODY).unwrap();
+
+    // check docs
+    let docs_checked_eqz = ast.reexported_procs().get(0).unwrap().docs().unwrap();
+    assert_eq!(
+        docs_checked_eqz,
+        "checked_eqz checks if the value is u32 and zero and returns 1 if it is, 0 otherwise"
+    );
+    let docs_unchecked_eqz = ast.reexported_procs().get(1).unwrap().docs().unwrap();
+    assert_eq!(
+        docs_unchecked_eqz,
+        "unchecked_eqz checks if the value is zero and returns 1 if it is, 0 otherwise"
+    );
+
     let ref_path = LibraryPath::try_from(REF_MODULE.to_string())
         .unwrap()
         .prepend(&namespace)

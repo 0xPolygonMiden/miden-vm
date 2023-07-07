@@ -1,6 +1,6 @@
 use crate::{ModuleMap, Renderer};
 use assembly::{
-    ast::{ModuleAst, ProcedureAst},
+    ast::{ModuleAst, ProcReExport, ProcedureAst},
     LibraryPath,
 };
 use std::{
@@ -35,6 +35,20 @@ impl MarkdownRenderer {
             .expect("unable to write func to writer");
     }
 
+    fn write_docs_reexported_proc(mut writer: &File, proc: &ProcReExport) {
+        if proc.docs().is_none() {
+            return;
+        }
+        let func_output = format!(
+            "| {} | {} |\n",
+            proc.name().as_str(),
+            proc.docs().unwrap().replace('|', "\\|").replace('\n', "<br /><br />")
+        );
+        writer
+            .write_all(func_output.as_bytes())
+            .expect("unable to write func to writer");
+    }
+
     fn write_docs_module(mut writer: &File, module: &ModuleAst) {
         if module.docs().is_none() {
             return;
@@ -63,6 +77,9 @@ impl Renderer for MarkdownRenderer {
 
             Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, ns);
+            for reexported_proc in module.reexported_procs().iter() {
+                Self::write_docs_reexported_proc(&f, reexported_proc);
+            }
             for proc in module.procs().iter() {
                 Self::write_docs_procedure(&f, proc);
             }
