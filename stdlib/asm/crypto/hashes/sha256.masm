@@ -232,11 +232,13 @@ end
 #! - state0 through state7 are the hash state (in terms of 8 SHA256 words)
 #! - msg0 through msg15 are the 64 -bytes input message (in terms of 16 SHA256 words)
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
-#! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
-proc.prepare_message_schedule_and_consume.2
+#! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution )
+export.prepare_message_schedule_and_consume.4
     loc_storew.0
+    loc_storew.2
     dropw
     loc_storew.1
+    loc_storew.3
     dropw
 
     dup.15
@@ -1054,43 +1056,17 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[63]
 
-    push.0x6a09e667
-    u32wrapping_add
+    push.0.0.0.0
+    loc_loadw.3
 
-    swap
-    push.0xbb67ae85
-    u32wrapping_add
-    swap
+    push.0.0.0.0
+    loc_loadw.2
 
-    movup.2
-    push.0x3c6ef372
-    u32wrapping_add
-    movdn.2
-
-    movup.3
-    push.0xa54ff53a
-    u32wrapping_add
-    movdn.3
-
-    movup.4
-    push.0x510e527f
-    u32wrapping_add
-    movdn.4
-
-    movup.5
-    push.0x9b05688c
-    u32wrapping_add
-    movdn.5
-
-    movup.6
-    push.0x1f83d9ab
-    u32wrapping_add
-    movdn.6
-
-    movup.7
-    push.0x5be0cd19
-    u32wrapping_add
-    movdn.7
+    repeat.8
+        movup.8
+        u32wrapping_add
+        movdn.7
+    end
 end
 
 #! Consumes precomputed message schedule of padding bytes into hash state, returns final hash state.
