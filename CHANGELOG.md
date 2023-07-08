@@ -2,9 +2,12 @@
 
 ## 0.7.0 (TBD)
 
-#### VM Internals
+#### Assembly
+- Added ability to attach doc comments to re-exported procedures (#994).
 
+#### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
+- Added `get_mapped_values()` and `get_store_subset()` methods to the `AdviceProvider` trait (#987).
 
 ## 0.6.1 (2023-06-29)
 
