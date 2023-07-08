@@ -1,5 +1,5 @@
 use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
-use air::ExecutionOptions;
+use processor::ExecutionOptions;
 use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -45,7 +45,8 @@ impl RunCmd {
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // get execution options
-        let execution_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles);
+        let execution_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles)
+            .map_err(|err| format!("{err}"))?;
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs()?;

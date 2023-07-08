@@ -59,7 +59,7 @@ where
         program,
         stack_inputs.clone(),
         advice_provider,
-        proving_options.get_execution_options(),
+        *proving_options.execution_options(),
     )?;
     #[cfg(feature = "std")]
     debug!(

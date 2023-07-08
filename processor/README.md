@@ -7,7 +7,6 @@ The processor exposes two functions which can be used to execute programs: `exec
 * `program: &Program` - a reference to a Miden program to be executed.
 * `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
 * `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
-* `options: ExecutionOptions` - an instance of the execution options that yields maximum number of cycles and expected number of cycles.
 
 The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. Internally, the VM then passes this execution trace to the prover to generate a proof of a correct execution of the program.
 
@@ -16,8 +15,7 @@ The `execute_iter()` function returns a `VmStateIterator` which can be used to i
 For example:
 ```Rust
 use miden_assembly::Assembler;
-use miden_processor::{execute, execute_iter, MemAdviceProvider, StackInputs};
-use miden_air::ExecutionOptions;
+use miden_processor::{execute, execute_iter, ExecutionOptions, MemAdviceProvider, StackInputs, };
 
 // instantiate the assembler
 let assembler = Assembler::default();

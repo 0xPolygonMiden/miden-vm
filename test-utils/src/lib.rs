@@ -17,11 +17,10 @@ use vm_core::utils::{collections::Vec, string::String};
 
 pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
 
-pub use air::ExecutionOptions;
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
-    AdviceInputs, AdviceProvider, ExecutionError, ExecutionTrace, Process, StackInputs,
-    VmStateIterator,
+    AdviceInputs, AdviceProvider, ExecutionError, ExecutionOptions, ExecutionTrace, Process,
+    StackInputs, VmStateIterator,
 };
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
@@ -274,13 +273,7 @@ impl Test {
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        let execution_options = ExecutionOptions::default();
-        processor::execute_iter(
-            &program,
-            self.stack_inputs.clone(),
-            advice_provider,
-            execution_options,
-        )
+        processor::execute_iter(&program, self.stack_inputs.clone(), advice_provider)
     }
 
     /// Returns the last state of the stack after executing a test.

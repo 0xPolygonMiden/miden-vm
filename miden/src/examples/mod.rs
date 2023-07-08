@@ -1,4 +1,3 @@
-use air::ExecutionOptions;
 use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProvingOptions, StackInputs};
 use std::io::Write;
 use std::time::Instant;
@@ -52,12 +51,8 @@ pub enum ExampleType {
 impl ExampleOptions {
     pub fn get_proof_options(&self) -> ProvingOptions {
         match self.security.as_str() {
-            "96bits" => {
-                ProvingOptions::with_96_bit_security(self.recursive, ExecutionOptions::default())
-            }
-            "128bits" => {
-                ProvingOptions::with_128_bit_security(self.recursive, ExecutionOptions::default())
-            }
+            "96bits" => ProvingOptions::with_96_bit_security(self.recursive),
+            "128bits" => ProvingOptions::with_128_bit_security(self.recursive),
             other => panic!("{} is not a valid security level", other),
         }
     }

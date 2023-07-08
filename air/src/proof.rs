@@ -1,9 +1,9 @@
-use super::{DeserializationError, ExecutionOptions};
+use super::DeserializationError;
 use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
     utils::collections::Vec,
 };
-use winter_air::{proof::StarkProof, FieldExtension, ProofOptions as WinterProofOptions};
+use winter_air::proof::StarkProof;
 
 // EXECUTION PROOF
 // ================================================================================================
@@ -78,107 +78,6 @@ impl ExecutionProof {
     /// Returns components of this execution proof.
     pub fn into_parts(self) -> (HashFunction, StarkProof) {
         (self.hash_fn, self.proof)
-    }
-}
-
-// PROOF OPTIONS
-// ================================================================================================
-
-/// A set of parameters specifying how Miden VM execution proofs are to be generated.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ProvingOptions {
-    pub hash_fn: HashFunction,
-    pub exec_options: ExecutionOptions,
-    pub proof_options: WinterProofOptions,
-}
-
-impl ProvingOptions {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-
-    /// Creates a new instance of [ProvingOptions] from the specified parameters.
-    pub fn new(
-        proof_options: WinterProofOptions,
-        exec_options: ExecutionOptions,
-        hash_fn: HashFunction,
-    ) -> Self {
-        Self {
-            hash_fn,
-            exec_options,
-            proof_options,
-        }
-    }
-
-    /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level.
-    ///
-    /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
-    /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
-    /// but may take significantly longer to generate.
-    pub fn with_96_bit_security(recursive: bool, exec_options: ExecutionOptions) -> Self {
-        if recursive {
-            let proof_options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
-            Self {
-                hash_fn: HashFunction::Rpo256,
-                exec_options,
-                proof_options,
-            }
-        } else {
-            let proof_options =
-                WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
-            Self {
-                hash_fn: HashFunction::Blake3_192,
-                exec_options,
-                proof_options,
-            }
-        }
-    }
-
-    /// Creates a new preset instance of [ProvingOptions] targeting 128-bit security level.
-    ///
-    /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
-    /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
-    /// but may take significantly longer to generate.
-    pub fn with_128_bit_security(recursive: bool, exec_options: ExecutionOptions) -> Self {
-        if recursive {
-            let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
-            Self {
-                hash_fn: HashFunction::Rpo256,
-                exec_options,
-                proof_options,
-            }
-        } else {
-            let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
-            Self {
-                hash_fn: HashFunction::Blake3_256,
-                exec_options,
-                proof_options,
-            }
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the hash function to be used in STARK proof generation.
-    pub const fn hash_fn(&self) -> HashFunction {
-        self.hash_fn
-    }
-
-    /// Returns the execution options specified for this [ProvingOptions]
-    pub const fn get_execution_options(&self) -> ExecutionOptions {
-        self.exec_options
-    }
-}
-
-impl Default for ProvingOptions {
-    fn default() -> Self {
-        Self::with_96_bit_security(false, ExecutionOptions::default())
-    }
-}
-
-impl From<ProvingOptions> for WinterProofOptions {
-    fn from(options: ProvingOptions) -> Self {
-        options.proof_options
     }
 }
 

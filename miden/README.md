@@ -34,7 +34,6 @@ To execute a program on Miden VM, you can use either `execute()` or `execute_ite
 * `program: &Program` - a reference to a Miden program to be executed.
 * `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
 * `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
-* `options: ExecutionOptions` - an instance of the execution options that yields maximum number of cycles and expected number of cycles.
 
 The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. You can inspect the trace to get the final state of the VM out of it, but generally, this trace is intended to be used internally by the prover during proof generation process.
 
@@ -43,7 +42,7 @@ The `execute_iter()` function returns a `VmStateIterator` which can be used to i
 For example:
 ```rust
 use miden::{Assembler, execute, execute_iter, MemAdviceProvider, StackInputs};
-use air::ExecutionOptions;
+use processor::ExecutionOptions;
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -64,7 +63,7 @@ let execution_options = ExecutionOptions::default();
 let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, execution_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, advice_provider, execution_options) {
+for vm_state in execute_iter(&program, stack_inputs, advice_provider) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),

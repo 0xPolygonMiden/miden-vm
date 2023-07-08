@@ -1,5 +1,4 @@
 use super::ProgramError;
-use air::ExecutionOptions;
 use miden::{
     math::{Felt, StarkField},
     MemAdviceProvider, StackInputs, Word,
@@ -269,10 +268,8 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
 
     let stack_inputs = StackInputs::default();
     let advice_provider = MemAdviceProvider::default();
-    let execution_options = ExecutionOptions::default();
 
-    let state_iter =
-        processor::execute_iter(&program, stack_inputs, advice_provider, execution_options);
+    let state_iter = processor::execute_iter(&program, stack_inputs, advice_provider);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
         return Err(ProgramError::ExecutionError(err));

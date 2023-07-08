@@ -1,6 +1,6 @@
 use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
-use air::ExecutionOptions;
 use miden::ProvingOptions;
+use processor::{ExecutionOptions, ProvingError};
 use std::{io::Write, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -50,12 +50,14 @@ pub struct ProveCmd {
 }
 
 impl ProveCmd {
-    pub fn get_proof_options(&self) -> ProvingOptions {
-        let exec_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles);
+    pub fn get_proof_options(&self) -> Result<ProvingOptions, ProvingError> {
+        let exec_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles)?;
         match self.security.as_str() {
-            "96bits" => ProvingOptions::with_96_bit_security(self.recursive, exec_options),
-            "128bits" => ProvingOptions::with_128_bit_security(self.recursive, exec_options),
-            other => panic!("{} is not a valid security setting", other),
+            "96bits" => Ok(ProvingOptions::with_96_bit_security(self.recursive)
+                .with_execution_options(exec_options)),
+            "128bits" => Ok(ProvingOptions::with_128_bit_security(self.recursive)
+                .with_execution_options(exec_options)),
+            other => Err(ProvingError::InvalidSecuritySetting(other.to_string())),
         }
     }
 
@@ -87,9 +89,11 @@ impl ProveCmd {
         let stack_inputs = input_data.parse_stack_inputs()?;
         let advice_provider = input_data.parse_advice_provider()?;
 
+        let proving_options = self.get_proof_options().map_err(|err| format!("{err}"))?;
+
         // execute program and generate proof
         let (stack_outputs, proof) =
-            prover::prove(&program, stack_inputs, advice_provider, self.get_proof_options())
+            prover::prove(&program, stack_inputs, advice_provider, proving_options)
                 .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
         println!(
