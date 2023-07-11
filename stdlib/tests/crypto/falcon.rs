@@ -2,8 +2,10 @@ use core::slice;
 use miden_air::{Felt, StarkField};
 
 use std::vec;
-use test_utils::{crypto::{Rpo256, KeyPair, Polynomial}, rand::rand_vector};
-
+use test_utils::{
+    crypto::{KeyPair, Polynomial, Rpo256},
+    rand::rand_vector,
+};
 
 #[test]
 fn test_falcon_final() {
