@@ -11,7 +11,7 @@ The sections below describe how Miden VM decoder works. Throughout these section
 
 1. An opcode requires $7$ bits to represent.
 2. An immediate value requires one full field element to represent.
-3. A `NOOP` operation has a numeric value of $0$, and thus, can be encoded as seven zeros. Executing a `NOOP` operation does not change the state of the VM, but it does advance operation counter, and may affect program hash.
+3. A `NOOP` operation has a numeric value of $0$, and thus, can be encoded as seven zeros.
 
 ## Program execution
 
