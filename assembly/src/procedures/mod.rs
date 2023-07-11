@@ -131,8 +131,16 @@ impl TryFrom<String> for ProcedureName {
     type Error = LabelError;
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
+        Self::try_from(name.as_ref())
+    }
+}
+
+impl TryFrom<&str> for ProcedureName {
+    type Error = LabelError;
+
+    fn try_from(name: &str) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: (PROCEDURE_LABEL_PARSER.parse_label(&name)?).to_string(),
+            name: (PROCEDURE_LABEL_PARSER.parse_label(name)?).to_string(),
         })
     }
 }

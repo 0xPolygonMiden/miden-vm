@@ -20,11 +20,14 @@ pub use nodes::{AdviceInjectorNode, Instruction, Node};
 mod code_body;
 pub use code_body::CodeBody;
 
+mod imports;
+pub use imports::ModuleImports;
+
 mod invocation_target;
 pub use invocation_target::InvocationTarget;
 
 mod parsers;
-use parsers::{parse_constants, parse_imports, ParserContext};
+use parsers::{parse_constants, ParserContext};
 
 pub(crate) use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
@@ -52,26 +55,31 @@ const MAX_BODY_LEN: usize = u16::MAX as usize;
 /// Maximum number of imported libraries in a module or a program
 const MAX_IMPORTS: usize = u16::MAX as usize;
 
+/// Maximum number of imported procedures used in a module or a program
+const MAX_INVOKED_IMPORTED_PROCS: usize = u16::MAX as usize;
+
 /// Maximum stack index at which a full word can start.
 const MAX_STACK_WORD_OFFSET: u8 = 12;
 
 // TYPE ALIASES
 // ================================================================================================
-type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
+type LocalProcMap = BTreeMap<ProcedureName, (u16, ProcedureAst)>;
 type LocalConstMap = BTreeMap<String, u64>;
-type ReExportedProcMap = BTreeMap<String, ProcReExport>;
+type ReExportedProcMap = BTreeMap<ProcedureName, ProcReExport>;
 
 // EXECUTABLE PROGRAM AST
 // ================================================================================================
 
 /// An abstract syntax tree of an executable Miden program.
 ///
-/// A program AST consists of a list of internal procedure ASTs and a body of the program.
+/// A program AST consists of a body of the program, a list of internal procedure ASTs, a list of
+/// imported libraries, a map from procedure ids to procedure names for imported procedures used in
+/// the module, and the source location of the program.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramAst {
     body: CodeBody,
     local_procs: Vec<ProcedureAst>,
-    imports: BTreeMap<String, LibraryPath>,
+    import_info: Option<ModuleImports>,
     start: SourceLocation,
 }
 
@@ -81,15 +89,7 @@ impl ProgramAst {
     /// Returns a new [ProgramAst].
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
-    pub fn new(
-        body: Vec<Node>,
-        local_procs: Vec<ProcedureAst>,
-        imports: BTreeMap<String, LibraryPath>,
-    ) -> Result<Self, ParsingError> {
-        if imports.len() > MAX_IMPORTS {
-            return Err(ParsingError::too_many_imports(imports.len(), MAX_LOCAL_PROCS));
-        }
-
+    pub fn new(body: Vec<Node>, local_procs: Vec<ProcedureAst>) -> Result<Self, ParsingError> {
         if local_procs.len() > MAX_LOCAL_PROCS {
             return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
         }
@@ -98,9 +98,19 @@ impl ProgramAst {
         Ok(Self {
             body,
             local_procs,
-            imports,
+            import_info: None,
             start,
         })
+    }
+
+    /// Adds the provided import information to the program.
+    ///
+    /// # Panics
+    /// Panics if import information has already been added.
+    pub fn with_import_info(mut self, import_info: ModuleImports) -> Self {
+        assert!(self.import_info.is_none(), "module imports have already been added");
+        self.import_info = Some(import_info);
+        self
     }
 
     /// Binds the provided `locations` to the nodes of this program's body.
@@ -144,11 +154,11 @@ impl ProgramAst {
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
     pub fn parse(source: &str) -> Result<ProgramAst, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
-        let imports = parse_imports(&mut tokens)?;
+        let mut import_info = ModuleImports::parse(&mut tokens)?;
         let local_constants = parse_constants(&mut tokens)?;
 
         let mut context = ParserContext {
-            imports: &imports,
+            import_info: &mut import_info,
             local_procs: LocalProcMap::default(),
             reexported_procs: ReExportedProcMap::default(),
             local_constants,
@@ -201,7 +211,10 @@ impl ProgramAst {
 
         let local_procs = sort_procs_into_vec(context.local_procs);
         let (nodes, locations) = body.into_parts();
-        Ok(Self::new(nodes, local_procs, imports)?.with_source_locations(locations, start))
+
+        Ok(Self::new(nodes, local_procs)?
+            .with_source_locations(locations, start)
+            .with_import_info(import_info))
     }
 
     // SERIALIZATION / DESERIALIZATION
@@ -219,19 +232,20 @@ impl ProgramAst {
         // asserts below are OK because we enforce limits on the number of procedure and the
         // number of body instructions in relevant parsers
 
+        // serialize imports if required
         if options.serialize_imports {
-            assert!(self.imports.len() <= MAX_IMPORTS, "too many imports");
-            target.write_u16(self.imports.len() as u16);
-            // We don't need to serialize the library names (the keys),
-            // since the libraty paths (the values) contain the library
-            // names
-            self.imports.values().for_each(|path| path.write_into(&mut target));
+            match &self.import_info {
+                Some(imports) => imports.write_into(&mut target),
+                None => panic!("imports not initialized"),
+            }
         }
 
+        // serialize procedures
         assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(&mut target);
 
+        // serialize program body
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
         self.body.nodes().write_into(&mut target);
@@ -249,23 +263,26 @@ impl ProgramAst {
         // Deserialize the serialization options used when serializing
         let options = AstSerdeOptions::read_from(&mut source)?;
 
-        let mut imports = BTreeMap::<String, LibraryPath>::new();
+        // deserialize imports if required
+        let mut import_info = None;
         if options.serialize_imports {
-            let num_imports = source.read_u16()?;
-            for _ in 0..num_imports {
-                let path = LibraryPath::read_from(&mut source)?;
-                imports.insert(path.last().to_string(), path);
-            }
+            import_info = Some(ModuleImports::read_from(&mut source)?);
         }
 
+        // deserialize local procs
         let num_local_procs = source.read_u16()?;
         let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
 
+        // deserialize program body
         let body_len = source.read_u16()? as usize;
         let nodes = Deserializable::read_batch_from(&mut source, body_len)?;
-        match Self::new(nodes, local_procs, imports) {
+
+        match Self::new(nodes, local_procs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => Ok(res),
+            Ok(res) => match import_info {
+                Some(info) => Ok(res.with_import_info(info)),
+                None => Ok(res),
+            },
         }
     }
 
@@ -301,6 +318,11 @@ impl ProgramAst {
     pub fn into_parts(self) -> (Vec<ProcedureAst>, Vec<Node>) {
         (self.local_procs, self.body.into_parts().0)
     }
+
+    /// Clear import info from the program
+    pub fn clear_imports(&mut self) {
+        self.import_info = None;
+    }
 }
 
 // MODULE AST
@@ -308,13 +330,14 @@ impl ProgramAst {
 
 /// An abstract syntax tree of a Miden module.
 ///
-/// A module AST consists of a list of imports, a list of procedure ASTs, a list of re-exported
-/// procedures and module documentation. Local procedures could be internal or exported.
+/// A module AST consists of a list of procedure ASTs, a list of re-exported procedures, a list of
+/// imports, a map from procedure ids to procedure names for imported procedures used in the module,
+/// and module documentation. Local procedures could be internal or exported.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleAst {
     local_procs: Vec<ProcedureAst>,
     reexported_procs: Vec<ProcReExport>,
-    imports: BTreeMap<String, LibraryPath>,
+    import_info: Option<ModuleImports>,
     docs: Option<String>,
 }
 
@@ -327,12 +350,8 @@ impl ModuleAst {
     pub fn new(
         local_procs: Vec<ProcedureAst>,
         reexported_procs: Vec<ProcReExport>,
-        imports: BTreeMap<String, LibraryPath>,
         docs: Option<String>,
     ) -> Result<Self, ParsingError> {
-        if imports.len() > MAX_IMPORTS {
-            return Err(ParsingError::too_many_imports(imports.len(), MAX_IMPORTS));
-        }
         if local_procs.len() > MAX_LOCAL_PROCS {
             return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
         }
@@ -350,9 +369,19 @@ impl ModuleAst {
         Ok(Self {
             local_procs,
             reexported_procs,
-            imports,
+            import_info: None,
             docs,
         })
+    }
+
+    /// Adds the provided import information to the module.
+    ///
+    /// # Panics
+    /// Panics if import information has already been added.
+    pub fn with_import_info(mut self, import_info: ModuleImports) -> Self {
+        assert!(self.import_info.is_none(), "module imports have already been added");
+        self.import_info = Some(import_info);
+        self
     }
 
     // PARSER
@@ -362,11 +391,10 @@ impl ModuleAst {
     /// A module consists of internal and exported procedures but does not contain a body.
     pub fn parse(source: &str) -> Result<Self, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
-
-        let imports = parse_imports(&mut tokens)?;
+        let mut import_info = ModuleImports::parse(&mut tokens)?;
         let local_constants = parse_constants(&mut tokens)?;
         let mut context = ParserContext {
-            imports: &imports,
+            import_info: &mut import_info,
             local_procs: LocalProcMap::default(),
             reexported_procs: ReExportedProcMap::default(),
             local_constants,
@@ -391,7 +419,7 @@ impl ModuleAst {
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
 
-        Self::new(local_procs, reexported_procs, imports, docs)
+        Ok(Self::new(local_procs, reexported_procs, docs)?.with_import_info(import_info))
     }
 
     // PUBLIC ACCESSORS
@@ -413,8 +441,11 @@ impl ModuleAst {
     }
 
     /// Returns a map of imported modules in this module.
-    pub fn imports(&self) -> &BTreeMap<String, LibraryPath> {
-        &self.imports
+    pub fn import_paths(&self) -> Vec<&LibraryPath> {
+        match &self.import_info {
+            Some(info) => info.import_paths(),
+            None => Vec::<&LibraryPath>::new(),
+        }
     }
 
     // STATE MUTATORS
@@ -436,6 +467,7 @@ impl ModuleAst {
         // asserts below are OK because we enforce limits on the number of procedure and length of
         // module docs in the module parser
 
+        // serialize docs
         match &self.docs {
             Some(docs) => {
                 assert!(docs.len() <= u16::MAX as usize, "docs too long");
@@ -447,15 +479,15 @@ impl ModuleAst {
             }
         }
 
+        // serialize imports if required
         if options.serialize_imports {
-            assert!(self.imports.len() <= MAX_IMPORTS, "too many imports");
-            target.write_u16(self.imports.len() as u16);
-            // We don't need to serialize the library names (the keys),
-            // since the libraty paths (the values) contain the library
-            // names
-            self.imports.values().for_each(|i| i.write_into(target));
+            match &self.import_info {
+                Some(imports) => imports.write_into(target),
+                None => panic!("imports not initialized"),
+            }
         }
 
+        // serialize procedures
         assert!(self.local_procs.len() <= u16::MAX as usize, "too many local procs");
         assert!(
             self.reexported_procs.len() <= MAX_REEXPORTED_PROCS,
@@ -486,13 +518,9 @@ impl ModuleAst {
         };
 
         // deserialize imports if required
-        let mut imports = BTreeMap::<String, LibraryPath>::new();
+        let mut import_info = None;
         if options.serialize_imports {
-            let num_imports = source.read_u16()?;
-            for _ in 0..num_imports {
-                let path = LibraryPath::read_from(source)?;
-                imports.insert(path.last().to_string(), path);
-            }
+            import_info = Some(ModuleImports::read_from(source)?);
         }
 
         // deserialize re-exports
@@ -503,8 +531,13 @@ impl ModuleAst {
         let num_local_procs = source.read_u16()? as usize;
         let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
 
-        Self::new(local_procs, reexported_procs, imports, docs)
-            .map_err(|err| DeserializationError::UnknownError(err.message().clone()))
+        match Self::new(local_procs, reexported_procs, docs) {
+            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
+            Ok(res) => match import_info {
+                Some(info) => Ok(res.with_import_info(info)),
+                None => Ok(res),
+            },
+        }
     }
 
     /// Returns byte representation of this [ModuleAst].
@@ -550,6 +583,14 @@ impl ModuleAst {
     /// serialization can be simplified into a contiguous sequence of locations.
     pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
         self.local_procs.iter().for_each(|p| p.write_source_locations(target))
+    }
+
+    // DESTRUCTURING
+    // --------------------------------------------------------------------------------------------
+
+    /// Clear import info from the module
+    pub fn clear_imports(&mut self) {
+        self.import_info = None;
     }
 }
 

@@ -1,10 +1,16 @@
-use super::{parsers::decode_hex_rpo_digest_label, LibraryPath, ParsingError, RpoDigest, Token};
+use super::{
+    parsers::decode_hex_rpo_digest_label, LibraryPath, ParsingError, ProcedureName, RpoDigest,
+    Token,
+};
 
 /// Describes targets of `exec`, `call`, and `syscall` instructions.
 pub enum InvocationTarget<'a> {
     MastRoot(RpoDigest),
-    ProcedureName(&'a str),
-    ProcedurePath { name: &'a str, module: &'a str },
+    ProcedureName(ProcedureName),
+    ProcedurePath {
+        name: ProcedureName,
+        module: &'a str,
+    },
 }
 
 impl<'a> InvocationTarget<'a> {
@@ -32,15 +38,30 @@ impl<'a> InvocationTarget<'a> {
             .map_err(|_| ParsingError::invalid_proc_invocation(token, label))?;
 
         match num_components {
-            1 => Ok(InvocationTarget::ProcedureName(label)),
+            1 => {
+                let name = Self::parse_proc_name(label, token)?;
+                Ok(InvocationTarget::ProcedureName(name))
+            }
             2 => {
                 let parts = label.split_once(LibraryPath::PATH_DELIM).expect("no components");
+                let name = Self::parse_proc_name(parts.1, token)?;
                 Ok(InvocationTarget::ProcedurePath {
-                    name: parts.1,
+                    name,
                     module: parts.0,
                 })
             }
             _ => Err(ParsingError::invalid_proc_invocation(token, label)),
+        }
+    }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Attempts to interpret a label as a procedure name
+    fn parse_proc_name(label: &'a str, token: &'a Token) -> Result<ProcedureName, ParsingError> {
+        match ProcedureName::try_from(label) {
+            Ok(name) => Ok(name),
+            Err(err) => Err(ParsingError::invalid_proc_name(token, err)),
         }
     }
 }
