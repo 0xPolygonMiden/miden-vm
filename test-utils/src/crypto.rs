@@ -9,6 +9,7 @@ pub use vm_core::crypto::{
         EmptySubtreeRoots, MerkleError, MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks,
         NodeIndex, PartialMerkleTree, SimpleSmt, TieredSmt,
     },
+    dsa::*,
 };
 
 pub use winter_prover::crypto::{

@@ -1,5 +1,5 @@
 use super::{crypto::hash::Rpo256, utils::collections::Vec, Felt, FieldElement};
-use crypto::{hash::rpo::RpoDigest, Word, ZERO};
+use miden_crypto::{hash::rpo::RpoDigest, Word, ZERO};
 use math::StarkField;
 
 // RE-EXPORTS
