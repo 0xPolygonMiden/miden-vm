@@ -43,25 +43,6 @@ fn main() -> io::Result<()> {
     // updates the documentation of these modules
     build_stdlib_docs(&docs, DOC_DIR_PATH);
 
-    let src = [
-        "tests/crypto/falcon_rust/falcon_c/codec.c",
-        "tests/crypto/falcon_rust/falcon_c/common.c",
-        "tests/crypto/falcon_rust/falcon_c/falcon.c",
-        "tests/crypto/falcon_rust/falcon_c/fft.c",
-        "tests/crypto/falcon_rust/falcon_c/fpr.c",
-        "tests/crypto/falcon_rust/falcon_c/keygen.c",
-        "tests/crypto/falcon_rust/falcon_c/rng.c",
-        "tests/crypto/falcon_rust/falcon_c/shake.c",
-        "tests/crypto/falcon_rust/falcon_c/rpo.c",
-        "tests/crypto/falcon_rust/falcon_c/sign.c",
-        "tests/crypto/falcon_rust/falcon_c/vrfy.c",
-    ];
-    let mut builder = cc::Build::new();
-
-    let build = builder.files(src.iter()).include("falcon_c").flag("-Wno-unused-parameter");
-
-    build.compile("falcon");
-
     Ok(())
 }
 
