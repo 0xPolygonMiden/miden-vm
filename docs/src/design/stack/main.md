@@ -98,7 +98,7 @@ If an operation removes an item from the stack, we say that the operation caused
 
 ![](../../assets/design/stack/stack_1st_left_shift.png)
 
-Overall, the during the left shift we do the following:
+Overall, during the left shift we do the following:
 
 * When stack depth is greater than $16$:
   * Decrement stack depth by $1$.
