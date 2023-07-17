@@ -3,7 +3,7 @@ use super::super::{
     TransitionConstraintDegree, CLK_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, ONE,
     STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
 };
-use crate::decoder::{IS_CALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
+use crate::decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
 use crate::utils::{are_equal, is_binary};
 use vm_core::{stack::STACK_TOP_SIZE, utils::collections::Vec, StackOutputs, StarkField};
 
@@ -33,7 +33,7 @@ pub const NUM_GENERAL_CONSTRAINTS: usize = 17;
 
 /// The degrees of constraints in the general stack operations. Each operation being executed
 /// either shifts the stack to the left, right or doesn't effect it at all. Therefore, majority
-/// of the general transtitions of a stack item would be common across the operations and composite
+/// of the general transitions of a stack item would be common across the operations and composite
 /// flags were introduced to compute the individual stack item transition. A particular item lets say
 /// at depth ith in the next stack frame can be transitioned into from ith depth (no shift op) or
 /// (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the VM
@@ -357,6 +357,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Returns the value if the `h6` helper register in the decoder which is set to ONE if the
     /// ending block is a `CALL` block.
     fn is_call_end(&self) -> E;
+
+    /// Returns the value if the `h7` helper register in the decoder which is set to ONE if the
+    /// ending block is a `SYSCALL` block.
+    fn is_syscall_end(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -422,5 +426,10 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline]
     fn is_call_end(&self) -> E {
         self.current()[DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX]
+    }
+
+    #[inline]
+    fn is_syscall_end(&self) -> E {
+        self.current()[DECODER_TRACE_OFFSET + IS_SYSCALL_FLAG_COL_IDX]
     }
 }
