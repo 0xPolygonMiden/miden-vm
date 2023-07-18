@@ -1,3 +1,4 @@
+mod bundle;
 mod compile;
 mod data;
 mod debug;
@@ -6,6 +7,7 @@ mod repl;
 mod run;
 mod verify;
 
+pub use bundle::BundleCmd;
 pub use compile::CompileCmd;
 pub use data::InputFile;
 pub use debug::DebugCmd;

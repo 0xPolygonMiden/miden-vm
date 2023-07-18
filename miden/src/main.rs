@@ -20,6 +20,7 @@ pub struct Cli {
 pub enum Actions {
     Analyze(tools::Analyze),
     Compile(cli::CompileCmd),
+    Bundle(cli::BundleCmd),
     Debug(cli::DebugCmd),
     Example(examples::ExampleOptions),
     Prove(cli::ProveCmd),
@@ -35,6 +36,7 @@ impl Cli {
         match &self.action {
             Actions::Analyze(analyze) => analyze.execute(),
             Actions::Compile(compile) => compile.execute(),
+            Actions::Bundle(compile) => compile.execute(),
             Actions::Debug(debug) => debug.execute(),
             Actions::Example(example) => example.execute(),
             Actions::Prove(prove) => prove.execute(),
