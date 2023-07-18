@@ -5,24 +5,23 @@ use core::fmt::{Display, Formatter};
 // ================================================================================================
 
 #[derive(Debug)]
-pub enum ProvingError {
-    ContradictingCycleNumbers(u32, u32),
-    InvalidSecuritySetting(String),
+pub enum ExecutionOptionsError {
+    ExpectedCyclesTooBig(u32, u32),
     OtherErrors(String),
 }
 
-impl Display for ProvingError {
+impl Display for ExecutionOptionsError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        use ProvingError::*;
+        use ExecutionOptionsError::*;
 
         match self {
-            ContradictingCycleNumbers(max, expected) => {
-                write!(f, "The maximum allowed number of cycles is less than expected: maximum is {max}, but expectd is {expected}")
-            }
-            InvalidSecuritySetting(security_setting) => {
-                write!(f, "{security_setting} is not a valid security setting")
+            ExpectedCyclesTooBig(max, expected) => {
+                write!(f, "The expected number of cycles must be smaller than the maximum number of cycles: maximum is {max}, but expectd is {expected}")
             }
             OtherErrors(error) => write!(f, "{error}"),
         }
     }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for ExecutionOptionsError {}

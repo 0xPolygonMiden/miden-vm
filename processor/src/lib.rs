@@ -8,7 +8,7 @@ use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
 };
-pub use miden_air::{ExecutionOptions, ProvingError};
+pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
     chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
     Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,

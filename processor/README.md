@@ -29,14 +29,14 @@ let stack_inputs = StackInputs::default();
 // instantiate an empty advice provider
 let mut advice_provider = MemAdviceProvider::default();
 
-// instantiate a default execution options
-let execution_options = ExecutionOptions::default();
+// instantiate default execution options
+let exec_options = ExecutionOptions::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, execution_options).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, advice_provider, execution_options) {
+for vm_state in execute_iter(&program, stack_inputs, advice_provider, exec_options) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),

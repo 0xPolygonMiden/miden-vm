@@ -1,7 +1,7 @@
-use super::{HashFunction, ProvingError};
+use super::{ExecutionOptionsError, HashFunction};
 use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
 
-// PROOF OPTIONS
+// PROVING OPTIONS
 // ================================================================================================
 
 /// A set of parameters specifying how Miden VM execution proofs are to be generated.
@@ -23,7 +23,7 @@ impl ProvingOptions {
         grinding_factor: u32,
         field_extension: FieldExtension,
         fri_folding_factor: usize,
-        fri_max_remainder_size: usize,
+        fri_remainder_max_degree: usize,
         hash_fn: HashFunction,
     ) -> Self {
         let proof_options = WinterProofOptions::new(
@@ -32,7 +32,7 @@ impl ProvingOptions {
             grinding_factor,
             field_extension,
             fri_folding_factor,
-            fri_max_remainder_size,
+            fri_remainder_max_degree,
         );
         let exec_options = ExecutionOptions::default();
         Self {
@@ -50,18 +50,16 @@ impl ProvingOptions {
     pub fn with_96_bit_security(recursive: bool) -> Self {
         if recursive {
             let proof_options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
-            let exec_options = ExecutionOptions::default();
             Self {
-                exec_options,
+                exec_options: ExecutionOptions::default(),
                 proof_options,
                 hash_fn: HashFunction::Rpo256,
             }
         } else {
             let proof_options =
                 WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
-            let exec_options = ExecutionOptions::default();
             Self {
-                exec_options,
+                exec_options: ExecutionOptions::default(),
                 proof_options,
                 hash_fn: HashFunction::Blake3_192,
             }
@@ -76,25 +74,25 @@ impl ProvingOptions {
     pub fn with_128_bit_security(recursive: bool) -> Self {
         if recursive {
             let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
-            let exec_options = ExecutionOptions::default();
             Self {
-                exec_options,
+                exec_options: ExecutionOptions::default(),
                 proof_options,
                 hash_fn: HashFunction::Rpo256,
             }
         } else {
             let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
-            let exec_options = ExecutionOptions::default();
             Self {
-                exec_options,
+                exec_options: ExecutionOptions::default(),
                 proof_options,
                 hash_fn: HashFunction::Blake3_256,
             }
         }
     }
 
-    /// Adds the [ExecutionOptions] to the [ProvingOptions] to provide maximum cycles limit data
-    /// and average cycles data.
+    /// Sets [ExecutionOptions] for this [ProvingOptions].
+    ///
+    /// This sets the maximum number of cycles a program is allowed to execute as well as
+    /// the number of cycles the program is expected to execute.
     pub fn with_execution_options(mut self, exec_options: ExecutionOptions) -> Self {
         self.exec_options = exec_options;
         self
@@ -130,6 +128,9 @@ impl From<ProvingOptions> for WinterProofOptions {
 // ================================================================================================
 
 /// A set of parameters specifying execution parameters of the VM.
+///
+/// - `max_cycles` specifies the maximum number of cycles a program is allowed to execute.
+/// - `expected_cycles` specifies the number of cycles a program is expected to execute.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExecutionOptions {
     max_cycles: Option<u32>,
@@ -150,9 +151,12 @@ impl ExecutionOptions {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new instance of [ExecutionOptions] from the specified parameters.
-    pub fn new(max_cycles: Option<u32>, expected_cycles: u32) -> Result<Self, ProvingError> {
+    pub fn new(
+        max_cycles: Option<u32>,
+        expected_cycles: u32,
+    ) -> Result<Self, ExecutionOptionsError> {
         if max_cycles.is_some_and(|max_cycles| max_cycles < expected_cycles) {
-            return Err(ProvingError::ContradictingCycleNumbers(
+            return Err(ExecutionOptionsError::ExpectedCyclesTooBig(
                 max_cycles.unwrap(),
                 expected_cycles,
             ));

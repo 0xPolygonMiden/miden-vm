@@ -56,11 +56,11 @@ let stack_inputs = StackInputs::default();
 // instantiate an empty advice provider
 let mut advice_provider = MemAdviceProvider::default();
 
-// instantiate a default execution options
-let execution_options = ExecutionOptions::default();
+// instantiate default execution options
+let exec_options = ExecutionOptions::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, execution_options).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
 for vm_state in execute_iter(&program, stack_inputs, advice_provider) {
@@ -100,7 +100,7 @@ let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
     MemAdviceProvider::default(), // we won't provide advice inputs
-    ProvingOptions::default(),     // we'll be using default options
+    ProvingOptions::default(),    // we'll be using default options
 )
 .unwrap();
 
@@ -187,7 +187,7 @@ let (outputs, proof) = miden::prove(
     &program,
     stack_inputs,
     advice_provider,
-    ProvingOptions::default(), // use default proof options
+    ProvingOptions::default(), // use default proving options
 )
 .unwrap();
 

@@ -20,11 +20,9 @@ use constraints::{chiplets, range};
 pub mod trace;
 use trace::*;
 
-mod proof;
-
-mod options;
-
 mod errors;
+mod options;
+mod proof;
 
 mod utils;
 use utils::TransitionConstraintRange;
@@ -32,7 +30,7 @@ use utils::TransitionConstraintRange;
 // EXPORTS
 // ================================================================================================
 
-pub use errors::ProvingError;
+pub use errors::ExecutionOptionsError;
 pub use options::{ExecutionOptions, ProvingOptions};
 pub use proof::{ExecutionProof, HashFunction};
 pub use vm_core::{

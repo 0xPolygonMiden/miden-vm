@@ -47,7 +47,7 @@ pub fn prove<A>(
     program: &Program,
     stack_inputs: StackInputs,
     advice_provider: A,
-    proving_options: ProvingOptions,
+    options: ProvingOptions,
 ) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
 where
     A: AdviceProvider,
@@ -59,7 +59,7 @@ where
         program,
         stack_inputs.clone(),
         advice_provider,
-        *proving_options.execution_options(),
+        *options.execution_options(),
     )?;
     #[cfg(feature = "std")]
     debug!(
@@ -70,25 +70,25 @@ where
     );
 
     let stack_outputs = trace.stack_outputs().clone();
-    let hash_fn = proving_options.hash_fn();
+    let hash_fn = options.hash_fn();
 
     // generate STARK proof
     let proof = match hash_fn {
         HashFunction::Blake3_192 => ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
-            proving_options,
+            options,
             stack_inputs,
             stack_outputs.clone(),
         )
         .prove(trace),
         HashFunction::Blake3_256 => ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
-            proving_options,
+            options,
             stack_inputs,
             stack_outputs.clone(),
         )
         .prove(trace),
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
-                proving_options,
+                options,
                 stack_inputs,
                 stack_outputs.clone(),
             );
