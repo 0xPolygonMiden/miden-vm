@@ -152,7 +152,7 @@ impl Module {
 
 impl PartialOrd for Module {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.path.partial_cmp(&other.path)
+        Some(self.cmp(other))
     }
 }
 

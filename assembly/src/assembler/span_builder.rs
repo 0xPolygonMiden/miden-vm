@@ -98,7 +98,7 @@ impl SpanBuilder {
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
-    pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &mut AssemblyContext) {
+    pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &AssemblyContext) {
         let context_name = ctx.current_context_name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();
