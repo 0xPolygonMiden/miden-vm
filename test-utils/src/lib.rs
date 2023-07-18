@@ -19,10 +19,10 @@ pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
-    AdviceInputs, AdviceProvider, ExecutionError, ExecutionTrace, Process, StackInputs,
-    VmStateIterator,
+    AdviceInputs, AdviceProvider, ExecutionError, ExecutionOptions, ExecutionTrace, Process,
+    StackInputs, VmStateIterator,
 };
-pub use prover::{prove, MemAdviceProvider, ProofOptions};
+pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{ProgramInfo, VerifierError};
 pub use vm_core::{
@@ -223,7 +223,12 @@ impl Test {
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        processor::execute(&program, self.stack_inputs.clone(), advice_provider)
+        processor::execute(
+            &program,
+            self.stack_inputs.clone(),
+            advice_provider,
+            ExecutionOptions::default(),
+        )
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -244,9 +249,13 @@ impl Test {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
-                .unwrap();
+        let (mut stack_outputs, proof) = prover::prove(
+            &program,
+            stack_inputs.clone(),
+            advice_provider,
+            ProvingOptions::default(),
+        )
+        .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {

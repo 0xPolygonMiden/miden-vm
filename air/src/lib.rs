@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use vm_core::{
-    utils::{collections::Vec, ByteWriter, Serializable},
+    utils::{collections::Vec, string::String, ByteWriter, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
@@ -20,6 +20,8 @@ use constraints::{chiplets, range};
 pub mod trace;
 use trace::*;
 
+mod errors;
+mod options;
 mod proof;
 
 mod utils;
@@ -28,7 +30,9 @@ use utils::TransitionConstraintRange;
 // EXPORTS
 // ================================================================================================
 
-pub use proof::{ExecutionProof, HashFunction, ProofOptions};
+pub use errors::ExecutionOptionsError;
+pub use options::{ExecutionOptions, ProvingOptions};
+pub use proof::{ExecutionProof, HashFunction};
 pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,

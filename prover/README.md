@@ -7,7 +7,7 @@ This crate exposes a `prove()` function which can be used to execute Miden VM pr
 * `program: &Program` - a reference to a Miden program to be executed.
 * `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
 * `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
-* `options: &ProofOptions` - config parameters for proof generation. The default options target 96-bit security level.
+* `options: &ProvingOptions` - config parameters for proof generation. The default options target 96-bit security level.
 
 If the program is executed successfully, the function returns a tuple with 2 elements:
 
@@ -18,7 +18,7 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 ```Rust
 use miden_assembly::Assembler;
-use miden_prover::{prove, ProofOptions, StackInputs, MemAdviceProvider};
+use miden_prover::{prove, ProvingOptions, StackInputs, MemAdviceProvider};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -31,7 +31,7 @@ let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any stack inputs
     MemAdviceProvider::default(), // we won't provide any advice values
-    &ProofOptions::default(),     // we'll be using default options
+    &ProvingOptions::default(),     // we'll be using default options
 )
 .unwrap();
 

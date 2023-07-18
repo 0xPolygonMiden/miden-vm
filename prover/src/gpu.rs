@@ -324,7 +324,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use air::{ProofOptions, StarkField};
+    use air::{ProvingOptions, StarkField};
     use processor::{crypto::RpoRandomCoin, StackInputs, StackOutputs};
     use winter_prover::math::fields::CubeExtension;
 
@@ -404,7 +404,7 @@ mod tests {
 
     fn create_test_prover() -> ExecutionProver<Rpo256, RpoRandomCoin> {
         ExecutionProver::new(
-            ProofOptions::with_128_bit_security(true),
+            ProvingOptions::with_128_bit_security(true),
             StackInputs::default(),
             StackOutputs::default(),
         )

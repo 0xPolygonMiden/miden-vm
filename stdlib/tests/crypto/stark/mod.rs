@@ -6,7 +6,7 @@ use crate::build_test;
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProofOptions, StackInputs, VerifierError,
+    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs, VerifierError,
 };
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
@@ -57,7 +57,7 @@ pub fn generate_recursive_verifier_data(
     let advice_provider = MemAdviceProvider::from(advice_inputs);
 
     let options =
-        ProofOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
+        ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
     let (stack_outputs, proof) =
         prove(&program, stack_inputs.clone(), advice_provider, options).unwrap();

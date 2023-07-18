@@ -42,6 +42,7 @@ The `execute_iter()` function returns a `VmStateIterator` which can be used to i
 For example:
 ```rust
 use miden::{Assembler, execute, execute_iter, MemAdviceProvider, StackInputs};
+use processor::ExecutionOptions;
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -55,8 +56,11 @@ let stack_inputs = StackInputs::default();
 // instantiate an empty advice provider
 let mut advice_provider = MemAdviceProvider::default();
 
+// instantiate default execution options
+let exec_options = ExecutionOptions::default();
+
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut advice_provider).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
 for vm_state in execute_iter(&program, stack_inputs, advice_provider) {
@@ -73,7 +77,7 @@ To execute a program on Miden VM and generate a proof that the program was execu
 * `program: &Program` - a reference to a Miden program to be executed.
 * `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
 * `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
-* `options: ProofOptions` - config parameters for proof generation. The default options target 96-bit security level.
+* `options: ProvingOptions` - config parameters for proof generation. The default options target 96-bit security level.
 
 If the program is executed successfully, the function returns a tuple with 2 elements:
 
@@ -83,7 +87,7 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 #### Proof generation example
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 ```rust
-use miden::{Assembler, MemAdviceProvider, ProofOptions, prove, StackInputs};
+use miden::{Assembler, MemAdviceProvider, ProvingOptions, prove, StackInputs};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -96,7 +100,7 @@ let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
     MemAdviceProvider::default(), // we won't provide advice inputs
-    ProofOptions::default(),     // we'll be using default options
+    ProvingOptions::default(),    // we'll be using default options
 )
 .unwrap();
 
@@ -155,7 +159,7 @@ add         // stack state: 3 2
 ```
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
 ```rust
-use miden::{Assembler, MemAdviceProvider, ProofOptions, StackInputs};
+use miden::{Assembler, MemAdviceProvider, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -183,7 +187,7 @@ let (outputs, proof) = miden::prove(
     &program,
     stack_inputs,
     advice_provider,
-    ProofOptions::default(), // use default proof options
+    ProvingOptions::default(), // use default proving options
 )
 .unwrap();
 

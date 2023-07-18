@@ -12,6 +12,6 @@ pub use processor::{
 };
 pub use prover::{
     math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Program,
-    ProofOptions, StackOutputs, StarkProof, Word,
+    ProvingOptions, StackOutputs, StarkProof, Word,
 };
 pub use verifier::{verify, VerificationError};
