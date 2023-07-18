@@ -316,7 +316,7 @@ impl OutputFile {
     }
 
     /// Converts outputs vectors for stack and overflow addresses to [StackOutputs].
-    pub fn stack_outputs(&self) -> StackOutputs {
+    pub fn stack_outputs(&self) -> Result<StackOutputs, String> {
         let stack = self.stack.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>();
 
         let overflow_addrs = self
@@ -326,6 +326,7 @@ impl OutputFile {
             .collect::<Vec<u64>>();
 
         StackOutputs::new(stack, overflow_addrs)
+            .map_err(|e| format!("Construct stack outputs failed {e}"))
     }
 }
 

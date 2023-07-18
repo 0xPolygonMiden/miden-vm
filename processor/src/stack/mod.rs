@@ -141,6 +141,7 @@ impl Stack {
         self.trace.append_state_into(&mut stack_items, self.clk);
         self.overflow.append_into(&mut stack_items);
         StackOutputs::from_elements(stack_items, self.overflow.get_addrs())
+            .expect("processor stack handling logic is valid")
     }
 
     // TRACE ACCESSORS AND MUTATORS
