@@ -1,8 +1,13 @@
-use super::{CodeBody, Felt, ProcedureId, RpoDigest, ToString, Vec};
+use super::{
+    AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest, ToString, Vec,
+};
 use core::fmt;
 
 mod advice;
 pub use advice::AdviceInjectorNode;
+
+mod format;
+pub use format::*;
 
 mod serde;
 
@@ -556,7 +561,6 @@ impl fmt::Display for Instruction {
             Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
 
             // ----- exec / call ------------------------------------------------------------------
-            // TODO: print exec/call instructions with procedures names, not indexes or id's
             Self::ExecLocal(index) => write!(f, "exec.{index}"),
             Self::ExecImported(proc_id) => write!(f, "exec.{proc_id}"),
             Self::CallLocal(index) => write!(f, "call.{index}"),
@@ -571,27 +575,6 @@ impl fmt::Display for Instruction {
             Self::Breakpoint => write!(f, "breakpoint"),
         }
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Builds a hex string from a byte slice
-pub fn display_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "0x")?;
-    for byte in bytes {
-        write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-}
-
-/// Builds a string from input vector to display push operation
-fn display_push_vec<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[T]) -> fmt::Result {
-    write!(f, "push")?;
-    for elem in values {
-        write!(f, ".{elem}")?;
-    }
-    Ok(())
 }
 
 // TESTS
