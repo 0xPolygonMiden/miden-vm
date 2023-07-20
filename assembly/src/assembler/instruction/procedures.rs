@@ -32,7 +32,6 @@ impl Assembler {
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
         let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
-        debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
@@ -72,7 +71,6 @@ impl Assembler {
         let proc = proc_cache
             .get_by_hash(root)
             .ok_or(AssemblyError::proc_mast_root_not_found(root))?;
-        debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
@@ -93,7 +91,6 @@ impl Assembler {
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
         let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
-        debug_assert!(proc.is_export(), "not imported procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled

@@ -12,36 +12,81 @@ use core::{
 // PROCEDURE
 // ================================================================================================
 
-/// Contains metadata and MAST of a procedure.
+/// Miden assembly procedure consisting of procedure MAST and basic metadata.
+///
+/// Procedure metadata includes:
+/// - Number of procedure locals available to the procedure.
+/// - A set of MAST roots of procedures which are invoked from this procedure.
 #[derive(Clone, Debug)]
 pub struct Procedure {
-    id: ProcedureId,
-    label: ProcedureName,
-    is_export: bool,
     num_locals: u32,
-    code_root: CodeBlock,
+    code: CodeBlock,
     callset: CallSet,
 }
 
 impl Procedure {
+    /// Returns the number of memory locals reserved by the procedure.
+    pub fn num_locals(&self) -> u32 {
+        self.num_locals
+    }
+
+    /// Returns the root of this procedure's MAST.
+    pub fn mast_root(&self) -> RpoDigest {
+        self.code.hash()
+    }
+
+    /// Returns a reference to the MAST of this procedure.
+    pub fn code(&self) -> &CodeBlock {
+        &self.code
+    }
+
+    /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
+    /// be called during the execution of this procedure.
+    pub fn callset(&self) -> &CallSet {
+        &self.callset
+    }
+}
+
+// NAMED PROCEDURE
+// ================================================================================================
+
+/// A named Miden assembly procedure consisting of procedure MAST and procedure metadata.
+///
+/// Procedure metadata includes:
+/// - Procedure name.
+/// - Procedure ID which is computed as a hash of the procedure's fully qualified path.
+/// - A boolean flag indicating whether the procedure is exported from a module.
+/// - Number of procedure locals available to the procedure.
+/// - A set of MAST roots of procedures which are invoked from this procedure.
+#[derive(Clone, Debug)]
+pub struct NamedProcedure {
+    id: ProcedureId,
+    name: ProcedureName,
+    is_export: bool,
+    procedure: Procedure,
+}
+
+impl NamedProcedure {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Procedure] instantiated with the specified properties.
     pub fn new(
         id: ProcedureId,
-        label: ProcedureName,
+        name: ProcedureName,
         is_export: bool,
         num_locals: u32,
-        code_root: CodeBlock,
+        code: CodeBlock,
         callset: CallSet,
     ) -> Self {
-        Procedure {
+        NamedProcedure {
             id,
-            label,
+            name,
             is_export,
-            num_locals,
-            code_root,
-            callset,
+            procedure: Procedure {
+                num_locals,
+                code,
+                callset,
+            },
         }
     }
 
@@ -54,8 +99,8 @@ impl Procedure {
     }
 
     /// Returns a label of this procedure.
-    pub fn label(&self) -> &ProcedureName {
-        &self.label
+    pub fn name(&self) -> &ProcedureName {
+        &self.name
     }
 
     /// Returns `true` if this is an exported procedure.
@@ -65,23 +110,35 @@ impl Procedure {
 
     /// Returns the number of memory locals reserved by the procedure.
     pub fn num_locals(&self) -> u32 {
-        self.num_locals
+        self.procedure.num_locals
     }
 
     /// Returns the root of this procedure's MAST.
     pub fn mast_root(&self) -> RpoDigest {
-        self.code_root.hash()
+        self.procedure.code.hash()
     }
 
     /// Returns a reference to the MAST of this procedure.
     pub fn code(&self) -> &CodeBlock {
-        &self.code_root
+        &self.procedure.code
     }
 
     /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
     /// be called during the execution of this procedure.
     pub fn callset(&self) -> &CallSet {
-        &self.callset
+        &self.procedure.callset
+    }
+
+    /// Returns the inner procedure containing all procedure attributes except for procedure name
+    /// and ID.
+    pub fn inner(&self) -> &Procedure {
+        &self.procedure
+    }
+
+    /// Converts this procedure into its inner procedure containing all procedure attributes except
+    /// for procedure name and ID.
+    pub fn into_inner(self) -> Procedure {
+        self.procedure
     }
 }
 
