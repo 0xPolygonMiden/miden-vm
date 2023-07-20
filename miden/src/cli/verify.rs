@@ -49,7 +49,7 @@ impl VerifyCmd {
         let program_info = ProgramInfo::new(program_hash, kernel);
 
         // verify proof
-        verifier::verify(program_info, stack_inputs, outputs_data.stack_outputs(), proof)
+        verifier::verify(program_info, stack_inputs, outputs_data.stack_outputs()?, proof)
             .map_err(|err| format!("Program failed verification! - {}", err))?;
 
         println!("Verification complete in {} ms", now.elapsed().as_millis());
