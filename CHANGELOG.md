@@ -8,6 +8,7 @@
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
 - Added `get_mapped_values()` and `get_store_subset()` methods to the `AdviceProvider` trait (#987).
+- Improved handling of invalid/incomplete parameters in `StackOutputs` constructors (#1010).
 
 ## 0.6.1 (2023-06-29)
 
