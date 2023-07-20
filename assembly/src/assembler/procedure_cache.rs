@@ -57,8 +57,7 @@ impl ProcedureCache {
         match self.proc_map.entry(*proc.id()) {
             Entry::Occupied(_) => Err(AssemblyError::duplicate_proc_id(proc.id())),
             Entry::Vacant(entry) => {
-                let mast_root = proc.code_root().hash();
-                self.mast_map.entry(mast_root).or_insert(*proc.id());
+                self.mast_map.entry(proc.mast_root()).or_insert(*proc.id());
                 entry.insert(proc);
                 Ok(())
             }
@@ -102,7 +101,7 @@ impl ProcedureCache {
         self.proc_aliases.insert(alias_proc_id, proc_id);
         let proc = self.proc_map.get(&proc_id).expect("procedure not in cache");
 
-        Ok(proc.code_root().hash())
+        Ok(proc.mast_root())
     }
 
     // TEST HELPERS

@@ -18,7 +18,7 @@ impl Assembler {
         // operations from that SPAN block to the span builder instead of returning a code block
 
         // return the code block of the procedure
-        Ok(Some(proc.code_root().clone()))
+        Ok(Some(proc.code().clone()))
     }
 
     pub(super) fn exec_imported(
@@ -42,7 +42,7 @@ impl Assembler {
         // operations from that SPAN block to the span builder instead of returning a code block
 
         // return the code block of the procedure
-        Ok(Some(proc.code_root().clone()))
+        Ok(Some(proc.code().clone()))
     }
 
     pub(super) fn call_local(
@@ -56,8 +56,7 @@ impl Assembler {
         let proc = context.register_local_call(index, false)?;
 
         // create a new CALL block for the procedure call and return
-        let digest = proc.code_root().hash();
-        Ok(Some(CodeBlock::new_call(digest)))
+        Ok(Some(CodeBlock::new_call(proc.mast_root())))
     }
 
     pub(super) fn call_mast_root(
@@ -80,8 +79,7 @@ impl Assembler {
         context.register_external_call(proc, false)?;
 
         // create a new CALL block for the procedure call and return
-        let digest = proc.code_root().hash();
-        Ok(Some(CodeBlock::new_call(digest)))
+        Ok(Some(CodeBlock::new_call(proc.mast_root())))
     }
 
     pub(super) fn call_imported(
@@ -102,8 +100,7 @@ impl Assembler {
         context.register_external_call(proc, false)?;
 
         // create a new CALL block for the procedure call and return
-        let digest = proc.code_root().hash();
-        Ok(Some(CodeBlock::new_call(digest)))
+        Ok(Some(CodeBlock::new_call(proc.mast_root())))
     }
 
     pub(super) fn syscall(
@@ -129,7 +126,6 @@ impl Assembler {
         context.register_external_call(proc, false)?;
 
         // create a new SYSCALL block for the procedure call and return
-        let digest = proc.code_root().hash();
-        Ok(Some(CodeBlock::new_syscall(digest)))
+        Ok(Some(CodeBlock::new_syscall(proc.mast_root())))
     }
 }
