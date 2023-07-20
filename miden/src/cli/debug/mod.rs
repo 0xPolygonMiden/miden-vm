@@ -1,5 +1,5 @@
 use super::data::{Debug, InputFile, Libraries, ProgramFile};
-use rustyline::{error::ReadlineError, Config, EditMode, Editor};
+use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -60,7 +60,7 @@ impl DebugCmd {
 
         // initialize readline
         let mut rl =
-            Editor::<()>::with_config(rl_config).expect("Readline couldn't be initialized");
+            DefaultEditor::with_config(rl_config).expect("Readline couldn't be initialized");
 
         println!("Welcome! Enter `h` for help.");
 

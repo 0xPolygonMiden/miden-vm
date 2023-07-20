@@ -3,7 +3,7 @@ use miden::{
     math::{Felt, StarkField},
     MemAdviceProvider, StackInputs, Word,
 };
-use rustyline::{error::ReadlineError, Editor};
+use rustyline::{error::ReadlineError, DefaultEditor};
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
@@ -140,7 +140,7 @@ pub fn start_repl() {
     let mut memory: Vec<(u64, Word)> = Vec::new();
 
     // initializing readline.
-    let mut rl = Editor::<()>::new().expect("Readline couldn't be initialized");
+    let mut rl = DefaultEditor::new().expect("Readline couldn't be initialized");
     loop {
         let program = format!(
             "begin\n{}\nend",
@@ -232,7 +232,7 @@ pub fn start_repl() {
                 } else if line == "!stack" {
                     should_print_stack = true;
                 } else {
-                    rl.add_history_entry(line.clone());
+                    rl.add_history_entry(line.clone()).expect("Failed to add a history entry");
                     program_lines.push(line.clone());
                     should_print_stack = true;
                 }
