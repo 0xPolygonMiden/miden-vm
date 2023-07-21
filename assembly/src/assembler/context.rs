@@ -16,6 +16,7 @@ pub struct AssemblyContext {
     module_stack: Vec<ModuleContext>,
     is_kernel: bool,
     kernel: Option<Kernel>,
+    allow_phantom_calls: bool,
 }
 
 /// Describes which type of Miden assembly modules can be compiled with a given [AssemblyContext].
@@ -29,6 +30,7 @@ pub enum AssemblyContextType {
 impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
+
     /// Returns a new [AssemblyContext].
     ///
     /// The `context_type` specifies how the context will be used and the [AssemblyContext] is
@@ -45,7 +47,21 @@ impl AssemblyContext {
             module_stack: modules,
             is_kernel: context_type == AssemblyContextType::Kernel,
             kernel: None,
+            allow_phantom_calls: false,
         }
+    }
+
+    /// Sets the flag specifying whether phantom calls are allowed in this context.
+    ///
+    /// # Panics
+    /// Panics if the context was instantiated for compiling a kernel module as procedure calls
+    /// are not allowed in kernel modules in general.
+    pub fn with_phantom_calls(mut self, allow_phantom_calls: bool) -> Self {
+        if self.is_kernel {
+            assert!(!allow_phantom_calls);
+        }
+        self.allow_phantom_calls = allow_phantom_calls;
+        self
     }
 
     // PUBLIC ACCESSORS
@@ -140,8 +156,8 @@ impl AssemblyContext {
 
     /// Completes compilation of the current procedure and adds the compiled procedure to the list
     /// of the current module's compiled procedures.
-    pub fn complete_proc(&mut self, code_root: CodeBlock) {
-        self.module_stack.last_mut().expect("no modules").complete_proc(code_root);
+    pub fn complete_proc(&mut self, code: CodeBlock) {
+        self.module_stack.last_mut().expect("no modules").complete_proc(code);
     }
 
     // CALL PROCESSORS
@@ -203,6 +219,22 @@ impl AssemblyContext {
             .register_external_call(proc, inlined);
 
         Ok(())
+    }
+
+    /// Registers a "phantom" call to the procedure with the specified MAST root.
+    ///
+    /// A phantom call indicates that code for the procedure is not available. Executing a phantom
+    /// call will result in a runtime error. However, the VM may be able to execute a program with
+    /// phantom calls as long as the branches containing them are not taken.
+    ///
+    /// # Errors
+    /// Returns an error if phantom calls are not allowed in this assembly context.
+    pub fn register_phantom_call(&mut self, mast_root: RpoDigest) -> Result<(), AssemblyError> {
+        if !self.allow_phantom_calls {
+            Err(AssemblyError::phantom_calls_not_allowed(mast_root))
+        } else {
+            Ok(())
+        }
     }
 
     // CONTEXT FINALIZERS
@@ -356,7 +388,7 @@ impl ModuleContext {
         is_export: bool,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
-        // make sure a procedure with this name as not been compiled yet and is also not currently
+        // make sure a procedure with this name has not been compiled yet and is also not currently
         // on the stack of procedures being compiled
         if self.compiled_procs.iter().any(|p| p.name() == name)
             || self.proc_stack.iter().any(|p| &p.name == name)
@@ -364,8 +396,7 @@ impl ModuleContext {
             return Err(AssemblyError::duplicate_proc_name(name, &self.path));
         }
 
-        let name = ProcedureName::try_from(name.to_string())?;
-        self.proc_stack.push(ProcedureContext::new(name, is_export, num_locals));
+        self.proc_stack.push(ProcedureContext::new(name.clone(), is_export, num_locals));
         Ok(())
     }
 
@@ -375,7 +406,7 @@ impl ModuleContext {
     /// compiled procedure, and adds it to the list of compiled procedures.
     ///
     /// This also updates module callset to include the callset of the newly compiled procedure.
-    pub fn complete_proc(&mut self, code_root: CodeBlock) {
+    pub fn complete_proc(&mut self, code: CodeBlock) {
         let proc_context = self.proc_stack.pop().expect("no procedures");
 
         // build an ID for the procedure as follows:
@@ -388,7 +419,7 @@ impl ModuleContext {
             ProcedureId::from_index(proc_idx, &self.path)
         };
 
-        let proc = proc_context.into_procedure(proc_id, code_root);
+        let proc = proc_context.into_procedure(proc_id, code);
         self.callset.append(proc.callset());
         self.compiled_procs.push(proc);
     }

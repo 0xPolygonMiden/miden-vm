@@ -89,7 +89,7 @@ impl Module {
         Self { path, ast }
     }
 
-    /// Create a new kernel module from a AST using the constant [`LibraryPath::kernel_path`].
+    /// Create a new kernel module from a AST using the constant [LibraryPath::kernel_path].
     pub fn kernel(ast: ModuleAst) -> Self {
         Self {
             path: LibraryPath::kernel_path(),

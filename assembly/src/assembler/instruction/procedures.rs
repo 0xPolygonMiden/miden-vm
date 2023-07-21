@@ -33,7 +33,7 @@ impl Assembler {
         let proc_cache = self.proc_cache.borrow();
         let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
 
-        // register and "inlined" call to the procedure; this updates the callset of the
+        // register an "inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
         context.register_external_call(proc, true)?;
 
@@ -49,7 +49,7 @@ impl Assembler {
         index: u16,
         context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // register an "non-inlined" call to the procedure at the specified index in the module
+        // register a "non-inlined" call to the procedure at the specified index in the module
         // currently being complied; this updates the callset of the procedure currently being
         // compiled
         let proc = context.register_local_call(index, false)?;
@@ -60,24 +60,22 @@ impl Assembler {
 
     pub(super) fn call_mast_root(
         &self,
-        root: &RpoDigest,
+        mast_root: &RpoDigest,
         context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
 
-        // TODO: consider relaxing the restriction that mast roots must exist in the procedure
-        // cache; see https://github.com/0xPolygonMiden/miden-vm/pull/911/files#r1202962206
-        let proc = proc_cache
-            .get_by_hash(root)
-            .ok_or(AssemblyError::proc_mast_root_not_found(root))?;
-
-        // register and "non-inlined" call to the procedure; this updates the callset of the
-        // procedure currently being compiled
-        context.register_external_call(proc, false)?;
+        // if the procedure with the specified MAST root exists in procedure cache, register a
+        // "non-inlined" call to the procedure (to update the callset of the procedure currently
+        // being compiled); otherwise, register a "phantom" call.
+        match proc_cache.get_by_hash(mast_root) {
+            Some(proc) => context.register_external_call(proc, false)?,
+            None => context.register_phantom_call(*mast_root)?,
+        }
 
         // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(proc.mast_root())))
+        Ok(Some(CodeBlock::new_call(*mast_root)))
     }
 
     pub(super) fn call_imported(
@@ -92,7 +90,7 @@ impl Assembler {
         let proc_cache = self.proc_cache.borrow();
         let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
 
-        // register and "non-inlined" call to the procedure; this updates the callset of the
+        // register a "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
         context.register_external_call(proc, false)?;
 
@@ -118,7 +116,7 @@ impl Assembler {
         // a kernel procedure must be empty.
         debug_assert!(proc.callset().is_empty(), "non-empty callset for a kernel procedure");
 
-        // register and "non-inlined" call to the procedure; this updates the callset of the
+        // register a "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
         context.register_external_call(proc, false)?;
 
