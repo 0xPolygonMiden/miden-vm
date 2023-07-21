@@ -116,6 +116,7 @@ impl Assembler {
 
     // PROGRAM COMPILER
     // --------------------------------------------------------------------------------------------
+
     /// Compiles the provided source code into a [Program]. The resulting program can be executed
     /// on Miden VM.
     ///
@@ -141,7 +142,7 @@ impl Assembler {
     }
 
     /// Compiles the provided [ProgramAst] into a program and returns the program root
-    /// ([CodeBlock]).  Mutates the provided context by adding all of the call targets of
+    /// ([CodeBlock]). Mutates the provided context by adding all of the call targets of
     /// the program to the [CallSet].
     ///
     /// # Errors
@@ -172,6 +173,7 @@ impl Assembler {
 
         Ok(program_root)
     }
+
     // MODULE COMPILER
     // --------------------------------------------------------------------------------------------
 
@@ -252,7 +254,7 @@ impl Assembler {
     ) -> Result<(), AssemblyError> {
         context.begin_proc(&proc.name, proc.is_export, proc.num_locals)?;
 
-        let code_root = if proc.num_locals > 0 {
+        let code = if proc.num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
             // - to allocate procedure locals we need to increment fmp by the number of locals
@@ -267,7 +269,7 @@ impl Assembler {
             self.compile_body(proc.body.nodes().iter(), context, None)?
         };
 
-        context.complete_proc(code_root);
+        context.complete_proc(code);
 
         Ok(())
     }
@@ -407,10 +409,10 @@ struct BodyWrapper {
     epilogue: Vec<Operation>,
 }
 
-// UTILITY FUNCTIONS
+// HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
+fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     debug_assert!(!blocks.is_empty(), "cannot combine empty block list");
     // merge consecutive Span blocks.
     let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
@@ -432,7 +434,7 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
         merged_blocks.push(combine_spans(&mut contiguous_spans));
     }
 
-    // build a binary tree of blocks joining them using Join blocks
+    // build a binary tree of blocks joining them using JOIN blocks
     let mut blocks = merged_blocks;
     while blocks.len() > 1 {
         let last_block = if blocks.len() % 2 == 0 { None } else { blocks.pop() };
@@ -453,8 +455,11 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     blocks.remove(0)
 }
 
-/// Returns a CodeBlock [Span] from sequence of Span blocks provided as input.
-pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
+/// Combines a vector of SPAN blocks into a single SPAN block.
+///
+/// # Panics
+/// Panics if any of the provided blocks is not a SPAN block.
+fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
     if spans.len() == 1 {
         return spans.remove(0);
     }
@@ -470,7 +475,7 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
                 ops.extend_from_slice(batch.ops());
             }
         } else {
-            panic!("Codeblock was expected to be a Span Block, got {block:?}.");
+            panic!("CodeBlock was expected to be a Span Block, got {block:?}.");
         }
     });
     CodeBlock::new_span_with_decorators(ops, decorators)

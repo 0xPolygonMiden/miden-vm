@@ -1,6 +1,7 @@
 use crate::{
     ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContextType, Library, LibraryNamespace, LibraryPath, Module, Version,
+    Assembler, AssemblyContext, AssemblyContextType, Library, LibraryNamespace, LibraryPath,
+    Module, Version,
 };
 use core::slice::Iter;
 
@@ -588,14 +589,24 @@ fn program_with_invalid_rpo_digest_call() {
 }
 
 #[test]
-fn program_with_mast_root_call_that_does_not_exist() {
+fn program_with_phantom_mast_call() {
     let assembler = super::Assembler::default();
+
     let source =
         "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae end";
-    let result = assembler.compile(source);
+    let ast = ProgramAst::parse(source).unwrap();
+
+    // phantom calls not allowed
+    let mut context = AssemblyContext::new(AssemblyContextType::Program).with_phantom_calls(false);
+    let result = assembler.compile_in_context(&ast, &mut context);
     let err = result.err().unwrap();
-    let expected_error = "procedure mast root not found for digest - 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae";
+    let expected_error = "cannot call phantom procedure with MAST root 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae: phantom calls not allowed";
     assert_eq!(expected_error, err.to_string());
+
+    // phantom calls allowed
+    let mut context = AssemblyContext::new(AssemblyContextType::Program).with_phantom_calls(true);
+    let result = assembler.compile_in_context(&ast, &mut context);
+    assert!(result.is_ok());
 }
 
 // IMPORTS

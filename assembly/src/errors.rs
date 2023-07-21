@@ -3,7 +3,6 @@ use super::{
     ToString, Token, Vec,
 };
 use core::fmt;
-use vm_core::utils::write_hex_bytes;
 
 // ASSEMBLY ERROR
 // ================================================================================================
@@ -20,7 +19,6 @@ pub enum AssemblyError {
     DuplicateProcName(String, String),
     DuplicateProcId(ProcedureId),
     ExportedProcInProgram(String),
-    ProcMastRootNotFound(RpoDigest),
     ImportedProcModuleNotFound(ProcedureId),
     ImportedProcNotFoundInModule(ProcedureId, String),
     InvalidProgramAssemblyContext,
@@ -29,6 +27,7 @@ pub enum AssemblyError {
     LocalProcNotFound(u16, String),
     ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
+    PhantomCallsNotAllowed(RpoDigest),
     ProcedureNameError(String),
     SysCallInKernel(String),
     LibraryError(String),
@@ -71,10 +70,6 @@ impl AssemblyError {
         Self::ExportedProcInProgram(proc_name.to_string())
     }
 
-    pub fn proc_mast_root_not_found(root: &RpoDigest) -> Self {
-        Self::ProcMastRootNotFound(*root)
-    }
-
     pub fn imported_proc_module_not_found(proc_id: &ProcedureId) -> Self {
         Self::ImportedProcModuleNotFound(*proc_id)
     }
@@ -93,6 +88,10 @@ impl AssemblyError {
 
     pub fn param_out_of_bounds(value: u64, min: u64, max: u64) -> Self {
         Self::ParamOutOfBounds(value, min, max)
+    }
+
+    pub fn phantom_calls_not_allowed(mast_root: RpoDigest) -> Self {
+        Self::PhantomCallsNotAllowed(mast_root)
     }
 
     pub fn syscall_in_kernel(kernel_proc_name: &str) -> Self {
@@ -144,10 +143,7 @@ impl fmt::Display for AssemblyError {
             LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
-            ProcMastRootNotFound(digest) => {
-                write!(f, "procedure mast root not found for digest - ")?;
-                write_hex_bytes(f, &digest.as_bytes())
-            },
+            PhantomCallsNotAllowed(mast_root) => write!(f, "cannot call phantom procedure with MAST root 0x{mast_root}: phantom calls not allowed"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
         }
     }
