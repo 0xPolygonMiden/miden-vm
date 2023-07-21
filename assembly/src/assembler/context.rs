@@ -1,8 +1,7 @@
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, Procedure,
-    ProcedureCache, ProcedureId, RpoDigest, ToString, Vec,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, NamedProcedure,
+    Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString, Vec,
 };
-use crate::ProcedureName;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -97,7 +96,7 @@ impl AssemblyContext {
     ///
     /// This pops the module off the module stack and return all local procedures of the module
     /// (both exported and internal) together with the combined callset of module's procedures.
-    pub fn complete_module(&mut self) -> (Vec<Procedure>, CallSet) {
+    pub fn complete_module(&mut self) -> (Vec<NamedProcedure>, CallSet) {
         let module_ctx = self.module_stack.pop().expect("no modules");
         if self.is_kernel && self.module_stack.is_empty() {
             // if we are compiling a kernel and this is the last module on the module stack, then
@@ -287,7 +286,7 @@ struct ModuleContext {
     /// is currently being compiled is at the top of this list.
     proc_stack: Vec<ProcedureContext>,
     /// List of local procedures which have already been compiled for this module.
-    compiled_procs: Vec<Procedure>,
+    compiled_procs: Vec<NamedProcedure>,
     /// Fully qualified path of this module.
     path: LibraryPath,
     /// A combined callset of all procedure callsets in this module.
@@ -336,7 +335,10 @@ impl ModuleContext {
     /// Returns a [Procedure] with the specified MAST root, or None if a compiled procedure with
     /// such MAST root could not be found in this context.
     pub fn find_local_proc(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
-        self.compiled_procs.iter().find(|proc| proc.mast_root() == *mast_root)
+        self.compiled_procs
+            .iter()
+            .find(|proc| proc.mast_root() == *mast_root)
+            .map(|proc| proc.inner())
     }
 
     // PROCEDURE PROCESSORS
@@ -356,7 +358,7 @@ impl ModuleContext {
     ) -> Result<(), AssemblyError> {
         // make sure a procedure with this name as not been compiled yet and is also not currently
         // on the stack of procedures being compiled
-        if self.compiled_procs.iter().any(|p| p.label() == name)
+        if self.compiled_procs.iter().any(|p| p.name() == name)
             || self.proc_stack.iter().any(|p| &p.name == name)
         {
             return Err(AssemblyError::duplicate_proc_name(name, &self.path));
@@ -425,7 +427,7 @@ impl ModuleContext {
         if !inlined {
             context.callset.insert(called_proc.mast_root());
         }
-        Ok(called_proc)
+        Ok(called_proc.inner())
     }
 
     /// Registers a call to the specified external procedure (i.e., a procedure which is not a part
@@ -503,7 +505,7 @@ impl ProcedureContext {
         &self.name
     }
 
-    pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> Procedure {
+    pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> NamedProcedure {
         let Self {
             name,
             is_export,
@@ -511,6 +513,6 @@ impl ProcedureContext {
             callset,
         } = self;
 
-        Procedure::new(id, name, is_export, num_locals as u32, code_root, callset)
+        NamedProcedure::new(id, name, is_export, num_locals as u32, code_root, callset)
     }
 }

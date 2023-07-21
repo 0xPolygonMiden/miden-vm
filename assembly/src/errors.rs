@@ -15,6 +15,7 @@ pub enum AssemblyError {
     CallerOutOKernel,
     CallSetProcedureNotFound(RpoDigest),
     CircularModuleDependency(Vec<String>),
+    ConflictingNumLocals(String),
     DivisionByZero,
     DuplicateProcName(String, String),
     DuplicateProcId(ProcedureId),
@@ -48,6 +49,10 @@ impl AssemblyError {
 
     pub fn circular_module_dependency(dep_chain: &[String]) -> Self {
         Self::CircularModuleDependency(dep_chain.to_vec())
+    }
+
+    pub fn conflicting_num_locals(proc_name: &str) -> Self {
+        Self::ConflictingNumLocals(proc_name.to_string())
     }
 
     pub fn division_by_zero() -> Self {
@@ -125,6 +130,7 @@ impl fmt::Display for AssemblyError {
             CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
             CallSetProcedureNotFound(mast_root) => write!(f, "callset procedure not found in assembler cache for procedure with MAST root {mast_root}"),
             CircularModuleDependency(dep_chain) => write!(f, "circular module dependency in the following chain: {dep_chain:?}"),
+            ConflictingNumLocals(proc_name) => write!(f, "procedure `{proc_name}` has the same MAST as another procedure but different number of locals"),
             DivisionByZero => write!(f, "division by zero"),
             DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),

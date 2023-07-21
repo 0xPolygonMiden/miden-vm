@@ -19,7 +19,7 @@ mod library;
 pub use library::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, Version};
 
 mod procedures;
-use procedures::{CallSet, Procedure};
+use procedures::{CallSet, NamedProcedure, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
 pub mod ast;
