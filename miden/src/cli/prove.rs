@@ -25,8 +25,8 @@ pub struct ProveCmd {
     library_paths: Vec<PathBuf>,
 
     /// Maximum number of cycles a program is allowed to consume
-    #[structopt(short = "m", long = "max-cycles")]
-    max_cycles: Option<u32>,
+    #[structopt(short = "m", long = "max-cycles", default_value = "4294967295")]
+    max_cycles: u32,
 
     /// Number of outputs
     #[structopt(short = "n", long = "num-outputs", default_value = "16")]
@@ -51,14 +51,13 @@ pub struct ProveCmd {
 
 impl ProveCmd {
     pub fn get_proof_options(&self) -> Result<ProvingOptions, ExecutionOptionsError> {
-        let exec_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles)?;
-        match self.security.as_str() {
-            "96bits" => Ok(ProvingOptions::with_96_bit_security(self.recursive)
-                .with_execution_options(exec_options)),
-            "128bits" => Ok(ProvingOptions::with_128_bit_security(self.recursive)
-                .with_execution_options(exec_options)),
+        let exec_options = ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles)?;
+        Ok(match self.security.as_str() {
+            "96bits" => ProvingOptions::with_96_bit_security(self.recursive),
+            "128bits" => ProvingOptions::with_128_bit_security(self.recursive),
             other => panic!("{} is not a valid security setting", other),
         }
+        .with_execution_options(exec_options))
     }
 
     pub fn execute(&self) -> Result<(), String> {

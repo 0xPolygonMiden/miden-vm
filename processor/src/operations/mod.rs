@@ -149,17 +149,18 @@ where
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
         }
 
-        self.advance_clock();
+        self.advance_clock()?;
 
         Ok(())
     }
 
     /// Increments the clock cycle for all components of the process.
-    fn advance_clock(&mut self) {
-        self.system.advance_clock();
+    fn advance_clock(&mut self) -> Result<(), ExecutionError> {
+        self.system.advance_clock(self.max_cycles)?;
         self.stack.advance_clock();
         self.chiplets.advance_clock();
         self.advice_provider.advance_clock();
+        Ok(())
     }
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
@@ -178,7 +179,12 @@ impl Process<super::MemAdviceProvider> {
     /// initialized with the provided values.
     fn new_dummy(stack_inputs: super::StackInputs) -> Self {
         let advice_provider = super::MemAdviceProvider::default();
-        let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Self::new(
+            Kernel::default(),
+            stack_inputs,
+            advice_provider,
+            super::ExecutionOptions::default(),
+        );
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -196,7 +202,12 @@ impl Process<super::MemAdviceProvider> {
             .with_stack_values(advice_stack.iter().copied())
             .unwrap();
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Self::new(
+            Kernel::default(),
+            stack_inputs,
+            advice_provider,
+            super::ExecutionOptions::default(),
+        );
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -224,7 +235,12 @@ impl Process<super::MemAdviceProvider> {
         advice_inputs: super::AdviceInputs,
     ) -> Self {
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Self::new(
+            Kernel::default(),
+            stack_inputs,
+            advice_provider,
+            super::ExecutionOptions::default(),
+        );
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
         process

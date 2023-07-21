@@ -19,6 +19,7 @@ pub enum ExecutionError {
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
     CodeBlockNotFound(Digest),
+    CycleLimitExceeded(u32),
     DivideByZero(u32),
     Ext2InttError(Ext2InttError),
     FailedAssertion(u32),
@@ -60,6 +61,9 @@ impl Display for ExecutionError {
                     f,
                     "Failed to execute code block with root {hex}; the block could not be found"
                 )
+            }
+            CycleLimitExceeded(max_cycles) => {
+                write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
             }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),

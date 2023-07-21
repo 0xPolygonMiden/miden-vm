@@ -8,6 +8,7 @@
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
 - Added `get_mapped_values()` and `get_store_subset()` methods to the `AdviceProvider` trait (#987).
+- [BREAKING] Added options to specify maximum number of cycles and expected number of cycles for a program (#998).
 - Improved handling of invalid/incomplete parameters in `StackOutputs` constructors (#1010).
 - Allowed the assembler to produce programs with "phantom" calls (#1019).
 

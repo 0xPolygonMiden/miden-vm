@@ -1,4 +1,7 @@
-use super::{Felt, FieldElement, StarkField, SysTrace, Vec, Word, ONE, ZERO};
+use super::{ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, ONE, ZERO};
+
+#[cfg(test)]
+mod tests;
 
 // CONSTANTS
 // ================================================================================================
@@ -132,8 +135,13 @@ impl System {
     // --------------------------------------------------------------------------------------------
 
     /// Increments the clock cycle.
-    pub fn advance_clock(&mut self) {
+    pub fn advance_clock(&mut self, max_cycles: u32) -> Result<(), ExecutionError> {
         self.clk += 1;
+
+        // Check that maximum number of cycles is not exceeded.
+        if self.clk > max_cycles {
+            return Err(ExecutionError::CycleLimitExceeded(max_cycles));
+        }
 
         let clk = self.clk as usize;
 
@@ -146,6 +154,8 @@ impl System {
         self.fn_hash_trace[1][clk] = self.fn_hash[1];
         self.fn_hash_trace[2][clk] = self.fn_hash[2];
         self.fn_hash_trace[3][clk] = self.fn_hash[3];
+
+        Ok(())
     }
 
     /// Sets the value of free memory pointer for the next clock cycle.

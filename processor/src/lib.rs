@@ -112,13 +112,13 @@ pub fn execute<A>(
     program: &Program,
     stack_inputs: StackInputs,
     advice_provider: A,
-    _options: ExecutionOptions,
+    options: ExecutionOptions,
 ) -> Result<ExecutionTrace, ExecutionError>
 where
     A: AdviceProvider,
 {
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_provider);
-    // TODO: use ExecutionOptions to limit program execution
+    let mut process =
+        Process::new(program.kernel().clone(), stack_inputs, advice_provider, options);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -161,6 +161,7 @@ where
     range: RangeChecker,
     chiplets: Chiplets,
     advice_provider: A,
+    max_cycles: u32,
 }
 
 impl<A> Process<A>
@@ -170,13 +171,18 @@ where
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
-    pub fn new(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
-        Self::initialize(kernel, stack_inputs, advice_provider, false)
+    pub fn new(
+        kernel: Kernel,
+        stack_inputs: StackInputs,
+        advice_provider: A,
+        execution_options: ExecutionOptions,
+    ) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, false, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
     pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
-        Self::initialize(kernel, stack_inputs, advice_provider, true)
+        Self::initialize(kernel, stack_inputs, advice_provider, true, ExecutionOptions::default())
     }
 
     fn initialize(
@@ -184,14 +190,16 @@ where
         stack: StackInputs,
         advice_provider: A,
         in_debug_mode: bool,
+        execution_options: ExecutionOptions,
     ) -> Self {
         Self {
-            system: System::new(MIN_TRACE_LEN),
+            system: System::new(execution_options.expected_cycles() as usize),
             decoder: Decoder::new(in_debug_mode),
-            stack: Stack::new(&stack, MIN_TRACE_LEN, in_debug_mode),
+            stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
             advice_provider,
+            max_cycles: execution_options.max_cycles(),
         }
     }
 
@@ -473,4 +481,5 @@ where
     pub range: RangeChecker,
     pub chiplets: Chiplets,
     pub advice_provider: A,
+    pub max_cycles: u32,
 }

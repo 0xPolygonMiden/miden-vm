@@ -23,8 +23,8 @@ pub struct RunCmd {
     library_paths: Vec<PathBuf>,
 
     /// Maximum number of cycles a program is allowed to consume
-    #[structopt(short = "m", long = "max-cycles")]
-    max_cycles: Option<u32>,
+    #[structopt(short = "m", long = "max-cycles", default_value = "4294967295")]
+    max_cycles: u32,
 
     /// Number of ouptuts
     #[structopt(short = "n", long = "num-outputs", default_value = "16")]
@@ -51,7 +51,7 @@ impl RunCmd {
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // get execution options
-        let execution_options = ExecutionOptions::new(self.max_cycles, self.expected_cycles)
+        let execution_options = ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles)
             .map_err(|err| format!("{err}"))?;
 
         // fetch the stack and program inputs from the arguments
@@ -64,7 +64,7 @@ impl RunCmd {
 
         // execute program and generate outputs
         let trace = processor::execute(&program, stack_inputs, advice_provider, execution_options)
-            .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
+            .map_err(|err| format!("Failed to generate execution trace = {:?}", err))?;
 
         println!("done ({} steps in {} ms)", trace.get_trace_len(), now.elapsed().as_millis());
 
