@@ -1,7 +1,7 @@
 use super::{
-    crypto::hash::Blake3_160, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable,
-    DeserializationError, LabelError, LibraryPath, Serializable, String, ToString,
-    PROCEDURE_LABEL_PARSER,
+    crypto::hash::{Blake3_160, RpoDigest},
+    BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
+    LibraryPath, Serializable, String, ToString, PROCEDURE_LABEL_PARSER,
 };
 use core::{
     fmt,
@@ -64,18 +64,22 @@ impl Procedure {
     }
 
     /// Returns the number of memory locals reserved by the procedure.
-    #[allow(dead_code)]
     pub fn num_locals(&self) -> u32 {
         self.num_locals
     }
 
-    /// Returns a root of this procedure's MAST.
-    pub fn code_root(&self) -> &CodeBlock {
+    /// Returns the root of this procedure's MAST.
+    pub fn mast_root(&self) -> RpoDigest {
+        self.code_root.hash()
+    }
+
+    /// Returns a reference to the MAST of this procedure.
+    pub fn code(&self) -> &CodeBlock {
         &self.code_root
     }
 
-    /// Returns a reference to a set of all procedures (identified by their IDs) which may be
-    /// called during the execution of this procedure.
+    /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
+    /// be called during the execution of this procedure.
     pub fn callset(&self) -> &CallSet {
         &self.callset
     }
@@ -285,15 +289,15 @@ impl Deserializable for ProcedureId {
 /// Contains a list of all procedures which may be invoked from a procedure via call or syscall
 /// instructions.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct CallSet(BTreeSet<ProcedureId>);
+pub struct CallSet(BTreeSet<RpoDigest>);
 
 impl CallSet {
-    pub fn contains(&self, proc_id: &ProcedureId) -> bool {
-        self.0.contains(proc_id)
+    pub fn contains(&self, mast_root: &RpoDigest) -> bool {
+        self.0.contains(mast_root)
     }
 
-    pub fn insert(&mut self, proc_id: ProcedureId) {
-        self.0.insert(proc_id);
+    pub fn insert(&mut self, mast_root: RpoDigest) {
+        self.0.insert(mast_root);
     }
 
     pub fn append(&mut self, other: &CallSet) {
@@ -304,7 +308,7 @@ impl CallSet {
 }
 
 impl ops::Deref for CallSet {
-    type Target = BTreeSet<ProcedureId>;
+    type Target = BTreeSet<RpoDigest>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

@@ -226,10 +226,10 @@ impl Assembler {
         //   which has been invoked via a local call instruction.
         for proc in module_procs.into_iter() {
             if proc.is_export() {
-                proc_roots.push(proc.code_root().hash());
+                proc_roots.push(proc.mast_root());
             }
 
-            if proc.is_export() || module_callset.contains(proc.id()) {
+            if proc.is_export() || module_callset.contains(&proc.mast_root()) {
                 // this is safe because we fail if the cache is borrowed.
                 self.proc_cache
                     .try_borrow_mut()

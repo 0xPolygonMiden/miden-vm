@@ -1,6 +1,6 @@
 use super::{
     AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, Procedure,
-    ProcedureCache, ProcedureId, ToString, Vec,
+    ProcedureCache, ProcedureId, RpoDigest, ToString, Vec,
 };
 use crate::ProcedureName;
 
@@ -103,13 +103,13 @@ impl AssemblyContext {
             // if we are compiling a kernel and this is the last module on the module stack, then
             // it must be the Kernel module; thus, we build a Kernel struct from the procedures
             // exported from the kernel module
-            let hashes = module_ctx
+            let proc_roots = module_ctx
                 .compiled_procs
                 .iter()
                 .filter(|proc| proc.is_export())
-                .map(|proc| proc.code_root().hash())
+                .map(|proc| proc.mast_root())
                 .collect::<Vec<_>>();
-            self.kernel = Some(Kernel::new(&hashes));
+            self.kernel = Some(Kernel::new(&proc_roots));
         }
 
         // return compiled procedures and callset from the module
@@ -247,13 +247,13 @@ impl AssemblyContext {
         // procedures can be either in the specified procedure cache (for procedures imported from
         // other modules) or in the module's procedures (for procedures defined locally).
         let mut cb_table = CodeBlockTable::default();
-        for proc_id in main_module_context.callset.iter() {
+        for mast_root in main_module_context.callset.iter() {
             let proc = proc_cache
-                .get_by_id(proc_id)
-                .or_else(|| main_module_context.find_local_proc(proc_id))
-                .ok_or(AssemblyError::CallSetProcedureNotFound(*proc_id))?;
+                .get_by_hash(mast_root)
+                .or_else(|| main_module_context.find_local_proc(mast_root))
+                .ok_or(AssemblyError::CallSetProcedureNotFound(*mast_root))?;
 
-            cb_table.insert(proc.code_root().clone());
+            cb_table.insert(proc.code().clone());
         }
 
         Ok(cb_table)
@@ -333,10 +333,10 @@ impl ModuleContext {
         self.path.is_exec_path()
     }
 
-    /// Returns a [Procedure] with the specified ID, or None if a compiled procedure with such ID
-    /// could not be found in this context.
-    pub fn find_local_proc(&self, proc_id: &ProcedureId) -> Option<&Procedure> {
-        self.compiled_procs.iter().find(|proc| proc.id() == proc_id)
+    /// Returns a [Procedure] with the specified MAST root, or None if a compiled procedure with
+    /// such MAST root could not be found in this context.
+    pub fn find_local_proc(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
+        self.compiled_procs.iter().find(|proc| proc.mast_root() == *mast_root)
     }
 
     // PROCEDURE PROCESSORS
@@ -423,7 +423,7 @@ impl ModuleContext {
 
         // if the called procedure was not inlined, we include it in the current callset as well
         if !inlined {
-            context.callset.insert(*called_proc.id());
+            context.callset.insert(called_proc.mast_root());
         }
         Ok(called_proc)
     }
@@ -444,7 +444,7 @@ impl ModuleContext {
 
         // if the called procedure was not inlined, we include it in the current callset as well
         if !inlined {
-            context.callset.insert(*called_proc.id());
+            context.callset.insert(called_proc.mast_root());
         }
     }
 
