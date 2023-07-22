@@ -55,7 +55,7 @@ trait Renderer {
     fn render(stdlib: &ModuleMap, output_dir: &str);
 }
 
-// Writes Miden standard library modules documentation markdown files based on the available modules and comments.
+/// Writes Miden standard library modules documentation markdown files based on the available modules and comments.
 pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) {
     // Remove functions folder to re-generate
     fs::remove_dir_all(output_dir).unwrap();

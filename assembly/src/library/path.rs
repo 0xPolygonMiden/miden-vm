@@ -32,6 +32,8 @@ impl LibraryPath {
     /// Path for an executable module.
     pub const EXEC_PATH: &str = "#exec";
 
+    pub const MOD: &str = "mod";
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -203,7 +205,7 @@ impl LibraryPath {
             .path
             .rsplit_once(Self::PATH_DELIM)
             .expect("failed to split path on module delimiter")
-            .1;
+            .0;
 
         Ok(Self {
             path: rem.to_string(),
@@ -332,6 +334,8 @@ fn validate_path_len(path: &str) -> Result<(), PathError> {
 fn validate_component(component: &str) -> Result<(), PathError> {
     if component.is_empty() {
         Err(PathError::EmptyComponent)
+    } else if component == LibraryPath::MOD {
+        Err(PathError::component_invalid_name(component))
     } else if component.len() > MAX_LABEL_LEN {
         Err(PathError::component_too_long(component, MAX_LABEL_LEN))
     } else if !component.chars().next().unwrap().is_ascii_alphabetic() {
