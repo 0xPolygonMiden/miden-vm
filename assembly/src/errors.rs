@@ -922,7 +922,6 @@ pub enum PathError {
     ComponentTooLong { component: String, max_len: usize },
     EmptyComponent,
     EmptyPath,
-    InvalidComponentName { component: String },
     PathTooLong { path: String, max_len: usize },
     TooFewComponents { path: String, min_components: usize },
 }
@@ -960,12 +959,6 @@ impl PathError {
             min_components,
         }
     }
-
-    pub(crate) fn component_invalid_name(component: &str) -> PathError {
-        Self::InvalidComponentName {
-            component: component.into(),
-        }
-    }
 }
 
 impl fmt::Display for PathError {
@@ -986,9 +979,6 @@ impl fmt::Display for PathError {
             }
             EmptyPath => {
                 write!(f, "path cannot be an empty string")
-            }
-            InvalidComponentName { component } => {
-                write!(f, "'{component}' keyword is not allowed in the library path")
             }
             PathTooLong { path, max_len } => {
                 write!(f, "path  `{path}` contains over {max_len} characters")
