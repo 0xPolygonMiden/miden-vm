@@ -62,6 +62,8 @@ impl MaslLibrary {
     pub const LIBRARY_EXTENSION: &str = "masl";
     /// File extension for the Assembly Module.
     pub const MODULE_EXTENSION: &str = "masm";
+    /// Name of the root module.
+    pub const MOD: &str = "mod";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -156,6 +158,14 @@ mod use_std {
             let module_path = LibraryPath::new(&namespace)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
 
+            // mod.masm is not allowed in the root directory
+            if path.as_ref().join("mod.masm").exists() {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "mod.masm is not allowed in the root directory",
+                ));
+            }
+
             let modules = read_from_dir_helper(
                 Default::default(),
                 path,
@@ -246,6 +256,17 @@ mod use_std {
                         io::Error::new(io::ErrorKind::Other, "invalid directory entry!")
                     })?;
 
+                    // check if a directory with the same name exists in the directory
+                    if path.with_file_name(name).is_dir() {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!(
+                                "file and directory with the same name '{}' are not allowed",
+                                name
+                            ),
+                        ));
+                    }
+
                     // read & parse file
                     let contents = fs::read_to_string(&path)?;
                     let ast = ModuleAst::parse(&contents)?;
@@ -257,9 +278,14 @@ mod use_std {
                     }
 
                     // build module path and add it to the map of modules
-                    let module = module_path
-                        .append(name)
-                        .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
+                    let module = if name == MaslLibrary::MOD {
+                        module_path.clone()
+                    } else {
+                        module_path
+                            .append(name)
+                            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?
+                    };
+
                     if state.insert(module, ast).is_some() {
                         unreachable!(
                             "the filesystem is inconsistent as it produced duplicated module paths"

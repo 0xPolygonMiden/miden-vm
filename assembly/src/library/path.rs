@@ -203,7 +203,7 @@ impl LibraryPath {
             .path
             .rsplit_once(Self::PATH_DELIM)
             .expect("failed to split path on module delimiter")
-            .1;
+            .0;
 
         Ok(Self {
             path: rem.to_string(),
