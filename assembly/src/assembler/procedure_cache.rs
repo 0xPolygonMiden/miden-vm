@@ -72,11 +72,12 @@ impl ProcedureCache {
                 if proc.num_locals() != cached_proc.num_locals() {
                     Err(AssemblyError::conflicting_num_locals(proc.name()))
                 } else {
+                    self.proc_id_map.insert(*proc.id(), proc.mast_root());
                     Ok(())
                 }
             }
             Entry::Vacant(entry) => {
-                self.proc_id_map.entry(*proc.id()).or_insert(proc.mast_root());
+                self.proc_id_map.insert(*proc.id(), proc.mast_root());
                 entry.insert(proc.into_inner());
                 Ok(())
             }

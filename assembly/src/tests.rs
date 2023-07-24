@@ -664,6 +664,48 @@ fn program_with_one_import_and_hex_call() {
 }
 
 #[test]
+fn program_with_two_imported_procs_with_same_mast_root() {
+    const NAMESPACE: &str = "dummy";
+    const MODULE: &str = "math::u256";
+    const PROCEDURE: &str = r#"
+        export.iszero_unsafe_dup
+            eq.0
+            repeat.7
+                swap
+                eq.0
+                and
+            end
+        end
+
+        export.iszero_unsafe
+            eq.0
+            repeat.7
+                swap
+                eq.0
+                and
+            end
+        end"#;
+
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(PROCEDURE).unwrap();
+    let modules = vec![Module { path, ast }];
+    let library = DummyLibrary::new(namespace, modules);
+
+    let assembler = super::Assembler::default().with_library(&library).unwrap();
+    let source = format!(
+        r#"
+        use.{NAMESPACE}::{MODULE}
+        begin
+            push.4 push.3
+            exec.u256::iszero_unsafe
+            exec.u256::iszero_unsafe_dup
+        end"#
+    );
+    assert!(assembler.compile(source).is_ok());
+}
+
+#[test]
 fn program_with_reexported_proc_in_same_library() {
     // exprted proc is in same library
     const NAMESPACE: &str = "dummy1";
