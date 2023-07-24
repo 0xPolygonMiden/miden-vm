@@ -2661,3 +2661,18 @@ fn test_falcon512_verify() {
     let test = build_test!(source, &[]);
     assert!(test.execute().is_ok());
 }
+
+#[test]
+fn test_dup_mast() {
+    let source = "
+    use.std::math::poly512
+    use.std::math::ntt512
+    begin
+        exec.poly512::test_1
+        exec.ntt512::test_1
+    end
+    ";
+
+    let test = build_test!(source, &[]);
+    assert!(test.execute().is_ok());
+}

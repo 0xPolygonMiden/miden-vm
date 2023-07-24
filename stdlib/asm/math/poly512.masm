@@ -1,6 +1,10 @@
 use.std::math::ntt512
 use.std::math::u64
 
+export.test_1
+    push.1 drop
+end
+
 #! Given two consecutive words on stack, this routine performs
 #! element wise multiplication, while keeping resulting single
 #! word on stack.
