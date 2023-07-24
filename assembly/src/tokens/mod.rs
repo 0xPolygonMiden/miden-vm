@@ -1,3 +1,5 @@
+use crate::ast::ProcedureScope;
+
 use super::{
     ast::InvocationTarget, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError,
     LibraryPath, ParsingError, ProcedureName, Serializable, String, ToString, Vec,
@@ -37,6 +39,7 @@ impl<'a> Token<'a> {
     pub const CONST: &'static str = "const";
     pub const END: &'static str = "end";
     pub const EXPORT: &'static str = "export";
+    pub const EXPORT_LIB: &'static str = "export(lib)";
     pub const PROC: &'static str = "proc";
     pub const USE: &'static str = "use";
 
@@ -123,12 +126,14 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_proc(&self) -> Result<(ProcedureName, u16, bool), ParsingError> {
+    pub fn parse_proc(&self) -> Result<(ProcedureName, u16, ProcedureScope), ParsingError> {
         assert!(
-            self.parts[0] == Self::PROC || self.parts[0] == Self::EXPORT,
+            self.parts[0] == Self::PROC
+                || self.parts[0] == Self::EXPORT
+                || self.parts[0] == Self::EXPORT_LIB,
             "invalid procedure declaration"
         );
-        let is_export = self.parts[0] == Self::EXPORT;
+        let scope = ProcedureScope::parse(self.parts[0])?;
         let (name_str, num_locals) = match self.num_parts() {
             0 => unreachable!(),
             1 => return Err(ParsingError::missing_param(self)),
@@ -141,7 +146,7 @@ impl<'a> Token<'a> {
         };
 
         ProcedureName::try_from(name_str.to_string())
-            .map(|proc_name| (proc_name, num_locals, is_export))
+            .map(|proc_name| (proc_name, num_locals, scope))
             .map_err(|err| ParsingError::invalid_proc_name(self, err))
     }
 

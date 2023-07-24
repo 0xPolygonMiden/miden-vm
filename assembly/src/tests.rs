@@ -706,6 +706,70 @@ fn program_with_two_imported_procs_with_same_mast_root() {
 }
 
 #[test]
+fn procedure_scoping() {
+    const NAMESPACE: &str = "dummy";
+    const MODULE: &str = "math::u256";
+    const PROCEDURE: &str = r#"
+        export(lib).iszero_unsafe
+            eq.0
+            repeat.7
+                swap
+                eq.0
+                and
+            end
+        end
+        "#;
+
+    const MODULE_2: &str = "math::mod2";
+    const PROCEDURE_2: &str = r#"
+        use.dummy::math::u256
+
+        export.is_zero_invocation
+            exec.u256::iszero_unsafe
+        end
+        "#;
+
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path_1 = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast_1 = ModuleAst::parse(PROCEDURE).unwrap();
+    let path_2 = LibraryPath::try_from(MODULE_2.to_string())
+        .unwrap()
+        .prepend(&namespace)
+        .unwrap();
+    let ast_2 = ModuleAst::parse(PROCEDURE_2).unwrap();
+    let modules = vec![
+        Module {
+            path: path_1,
+            ast: ast_1,
+        },
+        Module {
+            path: path_2,
+            ast: ast_2,
+        },
+    ];
+    let library = DummyLibrary::new(namespace, modules);
+
+    let assembler = super::Assembler::default().with_library(&library).unwrap();
+    let source = format!(
+        r#"
+        use.dummy::math::mod2
+        begin
+            exec.mod2::is_zero_invocation
+        end"#
+    );
+    assembler.compile(source).unwrap();
+
+    let source = format!(
+        r#"
+        use.dummy::math::u256
+        begin
+            exec.u256::iszero_unsafe
+        end"#
+    );
+    assert!(assembler.compile(source).is_err());
+}
+
+#[test]
 fn program_with_reexported_proc_in_same_library() {
     // exprted proc is in same library
     const NAMESPACE: &str = "dummy1";

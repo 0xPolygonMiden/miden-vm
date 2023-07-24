@@ -74,7 +74,7 @@ fn nested_blocks() {
         .borrow()
         .values()
         .next()
-        .map(|p| CodeBlock::new_syscall(p.mast_root()))
+        .map(|(p, s)| CodeBlock::new_syscall(p.mast_root()))
         .unwrap();
 
     let program = r#"

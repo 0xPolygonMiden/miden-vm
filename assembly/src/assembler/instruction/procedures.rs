@@ -31,11 +31,11 @@ impl Assembler {
 
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
+        let (proc, source_set) = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
 
         // register an "inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
-        context.register_external_call(proc, true)?;
+        context.register_external_call(proc, Some(proc_id), source_set, true)?;
 
         // TODO: if the procedure consists of a single SPAN block, we could just append all
         // operations from that SPAN block to the span builder instead of returning a code block
@@ -70,7 +70,9 @@ impl Assembler {
         // "non-inlined" call to the procedure (to update the callset of the procedure currently
         // being compiled); otherwise, register a "phantom" call.
         match proc_cache.get_by_hash(mast_root) {
-            Some(proc) => context.register_external_call(proc, false)?,
+            Some((proc, source_set)) => {
+                context.register_external_call(proc, None, source_set, false)?
+            }
             None => context.register_phantom_call(*mast_root)?,
         }
 
@@ -88,11 +90,11 @@ impl Assembler {
 
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
+        let (proc, source_set) = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
 
         // register a "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
-        context.register_external_call(proc, false)?;
+        context.register_external_call(proc, Some(proc_id), source_set, false)?;
 
         // create a new CALL block for the procedure call and return
         Ok(Some(CodeBlock::new_call(proc.mast_root())))
@@ -108,7 +110,7 @@ impl Assembler {
         // proc cache upon initialization, with their correct procedure ids
         let proc_cache = self.proc_cache.borrow();
 
-        let proc = proc_cache
+        let (proc, source_set) = proc_cache
             .get_by_id(proc_id)
             .ok_or_else(|| AssemblyError::kernel_proc_not_found(proc_id))?;
 
@@ -118,7 +120,7 @@ impl Assembler {
 
         // register a "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled
-        context.register_external_call(proc, false)?;
+        context.register_external_call(proc, Some(proc_id), source_set, false)?;
 
         // create a new SYSCALL block for the procedure call and return
         Ok(Some(CodeBlock::new_syscall(proc.mast_root())))

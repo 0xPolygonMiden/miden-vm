@@ -225,7 +225,7 @@ impl ParserContext<'_> {
         // parse procedures until all `proc` or `exec` tokens have been consumed
         while let Some(token) = tokens.read() {
             let is_reexport = match token.parts()[0] {
-                Token::EXPORT => {
+                Token::EXPORT | Token::EXPORT_LIB => {
                     if !allow_export {
                         let proc_name = token.parts()[1];
                         return Err(ParsingError::proc_export_not_allowed(token, proc_name));
@@ -268,7 +268,7 @@ impl ParserContext<'_> {
         // parse procedure declaration, make sure the procedure with the same name hasn't been
         // declared previously, and consume the `proc` or `export` token.
         let header = tokens.read().expect("missing procedure header");
-        let (name, num_locals, is_export) = header.parse_proc()?;
+        let (name, num_locals, scope) = header.parse_proc()?;
         if self.contains_proc_name(&name) {
             return Err(ParsingError::duplicate_proc_name(header, name.as_str()));
         }
@@ -276,7 +276,7 @@ impl ParserContext<'_> {
         tokens.advance();
 
         // attach doc comments (if any) to exported procedures
-        let docs = if is_export {
+        let docs = if scope.is_export() {
             let docs = tokens.take_doc_comment_at(proc_start);
             // make sure procedure docs don't exceed the allowed limit
             if let Some(ref docs) = docs {
@@ -311,7 +311,7 @@ impl ParserContext<'_> {
 
         // build and return the procedure
         let (nodes, locations) = body.into_parts();
-        Ok(ProcedureAst::new(name, num_locals, nodes, is_export, docs)
+        Ok(ProcedureAst::new(name, num_locals, nodes, scope, docs)
             .with_source_locations(locations, start))
     }
 

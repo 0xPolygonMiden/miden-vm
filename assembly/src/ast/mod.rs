@@ -10,6 +10,7 @@ use super::{
     MAX_LABEL_LEN,
 };
 use core::{fmt, iter, str::from_utf8};
+use num_enum::TryFromPrimitive;
 use vm_core::utils::bound_into_included_u64;
 
 pub use super::tokens::SourceLocation;
@@ -688,6 +689,43 @@ impl fmt::Display for ModuleAst {
 
 // PROCEDURE AST
 // ================================================================================================
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
+pub enum ProcedureScope {
+    INTERNAL = 0,
+    EXPORT = 1,
+    LIBRARY = 2,
+}
+
+impl ProcedureScope {
+    pub fn parse(token: &str) -> Result<ProcedureScope, ParsingError> {
+        match token {
+            Token::EXPORT => Ok(ProcedureScope::EXPORT),
+            Token::EXPORT_LIB => Ok(ProcedureScope::LIBRARY),
+            Token::PROC => Ok(ProcedureScope::INTERNAL),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn is_export(&self) -> bool {
+        *self == ProcedureScope::EXPORT || *self == ProcedureScope::LIBRARY
+    }
+}
+
+impl Serializable for ProcedureScope {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u8(*self as u8);
+    }
+}
+
+impl Deserializable for ProcedureScope {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let value = source.read_u8()?;
+        Self::try_from(value).map_err(|_| {
+            DeserializationError::InvalidValue("could not read a valid opcode".to_string())
+        })
+    }
+}
 
 /// An abstract syntax tree of a Miden procedure.
 ///
@@ -701,7 +739,7 @@ pub struct ProcedureAst {
     pub num_locals: u16,
     pub body: CodeBody,
     pub start: SourceLocation,
-    pub is_export: bool,
+    pub scope: ProcedureScope,
 }
 
 impl ProcedureAst {
@@ -715,7 +753,7 @@ impl ProcedureAst {
         name: ProcedureName,
         num_locals: u16,
         body: Vec<Node>,
-        is_export: bool,
+        scope: ProcedureScope,
         docs: Option<String>,
     ) -> Self {
         let start = SourceLocation::default();
@@ -725,7 +763,7 @@ impl ProcedureAst {
             docs,
             num_locals,
             body,
-            is_export,
+            scope,
             start,
         }
     }
@@ -802,7 +840,7 @@ impl Serializable for ProcedureAst {
             }
         }
 
-        target.write_bool(self.is_export);
+        self.scope.write_into(target);
         target.write_u16(self.num_locals);
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
@@ -823,7 +861,7 @@ impl Deserializable for ProcedureAst {
             None
         };
 
-        let is_export = source.read_bool()?;
+        let scope = ProcedureScope::read_from(source)?;
         let num_locals = source.read_u16()?;
         let body_len = source.read_u16()? as usize;
         let nodes = Deserializable::read_batch_from(source, body_len)?;
@@ -834,7 +872,7 @@ impl Deserializable for ProcedureAst {
             num_locals,
             body,
             start,
-            is_export,
+            scope,
             docs,
         })
     }

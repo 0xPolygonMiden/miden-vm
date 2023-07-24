@@ -162,7 +162,7 @@ impl Assembler {
 
         // compile all local procedures; this will add the procedures to the specified context
         for proc_ast in program.procedures() {
-            if proc_ast.is_export {
+            if proc_ast.scope.is_export() {
                 return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
             }
             self.compile_procedure(proc_ast, context)?;
@@ -252,7 +252,7 @@ impl Assembler {
         proc: &ProcedureAst,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
-        context.begin_proc(&proc.name, proc.is_export, proc.num_locals)?;
+        context.begin_proc(&proc.name, proc.scope, proc.num_locals)?;
 
         let code = if proc.num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the

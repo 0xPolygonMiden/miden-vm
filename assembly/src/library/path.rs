@@ -79,10 +79,14 @@ impl LibraryPath {
     ///
     /// The first component is the leftmost token separated by `::`.
     pub fn first(&self) -> &str {
-        self.path
-            .split_once(Self::PATH_DELIM)
-            .expect("a valid library path must always have at least one component")
-            .0
+        if self.num_components > 1 {
+            self.path
+                .split_once(Self::PATH_DELIM)
+                .expect("a valid library path must always have at least one component")
+                .0
+        } else {
+            self.path.as_str()
+        }
     }
 
     /// Returns the last component of the path.
