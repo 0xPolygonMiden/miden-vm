@@ -195,6 +195,63 @@ fn multiple_constants_push() {
 }
 
 #[test]
+fn constant_numeric_expression() {
+    let assembler = super::Assembler::default();
+    let source = "const.TEST_CONSTANT=11-2+4*(12-(10+1))+9+8/4*2 \
+    begin \
+    push.TEST_CONSTANT \
+    end \
+    ";
+    let expected = "\
+    begin \
+        span \
+            push(26) \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn constant_alphanumeric_expression() {
+    let assembler = super::Assembler::default();
+    let source = "const.TEST_CONSTANT_1=(18-1+10)*6-((13+7)*2) \
+    const.TEST_CONSTANT_2=11-2+4*(12-(10+1))+9
+    const.TEST_CONSTANT_3=(TEST_CONSTANT_1-(TEST_CONSTANT_2+10))/5+3
+    begin \
+    push.TEST_CONSTANT_3 \
+    end \
+    ";
+    let expected = "\
+    begin \
+        span \
+            push(21) \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
+}
+
+// TODO: improve field division test
+#[test]
+fn constant_field_division() {
+    let assembler = super::Assembler::default();
+    let source = "const.TEST_CONSTANT=(16/4)//(2/2)*4 \
+    begin \
+    push.TEST_CONSTANT \
+    end \
+    ";
+    let expected = "\
+    begin \
+        span \
+            push(16) \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
 fn constants_must_be_uppercase() {
     let assembler = super::Assembler::default();
     let source = "const.constant_1=12 \
@@ -234,7 +291,7 @@ fn constant_must_be_valid_felt() {
     assert!(result.is_err());
     let err = result.err().unwrap();
     let expected_error = "malformed constant `const.CONSTANT=1122INVALID` - invalid value: \
-     `1122INVALID` - reason: invalid digit found in string";
+     `1122INVALID` - reason: constant with name 1122INVALID was not initialized";
     assert_eq!(expected_error, err.to_string());
 }
 
