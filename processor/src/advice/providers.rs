@@ -307,6 +307,22 @@ impl AdviceProvider for MemAdviceProvider {
     }
 }
 
+impl MemAdviceProvider {
+    // FINALIZATION
+    // --------------------------------------------------------------------------------------------
+    /// Consumes the [MemAdviceProvider] and returns a (Vec<Felt>, SimpleAdviceMap, MerkleStore),
+    /// containing the stack, map, store respectively, of the advice provider.
+    pub fn into_parts(self) -> (Vec<Felt>, SimpleAdviceMap, MerkleStore) {
+        let BaseAdviceProvider {
+            step: _step,
+            stack,
+            map,
+            store,
+        } = self.provider;
+        (stack, map, store)
+    }
+}
+
 // RECORDING ADVICE PROVIDER
 // ================================================================================================
 
@@ -318,34 +334,6 @@ impl AdviceProvider for MemAdviceProvider {
 pub struct RecAdviceProvider {
     provider: BaseAdviceProvider<RecordingAdviceMap, RecordingMerkleMap>,
     init_stack: Vec<Felt>,
-}
-
-impl RecAdviceProvider {
-    /// Consumes the advice provider and returns a [AdviceInputs] instance which can be used to
-    /// re-execute the program.
-    ///
-    /// The returned [AdviceInputs] instance will contain only the non-deterministic inputs which
-    /// were requested during program execution.
-    pub fn into_proof(self) -> AdviceInputs {
-        let Self {
-            provider,
-            init_stack,
-        } = self;
-        let BaseAdviceProvider {
-            step: _,
-            stack: _,
-            map,
-            store,
-        } = provider;
-
-        let map = map.into_proof();
-        let store = store.into_inner().into_proof();
-
-        AdviceInputs::default()
-            .with_stack(init_stack)
-            .with_map(map)
-            .with_merkle_store(store.into())
-    }
 }
 
 impl From<AdviceInputs> for RecAdviceProvider {
@@ -441,5 +429,42 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn advance_clock(&mut self) {
         self.provider.advance_clock()
+    }
+}
+
+impl RecAdviceProvider {
+    // FINALIZATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Consumes the advice provider and returns an (AdviceInputs, Vec<Felt>, SimpleAdviceMap,
+    /// MerkleStore) tuple.
+    ///
+    /// The [AdviceInputs] can be used to re-execute the program. The returned [AdviceInputs]
+    /// instance will contain only the non-deterministic inputs which were requested during program
+    /// execution.
+    ///
+    /// The Vec<Felt>, SimpleAdviceMap, MerkleStore represent the stack, map, and Merkle store of
+    /// the advice provider at the time of finalization.
+    pub fn finalize(self) -> (AdviceInputs, Vec<Felt>, SimpleAdviceMap, MerkleStore) {
+        let Self {
+            provider,
+            init_stack,
+        } = self;
+        let BaseAdviceProvider {
+            step: _step,
+            stack,
+            map,
+            store,
+        } = provider;
+
+        let (map, map_proof) = map.finalize();
+        let (store, store_proof) = store.into_inner().finalize();
+
+        let proof = AdviceInputs::default()
+            .with_stack(init_stack)
+            .with_map(map_proof)
+            .with_merkle_store(store_proof.into());
+
+        (proof, stack, map, store.into())
     }
 }
