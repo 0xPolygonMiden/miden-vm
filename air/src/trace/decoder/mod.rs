@@ -97,3 +97,8 @@ pub const P2_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 1;
 
 /// Running product column representing op group table.
 pub const P3_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 2;
+
+// --- GLOBALLY-INDEXED DECODER COLUMN ACCESSORS --------------------------------------------------
+pub const DECODER_OP_BITS_OFFSET: usize = super::DECODER_TRACE_OFFSET + OP_BITS_OFFSET;
+pub const DECODER_USER_OP_HELPERS_OFFSET: usize =
+    super::DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET;
