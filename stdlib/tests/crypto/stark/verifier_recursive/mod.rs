@@ -123,15 +123,15 @@ pub fn generate_advice_inputs(
     }
 
     // draw pseudo-random query positions for the LDE domain from the public coin.
-    // this is needed in order to construct Merkle path sets
+    // this is needed in order to construct Partial Merkle Trees
     let query_positions = public_coin
         .draw_integers(air.options().num_queries(), air.lde_domain_size())
         .map_err(|_| VerifierError::RandomCoinError)?;
 
     // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
-    let (mut advice_map, mut m_path_sets_traces) =
+    let (mut advice_map, mut partial_trees_traces) =
         channel.read_queried_trace_states(&query_positions)?;
-    let (mut adv_map_constraint, m_path_set_constraint) =
+    let (mut adv_map_constraint, partial_tree_constraint) =
         channel.read_constraint_evaluations(&query_positions)?;
 
     let domain_size = (air.trace_poly_degree() + 1) * BLOWUP_FACTOR;
@@ -139,12 +139,12 @@ pub fn generate_advice_inputs(
     // consolidate advice maps
     advice_map.append(&mut adv_map_constraint);
     advice_map.append(&mut ress.1);
-    let mut m_path_sets_fri = ress.0;
-    m_path_sets_fri.append(&mut m_path_sets_traces);
-    m_path_sets_fri.push(m_path_set_constraint);
+    let mut partial_trees_fri = ress.0;
+    partial_trees_fri.append(&mut partial_trees_traces);
+    partial_trees_fri.push(partial_tree_constraint);
     let mut store = MerkleStore::new();
-    for path_set in &m_path_sets_fri {
-        store.add_merkle_path_set(&path_set).unwrap();
+    for partial_tree in &partial_trees_fri {
+        store.extend(partial_tree.inner_nodes());
     }
     Ok(VerifierData {
         initial_stack,

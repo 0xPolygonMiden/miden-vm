@@ -4,7 +4,7 @@
 use miden_air::ProcessorAir;
 use test_utils::{
     collections::Vec,
-    crypto::{BatchMerkleProof, MerklePath, MerklePathSet, Rpo256, RpoDigest},
+    crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
     group_vector_elements,
     math::{FieldElement, QuadExtension, StarkField},
     Felt, IntoBytes, VerifierError, ZERO,
@@ -160,9 +160,9 @@ impl VerifierChannel {
     pub fn read_queried_trace_states(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, Vec<MerklePathSet>), VerifierError> {
+    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, Vec<PartialMerkleTree>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
-        let mut sets = Vec::new();
+        let mut trees = Vec::new();
 
         let proofs: Vec<_> = queries.query_proofs.into_iter().collect();
         let main_queries = queries.main_states.clone();
@@ -174,14 +174,14 @@ impl VerifierChannel {
             .rows()
             .map(|a| QuadExt::slice_as_base_elements(a).to_vec())
             .collect();
-        let (main_trace_set, mut main_trace_adv_map) =
-            unbatch_to_path_set(positions.to_vec(), main_queries_vec, proofs[0].clone());
-        let (aux_trace_set, mut aux_trace_adv_map) =
-            unbatch_to_path_set(positions.to_vec(), aux_queries_vec, proofs[1].clone());
-        sets.push(main_trace_set);
-        sets.push(aux_trace_set);
+        let (main_trace_pmt, mut main_trace_adv_map) =
+            unbatch_to_partial_mt(positions.to_vec(), main_queries_vec, proofs[0].clone());
+        let (aux_trace_pmt, mut aux_trace_adv_map) =
+            unbatch_to_partial_mt(positions.to_vec(), aux_queries_vec, proofs[1].clone());
+        trees.push(main_trace_pmt);
+        trees.push(aux_trace_pmt);
         main_trace_adv_map.append(&mut aux_trace_adv_map);
-        Ok((main_trace_adv_map, sets))
+        Ok((main_trace_adv_map, trees))
     }
 
     /// Returns constraint evaluations at the specified positions of the LDE domain. This also
@@ -190,7 +190,7 @@ impl VerifierChannel {
     pub fn read_constraint_evaluations(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, MerklePathSet), VerifierError> {
+    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, PartialMerkleTree), VerifierError> {
         let queries = self.constraint_queries.take().expect("already read");
         let proof = queries.query_proofs;
 
@@ -199,10 +199,10 @@ impl VerifierChannel {
             .rows()
             .map(|a| a.iter().flat_map(|x| QuadExt::to_base_elements(*x).to_owned()).collect())
             .collect();
-        let (constraint_set, constraint_adv_map) =
-            unbatch_to_path_set(positions.to_vec(), queries_, proof);
+        let (constraint_pmt, constraint_adv_map) =
+            unbatch_to_partial_mt(positions.to_vec(), queries_, proof);
 
-        Ok((constraint_adv_map, constraint_set))
+        Ok((constraint_adv_map, constraint_pmt))
     }
 
     // Get the FRI layer challenges alpha
@@ -224,14 +224,14 @@ impl VerifierChannel {
         positions_: &[usize],
         domain_size: usize,
         layer_commitments: Vec<RpoDigest>,
-    ) -> (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>) {
+    ) -> (Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>) {
         let queries = self.fri_layer_queries.clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
         let depth = layer_commitments.len() - 1;
 
         let mut adv_key_map = Vec::new();
-        let mut sets = Vec::new();
+        let mut partial_trees = Vec::new();
         let mut layer_proofs = self.layer_proofs();
         for i in 0..depth {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
@@ -254,8 +254,6 @@ impl VerifierChannel {
             let paths: Vec<MerklePath> =
                 unbatched_proof.into_iter().map(|list| list.into()).collect();
 
-            let new_set = MerklePathSet::new((current_domain_size / N).ilog2() as u8);
-
             let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
             let nodes_tmp = nodes.clone();
             let iter_nodes = nodes_tmp.iter();
@@ -265,8 +263,9 @@ impl VerifierChannel {
                 tmp_vec.push((p, RpoDigest::from(*node), path));
             }
 
-            let new_set = new_set.with_paths(tmp_vec).expect("should not fail from paths");
-            sets.push(new_set);
+            let new_pmt =
+                PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths");
+            partial_trees.push(new_pmt);
 
             let _empty: () = nodes
                 .into_iter()
@@ -283,7 +282,7 @@ impl VerifierChannel {
             current_domain_size = current_domain_size / N;
         }
 
-        (sets, adv_key_map)
+        (partial_trees, adv_key_map)
     }
 }
 
@@ -474,13 +473,12 @@ impl<E: FieldElement> TraceOodFrame<E> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-pub fn unbatch_to_path_set(
+pub fn unbatch_to_partial_mt(
     mut positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
-) -> (MerklePathSet, Vec<([u8; 32], Vec<Felt>)>) {
+) -> (PartialMerkleTree, Vec<([u8; 32], Vec<Felt>)>) {
     let mut unbatched_proof = proof.into_paths(&positions).unwrap();
-    let depth = unbatched_proof[0].len() as u8;
     let mut adv_key_map = Vec::new();
     let nodes: Vec<[Felt; 4]> = unbatched_proof
         .iter_mut()
@@ -492,8 +490,6 @@ pub fn unbatch_to_path_set(
         .collect();
 
     let paths: Vec<MerklePath> = unbatched_proof.into_iter().map(|list| list.into()).collect();
-
-    let new_set = MerklePathSet::new(depth - 1);
 
     let iter_pos = positions.iter_mut().map(|a| *a as u64);
     let nodes_tmp = nodes.clone();
@@ -513,5 +509,8 @@ pub fn unbatch_to_path_set(
         })
         .collect();
 
-    (new_set.with_paths(tmp_vec).expect("should not fail from paths"), adv_key_map)
+    (
+        PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths"),
+        adv_key_map,
+    )
 }

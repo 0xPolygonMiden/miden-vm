@@ -1,5 +1,5 @@
 use test_utils::{
-    crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, MerklePathSet},
+    crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, PartialMerkleTree},
     math::fft,
     serde::DeserializationError,
     Felt, FieldElement, StarkField,
@@ -12,7 +12,7 @@ pub trait UnBatch<E: FieldElement, H: ElementHasher> {
         positions: &[usize],
         domain_size: usize,
         layer_commitments: Vec<<H as HasherTrait>::Digest>,
-    ) -> (Vec<MerklePathSet>, Vec<([u8; 32], Vec<Felt>)>);
+    ) -> (Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>);
 }
 
 pub struct MidenFriVerifierChannel<E: FieldElement, H: ElementHasher<BaseField = E::BaseField>> {
