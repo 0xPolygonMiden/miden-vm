@@ -210,7 +210,7 @@ where
         let (t3, t2) = split_u32_into_u16(hi.as_int());
 
         // add lookup values to the range checker.
-        self.range.add_stack_checks(self.system.clk(), &[t0, t1, t2, t3]);
+        self.range.add_range_checks(self.system.clk(), &[t0, t1, t2, t3]);
 
         // save the range check lookups to the decoder's user operation helper columns.
         let mut helper_values =
