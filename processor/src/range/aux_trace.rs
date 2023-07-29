@@ -1,5 +1,6 @@
 use super::{uninit_vector, BTreeMap, ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
+use vm_core::StarkField;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -7,9 +8,11 @@ use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 /// Describes how to construct the execution trace of columns related to the range checker in the
 /// auxiliary segment of the trace. These are used in multiset checks.
 pub struct AuxTraceBuilder {
+    /// A list of the unique values for which range checks are performed.
+    lookup_values: Vec<u16>,
     /// Range check lookups performed by all user operations, grouped and sorted by the clock cycle
     /// at which they are requested.
-    cycle_range_checks: BTreeMap<u32, Vec<Felt>>,
+    cycle_lookups: BTreeMap<u32, Vec<u16>>,
     // The index of the first row of Range Checker's trace when the padded rows end and values to
     // be range checked start.
     values_start: usize,
@@ -18,9 +21,14 @@ pub struct AuxTraceBuilder {
 impl AuxTraceBuilder {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    pub fn new(cycle_range_checks: BTreeMap<u32, Vec<Felt>>, values_start: usize) -> Self {
+    pub fn new(
+        lookup_values: Vec<u16>,
+        cycle_lookups: BTreeMap<u32, Vec<u16>>,
+        values_start: usize,
+    ) -> Self {
         Self {
-            cycle_range_checks,
+            lookup_values,
+            cycle_lookups,
             values_start,
         }
     }
@@ -46,12 +54,10 @@ impl AuxTraceBuilder {
     fn build_aux_col_b_range<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &ColMatrix<Felt>,
-        alphas: &[E],
+        rand_elements: &[E],
     ) -> Vec<E> {
-        // TODO: replace this with an efficient solution
-        // // compute the inverses for range checks performed by operations.
-        // let (_, inv_row_values) =
-        //     build_lookup_table_row_values(&self.cycle_range_check_values(), main_trace, alphas);
+        // run batch inversion on the lookup values
+        let divisors = get_divisors(&self.lookup_values, rand_elements[0]);
 
         // allocate memory for the running sum column and set the initial value to ONE
         let mut b_range = unsafe { uninit_vector(main_trace.num_rows()) };
@@ -62,7 +68,7 @@ impl AuxTraceBuilder {
         let mut b_range_idx = 0_usize;
 
         // the first half of the trace only includes values from the operations.
-        for (clk, range_checks) in self.cycle_range_checks.range(0..self.values_start as u32) {
+        for (clk, range_checks) in self.cycle_lookups.range(0..self.values_start as u32) {
             let clk = *clk as usize;
 
             // if we skipped some cycles since the last update was processed, values in the last
@@ -78,8 +84,8 @@ impl AuxTraceBuilder {
             b_range[b_range_idx] = b_range[clk];
             // include the operation lookups
             for lookup in range_checks.iter() {
-                let value = (alphas[0] - (*lookup).into()).inv();
-                b_range[b_range_idx] -= value;
+                let value = divisors.get(lookup).expect("invalid lookup value {}");
+                b_range[b_range_idx] -= *value;
             }
         }
 
@@ -103,14 +109,19 @@ impl AuxTraceBuilder {
         {
             b_range_idx = row_idx + 1;
 
-            // add the value in the range checker: multiplicity / (alpha - lookup)
-            let lookup_val = (alphas[0] - (*lookup).into()).inv().mul_base(*multiplicity);
-            b_range[b_range_idx] = b_range[row_idx] + lookup_val;
+            if multiplicity.as_int() != 0 {
+                // add the value in the range checker: multiplicity / (alpha - lookup)
+                let value = divisors.get(&(lookup.as_int() as u16)).expect("invalid lookup value");
+                b_range[b_range_idx] = b_range[row_idx] + value.mul_base(*multiplicity);
+            } else {
+                b_range[b_range_idx] = b_range[row_idx];
+            }
+
             // subtract the range checks requested by operations
-            if let Some(range_checks) = self.cycle_range_checks.get(&(row_idx as u32)) {
+            if let Some(range_checks) = self.cycle_lookups.get(&(row_idx as u32)) {
                 for lookup in range_checks.iter() {
-                    let value = (alphas[0] - (*lookup).into()).inv();
-                    b_range[b_range_idx] -= value;
+                    let value = divisors.get(lookup).expect("invalid lookup value");
+                    b_range[b_range_idx] -= *value;
                 }
             }
         }
@@ -125,4 +136,37 @@ impl AuxTraceBuilder {
 
         b_range
     }
+}
+
+/// Runs batch inversion on all range check lookup values and returns a map which maps of each value
+/// to the divisor used for including it in the LogUp lookup. In other words, the map contains
+/// mappings of x to 1/(alpha - x).
+fn get_divisors<E: FieldElement<BaseField = Felt>>(
+    lookup_values: &[u16],
+    alpha: E,
+) -> BTreeMap<u16, E> {
+    // run batch inversion on the lookup values
+    let mut values = unsafe { uninit_vector(lookup_values.len()) };
+    let mut inv_values = unsafe { uninit_vector(lookup_values.len()) };
+    let mut log_values = BTreeMap::new();
+
+    let mut acc = E::ONE;
+    for (i, (value, inv_value)) in values.iter_mut().zip(inv_values.iter_mut()).enumerate() {
+        *inv_value = acc;
+        *value = alpha - E::from(lookup_values[i]);
+        acc *= *value;
+    }
+
+    // invert the accumulated product
+    acc = acc.inv();
+
+    // multiply the accumulated product by the original values to compute the inverses, then
+    // build a map of inverses for the lookup values
+    for i in (0..lookup_values.len()).rev() {
+        inv_values[i] *= acc;
+        acc *= values[i];
+        log_values.insert(lookup_values[i], inv_values[i]);
+    }
+
+    log_values
 }

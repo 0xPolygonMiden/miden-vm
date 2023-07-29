@@ -43,7 +43,7 @@ pub struct RangeChecker {
     /// Range check lookups performed by all user operations, grouped and sorted by clock cycle.
     /// Each cycle is mapped to a vector of the range checks requested at that cycle, which can come
     /// from the stack, memory, or both.
-    cycle_range_checks: BTreeMap<u32, Vec<Felt>>,
+    cycle_lookups: BTreeMap<u32, Vec<u16>>,
 }
 
 impl RangeChecker {
@@ -58,7 +58,7 @@ impl RangeChecker {
         lookups.insert(u16::MAX, 0);
         Self {
             lookups,
-            cycle_range_checks: BTreeMap::new(),
+            cycle_lookups: BTreeMap::new(),
         }
     }
 
@@ -76,18 +76,21 @@ impl RangeChecker {
         // 4 lookups respectively.
         debug_assert!(values.len() == 2 || values.len() == 4);
 
-        let mut requests = Vec::new();
         for value in values.iter() {
             // add the specified value to the trace of this range checker's lookups.
             self.add_value(*value);
-            requests.push(Felt::from(*value));
         }
 
         // track the range check requests at each cycle
-        self.cycle_range_checks
+        // TODO: optimize this to use a struct instead of vectors, e.g.:
+        // struct MemoryLookupValues {
+        //   num_lookups: u8,
+        //   lookup_values: [u16; 6],
+        // }
+        self.cycle_lookups
             .entry(clk)
-            .and_modify(|entry| entry.append(&mut requests))
-            .or_insert_with(|| requests);
+            .and_modify(|entry| entry.append(&mut values.to_vec()))
+            .or_insert_with(|| values.to_vec());
     }
 
     // EXECUTION TRACE GENERATION (INTERNAL)
@@ -145,7 +148,11 @@ impl RangeChecker {
 
         RangeCheckTrace {
             trace,
-            aux_builder: AuxTraceBuilder::new(self.cycle_range_checks, num_padding_rows),
+            aux_builder: AuxTraceBuilder::new(
+                self.lookups.keys().cloned().collect(),
+                self.cycle_lookups,
+                num_padding_rows,
+            ),
         }
     }
 
