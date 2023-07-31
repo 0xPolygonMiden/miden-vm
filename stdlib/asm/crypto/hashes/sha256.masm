@@ -1570,23 +1570,23 @@ export.hash_memory.12
     # loc.1 (input length)
     loc_store.1
 
-    # loc.2 (padded length): len(x) + (55 - len(x)) % 64 + 9
+    # loc.2 (padded length): input_length + (55 - input_length) % 64 + 9
     push.55 loc_load.1 u32wrapping_sub push.63 u32checked_and
     loc_load.1 u32checked_add u32checked_add.9 loc_store.2
 
-    # loc.3 (last u32): addr + newlen/16 - 1
+    # loc.3 (last memory address in padding): input_address + padded_length / 16 - 1
     loc_load.2 u32checked_div.16 loc_load.0 u32wrapping_add u32wrapping_sub.1 loc_store.3
 
-    # loc.4 (u32 aligned padding byte): 0x80000000 >> ((len % 4) * 8)
+    # loc.4 (u32 aligned padding byte): 0x80000000 >> ((input_length % 4) * 8)
     loc_load.1 u32checked_mod.4 u32checked_mul.8 push.0x80000000 swap u32checked_shr loc_store.4
 
-    # loc.5 (memory offset of first padding byte): (len / 4) % 4
+    # loc.5 (memory offset of first padding byte): (input_length / 4) % 4
     loc_load.1 u32checked_div.4 u32checked_mod.4 loc_store.5
 
-    # loc.6 (memory address of first padding byte): addr + (len / 16)
+    # loc.6 (memory address of first padding byte): input_address + (len / 16)
     loc_load.0 loc_load.1 u32checked_div.16 u32checked_add loc_store.6
 
-    # loc.7 (number of remaining 512-bit blocks to consume): padded_length // 64
+    # loc.7 (number of remaining 512-bit blocks to consume): padded_length / 64
     loc_load.2 u32checked_div.64 loc_store.7
 
     # Set the first byte after the message to 0x80
@@ -1594,7 +1594,7 @@ export.hash_memory.12
     locaddr.8 loc_load.5 u32wrapping_add dup mem_load loc_load.4 u32wrapping_add swap mem_store
     loc_load.11 loc_load.10 loc_load.9 loc_load.8 loc_load.6 mem_storew dropw
 
-    # Set message bit length at end of padding
+    # Set message length in bits at end of padding
     padw loc_load.3 mem_loadw
     movup.3 drop loc_load.1 u32checked_mul.8 movdn.3
     loc_load.3 mem_storew dropw
