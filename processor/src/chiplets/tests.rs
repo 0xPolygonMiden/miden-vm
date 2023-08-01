@@ -117,7 +117,7 @@ fn build_trace(
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 
-    let (trace, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (

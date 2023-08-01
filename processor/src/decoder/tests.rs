@@ -1504,7 +1504,7 @@ fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxT
         Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
-    let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, aux_hints, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -1540,7 +1540,7 @@ fn build_call_trace(
 
     process.execute_code_block(program, &cb_table).unwrap();
 
-    let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, aux_hints, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     let sys_trace = trace[SYS_TRACE_RANGE]

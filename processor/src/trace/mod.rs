@@ -17,7 +17,10 @@ use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow, TraceFragment};
+pub use utils::{
+    build_lookup_table_row_values, AuxColumnBuilder, ChipletsLengths, LookupTableRow,
+    TraceFragment, TraceInfo,
+};
 
 mod decoder;
 
@@ -47,6 +50,7 @@ pub struct AuxTraceHints {
 ///   components.
 /// - Hints used during auxiliary trace segment construction.
 /// - Metadata needed by the STARK prover.
+#[allow(dead_code)]
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
@@ -54,6 +58,7 @@ pub struct ExecutionTrace {
     aux_trace_hints: AuxTraceHints,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,
+    trace_info: TraceInfo,
 }
 
 impl ExecutionTrace {
@@ -80,7 +85,7 @@ impl ExecutionTrace {
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
         let program_info = ProgramInfo::new(program_hash, kernel);
-        let (main_trace, aux_trace_hints) = finalize_trace(process, rng);
+        let (main_trace, aux_trace_hints, trace_info) = finalize_trace(process, rng);
 
         Self {
             meta: Vec::new(),
@@ -89,6 +94,7 @@ impl ExecutionTrace {
             aux_trace_hints,
             program_info,
             stack_outputs,
+            trace_info,
         }
     }
 
@@ -164,7 +170,7 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace<A>(process: Process<A>) -> (Vec<Vec<Felt>>, AuxTraceHints)
+    pub fn test_finalize_trace<A>(process: Process<A>) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceInfo)
     where
         A: AdviceProvider,
     {
@@ -263,7 +269,10 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<A>(process: Process<A>, mut rng: RpoRandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints)
+fn finalize_trace<A>(
+    process: Process<A>,
+    mut rng: RpoRandomCoin,
+) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceInfo)
 where
     A: AdviceProvider,
 {
@@ -291,6 +300,19 @@ where
     assert!(
         trace_len >= MIN_TRACE_LEN,
         "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}",
+    );
+
+    let trace_info = TraceInfo::new(
+        clk as usize,
+        range_table_len,
+        ChipletsLengths::new(
+            chiplets.bitwise_start(),
+            chiplets.memory_start() - chiplets.bitwise_start(),
+            chiplets.kernel_rom_start() - chiplets.memory_start(),
+            chiplets.padding_start() - chiplets.kernel_rom_start(),
+        ),
+        max_len,
+        trace_len,
     );
 
     // combine all trace segments into the main trace
@@ -324,5 +346,5 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    (trace, aux_trace_hints)
+    (trace, aux_trace_hints, trace_info)
 }
