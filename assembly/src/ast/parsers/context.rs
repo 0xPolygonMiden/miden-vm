@@ -530,6 +530,9 @@ impl ParserContext<'_> {
             "u32checked_popcnt" => simple_instruction(op, U32CheckedPopcnt),
             "u32unchecked_popcnt" => simple_instruction(op, U32UncheckedPopcnt),
 
+            "u32checked_trailing_zeros" => simple_instruction(op, U32CheckedTrailingZeros),
+            "u32unchecked_trailing_zeros" => simple_instruction(op, U32UncheckedTrailingZeros),
+
             "u32checked_eq" => u32_ops::parse_u32checked_eq(op),
             "u32checked_neq" => u32_ops::parse_u32checked_neq(op),
 

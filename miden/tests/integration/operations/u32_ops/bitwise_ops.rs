@@ -822,6 +822,28 @@ fn u32unchecked_popcnt() {
     build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
 }
 
+#[test]
+fn u32checked_trailing_zeros() {
+    let asm_op = "u32checked_trailing_zeros";
+    build_op_test!(asm_op, &[0]).expect_stack(&[0u32.trailing_zeros() as u64]);
+    build_op_test!(asm_op, &[u32::MAX as u64]).expect_stack(&[u32::MAX.trailing_zeros() as u64]);
+}
+
+#[test]
+fn u32checked_trailing_zeros_fail() {
+    let asm_op = "u32checked_trailing_zeros";
+    build_op_test!(asm_op, &[4294967296]).expect_error(TestError::ExecutionError("NotU32Value"));
+    build_op_test!(asm_op, &[281474976710655])
+        .expect_error(TestError::ExecutionError("NotU32Value"));
+}
+
+#[test]
+fn u32unchecked_trailing_zeros() {
+    let asm_op = "u32unchecked_trailing_zeros";
+    build_op_test!(asm_op, &[0]).expect_stack(&[0u32.trailing_zeros() as u64]);
+    build_op_test!(asm_op, &[u32::MAX as u64]).expect_stack(&[u32::MAX.trailing_zeros() as u64]);
+}
+
 // U32 OPERATIONS TESTS - RANDOMIZED - BITWISE OPERATIONS
 // ================================================================================================
 
@@ -1018,5 +1040,17 @@ proptest! {
         let expected = a.count_ones();
         let test = build_op_test!(asm_opcode, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn u32checked_trailing_zeros_proptest(a in any::<u32>()) {
+        let asm_op = "u32checked_trailing_zeros";
+        build_op_test!(asm_op, &[a as u64]).expect_stack(&[a.trailing_zeros() as u64]);
+    }
+
+    #[test]
+    fn u32unchecked_trailing_zeros_proptest(a in any::<u32>()) {
+        let asm_op = "u32unchecked_trailing_zeros";
+        build_op_test!(asm_op, &[a as u64]).expect_stack(&[a.trailing_zeros() as u64]);
     }
 }

@@ -251,6 +251,8 @@ impl Serializable for Instruction {
             }
             Self::U32CheckedPopcnt => OpCode::U32CheckedPopcnt.write_into(target),
             Self::U32UncheckedPopcnt => OpCode::U32UncheckedPopcnt.write_into(target),
+            Self::U32CheckedTrailingZeros => OpCode::U32CheckedTrailingZeros.write_into(target),
+            Self::U32UncheckedTrailingZeros => OpCode::U32UncheckedTrailingZeros.write_into(target),
             Self::U32CheckedEq => OpCode::U32CheckedEq.write_into(target),
             Self::U32CheckedEqImm(v) => {
                 OpCode::U32CheckedEqImm.write_into(target);

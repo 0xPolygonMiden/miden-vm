@@ -172,6 +172,8 @@ impl Deserializable for Instruction {
             OpCode::U32UncheckedRotlImm => Ok(Instruction::U32UncheckedRotlImm(source.read_u8()?)),
             OpCode::U32CheckedPopcnt => Ok(Instruction::U32CheckedPopcnt),
             OpCode::U32UncheckedPopcnt => Ok(Instruction::U32UncheckedPopcnt),
+            OpCode::U32CheckedTrailingZeros => Ok(Instruction::U32CheckedTrailingZeros),
+            OpCode::U32UncheckedTrailingZeros => Ok(Instruction::U32UncheckedTrailingZeros),
             OpCode::U32CheckedEq => Ok(Instruction::U32CheckedEq),
             OpCode::U32CheckedEqImm => Ok(Instruction::U32CheckedEqImm(source.read_u32()?)),
             OpCode::U32CheckedNeq => Ok(Instruction::U32CheckedNeq),

@@ -380,6 +380,36 @@ pub fn u32popcnt(
     span.add_ops(ops)
 }
 
+pub fn u32trailing_zeros(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    match op_mode {
+        U32OpMode::Checked => span.push_ops([Pad, U32assert2, Drop]),
+        U32OpMode::Unchecked => (),
+        _ => unreachable!("unsupported operation mode"),
+    }
+    span.push_ops([Pad, Swap, Pad, Incr, Swap]);
+    // [val, active, acc]
+
+    for _ in 0..31 {
+        let ops = [
+            Dup0, Pad, Incr, U32and, Not, // [is_zero, val, active, acc]
+            MovUp2, Mul, Dup0, // [is_zero * active, is_zero * active, val, acc]
+            MovUp3, Add, // [acc, active, val]
+            MovDn2, Swap, // [val, active, acc]
+        ];
+        span.push_ops(ops);
+        u32shr(span, U32OpMode::Unchecked, Some(1)).expect("shr by 1 should not fail");
+    }
+
+    span.add_ops([
+        Dup0, Pad, Incr, U32and, Not, // [is_zero, val, active, acc]
+        MovUp2, Mul, Dup0, // [is_zero * active, is_zero * active, val, acc]
+        MovUp3, Add, Swap, Drop, Swap, Drop,
+    ])
+}
+
 /// Handles U32ADD, U32SUB, and U32MUL operations in checked, wrapping, and overflowing modes,
 /// including handling of immediate parameters.
 ///
