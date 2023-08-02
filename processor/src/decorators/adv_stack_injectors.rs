@@ -282,14 +282,12 @@ where
     /// Where:
     /// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
     /// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
-    /// - K is the remaining key word; will be zeroed if the tree don't contain a mapped value
-    ///   for the key.
+    /// - K is the key; will be zeroed if the tree don't contain a mapped value for the key.
     /// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - f2 is a boolean flag set to `1` if a remaining key is not zero.
+    /// - f2 is a boolean flag set to `1` if the key is not zero.
     ///
     /// # Errors
-    /// Will return an error if:
-    /// - The provided Merkle root doesn't exist on the advice provider
+    /// Will return an error if the provided Merkle root doesn't exist on the advice provider.
     ///
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
@@ -306,7 +304,7 @@ where
         // because of `48`. using a lookup table is far more efficient than if/else if/else.
         let depth = SMT_NORMALIZED_DEPTHS[depth as usize];
         if depth == 64 {
-            unimplemented!("the functionality is unimplemented for depth 64 as the bottom tier will have a special treatment to embed multiple key/value pairs onto a single node");
+            unimplemented!("handling of bottom tier is not yet implemented");
         }
 
         // fetch the node value
@@ -325,7 +323,7 @@ where
             // push a flag indicating that a remaining key exists
             self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
 
-            // map is expected to contain `node |-> {K', V}`
+            // map is expected to contain `node |-> {K, V}`
             self.advice_provider.push_stack(AdviceSource::Map {
                 key: node,
                 include_len: false,

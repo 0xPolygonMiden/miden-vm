@@ -13,7 +13,7 @@ pub mod crypto {
         pub use ::crypto::merkle::{
             DefaultMerkleStore, EmptySubtreeRoots, InnerNodeInfo, MerkleError, MerklePath,
             MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, PartialMerkleTree,
-            RecordingMerkleStore, SimpleSmt, StoreNode,
+            RecordingMerkleStore, SimpleSmt, StoreNode, TieredSmt,
         };
     }
 

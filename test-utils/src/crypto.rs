@@ -7,7 +7,7 @@ pub use vm_core::crypto::{
     hash::{Rpo256, RpoDigest},
     merkle::{
         EmptySubtreeRoots, MerkleError, MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks,
-        NodeIndex, PartialMerkleTree, SimpleSmt,
+        NodeIndex, PartialMerkleTree, SimpleSmt, TieredSmt,
     },
 };
 
