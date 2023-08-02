@@ -232,11 +232,10 @@ fn constant_alphanumeric_expression() {
     assert_eq!(expected, format!("{program}"));
 }
 
-// TODO: improve field division test
 #[test]
 fn constant_field_division() {
     let assembler = super::Assembler::default();
-    let source = "const.TEST_CONSTANT=(16/4)//(2/2)*4 \
+    let source = "const.TEST_CONSTANT=(16//4)/(2//2)*4 \
     begin \
     push.TEST_CONSTANT \
     end \
@@ -249,6 +248,20 @@ fn constant_field_division() {
     end";
     let program = assembler.compile(source).unwrap();
     assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn constant_err() {
+    let assembler = super::Assembler::default();
+    let source = "const.TEST_CONSTANT=5+A \
+    begin \
+    push.TEST_CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "malformed constant `const.TEST_CONSTANT=5+A` - invalid value: `5+A` - reason: constant with name A was not initialized";
+    assert_eq!(expected_error, err.to_string());
 }
 
 #[test]
