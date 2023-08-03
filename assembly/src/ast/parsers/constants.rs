@@ -1,35 +1,20 @@
-use super::{Felt, LocalConstMap, ParsingError, StarkField, String, ToString, Token, Vec};
+use super::{Felt, LocalConstMap, ParsingError, StarkField, String, Token, Vec};
 use core::fmt::Display;
 
 // CONSTANT VALUE EXPRESSIONS
 // ================================================================================================
 
 /// An operation used in constant expressions
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum Operation {
     Add,
     Sub,
     Mul,
-    Div,
+    FeltDiv,
     IntDiv,
     LPar,
     RPar,
     Value(Felt),
-}
-
-impl Operation {
-    /// Returns operator from [Operation] based on provided character
-    pub fn get_operator(char: &char) -> Self {
-        match char {
-            '+' => Self::Add,
-            '-' => Self::Sub,
-            '*' => Self::Mul,
-            '/' => Self::Div,
-            '(' => Self::LPar,
-            ')' => Self::RPar,
-            _ => unreachable!("Invalid operator character"),
-        }
-    }
 }
 
 impl Display for Operation {
@@ -40,7 +25,7 @@ impl Display for Operation {
             Add => write!(f, "+"),
             Sub => write!(f, "-"),
             Mul => write!(f, "*"),
-            Div => write!(f, "/"),
+            FeltDiv => write!(f, "/"),
             IntDiv => write!(f, "//"),
             LPar => write!(f, "("),
             RPar => write!(f, ")"),
@@ -65,40 +50,24 @@ fn build_postfix_expression(
     expression: &str,
     constants: &LocalConstMap,
 ) -> Result<Vec<Operation>, ParsingError> {
-    let ops = ['+', '-', '*', '/', '(', ')'];
-
     let mut stack = Vec::new();
     let mut postfix_expression = Vec::new();
-    let mut parsed_value = String::new();
 
-    // Create a "window" of chars containing current and next char of the expression. It is needed
-    // to determine field division `//`.
-    let mut chars = expression.chars();
-    let mut next_char = chars.next();
-    let mut current_char: Option<char>;
+    let mut operation_iterator =
+        OperationIterator::new(op, expression, ['+', '-', '*', '/', '(', ')'], constants);
 
-    loop {
-        current_char = next_char;
-        next_char = chars.next();
+    let mut operation = operation_iterator.next()?;
 
-        let current_char = current_char.unwrap();
-
-        // if char is an operator
-        if ops.contains(&current_char) {
-            // if we already parsed some value before push it to the postfix expression
-            if !parsed_value.is_empty() {
-                let parsed_number = parse_number(op, expression, constants, parsed_value)?;
-                postfix_expression.push(parsed_number);
-                parsed_value = "".to_string();
-            }
-
+    while operation.is_some() {
+        let local_operation = operation.unwrap();
+        match local_operation {
+            // if we get some value push it to the postfix expression
+            Operation::Value(_) => postfix_expression.push(local_operation),
             // if we get `(` push it on the stack
-            if current_char == '(' {
-                stack.push(Operation::LPar);
-            }
+            Operation::LPar => stack.push(Operation::LPar),
             // if we get `)` push operators from the stack to the postfix expression untill we
             // get `(` on stack
-            else if current_char == ')' {
+            Operation::RPar => {
                 while stack.last() != Some(&Operation::LPar) {
                     postfix_expression.push(stack.pop().unwrap());
                 }
@@ -108,50 +77,26 @@ fn build_postfix_expression(
             // if stack is empty or the last operator on stack is `(` or we got an operator
             // with higher priority than stack top operator -- push obtained operator to the
             // stack
-            else if stack.is_empty()
+            _ if stack.is_empty()
                 || stack.last() == Some(&Operation::LPar)
-                || left_has_greater_priority(&current_char, stack.last().unwrap())
+                || left_has_greater_precedence(&local_operation, stack.last().unwrap()) =>
             {
-                // if we get field division
-                if current_char == '/' && next_char == Some('/') {
-                    stack.push(Operation::IntDiv);
-                    next_char = chars.next();
-                } else {
-                    stack.push(Operation::get_operator(&current_char));
-                }
+                stack.push(local_operation)
             }
             // if the obtained operator has priority equal or lower than stack top operator
             // push the operators from the stack to the postfix expression until stack is empty
             // or we get from the stack an operation with lower priority
-            else {
+            _ => {
                 postfix_expression.push(stack.pop().unwrap());
                 while !stack.is_empty()
-                    && !left_has_greater_priority(&current_char, stack.last().unwrap())
+                    && !left_has_greater_precedence(&local_operation, stack.last().unwrap())
                 {
                     postfix_expression.push(stack.pop().unwrap());
                 }
-                // if we get field division
-                if current_char == '/' && next_char == Some('/') {
-                    stack.push(Operation::IntDiv);
-                    next_char = chars.next();
-                } else {
-                    stack.push(Operation::get_operator(&current_char));
-                }
+                stack.push(local_operation);
             }
-        } else {
-            // push character of the number (or its name) to the `parsed_number` string
-            parsed_value.push(current_char);
         }
-
-        if next_char.is_none() {
-            break;
-        }
-    }
-
-    // push the remaining number to the postfix expression
-    if !parsed_value.is_empty() {
-        let parsed_number = parse_number(op, expression, constants, parsed_value)?;
-        postfix_expression.push(parsed_number);
+        operation = operation_iterator.next()?;
     }
 
     // push remaining on the stack operators to the postfix expression
@@ -178,7 +123,7 @@ fn evaluate_postfix_expression(
             _ => {
                 let right = stack.pop().expect("stack is empty");
                 let left = stack.pop().expect("stack is empty");
-                stack.push(compute_statement(left, right, operation, op, expression)?);
+                stack.push(compute_statement(left, right, operation)?);
             }
         }
     }
@@ -195,6 +140,89 @@ fn evaluate_postfix_expression(
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+/// Used to iterate over operations in `expressions` string.
+///
+/// `original_expression` stay unchanged during `next` method. It is used to obtain original
+/// expression for ParsingError.
+struct OperationIterator<'a> {
+    op: &'a Token<'a>,
+    original_expression: &'a str,
+    expression: &'a str,
+    ops: [char; 6],
+    constants: &'a LocalConstMap,
+}
+
+impl<'a> OperationIterator<'a> {
+    pub fn new(
+        op: &'a Token<'a>,
+        expression: &'a str,
+        ops: [char; 6],
+        constants: &'a LocalConstMap,
+    ) -> Self {
+        OperationIterator {
+            op,
+            original_expression: expression,
+            expression,
+            ops,
+            constants,
+        }
+    }
+
+    pub fn next(&mut self) -> Result<Option<Operation>, ParsingError> {
+        let mut parsed_value = String::new();
+        let mut char_iter = self.expression.chars();
+        match char_iter.next() {
+            Some('+') => {
+                self.expression = &self.expression[1..];
+                Ok(Some(Operation::Add))
+            }
+            Some('-') => {
+                self.expression = &self.expression[1..];
+                Ok(Some(Operation::Sub))
+            }
+            Some('(') => {
+                self.expression = &self.expression[1..];
+                Ok(Some(Operation::LPar))
+            }
+            Some(')') => {
+                self.expression = &self.expression[1..];
+                Ok(Some(Operation::RPar))
+            }
+            Some('*') => {
+                self.expression = &self.expression[1..];
+                Ok(Some(Operation::Mul))
+            }
+            Some('/') => match char_iter.next() {
+                Some('/') => {
+                    self.expression = &self.expression[2..];
+                    Ok(Some(Operation::IntDiv))
+                }
+                _ => {
+                    self.expression = &self.expression[1..];
+                    Ok(Some(Operation::FeltDiv))
+                }
+            },
+            Some(value) => {
+                parsed_value.push(value);
+                let mut next_char = char_iter.next();
+                self.expression = &self.expression[1..];
+                while next_char.is_some_and(|char| !self.ops.contains(&char)) {
+                    parsed_value.push(next_char.unwrap());
+                    next_char = char_iter.next();
+                    self.expression = &self.expression[1..];
+                }
+                Ok(Some(parse_number(
+                    self.op,
+                    self.original_expression,
+                    self.constants,
+                    parsed_value,
+                )?))
+            }
+            None => Ok(None),
+        }
+    }
+}
 
 /// Returns the number in `value` or the constant value if the value is the name of the constant.
 fn parse_number(
@@ -222,16 +250,16 @@ fn parse_number(
 }
 
 /// Returns `true` if th left operator has higher priority than the right, `false` otherwise.
-fn left_has_greater_priority(left: &char, right: &Operation) -> bool {
+fn left_has_greater_precedence(left: &Operation, right: &Operation) -> bool {
     use Operation::*;
 
     let left_level = match left {
-        '*' | '/' => 2,
-        '+' | '-' => 1,
+        Mul | FeltDiv | IntDiv => 2,
+        Add | Sub => 1,
         _ => 0,
     };
     let right_level = match right {
-        Mul | Div | IntDiv => 2,
+        Mul | FeltDiv | IntDiv => 2,
         Add | Sub => 1,
         _ => 0,
     };
@@ -239,24 +267,60 @@ fn left_has_greater_priority(left: &char, right: &Operation) -> bool {
 }
 
 /// Computes the expression based on provided `operator` character.
-fn compute_statement(
-    left: Felt,
-    right: Felt,
-    operator: &Operation,
-    op: &Token,
-    expression: &str,
-) -> Result<Felt, ParsingError> {
+fn compute_statement(left: Felt, right: Felt, operator: &Operation) -> Result<Felt, ParsingError> {
     use Operation::*;
     match operator {
         Add => Ok(left + right),
         Sub => Ok(left - right),
         Mul => Ok(left * right),
-        Div => Ok(Felt::new(left.as_int() / right.as_int())),
-        IntDiv => Ok(left / right),
-        _ => Err(ParsingError::invalid_const_value(
-            op,
-            expression,
-            &format!("expression contains unsupported operator: {}", operator),
-        )),
+        IntDiv => Ok(Felt::new(left.as_int() / right.as_int())),
+        FeltDiv => Ok(left / right),
+        _ => unreachable!(),
+    }
+}
+
+// TESTS
+// ================================================================================================
+#[cfg(test)]
+mod tests {
+    use super::{Felt, LocalConstMap, Token};
+    use crate::ast::parsers::constants::{build_postfix_expression, Operation};
+
+    #[test]
+    fn test_build_postfix_expression() {
+        use Operation::*;
+
+        let mut constants: LocalConstMap = LocalConstMap::new();
+        constants.insert("A".to_string(), 3);
+        constants.insert("B".to_string(), 10);
+
+        let expression = "51-A+22";
+        let result = build_postfix_expression(&Token::new_dummy(), expression, &constants).unwrap();
+        let exprected =
+            vec![Value(Felt::new(51)), Value(Felt::new(3)), Sub, Value(Felt::new(22)), Add];
+        assert_eq!(result, exprected);
+
+        let expression = "12*3+(2*B-(A/3+1))-2*3";
+        let result = build_postfix_expression(&Token::new_dummy(), expression, &constants).unwrap();
+        let exprected = vec![
+            Value(Felt::new(12)),
+            Value(Felt::new(3)),
+            Mul,
+            Value(Felt::new(2)),
+            Value(Felt::new(10)),
+            Mul,
+            Value(Felt::new(3)),
+            Value(Felt::new(3)),
+            FeltDiv,
+            Value(Felt::new(1)),
+            Add,
+            Sub,
+            Add,
+            Value(Felt::new(2)),
+            Value(Felt::new(3)),
+            Mul,
+            Sub,
+        ];
+        assert_eq!(result, exprected);
     }
 }
