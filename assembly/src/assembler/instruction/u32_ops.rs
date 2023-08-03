@@ -293,7 +293,7 @@ pub fn u32rotr(
     imm: Option<u8>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     match (imm, op_mode) {
-        (Some(imm), U32OpMode::Checked) if imm == 0 => {
+        (Some(0), U32OpMode::Checked) => {
             // if rotation is performed by 0, just verify that stack top is u32
             span.push_ops([Pad, U32assert2, Drop]);
             return Ok(None);
@@ -302,7 +302,7 @@ pub fn u32rotr(
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
             span.push_ops([Push(Felt::new(1 << (32 - imm))), U32assert2]);
         }
-        (Some(imm), U32OpMode::Unchecked) if imm == 0 => {
+        (Some(0), U32OpMode::Unchecked) => {
             // if rotation is performed by 0, do nothing (Noop)
             span.push_op(Noop);
             return Ok(None);
@@ -470,7 +470,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
     final_ops: [Operation; 2],
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     match (imm, op_mode) {
-        (Some(imm), U32OpMode::Checked) if imm == 0 => {
+        (Some(0), U32OpMode::Checked) => {
             // if shift/rotation is performed by 0, just verify that stack top is u32
             span.push_ops([Pad, U32assert2, Drop]);
             return Ok(None);
@@ -479,7 +479,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
             validate_param(imm, 1..=MAX_VALUE)?;
             span.push_ops([Push(Felt::new(1 << imm)), U32assert2]);
         }
-        (Some(imm), U32OpMode::Unchecked) if imm == 0 => {
+        (Some(0), U32OpMode::Unchecked) => {
             // if shift/rotation is performed by 0, do nothing (Noop)
             span.push_op(Noop);
             return Ok(None);
