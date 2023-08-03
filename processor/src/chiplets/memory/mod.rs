@@ -133,20 +133,13 @@ impl Memory {
     /// returned. This effectively implies that memory is initialized to ZERO.
     pub fn read(&mut self, ctx: u32, addr: Felt, clk: u32) -> Word {
         self.num_trace_rows += 1;
-        self.trace
-            .entry(ctx)
-            .or_insert_with(MemorySegmentTrace::default)
-            .read(addr, Felt::from(clk))
+        self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
     }
 
     /// Writes the provided word at the specified context/address.
     pub fn write(&mut self, ctx: u32, addr: Felt, clk: u32, value: Word) {
         self.num_trace_rows += 1;
-        self.trace.entry(ctx).or_insert_with(MemorySegmentTrace::default).write(
-            addr,
-            Felt::from(clk),
-            value,
-        );
+        self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
     }
 
     // EXECUTION TRACE GENERATION

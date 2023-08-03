@@ -160,13 +160,12 @@ impl<'a> fmt::Display for TokenStream<'a> {
 
 fn build_comment(docs: &[&str]) -> Option<String> {
     let last = docs.len().saturating_sub(1);
-    let docs: String = docs
-        .iter()
-        .enumerate()
-        .map(|(i, d)| {
-            let lb = if last == i { "" } else { "\n" };
-            format!("{d}{lb}")
-        })
-        .collect();
+    let docs: String = docs.iter().enumerate().fold(String::new(), |mut res, (i, l)| {
+        res.push_str(l);
+        if i != last {
+            res.push('\n');
+        }
+        res
+    });
     (!docs.is_empty()).then_some(docs)
 }
