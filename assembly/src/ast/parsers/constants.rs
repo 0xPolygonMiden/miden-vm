@@ -4,7 +4,7 @@ use core::fmt::Display;
 // CONSTANT VALUE EXPRESSIONS
 // ================================================================================================
 
-const OPERATION_ARRAY: [char; 6] = ['+', '-', '*', '/', '(', ')'];
+const OPERATORS: [char; 6] = ['+', '-', '*', '/', '(', ')'];
 
 /// An operation used in constant expressions
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -86,9 +86,8 @@ fn build_postfix_expression(
             // or we get from the stack an operation with lower priority
             _ => {
                 postfix_expression.push(stack.pop().unwrap());
-                while stack
-                    .last()
-                    .is_some_and(|last| !left_has_greater_precedence(&operation, last))
+                while stack.last().is_some()
+                    && !left_has_greater_precedence(&operation, stack.last().unwrap())
                 {
                     postfix_expression.push(stack.pop().unwrap());
                 }
@@ -121,7 +120,7 @@ fn evaluate_postfix_expression(
             _ => {
                 let right = stack.pop().expect("stack is empty");
                 let left = stack.pop().expect("stack is empty");
-                stack.push(compute_statement(left, right, operation)?);
+                stack.push(compute_statement(op, left, right, operation)?);
             }
         }
     }
@@ -200,12 +199,12 @@ impl<'a> OperationIterator<'a> {
                 parsed_value.push(value);
                 let mut next_char = char_iter.next();
                 self.expression = &self.expression[1..];
-                while next_char.is_some_and(|char| !OPERATION_ARRAY.contains(&char)) {
+                while next_char.is_some() && !OPERATORS.contains(&next_char.unwrap()) {
                     parsed_value.push(next_char.unwrap());
                     next_char = char_iter.next();
                     self.expression = &self.expression[1..];
                 }
-                Ok(Some(parse_number(
+                Ok(Some(parse_operand(
                     self.op,
                     self.original_expression,
                     self.constants,
@@ -218,7 +217,7 @@ impl<'a> OperationIterator<'a> {
 }
 
 /// Returns the number in `value` or the constant value if the value is the name of the constant.
-fn parse_number(
+fn parse_operand(
     op: &Token,
     expression: &str,
     constants: &LocalConstMap,
@@ -260,14 +259,29 @@ fn left_has_greater_precedence(left: &Operation, right: &Operation) -> bool {
 }
 
 /// Computes the expression based on provided `operator` character.
-fn compute_statement(left: Felt, right: Felt, operator: &Operation) -> Result<Felt, ParsingError> {
+fn compute_statement(
+    op: &Token,
+    left: Felt,
+    right: Felt,
+    operator: &Operation,
+) -> Result<Felt, ParsingError> {
     use Operation::*;
     match operator {
         Add => Ok(left + right),
         Sub => Ok(left - right),
         Mul => Ok(left * right),
-        IntDiv => Ok(Felt::new(left.as_int() / right.as_int())),
-        FeltDiv => Ok(left / right),
+        IntDiv => {
+            if right.as_int() == 0 {
+                return Err(ParsingError::const_division_by_zero(op));
+            }
+            Ok(Felt::new(left.as_int() / right.as_int()))
+        }
+        FeltDiv => {
+            if right.as_int() == 0 {
+                return Err(ParsingError::const_division_by_zero(op));
+            }
+            Ok(left / right)
+        }
         _ => unreachable!(),
     }
 }

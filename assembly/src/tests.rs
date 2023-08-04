@@ -197,7 +197,7 @@ fn multiple_constants_push() {
 #[test]
 fn constant_numeric_expression() {
     let assembler = super::Assembler::default();
-    let source = "const.TEST_CONSTANT=11-2+4*(12-(10+1))+9+8/4*2 \
+    let source = "const.TEST_CONSTANT=11-2+4*(12-(10+1))+9+8//4*2 \
     begin \
     push.TEST_CONSTANT \
     end \
@@ -217,7 +217,7 @@ fn constant_alphanumeric_expression() {
     let assembler = super::Assembler::default();
     let source = "const.TEST_CONSTANT_1=(18-1+10)*6-((13+7)*2) \
     const.TEST_CONSTANT_2=11-2+4*(12-(10+1))+9
-    const.TEST_CONSTANT_3=(TEST_CONSTANT_1-(TEST_CONSTANT_2+10))/5+3
+    const.TEST_CONSTANT_3=(TEST_CONSTANT_1-(TEST_CONSTANT_2+10))//5+3
     begin \
     push.TEST_CONSTANT_3 \
     end \
@@ -235,7 +235,7 @@ fn constant_alphanumeric_expression() {
 #[test]
 fn constant_field_division() {
     let assembler = super::Assembler::default();
-    let source = "const.TEST_CONSTANT=(16//4)/(2//2)*4 \
+    let source = "const.TEST_CONSTANT=(17//4)/4*(1//2)+2 \
     begin \
     push.TEST_CONSTANT \
     end \
@@ -243,7 +243,7 @@ fn constant_field_division() {
     let expected = "\
     begin \
         span \
-            push(16) \
+            push(2) \
         end \
     end";
     let program = assembler.compile(source).unwrap();
@@ -251,7 +251,7 @@ fn constant_field_division() {
 }
 
 #[test]
-fn constant_err() {
+fn constant_err_const_not_initialized() {
     let assembler = super::Assembler::default();
     let source = "const.TEST_CONSTANT=5+A \
     begin \
@@ -261,6 +261,30 @@ fn constant_err() {
     assert!(result.is_err());
     let err = result.err().unwrap();
     let expected_error = "malformed constant `const.TEST_CONSTANT=5+A` - invalid value: `5+A` - reason: constant with name A was not initialized";
+    assert_eq!(expected_error, err.to_string());
+}
+
+#[test]
+fn constant_err_div_by_zero() {
+    let assembler = super::Assembler::default();
+    let source = "const.TEST_CONSTANT=5/0 \
+    begin \
+    push.TEST_CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "constant expression const.TEST_CONSTANT=5/0 contains division by zero";
+    assert_eq!(expected_error, err.to_string());
+
+    let source = "const.TEST_CONSTANT=5//0 \
+    begin \
+    push.TEST_CONSTANT \
+    end";
+    let result = assembler.compile(source);
+    assert!(result.is_err());
+    let err = result.err().unwrap();
+    let expected_error = "constant expression const.TEST_CONSTANT=5//0 contains division by zero";
     assert_eq!(expected_error, err.to_string());
 }
 
