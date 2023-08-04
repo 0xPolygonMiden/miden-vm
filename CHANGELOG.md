@@ -5,6 +5,7 @@
 #### Assembly
 - Added ability to attach doc comments to re-exported procedures (#994).
 - Added support for nested modules (#992).
+- Added support for the arithmetic expressions in constant values (#1026).
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
