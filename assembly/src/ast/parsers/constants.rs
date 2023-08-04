@@ -4,6 +4,8 @@ use core::fmt::Display;
 // CONSTANT VALUE EXPRESSIONS
 // ================================================================================================
 
+const OPERATION_ARRAY: [char; 6] = ['+', '-', '*', '/', '(', ')'];
+
 /// An operation used in constant expressions
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Operation {
@@ -53,16 +55,12 @@ fn build_postfix_expression(
     let mut stack = Vec::new();
     let mut postfix_expression = Vec::new();
 
-    let mut operation_iterator =
-        OperationIterator::new(op, expression, ['+', '-', '*', '/', '(', ')'], constants);
+    let mut operation_iterator = OperationIterator::new(op, expression, constants);
 
-    let mut operation = operation_iterator.next()?;
-
-    while operation.is_some() {
-        let local_operation = operation.unwrap();
-        match local_operation {
+    while let Some(operation) = operation_iterator.next()? {
+        match operation {
             // if we get some value push it to the postfix expression
-            Operation::Value(_) => postfix_expression.push(local_operation),
+            Operation::Value(_) => postfix_expression.push(operation),
             // if we get `(` push it on the stack
             Operation::LPar => stack.push(Operation::LPar),
             // if we get `)` push operators from the stack to the postfix expression untill we
@@ -79,24 +77,24 @@ fn build_postfix_expression(
             // stack
             _ if stack.is_empty()
                 || stack.last() == Some(&Operation::LPar)
-                || left_has_greater_precedence(&local_operation, stack.last().unwrap()) =>
+                || left_has_greater_precedence(&operation, stack.last().unwrap()) =>
             {
-                stack.push(local_operation)
+                stack.push(operation)
             }
             // if the obtained operator has priority equal or lower than stack top operator
             // push the operators from the stack to the postfix expression until stack is empty
             // or we get from the stack an operation with lower priority
             _ => {
                 postfix_expression.push(stack.pop().unwrap());
-                while !stack.is_empty()
-                    && !left_has_greater_precedence(&local_operation, stack.last().unwrap())
+                while stack
+                    .last()
+                    .is_some_and(|last| !left_has_greater_precedence(&operation, last))
                 {
                     postfix_expression.push(stack.pop().unwrap());
                 }
-                stack.push(local_operation);
+                stack.push(operation);
             }
         }
-        operation = operation_iterator.next()?;
     }
 
     // push remaining on the stack operators to the postfix expression
@@ -149,26 +147,21 @@ struct OperationIterator<'a> {
     op: &'a Token<'a>,
     original_expression: &'a str,
     expression: &'a str,
-    ops: [char; 6],
     constants: &'a LocalConstMap,
 }
 
 impl<'a> OperationIterator<'a> {
-    pub fn new(
-        op: &'a Token<'a>,
-        expression: &'a str,
-        ops: [char; 6],
-        constants: &'a LocalConstMap,
-    ) -> Self {
+    /// Returns a new instance of the [OperationIterator].
+    pub fn new(op: &'a Token<'a>, expression: &'a str, constants: &'a LocalConstMap) -> Self {
         OperationIterator {
             op,
             original_expression: expression,
             expression,
-            ops,
             constants,
         }
     }
 
+    /// Parses and returns next [Operation] in the expression string.
     pub fn next(&mut self) -> Result<Option<Operation>, ParsingError> {
         let mut parsed_value = String::new();
         let mut char_iter = self.expression.chars();
@@ -207,7 +200,7 @@ impl<'a> OperationIterator<'a> {
                 parsed_value.push(value);
                 let mut next_char = char_iter.next();
                 self.expression = &self.expression[1..];
-                while next_char.is_some_and(|char| !self.ops.contains(&char)) {
+                while next_char.is_some_and(|char| !OPERATION_ARRAY.contains(&char)) {
                     parsed_value.push(next_char.unwrap());
                     next_char = char_iter.next();
                     self.expression = &self.expression[1..];
@@ -284,25 +277,24 @@ fn compute_statement(left: Felt, right: Felt, operator: &Operation) -> Result<Fe
 #[cfg(test)]
 mod tests {
     use super::{Felt, LocalConstMap, Token};
-    use crate::ast::parsers::constants::{build_postfix_expression, Operation};
+    use crate::ast::parsers::constants::{
+        build_postfix_expression, evaluate_postfix_expression, Operation,
+    };
+    use Operation::*;
 
     #[test]
     fn test_build_postfix_expression() {
-        use Operation::*;
-
-        let mut constants: LocalConstMap = LocalConstMap::new();
-        constants.insert("A".to_string(), 3);
-        constants.insert("B".to_string(), 10);
+        let constants = LocalConstMap::from([("A".to_string(), 3), ("B".to_string(), 10)]);
 
         let expression = "51-A+22";
         let result = build_postfix_expression(&Token::new_dummy(), expression, &constants).unwrap();
-        let exprected =
+        let expected =
             vec![Value(Felt::new(51)), Value(Felt::new(3)), Sub, Value(Felt::new(22)), Add];
-        assert_eq!(result, exprected);
+        assert_eq!(result, expected);
 
         let expression = "12*3+(2*B-(A/3+1))-2*3";
         let result = build_postfix_expression(&Token::new_dummy(), expression, &constants).unwrap();
-        let exprected = vec![
+        let expected = vec![
             Value(Felt::new(12)),
             Value(Felt::new(3)),
             Mul,
@@ -321,6 +313,44 @@ mod tests {
             Mul,
             Sub,
         ];
-        assert_eq!(result, exprected);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_evaluate_postfix_expression() {
+        let expression = "51-A+22";
+        let postfix_expression =
+            vec![Value(Felt::new(51)), Value(Felt::new(3)), Sub, Value(Felt::new(22)), Add];
+        let result =
+            evaluate_postfix_expression(&Token::new_dummy(), expression, postfix_expression)
+                .unwrap();
+        let expected = Felt::new(70);
+        assert_eq!(result, expected);
+
+        let expression = "12*3+(2*B-(A/3+1))-2*3";
+        let postfix_expression = vec![
+            Value(Felt::new(12)),
+            Value(Felt::new(3)),
+            Mul,
+            Value(Felt::new(2)),
+            Value(Felt::new(10)),
+            Mul,
+            Value(Felt::new(3)),
+            Value(Felt::new(3)),
+            FeltDiv,
+            Value(Felt::new(1)),
+            Add,
+            Sub,
+            Add,
+            Value(Felt::new(2)),
+            Value(Felt::new(3)),
+            Mul,
+            Sub,
+        ];
+        let result =
+            evaluate_postfix_expression(&Token::new_dummy(), expression, postfix_expression)
+                .unwrap();
+        let expected = Felt::new(48);
+        assert_eq!(result, expected);
     }
 }
