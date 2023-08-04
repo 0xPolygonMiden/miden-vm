@@ -110,6 +110,7 @@ In addition to the locally-defined procedure `foo`, the above module also export
 Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`.
 
 Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100. 
+
 A constant's value must be in the range between $0$ and $2^{64} - 2^{32}$ (both inclusive) and can be defined by an arithmetic expression using `+`, `-`, `*`, `/`, `//`, `(`, `)` operators and references to the previously defined constants. Here `/` is a field division and `//` is an integer division. Note that the arithmetic expression cannot contain spaces.
 
 ```
