@@ -1,22 +1,21 @@
+use clap::Parser;
 use core::fmt;
 use miden::{AssemblyError, ExecutionError};
-use structopt::StructOpt;
 
 mod cli;
 mod examples;
 mod repl;
 mod tools;
 
-/// Root CLI struct
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Miden", about = "Miden CLI")]
+#[derive(Parser, Debug)]
+#[clap(name = "Miden", about = "Miden CLI", version, rename_all = "kebab-case")]
 pub struct Cli {
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     action: Actions,
 }
 
 /// CLI actions
-#[derive(StructOpt, Debug)]
+#[derive(Debug, Parser)]
 pub enum Actions {
     Analyze(tools::Analyze),
     Compile(cli::CompileCmd),
@@ -49,7 +48,7 @@ impl Cli {
 /// Executable entry point
 pub fn main() {
     // read command-line args
-    let cli = Cli::from_args();
+    let cli = Cli::try_parse().unwrap();
 
     // execute cli action
     if let Err(error) = cli.execute() {

@@ -1,15 +1,16 @@
+use clap::Parser;
+
 use super::data::{Debug, Libraries, ProgramFile};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Compile", about = "Compile a miden program")]
+#[derive(Debug, Clone, Parser)]
+#[clap(about = "Compile a miden program")]
 pub struct CompileCmd {
     /// Path to .masm assembly file
-    #[structopt(short = "a", long = "assembly", parse(from_os_str))]
+    #[clap(short = 'a', long = "assembly", value_parser)]
     assembly_file: PathBuf,
     /// Paths to .masl library files
-    #[structopt(short = "l", long = "libraries", parse(from_os_str))]
+    #[clap(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 

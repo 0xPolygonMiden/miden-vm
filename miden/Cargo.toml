@@ -39,11 +39,12 @@ path = "tests/integration/main.rs"
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "rustyline"]
+executable = ["env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "clap", "rustyline"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.6", default-features = false }
+clap = { version = "4.1", features = ["derive"], optional = true }
 env_logger = { version = "0.10", default-features = false, optional = true }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
@@ -54,7 +55,6 @@ serde = {version = "1.0.117", optional = true }
 serde_derive = {version = "1.0.117", optional = true }
 serde_json = {version = "1.0.59", optional = true }
 stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.5", default-features = false }
-structopt = { version = "0.3", default-features = false, optional = true }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.6", default-features = false }
 
 [dev-dependencies]
