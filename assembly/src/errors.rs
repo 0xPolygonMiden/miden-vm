@@ -252,6 +252,14 @@ impl ParsingError {
         }
     }
 
+    pub fn const_division_by_zero(token: &Token) -> Self {
+        ParsingError {
+            message: format!("constant expression {token} contains division by zero"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     // INVALID / MALFORMED INSTRUCTIONS
     // --------------------------------------------------------------------------------------------
 

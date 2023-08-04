@@ -70,6 +70,14 @@ impl<'a> Token<'a> {
         }
     }
 
+    /// Returns a new token intended for use in tests
+    pub fn new_dummy() -> Self {
+        Self {
+            parts: vec!["dummy_token"],
+            location: SourceLocation::new(0, 0),
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 

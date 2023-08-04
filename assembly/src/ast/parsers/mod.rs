@@ -13,6 +13,9 @@ pub mod io_ops;
 pub mod stack_ops;
 pub mod u32_ops;
 
+pub mod constants;
+pub use constants::calculate_const_value;
+
 mod context;
 pub use context::ParserContext;
 
@@ -34,7 +37,7 @@ pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, Parsin
     while let Some(token) = tokens.read() {
         match token.parts()[0] {
             Token::CONST => {
-                let (name, value) = parse_constant(token)?;
+                let (name, value) = parse_constant(token, &constants)?;
 
                 if constants.contains_key(&name) {
                     return Err(ParsingError::duplicate_const_name(token, &name));
@@ -51,7 +54,7 @@ pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, Parsin
 }
 
 /// Parses a constant token and returns a (constant_name, constant_value) tuple
-fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
+fn parse_constant(token: &Token, constants: &LocalConstMap) -> Result<(String, u64), ParsingError> {
     match token.num_parts() {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(token)),
@@ -64,7 +67,7 @@ fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
                     let name = CONSTANT_LABEL_PARSER
                         .parse_label(const_declaration[0])
                         .map_err(|err| ParsingError::invalid_const_name(token, err))?;
-                    let value = parse_const_value(token, const_declaration[1])?;
+                    let value = parse_const_value(token, const_declaration[1], constants)?;
                     Ok((name.to_string(), value))
                 }
                 _ => Err(ParsingError::extra_param(token)),
@@ -78,10 +81,15 @@ fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
 // ================================================================================================
 
 /// Parses a constant value and ensures it falls within bounds specified by the caller
-fn parse_const_value(op: &Token, const_value: &str) -> Result<u64, ParsingError> {
-    let result = const_value
-        .parse::<u64>()
-        .map_err(|err| ParsingError::invalid_const_value(op, const_value, &err.to_string()))?;
+fn parse_const_value(
+    op: &Token,
+    const_value: &str,
+    constants: &LocalConstMap,
+) -> Result<u64, ParsingError> {
+    let result = match const_value.parse::<u64>() {
+        Ok(value) => value,
+        Err(_) => calculate_const_value(op, const_value, constants)?.as_int(),
+    };
 
     let range = 0..Felt::MODULUS;
     range.contains(&result).then_some(result).ok_or_else(|| ParsingError::invalid_const_value(op, const_value, format!(
