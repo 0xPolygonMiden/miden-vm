@@ -316,22 +316,21 @@ end
 # Output:[V_old, R', ...]
 proc.insert16.1
   # split the k3 into index and remainder (8 cycles)
-  swapw
-  exec.split_16
-  # => [rem, idx, k2, k1, k0, V, R, ...]
+  swapw dup
+  exec.get_top_16_bits
+  # => [idx, K, k0, V, R, ...]
 
-  # move idx out of the way and save the updated key to memory (5 cycles)
-  swap
+  # move idx out of the way and save the updated key to memory (4 cycles)
   movdn.8
   loc_storew.0
-  # => [rem, k2, k1, k0, V, idx, R, ...]
+  # => [K, V, idx, R, ...]
 
   # prepare hasher state (5 cycles)
   push.0.16.0.0
   swapw.2
-  # => [V, rem, k2, k1, k0, 0, 0, 16, 0, idx, R, ...]
+  # => [V, K, 0, 0, 16, 0, idx, R, ...]
 
-  # put (node |-> (key', value)) into the advice map
+  # put (node |-> (key, value)) into the advice map
   adv.insert_hdword.16
 
   # hash the value + rem_key to get new node value (10 cycles)
@@ -365,7 +364,7 @@ proc.insert16.1
     push.0.0.0.0
     loc_loadw.0
     adv_push.4
-    # => [V_old, rem, k2, k1, k0, 0, 0, 16, 0, N_old, R_new, ...]    
+    # => [V_old, K, 0, 0, 16, 0, N_old, R_new, ...]    
 
     # save the old value to memory (3 cycle)
     loc_storew.0

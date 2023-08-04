@@ -3,7 +3,7 @@ use super::{
     Process,
 };
 use crate::{MemAdviceProvider, StackInputs, Word};
-use test_utils::{crypto::get_smt_remaining_key, rand::seeded_word};
+use test_utils::rand::seeded_word;
 use vm_core::{
     crypto::{
         hash::{Rpo256, RpoDigest},
@@ -74,13 +74,10 @@ fn push_smtget() {
 
     // check leaves on empty trees
     for depth in [16, 32, 48] {
-        // compute the remaining key
-        let remaining = get_smt_remaining_key(key, depth);
-
         // compute node value
         let depth_element = Felt::from(depth);
         let store = MerkleStore::new();
-        let node = Rpo256::merge_in_domain(&[remaining.into(), value.into()], depth_element);
+        let node = Rpo256::merge_in_domain(&[key.into(), value.into()], depth_element);
 
         // expect absent value with constant depth 16
         let expected = [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE];
@@ -89,9 +86,6 @@ fn push_smtget() {
 
     // check leaves inserted on all tiers
     for depth in [16, 32, 48] {
-        // compute the remaining key
-        let remaining = get_smt_remaining_key(key, depth);
-
         // set depth flags
         let is_16_or_32 = (depth == 16 || depth == 32).then_some(ONE).unwrap_or(ZERO);
         let is_16_or_48 = (depth == 16 || depth == 48).then_some(ONE).unwrap_or(ZERO);
@@ -100,7 +94,7 @@ fn push_smtget() {
         let index = key[3].as_int() >> 64 - depth;
         let index = NodeIndex::new(depth, index).unwrap();
         let depth_element = Felt::from(depth);
-        let node = Rpo256::merge_in_domain(&[remaining.into(), value.into()], depth_element);
+        let node = Rpo256::merge_in_domain(&[key.into(), value.into()], depth_element);
 
         // set tier node value and expect the value from the injector
         let mut store = MerkleStore::new();
@@ -111,10 +105,10 @@ fn push_smtget() {
             value[2],
             value[1],
             value[0],
-            remaining[3],
-            remaining[2],
-            remaining[1],
-            remaining[0],
+            key[3],
+            key[2],
+            key[1],
+            key[0],
             is_16_or_32,
             is_16_or_48,
         ];
@@ -220,7 +214,7 @@ fn build_expected(values: &[Felt]) -> [Felt; 16] {
 }
 
 fn assert_case_smtget(
-    depth: u8,
+    _depth: u8,
     key: Word,
     value: Word,
     node: RpoDigest,
@@ -230,8 +224,7 @@ fn assert_case_smtget(
 ) {
     // build the process
     let stack_inputs = build_stack_inputs(key, root.into(), Word::default());
-    let remaining = get_smt_remaining_key(key, depth);
-    let mapped = remaining.into_iter().chain(value.into_iter()).collect();
+    let mapped = key.into_iter().chain(value.into_iter()).collect();
     let advice_inputs = AdviceInputs::default()
         .with_merkle_store(store)
         .with_map([(node.into_bytes(), mapped)]);
@@ -254,7 +247,7 @@ fn build_process(
     adv_inputs: AdviceInputs,
 ) -> Process<MemAdviceProvider> {
     let advice_provider = MemAdviceProvider::from(adv_inputs);
-    Process::new(Kernel::default(), stack_inputs, advice_provider)
+    Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default())
 }
 
 fn build_stack_inputs(w0: Word, w1: Word, w2: Word) -> StackInputs {
@@ -293,11 +286,9 @@ fn move_adv_to_stack(process: &mut Process<MemAdviceProvider>, adv_stack_depth: 
 }
 
 fn build_adv_map_entry(key: Word, val: Word, depth: u8) -> ([u8; 32], Vec<Felt>) {
-    let remaining_key = get_smt_remaining_key(key, depth);
-    let node = Rpo256::merge_in_domain(&[remaining_key.into(), val.into()], Felt::from(depth));
-    println!("node: {node:?}");
+    let node = Rpo256::merge_in_domain(&[key.into(), val.into()], Felt::from(depth));
     let mut elements = Vec::new();
-    elements.extend_from_slice(&remaining_key);
+    elements.extend_from_slice(&key);
     elements.extend_from_slice(&val);
     (node.into(), elements)
 }

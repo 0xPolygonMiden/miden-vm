@@ -117,34 +117,29 @@ fn tsmt_insert() {
     let mut smt = TieredSmt::default();
 
     let raw_a = 0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64;
-    let key_a = build_key(raw_a);
+    let key_a = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_a)]);
     let val_a1 = [ONE, ZERO, ZERO, ZERO];
     let val_a2 = [ONE, ONE, ZERO, ZERO];
 
     // insert a value under key_a into an empty tree
-    let store = MerkleStore::new();
-    let old_root = smt.root();
+    let init_smt = smt.clone();
     smt.insert(key_a.into(), val_a1);
-    assert_insert(key_a, [ZERO; 4], val_a1, old_root.into(), smt.root().into(), store, Vec::new());
+    assert_insert(&init_smt, key_a, [ZERO; 4], val_a1, smt.root().into());
 
     // update a value under key_a
-    let store = MerkleStore::from(&smt);
-    let old_root = smt.root();
-    let adv_map = vec![build_adv_map_entry(key_a, val_a1, 16)];
-
+    let init_smt = smt.clone();
     smt.insert(key_a.into(), val_a2);
-    assert_insert(key_a, val_a1, val_a2, old_root.into(), smt.root().into(), store, adv_map);
+    assert_insert(&init_smt, key_a, val_a1, val_a2, smt.root().into());
 }
 
 fn assert_insert(
-    key: Word,
+    init_smt: &TieredSmt,
+    key: RpoDigest,
     old_value: Word,
     new_value: Word,
-    old_root: Word,
-    new_root: Word,
-    store: MerkleStore,
-    adv_map: Vec<([u8; 32], Vec<Felt>)>,
+    new_root: RpoDigest,
 ) {
+    let old_root = init_smt.root();
     let source = r#"
         use.std::collections::smt
 
@@ -176,6 +171,7 @@ fn assert_insert(
         new_root[1].as_int(),
         new_root[0].as_int(),
     ];
+    let (store, adv_map) = build_advice_inputs(init_smt);
     build_test!(source, &initial_stack, &[], store, adv_map).expect_stack(&expected_output);
 }
 
@@ -213,6 +209,13 @@ fn assert_smt_get_opens_correctly(smt: &TieredSmt, key: RpoDigest, value: Word) 
         root[0].as_int(),
     ];
 
+    let (store, advice_map) = build_advice_inputs(smt);
+    let advice_stack = [];
+    build_test!(source, &initial_stack, &advice_stack, store, advice_map.into_iter())
+        .expect_stack(&expected_output);
+}
+
+fn build_advice_inputs(smt: &TieredSmt) -> (MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
     let store = MerkleStore::from(smt);
     let advice_map = smt
         .upper_leaves()
@@ -223,7 +226,5 @@ fn assert_smt_get_opens_correctly(smt: &TieredSmt, key: RpoDigest, value: Word) 
         })
         .collect::<Vec<_>>();
 
-    let advice_stack = [];
-    build_test!(source, &initial_stack, &advice_stack, store, advice_map.into_iter())
-        .expect_stack(&expected_output);
+    (store, advice_map)
 }
