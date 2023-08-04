@@ -1,4 +1,5 @@
-use super::{ColMatrix, Felt, FieldElement, Vec};
+use super::{ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
+use crate::chiplets::Chiplets;
 use core::slice;
 use vm_core::utils::uninit_vector;
 
@@ -234,6 +235,114 @@ impl HintCycle for u32 {
 impl HintCycle for u64 {
     fn as_index(&self) -> usize {
         *self as usize
+    }
+}
+
+// TRACE LENGTH SUMMARY
+// ================================================================================================
+
+/// Contains the data about lengths of the trace parts.
+///
+/// - `main_trace_len` contains the length of the main trace.
+/// - `range_trace_len` contains the length of the range checker trace.
+/// - `chiplets_trace_len` contains the trace lengths of the all chiplets (hash, bitwise, memory,
+/// kernel ROM)
+pub struct TraceLenSummary {
+    main_trace_len: usize,
+    range_trace_len: usize,
+    chiplets_trace_len: ChipletsLengths,
+}
+
+impl TraceLenSummary {
+    pub fn new(
+        main_trace_len: usize,
+        range_trace_len: usize,
+        chiplets_trace_len: ChipletsLengths,
+    ) -> Self {
+        TraceLenSummary {
+            main_trace_len,
+            range_trace_len,
+            chiplets_trace_len,
+        }
+    }
+
+    /// Returns length of the main trace
+    pub fn main_trace_len(&self) -> usize {
+        self.main_trace_len
+    }
+
+    /// Returns length of the range table
+    pub fn range_trace_len(&self) -> usize {
+        self.range_trace_len
+    }
+
+    /// Returns [ChipletsLengths] which contains trace lengths of all chilplets.
+    pub fn chiplets_trace_len(&self) -> ChipletsLengths {
+        self.chiplets_trace_len
+    }
+
+    /// Returns the maximum of all component lengths.
+    pub fn trace_len(&self) -> usize {
+        self.range_trace_len
+            .max(self.main_trace_len)
+            .max(self.chiplets_trace_len.trace_len())
+    }
+
+    /// Returns `trace_len` rounded up to the next power of two.
+    pub fn padded_trace_len(&self) -> usize {
+        (self.trace_len() + NUM_RAND_ROWS).next_power_of_two()
+    }
+}
+
+/// Contains trace lengths of all chilplets: hash, bitwise, memory and kernel ROM trace
+/// lengths.
+#[derive(Clone, Copy)]
+pub struct ChipletsLengths {
+    hash_chiplet_len: usize,
+    bitwise_chiplet_len: usize,
+    memory_chiplet_len: usize,
+    kernel_rom_len: usize,
+}
+
+impl ChipletsLengths {
+    pub fn new(chiplets: &Chiplets) -> Self {
+        ChipletsLengths {
+            hash_chiplet_len: chiplets.bitwise_start(),
+            bitwise_chiplet_len: chiplets.memory_start() - chiplets.bitwise_start(),
+            memory_chiplet_len: chiplets.kernel_rom_start() - chiplets.memory_start(),
+            kernel_rom_len: chiplets.padding_start() - chiplets.kernel_rom_start(),
+        }
+    }
+
+    /// Returns the length of the hash chiplet trace
+    pub fn hash_chiplet_len(&self) -> usize {
+        self.hash_chiplet_len
+    }
+
+    /// Returns the length of the bitwise trace
+    pub fn bitwise_chiplet_len(&self) -> usize {
+        self.bitwise_chiplet_len
+    }
+
+    /// Returns the length of the memory trace
+    pub fn memory_chiplet_len(&self) -> usize {
+        self.memory_chiplet_len
+    }
+
+    /// Returns the length of the kernel ROM trace
+    pub fn kernel_rom_len(&self) -> usize {
+        self.kernel_rom_len
+    }
+
+    /// Returns the length of the trace required to accommodate chiplet components and 1
+    /// mandatory padding row required for ensuring sufficient trace length for auxiliary connector
+    /// columns that rely on the memory chiplet.
+    pub fn trace_len(&self) -> usize {
+        self.hash_chiplet_len()
+            + self.bitwise_chiplet_len()
+            + self.memory_chiplet_len()
+            + self.kernel_rom_len()
+            + 1
     }
 }
 
