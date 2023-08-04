@@ -48,7 +48,7 @@ impl Cli {
 /// Executable entry point
 pub fn main() {
     // read command-line args
-    let cli = Cli::try_parse().unwrap();
+    let cli = Cli::parse();
 
     // execute cli action
     if let Err(error) = cli.execute() {
