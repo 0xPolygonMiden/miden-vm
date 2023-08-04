@@ -19,7 +19,7 @@ use vm_core::StarkField;
 mod utils;
 pub use utils::{
     build_lookup_table_row_values, AuxColumnBuilder, ChipletsLengths, LookupTableRow,
-    TraceFragment, TraceInfo,
+    TraceFragment, TraceLenSummary,
 };
 
 mod decoder;
@@ -50,7 +50,6 @@ pub struct AuxTraceHints {
 ///   components.
 /// - Hints used during auxiliary trace segment construction.
 /// - Metadata needed by the STARK prover.
-#[allow(dead_code)]
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
@@ -58,7 +57,7 @@ pub struct ExecutionTrace {
     aux_trace_hints: AuxTraceHints,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,
-    trace_info: TraceInfo,
+    trace_len_summary: TraceLenSummary,
 }
 
 impl ExecutionTrace {
@@ -85,7 +84,7 @@ impl ExecutionTrace {
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
         let program_info = ProgramInfo::new(program_hash, kernel);
-        let (main_trace, aux_trace_hints, trace_info) = finalize_trace(process, rng);
+        let (main_trace, aux_trace_hints, trace_len_summary) = finalize_trace(process, rng);
 
         Self {
             meta: Vec::new(),
@@ -94,7 +93,7 @@ impl ExecutionTrace {
             aux_trace_hints,
             program_info,
             stack_outputs,
-            trace_info,
+            trace_len_summary,
         }
     }
 
@@ -149,6 +148,11 @@ impl ExecutionTrace {
         self.main_trace.num_rows()
     }
 
+    /// Returns a summary of the lengths of main, range and chiplet traces.
+    pub fn get_len_summary(&self) -> &TraceLenSummary {
+        &self.trace_len_summary
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -170,7 +174,9 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace<A>(process: Process<A>) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceInfo)
+    pub fn test_finalize_trace<A>(
+        process: Process<A>,
+    ) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
     where
         A: AdviceProvider,
     {
@@ -272,7 +278,7 @@ impl Trace for ExecutionTrace {
 fn finalize_trace<A>(
     process: Process<A>,
     mut rng: RpoRandomCoin,
-) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceInfo)
+) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
 where
     A: AdviceProvider,
 {
@@ -302,7 +308,8 @@ where
         "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}",
     );
 
-    let trace_info = TraceInfo::new(
+    // get the lengths of the traces: main, range, and chiplets
+    let trace_len_summary = TraceLenSummary::new(
         clk as usize,
         range_table_len,
         ChipletsLengths::new(
@@ -311,8 +318,6 @@ where
             chiplets.kernel_rom_start() - chiplets.memory_start(),
             chiplets.padding_start() - chiplets.kernel_rom_start(),
         ),
-        max_len,
-        trace_len,
     );
 
     // combine all trace segments into the main trace
@@ -346,5 +351,5 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    (trace, aux_trace_hints, trace_info)
+    (trace, aux_trace_hints, trace_len_summary)
 }

@@ -237,42 +237,31 @@ impl HintCycle for u64 {
     }
 }
 
-// TRACE INFO
+// TRACE LENGTH SUMMARY
 // ================================================================================================
 
 /// Contains the data about lengths of the trace parts.
 ///
 /// - `main_trace_len` contains the length of the main trace.
 /// - `range_table_len` contains the length of the range checker table.
-/// - `chiplet_lenghts` contains the trace lenghts of the all chiplets (hasher, bitwise, memory,
+/// - `chiplet_lengths` contains the trace lengths of the all chiplets (hash, bitwise, memory,
 /// kernel ROM)
-/// - `max_len` contains the trace length required to hold all execution trace steps (maximum
-/// length among range table length, main trace length and chiplets trace length).
-/// - `padded_len` contains `max_len` padded to the next power of two.
-#[allow(dead_code)]
-pub struct TraceInfo {
+pub struct TraceLenSummary {
     main_trace_len: usize,
     range_table_len: usize,
-    chiplets_lenghts: ChipletsLengths,
-    max_len: usize,
-    padded_len: usize,
+    chiplets_lengths: ChipletsLengths,
 }
 
-#[allow(dead_code)]
-impl TraceInfo {
+impl TraceLenSummary {
     pub fn new(
         main_trace_len: usize,
         range_table_len: usize,
-        chiplets_lenghts: ChipletsLengths,
-        max_len: usize,
-        padded_len: usize,
+        chiplets_lengths: ChipletsLengths,
     ) -> Self {
-        TraceInfo {
+        TraceLenSummary {
             main_trace_len,
             range_table_len,
-            chiplets_lenghts,
-            max_len,
-            padded_len,
+            chiplets_lengths,
         }
     }
 
@@ -287,63 +276,52 @@ impl TraceInfo {
     }
 
     /// Returns [ChipletsLengths] which contains trace lengths of all chilplets.
-    pub fn chiplets_lenghts(&self) -> ChipletsLengths {
-        self.chiplets_lenghts
-    }
-
-    /// Returns maximum trace length
-    pub fn max_len(&self) -> usize {
-        self.max_len
-    }
-
-    // Returns final padded trace length
-    pub fn padded_len(&self) -> usize {
-        self.padded_len
+    pub fn chiplets_lengths(&self) -> ChipletsLengths {
+        self.chiplets_lengths
     }
 }
 
-/// Contains trace lengths of all chilplets: hasher, bitwise, memory and kernel ROM trace
-/// lenghts.
+/// Contains trace lengths of all chilplets: hash, bitwise, memory and kernel ROM trace
+/// lengths.
 #[derive(Clone, Copy)]
 pub struct ChipletsLengths {
-    hasher_chiplet_len: usize,
+    hash_chiplet_len: usize,
     bitwise_chiplet_len: usize,
     memory_chiplet_len: usize,
     kernel_rom_len: usize,
 }
 
-#[allow(dead_code)]
 impl ChipletsLengths {
     pub fn new(
-        hasher_chiplet_len: usize,
+        hash_chiplet_len: usize,
         bitwise_chiplet_len: usize,
         memory_chiplet_len: usize,
         kernel_rom_len: usize,
     ) -> Self {
         ChipletsLengths {
-            hasher_chiplet_len,
+            hash_chiplet_len,
             bitwise_chiplet_len,
             memory_chiplet_len,
             kernel_rom_len,
         }
     }
 
-    /// Returns the lenght of the hasher trace
-    pub fn hasher_chiplet_len(&self) -> usize {
-        self.hasher_chiplet_len
+    /// Returns the length of the hash chiplet trace
+    pub fn hash_chiplet_len(&self) -> usize {
+        self.hash_chiplet_len
     }
 
-    /// Returns the lenght of the bitwise trace
+    /// Returns the length of the bitwise trace
     pub fn bitwise_chiplet_len(&self) -> usize {
         self.bitwise_chiplet_len
     }
 
-    /// Returns the lenght of the memory trace
+    /// Returns the length of the memory trace
     pub fn memory_chiplet_len(&self) -> usize {
         self.memory_chiplet_len
     }
 
-    /// Returns the lenght of the kernel ROM trace
+    /// Returns the length of the kernel ROM trace
     pub fn kernel_rom_len(&self) -> usize {
         self.kernel_rom_len
     }
