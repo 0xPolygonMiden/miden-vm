@@ -1,4 +1,5 @@
-use super::{ColMatrix, Felt, FieldElement, Vec};
+use super::{ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
+use crate::chiplets::Chiplets;
 use core::slice;
 use vm_core::utils::uninit_vector;
 
@@ -243,25 +244,25 @@ impl HintCycle for u64 {
 /// Contains the data about lengths of the trace parts.
 ///
 /// - `main_trace_len` contains the length of the main trace.
-/// - `range_table_len` contains the length of the range checker table.
-/// - `chiplet_lengths` contains the trace lengths of the all chiplets (hash, bitwise, memory,
+/// - `range_trace_len` contains the length of the range checker trace.
+/// - `chiplets_trace_len` contains the trace lengths of the all chiplets (hash, bitwise, memory,
 /// kernel ROM)
 pub struct TraceLenSummary {
     main_trace_len: usize,
-    range_table_len: usize,
-    chiplets_lengths: ChipletsLengths,
+    range_trace_len: usize,
+    chiplets_trace_len: ChipletsLengths,
 }
 
 impl TraceLenSummary {
     pub fn new(
         main_trace_len: usize,
-        range_table_len: usize,
-        chiplets_lengths: ChipletsLengths,
+        range_trace_len: usize,
+        chiplets_trace_len: ChipletsLengths,
     ) -> Self {
         TraceLenSummary {
             main_trace_len,
-            range_table_len,
-            chiplets_lengths,
+            range_trace_len,
+            chiplets_trace_len,
         }
     }
 
@@ -271,13 +272,28 @@ impl TraceLenSummary {
     }
 
     /// Returns length of the range table
-    pub fn range_table_len(&self) -> usize {
-        self.range_table_len
+    pub fn range_trace_len(&self) -> usize {
+        self.range_trace_len
     }
 
     /// Returns [ChipletsLengths] which contains trace lengths of all chilplets.
-    pub fn chiplets_lengths(&self) -> ChipletsLengths {
-        self.chiplets_lengths
+    pub fn chiplets_trace_len(&self) -> ChipletsLengths {
+        self.chiplets_trace_len
+    }
+
+    /// Returns the maximum of all component lengths.
+    pub fn trace_len(&self) -> usize {
+        let chiplets_len = self.chiplets_trace_len.hash_chiplet_len()
+            + self.chiplets_trace_len.bitwise_chiplet_len()
+            + self.chiplets_trace_len.memory_chiplet_len()
+            + self.chiplets_trace_len.kernel_rom_len()
+            + 1;
+        self.range_trace_len.max(self.main_trace_len).max(chiplets_len)
+    }
+
+    /// Returns `trace_len` rounded up to the next power of two.
+    pub fn padded_trace_len(&self) -> usize {
+        (self.trace_len() + NUM_RAND_ROWS).next_power_of_two()
     }
 }
 
@@ -292,17 +308,12 @@ pub struct ChipletsLengths {
 }
 
 impl ChipletsLengths {
-    pub fn new(
-        hash_chiplet_len: usize,
-        bitwise_chiplet_len: usize,
-        memory_chiplet_len: usize,
-        kernel_rom_len: usize,
-    ) -> Self {
+    pub fn new(chiplets: &Chiplets) -> Self {
         ChipletsLengths {
-            hash_chiplet_len,
-            bitwise_chiplet_len,
-            memory_chiplet_len,
-            kernel_rom_len,
+            hash_chiplet_len: chiplets.bitwise_start(),
+            bitwise_chiplet_len: chiplets.memory_start() - chiplets.bitwise_start(),
+            memory_chiplet_len: chiplets.kernel_rom_start() - chiplets.memory_start(),
+            kernel_rom_len: chiplets.padding_start() - chiplets.kernel_rom_start(),
         }
     }
 

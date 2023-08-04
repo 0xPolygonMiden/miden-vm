@@ -149,7 +149,7 @@ impl ExecutionTrace {
     }
 
     /// Returns a summary of the lengths of main, range and chiplet traces.
-    pub fn get_len_summary(&self) -> &TraceLenSummary {
+    pub fn trace_len_summary(&self) -> &TraceLenSummary {
         &self.trace_len_summary
     }
 
@@ -309,16 +309,8 @@ where
     );
 
     // get the lengths of the traces: main, range, and chiplets
-    let trace_len_summary = TraceLenSummary::new(
-        clk as usize,
-        range_table_len,
-        ChipletsLengths::new(
-            chiplets.bitwise_start(),
-            chiplets.memory_start() - chiplets.bitwise_start(),
-            chiplets.kernel_rom_start() - chiplets.memory_start(),
-            chiplets.padding_start() - chiplets.kernel_rom_start(),
-        ),
-    );
+    let trace_len_summary =
+        TraceLenSummary::new(clk as usize, range_table_len, ChipletsLengths::new(&chiplets));
 
     // combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
