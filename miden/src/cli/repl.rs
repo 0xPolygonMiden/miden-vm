@@ -2,7 +2,7 @@ use crate::repl::start_repl;
 use clap::Parser;
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Initiates the Miden REPL toolm")]
+#[clap(about = "Initiates the Miden REPL tool")]
 pub struct ReplCmd {}
 
 impl ReplCmd {
