@@ -283,12 +283,9 @@ impl TraceLenSummary {
 
     /// Returns the maximum of all component lengths.
     pub fn trace_len(&self) -> usize {
-        let chiplets_len = self.chiplets_trace_len.hash_chiplet_len()
-            + self.chiplets_trace_len.bitwise_chiplet_len()
-            + self.chiplets_trace_len.memory_chiplet_len()
-            + self.chiplets_trace_len.kernel_rom_len()
-            + 1;
-        self.range_trace_len.max(self.main_trace_len).max(chiplets_len)
+        self.range_trace_len
+            .max(self.main_trace_len)
+            .max(self.chiplets_trace_len.trace_len())
     }
 
     /// Returns `trace_len` rounded up to the next power of two.
@@ -335,6 +332,17 @@ impl ChipletsLengths {
     /// Returns the length of the kernel ROM trace
     pub fn kernel_rom_len(&self) -> usize {
         self.kernel_rom_len
+    }
+
+    /// Returns the length of the trace required to accommodate chiplet components and 1
+    /// mandatory padding row required for ensuring sufficient trace length for auxiliary connector
+    /// columns that rely on the memory chiplet.
+    pub fn trace_len(&self) -> usize {
+        self.hash_chiplet_len()
+            + self.bitwise_chiplet_len()
+            + self.memory_chiplet_len()
+            + self.kernel_rom_len()
+            + 1
     }
 }
 
