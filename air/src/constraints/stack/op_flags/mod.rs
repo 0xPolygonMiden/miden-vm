@@ -989,7 +989,7 @@ impl<E: FieldElement> OpFlags<E> {
         self.control_flow
     }
 
-    /// Returns the flag when the stack operation is a u32 operation.
+    /// Returns true when the stack operation is a u32 operation that requires range checks.
     #[inline(always)]
     pub fn u32_rc_op(&self) -> E {
         self.u32_rc_op

@@ -176,7 +176,7 @@ impl Memory {
                     };
 
                     let (delta_hi, delta_lo) = split_u32_into_u16(delta);
-                    range.add_mem_checks(row, &[delta_lo, delta_hi]);
+                    range.add_range_checks(row, &[delta_lo, delta_hi]);
 
                     // update values for the next iteration of the loop
                     prev_ctx = ctx;

@@ -1,4 +1,4 @@
-use super::{BTreeMap, Felt, RangeChecker, Vec, ONE, ZERO};
+use super::{BTreeMap, Felt, RangeChecker, Vec, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
 use rand_utils::rand_array;
 use vm_core::{utils::ToElements, StarkField};
@@ -10,7 +10,8 @@ fn range_checks() {
     let values = [0, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 100, 355, 620].to_elements();
 
     for &value in values.iter() {
-        checker.add_value(value.as_int() as u16)
+        // add the value to the range checker's trace
+        checker.add_value(value.as_int() as u16);
     }
 
     let RangeCheckTrace {
@@ -21,7 +22,7 @@ fn range_checks() {
 
     // skip the padded rows
     let mut i = 0;
-    while trace[0][i] == ZERO && trace[1][i] == ZERO && trace[2][i] == ZERO {
+    while trace[0][i] == ZERO && trace[1][i] == ZERO {
         i += 1;
     }
 
@@ -29,8 +30,7 @@ fn range_checks() {
     validate_row(&trace, &mut i, 0, 1);
     validate_row(&trace, &mut i, 1, 1);
     validate_row(&trace, &mut i, 2, 4);
-    validate_row(&trace, &mut i, 3, 2);
-    validate_row(&trace, &mut i, 3, 1);
+    validate_row(&trace, &mut i, 3, 3);
     validate_row(&trace, &mut i, 4, 2);
 
     validate_bridge_rows(&trace, &mut i, 4, 100);
@@ -67,22 +67,13 @@ fn range_checks_rand() {
 // ================================================================================================
 
 fn validate_row(trace: &[Vec<Felt>], row_idx: &mut usize, value: u64, num_lookups: u64) {
-    let (s0, s1) = match num_lookups {
-        0 => (ZERO, ZERO),
-        1 => (ONE, ZERO),
-        2 => (ZERO, ONE),
-        4 => (ONE, ONE),
-        _ => panic!("invalid lookup value"),
-    };
-
-    assert_eq!(s0, trace[0][*row_idx]);
-    assert_eq!(s1, trace[1][*row_idx]);
-    assert_eq!(Felt::new(value), trace[2][*row_idx]);
+    assert_eq!(trace[0][*row_idx], Felt::from(num_lookups));
+    assert_eq!(trace[1][*row_idx], Felt::from(value));
     *row_idx += 1;
 }
 
 fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
-    assert_eq!(3, trace.len());
+    assert_eq!(2, trace.len());
 
     // trace length must be a power of two
     let trace_len = get_trace_len(trace);
@@ -93,8 +84,8 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     let mut lookups_16bit = BTreeMap::new();
 
     // process the first row
-    assert_eq!(ZERO, trace[2][i]);
-    let count = get_lookup_count(trace, i);
+    assert_eq!(trace[1][i], ZERO);
+    let count = trace[0][i].as_int();
     lookups_16bit.insert(0u16, count);
     i += 1;
 
@@ -102,7 +93,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     let mut prev_value = 0u16;
     while i < trace_len {
         // make sure the value is a 16-bit value
-        let value = trace[2][i].as_int();
+        let value = trace[1][i].as_int();
         assert!(value <= 65535, "not a 16-bit value");
         let value = value as u16;
 
@@ -111,15 +102,18 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
         assert!(valid_delta(delta));
 
         // keep track of lookup count for each value
-        let count = get_lookup_count(trace, i);
-        lookups_16bit.entry(value).and_modify(|value| *value += count).or_insert(count);
+        let multiplicity = trace[0][i].as_int();
+        lookups_16bit
+            .entry(value)
+            .and_modify(|count| *count += multiplicity)
+            .or_insert(multiplicity);
 
         i += 1;
         prev_value = value;
     }
 
     // validate the last row (must be 65535)
-    let last_value = trace[2][i - 1].as_int();
+    let last_value = trace[1][i - 1].as_int();
     assert_eq!(65535, last_value);
 
     // remove all the looked up values from the lookup table
@@ -158,20 +152,6 @@ fn validate_bridge_rows(
         } else {
             stride /= 3;
         }
-    }
-}
-
-fn get_lookup_count(trace: &[Vec<Felt>], step: usize) -> usize {
-    if trace[0][step] == ZERO && trace[1][step] == ZERO {
-        0
-    } else if trace[0][step] == ONE && trace[1][step] == ZERO {
-        1
-    } else if trace[0][step] == ZERO && trace[1][step] == ONE {
-        2
-    } else if trace[0][step] == ONE && trace[1][step] == ONE {
-        4
-    } else {
-        panic!("not a valid count");
     }
 }
 
