@@ -1,17 +1,8 @@
 # Multiset checks
 
-Zero knowledge virtual machines frequently make use of lookup arguments to enable performance optimizations. Miden VM uses multiset checks, and a brief introduction to them can be found [here](https://hackmd.io/@arielg/ByFgSDA7D).
+A brief introduction to multiset checks can be found [here](https://hackmd.io/@arielg/ByFgSDA7D). In Miden VM, multiset checks are used to implement [virtual tables](#virtual-tables) and efficient [communication buses](./main.md#communication-buses-in-miden-vm).
 
-In Miden VM, multiset checks are used for two purposes:
-
-1. To prove the consistency of intermediate values that must persist between different cycles of the trace, without storing the full data in the execution trace (which would require adding more columns to the trace).
-2. To prove correct interaction between two independent sections of the execution trace, e.g., between the main trace where the result of some operation is required, but would be expensive to compute, and a specialized component which can perform that operation cheaply.
-
-The first is achieved using [virtual tables](#virtual-tables) of data, where we add a row at some cycle in the trace and remove it at a later cycle when it is needed again. Instead of maintaining the entire table in the execution trace, multiset checks allow us to prove data consistency of this table using one running product column.
-
-The second is done by reducing each operation to a lookup value and then using a [communication bus](#communication-buses), implemented as a running product column, to provably connect the two sections of the trace.
-
-### Running product columns
+## Running product columns
 Although the multiset equality check can be thought of as comparing multiset equality between two vectors $a$ and $b$, in Miden VM it is implemented as a single running product column in the following way:
 
 - The running product column is initialized to a value $x$ at the beginning of the trace. (We typically use $x = 1$.)
@@ -20,17 +11,6 @@ Although the multiset equality check can be thought of as comparing multiset equ
 - If $a$ and $b$ were multiset equal, then the running product column will equal $x$ at the end of the trace.
 
 Running product columns are computed using a set of random values $\alpha_0$, $\alpha_1, ...$ sent to the prover by the verifier after the prover commits to the execution trace of the program.
-
-#### Length of running product columns
-
-Running product columns are computed by including information from the *current* row of the main execution trace into the *next* row of the running product column. Thus, in order to ensure that the trace is long enough to give the running product column space for its final value, a padding row may be required at the end of the trace of the component upon which the running product column depends.
-
-This is true when the data in the main trace could go all the way to the end of the trace, such as in the case of the range checker.
-
-#### Cost of running product columns
-It is important to note that depending on the field in which we operate, a running product column may actually require more than one trace column. This is specifically true for small fields.
-
-Since Miden uses a 64-bit field, each running product column needs to be represented by $2$ columns to achieve ~100-bit security and by $3$ columns to achieve ~128-bit security.
 
 ## Virtual tables
 
@@ -66,30 +46,20 @@ $$
 
 ### Virtual tables in Miden VM
 
-Miden VM currently makes use of 6 virtual tables across 4 components:
+Miden VM makes use of 6 virtual tables across 4 components:
 
 - Stack:
-    - [Overflow table](./stack/main.md#overflow-table)
+    - [Overflow table](../stack/main.md#overflow-table)
 - Decoder:
-    - [Block stack table](./decoder/main.md#block-stack-table)
-    - [Block hash table](./decoder/main.md#block-hash-table)
-    - [Op group table](./decoder/main.md#op-group-table)
+    - [Block stack table](../decoder/main.md#block-stack-table)
+    - [Block hash table](../decoder/main.md#block-hash-table)
+    - [Op group table](../decoder/main.md#op-group-table)
 - Chiplets:
-    - [Chiplets virtual table](./chiplets/main.md#chiplet-virtual-table), which combines the following two tables into one:
-        - [Hash chiplet sibling table](./chiplets/hasher.md#sibling-table-constraints)
-        - [Kernel ROM chiplet procedure table](./chiplets/kernel_rom.md#kernel-procedure-table-constraints)
+    - [Chiplets virtual table](../chiplets/main.md#chiplets-virtual-table), which combines the following two tables into one:
+        - [Hash chiplet sibling table](../chiplets/hasher.md#sibling-table-constraints)
+        - [Kernel ROM chiplet procedure table](../chiplets/kernel_rom.md#kernel-procedure-table-constraints)
 
-## Communication buses
-
-One strategy for improving the efficiency of a zero knowledge virtual machine is to use specialized components for complex operations and have the main circuit “offload” those operations to the corresponding components by specifying inputs and outputs and allowing the proof of execution to be done by the dedicated component instead of by the main circuit.
-
-These specialized components are designed to prove the internal correctness of the execution of the operations they support. However, in isolation they cannot make any guarantees about the source of the input data or the destination of the output data.
-
-In order to prove that the inputs and outputs specified by the main circuit match the inputs and outputs provably executed in the specialized component, some kind of provable communication bus is needed.
-
-This bus is typically implemented as some kind of lookup argument, and in Miden VM in particular we use multiset checks.
-
-### Implementation
+## Communication buses via multiset checks
 
 A `bus` can be implemented as a single trace column $b$ where a request can be sent to a specific component and a corresponding response will be sent back by that component.
 
@@ -131,9 +101,6 @@ $$b' \cdot u_{lookup} = b \cdot v_{lookup}$$
 
 ### Communication buses in Miden VM
 
-In Miden VM, the specialized components are implemented as dedicated segments of the execution trace, which include the range checker and the 3 chiplets in the Chiplets module (the hash chiplet, bitwise chiplet, and memory chiplet).
+In Miden VM, the specialized components are implemented as dedicated segments of the execution trace, which include the 3 chiplets in the Chiplets module (the hash chiplet, bitwise chiplet, and memory chiplet).
 
-Miden VM currently uses 2 buses to communicate with these components:
-
-- The chiplets bus [$b_{chip}$](./chiplets/main.md#chiplet-bus), which communicates with all of the chiplets (Hash, Bitwise, and Memory).
-- The range checker bus [$b_{range}$](./range.md#communication-bus).
+Miden VM currently uses multiset checks to implement the chiplets bus [$b_{chip}$](../chiplets/main.md#chiplets-bus), which communicates with all of the chiplets (Hash, Bitwise, and Memory).
