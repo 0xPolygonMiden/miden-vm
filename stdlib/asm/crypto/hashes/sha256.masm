@@ -233,7 +233,7 @@ end
 #! - msg0 through msg15 are the 64 -bytes input message (in terms of 16 SHA256 words)
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
 #! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution )
-export.prepare_message_schedule_and_consume.4
+proc.prepare_message_schedule_and_consume.4
     loc_storew.0
     loc_storew.2
     dropw
