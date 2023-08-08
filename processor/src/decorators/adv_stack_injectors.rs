@@ -362,8 +362,9 @@ where
 
         // if the node is a root of an empty subtree; push ONE onto the advice stack
         let empty = EmptySubtreeRoots::empty_hashes(64);
-        if Word::from(empty[depth as usize]) == node {
+        let (is_update, is_simple_insert) = if Word::from(empty[depth as usize]) == node {
             self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+            (ZERO, ONE)
         } else {
             // if the node is a leaf node, push the value stored under they key followed by ONE;
             // here, we first push the entire pre-image of the leaf node onto the advice stack, which
@@ -372,16 +373,30 @@ where
                 key: node,
                 include_len: false,
             })?;
-            self.advice_provider.pop_stack_word()?;
-            self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
-        }
+            let leaf_key = self.advice_provider.pop_stack_word()?;
+            if leaf_key == key {
+                (ONE, ZERO)
+            } else {
+                self.advice_provider.pop_stack_word()?;
+                (ZERO, ONE)
+            }
+        };
 
         // set the flags used to determine which tier the insert is happening at
         let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
         let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
-        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
-        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
 
+        if is_update == ONE {
+            self.advice_provider.push_stack(AdviceSource::Value(is_update))?;
+            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+            self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+        } else {
+            self.advice_provider.push_stack(AdviceSource::Value(is_update))?;
+            self.advice_provider.push_stack(AdviceSource::Value(is_simple_insert))?;
+            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+        }
         Ok(())
     }
 }
