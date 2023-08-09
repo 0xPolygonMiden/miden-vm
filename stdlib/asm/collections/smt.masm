@@ -529,7 +529,7 @@ proc.insert_32.2
     # => [0, 0, 0, 0, R_new, ...]
 end
 
-#! Inserts a new leaf node at depths 32.
+#! Inserts a new leaf node at depths 48.
 #!
 #! Input: [V, K, R, ...];
 #! Output:[0, 0, 0, 0, R_new, ...]
