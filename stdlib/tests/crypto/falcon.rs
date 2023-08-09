@@ -23,8 +23,7 @@ fn test_falcon_final() {
     let message = elements_as_bytes(&msg);
 
     let signature = keypair.secret_key.sign(message);
-    assert!(keypair.public_key.verify_c(message, &signature));
-    assert!(keypair.public_key.verify_rs(message, &signature));
+    assert!(keypair.public_key.verify(message, &signature));
 
     let h = (&keypair.public_key).into();
     let s2: Polynomial = (&signature).into();

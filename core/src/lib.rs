@@ -30,7 +30,7 @@ pub mod crypto {
     }
 
     pub mod dsa {
-        pub use ::miden_crypto::dsa::falcon::*;
+        pub use ::miden_crypto::falcon::*;
     }
 }
 
