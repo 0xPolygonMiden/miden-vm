@@ -13,7 +13,7 @@ const EMPTY_VALUE: Word = TieredSmt::EMPTY_VALUE;
 // ================================================================================================
 
 #[test]
-fn smtget_depth_16() {
+fn tsmt_get_16() {
     let mut smt = TieredSmt::default();
 
     // create a key
@@ -40,7 +40,7 @@ fn smtget_depth_16() {
 }
 
 #[test]
-fn smtget_depth_32() {
+fn tsmt_get_32() {
     let mut smt = TieredSmt::default();
 
     // populate the tree with two key-value pairs sharing the same 16-bit prefix for the keys
@@ -75,7 +75,7 @@ fn smtget_depth_32() {
 }
 
 #[test]
-fn smtget_depth_48() {
+fn tsmt_get_48() {
     let mut smt = TieredSmt::default();
 
     // populate the tree with two key-value pairs sharing the same 32-bit prefix for the keys
@@ -113,7 +113,7 @@ fn smtget_depth_48() {
 // ================================================================================================
 
 #[test]
-fn tsmt_insert() {
+fn tsmt_insert_16() {
     let mut smt = TieredSmt::default();
 
     let raw_a = 0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64;
@@ -124,12 +124,80 @@ fn tsmt_insert() {
     // insert a value under key_a into an empty tree
     let init_smt = smt.clone();
     smt.insert(key_a.into(), val_a1);
-    assert_insert(&init_smt, key_a, [ZERO; 4], val_a1, smt.root().into());
+    assert_insert(&init_smt, key_a, EMPTY_VALUE, val_a1, smt.root().into());
 
     // update a value under key_a
     let init_smt = smt.clone();
     smt.insert(key_a.into(), val_a2);
     assert_insert(&init_smt, key_a, val_a1, val_a2, smt.root().into());
+}
+
+#[test]
+fn tsmt_insert_32() {
+    let mut smt = TieredSmt::default();
+
+    // insert a value under key_a into an empty tree
+    let raw_a = 0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64;
+    let key_a = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_a)]);
+    let val_a = [ONE, ZERO, ZERO, ZERO];
+    smt.insert(key_a.into(), val_a);
+
+    // insert a value under key_b which has the same 16-bit prefix as A
+    let raw_b = 0b00000000_00000000_01111111_11111111_11111111_11111111_11111111_11111111_u64;
+    let key_b = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_b)]);
+    let val_b = [ONE, ONE, ZERO, ZERO];
+
+    // TODO: test this insertion once complex inserts are working
+    smt.insert(key_b.into(), val_b);
+
+    // update a value under key_a
+    let init_smt = smt.clone();
+    let val_a2 = [ONE, ZERO, ZERO, ONE];
+    smt.insert(key_a.into(), val_a2);
+    assert_insert(&init_smt, key_a, val_a, val_a2, smt.root().into());
+
+    // insert a value under key_c which has the same 16-bit prefix as A and B
+    let raw_c = 0b00000000_00000000_00111111_11111111_11111111_11111111_11111111_11111111_u64;
+    let key_c = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_c)]);
+    let val_c = [ONE, ONE, ONE, ZERO];
+
+    let init_smt = smt.clone();
+    smt.insert(key_c.into(), val_c);
+    assert_insert(&init_smt, key_c, EMPTY_VALUE, val_c, smt.root().into());
+}
+
+#[test]
+fn tsmt_insert_48() {
+    let mut smt = TieredSmt::default();
+
+    // insert a value under key_a into an empty tree
+    let raw_a = 0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64;
+    let key_a = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_a)]);
+    let val_a = [ONE, ZERO, ZERO, ZERO];
+    smt.insert(key_a.into(), val_a);
+
+    // insert a value under key_b which has the same 32-bit prefix as A
+    let raw_b = 0b00000000_00000000_11111111_11111111_01111111_11111111_11111111_11111111_u64;
+    let key_b = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_b)]);
+    let val_b = [ONE, ONE, ZERO, ZERO];
+
+    // TODO: test this insertion once complex inserts are working
+    smt.insert(key_b.into(), val_b);
+
+    // update a value under key_a
+    let init_smt = smt.clone();
+    let val_a2 = [ONE, ZERO, ZERO, ONE];
+    smt.insert(key_a.into(), val_a2);
+    assert_insert(&init_smt, key_a, val_a, val_a2, smt.root().into());
+
+    // insert a value under key_c which has the same 32-bit prefix as A and B
+    let raw_c = 0b00000000_00000000_11111111_11111111_00111111_11111111_11111111_11111111_u64;
+    let key_c = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_c)]);
+    let val_c = [ONE, ONE, ONE, ZERO];
+
+    let init_smt = smt.clone();
+    smt.insert(key_c.into(), val_c);
+    assert_insert(&init_smt, key_c, EMPTY_VALUE, val_c, smt.root().into());
 }
 
 fn assert_insert(

@@ -339,8 +339,38 @@ where
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Pushes values onto the advice stack which are required for successful insertion of a
+    /// key-value pair into a Sparse Merkle Tree data structure.
+    ///
+    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    ///
+    /// Inputs:
+    ///   Operand stack: [VALUE, KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
+    ///   Advice stack, depends on the type of insert:
+    ///   - Simple insert at depth 16: [d0, d1, ONE, ZERO]
+    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE, ZERO, P_NODE, CHILD_1, CHILD_2]
+    ///   - Update of an existing leaf: [ONE, d0, d1, ONE, VALUE]
+    ///
+    /// Where:
+    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - P_NODE is an internal node located at the tier above the insert tier, with CHILD1 and
+    ///   CHILD2 being its immediate children.
+    /// - VALUE is the value to be inserted.
+    /// - OLD_VALUE is the value previously associated with the specified KEY.
+    /// - ROOT and NEW_ROOT are the roots of the TSMT prior and post the insert respectively.
+    ///
+    /// # Errors
+    /// Will return an error if the provided Merkle root doesn't exist on the advice provider.
+    ///
+    /// # Panics
+    /// Will panic as unimplemented if the target depth is `64`.
     pub(super) fn push_smtinsert_inputs(&mut self) -> Result<(), ExecutionError> {
+        // get the key and tree root from the stack
         let key = [self.stack.get(7), self.stack.get(6), self.stack.get(5), self.stack.get(4)];
         let root = [self.stack.get(11), self.stack.get(10), self.stack.get(9), self.stack.get(8)];
 
@@ -360,24 +390,47 @@ where
         let index = Felt::new(index);
         let node = self.advice_provider.get_tree_node(root, &Felt::new(depth as u64), &index)?;
 
-        // if the node is a root of an empty subtree; push ONE onto the advice stack
-        let empty = EmptySubtreeRoots::empty_hashes(64);
-        let (is_update, is_simple_insert) = if Word::from(empty[depth as usize]) == node {
-            self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+        // figure out what kind of an insert we are doing; possible options are:
+        // - if the node is a root of an empty subtree, this is a simple insert.
+        // - if the node is a leaf, this could be either an update (for the same key), or a
+        //   complex insert (i.e., the existing leaf needs to be moved to a lower tier).
+        let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
+        let (is_update, is_simple_insert) = if node == Word::from(empty) {
+            // handle simple insert case
+            if depth == 32 || depth == 48 {
+                // for depth 32 and 48, we need to provide the internal node located on the tier
+                // above the insert tier; we also provide immediate children of the node so that
+                // in the VM, we can prove that this is an internal node rather than a leaf node
+                let (p_node, child1, child2) =
+                    self.get_node_and_children(root, index.as_int() >> 16, depth - 16)?;
+
+                // the order of the nodes on the advice stack is arranged so that we read the node
+                // first, followed by the left child, and then the right child.
+                for &element in p_node.iter().chain(child1.iter()).chain(child2.iter()).rev() {
+                    self.advice_provider.push_stack(AdviceSource::Value(element))?;
+                }
+            }
+
+            // return is_update = ZERO, is_simple_insert = ONE
             (ZERO, ONE)
         } else {
-            // if the node is a leaf node, push the value stored under they key followed by ONE;
-            // here, we first push the entire pre-image of the leaf node onto the advice stack, which
-            // is [KEY, VALUE], and then drop the KEY, leaving only the VALUE on the advice stack
+            // if the node is a leaf node, push the elements mapped to this node onto the advice
+            // stack; the elements should be [KEY, VALUE], with key located at the top of the
+            // advice stack.
             self.advice_provider.push_stack(AdviceSource::Map {
                 key: node,
                 include_len: false,
             })?;
+
+            // remove the KEY from the advice stack, leaving only the VALUE on the stack
             let leaf_key = self.advice_provider.pop_stack_word()?;
+
+            // if the key for the value to be inserted is the same as the leaf's key, we are
+            // dealing with a simple update. otherwise, we are dealing with a complex insert
+            // (i.e., the leaf needs to be moved to a lower tier).
             if leaf_key == key {
                 (ONE, ZERO)
             } else {
-                self.advice_provider.pop_stack_word()?;
                 (ZERO, ONE)
             }
         };
@@ -386,18 +439,45 @@ where
         let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
         let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
 
+        self.advice_provider.push_stack(AdviceSource::Value(is_update))?;
         if is_update == ONE {
-            self.advice_provider.push_stack(AdviceSource::Value(is_update))?;
+            // for update we don't need to specify whether we are dealing with an insert; but we
+            // insert an extra ONE at the end so that we can read 4 values from the advice stack
+            // regardless of which branch is taken.
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
             self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
         } else {
-            self.advice_provider.push_stack(AdviceSource::Value(is_update))?;
             self.advice_provider.push_stack(AdviceSource::Value(is_simple_insert))?;
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
         }
         Ok(())
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a node located at the specified index and depth in tree defined by the specified
+    /// root. In addition to the node itself, immediate children of the node are also returned.
+    fn get_node_and_children(
+        &self,
+        root: Word,
+        index: u64,
+        depth: u8,
+    ) -> Result<(Word, Word, Word), ExecutionError> {
+        let node_depth = Felt::from(depth);
+        let node_index = Felt::from(index);
+        let node = self.advice_provider.get_tree_node(root, &node_depth, &node_index)?;
+
+        let child_depth = Felt::from(depth + 1);
+        let child1_index = Felt::from(index << 1);
+        let child1 = self.advice_provider.get_tree_node(root, &child_depth, &child1_index)?;
+
+        let child2_index = Felt::from((index << 1) + 1);
+        let child2 = self.advice_provider.get_tree_node(root, &child_depth, &child2_index)?;
+
+        Ok((node, child1, child2))
     }
 }
 

@@ -152,11 +152,14 @@ fn inject_smtinsert() {
 
     let raw_a = 0b_01101001_01101100_00011111_11111111_10010110_10010011_11100000_00000000_u64;
     let key_a = build_key(raw_a);
-    let val_a = [ONE, ZERO, ZERO, ZERO];
+    let val_a = [Felt::new(3), Felt::new(5), Felt::new(7), Felt::new(9)];
 
-    // insertion should happen at depth 16 and thus 16_or_32 and 16_or_48 flags should be set to ONE;
-    // since we are replacing a node which is an empty subtree, the is_empty flag should also be ONE
-    let expected_stack = [ONE, ONE, ONE];
+    // this is be a simple insertion at depth 16, and thus the flags should look as follows:
+    let is_update = ZERO;
+    let is_simple_insert = ONE;
+    let is_16_or_32 = ONE;
+    let is_16_or_48 = ONE;
+    let expected_stack = [is_update, is_simple_insert, is_16_or_32, is_16_or_48];
     let process = prepare_smt_insert(key_a, val_a, &smt, expected_stack.len(), Vec::new());
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 
@@ -166,9 +169,22 @@ fn inject_smtinsert() {
     smt.insert(key_a.into(), val_a);
     let val_b = [ONE, ONE, ZERO, ZERO];
 
-    // we are updating a node at depth 16 and thus 16_or_32 and 16_or_48 flags should be set to ONE;
-    // since we are updating an existing leaf, the is_empty flag should be set to ZERO
-    let expected_stack = [ZERO, ONE, ONE];
+    // this is a simple update, and thus the flags should look as follows:
+    let is_update = ONE;
+    let is_16_or_32 = ONE;
+    let is_16_or_48 = ONE;
+
+    // also, the old value should be present in the advice stack:
+    let expected_stack = [
+        val_a[3],
+        val_a[2],
+        val_a[1],
+        val_a[0],
+        is_update,
+        is_16_or_32,
+        is_16_or_48,
+        ZERO,
+    ];
     let adv_map = vec![build_adv_map_entry(key_a, val_a, 16)];
     let process = prepare_smt_insert(key_a, val_b, &smt, expected_stack.len(), adv_map);
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
