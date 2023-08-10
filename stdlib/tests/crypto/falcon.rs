@@ -18,14 +18,16 @@ fn test_falcon_final() {
     ";
 
     let keypair = KeyPair::keygen();
+    let sk = keypair.secret_key();
+    let pk = keypair.public_key();
 
     let msg = rand_vector::<u64>(4);
     let message = elements_as_bytes(&msg);
 
-    let signature = keypair.secret_key.sign(message);
-    assert!(keypair.public_key.verify(message, &signature));
+    let signature = sk.sign(message, keypair.expanded_public_key());
+    assert!(pk.verify(message, &signature));
 
-    let h = (&keypair.public_key).into();
+    let h = signature.pk();
     let s2: Polynomial = (&signature).into();
     let nonce = slice_u8_to_slice_u64(signature.nonce());
 
@@ -33,15 +35,15 @@ fn test_falcon_final() {
         .into_iter()
         .map(|a| a as u64)
         .collect::<Vec<u64>>();
-    let s2 = s2.0.into_iter().map(|a| a as u64).collect::<Vec<u64>>();
+    let s2 = s2.inner().into_iter().map(|a| a as u64).collect::<Vec<u64>>();
 
-    let h_felt = h.0.into_iter().map(|a| Felt::new(a as u64)).collect::<Vec<Felt>>();
+    let h_felt = h.inner().into_iter().map(|a| Felt::new(a as u64)).collect::<Vec<Felt>>();
     let h_digest = Rpo256::hash_elements(&h_felt)
         .as_elements()
         .iter()
         .map(|a| a.as_int())
         .collect::<Vec<u64>>();
-    let h = h.0.into_iter().map(|a| a as u64).collect::<Vec<u64>>();
+    let h = h.inner().into_iter().map(|a| a as u64).collect::<Vec<u64>>();
 
     let mut adv_stack = vec![];
     adv_stack.extend_from_slice(&h);
