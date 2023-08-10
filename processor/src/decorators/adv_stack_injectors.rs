@@ -354,6 +354,8 @@ where
     ///   - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
     ///   - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
     ///   - Update of an existing leaf: [ZERO (padding), d0, d1, ONE (is_update), OLD_VALUE]
+    ///   - Replace leaf node with subtree 16->32: [ONE, ONE, ZERO, ZERO, P_KEY, P_VALUE]
+    ///   - Update of an existing leaf: [ONE, d0, d1, ONE, OLD_VALUE]
     ///
     /// Where:
     /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
@@ -361,6 +363,7 @@ where
     /// - P_NODE is an internal node located at the tier above the insert tier.
     /// - VALUE is the value to be inserted.
     /// - OLD_VALUE is the value previously associated with the specified KEY.
+    /// - P_KEY and P_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
     /// - ROOT and NEW_ROOT are the roots of the TSMT prior and post the insert respectively.
     ///
     /// # Errors
@@ -428,6 +431,25 @@ where
                 // return is_update = ONE, is_simple_insert = ZERO
                 (ONE, ZERO)
             } else {
+                // TODO: improve code readability as more cases are handled
+                let common_prefix = get_common_prefix(&key, &leaf_key);
+                if depth == 16 {
+                    if common_prefix < 32 {
+                        // put the key back onto the advice stack
+                        for &element in leaf_key.iter().rev() {
+                            self.advice_provider.push_stack(AdviceSource::Value(element))?;
+                        }
+                    } else {
+                        todo!("handle moving leaf from depth 16 to 48 or 64")
+                    }
+                } else if depth == 32 {
+                    todo!("handle moving leaf from depth 32 to 48 or 64")
+                } else if depth == 48 {
+                    todo!("handle moving leaf from depth 48 to 64")
+                } else {
+                    todo!("handle inserting key-value pair into existing leaf at depth 64")
+                }
+
                 // return is_update = ZERO, is_simple_insert = ZERO
                 (ZERO, ZERO)
             }
@@ -461,4 +483,10 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
     let hi = Felt::new(value >> 32);
     let lo = Felt::new((value as u32) as u64);
     (hi, lo)
+}
+
+fn get_common_prefix(key1: &Word, key2: &Word) -> u8 {
+    let k1 = key1[3].as_int();
+    let k2 = key2[3].as_int();
+    (k1 ^ k2).leading_zeros() as u8
 }

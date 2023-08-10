@@ -147,8 +147,9 @@ fn tsmt_insert_32() {
     let key_b = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_b)]);
     let val_b = [ONE, ONE, ZERO, ZERO];
 
-    // TODO: test this insertion once complex inserts are working
+    let init_smt = smt.clone();
     smt.insert(key_b.into(), val_b);
+    assert_insert(&init_smt, key_b, EMPTY_VALUE, val_b, smt.root().into());
 
     // update a value under key_a
     let init_smt = smt.clone();
