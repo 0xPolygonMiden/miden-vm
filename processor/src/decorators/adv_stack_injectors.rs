@@ -352,14 +352,13 @@ where
     ///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
     ///   Advice stack, depends on the type of insert:
     ///   - Simple insert at depth 16: [d0, d1, ONE, ZERO]
-    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE, ZERO, P_NODE, CHILD_1, CHILD_2]
-    ///   - Update of an existing leaf: [ONE, d0, d1, ONE, VALUE]
+    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE, ZERO, P_NODE]
+    ///   - Update of an existing leaf: [ONE, d0, d1, ONE, OLD_VALUE]
     ///
     /// Where:
     /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
     /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
-    /// - P_NODE is an internal node located at the tier above the insert tier, with CHILD1 and
-    ///   CHILD2 being its immediate children.
+    /// - P_NODE is an internal node located at the tier above the insert tier.
     /// - VALUE is the value to be inserted.
     /// - OLD_VALUE is the value previously associated with the specified KEY.
     /// - ROOT and NEW_ROOT are the roots of the TSMT prior and post the insert respectively.
@@ -390,7 +389,7 @@ where
         let index = Felt::new(index);
         let node = self.advice_provider.get_tree_node(root, &Felt::new(depth as u64), &index)?;
 
-        // figure out what kind of an insert we are doing; possible options are:
+        // figure out what kind of insert we are doing; possible options are:
         // - if the node is a root of an empty subtree, this is a simple insert.
         // - if the node is a leaf, this could be either an update (for the same key), or a
         //   complex insert (i.e., the existing leaf needs to be moved to a lower tier).
@@ -399,14 +398,11 @@ where
             // handle simple insert case
             if depth == 32 || depth == 48 {
                 // for depth 32 and 48, we need to provide the internal node located on the tier
-                // above the insert tier; we also provide immediate children of the node so that
-                // in the VM, we can prove that this is an internal node rather than a leaf node
-                let (p_node, child1, child2) =
-                    self.get_node_and_children(root, index.as_int() >> 16, depth - 16)?;
-
-                // the order of the nodes on the advice stack is arranged so that we read the node
-                // first, followed by the left child, and then the right child.
-                for &element in p_node.iter().chain(child1.iter()).chain(child2.iter()).rev() {
+                // above the insert tier
+                let p_index = Felt::from(index.as_int() >> 16);
+                let p_depth = Felt::from(depth - 16);
+                let p_node = self.advice_provider.get_tree_node(root, &p_depth, &p_index)?;
+                for &element in p_node.iter().rev() {
                     self.advice_provider.push_stack(AdviceSource::Value(element))?;
                 }
             }
@@ -429,9 +425,11 @@ where
             // dealing with a simple update. otherwise, we are dealing with a complex insert
             // (i.e., the leaf needs to be moved to a lower tier).
             if leaf_key == key {
+                // return is_update = ONE, is_simple_insert = ZERO
                 (ONE, ZERO)
             } else {
-                (ZERO, ONE)
+                // return is_update = ZERO, is_simple_insert = ZERO
+                (ZERO, ZERO)
             }
         };
 
@@ -453,31 +451,6 @@ where
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
         }
         Ok(())
-    }
-
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a node located at the specified index and depth in tree defined by the specified
-    /// root. In addition to the node itself, immediate children of the node are also returned.
-    fn get_node_and_children(
-        &self,
-        root: Word,
-        index: u64,
-        depth: u8,
-    ) -> Result<(Word, Word, Word), ExecutionError> {
-        let node_depth = Felt::from(depth);
-        let node_index = Felt::from(index);
-        let node = self.advice_provider.get_tree_node(root, &node_depth, &node_index)?;
-
-        let child_depth = Felt::from(depth + 1);
-        let child1_index = Felt::from(index << 1);
-        let child1 = self.advice_provider.get_tree_node(root, &child_depth, &child1_index)?;
-
-        let child2_index = Felt::from((index << 1) + 1);
-        let child2 = self.advice_provider.get_tree_node(root, &child_depth, &child2_index)?;
-
-        Ok((node, child1, child2))
     }
 }
 

@@ -154,7 +154,7 @@ fn inject_smtinsert() {
     let key_a = build_key(raw_a);
     let val_a = [Felt::new(3), Felt::new(5), Felt::new(7), Felt::new(9)];
 
-    // this is be a simple insertion at depth 16, and thus the flags should look as follows:
+    // this is a simple insertion at depth 16, and thus the flags should look as follows:
     let is_update = ZERO;
     let is_simple_insert = ONE;
     let is_16_or_32 = ONE;
