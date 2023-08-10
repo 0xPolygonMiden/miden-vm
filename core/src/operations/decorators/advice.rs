@@ -181,6 +181,9 @@ pub enum AdviceInjector {
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
     HdwordToMap { domain: Felt },
+
+    /// TODO: add docs
+    SmtInsert,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -202,6 +205,7 @@ impl fmt::Display for AdviceInjector {
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
+            Self::SmtInsert => write!(f, "smt_insert"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
         }
