@@ -605,6 +605,133 @@ proc.insert_48.2
     # => [0, 0, 0, 0, R_new, ...]
 end
 
+#! Replaces a leaf node at depth 16 with a subtree containing two leaf nodes at depth 32 such that
+#! one of the leaf nodes commits to a key-value pair equal to the leaf node at depth 16, and the
+#! other leaf node comments to the key-value pair being inserted.
+#!
+#! Input: [V, K, R, ...];
+#! Output:[0, 0, 0, 0, R_new, ...]
+#!
+#! Where:
+#! - R is the initial root of the TSMT, and R_new is the new root of the TSMT.
+#! - K, V is the key-value pair for the leaf node to be inserted into the TSMT.
+#!
+#! This procedure consists of three high-level steps:
+#! - First, insert M = hash([K_e, V_e], domain=32) into an empty subtree at depth 16, where K_e
+#!   and V_e are the key-value pair for the existing leaf node. This outputs the new root
+#!   of the subtree T.
+#! - Then, insert N = hash([K, V], domain=32) into a subtree with root T. This outputs the new
+#!   root of the subtree P_new.
+#! - Then, insert P_new into the TSMT with root R.
+#!
+#! This procedure succeeds only if:
+#! - Node at depth 16 is a leaf node.
+#! - The key in this node has a common prefix with the key to be inserted. This common prefix
+#!   must be greater or equal to 16, but smaller than 32.
+#!
+#! Cycles: 216
+proc.replace_16.3
+    # save k3 into loc[0][0] - (6 cycles)
+    swapw dup loc_store.0
+    # => [K, V, R, ...]
+
+    # compute N = hash([K, V], domain=32) - (6 cycles)
+    push.0.32.0.0 swapw.2 hperm
+    # => [X, N, X, R, ...]
+
+    # load the key associated with the existing leaf P from the advice provider and save it in
+    # loc[1] - (5 cycles)
+    adv_loadw loc_storew.1
+    # => [K_e, N, X, R, ...]
+
+    # load the value associated with the existing leaf P from the advice provider and save it in
+    # loc[2] - (10 cycles)
+    push.0.16.0.0 swapw.2 swapw.3 adv_loadw loc_storew.2
+    # => [V_e, K_e, 0, 0, 16, 0, N, R, ...]
+
+    # compute P = hash([K_e, V_e], domain=16); we will use this later to prove correct execution
+    # of mtree_set instruction (1 cycle)
+    hperm
+    # => [X, P, X, N, R, ...]
+
+    # load K_e from loc[1] - (9 cycles)
+    push.0.32.0.0 swapw loc_loadw.1
+    # => [K_e, 0, 0, 32, 0, P, X, N, R, ...]
+
+    # extract from the most significant element of K_e (i.e., ke_3) two most significant 16-bit
+    # limbs: idx_hi_eidx_lo_e - (6 cycles)
+    dup exec.get_top_32_bits u32unchecked_divmod.65536
+    # => [idx_lo_e, idx_hi_e, K_e, 0, 0, 32, 0, P, X, N, R, ...]
+
+    # load k3 from loc[0][0] and also extract the two most significant 16-bit limbs from it
+    # (8 cycles)
+    loc_load.0 exec.get_top_32_bits u32unchecked_divmod.65536
+    # => [idx_lo, idx_hi, idx_lo_e, idx_hi_e, K_e, 0, 0, 32, 0, P, X, N, R, ...]
+
+    # make sure the top 16 bits of both keys are the same (4 cycles)
+    movup.3 dup.2 assert_eq
+    # => [idx_lo, idx_hi, idx_lo_e, K_e, 0, 0, 32, 0, P, X, N, R, ...]
+
+    # make sure that the next 16 bits of the keys are not the same; this proves that the keys
+    # have the same 16-bit prefix, but not the same 32-bit prefix (6 cycles)
+    movup.2 dup dup.2 neq assert
+    # => [idx_lo_e, idx_lo, idx_hi, K_e, 0, 0, 32, 0, P, X, N, R, ...]
+
+    # save [idx_hi, idx_lo, idx_lo_e, 0] into loc[0] - (4 cycles)
+    push.0 loc_storew.0
+    # => [0, idx_lo_e, idx_lo, idx_hi, K_e, 0, 0, 32, 0, P, X, N, R, ...]
+
+    # load the value V_e from loc[2] and compute M = hash([K_e, K_e], domain=32) - (4 cycles)
+    loc_loadw.2 hperm
+    # => [X, M, X, P, X, N, R, ...]
+
+    # load the indexes from loc[0] and drop all but idx_lo_e from the stack (7 cycles)
+    loc_loadw.0 drop movdn.2 drop drop
+    # => [idx_lo_e, M, X, P, X, N, R, ...]    
+
+    # push the root of an empty subtree at depth 16 onto the stack (4 cycles)
+    push.EMPTY_16_0.EMPTY_16_1.EMPTY_16_2.EMPTY_16_3
+    # => [E16, idx_lo_e, M, X, P, X, N, R, ...]
+
+    # insert node M into the empty subtree at depth 16; this leaves the new root of the
+    # subtree T together with the root of an empty subtree at depth 32 - (31 cycles)
+    movup.4 push.16 mtree_set
+    # => [E32, T, X, P, X, N, R, ...]
+
+    # drop the E32 root as we don't need it, and arrange the stack for inserting the next
+    # leaf (12 cycles)
+    dropw swapw dropw swapw swapw.3 swapw.2
+    # => [X, N, T, P, R, ...]
+
+    # load the indexes from loc[0] and drop all but idx_lo from the stack (7 cycles)
+    loc_loadw.0 drop drop swap drop
+    # => [idx_lo, N, T, P, R, ...]
+
+    # insert node N into the subtree with root T at depth 16; this leaves the new root of the
+    # subtree P_new on the stack together with the root of an empty subtree at depth 32 - (30 cycles)
+    push.16 mtree_set
+    # => [E32, P_new, P, R, ...]
+
+    # prepare the stack for an mtree_set operation against R; we drop the E32 value as we don't
+    # need it; the index idx_hi is loaded from memory (10 cycles)
+    dropw swapw swapw.2 loc_load.0 push.16
+    # => [16, idx_hi, R, P_new, P, ...]
+
+    # insert node P_new into the TSMT at depth 16; this puts the new value of TSMT root onto the
+    # stack together with the old value of the node at depth 16 - (29 cycles)
+    mtree_set
+    # => [P_old, R_new, P, ...]
+
+    # make sure P (which we computed as hash([K_e, V_e], domain=16)) and P_old are the same
+    # (13 cycles)
+    swapw swapw.2 assert_eqw
+    # => [R_new, ...]
+
+    # put the return value onto the stack and return (4 cycles)
+    padw
+    # => [0, 0, 0, 0, R_new, ...]
+end
+
 #! Inserts the specified value into a Sparse Merkle Tree with the specified root under the
 #! specified key.
 #!
@@ -614,7 +741,7 @@ end
 #! This assumes that the value is not [ZERO; 4]. If it is, the procedure fails.
 #!
 #! Input: [V, K, R, ...];
-#! Output:[V_old, R', ...]
+#! Output:[V_old, R_new, ...]
 #!
 #! Cycles:
 #! - Update existing leaf:
@@ -626,7 +753,7 @@ end
 #!   - Depth 32: 181
 #!   - Depth 48: 181
 #! - Replace a leaf with a subtree:
-#!   - Depth 32: TODO
+#!   - Depth 32: 243
 #!   - Depth 48: TODO
 export.insert
     # make sure the value is not [ZERO; 4] (17 cycles)
@@ -701,10 +828,21 @@ export.insert
                 end
             end
         else # --- replace leaf with subtree ----------------------------------
-            # TODO: implement replace leaf with subtree
-            push.0 assert
+            if.true
+                if.true
+                    # replace a leaf node at depth 16 with a subtree containing
+                    # two leaf nodes at depth 32.
+                    exec.replace_16
+                else
+                    # not implemented
+                    push.0 assert
+                end
+            else
+                # not implemented
+                push.0 assert
+            end
         end
     end
 
-    # => [V, R, ...]
+    # => [V_old, R_new, ...]
 end
