@@ -243,6 +243,15 @@ begin
 end
 </code></pre>
 <p>In the above example we import <code>std::math::u64</code> module from the <a href="../stdlib/main.html">standard library</a>. We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.</p>
+<p>We can also define aliases for imported modules. For example:</p>
+<pre><code>use.std::math::u64-&gt;bigint
+
+begin
+    push.1.0
+    push.2.0
+    exec.bigint::checked_add
+end
+</code></pre>
 <p>The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the <a href="https://crates.io/crates/miden-assembly">Miden Assembler</a> used to compile the program.</p>
 <h4 id="re-exporting-procedures"><a class="header" href="#re-exporting-procedures">Re-exporting procedures</a></h4>
 <p>A procedure defined in one module can be re-exported from a different module under the same or a different name. For example:</p>
