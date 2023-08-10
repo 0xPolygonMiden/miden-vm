@@ -593,6 +593,14 @@ impl ParsingError {
         }
     }
 
+    pub fn invalid_module_name(token: &Token, name: &str) -> Self {
+        ParsingError {
+            message: format!("invalid module name: {name}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn import_inside_body(token: &Token) -> Self {
         ParsingError {
             message: "import in procedure body".to_string(),

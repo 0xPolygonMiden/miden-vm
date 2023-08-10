@@ -969,6 +969,91 @@ fn program_with_reexported_proc_in_another_library() {
 }
 
 #[test]
+fn module_alias() {
+    const NAMESPACE: &str = "dummy";
+    const MODULE: &str = "math::u64";
+    const PROCEDURE: &str = r#"
+        export.checked_add
+            swap
+            movup.3
+            u32assert.2
+            u32overflowing_add
+            movup.3
+            movup.3
+            u32assert.2
+            u32overflowing_add3
+            eq.0
+            assert
+        end"#;
+
+    let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    let path = LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    let ast = ModuleAst::parse(PROCEDURE).unwrap();
+    let modules = vec![Module { path, ast }];
+    let library = DummyLibrary::new(namespace, modules);
+
+    let assembler = super::Assembler::default().with_library(&library).unwrap();
+
+    let source = "
+        use.dummy::math::u64->bigint
+
+        begin
+            push.1.0
+            push.2.0
+            exec.bigint::checked_add
+        end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            span \
+                pad incr pad push(2) pad \
+                swap movup3 u32assert2 \
+                u32add movup3 movup3 \
+                u32assert2 u32add3 eqz assert \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+
+    // --- invalid module alias -----------------------------------------------
+    let source = "
+        use.dummy::math::u64->bigint->invalidname
+
+        begin
+            push.1.0
+            push.2.0
+            exec.bigint->invalidname::checked_add
+        end";
+    assert!(assembler.compile(source).is_err());
+
+    // --- duplicate module import --------------------------------------------
+    let source = "
+        use.dummy::math::u64
+        use.dummy::math::u64->bigint
+
+        begin
+            push.1.0
+            push.2.0
+            exec.bigint::checked_add
+        end";
+
+    assert!(assembler.compile(source).is_err());
+
+    // --- duplicate module imports with different aliases --------------------
+    let source = "
+        use.dummy::math::u64->bigint
+        use.dummy::math::u64->bigint2
+
+        begin
+            push.1.0
+            push.2.0
+            exec.bigint::checked_add
+            exec.bigint2::checked_add
+        end";
+
+    assert!(assembler.compile(source).is_err());
+}
+
+#[test]
 fn program_with_import_errors() {
     // --- non-existent import ------------------------------------------------
     let assembler = super::Assembler::default();
