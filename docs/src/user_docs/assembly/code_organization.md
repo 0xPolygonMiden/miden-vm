@@ -90,6 +90,18 @@ end
 ```
 In the above example we import `std::math::u64` module from the [standard library](../stdlib/main.md). We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.
 
+We can also define aliases for imported modules. For example:
+
+```
+use.std::math::u64->bigint
+
+begin
+    push.1.0
+    push.2.0
+    exec.bigint::checked_add
+end
+```
+
 The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
 
 #### Re-exporting procedures

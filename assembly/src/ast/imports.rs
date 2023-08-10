@@ -51,13 +51,12 @@ impl ModuleImports {
         while let Some(token) = tokens.read() {
             match token.parts()[0] {
                 Token::USE => {
-                    let module_path = token.parse_use()?;
-                    let module_name = module_path.last();
-                    if imports.contains_key(module_name) {
+                    let (module_path, module_name) = token.parse_use()?;
+                    if imports.values().any(|path| *path == module_path) {
                         return Err(ParsingError::duplicate_module_import(token, &module_path));
                     }
 
-                    imports.insert(module_name.to_string(), module_path);
+                    imports.insert(module_name, module_path);
 
                     // consume the `use` token
                     tokens.advance();
