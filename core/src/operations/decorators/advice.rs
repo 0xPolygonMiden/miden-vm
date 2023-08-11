@@ -151,6 +151,39 @@ pub enum AdviceInjector {
     /// - f2 is a boolean flag set to `1` if a remaining key is not zero.
     SmtGet,
 
+    /// Pushes values onto the advice stack which are required for successful insertion of a
+    /// key-value pair into a Sparse Merkle Tree data structure.
+    ///
+    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    ///
+    /// Inputs:
+    ///   Operand stack: [VALUE, KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
+    ///   Advice stack depends on the type of insert operation as follows:
+    ///   - Update of an existing leaf: [ZERO (padding), d0, d1, ONE (is_update), OLD_VALUE]
+    ///   - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
+    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
+    ///   - Complex insert: [f0, f1, ZERO (is_simple_insert), ZERO (is_update), E_KEY, E_VALUE]
+    ///
+    /// Where:
+    /// - ROOT and NEW_ROOT are the roots of the TSMT before and after the insert respectively.
+    /// - VALUE is the value to be inserted.
+    /// - OLD_VALUE is the value previously associated with the specified KEY.
+    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - P_NODE is an internal node located at the tier above the insert tier.
+    /// - f0 and f1 are boolean flags a combination of which determines the source and the target
+    ///   tiers as follows:
+    ///   - (0, 0): depth 16 -> 32
+    ///   - (0, 1): depth 16 -> 48
+    ///   - (1, 0): depth 32 -> 48
+    ///   - (1, 1): depth 16, 32, or 48 -> 64
+    /// - E_KEY and E_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
+    SmtInsert,
+
     // ADVICE MAP INJECTORS
     // --------------------------------------------------------------------------------------------
     /// Reads words from memory at the specified range and inserts them into the advice map under
@@ -181,9 +214,6 @@ pub enum AdviceInjector {
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
     HdwordToMap { domain: Felt },
-
-    /// TODO: add docs
-    SmtInsert,
 }
 
 impl fmt::Display for AdviceInjector {

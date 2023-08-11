@@ -83,22 +83,24 @@ where
         match source {
             AdviceSource::Value(value) => {
                 self.stack.push(value);
-                Ok(())
             }
-
+            AdviceSource::Word(word) => {
+                self.stack.extend(word.iter().rev());
+            }
             AdviceSource::Map { key, include_len } => {
                 let values = self
                     .map
                     .get(&key.into_bytes())
-                    .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
+                    .ok_or(ExecutionError::AdviceMapKeyNotFound(key))?;
 
                 self.stack.extend(values.iter().rev());
                 if include_len {
                     self.stack.push(Felt::from(values.len() as u64));
                 }
-                Ok(())
             }
         }
+
+        Ok(())
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {

@@ -147,6 +147,7 @@ fn tsmt_insert_32() {
     let key_b = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_b)]);
     let val_b = [ONE, ONE, ZERO, ZERO];
 
+    // this tests a complex insertion when a leaf node moves from depth 16 to depth 32
     let init_smt = smt.clone();
     smt.insert(key_b.into(), val_b);
     assert_insert(&init_smt, key_b, EMPTY_VALUE, val_b, smt.root().into());
@@ -182,8 +183,10 @@ fn tsmt_insert_48() {
     let key_b = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_b)]);
     let val_b = [ONE, ONE, ZERO, ZERO];
 
-    // TODO: test this insertion once complex inserts are working
+    // this tests a complex insertion when a leaf moves from depth 16 to depth 48
+    let init_smt = smt.clone();
     smt.insert(key_b.into(), val_b);
+    assert_insert(&init_smt, key_b, EMPTY_VALUE, val_b, smt.root().into());
 
     // update a value under key_a
     let init_smt = smt.clone();
@@ -196,6 +199,33 @@ fn tsmt_insert_48() {
     let key_c = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_c)]);
     let val_c = [ONE, ONE, ONE, ZERO];
 
+    let init_smt = smt.clone();
+    smt.insert(key_c.into(), val_c);
+    assert_insert(&init_smt, key_c, EMPTY_VALUE, val_c, smt.root().into());
+}
+
+#[test]
+fn tsmt_insert_48_from_32() {
+    let mut smt = TieredSmt::default();
+
+    // insert a value under key_a into an empty tree
+    let raw_a = 0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64;
+    let key_a = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_a)]);
+    let val_a = [ONE, ZERO, ZERO, ZERO];
+    smt.insert(key_a.into(), val_a);
+
+    // insert a value under key_b which has the same 16-bit prefix as A
+    let raw_b = 0b00000000_00000000_01111111_11111111_01111111_11111111_11111111_11111111_u64;
+    let key_b = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_b)]);
+    let val_b = [ONE, ONE, ZERO, ZERO];
+    smt.insert(key_b.into(), val_b);
+
+    // insert a value under key_c which has the same 32-bit prefix as A
+    let raw_c = 0b00000000_00000000_11111111_11111111_00111111_11111111_11111111_11111111_u64;
+    let key_c = RpoDigest::from([ONE, ONE, ONE, Felt::new(raw_c)]);
+    let val_c = [ONE, ONE, ONE, ZERO];
+
+    // this tests a complex insertion when a leaf moves from depth 32 to depth 48
     let init_smt = smt.clone();
     smt.insert(key_c.into(), val_c);
     assert_insert(&init_smt, key_c, EMPTY_VALUE, val_c, smt.root().into());
