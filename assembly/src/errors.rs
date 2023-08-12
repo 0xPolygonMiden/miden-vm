@@ -143,7 +143,7 @@ impl fmt::Display for AssemblyError {
             LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
-            PhantomCallsNotAllowed(mast_root) => write!(f, "cannot call phantom procedure with MAST root 0x{mast_root}: phantom calls not allowed"),
+            PhantomCallsNotAllowed(mast_root) => write!(f, "cannot call phantom procedure with MAST root {mast_root}: phantom calls not allowed"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
         }
     }
