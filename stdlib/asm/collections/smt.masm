@@ -127,7 +127,7 @@ end
 #!
 #! Cycles: 20
 proc.extract_index_32_16
-    # slit teh most significant elements of U and V into 32-bit chunks (4 cycles)
+    # split the most significant elements of U and V into 32-bit chunks (4 cycles)
     dup.4 u32split dup.2 u32split
     # => [u3_hi, u3_lo, v3_hi, v3_lo, U, V, ...]
 
@@ -435,6 +435,9 @@ proc.update_16_32_48.2
     movdn.3 movup.2 drop push.0 swapw.2 loc_storew.1 swapw
     # => [V, K, 0, 0, d, 0, R, ...]
 
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
     # compute the hash of the node N = hash([K, V], domain=d) - (1 cycle)
     hperm
     # => [X, N, X, R, ...]
@@ -490,9 +493,12 @@ proc.insert_16
     swapw dup exec.get_top_16_bits
     # => [idx, K, V, R, ...]
 
-    # prepare the stack for computing leaf node value (6 cycles)
+    # prepare the stack for computing N = hash([K, V], domain=16) (6 cycles)
     movdn.8 push.0.16.0.0 swapw.2
     # => [V, K, 0, 0, 16, 0, idx, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
 
     # compute leaf node value as N = hash([K, V], domain=16) (10 cycles)
     hperm dropw swapw dropw
@@ -553,6 +559,9 @@ proc.insert_32.2
     # prepare the stack for computing N = hash([K, V], domain=32) - (5 cycles)
     push.0.32.0.0 swapw.2
     # => [V, K, 0, 0, 32, 0, P, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
 
     # compute N = hash([K, V], domain=32) (1 cycle)
     hperm
@@ -634,6 +643,9 @@ proc.insert_48.2
     push.0.48.0.0 swapw.2
     # => [V, K, 0, 0, 48, 0, P, R, ...]
 
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
     # compute N = hash([K, V], domain=48) (1 cycle)
     hperm
     # => [X, N, X, P, R, ...]
@@ -695,7 +707,7 @@ end
 
 #! Replaces a leaf node at depth 16 with a subtree containing two leaf nodes at depth 32 such that
 #! one of the leaf nodes commits to a key-value pair equal to the leaf node at depth 16, and the
-#! other leaf node comments to the key-value pair being inserted.
+#! other leaf node commits to the key-value pair being inserted.
 #!
 #! Input:  [idx_lo_e, idx_lo_n, idx_hi, K_e, K, V, R, ...]
 #! Output: [0, 0, 0, 0, R_new, ...]
@@ -738,6 +750,9 @@ proc.replace_32.3
     loc_loadw.1 push.0.32.0.0 swapw.2 swapw.3 loc_loadw.2
     # => [V_e, K_e, 0, 0, 32, 0, P, K, V, R, ...]
 
+    # insert M |-> [K_e, V_e] into the advice map (0 cycles)
+    adv.insert_hperm
+
     # compute M = hash([K_e, V_e], domain=32) - 1 cycle
     hperm
     # => [X, M, X, P, K, V, R, ...]
@@ -759,6 +774,9 @@ proc.replace_32.3
     dropw swapw dropw swapdw push.0.32.0.0 swapw.2
     # => [V, K, 0, 0, 32, 0, T, P, R, ...]
 
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
     # compute N = hash([K, V], domain=32) - 1 cycle
     hperm
     # => [X, N, X, T, P, R, ...]
@@ -767,7 +785,7 @@ proc.replace_32.3
     dropw swapw.2 swapw loc_loadw.0 swap drop movup.2 drop
     # => [16, idx_lo_n, T, N, P, R, ...]
 
-    # insert M into an empty subtree rooted at T; this leaves a root of empty subtree at depth 32
+    # insert N into an empty subtree rooted at T; this leaves a root of empty subtree at depth 32
     # on the stack - though, we don't need to verify this (29 cycles)
     mtree_set
     # => [E32, P_new, P, R, ...]
@@ -792,7 +810,7 @@ end
 
 #! Replaces a leaf node at depth 16 or 32 with a subtree containing two leaf nodes at depth 48
 #! such that one of the leaf nodes commits to a key-value pair equal to the leaf node at the
-#! original depth, and the other leaf node comments to the key-value pair being inserted.
+#! original depth, and the other leaf node commits to the key-value pair being inserted.
 #!
 #! Input:  [E, idx_lo_e, idx_lo_n, idx_hi, d, K_e, K, V, R, ...]
 #! Output: [0, 0, 0, 0, R_new, ...]
@@ -808,7 +826,7 @@ end
 #!
 #! This procedure consists of three high-level steps:
 #! - First, insert M = hash([K_e, V_e], domain=48) into an empty subtree at depth 48 - d, where
-#!   K_e and V_e are the key-value pair for the existing leaf node at depth d. This outputs the
+#!   K_e and V_e is the key-value pair for the existing leaf node at depth d. This outputs the
 #!   new root of the subtree T.
 #! - Then, insert N = hash([K, V], domain=48) into a subtree with root T. This outputs the new
 #!   root of the subtree P_new.
@@ -857,6 +875,9 @@ proc.replace_48.4
     loc_loadw.2 push.0.48.0.0 swapw.2 swapw.3 loc_loadw.1
     # => [V_e, K_e, 0, 0, 48, 0, P, K, V, R, ...]
 
+    # insert M |-> [K_e, V_e] into the advice map (0 cycles)
+    adv.insert_hperm
+
     # compute M = hash([K_e, V_e], domain=48) (1 cycle)
     hperm
     # => [X, M, X, P, K, V, R, ...]
@@ -889,6 +910,9 @@ proc.replace_48.4
     # (5 cycles)
     push.0.48.0.0 swapw.2
     # => [V, K, 0, 0, 48, 0, T, P, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
 
     # compute N = hash([K, V], domain=48) - (1 cycles)
     hperm

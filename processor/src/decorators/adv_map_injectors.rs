@@ -1,5 +1,9 @@
 use super::{AdviceProvider, ExecutionError, Process};
-use vm_core::{crypto::hash::Rpo256, utils::collections::Vec, Felt, StarkField, WORD_SIZE, ZERO};
+use vm_core::{
+    crypto::hash::{Rpo256, RpoDigest},
+    utils::collections::Vec,
+    Felt, StarkField, WORD_SIZE, ZERO,
+};
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -69,6 +73,50 @@ where
         let mut values = Vec::with_capacity(2 * WORD_SIZE);
         values.extend_from_slice(&word1);
         values.extend_from_slice(&word0);
+        self.advice_provider.insert_into_map(key.into(), values)
+    }
+
+    /// Reads three words from the operand stack and inserts the top two words into the advice map
+    /// under the key defined by applying an RPO permutation to all three words.
+    ///
+    /// Inputs:
+    ///   Operand stack: [B, A, C, ...]
+    ///   Advice map: {...}
+    ///
+    /// Outputs:
+    ///   Operand stack: [B, A, C, ...]
+    ///   Advice map: {KEY: [a0, a1, a2, a3, b0, b1, b2, b3]}
+    ///
+    /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
+    /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
+    pub(super) fn insert_hperm_into_adv_map(&mut self) -> Result<(), ExecutionError> {
+        // read the state from the stack
+        let mut state = [
+            self.stack.get(11),
+            self.stack.get(10),
+            self.stack.get(9),
+            self.stack.get(8),
+            self.stack.get(7),
+            self.stack.get(6),
+            self.stack.get(5),
+            self.stack.get(4),
+            self.stack.get(3),
+            self.stack.get(2),
+            self.stack.get(1),
+            self.stack.get(0),
+        ];
+
+        // get the values to be inserted into the advice map from the state
+        let values = state[Rpo256::RATE_RANGE].to_vec();
+
+        // apply the permutation to the state and extract the key from it
+        Rpo256::apply_permutation(&mut state);
+        let key = RpoDigest::new(
+            state[Rpo256::DIGEST_RANGE]
+                .try_into()
+                .expect("failed to extract digest from state"),
+        );
+
         self.advice_provider.insert_into_map(key.into(), values)
     }
 
