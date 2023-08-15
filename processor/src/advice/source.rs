@@ -9,6 +9,9 @@ pub enum AdviceSource {
     /// Puts a single value onto the advice stack.
     Value(Felt),
 
+    /// Puts a word (4 elements) ont the the stack.
+    Word(Word),
+
     /// Fetches a list of elements under the specified key from the advice map and pushes them onto
     /// the advice stack.
     ///

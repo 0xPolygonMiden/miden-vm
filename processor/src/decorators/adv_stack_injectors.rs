@@ -1,7 +1,8 @@
 use super::{super::Ext2InttError, AdviceProvider, AdviceSource, ExecutionError, Process};
 use vm_core::{
-    crypto::merkle::EmptySubtreeRoots, utils::collections::Vec, Felt, FieldElement, QuadExtension,
-    StarkField, Word, ONE, ZERO,
+    crypto::{hash::RpoDigest, merkle::EmptySubtreeRoots},
+    utils::collections::Vec,
+    Felt, FieldElement, QuadExtension, StarkField, Word, ONE, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
 
@@ -350,31 +351,26 @@ where
     ///
     /// Outputs:
     ///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
-    ///   Advice stack, depends on the type of insert:
-    ///   - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
-    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
-    ///   - Update of an existing leaf: [ZERO (padding), d0, d1, ONE (is_update), OLD_VALUE]
-    ///   - Replace leaf node with subtree 16->32: [ONE, ONE, ZERO, ZERO, P_KEY, P_VALUE]
-    ///   - Update of an existing leaf: [ONE, d0, d1, ONE, OLD_VALUE]
+    ///   Advice stack: see comments for specialized handlers below.
     ///
     /// Where:
-    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
-    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
-    /// - P_NODE is an internal node located at the tier above the insert tier.
+    /// - ROOT and NEW_ROOT are the roots of the TSMT before and after the insert respectively.
     /// - VALUE is the value to be inserted.
     /// - OLD_VALUE is the value previously associated with the specified KEY.
-    /// - P_KEY and P_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
-    /// - ROOT and NEW_ROOT are the roots of the TSMT prior and post the insert respectively.
     ///
     /// # Errors
-    /// Will return an error if the provided Merkle root doesn't exist on the advice provider.
+    /// Will return an error if:
+    /// - The Merkle store does not contain a node with the specified root.
+    /// - The Merkle store does not contain all nodes needed to validate the path between the root
+    ///   and the relevant TSMT nodes.
+    /// - The advice map does not contain required data about TSMT leaves to be modified.
     ///
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
     pub(super) fn push_smtinsert_inputs(&mut self) -> Result<(), ExecutionError> {
         // get the key and tree root from the stack
-        let key = [self.stack.get(7), self.stack.get(6), self.stack.get(5), self.stack.get(4)];
-        let root = [self.stack.get(11), self.stack.get(10), self.stack.get(9), self.stack.get(8)];
+        let key = self.stack.get_word(1);
+        let root = self.stack.get_word(2);
 
         // determine the depth of the first leaf or an empty tree node
         let index = &key[3];
@@ -397,81 +393,169 @@ where
         // - if the node is a leaf, this could be either an update (for the same key), or a
         //   complex insert (i.e., the existing leaf needs to be moved to a lower tier).
         let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
-        let (is_update, is_simple_insert) = if node == Word::from(empty) {
-            // handle simple insert case
-            if depth == 32 || depth == 48 {
+        if node == Word::from(empty) {
+            self.handle_smt_simple_insert(root, depth, index)?;
+        } else {
+            // get the key and value stored in the current leaf
+            let (leaf_key, leaf_value) = self.get_smt_upper_leaf_preimage(node)?;
+
+            // if the key for the value to be inserted is the same as the leaf's key, we are
+            // dealing with a simple update; otherwise, we are dealing with a complex insert
+            if leaf_key == key {
+                self.handle_smt_update(depth, leaf_value)?;
+            } else {
+                self.handle_smt_complex_insert(depth, key, leaf_key, leaf_value)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    // TSMT INSERT HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Retrieves a key-value pair for the specified leaf node from the advice map.
+    ///
+    /// # Errors
+    /// Returns an error if the value under the specified node does not exist or does not consist
+    /// of exactly 8 elements.
+    fn get_smt_upper_leaf_preimage(&self, node: Word) -> Result<(Word, Word), ExecutionError> {
+        let node_bytes = RpoDigest::from(node).as_bytes();
+        let kv = self
+            .advice_provider
+            .get_mapped_values(&node_bytes)
+            .ok_or(ExecutionError::AdviceMapKeyNotFound(node))?;
+
+        if kv.len() != WORD_SIZE * 2 {
+            return Err(ExecutionError::AdviceMapValueInvalidLength(node, WORD_SIZE * 2, kv.len()));
+        }
+
+        let key = [kv[0], kv[1], kv[2], kv[3]];
+        let val = [kv[4], kv[5], kv[6], kv[7]];
+        Ok((key, val))
+    }
+
+    /// Prepares the advice stack for a TSMT update operation. Specifically, the advice stack will
+    /// be arranged as follows:
+    ///
+    /// - [ZERO (padding), d0, d1, ONE (is_update), OLD_VALUE]
+    ///
+    /// Where:
+    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - OLD_VALUE is the current value in the leaf to be updated.
+    fn handle_smt_update(&mut self, depth: u8, old_value: Word) -> Result<(), ExecutionError> {
+        // put the old value onto the advice stack
+        self.advice_provider.push_stack(AdviceSource::Word(old_value))?;
+
+        // set is_update flag to ONE
+        self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+
+        // set depth flags based on leaf's depth
+        let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+
+        // pad the advice stack with an extra value to make it consistent with other cases when
+        // we expect 4 flag values on the top of the advice stack
+        self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+
+        Ok(())
+    }
+
+    /// Prepares the advice stack for a TSMT simple insert operation (i.e., when we are replacing
+    /// an empty node). Specifically, the advice stack will be arranged as follows:
+    ///
+    /// - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
+    /// - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
+    ///
+    /// Where:
+    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - P_NODE is an internal node located at the tier above the insert tier.
+    fn handle_smt_simple_insert(
+        &mut self,
+        root: Word,
+        depth: u8,
+        index: Felt,
+    ) -> Result<(), ExecutionError> {
+        // put additional data onto the advice stack as needed
+        match depth {
+            16 => (), // nothing to do; all the required data is already in the VM
+            32 | 48 => {
                 // for depth 32 and 48, we need to provide the internal node located on the tier
                 // above the insert tier
                 let p_index = Felt::from(index.as_int() >> 16);
                 let p_depth = Felt::from(depth - 16);
                 let p_node = self.advice_provider.get_tree_node(root, &p_depth, &p_index)?;
-                for &element in p_node.iter().rev() {
-                    self.advice_provider.push_stack(AdviceSource::Value(element))?;
-                }
+                self.advice_provider.push_stack(AdviceSource::Word(p_node))?;
             }
-
-            // return is_update = ZERO, is_simple_insert = ONE
-            (ZERO, ONE)
-        } else {
-            // if the node is a leaf node, push the elements mapped to this node onto the advice
-            // stack; the elements should be [KEY, VALUE], with key located at the top of the
-            // advice stack.
-            self.advice_provider.push_stack(AdviceSource::Map {
-                key: node,
-                include_len: false,
-            })?;
-
-            // remove the KEY from the advice stack, leaving only the VALUE on the stack
-            let leaf_key = self.advice_provider.pop_stack_word()?;
-
-            // if the key for the value to be inserted is the same as the leaf's key, we are
-            // dealing with a simple update. otherwise, we are dealing with a complex insert
-            // (i.e., the leaf needs to be moved to a lower tier).
-            if leaf_key == key {
-                // return is_update = ONE, is_simple_insert = ZERO
-                (ONE, ZERO)
-            } else {
-                // TODO: improve code readability as more cases are handled
-                let common_prefix = get_common_prefix(&key, &leaf_key);
-                if depth == 16 {
-                    if common_prefix < 32 {
-                        // put the key back onto the advice stack
-                        for &element in leaf_key.iter().rev() {
-                            self.advice_provider.push_stack(AdviceSource::Value(element))?;
-                        }
-                    } else {
-                        todo!("handle moving leaf from depth 16 to 48 or 64")
-                    }
-                } else if depth == 32 {
-                    todo!("handle moving leaf from depth 32 to 48 or 64")
-                } else if depth == 48 {
-                    todo!("handle moving leaf from depth 48 to 64")
-                } else {
-                    todo!("handle inserting key-value pair into existing leaf at depth 64")
-                }
-
-                // return is_update = ZERO, is_simple_insert = ZERO
-                (ZERO, ZERO)
-            }
-        };
-
-        // set the flags used to determine which tier the insert is happening at
-        let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
-        let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
-
-        self.advice_provider.push_stack(AdviceSource::Value(is_update))?;
-        if is_update == ONE {
-            // for update we don't need to specify whether we are dealing with an insert; but we
-            // insert an extra ONE at the end so that we can read 4 values from the advice stack
-            // regardless of which branch is taken.
-            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
-            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
-            self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
-        } else {
-            self.advice_provider.push_stack(AdviceSource::Value(is_simple_insert))?;
-            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
-            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+            64 => unimplemented!("insertions at depth 64 are not yet implemented"),
+            _ => unreachable!("invalid depth {depth}"),
         }
+
+        // push is_update and is_simple_insert flags onto the advice stack
+        self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+        self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+
+        // set depth flags based on node's depth
+        let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+        self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+
+        Ok(())
+    }
+
+    /// Prepares the advice stack for a TSMT complex insert operation (i.e., when a leaf node needs
+    /// to be replaced with a subtree of nodes at a lower tier). Specifically, the advice stack
+    /// will be arranged as follows:
+    ///
+    ///  - [d0, d1, ZERO (is_simple_insert), ZERO (is_update), E_KEY, E_VALUE]
+    ///
+    /// Where:
+    /// - d0 and d1 are boolean flags a combination of which determines the source and the target
+    ///   tiers as follows:
+    ///   - (0, 0): depth 16 -> 32
+    ///   - (0, 1): depth 16 -> 48
+    ///   - (1, 0): depth 32 -> 48
+    ///   - (1, 1): depth 16, 32, or 48 -> 64
+    /// - E_KEY and E_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
+    fn handle_smt_complex_insert(
+        &mut self,
+        depth: u8,
+        key: Word,
+        leaf_key: Word,
+        leaf_value: Word,
+    ) -> Result<(), ExecutionError> {
+        // push the key and value onto the advice stack
+        self.advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
+        self.advice_provider.push_stack(AdviceSource::Word(leaf_key))?;
+
+        // push is_update and is_simple_insert flags onto the advice stack
+        self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+        self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+
+        // determine the combination of the source and target tiers for the insert
+        // and populate the depth flags accordingly
+        let common_prefix = get_common_prefix(&key, &leaf_key);
+        let target_depth = SMT_NORMALIZED_DEPTHS[common_prefix as usize + 1];
+        match target_depth {
+            32 if depth == 16 => {
+                self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+                self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+            }
+            48 if depth == 16 => {
+                self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+            }
+            48 if depth == 32 => {
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+                self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+            }
+            64 => unimplemented!("insertions at depth 64 are not yet implemented"),
+            _ => unreachable!("invalid source/target tier combination: {depth} -> {target_depth}"),
+        }
+
         Ok(())
     }
 }
@@ -489,4 +573,10 @@ fn get_common_prefix(key1: &Word, key2: &Word) -> u8 {
     let k1 = key1[3].as_int();
     let k2 = key2[3].as_int();
     (k1 ^ k2).leading_zeros() as u8
+}
+
+fn get_depth_flags(depth: u8) -> (Felt, Felt) {
+    let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
+    let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
+    (is_16_or_32, is_16_or_48)
 }
