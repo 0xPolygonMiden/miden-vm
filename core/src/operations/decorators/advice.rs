@@ -214,6 +214,21 @@ pub enum AdviceInjector {
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
     HdwordToMap { domain: Felt },
+
+    /// Reads three words from the operand stack and inserts the top two words into the advice map
+    /// under the key defined by applying an RPO permutation to all three words.
+    ///
+    /// Inputs:
+    ///   Operand stack: [B, A, C, ...]
+    ///   Advice map: {...}
+    ///
+    /// Outputs:
+    ///   Operand stack: [B, A, C, ...]
+    ///   Advice map: {KEY: [a0, a1, a2, a3, b0, b1, b2, b3]}
+    ///
+    /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
+    /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
+    HpermToMap,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -238,6 +253,7 @@ impl fmt::Display for AdviceInjector {
             Self::SmtInsert => write!(f, "smt_insert"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
+            Self::HpermToMap => write!(f, "hperm_to_map"),
         }
     }
 }

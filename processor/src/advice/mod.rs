@@ -103,6 +103,7 @@ pub trait AdviceProvider {
 
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
+
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]>;
 

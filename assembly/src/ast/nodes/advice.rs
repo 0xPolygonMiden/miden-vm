@@ -27,6 +27,7 @@ pub enum AdviceInjectorNode {
     InsertMem,
     InsertHdword,
     InsertHdwordImm { domain: u8 },
+    InsertHperm,
 }
 
 impl From<&AdviceInjectorNode> for AdviceInjector {
@@ -59,6 +60,7 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             InsertHdwordImm { domain } => Self::HdwordToMap {
                 domain: Felt::from(*domain),
             },
+            InsertHperm => Self::HpermToMap,
         }
     }
 }
@@ -79,6 +81,7 @@ impl fmt::Display for AdviceInjectorNode {
             InsertMem => write!(f, "insert_mem"),
             InsertHdword => write!(f, "insert_hdword"),
             InsertHdwordImm { domain } => write!(f, "insert_hdword.{domain}"),
+            InsertHperm => writeln!(f, "insert_hperm"),
         }
     }
 }
@@ -98,6 +101,7 @@ const PUSH_MTNODE: u8 = 8;
 const INSERT_MEM: u8 = 9;
 const INSERT_HDWORD: u8 = 10;
 const INSERT_HDWORD_IMM: u8 = 11;
+const INSERT_HPERM: u8 = 12;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -124,6 +128,7 @@ impl Serializable for AdviceInjectorNode {
                 target.write_u8(INSERT_HDWORD_IMM);
                 target.write_u8(*domain);
             }
+            InsertHperm => target.write_u8(INSERT_HPERM),
         }
     }
 }
@@ -158,6 +163,7 @@ impl Deserializable for AdviceInjectorNode {
                 let domain = source.read_u8()?;
                 Ok(AdviceInjectorNode::InsertHdwordImm { domain })
             }
+            INSERT_HPERM => Ok(AdviceInjectorNode::InsertHperm),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
     }
