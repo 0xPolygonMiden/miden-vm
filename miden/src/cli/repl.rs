@@ -1,8 +1,9 @@
-use crate::repl::start_repl;
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Repl", about = "Initiates the Miden REPL tool")]
+use crate::repl::start_repl;
+
+#[derive(Debug, Clone, Parser)]
+#[clap(about = "Initiates the Miden REPL tool")]
 pub struct ReplCmd {}
 
 impl ReplCmd {
