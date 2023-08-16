@@ -16,6 +16,9 @@ const.EMPTY_48_1=5634734408638476525
 const.EMPTY_48_2=9233115969432897632
 const.EMPTY_48_3=1437907447409278328
 
+# HELPER METHODS
+# =================================================================================================
+
 #! Extracts 16 most significant bits from the passed-in value.
 #!
 #! Input:  [v, ...]
@@ -26,6 +29,16 @@ proc.get_top_16_bits
     u32split
     swap drop
     u32unchecked_shr.16
+end
+
+#! Extracts 32 most significant bits from the passed-in value.
+#!
+#! Input:  [v, ...]
+#! Output: [v >> 32, ...]
+#!
+#! Cycles: 3
+proc.get_top_32_bits
+    u32split swap drop
 end
 
 #! Extracts 48 most significant bits from the passed-in value.
@@ -43,13 +56,104 @@ proc.get_top_48_bits
     add
 end
 
+#! Extracts top 16 and the next 16 bits from the most significant elements of U and V.
+#!
+#! Also verifies that the top 16 bits of these elements are the same, while the next 16 bits are
+#! different.
+#!
+#! Input:  [U, V, ...]
+#! Output: [(u3 << 16) >> 48, (v3 << 16) >> 48, v3 >> 48, U, V, ...]
+#!
+#! Cycles: 20
+proc.extract_index_16_16
+    # extract the top 16 and the next 16 bits from the most significant element of V (6 cycles)
+    dup.4 u32split swap drop u32unchecked_divmod.65536
+    # => [v3_hi_lo, v3_hi_hi, U, V, ...]
+
+    # extract the top 16 and the next 16 bits from the most significant element of U (4 cycles)
+    dup.2 u32split u32unchecked_divmod.65536
+    # => [u3_hi_lo, u3_hi_hi, u3_lo, v3_hi_lo, v3_hi_hi, U, V, ...]
+
+    # make sure the lower 16 bits are different (5 cycles)
+    dup dup.4 neq assert
+    # => [u3_hi_lo, u3_hi_hi, u3_lo, v3_hi_lo, v3_hi_hi, U, V, ...]
+
+    # make sure the top 16 bits are the same (5 cycles)
+    movdn.2 dup.4 assert_eq drop
+    # => [u3_hi_lo, v3_hi_lo, v3_hi_hi, U, V, ...]
+end
+
+#! Extracts top 16 and the next 32 bits from the most significant elements of U and V.
+#!
+#! Also verifies that the top 32 bits of these elements are the same, while the next 16 bits are
+#! different.
+#!
+#! Input:  [U, V, ...]
+#! Output: [(u3 << 16) >> 32, (v3 << 16) >> 32, v3 >> 48, U, V, ...]
+#!
+#! Cycles: 30
+proc.extract_index_16_32
+    # split the most significant elements of U and V into 32-bit chunks and make sure the top
+    # 32 bit chunks are the same (i.e. u3_hi = v3_hi) - (8 cycles)
+    dup.4 u32split dup.2 u32split dup movup.3 assert_eq
+    # => [u3_hi, u3_lo, v3_lo, U, V, ...]
+
+    u32unchecked_divmod.65536 mul.65536
+    # => [idx_mid, idx_hi, u3_lo, v3_lo, U, V, ...]
+
+    movup.3 u32unchecked_shr.16
+    # => [v3_lo_hi, idx_mid, idx_hi, u3_lo, U, V, ...]
+
+    dup dup.2 add
+    # => [idx_lo_v, v3_lo_hi, idx_mid, idx_hi, u3_lo, U, V, ...]
+
+    movup.4 u32unchecked_shr.16
+    # => [u3_lo_hi, idx_lo_v, v3_lo_hi, idx_mid, idx_hi, U, V, ...]
+
+    dup movup.3 neq assert
+    # => [u3_lo_hi, idx_lo_v, idx_mid, idx_hi, U, V, ...]
+
+    movup.2 add
+    # => [idx_lo_u, idx_lo_v, idx_hi, U, V, ...]
+end
+
+#! Extracts top 32 bits and the next 16 bits from the most significant elements of U and V.
+#!
+#! Also verifies that the top 32 bits of these elements are the same, while the next 16 bits are
+#! different.
+#!
+#! Input:  [U, V, ...]
+#! Output: [(u3 << 32) >> 48, (v3 << 32) >> 48, v3 >> 32, U, V, ...]
+#!
+#! Cycles: 20
+proc.extract_index_32_16
+    # split the most significant elements of U and V into 32-bit chunks (4 cycles)
+    dup.4 u32split dup.2 u32split
+    # => [u3_hi, u3_lo, v3_hi, v3_lo, U, V, ...]
+
+    # make sure that the top 32 bit chunks are the same (3 cycles)
+    dup.2 assert_eq
+    # => [u3_lo, idx_hi, v3_lo, U, V, ...]
+
+    # drop the least significant 16 bits from the lower 32-bit chunks (8 cycles)
+    u32unchecked_shr.16 movup.2 u32unchecked_shr.16 swap
+    # => [idx_lo_u, idx_lo_v, idx_hi, U, V, ...]
+
+    # make sure the lower 16-bit chunks are different (5 cycles)
+    dup dup.2 neq assert
+    # => [idx_lo_u, idx_lo_v, idx_hi, U, V, ...]
+end
+
+# GET
+# =================================================================================================
+
 #! Get the leaf value for depth 16.
 #!
 #! Input:  [K, R, ...]
 #! Output: [V, R, ...]
 #!
 #! Cycles: 85
-proc.get16.2
+proc.get_16.2
     # compute index of the node by extracting top 16 bits from the key (8 cycles)
     dup exec.get_top_16_bits movdn.4
     # => [K, i, R, ...]
@@ -123,7 +227,7 @@ end
 #! Output: [V, R, ...]
 #!
 #! Cycles: 81
-proc.get32.2
+proc.get_32.2
     # compute index of the node by extracting top 16 bits from the key (4 cycles)
     dup u32split movdn.5 drop
     # => [K, i, R, ...]
@@ -197,7 +301,7 @@ end
 #! Output: [V, R, ...]
 #!
 #! Cycles: 88
-proc.get48.2
+proc.get_48.2
     # compute index of the node by extracting top 48 bits from the key (11 cycles)
     dup exec.get_top_48_bits movdn.4
     # => [K, i, R, ...]
@@ -275,6 +379,7 @@ end
 #! Depth 16: 91 cycles
 #! Depth 32: 87 cycles
 #! Depth 48: 94 cycles
+#! Depth 64: unimplemented
 export.get
     # invoke adv and fetch target depth flags
     adv.push_smtget adv_push.2
@@ -284,15 +389,15 @@ export.get
     if.true
         if.true
             # depth 16
-            exec.get16
+            exec.get_16
         else
             # depth 32
-            exec.get32
+            exec.get_32
         end
     else
         if.true
             # depth 48
-            exec.get48
+            exec.get_48
         else
             # depth 64
             # currently not implemented
@@ -300,4 +405,722 @@ export.get
         end
     end
     # => [V, R, ...]
+end
+
+# INSERT
+# =================================================================================================
+
+#! Updates a leaf node at depths 16, 32, or 48.
+#!
+#! Input:  [d, idx, V, K, R, ...]
+#! Output: [V_old, R_new, ...]
+#!
+#! Where:
+#! - R is the initial root of the TSMT, and R_new is the new root of the TSMT.
+#! - d, idx are the depth and index (at that depth) of the leaf node to be updated.
+#! - K, V are the key-value pair for the leaf node where V is a new value for key K.
+#! - V_old is the value previously stored under key K.
+#!
+#! This procedure succeeds only if:
+#! - Node to be replaced at (d, idx) is a leaf node for the same key K.
+#!
+#! Cycles: 101
+proc.update_16_32_48.2
+    # save [idx, d, 0, 0] in loc[0] (5 cycles)
+    push.0.0 loc_storew.0
+    # => [0, 0, d, idx, V, K, R, ...]
+
+    # prepare the stack for computing N = hash([K, V], domain=d), and also save K into loc[1]
+    # (10 cycles)
+    movdn.3 movup.2 drop push.0 swapw.2 loc_storew.1 swapw
+    # => [V, K, 0, 0, d, 0, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute the hash of the node N = hash([K, V], domain=d) - (1 cycle)
+    hperm
+    # => [X, N, X, R, ...]
+
+    # prepare the stack for the mtree_set operation (8 cycles)
+    swapw.3 swapw swapw.2 loc_loadw.0 drop drop
+    # => [d, idx, R, N, X, ...]
+
+    # insert the new leaf node into the tree at the specified index/depth; this also leaves the
+    # previous value of the node on the stack (29 cycle)
+    mtree_set
+    # => [N_old, R_new, X, ...]
+
+    # verify that N_old is a leaf node for the same key K
+
+    # prepare the stack for computing E = hash([K, V_old], domain=d); value of V_old is read
+    # from the advice provider and is saved into loc[0] (21 cycles)
+    swapw.2 loc_loadw.0 movdn.3 push.0 movup.3 push.0.0.0 loc_loadw.1 adv_push.4 loc_storew.0
+    # => [V_old, K, 0, 0, d, 0, R_new, N_old, ...]
+
+    # compute E = hash([K, V_old], domain=d)
+    # (10 cycle)
+    hperm dropw swapw dropw
+    # => [E, R_new, N_old, ...]
+
+    # make sure E and N_old are the same (14 cycles)
+    swapw swapw.2
+    repeat.4
+        dup.4 assert_eq
+    end
+    # => [E, R_new, ...]
+
+    # load the old value (which we saved previously) onto the stack (3 cycles)
+    loc_loadw.0
+    # => [V_old, R_new, ...]
+end
+
+#! Inserts a new leaf node at depth 16.
+#!
+#! Input:  [V, K, R, ...]
+#! Output: [0, 0, 0, 0, R_new, ...]
+#!
+#! Where:
+#! - R is the initial root of the TSMT, and R_new is the new root of the TSMT.
+#! - K and V is the key-value pair for the leaf node to be inserted.
+#!
+#! This procedure succeeds only if:
+#! - Node to be replaced at depth 16 is a root of an empty subtree.
+#!
+#! Cycles: 73
+proc.insert_16
+    # extract 16-bit index from the key (8 cycles)
+    swapw dup exec.get_top_16_bits
+    # => [idx, K, V, R, ...]
+
+    # prepare the stack for computing N = hash([K, V], domain=16) (6 cycles)
+    movdn.8 push.0.16.0.0 swapw.2
+    # => [V, K, 0, 0, 16, 0, idx, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute leaf node value as N = hash([K, V], domain=16) (10 cycles)
+    hperm dropw swapw dropw
+    # => [N, idx, R, ...]
+
+    # prepare the stack for mtree_set operation (4 cycles)
+    swapw movup.8 movdn.4 push.16
+    # => [16, idx, R, N, ...]
+
+    # insert the node into the tree at depth 16; this also leaves the old value of the node on the
+    # stack (29 cycle)
+    mtree_set
+    # => [N_old, R_new, ...]
+
+    # verify that the old value of the node was a root of an empty subtree for depth 16 (12 cycles)
+    push.EMPTY_16_3 assert_eq
+    push.EMPTY_16_2 assert_eq
+    push.EMPTY_16_1 assert_eq
+    push.EMPTY_16_0 assert_eq
+
+    # put the return value onto the stack and return (4 cycles)
+    padw
+    # => [0, 0, 0, 0, R_new, ...]
+end
+
+#! Inserts a new leaf node at depth 32.
+#!
+#! Input:  [V, K, R, ...]
+#! Output: [0, 0, 0, 0, R_new, ...]
+#!
+#! Where:
+#! - R is the initial root of the TSMT, and R_new is the new root of the TSMT.
+#! - K, V is the key-value pair for the leaf node to be inserted into the TSMT.
+#!
+#! This procedure consists of two high-level steps:
+#! - First, insert N = hash([K, V], domain=32) into a subtree with root P, where P is the
+#!   internal node at depth 16 on the path to the new leaf node. This outputs the new root
+#!   of the subtree P_new.
+#! - Then, insert P_new into the TSMT with root R.
+#!
+#! We do this to minimize the number of hashes consumed by the procedure for Merkle path
+#! verification. Specifically, Merkle path verification will require exactly 64 hashes.
+#!
+#! This procedure succeeds only if:
+#! - Node at depth 16 is an internal node.
+#! - Node at depth 32 is a root of an empty subtree.
+#!
+#! Cycles: 154
+proc.insert_32.2
+    # load the value of P from the advice provider (5 cycles)
+    adv_push.4 swapw.2
+    # => [K, V, P, R, ...]
+
+    # save k3 into loc[0][0] (4 cycles)
+    dup loc_store.0
+    # => [K, V, P, R, ...]
+
+    # prepare the stack for computing N = hash([K, V], domain=32) - (5 cycles)
+    push.0.32.0.0 swapw.2
+    # => [V, K, 0, 0, 32, 0, P, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute N = hash([K, V], domain=32) (1 cycle)
+    hperm
+    # => [X, N, X, P, R, ...]
+
+    # save P into loc[1] to be used later (5 cycles)
+    swapw.3 loc_storew.1
+    # => [P, N, X, X, R, ...]
+
+    # make sure P is not a root of an empty subtree at depth 16 (17 cycles)
+    dup push.EMPTY_16_3 eq
+    dup.2 push.EMPTY_16_2 eq
+    dup.4 push.EMPTY_16_1 eq
+    dup.6 push.EMPTY_16_0 eq
+    and and and assertz
+    # => [P, N, X, X, R, ...]
+
+    # load k3 from memory, extract upper 32 bits from it and split them into two 16-bit values
+    # such that the top 16-bits are in idx_hi and the next 16 bits are in idx_lo (9 cycles)
+    loc_load.0 exec.get_top_32_bits u32unchecked_divmod.65536
+    # => [idx_lo, idx_hi, P, N, X, X, R, ...]
+
+    # save idx_hi into loc[0][0] to be used later (5 cycles)
+    swap loc_store.0
+    # => [idx_lo, P, N, X, X, R, ...]
+
+    # replace node at idx_lo in P with N, the old value of the node is left on the stack; this also
+    # proves that P is a leaf node because a leaf node cannot have children at depth 16 (30 cycles)
+    push.16 mtree_set
+    # => [N_old, P_new, X, X, R, ...]
+
+    # make sure that N_old is a root of an empty subtree at depth 32 (12 cycles)
+    push.EMPTY_32_3 assert_eq
+    push.EMPTY_32_2 assert_eq
+    push.EMPTY_32_1 assert_eq
+    push.EMPTY_32_0 assert_eq
+    # => [P_new, X, X, R, ...]
+
+    # prepare the stack for mtree_set operation against R; here we load idx_hi from loc[0][0]
+    # (11 cycles)
+    swapw.2 dropw swapw.2 loc_load.0 push.16
+    # => [16, idx_hi, R, P_new, X, ...]
+
+    # insert P_new into tree with root R at depth 16 and idx_hi index (29 cycles)
+    mtree_set
+    # => [P_old, R_new, X, ...]
+
+    # load previously saved P to compare it with P_old (6 cycles)
+    swapw swapw.2 loc_loadw.1
+    # => [P, P_old, R_new, ...]
+
+    # make sure P and P_old are the same (11 cycles)
+    assert_eqw
+    # => [R_new, ...]
+
+    # put the return value onto the stack and return (4 cycles)
+    padw
+    # => [0, 0, 0, 0, R_new, ...]
+end
+
+#! Inserts a new leaf node at depth 48.
+#!
+#! Input:  [V, K, R, ...]
+#! Output: [0, 0, 0, 0, R_new, ...]
+#! 
+#! This procedure is nearly identical to the insert_32 procedure above, adjusted for the use of
+#! constants and idx_hi/idx_lo computation. It may be possible to combine the two at the expense
+#! of extra 10 - 20 cycles.
+proc.insert_48.2
+    # load the value of P from the advice provider (5 cycles)
+    adv_push.4 swapw.2
+    # => [K, V, P, R, ...]
+
+    # save k3 into loc[0][0] (4 cycles)
+    dup loc_store.0
+    # => [K, V, P, R, ...]
+
+    # prepare the stack for computing N = hash([K, V], domain=48) - (5 cycles)
+    push.0.48.0.0 swapw.2
+    # => [V, K, 0, 0, 48, 0, P, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute N = hash([K, V], domain=48) (1 cycle)
+    hperm
+    # => [X, N, X, P, R, ...]
+
+    # save P into loc[1] to be used later (5 cycles)
+    swapw.3 loc_storew.1
+    # => [P, N, X, X, R, ...]
+
+    # make sure P is not a root of an empty subtree at depth 32 (17 cycles)
+    dup push.EMPTY_32_3 eq
+    dup.2 push.EMPTY_32_2 eq
+    dup.4 push.EMPTY_32_1 eq
+    dup.6 push.EMPTY_32_0 eq
+    and and and assertz
+    # => [P, N, X, X, R, ...]
+
+    # load k3 from memory, extract upper 48 bits from it and split them into two values such that
+    # the top 32-bits are in idx_hi and the next 16 bits are in idx_lo (9 cycles)
+    loc_load.0 u32split swap u32unchecked_divmod.65536 drop
+    # => [idx_lo, idx_hi, P, N, X, X, R, ...]
+
+    # save idx_hi into loc[0][0] to be used later (5 cycles)
+    swap loc_store.0
+    # => [idx_lo, P, N, X, X, R, ...]
+
+    # replace node at idx_lo in P with N, the old value of the node is left on the stack; this also
+    # proves that P is a leaf node because a leaf node cannot have children at depth 16 (30 cycles)
+    push.16 mtree_set
+    # => [N_old, P_new, X, X, R, ...]
+
+    # make sure that N_old is a root of an empty subtree at depth 48 (12 cycles)
+    push.EMPTY_48_3 assert_eq
+    push.EMPTY_48_2 assert_eq
+    push.EMPTY_48_1 assert_eq
+    push.EMPTY_48_0 assert_eq
+    # => [P_new, X, X, R, ...]
+
+    # prepare the stack for mtree_set operation against R; here we load idx_hi from loc[0][0]
+    # (11 cycles)
+    swapw.2 dropw swapw.2 loc_load.0 push.32
+    # => [32, idx_hi, R, P_new, X, ...]
+
+    # insert P_new into tree with root R at depth 32 and idx_hi index (29 cycles)
+    mtree_set
+    # => [P_old, R_new, X, ...]
+
+    # load previously saved P with P_old to make sure they are the same (6 cycles)
+    swapw swapw.2 loc_loadw.1
+    # => [P, P_old, R_new, ...]
+
+    # make sure P and P_old are the same (11 cycles)
+    assert_eqw
+    # => [R_new, ...]
+
+    # put the return value onto the stack and return (4 cycles)
+    padw
+    # => [0, 0, 0, 0, R_new, ...]
+end
+
+#! Replaces a leaf node at depth 16 with a subtree containing two leaf nodes at depth 32 such that
+#! one of the leaf nodes commits to a key-value pair equal to the leaf node at depth 16, and the
+#! other leaf node commits to the key-value pair being inserted.
+#!
+#! Input:  [idx_lo_e, idx_lo_n, idx_hi, K_e, K, V, R, ...]
+#! Output: [0, 0, 0, 0, R_new, ...]
+#!
+#! Where:
+#! - R is the initial root of the TSMT, and R_new is the new root of the TSMT.
+#! - K, V is the key-value pair for the leaf node to be inserted into the TSMT.
+#!
+#! This procedure consists of three high-level steps:
+#! - First, insert M = hash([K_e, V_e], domain=32) into an empty subtree at depth 16, where K_e
+#!   and V_e are the key-value pair for the existing leaf node. This outputs the new root
+#!   of the subtree T.
+#! - Then, insert N = hash([K, V], domain=32) into a subtree with root T. This outputs the new
+#!   root of the subtree P_new.
+#! - Then, insert P_new into the TSMT with root R.
+#!
+#! This procedure succeeds only if:
+#! - Node at depth 16 is a leaf node.
+#! - The key in this node has a common prefix with the key to be inserted. This common prefix
+#!   must be greater or equal to 16, but smaller than 32.
+#!
+#! Cycles: 188
+proc.replace_32.3
+    # save [idx_hi, idx_lo_n, idx_lo_e, 16] into loc[0] - (4 cycles)
+    push.16 loc_storew.0
+    # => [16, idx_lo_e, idx_lo_n, idx_hi, K_e, K, V, R, ...]
+
+    # load V_e from the advice provider (1 cycle)
+    adv_loadw
+    # => [V_e, K_e, K, V, R, ...]
+
+    # save K_e and V_e into loc[1] and loc[2] respectively (13 cycles)
+    push.0.16.0.0 swapw.2 loc_storew.1 swapw loc_storew.2
+
+    # compute P = hash([K_e, V_e], domain=16) - (1 cycles)
+    hperm
+    # => [X, P, X, K, V, R, ...]
+
+    # prepare the stack for computing M = hash([K_e, V_e], domain=32) - (13 cycles)
+    loc_loadw.1 push.0.32.0.0 swapw.2 swapw.3 loc_loadw.2
+    # => [V_e, K_e, 0, 0, 32, 0, P, K, V, R, ...]
+
+    # insert M |-> [K_e, V_e] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute M = hash([K_e, V_e], domain=32) - 1 cycle
+    hperm
+    # => [X, M, X, P, K, V, R, ...]
+
+    # push the root of an empty subtree at depth 16 onto the stack (4 cycles)
+    push.EMPTY_16_0.EMPTY_16_1.EMPTY_16_2.EMPTY_16_3
+    # => [E, X, M, X, P, K, V, R, ...]
+
+    # prepare the stack for inserting M into E (8 cycles)
+    swapw loc_loadw.0 movup.2 drop movup.2 drop
+    # => [16, idx_lo_e, E, M, X, P, K, V, R, ...]
+
+    # insert M into an empty subtree rooted at E; this leaves a root of empty subtree at depth 32
+    # on the stack - though, we don't need to verify this (29 cycles)
+    mtree_set
+    # => [E32, T, X, P, K, V, R, ...]
+
+    # prepare the stack for computing N = hash([K, V], domain=32) - (15 cycles)
+    dropw swapw dropw swapdw push.0.32.0.0 swapw.2
+    # => [V, K, 0, 0, 32, 0, T, P, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute N = hash([K, V], domain=32) - 1 cycle
+    hperm
+    # => [X, N, X, T, P, R, ...]
+
+    # prepare the stack for inserting N into T (13 cycles)
+    dropw swapw.2 swapw loc_loadw.0 swap drop movup.2 drop
+    # => [16, idx_lo_n, T, N, P, R, ...]
+
+    # insert N into an empty subtree rooted at T; this leaves a root of empty subtree at depth 32
+    # on the stack - though, we don't need to verify this (29 cycles)
+    mtree_set
+    # => [E32, P_new, P, R, ...]
+
+    # prepare the stack for inserting P_new into R (10 cycles)
+    swapw.3 swapw swapw.2 swapw.3 loc_loadw.0 movdn.2 drop drop
+    # => [16, idx_hi, R, P_new, P, ...]
+
+    # insert P_new into the tree rooted at R; this also leaves P_old (the old value of the node)
+    # on the stack (29 cycles)
+    mtree_set
+    # => [P_old, R_new, P, ...]
+
+    # make sure P and P_old are the same (13 cycles)
+    swapw swapw.2 assert_eqw
+    # => [R_new, ...]
+
+    # put the return value onto the stack and return (4 cycles)
+    padw
+    # => [0, 0, 0, 0, R_new, ...]
+end
+
+#! Replaces a leaf node at depth 16 or 32 with a subtree containing two leaf nodes at depth 48
+#! such that one of the leaf nodes commits to a key-value pair equal to the leaf node at the
+#! original depth, and the other leaf node commits to the key-value pair being inserted.
+#!
+#! Input:  [E, idx_lo_e, idx_lo_n, idx_hi, d, K_e, K, V, R, ...]
+#! Output: [0, 0, 0, 0, R_new, ...]
+#!
+#! Where:
+#! - R is the initial root of the TSMT, and R_new is the new root of the TSMT.
+#! - K, V is the key-value pair for the leaf node to be inserted into the TSMT.
+#! - d is the depth of the current leaf node (i.e., depth 16 or 32).
+#! - idx_hi is the index of the last common node on the path from R to the leaves at depth 48.
+#! - idx_lo_e and idx_lo_n are the indexes of the new leaf nodes in a subtree rooted in the
+#!   last common node.
+#! - E is a root of an empty subtree at depth d.
+#!
+#! This procedure consists of three high-level steps:
+#! - First, insert M = hash([K_e, V_e], domain=48) into an empty subtree at depth 48 - d, where
+#!   K_e and V_e is the key-value pair for the existing leaf node at depth d. This outputs the
+#!   new root of the subtree T.
+#! - Then, insert N = hash([K, V], domain=48) into a subtree with root T. This outputs the new
+#!   root of the subtree P_new.
+#! - Then, insert P_new into the TSMT with root R at depth d.
+#!
+#! This procedure succeeds only if:
+#! - Node at depth d is a leaf node.
+#!
+#! The procedure assumes but does not check that:
+#! - d is either 16 or 32.
+#! - idx_hi is within range valid for depth d.
+#! - idx_lo_e and idx_hi_e are different values.
+#! - idx_lo_e and idx_hi_e are within range valid for depth 48 - d.
+#!
+#! Cycles: 195
+proc.replace_48.4
+    # save E into loc[3] and drop it from the stack (7 cycles)
+    loc_storew.3 dropw
+    # => [idx_lo_e, idx_lo_n, idx_hi, d, K_e, K, V, R, ...]
+
+    # save [d, idx_hi, idx_lo_n, idx_lo_e] into loc[0] (3 cycles)
+    loc_storew.0
+    # => [idx_lo_e, idx_lo_n, idx_hi, d, K_e, K, V, R, ...]
+
+    # prepare the stack for computing P = hash([K_e, V_e], domain=d)
+
+    # load V_e from the advice provider and save it into loc[1] (5 cycles)
+    adv_loadw loc_storew.1
+    # => [V_e, K_e, K, V, R, ...]
+
+    # (6 cycles)
+    push.0 loc_load.0 push.0.0
+    # => [0, 0, d, 0, V_e, K_e, K, V, R, ...]
+
+    # save K_e into loc[2] - (5 cycles)
+    swapw.2 loc_storew.2 swapw
+    # => [V_e, K_e, 0, 0, d, 0, K, V, R, ...]
+
+    # compute P = hash([K_e, V_e], domain=d) (1 cycle)
+    hperm
+    # => [X, P, X, K, V, R, ...]
+
+    # prepare the stack for computing M = hash([K_e, V_e], domain=48)
+
+    # load K_e and V_e from loc[2] and loc[1] respectively (13 cycles)
+    loc_loadw.2 push.0.48.0.0 swapw.2 swapw.3 loc_loadw.1
+    # => [V_e, K_e, 0, 0, 48, 0, P, K, V, R, ...]
+
+    # insert M |-> [K_e, V_e] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute M = hash([K_e, V_e], domain=48) (1 cycle)
+    hperm
+    # => [X, M, X, P, K, V, R, ...]
+
+    # load the root of empty subtree at depth d from loc[3] (3 cycles)
+    loc_loadw.3
+    # => [E, M, X, P, K, V, R, ...]
+
+    # prepare the stack for inserting M into E
+
+    # (5 cycles)
+    swapw swapw.2 loc_loadw.0
+    # => [idx_lo_e, idx_lo_n, idx_hi, d, E, M, P, K, V, R, ...]
+
+    # (6 cycles)
+    movdn.3 drop drop neg add.48
+    # => [48 - d, idx_lo_e, E, M, P, K, V, R, ...]
+
+    # insert M into an empty subtree rooted at E; this leaves a root of empty subtree at depth 48
+    # on the stack - though, we don't need to verify this (29 cycles)
+    mtree_set
+    # => [E48, T, P, K, V, R, ...]
+
+    # prepare the stack for computing N = hash([K, V], domain=48)
+
+    # (5 cycles)
+    dropw swapdw
+    # => [K, V, T, P, R, ...]
+
+    # (5 cycles)
+    push.0.48.0.0 swapw.2
+    # => [V, K, 0, 0, 48, 0, T, P, R, ...]
+
+    # insert N |-> [K, V] into the advice map (0 cycles)
+    adv.insert_hperm
+
+    # compute N = hash([K, V], domain=48) - (1 cycles)
+    hperm
+    # => [X, N, X, T, P, R, ...]
+
+    # prepare the stack for inserting N into T
+
+    # (6 cycles)
+    dropw swapw.2 swapw
+    # => [X, T, N, P, R, ...]
+
+    # (3 cycles)
+    loc_loadw.0
+    # => [idx_lo_e, idx_lo_n, idx_hi, d, T, N, P, R, ...]
+
+    # (6 cycles)
+    drop movdn.2 drop neg add.48
+    # => [48 - d, idx_lo_n, T, N, P, R, ...]
+
+    # insert N into a subtree with root T; this leaves a root of an empty subtree at depth 48
+    # on the stack - though, we don't need to verify this (29 cycles)
+    mtree_set
+    # => [E48, P_new, P, R, ...]
+
+    # prepare the stack for inserting P_new into R
+
+    # (4 cycles)
+    swapw.3 swapw swapw.2 swapw.3
+    # => [E48, R, P_new, P, ...]
+
+    # (3 cycles)
+    loc_loadw.0
+    # => [idx_lo_e, idx_lo_n, idx_hi, d, R, P_new, P, ...]
+
+    # (3 cycles)
+    drop drop swap
+    # => [d, idx_hi, R, P_new, P, ...]
+
+    # insert P_new into the tree rooted at R; this also leaves P_old (the old value of the node)
+    # on the stack (29 cycles)
+    mtree_set
+    # => [P_old, R_new, P, ...]
+
+    # make sure P and P_old are the same (13 cycles)
+    swapw swapw.2 assert_eqw
+    # => [R_new, ...]
+
+    # put the return value onto the stack and return (4 cycles)
+    padw
+    # => [0, 0, 0, 0, R_new, ...]
+end
+
+#! Inserts the specified value into a Sparse Merkle Tree with the specified root under the
+#! specified key.
+#!
+#! The value previously stored in the SMT under this key is left on the stack together with
+#! the updated tree root.
+#!
+#! This assumes that the value is not [ZERO; 4]. If it is, the procedure fails.
+#!
+#! Input:  [V, K, R, ...]
+#! Output: [V_old, R_new, ...]
+#!
+#! Cycles:
+#! - Update existing leaf:
+#!   - Depth 16: 129
+#!   - Depth 32: 126
+#!   - Depth 48: 131
+#! - Insert new leaf:
+#!   - Depth 16: 100
+#!   - Depth 32: 181
+#!   - Depth 48: 181
+#! - Replace a leaf with a subtree:
+#!   - Depth 16 -> 32: 242
+#!   - Depth 16 -> 48: 263
+#!   - Depth 32 -> 48: 253
+export.insert
+    # make sure the value is not [ZERO; 4] (17 cycles)
+    repeat.4
+        dup.3 eq.0
+    end
+    and and and assertz
+    # => [V, K, R, ...]
+
+    # arrange the data needed for the insert procedure on the advice stack and move the
+    # first 4 flags onto the operand stack; meaning of the flags f0, f1, and f2 depends
+    # on what type of insert is being executed (4 cycles)
+    adv.push_smtinsert adv_push.4
+    # => [is_update, f0, f1, f2, V, K, R, ...]
+
+    # call the inner procedure depending on the type of insert and depth
+    if.true # --- update leaf ---------------------------------------------------------------------
+        # => [is_16_or_32, is_16_or_48, ZERO, V, K, R, ...]
+        if.true 
+            if.true # --- update a leaf node at depth 16 ---
+                drop
+                # => [V, K, R, ...]
+
+                # (cycles 8)
+                dup.4 exec.get_top_16_bits
+                push.16
+                # => [16, idx, V, K, R, ...]
+
+                exec.update_16_32_48
+            else # --- update a leaf node at depth 32 ---
+                drop
+                # => [V, K, R, ...]
+
+                #(5 cycles)
+                dup.4 exec.get_top_32_bits
+                push.32
+                # => [32, idx, V, K, R, ...]
+
+                exec.update_16_32_48
+            end
+        else
+            if.true # --- update a leaf node at depth 48 ---
+                drop
+                # => [V, K, R, ...]
+
+                # (10 cycles)
+                dup.4 exec.get_top_48_bits
+                push.48
+                # => [48, idx, V, K, R, ...]
+
+                exec.update_16_32_48
+            else
+                # depth 64 - currently not implemented
+                push.0 assert
+            end
+        end
+    else
+        # => [is_simple_insert, is_16_or_32, is_16_or_48, V, K, R, ...]
+        if.true # --- insert new leaf -------------------------------------------------------------
+            if.true
+                if.true
+                    exec.insert_16
+                else
+                    exec.insert_32
+                end
+            else
+                if.true
+                    exec.insert_48
+                else
+                    # depth 64 - currently not implemented
+                    push.0 assert
+                end
+            end
+        else # --- replace leaf with subtree ------------------------------------------------------
+            if.true
+                if.true # --- replace a leaf at depth 16 with two leaves at depth 32  ---
+                    # load K_e from the advice provider (5 cycles)
+                    swapw adv_push.4
+                    # => [K_e, K, V, R, ...]
+
+                    # (20 cycles)
+                    exec.extract_index_16_16
+                    # => [idx_lo_e, idx_lo, idx_hi, K_e, K, V, R, ...]
+
+                    # (188 cycles)
+                    exec.replace_32
+                else # --- replace a leaf at depth 16 with two leaves at depth 48  ---
+                    # load K_e from the advice provider (5 cycles)
+                    swapw adv_push.4
+                    # => [K_e, K, V, R, ...]
+
+                    # (30 cycles)
+                    exec.extract_index_16_32
+                    # => [idx_lo_e, idx_lo, idx_hi, K_e, K, V, R, ...]
+
+                    # (2 cycles)
+                    push.16 movdn.3
+                    # => [idx_lo_e, idx_lo, idx_hi, 16, K_e, K, V, R, ...]
+
+                    # (4 cycles)
+                    push.EMPTY_16_0.EMPTY_16_1.EMPTY_16_2.EMPTY_16_3
+                    # => [E, idx_lo_e, idx_lo, idx_hi, 16, K_e, K, V, R, ...]
+
+                    # (195 cycles)
+                    exec.replace_48
+                end
+            else
+                if.true # --- replace a leaf at depth 32 with two leaves at depth 48  ---
+                    # load K_e from the advice provider (5 cycles)
+                    swapw adv_push.4
+                    # => [K_e, K, V, R, ...]
+
+                    # (20 cycles)
+                    exec.extract_index_32_16
+                    # => [idx_lo_e, idx_lo, idx_hi, K_e, K, V, R, ...]
+
+                    # (2 cycles)
+                    push.32 movdn.3
+                    # => [idx_lo_e, idx_lo, idx_hi, 16, K_e, K, V, R, ...]
+
+                    # (4 cycles)
+                    push.EMPTY_32_0.EMPTY_32_1.EMPTY_32_2.EMPTY_32_3
+                    # => [E, idx_lo_e, idx_lo, idx_hi, 16, K_e, K, V, R, ...]
+
+                    # (195 cycles)
+                    exec.replace_48
+                else # --- replace a leaf at depth 16, 32, or 48 with two leaves at depth 64  ---
+                    # depth 64 - currently not implemented
+                    push.0 assert
+                end
+            end
+        end
+    end
+
+    # => [V_old, R_new, ...]
 end

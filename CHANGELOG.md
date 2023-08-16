@@ -6,9 +6,13 @@
 - Added ability to attach doc comments to re-exported procedures (#994).
 - Added support for nested modules (#992).
 - Added support for the arithmetic expressions in constant values (#1026).
+- Added support for module aliases (#1037).
+- Added `adv.insert_hperm` decorator (#1042).
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
+- Migrated range checker lookups to use LogUp and reduced the number of trace columns to 2 main and 
+  1 auxiliary (#1027).
 - Added `get_mapped_values()` and `get_store_subset()` methods to the `AdviceProvider` trait (#987).
 - [BREAKING] Added options to specify maximum number of cycles and expected number of cycles for a program (#998).
 - Improved handling of invalid/incomplete parameters in `StackOutputs` constructors (#1010).
