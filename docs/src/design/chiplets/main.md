@@ -148,9 +148,9 @@ In other words, the above constraints enforce that if a selector is $0$ in the c
 
 The chiplets must be explicitly connected to the rest of the VM in order for it to use their operations. This connection must prove that all specialized operations which a given VM component claimed to offload to one of the chiplets were in fact executed by the correct chiplet with the same set of inputs and outputs as those used by the offloading component.
 
-This is achieved via a [bus](../multiset.md#communication-buses) called $b_{chip}$ where a request can be sent to any chiplet and a corresponding response will be sent back by that chiplet.
+This is achieved via a [bus](../lookups/main.md#communication-buses-in-miden-vm) called $b_{chip}$ where a request can be sent to any chiplet and a corresponding response will be sent back by that chiplet.
 
-The bus is implemented as a single [running product column](../multiset.md) where:
+The bus is implemented as a single [running product column](../lookups/multiset.md) where:
 
 - Each request is “sent” by computing an operation-specific lookup value from an [operation-specific label](#operation-labels), the operation inputs, and the operation outputs, and then dividing it out of the $b_{chip}$ running product column.
 - Each chiplet response is “sent” by computing the same operation-specific lookup value from the label, inputs, and outputs, and then multiplying it into the $b_{chip}$ running product column.
@@ -173,13 +173,13 @@ Responses are provided by the [hash](./hasher.md#chiplets-bus-constraints), [bit
 
 ## Chiplets virtual table
 
-Some chiplets require the use of a [virtual table](../multiset.md#virtual-tables) to maintain and enforce the correctness of their internal state. Because the length of these virtual tables does not exceed the length of the chiplets themselves, a single virtual table called $vt_{chip}$ can be shared by all chiplets.
+Some chiplets require the use of a [virtual table](../lookups/multiset.md#virtual-tables) to maintain and enforce the correctness of their internal state. Because the length of these virtual tables does not exceed the length of the chiplets themselves, a single virtual table called $vt_{chip}$ can be shared by all chiplets.
 
 Currently, the chiplets virtual table combines two virtual tables:
 - the hash chiplet's [sibling table](./hasher.md#sibling-table-constraints)
 - the kernel ROM chiplet's [kernel procedure table](./kernel_rom.md#kernel-procedure-table-constraints)
 
-To combine these correctly, the [running product column](../multiset.md) for this table must be constrained not only at the beginning and the end of the trace, but also where the hash chiplet ends and where the kernel ROM chiplet begins. These positions can be identified using the chiplet selector columns.
+To combine these correctly, the [running product column](../lookups/multiset.md) for this table must be constrained not only at the beginning and the end of the trace, but also where the hash chiplet ends and where the kernel ROM chiplet begins. These positions can be identified using the chiplet selector columns.
 
 ### Chiplets virtual table constraints
 

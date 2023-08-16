@@ -23,7 +23,7 @@ The meaning of the above columns is as follows:
 * Helper column $h_0$ is used to ensure that stack depth does not drop below $16$. Values in this column are set by the prover non-deterministically to $\frac{1}{b_0 - 16}$ when $b_0 \neq 16$, and to any other value otherwise.
 
 ### Overflow table
-To keep track of the data which doesn't fit into the top $16$ stack slots, we'll use an overflow table. This will be a [virtual table](../multiset.md#virtual-tables). To represent this table, we'll use a single auxiliary column $p_1$.
+To keep track of the data which doesn't fit into the top $16$ stack slots, we'll use an overflow table. This will be a [virtual table](../lookups/multiset.md#virtual-tables). To represent this table, we'll use a single auxiliary column $p_1$.
 
 The table itself can be thought of as having 3 columns as illustrated below.
 

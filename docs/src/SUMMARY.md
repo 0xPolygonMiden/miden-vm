@@ -42,5 +42,7 @@
     - [Bitwise Chiplet](./design/chiplets/bitwise.md)
     - [Memory Chiplet](./design/chiplets/memory.md)
     - [Kernel ROM Chiplet](./design/chiplets/kernel_rom.md)
-  - [Multiset checks](./design/multiset.md)
+  - [Lookup arguments](./design/lookups/main.md)
+    - [Multiset checks](./design/lookups/multiset.md)
+    - [LogUp](./design/lookups/logup.md)
 - [Background Material](./background.md)
