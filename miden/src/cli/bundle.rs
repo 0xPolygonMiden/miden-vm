@@ -1,21 +1,21 @@
 use assembly::{LibraryNamespace, MaslLibrary, Version};
+use clap::Parser;
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
-#[structopt(
+#[derive(Debug, Clone, Parser)]
+#[clap(
     name = "Compile Library",
     about = "Bundles .masm files into a single .masl library"
 )]
 pub struct BundleCmd {
     /// Path to a directory containing the `.masm` files which are part of the library.
-    #[structopt(parse(from_os_str))]
+    #[clap(value_parser)]
     dir: PathBuf,
     /// Defines the top-level namespace, e.g. `mylib`, otherwise the directory name is used.
-    #[structopt(short, long)]
+    #[clap(short, long)]
     namespace: Option<String>,
     /// Version of the library, defaults to `0.1.0`.
-    #[structopt(short, long, default_value = "0.1.0")]
+    #[clap(short, long, default_value = "0.1.0")]
     version: String,
 }
 

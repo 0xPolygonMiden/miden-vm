@@ -1,22 +1,22 @@
 use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
+use clap::Parser;
 use miden::{Kernel, ProgramInfo};
 use std::{path::PathBuf, time::Instant};
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Verify", about = "Verify a miden program")]
+#[derive(Debug, Clone, Parser)]
+#[clap(about = "Verify a miden program")]
 pub struct VerifyCmd {
     /// Path to input file
-    #[structopt(short = "i", long = "input", parse(from_os_str))]
+    #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
     /// Path to output file
-    #[structopt(short = "o", long = "output", parse(from_os_str))]
+    #[clap(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
     /// Path to proof file
-    #[structopt(short = "p", long = "proof", parse(from_os_str))]
+    #[clap(short = 'p', long = "proof", value_parser)]
     proof_file: PathBuf,
     /// Program hash (hex)
-    #[structopt(short = "h", long = "program-hash")]
+    #[clap(short = 'h', long = "program-hash")]
     program_hash: String,
 }
 

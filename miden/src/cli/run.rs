@@ -1,37 +1,37 @@
 use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
+use clap::Parser;
 use processor::ExecutionOptions;
 use std::{path::PathBuf, time::Instant};
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Run", about = "Run a miden program")]
+#[derive(Debug, Clone, Parser)]
+#[clap(about = "Run a miden program")]
 pub struct RunCmd {
     /// Path to .masm assembly file
-    #[structopt(short = "a", long = "assembly", parse(from_os_str))]
+    #[clap(short = 'a', long = "assembly", value_parser)]
     assembly_file: PathBuf,
 
     /// Number of cycles the program is expected to consume
-    #[structopt(short = "e", long = "exp-cycles", default_value = "64")]
+    #[clap(short = 'e', long = "exp-cycles", default_value = "64")]
     expected_cycles: u32,
 
     /// Path to input file
-    #[structopt(short = "i", long = "input", parse(from_os_str))]
+    #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 
     /// Paths to .masl library files
-    #[structopt(short = "l", long = "libraries", parse(from_os_str))]
+    #[clap(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 
     /// Maximum number of cycles a program is allowed to consume
-    #[structopt(short = "m", long = "max-cycles", default_value = "4294967295")]
+    #[clap(short = 'm', long = "max-cycles", default_value = "4294967295")]
     max_cycles: u32,
 
     /// Number of ouptuts
-    #[structopt(short = "n", long = "num-outputs", default_value = "16")]
+    #[clap(short = 'n', long = "num-outputs", default_value = "16")]
     num_outputs: usize,
 
     /// Path to output file
-    #[structopt(short = "o", long = "output", parse(from_os_str))]
+    #[clap(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
 }
 

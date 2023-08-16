@@ -1,23 +1,23 @@
 use super::{cli::InputFile, ProgramError};
+use clap::Parser;
 use core::fmt;
 use miden::{utils::collections::Vec, AdviceProvider, Assembler, Operation, StackInputs};
 use processor::AsmOpInfo;
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
-use structopt::StructOpt;
 
 // CLI
 // ================================================================================================
 
 /// Defines cli interface
-#[derive(StructOpt, Debug)]
-#[structopt(about = "Analyze a miden program")]
+#[derive(Debug, Clone, Parser)]
+#[clap(about = "Analyze a miden program")]
 pub struct Analyze {
     /// Path to .masm assembly file
-    #[structopt(short = "a", long = "assembly", parse(from_os_str))]
+    #[clap(short = 'a', long = "assembly", value_parser)]
     assembly_file: PathBuf,
     /// Path to .inputs file
-    #[structopt(short = "i", long = "input", parse(from_os_str))]
+    #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
 }
 
