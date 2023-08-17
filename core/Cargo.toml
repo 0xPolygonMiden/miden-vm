@@ -21,7 +21,7 @@ std = ["math/std", "winter-utils/std"]
 
 [dependencies]
 math = { package = "winter-math", version = "0.6", default-features = false }
-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "next", default-features = false }
+crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto.git", branch = "bobbin-leaf-traversal", default-features = false }
 winter-crypto = { package = "winter-crypto", version = "0.6", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.6", default-features = false }
 

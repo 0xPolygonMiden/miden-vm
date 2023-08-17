@@ -968,41 +968,32 @@ end
 #! Inserts the specified value into a Sparse Merkle Tree with the specified root under the
 #! specified key.
 #!
-#! The value previously stored in the SMT under this key is left on the stack together with
-#! the updated tree root.
+#! This is the actual implementation of the `insert` procedure below, except for two things:
+#! - This procedure assumes that value V is not [ZERO; 4], but this is not checked.
+#! - This procedure assumes that the relevant flags have already been read from the advice provider.
 #!
-#! This assumes that the value is not [ZERO; 4]. If it is, the procedure fails.
-#!
-#! Input:  [V, K, R, ...]
+#! Input:  [is_update, f0, f1, f2, V, K, R, ...]
 #! Output: [V_old, R_new, ...]
+#!
+#! Where:
+#! - is_update is a flag specifying whether the insert is just an update of a value under an
+#!   existing key.
+#! - Meaning of the flags f0, f1, and f2 depends on what type of insert is being executed.
 #!
 #! Cycles:
 #! - Update existing leaf:
-#!   - Depth 16: 129
-#!   - Depth 32: 126
-#!   - Depth 48: 131
+#!   - Depth 16: 116
+#!   - Depth 32: 113
+#!   - Depth 48: 118
 #! - Insert new leaf:
-#!   - Depth 16: 100
-#!   - Depth 32: 181
-#!   - Depth 48: 181
+#!   - Depth 16: 81
+#!   - Depth 32: 162
+#!   - Depth 48: 162
 #! - Replace a leaf with a subtree:
-#!   - Depth 16 -> 32: 242
-#!   - Depth 16 -> 48: 263
-#!   - Depth 32 -> 48: 253
-export.insert
-    # make sure the value is not [ZERO; 4] (17 cycles)
-    repeat.4
-        dup.3 eq.0
-    end
-    and and and assertz
-    # => [V, K, R, ...]
-
-    # arrange the data needed for the insert procedure on the advice stack and move the
-    # first 4 flags onto the operand stack; meaning of the flags f0, f1, and f2 depends
-    # on what type of insert is being executed (4 cycles)
-    adv.push_smtinsert adv_push.4
-    # => [is_update, f0, f1, f2, V, K, R, ...]
-
+#!   - Depth 16 -> 32: 221
+#!   - Depth 16 -> 48: 244
+#!   - Depth 32 -> 48: 234
+proc.insert_internal
     # call the inner procedure depending on the type of insert and depth
     if.true # --- update leaf ---------------------------------------------------------------------
         # => [is_16_or_32, is_16_or_48, ZERO, V, K, R, ...]
@@ -1123,4 +1114,320 @@ export.insert
     end
 
     # => [V_old, R_new, ...]
+end
+
+#! Inserts the specified value into a Sparse Merkle Tree with the specified root under the
+#! specified key.
+#!
+#! The value previously stored in the SMT under this key is left on the stack together with
+#! the updated tree root.
+#!
+#! This assumes that the value is not [ZERO; 4]. If it is, the procedure fails.
+#!
+#! Input:  [V, K, R, ...]
+#! Output: [V_old, R_new, ...]
+#!
+#! Cycles:
+#! - Update existing leaf:
+#!   - Depth 16: 137
+#!   - Depth 32: 134
+#!   - Depth 48: 139
+#! - Insert new leaf:
+#!   - Depth 16: 102
+#!   - Depth 32: 183
+#!   - Depth 48: 183
+#! - Replace a leaf with a subtree:
+#!   - Depth 16 -> 32: 242
+#!   - Depth 16 -> 48: 265
+#!   - Depth 32 -> 48: 255
+export.insert
+    # make sure the value is not [ZERO; 4] (17 cycles)
+    repeat.4
+        dup.3 eq.0
+    end
+    and and and assertz
+    # => [V, K, R, ...]
+
+    # arrange the data needed for the insert procedure on the advice stack and move the
+    # first 4 flags onto the operand stack; meaning of the flags f0, f1, and f2 depends
+    # on what type of insert is being executed (4 cycles)
+    adv.push_smtinsert adv_push.4
+    # => [is_update, f0, f1, f2, V, K, R, ...]
+
+    # execute the actual insert procedure
+    exec.insert_internal
+    # => [V_old, R_new, ...]
+end
+
+# DELETE
+# =================================================================================================
+
+#! Verifies that a node at depth 16 and index defined by the most significant element of K in a
+#! tree with root R is a root of an empty subtree.
+#!
+#! Input:  [Z, K, R, ...]
+#! Output: [Z, R, ...]
+#!
+#! Where Z is [ZERO; 4].
+#!
+#! Cycles: 26
+proc.verify_empty_node_16
+    # (9 cycles)
+    swapw.2 dup.4 exec.get_top_16_bits push.16
+    # => [16, idx, R, K, Z, ...]
+
+    # (4 cycles)
+    push.EMPTY_16_0.EMPTY_16_1.EMPTY_16_2.EMPTY_16_3
+    # => [E16, 16, idx, R, K, Z, ...]
+
+    # (1 cycle)
+    mtree_verify
+    # => [E16, 16, idx, R, K, Z, ...]
+
+    # (12 cycles)
+    dropw drop drop swapw dropw swapw
+    # => [Z, R, ...]
+end
+
+#! Verifies that a node at depth 32 and index defined by the most significant element of K in a
+#! tree with root R is a root of an empty subtree.
+#!
+#! Input:  [Z, K, R, ...]
+#! Output: [Z, R, ...]
+#!
+#! Where Z is [ZERO; 4].
+#!
+#! Cycles: 23
+proc.verify_empty_node_32 
+    # (6 cycles)
+    swapw.2 dup.4 exec.get_top_32_bits push.32
+    # => [32, idx, R, K, Z, ...]
+
+    # (4 cycles)
+    push.EMPTY_32_0.EMPTY_32_1.EMPTY_32_2.EMPTY_32_3
+    # => [E32, 32, idx, R, K, Z, ...]
+
+    # (1 cycle)
+    mtree_verify
+    # => [E32, 32, idx, R, K, Z, ...]
+
+    # (12 cycles)
+    dropw drop drop swapw dropw swapw
+    # => [Z, K, ...]
+end
+
+#! Verifies that a node at depth 48 and index defined by the most significant element of K in a
+#! tree with root R is a root of an empty subtree.
+#!
+#! Input:  [Z, K, R, ...]
+#! Output: [Z, R, ...]
+#!
+#! Where Z is [ZERO; 4].
+#!
+#! Cycles: 29
+proc.verify_empty_node_48
+    # (12 cycles)
+    swapw.2 dup.4 exec.get_top_48_bits push.48
+    # => [48, idx, R, K, Z, ...]
+
+    # (4 cycles)
+    push.EMPTY_48_0.EMPTY_48_1.EMPTY_48_2.EMPTY_48_3
+    # => [E48, 48, idx, R, K, Z, ...]
+
+    # (1 cycle)
+    mtree_verify
+    # => [E48, 48, idx, R, K, Z, ...]
+
+    # (12 cycles)
+    dropw drop drop swapw dropw swapw
+    # => [Z, K, ...]
+end
+
+#! Verifies that a leaf node located at depth d and index idx in the tree defined by root R is
+#! contains key which is different from K.
+#!
+#! Input:  [d, idx, K, R, Z, ...]
+#! Output: [Z, R, ...]
+#!
+#! Where Z is [ZERO; 4].
+#!
+#! Cycles: 50
+proc.verify_leaf_with_another_key
+    # load the leaf key K_e from the advice provider (11 cycles)
+    movdn.5 movdn.5 push.0 dup.5 push.0.0 swapw adv_push.4
+    # => [K_e, K, 0, 0, d, 0, d, idx, R, Z, ...]
+
+    # make sure K_e and K are not the same (17 cycles)
+    repeat.4
+        dup.3 movup.8 eq
+    end
+    and and and assertz
+    # => [K_e, 0, 0, d, 0, d, idx, R, Z, ...]
+
+    # load leaf value V_e from the advice provider (4 cycles)
+    adv_push.4
+    # => [V_e, K_e, 0, 0, d, 0, d, idx, R, Z, ...]
+
+    # compute N = hash([K_e, K_v], domain=d) - (10 cycles)
+    hperm dropw swapw dropw
+    # => [N, d, idx, R, Z, ...]
+
+    # verify that node N exists in the tree with root R at the specified index and depth
+    mtree_verify
+    # => [N, d, idx, R, Z, ...]
+
+    # clean up the stack and return (7 cycles)
+    dropw drop drop swapw
+    # => [Z, R, ...]
+end
+
+#! Removes a key-value under key K from the Tiered Sparse Merkle tree defined by root R, and
+#! returns the new tree root together with the value previously associated with key K.
+#!
+#! If the key-value pair is not in the tree, this proves that the key-value pair is not in the
+#! tree but does not modify the tree itself.
+#!
+#! This assumes that the value Z is [ZERO; 4], but this is not checked.
+#!
+#! Input:  [key_not_in_tree, f0, f1, f2, Z, K, R, ...]
+#! Output: [V_old, R_new, ...]
+#!
+#! Cycles:
+#! - Key not in the tree (key with common prefix in the tree):
+#!   - Depth 16: 68
+#!   - Depth 32: 65
+#!   - Depth 48: 71
+#! - Key not in the tree (no key with common prefix):
+#!   - Depth 16: 34
+#!   - Depth 32: 31
+#!   - Depth 48: 37
+#! - Remove a leaf from the tree:
+#!   - 121 - 284 cycles
+proc.delete
+    if.true # --- key is not in the tree ----------------------------------------------------------
+        if.true # --- key with common prefix in the tree ---
+            if.true
+                if.true
+                    # (10 cycles)
+                    swapw.2 swapw dup exec.get_top_16_bits push.16
+                    # => [16, idx, K, R, Z, ...]
+
+                    exec.verify_leaf_with_another_key
+                else
+                    # (7 cycles)
+                    swapw.2 swapw dup exec.get_top_32_bits push.32
+                    # => [32, idx, K, R, Z, ...]
+
+                    exec.verify_leaf_with_another_key
+                end
+            else
+                if.true
+                    # (13 cycles)
+                    swapw.2 swapw dup exec.get_top_48_bits push.48
+                    # => [48, idx, K, R, Z, ...]
+
+                    exec.verify_leaf_with_another_key
+                else
+                    # depth 64 - currently not implemented
+                    push.0 assert
+                end
+            end
+        else # --- no key with common prefix in the tree ---
+            if.true
+                if.true
+                    exec.verify_empty_node_16
+                else
+                    exec.verify_empty_node_32
+                end
+            else
+                if.true
+                    exec.verify_empty_node_48
+                else
+                    # depth 64 - currently not implemented
+                    push.0 assert
+                end
+            end
+        end
+    else # --- key is in the tree ---------------------------------------------------------------
+        # load the root of the tree with the leaf removed from the advice provider (2 cycles)
+        push.0 adv_loadw
+        # => [R_new, Z, K, R, ...]
+
+        # load the value to be removed from the advice provider (6 cycles)
+        dupw swapw.2 adv_loadw
+        # => [V_old, R_new, R_new, K, R, ...]
+
+        # prepare the stack for TSMT insert operation (9 cycles)
+        swapw.3 dupw.3 adv.push_smtinsert adv_push.4
+        # => [f0, f1, f2, f3, V_old, K, R_new, R_new, V_old, R, ...]
+
+        # insert key-pair (K, V_old) into TSMT with root R_new - i.e., insert the key-value pair
+        # to be removed into the TSMT with value already removed. if all values were provided
+        # correctly, we should get TSMT with the root prior to the key-pair's removal.
+        # (81 - 244 cycles)
+        exec.insert_internal
+        # => [Z, R_old, R_new, V_old, R, ...]
+
+        # make sure the value we got back is an empty node (8 cycles)
+        assertz assertz assertz assertz
+        # => [R_old, R_new, V_old, R, ...]
+
+        # Make sure R and R_old are the same (13 cycles)
+        swapw swapw.3 assert_eqw
+        # => [V_old, R_new, ...]
+    end
+end
+
+# SET
+# =================================================================================================
+
+#! Sets the value associated with key K to V in a Sparse Merkle tree with root R. Returns the new
+#! root of the tree together with the value previously associated with key K.
+#!
+#! If no value was previously associated with K, [ZERO; 4] is returned.
+#!
+#! Unlike the `insert` procedure defined above, this procedure allows for values to be set to
+#! [ZERO; 4].
+#!
+#! Input:  [V, K, R, ...]
+#! Output: [V_old, R_new, ...]
+#!
+#! Cycles:
+#! - Update existing leaf:
+#!   - Depth 16: 137
+#!   - Depth 32: 133
+#!   - Depth 48: 139
+#! - Insert new leaf:
+#!   - Depth 16: 102
+#!   - Depth 32: 183
+#!   - Depth 48: 183
+#! - Replace a leaf with a subtree:
+#!   - Depth 16 -> 32: 242
+#!   - Depth 16 -> 48: 265
+#!   - Depth 32 -> 48: 255
+#! - Remove a key-value pair:
+#!   - Key-value pair not in tree: 52 - 93
+#!   - Key-value pair is in tree: 142 - 305
+export.set
+    # arrange the data needed for the update procedure on the advice stack and move the first
+    # 4 flags onto the operand stack; meaning of the flags f0, f1, f2, and f3 depends on what
+    # type of update is being executed (4 cycles)
+    adv.push_smtinsert adv_push.4
+    # => [f0, f1, f2, f3, V, K, R, ...]
+
+    # determine if the value is an empty word (15 cycles)
+    repeat.4
+        dup.7 push.0 eq
+    end
+    and and and
+    # => [is_empty_value, f0, f1, f2, f3, V, K, R, ...]
+
+    # the value is an empty word execute the delete procedure; otherwise execute the internal
+    # insert procedure because we already have all required data on the advice provider and know
+    # that the value being inserted is not an empty word.
+    if.true
+        exec.delete
+    else
+        exec.insert_internal
+    end
 end

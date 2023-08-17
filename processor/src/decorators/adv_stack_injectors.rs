@@ -1,6 +1,9 @@
 use super::{super::Ext2InttError, AdviceProvider, AdviceSource, ExecutionError, Process};
 use vm_core::{
-    crypto::{hash::RpoDigest, merkle::EmptySubtreeRoots},
+    crypto::{
+        hash::RpoDigest,
+        merkle::{EmptySubtreeRoots, TieredSmt},
+    },
     utils::collections::Vec,
     Felt, FieldElement, QuadExtension, StarkField, Word, ONE, WORD_SIZE, ZERO,
 };
@@ -368,7 +371,8 @@ where
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
     pub(super) fn push_smtinsert_inputs(&mut self) -> Result<(), ExecutionError> {
-        // get the key and tree root from the stack
+        // get the key, value, and tree root from the stack
+        let value = self.stack.get_word(0);
         let key = self.stack.get_word(1);
         let root = self.stack.get_word(2);
 
@@ -386,7 +390,13 @@ where
         // get the value of the node a this index/depth
         let index = index.as_int() >> (64 - depth);
         let index = Felt::new(index);
-        let node = self.advice_provider.get_tree_node(root, &Felt::new(depth as u64), &index)?;
+        let node = self.advice_provider.get_tree_node(root, &Felt::from(depth), &index)?;
+
+        // if the value to be inserted is an empty word, we need to process it as a delete
+        if value == TieredSmt::EMPTY_VALUE {
+            self.handle_smt_delete(root, node, depth, index, key)?;
+            return Ok(());
+        }
 
         // figure out what kind of insert we are doing; possible options are:
         // - if the node is a root of an empty subtree, this is a simple insert.
@@ -411,7 +421,7 @@ where
         Ok(())
     }
 
-    // TSMT INSERT HELPER METHODS
+    // TSMT UPDATE HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
     /// Retrieves a key-value pair for the specified leaf node from the advice map.
@@ -554,6 +564,59 @@ where
             }
             64 => unimplemented!("insertions at depth 64 are not yet implemented"),
             _ => unreachable!("invalid source/target tier combination: {depth} -> {target_depth}"),
+        }
+
+        Ok(())
+    }
+
+    /// TODO: add comments
+    fn handle_smt_delete(
+        &mut self,
+        root: Word,
+        node: Word,
+        depth: u8,
+        index: Felt,
+        key: Word,
+    ) -> Result<(), ExecutionError> {
+        let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
+
+        if node == Word::from(empty) {
+            self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+            self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+
+            let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
+            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+            self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+        } else {
+            let (leaf_key, leaf_value) = self.get_smt_upper_leaf_preimage(node).unwrap();
+
+            if leaf_key != key {
+                self.advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
+                self.advice_provider.push_stack(AdviceSource::Word(leaf_key))?;
+
+                self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+                self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
+
+                let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
+                self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
+                self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
+            } else {
+                let (_, new_root) = self.advice_provider.update_merkle_node(
+                    root,
+                    &Felt::from(depth),
+                    &index,
+                    empty.into(),
+                )?;
+
+                self.advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
+                self.advice_provider.push_stack(AdviceSource::Word(new_root))?;
+
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+                self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
+            }
         }
 
         Ok(())

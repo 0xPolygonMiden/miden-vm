@@ -172,7 +172,7 @@ where
         depth: &Felt,
         index: &Felt,
         value: Word,
-    ) -> Result<MerklePath, ExecutionError> {
+    ) -> Result<(MerklePath, Word), ExecutionError> {
         let node_index = NodeIndex::from_elements(depth, index).map_err(|_| {
             ExecutionError::InvalidTreeNodeIndex {
                 depth: *depth,
@@ -181,7 +181,7 @@ where
         })?;
         self.store
             .set_node(root.into(), node_index, value.into())
-            .map(|root| root.path)
+            .map(|root| (root.path, root.root.into()))
             .map_err(ExecutionError::MerkleStoreUpdateFailed)
     }
 
@@ -289,7 +289,7 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.get_leaf_depth(root, tree_depth, index)
     }
 
-    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<MerklePath, ExecutionError> {
+    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
         self.provider.update_merkle_node(root, depth, index, value)
     }
 
@@ -414,7 +414,7 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.get_leaf_depth(root, tree_depth, index)
     }
 
-    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<MerklePath, ExecutionError> {
+    fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
         self.provider.update_merkle_node(root, depth, index, value)
     }
 

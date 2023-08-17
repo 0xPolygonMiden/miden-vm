@@ -153,7 +153,7 @@ pub trait AdviceProvider {
     ) -> Result<u8, ExecutionError>;
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
-    /// returns the Merkle path from the updated node to the new root.
+    /// returns the Merkle path from the updated node to the new root, together with the new root.
     ///
     /// The tree is cloned prior to the update. Thus, the advice provider retains the original and
     /// the updated tree.
@@ -171,7 +171,7 @@ pub trait AdviceProvider {
         depth: &Felt,
         index: &Felt,
         value: Word,
-    ) -> Result<MerklePath, ExecutionError>;
+    ) -> Result<(MerklePath, Word), ExecutionError>;
 
     /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
     /// specified roots. The root of the new tree is defined as `hash(left_root, right_root)`.
@@ -267,7 +267,7 @@ where
         depth: &Felt,
         index: &Felt,
         value: Word,
-    ) -> Result<MerklePath, ExecutionError> {
+    ) -> Result<(MerklePath, Word), ExecutionError> {
         T::update_merkle_node(self, root, depth, index, value)
     }
 
