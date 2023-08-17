@@ -27,7 +27,7 @@ fn test_falcon_final() {
     let signature = sk.sign(message, keypair.expanded_public_key());
     assert!(pk.verify(message, &signature));
 
-    let h = signature.pk();
+    let h = Polynomial::from_pubkey(&keypair.expanded_public_key());
     let s2: Polynomial = (&signature).into();
     let nonce = slice_u8_to_slice_u64(signature.nonce());
 

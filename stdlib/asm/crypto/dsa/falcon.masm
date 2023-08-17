@@ -5,271 +5,21 @@ use.std::math::poly512
 # HASH-TO-POINT  
 # =============================================================================================
 
-export.extract_coefficients_1
-    u32split
-    swap
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 # If the quotient is not 5, then this means that the candidate coefficient is less than 5 * 12289 = 61445
-    if.true
-        movdn.6
-    else
-        drop
-        movup.5
-        add.1
-        movdn.5
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.5
-    else
-        drop
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 
-    if.true
-        movdn.5
-    else
-        drop
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.4
-    else
-        drop
-        movup.3
-        add.1
-        movdn.3
-    end
-end
-
-export.extract_coefficients_2
-    u32split
-    swap
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 # If the quotient is not 5, then this means that the candidate coefficient is less than 5 * 12289 = 61445
-    if.true
-        movdn.5
-    else
-        drop
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.4
-    else
-        drop
-        movup.3
-        add.1
-        movdn.3
-    end
-
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 
-    if.true
-        movdn.4
-    else
-        drop
-        movup.3
-        add.1
-        movdn.3
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.3
-    else
-        drop
-        movup.2
-        add.1
-        movdn.2
-    end
-end
-
-export.extract_coefficients_3
-    u32split
-    swap
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 # If the quotient is not 5, then this means that the candidate coefficient is less than 5 * 12289 = 61445
-    if.true
-        movdn.4
-    else
-        drop
-        movup.3
-        add.1
-        movdn.3
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.3
-    else
-        drop
-        movup.2
-        add.1
-        movdn.2
-    end
-
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 
-    if.true
-        movdn.3
-    else
-        drop
-        movup.2
-        add.1
-        movdn.2
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.2
-    else
-        drop
-        swap
-        add.1
-        swap
-    end
-end
-
-export.extract_coefficients_4
-    u32split
-    swap
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 # If the quotient is not 5, then this means that the candidate coefficient is less than 5 * 12289 = 61445
-    if.true
-        movdn.3
-    else
-        drop
-        movup.2
-        add.1
-        movdn.2
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        movdn.2
-    else
-        drop
-        swap
-        add.1
-        swap
-    end
-
-    u32unchecked_divmod.65536
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5 
-    if.true
-        movdn.2
-    else
-        drop
-        swap
-        add.1
-        swap
-    end
-
-    u32unchecked_divmod.256
-    mul.256 add
-    u32unchecked_divmod.12289
-    swap neq.5
-    if.true
-        swap
-    else
-        drop
-        add.1
-    end
-end
-
-# Cycles: 400
-export.draw_from_word
-    movup.3
-    exec.extract_coefficients_1     # Cycles: 98
-        
-    movup.2
-    exec.extract_coefficients_2     # Cycles: 98
-
-    swap
-    exec.extract_coefficients_3     # Cycles: 98
-
-    exec.extract_coefficients_4     # Cycles: 98
-end
-
-#! Takes as input a message digest MSG, a nonce of size 40 bytes represented as 5 field elements
+#! Takes as input a message digest, a nonce of size 40 bytes represented as 5 field elements
 #! and a pointer. The procedure absorbs MSG and NONCE into a fresh RPO state and squeezes the
-#! coefficients of a polynomial h representing the hash-to-point of MSG. The coefficients are 
-#! then saved in the memory region [h_ptr, h_ptr + 128).
-#! The complexity of the `hash_to_point` procedure is due to the rejection-sampling step where
-#! the size of the randomly drawn coefficients needs to be checked to be below a certain threshold.
-#! If this is the case, then the coefficient is accepted, if not, the coefficient is rejected.
-#! The current implementation tries to overcome this complexity by using a deficit counter that is
-#! incremented when a coefficient is rejected during the first 16 squeezes of RPO (note that to generate
-#! 512 coefficient, we need at least 16 RPO squeezes). The deficit counter is used then to generate
-#! the remaining coefficients, albeit with a bit more complex logic. Nevertheless, this is still
-#! faster than the naive implementation as the rejection rate is very small 
-#! (i.e. with very high probability, a total of 17 squeezes is enough to generate all 512 coefficients).
+#! coefficients of a polynomial c representing the hash-to-point of (MSG || NONCE). The coefficients
+#! are then saved in the memory region [c_ptr, c_ptr + 128).
+#! This implementation of the `hash_to_point` procedure avoids the rejection-sampling step 
+#! required in the per-the-spec algorithm by using the observation on page 31 in 
+#! https://falcon-sign.info/falcon.pdf
 #!
-#! Input: [h_ptr, MSG, NONCE, ...]
+#! Input: [c_ptr, MSG, NONCE, ...]
 #! Output: [...]
 #!
-#! Cycles: 17714
+#! Cycles: 1884
 export.hash_to_point.6
 
-    # Store h_ptr
+    # Store c_ptr
     loc_store.4
     
     # Store the 4th element of the message
@@ -285,73 +35,14 @@ export.hash_to_point.6
     # Absorb the last element of the message digest
     loc_load.5 swap.8 drop
 
-    # Rate is 8 * 64 bits = 512 = 16 * 32 bits. Each coefficient requires 16 bits,
-    # thus we need at least 512 / 32 permutations.
-    repeat.16
+    repeat.63
         hperm
-
-        loc_storew.0 dropw
-        loc_storew.1 swapw 
-        loc_storew.2 dropw
-
-        exec.draw_from_word
-    
-        padw loc_loadw.0
-        exec.draw_from_word
-    
-        # Load state
-        padw loc_loadw.2
-        padw loc_loadw.1
-        padw loc_loadw.0
+        movupw.2
+        dupw.2 dupw.2
     end
-
-
-    # Store the current deficit counter
-    movup.12
-    loc_store.3
-
-    push.1
-    while.true
-        hperm
-        loc_storew.0 dropw
-        loc_storew.1 swapw 
-        loc_storew.2 dropw
-
-        # Maybe here
-        push.0 movdn.4
-        exec.draw_from_word
-
-        padw loc_loadw.0
-        exec.draw_from_word
-
-        push.32 swap sub
-        loc_load.3
-        dup.1 dup.1
-
-        u32checked_gt # We have drawn more elements than there is a deficit
-        if.true
-            sub
-            dup
-            neq.0
-            while.true
-                swap drop
-                sub.1 dup neq.0
-            end
-            #=> [0, coeff[511], ..., coeff[0], ...]
-        else
-            # The new deficit
-            swap 
-            sub 
-            loc_store.3  
-            
-            padw loc_loadw.2
-            padw loc_loadw.1
-            padw loc_loadw.0
-
-            # Iterate once more the while loop
-            push.1
-        end
-    end
+    
+    hperm 
+    movupw.2 dropw
 
     # address of last coefficient-quadruple
     loc_load.4 add.127 
@@ -362,6 +53,7 @@ export.hash_to_point.6
     end
     drop
 end
+
 
 # PROBABILISTIC POLYNOMIAL MULTIPLICATION IN Z_Q[x] 
 # =============================================================================================
@@ -399,8 +91,8 @@ export.powers_of_tau
 end
 
 
-#! Sets the memory region `[ptr, ptr + 512)` to zero. The pointer c_ptr := ptr + 512 will be used
-#! to store the hash-to-point polynomial of the message later on.
+#! Sets the memory region `[ptr, ptr + 512)` to zero. The pointer c_ptr := ptr + 512 is returned
+#! to be used to store the hash-to-point polynomial of the message later on.
 #!
 #! Input: [ptr, ...]
 #! Output: [...]
@@ -415,15 +107,16 @@ export.set_to_zero
     dropw
 end
 
-#! Takes as in input PK, the hash of the public key polynomial `h`, and a pointer to the memory
-#! location pointing to the coefficients of the polynomial `h`.
+#! Takes as input PK, the hash of the coefficients of the polynomial `h` representing the expanded
+#! public key, and a pointer to the memory location where the coefficients of the polynomial `h`
+#! will be stored.
 #! The procedure loads `h` from the advice stack and compares its hash with the provided hash `PK`.
 #! It then loads the polynomial `s2` representing the signature from the advice stack and lays it 
 #! in memory right after `h`.
 #! It then loads the claimed polynomial `h * s2` in Z_Q[x] where Q is the Miden VM prime from
 #! the advice stack and lays it right after `s2`.
 #! The hash of `h`, `s2` and the claimed product is also computed and the first two field elements
-#! (i.e., the Fiat-Shamir challenge) of the digest are returned on the stack alongside
+#! of the digest (i.e., the Fiat-Shamir challenge) are returned on the stack alongside
 #! the incremented pointer.
 #!
 #! Input: [ptr, PK, ...]
@@ -432,11 +125,11 @@ end
 #! Cycles: 570
 export.load_h_s2_and_product.1
 
-    # 1) Store PK for later comparision
+    # 1) Store PK for later comparison
     movdn.4
     loc_storew.0
 
-    # 2) Prepare stack and load h polynomial (TODO:test that the coefficients are in the range)
+    # 2) Prepare stack and load h polynomial
     padw swapw 
     padw
     repeat.64
@@ -450,7 +143,7 @@ export.load_h_s2_and_product.1
     movup.2 assert_eq
     assert_eq
         
-    # 4) Load s2 polynomial (TODO: test that the coefficients are in the range. Due to the final norm test we might not need to do this)
+    # 4) Load s2 (Due to the final norm test we do not need to range check the s2 coefficents)
     padw padw
     repeat.64
         adv_pipe hperm
@@ -461,7 +154,7 @@ export.load_h_s2_and_product.1
         adv_pipe hperm
     end
 
-    # 6) Return the challenge point and incremented pointer
+    # 6) Return the challenge point and the incremented pointer
     dropw swapw dropw
     drop drop 
     #=> [tau1, tau0, ptr + 512]
@@ -494,7 +187,7 @@ end
 
 #! Checks that pi == h * s2 in Z_Q[x] by evaluating both sides at a random point.
 #! The procedure takes as input a pointer h_ptr to h. The other two polynomials
-#! are located at h_ptr + 128 for s2 and h_ptr + 256 for pi. The procedure takes 
+#! are located at h_ptr + 128, for s2, and h_ptr + 256, for pi. The procedure takes 
 #! also a pointer zeros_ptr to a region of memory [zeros_ptr, zeros_ptr + 1024)
 #! and a pointer tau_ptr to powers of the random point we are evaluating at stored
 #! as [a_i, b_i, x, x] where (a_i, b_i) := tau^i for i in [0, 1023].
@@ -506,15 +199,15 @@ end
 #!
 #! Cycles: 7753
 export.probablistic_product.4
-    # Save the pointers
+    # 1) Save the pointers
     push.0 movdn.3
     loc_storew.0
 
-    # 1) Range check the coefficients of h
+    # 2) Range check the coefficients of h
     dup
     exec.assert_lt_12289
 
-    # 2) Compute the evaluation of the h polynomial at the random challenge
+    # 3) Compute the evaluation of the h polynomial at the random challenge
 
     # Accumulator to compute h(tau)
     padw
@@ -535,7 +228,7 @@ export.probablistic_product.4
     dropw
     #=> [X, X, X, ...]
 
-    # 3) Compute the evaluation of the s2 polynomial at the random challenge
+    # 4) Compute the evaluation of the s2 polynomial at the random challenge
     loc_loadw.0
     add.128
     #=> [s2_ptr, zeros_ptr, tau_ptr, 0, X, X, ...]
@@ -558,7 +251,7 @@ export.probablistic_product.4
     dropw
     #=> [X, X, X, ...]
 
-    # 4) Computie the evaluation of the product polynomial pi := h * s2 at the random challenge where
+    # 5) Computie the evaluation of the product polynomial pi := h * s2 at the random challenge where
     #       the product is over Z_Q[x]
     # We compute the evaluation of pi at tau as pi(tau) = pi1(tau) + tau^512 * pi2(tau) where pi1 and
     # pi2 are the first and second halves of the product polynomial. This is done in order to reduce
@@ -619,7 +312,7 @@ export.probablistic_product.4
     #=> [res1, res0, x, x, X, ...]
 
 
-    # 5) Check product
+    # 6) Check product
 
     ## a) Load h(tau)
     swapw
@@ -687,8 +380,9 @@ export.norm_sq
     #=> [norm(e)^2, ...]
 end
 
-#! On input a tupe (u, w, v), the following computes (v - (u + (- w % q) % q) % q).
-#! We can avoid doing three modular reductions by using the following facts: 
+#! On input a tuple (u, w, v), the following computes (v - (u + (- w % q) % q) % q).
+#! We can avoid doing three modular reductions by using the following facts:
+#! 
 #! 1. q is much smaller than the Miden prime. Precisely, q * 2^50 < Q 
 #! 2. The coefficients of the product polynomial, u and w, are less than J := 512 * q^2
 #! 3. The coefficients of c are less than q as they are the result of `hash_to_point`
@@ -720,11 +414,11 @@ end
 #! Takes a pointer to a polynomial pi of degree less than 1024 with coefficients in Z_Q.
 #! The goal is to compute s1 = c - pi  = c - h * s2 in Z_q[x]/(phi)
 #! The pointer pi_ptr points to pi and c through the relation c_ptr = pi_ptr + offset
-#! where offset := 2304
+#! where offset := 2304.
 #! The naive way to compute s1 would be to first reduce the polynomial pi modulo the Falcon
 #! prime q and then modulo the irreducible polynomial phi = x^512 + 1. Then we need to negate
-#! the coefficients of pi modulo q and then we can add these coefficients to
-#! the coefficients of c and finally reduce the result modulo q one last time.
+#! the coefficients of pi modulo q. We can then add these coefficients to the coefficients
+#! of c and finally reduce the result modulo q one last time.
 #! Knowing that the end goal of computing c is to compute its norm square, we can do better.
 #!
 #! We can compute s1 in a single pass by delaying the q-modular reduction til the end. This can
@@ -737,12 +431,13 @@ end
 #! see that adding J does not Q-overflow by virtue of q * 2^50 < Q.
 #! All of the above implies that we can compute c_i with only one modular reduction at the end.
 #! Moreover, since we are only interested in the square norm of c_i, we do not have to store
-#! c_i and then load it and instead we can immediatly follow the computation of c_i with computing
+#! c_i and then load it, and instead we can immediatly follow the computation of c_i with computing
 #! its square norm. 
 #! After computing the square norm of c_i, we can accumulate into an accumulator to compute the
 #! sum of the square norms of all the coefficients of polynomial c.
 #!
-#! To summarize, the naice strategy would require:
+#! To summarize, the naive strategy would require:
+#!
 #! 1. 128 * 6 mem_loadw
 #! 2. 128 * 3 mem_storew
 #! 3. 4 * 512 modulo q reductions
@@ -756,7 +451,7 @@ end
 #! Cycles: 38920
 export.compute_s1_norm_sq 
     repeat.128
-        # 1) Load the next 4 * 3 coefficents
+        # 1) Load the next 4 * 3 coefficients
         # load c_i
         padw
         dup.4 add.1281
@@ -813,7 +508,7 @@ export.compute_s1_norm_sq
         add.1
     end
 
-    # Sum up the squared norm of all the coefficents of s1
+    # Sum up the squared norm of all the coefficients of s1
     drop    # drop the pointer
     repeat.511
         add
@@ -857,13 +552,13 @@ end
 #! Input: [PK, MSG, NONCE, ...]
 #! Output: [...]
 #!
-#! Cycles: ~ 89225
+#! Cycles: ~ 73395
 export.verify.1665
 
     # 1) Load the public key polynomial h and the signature polynomial s2 and the product of
     # the two polynomials pi := h * s2 in Z_Q[x]. This also checks that h hashes to the provided
     # digest PK. While loading the polynomials, the hash of the three polynomials is computed
-    # and the first half of the digest is kept on the stack for later use by the probablistic_product
+    # and the first half of the digest is kept on the stack for later use by the `probablistic_product`
     # procedure.
 
     locaddr.0
@@ -876,14 +571,14 @@ export.verify.1665
     exec.set_to_zero
     #=> [c_ptr, MSG, NONCE, ...]                    (Cycles: 2607)
 
-    # 2) Compute the hash-to-point of the message MSG from the provided nonce NONCE and save
+    # 2) Compute the hash-to-point of the message MSG from the provided NONCE and save
     # the resulting polynomial c in the memory region [c_ptr, c_ptr + 128)
 
     exec.hash_to_point
-    #=> [...]                                       (Cycles: 17714)
+    #=> [...]                                       (Cycles: 1884)
 
     # 3) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
-    # where tau is a random challenge a-la Fiat-Shamir resulting from hashing h, s2 and pi.
+    # where tau is a random (Fiat-Shamir) challenge resulting from hashing h, s2 and pi.
 
     locaddr.512     # tau_ptr
     locaddr.1025    # z_ptr
