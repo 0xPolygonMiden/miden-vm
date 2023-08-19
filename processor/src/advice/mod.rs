@@ -92,6 +92,12 @@ pub trait AdviceProvider {
     /// Returns an error if the value specified by the advice source cannot be obtained.
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
 
+    // ADVICE MAP
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a reference to the value(s) associated with the specified key in the advice map.
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]>;
+
     /// Inserts the provided value into the advice map under the specified key.
     ///
     /// The values in the advice map can be moved onto the advice stack by invoking
@@ -101,13 +107,7 @@ pub trait AdviceProvider {
     /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
 
-    // ADVICE MAP
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a reference to the value(s) associated with the specified key in the advice map.
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]>;
-
-    // ADVISE SETS
+    // MERKLE STORE
     // --------------------------------------------------------------------------------------------
 
     /// Returns a node at the specified depth and index in a Merkle tree with the given root.
@@ -151,6 +151,21 @@ pub trait AdviceProvider {
         tree_depth: &Felt,
         index: &Felt,
     ) -> Result<u8, ExecutionError>;
+
+    /// Returns node value and index of a leaf node in the subtree of the specified root, if and
+    /// only if this is the only leaf in the entire subtree. Otherwise, None is returned.
+    ///
+    /// The root itself is assumed to be located at the specified index in a tree with the provided
+    /// depth.
+    ///
+    /// # Errors
+    /// Returns an error if a three for the specified root does not exist in the advice provider.
+    fn find_lone_leaf(
+        &self,
+        root: Word,
+        root_index: NodeIndex,
+        tree_depth: u8,
+    ) -> Result<Option<(NodeIndex, Word)>, ExecutionError>;
 
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root, together with the new root.
@@ -259,6 +274,15 @@ where
         index: &Felt,
     ) -> Result<u8, ExecutionError> {
         T::get_leaf_depth(self, root, tree_depth, index)
+    }
+
+    fn find_lone_leaf(
+        &self,
+        root: Word,
+        root_index: NodeIndex,
+        tree_depth: u8,
+    ) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
+        T::find_lone_leaf(self, root, root_index, tree_depth)
     }
 
     fn update_merkle_node(

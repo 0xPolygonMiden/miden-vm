@@ -1,10 +1,10 @@
 use super::{super::Ext2InttError, AdviceProvider, AdviceSource, ExecutionError, Process};
 use vm_core::{
     crypto::{
-        hash::RpoDigest,
-        merkle::{EmptySubtreeRoots, TieredSmt},
+        hash::{Rpo256, RpoDigest},
+        merkle::{EmptySubtreeRoots, NodeIndex, TieredSmt},
     },
-    utils::collections::Vec,
+    utils::collections::{btree_map::Entry, BTreeMap, Vec},
     Felt, FieldElement, QuadExtension, StarkField, Word, ONE, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
@@ -387,15 +387,14 @@ where
             unimplemented!("handling of depth=64 tier hasn't been implemented yet");
         }
 
-        // get the value of the node a this index/depth
+        // get the value of the node at this index/depth
         let index = index.as_int() >> (64 - depth);
         let index = Felt::new(index);
         let node = self.advice_provider.get_tree_node(root, &Felt::from(depth), &index)?;
 
         // if the value to be inserted is an empty word, we need to process it as a delete
         if value == TieredSmt::EMPTY_VALUE {
-            self.handle_smt_delete(root, node, depth, index, key)?;
-            return Ok(());
+            return self.handle_smt_delete(root, node, depth, index, key);
         }
 
         // figure out what kind of insert we are doing; possible options are:
@@ -569,7 +568,22 @@ where
         Ok(())
     }
 
-    /// TODO: add comments
+    /// Prepares the advice stack for a TSMT deletion operation. Specifically, the advice stack
+    /// will be arranged as follows (depending on the type of the node which occupies the location
+    /// at which the node for the specified key should be present):
+    ///
+    /// - Root of empty subtree: [d0, d1, ZERO (is_leaf), ONE (key_not_set)]
+    /// - Leaf for another key: [d0, d1, ONE (is_leaf), ONE (key_not_set), KEY, VALUE]
+    /// - Leaf for the provided key: [ZERO, ZERO, ZERO, ZERO (key_not_set), NEW_ROOT, OLD_VALUE]
+    ///
+    /// Where:
+    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - KEY and VALUE is the key-value pair of a leaf node occupying the location of the node
+    ///   for the specified key. Note that KEY may be the same as the specified key or different
+    ///   from the specified key if the location is occupied by a different key-value pair.
+    /// - NEW_ROOT is the new root of the TSMT post deletion.
+    /// - OLD_VALUE is the value which is to be replaced with [ZERO; 4].
     fn handle_smt_delete(
         &mut self,
         root: Word,
@@ -578,35 +592,80 @@ where
         index: Felt,
         key: Word,
     ) -> Result<(), ExecutionError> {
-        let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
+        let empty = EmptySubtreeRoots::empty_hashes(TieredSmt::MAX_DEPTH)[depth as usize];
 
         if node == Word::from(empty) {
+            // if the node to be replaced is already an empty node, we set key_not_set = ONE,
+            // and is_leaf = ZERO
             self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
             self.advice_provider.push_stack(AdviceSource::Value(ZERO))?;
 
+            // set depth flags based on node's depth
             let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
             self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
         } else {
-            let (leaf_key, leaf_value) = self.get_smt_upper_leaf_preimage(node).unwrap();
+            // if the node is not a root of an empty subtree, it must be a leaf; thus we can get
+            // the key and the value stored in the leaf.
+            let (leaf_key, leaf_value) = self.get_smt_upper_leaf_preimage(node)?;
 
             if leaf_key != key {
+                // if the node to be replaced is a leaf for different key, we push that key-value
+                // pair onto the advice stack and set key_not_set = ONE and is_leaf = ONE
+
                 self.advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
                 self.advice_provider.push_stack(AdviceSource::Word(leaf_key))?;
 
                 self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
                 self.advice_provider.push_stack(AdviceSource::Value(ONE))?;
 
+                // set depth flags based on node's depth
                 let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
                 self.advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
                 self.advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
             } else {
-                let (_, new_root) = self.advice_provider.update_merkle_node(
-                    root,
-                    &Felt::from(depth),
-                    &index,
-                    empty.into(),
-                )?;
+                // if the key which we want to set to [ZERO; 4] does have an associated value,
+                // we update the tree in the advice provider to get the new root, then push the root
+                // and the old value onto the advice stack, key_not_set = ZERO, and also push 3
+                // ZERO values for padding
+                let new_root = match self.find_lone_sibling(root, depth, &index)? {
+                    Some((sibling, new_index)) => {
+                        // if the node to be deleted has a lone sibling, we need to move it to a
+                        // higher tier.
+
+                        // first, we compute the value of the new node on the higher tier
+                        let (leaf_key, leaf_val) = self.get_smt_upper_leaf_preimage(*sibling)?;
+                        let new_node = Rpo256::merge_in_domain(
+                            &[leaf_key.into(), leaf_val.into()],
+                            new_index.depth().into(),
+                        );
+
+                        // then we insert the node and its pre-image into the advice provider
+                        let mut elements = leaf_key.to_vec();
+                        elements.extend_from_slice(&leaf_val);
+                        self.advice_provider.insert_into_map(new_node.into(), elements)?;
+
+                        // and finally we update the tree in the advice provider
+                        let (_, new_root) = self.advice_provider.update_merkle_node(
+                            root,
+                            &new_index.depth().into(),
+                            &new_index.value().into(),
+                            new_node.into(),
+                        )?;
+                        new_root
+                    }
+                    None => {
+                        // if the node does not have a lone sibling, we just replace it with an
+                        // empty node
+                        let (_, new_root) = self.advice_provider.update_merkle_node(
+                            root,
+                            &Felt::from(depth),
+                            &index,
+                            empty.into(),
+                        )?;
+                        new_root
+                    }
+                };
 
                 self.advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
                 self.advice_provider.push_stack(AdviceSource::Word(new_root))?;
@@ -620,6 +679,87 @@ where
         }
 
         Ok(())
+    }
+
+    /// Returns info about a lone sibling of a leaf specified by depth and index parameters in the
+    /// Tiered Sparse Merkle tree defined by the specified root. If no lone siblings exist for the
+    /// specified parameters, None is returned.
+    ///
+    /// A lone sibling is defined as a leaf which has a common root with the specified leaf at a
+    /// higher tier such that the subtree starting at this root contains only these two leaves.
+    ///
+    /// In addition to the leaf node itself, this also returns the index of the common root at a
+    /// higher tier.
+    fn find_lone_sibling(
+        &self,
+        root: Word,
+        depth: u8,
+        index: &Felt,
+    ) -> Result<Option<(RpoDigest, NodeIndex)>, ExecutionError> {
+        debug_assert!(matches!(depth, 16 | 32 | 48));
+
+        // if the leaf is on the first tier (depth=16), we don't care about lone siblings as they
+        // cannot be moved to a higher tier.
+        if depth == TieredSmt::TIER_SIZE {
+            return Ok(None);
+        }
+
+        let empty = &EmptySubtreeRoots::empty_hashes(TieredSmt::MAX_DEPTH)[..=depth as usize];
+
+        // get the path to the leaf node
+        let path: Vec<_> = self.advice_provider.get_merkle_path(root, &depth.into(), index)?.into();
+
+        // traverse the path from the leaf up to the root, keeping track of all non-empty nodes;
+        // here we ignore the top 16 depths because lone siblings cannot be moved to a higher tier
+        // from tier at depth 16.
+        let mut non_empty_nodes = BTreeMap::new();
+        for (depth, sibling) in (TieredSmt::TIER_SIZE..=depth).rev().zip(path.iter()) {
+            // map the depth of each node to the tier it would "round up" to. For example, 17 maps
+            // to tier 1, 32 also maps to tier 1, but 33 maps to tier 2.
+            let tier = (depth - 1) / TieredSmt::TIER_SIZE;
+
+            // if the node is non-empty, insert it into the map, but if a node for the same tier
+            // is already in the map, stop traversing the tree. we do this because if two nodes in
+            // a given tier are non-empty a lone sibling cannot exist at this tier or any higher
+            // tier. to indicate the the tier cannot contain a lone sibling, we set the value in
+            // the map to None.
+            if sibling != &empty[depth as usize] {
+                match non_empty_nodes.entry(tier) {
+                    Entry::Vacant(entry) => {
+                        entry.insert(Some((depth, *sibling)));
+                    }
+                    Entry::Occupied(mut entry) => {
+                        entry.insert(None);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // take the deepest non-empty node and check if its subtree contains just a single leaf
+        if let Some((_, Some((node_depth, node)))) = non_empty_nodes.pop_last() {
+            let mut node_index = NodeIndex::new(depth, index.as_int()).expect("invalid node index");
+            node_index.move_up_to(node_depth);
+            let node_index = node_index.sibling();
+
+            if let Some((mut leaf_index, leaf)) = self.advice_provider.find_lone_leaf(
+                node.into(),
+                node_index,
+                TieredSmt::MAX_DEPTH,
+            )? {
+                // if the node's subtree does contain a single leaf, figure out to which depth
+                // we can move it up to. we do this by taking the next tier down from the tier
+                // which contained at least one non-empty node on the path from the original leaf
+                // up to the root. if there were no non-empty nodes on this path, we default to
+                // the first tier (i.e., depth 16).
+                let target_tier = non_empty_nodes.keys().last().map(|&t| t + 1).unwrap_or(1);
+                leaf_index.move_up_to(target_tier * TieredSmt::TIER_SIZE);
+
+                return Ok(Some((leaf.into(), leaf_index)));
+            }
+        }
+
+        Ok(None)
     }
 }
 

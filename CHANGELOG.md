@@ -19,6 +19,9 @@
 - Allowed the assembler to produce programs with "phantom" calls (#1019).
 - Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
 
+#### Stdlib
+- Completed `std::collections::smt` module by implementing `insert` and `set` procedures (#1036, #1038, #1046).
+
 ## 0.6.1 (2023-06-29)
 
 - Fixed `no-std` compilation for `miden-core`, `miden-assembly`, and `miden-processor` crates.

@@ -167,6 +167,9 @@ pub enum AdviceInjector {
     ///   - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
     ///   - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
     ///   - Complex insert: [f0, f1, ZERO (is_simple_insert), ZERO (is_update), E_KEY, E_VALUE]
+    ///   - Delete against an empty subtree: [d0, d1, ZERO (is_leaf), ONE (key_not_set)]
+    ///   - Delete against another leaf: [d0, d1, ONE (is_leaf), ONE (key_not_set), KEY, VALUE]
+    ///   - Delete against own leaf: [ZERO, ZERO, ZERO, ZERO (key_not_set), NEW_ROOT, OLD_VALUE]
     ///
     /// Where:
     /// - ROOT and NEW_ROOT are the roots of the TSMT before and after the insert respectively.

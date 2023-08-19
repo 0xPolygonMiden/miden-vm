@@ -1244,7 +1244,7 @@ proc.verify_empty_node_48
 end
 
 #! Verifies that a leaf node located at depth d and index idx in the tree defined by root R is
-#! contains key which is different from K.
+#! contained key which is different from K.
 #!
 #! Input:  [d, idx, K, R, Z, ...]
 #! Output: [Z, R, ...]
@@ -1287,10 +1287,14 @@ end
 #! If the key-value pair is not in the tree, this proves that the key-value pair is not in the
 #! tree but does not modify the tree itself.
 #!
-#! This assumes that the value Z is [ZERO; 4], but this is not checked.
-#!
 #! Input:  [key_not_in_tree, f0, f1, f2, Z, K, R, ...]
 #! Output: [V_old, R_new, ...]
+#!
+#! Where:
+#! - key_not_in_tree is a flag specifying whether the specified key is present in the tree defined
+#!   by R.
+#! - Meaning of the flags f0, f1, and f2 depends on what type of delete is being executed.
+#! - Z is [ZERO; 4]. This is assumed but not checked.
 #!
 #! Cycles:
 #! - Key not in the tree (key with common prefix in the tree):
@@ -1349,7 +1353,7 @@ proc.delete
             end
         end
     else # --- key is in the tree ---------------------------------------------------------------
-        # load the root of the tree with the leaf removed from the advice provider (2 cycles)
+        # load from the advice provider the root of the tree with the leaf removed (2 cycles)
         push.0 adv_loadw
         # => [R_new, Z, K, R, ...]
 

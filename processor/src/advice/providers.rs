@@ -103,18 +103,19 @@ where
         Ok(())
     }
 
+    // ADVICE MAP
+    // --------------------------------------------------------------------------------------------
+
+    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+        self.map.get(key).map(|v| v.as_slice())
+    }
+
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         self.map.insert(key.into_bytes(), values);
         Ok(())
     }
 
-    // ADVICE MAP
-    // --------------------------------------------------------------------------------------------
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
-        self.map.get(key).map(|v| v.as_slice())
-    }
-
-    // ADVISE SETS
+    // MERKLE STORE
     // --------------------------------------------------------------------------------------------
 
     fn get_tree_node(
@@ -163,6 +164,18 @@ where
             .map_err(|_| ExecutionError::InvalidTreeDepth { depth: *tree_depth })?;
         self.store
             .get_leaf_depth(root.into(), tree_depth, index.as_int())
+            .map_err(ExecutionError::MerkleStoreLookupFailed)
+    }
+
+    fn find_lone_leaf(
+        &self,
+        root: Word,
+        root_index: NodeIndex,
+        tree_depth: u8,
+    ) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
+        self.store
+            .find_lone_leaf(root.into(), root_index, tree_depth)
+            .map(|leaf| leaf.map(|(index, leaf)| (index, leaf.into())))
             .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
@@ -289,6 +302,10 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.get_leaf_depth(root, tree_depth, index)
     }
 
+    fn find_lone_leaf(&self, root: Word, root_index: NodeIndex, tree_depth: u8) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
+        self.provider.find_lone_leaf(root, root_index, tree_depth)
+    }
+
     fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
         self.provider.update_merkle_node(root, depth, index, value)
     }
@@ -412,6 +429,10 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
         self.provider.get_leaf_depth(root, tree_depth, index)
+    }
+
+    fn find_lone_leaf(&self, root: Word, root_index: NodeIndex, tree_depth: u8) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
+        self.provider.find_lone_leaf(root, root_index, tree_depth)
     }
 
     fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
