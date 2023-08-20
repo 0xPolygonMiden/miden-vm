@@ -15,6 +15,9 @@ use blocks::CodeBlock;
 mod info;
 pub use info::ProgramInfo;
 
+mod debug;
+pub use debug::SourceLocation;
+
 #[cfg(test)]
 mod tests;
 

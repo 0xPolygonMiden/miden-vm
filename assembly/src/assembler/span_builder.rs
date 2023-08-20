@@ -1,3 +1,5 @@
+use crate::tokens::SourceLocation;
+
 use super::{
     AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
     Instruction, Operation, ToString, Vec,
@@ -20,6 +22,7 @@ pub struct SpanBuilder {
     decorators: DecoratorList,
     epilogue: Vec<Operation>,
     last_asmop_pos: usize,
+    locations: Vec<SourceLocation>,
 }
 
 impl SpanBuilder {
@@ -37,6 +40,7 @@ impl SpanBuilder {
                 decorators: Vec::new(),
                 epilogue: wrapper.epilogue,
                 last_asmop_pos: 0,
+                locations: Vec::new(),
             },
             None => Self::default(),
         }
@@ -44,6 +48,10 @@ impl SpanBuilder {
 
     // OPERATIONS
     // --------------------------------------------------------------------------------------------
+
+    pub fn ops_len(&self) -> usize {
+        self.ops.len()
+    }
 
     /// Adds the specified operation to the list of span operations and returns Ok(None).
     pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblyError> {
@@ -79,6 +87,14 @@ impl SpanBuilder {
     pub fn push_op_many(&mut self, op: Operation, n: usize) {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
+    }
+
+    pub fn add_op_location(&mut self, location: SourceLocation) {
+        self.locations.push(location);
+    }
+
+    pub fn op_locations(&self) -> &[SourceLocation] {
+        &self.locations
     }
 
     // DECORATORS
@@ -143,7 +159,11 @@ impl SpanBuilder {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
-            target.push(CodeBlock::new_span_with_decorators(ops, decorators));
+            let mut locations = Vec::new();
+            for location in &self.locations {
+                locations.push(vm_core::SourceLocation::new(0, location.line(), location.column()));
+            }
+            target.push(CodeBlock::new_span_with_decorators(ops, decorators, locations));
         } else if !self.decorators.is_empty() {
             // this is a bug in the assembler. we shouldn't have decorators added without their
             // associated operations

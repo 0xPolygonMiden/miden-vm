@@ -1,6 +1,7 @@
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, NamedProcedure,
-    Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString, Vec,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, DebugInfoTable, Kernel, LibraryPath,
+    NamedProcedure, Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString,
+    Vec,
 };
 
 // ASSEMBLY CONTEXT
@@ -17,6 +18,8 @@ pub struct AssemblyContext {
     is_kernel: bool,
     kernel: Option<Kernel>,
     allow_phantom_calls: bool,
+    debug_info: Option<DebugInfoTable>,
+    block_path: Vec<u8>,
 }
 
 /// Describes which type of Miden assembly modules can be compiled with a given [AssemblyContext].
@@ -35,7 +38,7 @@ impl AssemblyContext {
     ///
     /// The `context_type` specifies how the context will be used and the [AssemblyContext] is
     /// instantiated accordingly.
-    pub fn new(context_type: AssemblyContextType) -> Self {
+    pub fn new(context_type: AssemblyContextType, debug_mode: bool) -> Self {
         let modules = match context_type {
             AssemblyContextType::Kernel | AssemblyContextType::Module => Vec::new(),
             // for executable programs we initialize the module stack with the context of the
@@ -48,6 +51,12 @@ impl AssemblyContext {
             is_kernel: context_type == AssemblyContextType::Kernel,
             kernel: None,
             allow_phantom_calls: false,
+            debug_info: if debug_mode {
+                Some(DebugInfoTable::default())
+            } else {
+                None
+            },
+            block_path: Vec::new(),
         }
     }
 
@@ -129,6 +138,18 @@ impl AssemblyContext {
 
         // return compiled procedures and callset from the module
         (module_ctx.compiled_procs, module_ctx.callset)
+    }
+
+    pub fn debug_info(&mut self) -> Option<DebugInfoTable> {
+        self.debug_info.take()
+    }
+
+    pub fn debug_info_mut(&mut self) -> &mut DebugInfoTable {
+        self.debug_info.as_mut().expect("debug info not initialized")
+    }
+
+    pub fn add_block_to_path(&mut self, block: u8) {
+        self.block_path.push(block);
     }
 
     // PROCEDURE PROCESSORS
@@ -288,6 +309,33 @@ impl AssemblyContext {
         }
 
         Ok(cb_table)
+    }
+
+    pub fn into_parts(
+        mut self,
+        proc_cache: &ProcedureCache,
+    ) -> Result<(CodeBlockTable, DebugInfoTable), AssemblyError> {
+        // get the last module off the module stack
+        assert_eq!(self.module_stack.len(), 1, "module stack must contain exactly one module");
+        let mut main_module_context = self.module_stack.pop().unwrap();
+        // complete compilation of the executable module; this appends the callset of the main
+        // procedure to the callset of the executable module
+        main_module_context.complete_executable();
+
+        // build the code block table based on the callset of the executable module; called
+        // procedures can be either in the specified procedure cache (for procedures imported from
+        // other modules) or in the module's procedures (for procedures defined locally).
+        let mut cb_table = CodeBlockTable::default();
+        for mast_root in main_module_context.callset.iter() {
+            let proc = proc_cache
+                .get_by_hash(mast_root)
+                .or_else(|| main_module_context.find_local_proc(mast_root))
+                .ok_or(AssemblyError::CallSetProcedureNotFound(*mast_root))?;
+
+            cb_table.insert(proc.code().clone());
+        }
+
+        Ok((cb_table, self.debug_info.unwrap()))
     }
 
     // HELPER METHODS

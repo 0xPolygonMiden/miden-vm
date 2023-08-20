@@ -1,3 +1,5 @@
+use crate::{ast::CodeBody, tokens::SourceLocation};
+
 use super::{
     ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
     btree_map,
@@ -7,7 +9,11 @@ use super::{
     ProcedureName, Program, ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
-use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
+use vm_core::{
+    crypto::hash::{Blake3Digest, Blake3_160},
+    utils::group_vector_elements,
+    Decorator, DecoratorList,
+};
 
 mod instruction;
 
@@ -88,7 +94,7 @@ impl Assembler {
     /// Returns an error if compiling kernel source results in an error.
     pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
-        let mut context = AssemblyContext::new(AssemblyContextType::Kernel);
+        let mut context = AssemblyContext::new(AssemblyContextType::Kernel, false);
         let kernel = Module::kernel(module);
         self.compile_module(&kernel, &mut context)?;
 
@@ -131,7 +137,7 @@ impl Assembler {
         let program = ProgramAst::parse(source)?;
 
         // compile the program
-        let mut context = AssemblyContext::new(AssemblyContextType::Program);
+        let mut context = AssemblyContext::new(AssemblyContextType::Program, false);
         let program_root = self.compile_in_context(&program, &mut context)?;
 
         // convert the context into a call block table for the program
@@ -139,6 +145,22 @@ impl Assembler {
 
         // build and return the program
         Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
+    }
+
+    pub fn compile_debug<S>(&self, source: S) -> Result<(Program, DebugInfoTable), AssemblyError>
+    where
+        S: AsRef<str>,
+    {
+        let source = source.as_ref();
+        let program = ProgramAst::parse(source)?;
+        let mut context = AssemblyContext::new(AssemblyContextType::Program, true);
+        let program_root = self.compile_in_context(&program, &mut context)?;
+
+        let (cb_table, debug_info) = context.into_parts(&self.proc_cache.borrow())?;
+
+        let program = Program::with_kernel(program_root, self.kernel.clone(), cb_table);
+
+        Ok((program, debug_info))
     }
 
     /// Compiles the provided [ProgramAst] into a program and returns the program root
@@ -169,7 +191,7 @@ impl Assembler {
         }
 
         // compile the program body
-        let program_root = self.compile_body(program.body().nodes().iter(), context, None)?;
+        let program_root = self.compile_body(program.body(), context, None)?;
 
         Ok(program_root)
     }
@@ -264,9 +286,9 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.body.nodes().iter(), context, Some(wrapper))?
+            self.compile_body(&proc.body, context, Some(wrapper))?
         } else {
-            self.compile_body(proc.body.nodes().iter(), context, None)?
+            self.compile_body(&proc.body, context, None)?
         };
 
         context.complete_proc(code);
@@ -278,25 +300,34 @@ impl Assembler {
     // --------------------------------------------------------------------------------------------
 
     /// TODO: add comments
-    fn compile_body<A, N>(
+    fn compile_body(
         &self,
-        body: A,
+        body: &CodeBody,
         context: &mut AssemblyContext,
         wrapper: Option<BodyWrapper>,
-    ) -> Result<CodeBlock, AssemblyError>
-    where
-        A: Iterator<Item = N>,
-        N: Borrow<Node>,
-    {
+    ) -> Result<CodeBlock, AssemblyError> {
         let mut blocks: Vec<CodeBlock> = Vec::new();
         let mut span = SpanBuilder::new(wrapper);
 
-        for node in body {
-            match node.borrow() {
+        for (i, node) in body.nodes().into_iter().enumerate() {
+            match node {
                 Node::Instruction(inner) => {
-                    if let Some(block) = self.compile_instruction(inner, &mut span, context)? {
+                    let span_ops_len = span.ops_len();
+                    let location = if !body.source_locations().is_empty() {
+                        body.source_locations()[i]
+                    } else {
+                        SourceLocation::default()
+                    };
+                    if let Some(block) =
+                        self.compile_instruction(inner, &mut span, context, location)?
+                    {
                         span.extract_span_into(&mut blocks);
                         blocks.push(block);
+                    }
+                    if !body.source_locations().is_empty() {
+                        for _ in span_ops_len..span.ops_len() {
+                            span.add_op_location(body.source_locations()[i]);
+                        }
                     }
                 }
 
@@ -305,18 +336,22 @@ impl Assembler {
                     false_case,
                 } => {
                     span.extract_span_into(&mut blocks);
-
-                    let true_case = self.compile_body(true_case.nodes().iter(), context, None)?;
+                    let true_case = self.compile_body(true_case, context, None)?;
 
                     // else is an exception because it is optional; hence, will have to be replaced
                     // by noop span
                     let false_case = if !false_case.nodes().is_empty() {
-                        self.compile_body(false_case.nodes().iter(), context, None)?
+                        self.compile_body(false_case, context, None)?
                     } else {
-                        CodeBlock::new_span(vec![Operation::Noop])
+                        CodeBlock::new_span(vec![Operation::Noop], vec![])
                     };
 
-                    let block = CodeBlock::new_split(true_case, false_case);
+                    // TODO: add correct source location of the if-else node
+                    let block = CodeBlock::new_split(
+                        true_case,
+                        false_case,
+                        [vm_core::SourceLocation::default(); 2],
+                    );
 
                     blocks.push(block);
                 }
@@ -324,7 +359,7 @@ impl Assembler {
                 Node::Repeat { times, body } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(body.nodes().iter(), context, None)?;
+                    let block = self.compile_body(body, context, None)?;
 
                     for _ in 0..*times {
                         blocks.push(block.clone());
@@ -334,8 +369,9 @@ impl Assembler {
                 Node::While { body } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(body.nodes().iter(), context, None)?;
-                    let block = CodeBlock::new_loop(block);
+                    let block = self.compile_body(body, context, None)?;
+                    // TODO: add correct source location of the while node
+                    let block = CodeBlock::new_loop(block, vm_core::SourceLocation::default());
 
                     blocks.push(block);
                 }
@@ -344,7 +380,7 @@ impl Assembler {
 
         span.extract_final_span_into(&mut blocks);
         Ok(if blocks.is_empty() {
-            CodeBlock::new_span(vec![Operation::Noop])
+            CodeBlock::new_span(vec![Operation::Noop], vec![])
         } else {
             combine_blocks(blocks)
         })
@@ -466,6 +502,7 @@ fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
 
     let mut ops = Vec::<Operation>::new();
     let mut decorators = DecoratorList::new();
+    let mut locations = Vec::new();
     spans.drain(0..).for_each(|block| {
         if let CodeBlock::Span(span) = block {
             for decorator in span.decorators() {
@@ -474,9 +511,79 @@ fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
             for batch in span.op_batches() {
                 ops.extend_from_slice(batch.ops());
             }
+            for location in span.locations() {
+                locations.push(*location);
+            }
         } else {
             panic!("CodeBlock was expected to be a Span Block, got {block:?}.");
         }
     });
-    CodeBlock::new_span_with_decorators(ops, decorators)
+    CodeBlock::new_span_with_decorators(ops, decorators, locations)
+}
+
+#[derive(Default, Debug)]
+pub struct DebugInfoTable {
+    // Fully-qualified paths of all modules imported during program compilation.
+    pub modules: Vec<LibraryPath>,
+    // A map from a unique identifier of a block in the MAST to a struct contain all
+    // source location information for this block.
+    pub locations: BTreeMap<BlockId, BlockLocations>,
+}
+
+impl DebugInfoTable {
+    pub fn new() -> Self {
+        Self {
+            modules: Vec::new(),
+            locations: BTreeMap::new(),
+        }
+    }
+
+    pub fn add_module(&mut self, module_path: LibraryPath) -> u32 {
+        self.modules.push(module_path);
+        (self.modules.len() - 1) as u32
+    }
+
+    pub fn add_block_locations(&mut self, block_id: BlockId, block_locations: BlockLocations) {
+        self.locations.insert(block_id, block_locations);
+    }
+}
+
+#[derive(Debug)]
+pub struct BlockLocations {
+    // An index into the `modules` vector  of `DebugInfoTable`.
+    pub module_id: u32,
+    // A vector of locations (i.e., row-column pairs) for operations in this code block.
+    // Meaning of these locations would be different depending on the type of the block
+    // being executed. For example, for SPAN blocks, every operation would correspond
+    // to a location.
+    pub op_locations: Vec<SourceLocation>,
+}
+
+impl BlockLocations {
+    pub fn new(module_id: u32) -> Self {
+        Self {
+            module_id,
+            op_locations: Vec::new(),
+        }
+    }
+
+    pub fn add_ops(&mut self, op_locations: Vec<SourceLocation>) {
+        self.op_locations.extend(op_locations);
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct BlockId(Blake3Digest<{ Self::SIZE }>);
+
+impl BlockId {
+    const SIZE: usize = 20;
+
+    pub fn new(data: &[u8]) -> Self {
+        Self(Blake3_160::hash(data))
+    }
+
+    pub fn append_path(&mut self, path: u8) -> Self {
+        self.0.to_vec().push(path);
+        Self(Blake3_160::hash(&self.0))
+    }
 }

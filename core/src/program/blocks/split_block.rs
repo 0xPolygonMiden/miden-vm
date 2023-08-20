@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
+use crate::program::debug::SourceLocation;
 
 // SPLIT BLOCK
 // ================================================================================================
@@ -16,6 +17,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 pub struct Split {
     branches: Box<[CodeBlock; 2]>,
     hash: Digest,
+    locations: [SourceLocation; 2],
 }
 
 impl Split {
@@ -27,11 +29,12 @@ impl Split {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Split] block instantiated with the specified true and false branches.
-    pub fn new(t_branch: CodeBlock, f_branch: CodeBlock) -> Self {
+    pub fn new(t_branch: CodeBlock, f_branch: CodeBlock, locations: [SourceLocation; 2]) -> Self {
         let hash = hasher::merge_in_domain(&[t_branch.hash(), f_branch.hash()], Self::DOMAIN);
         Self {
             branches: Box::new([t_branch, f_branch]),
             hash,
+            locations,
         }
     }
 

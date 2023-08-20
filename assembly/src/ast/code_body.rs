@@ -114,6 +114,10 @@ impl CodeBody {
         &self.locations
     }
 
+    pub fn nodes_with_locations(&self) -> impl Iterator<Item = (&Node, &SourceLocation)> {
+        self.nodes.iter().zip(self.locations.iter())
+    }
+
     /// Returns true if this code body contain source location information.
     pub fn has_locations(&self) -> bool {
         !self.locations.is_empty()

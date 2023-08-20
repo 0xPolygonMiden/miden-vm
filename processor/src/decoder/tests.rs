@@ -46,8 +46,8 @@ type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 #[test]
 fn span_block_one_group() {
     let ops = vec![Operation::Pad, Operation::Add, Operation::Mul];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let span = Span::new(ops.clone(), vec![]);
+    let program = CodeBlock::new_span(ops.clone(), vec![]);
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
@@ -103,8 +103,8 @@ fn span_block_one_group() {
 fn span_block_small() {
     let iv = [ONE, TWO];
     let ops = vec![Operation::Push(iv[0]), Operation::Push(iv[1]), Operation::Add];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let span = Span::new(ops.clone(), vec![]);
+    let program = CodeBlock::new_span(ops.clone(), vec![]);
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
@@ -191,8 +191,8 @@ fn span_block() {
         Operation::Add,
         Operation::Inv,
     ];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let span = Span::new(ops.clone(), vec![]);
+    let program = CodeBlock::new_span(ops.clone(), vec![]);
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -317,8 +317,8 @@ fn span_block_with_respan() {
         Operation::Add,
         Operation::Push(iv[8]),
     ];
-    let span = Span::new(ops.clone());
-    let program = CodeBlock::new_span(ops.clone());
+    let span = Span::new(ops.clone(), vec![]);
+    let program = CodeBlock::new_span(ops.clone(), vec![]);
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -437,8 +437,8 @@ fn span_block_with_respan() {
 
 #[test]
 fn join_block() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
@@ -525,9 +525,10 @@ fn join_block() {
 
 #[test]
 fn split_block_true() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1.clone(), span2.clone());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
+    let program =
+        CodeBlock::new_split(span1.clone(), span2.clone(), [vm_core::SourceLocation::default(); 2]);
 
     let (trace, aux_hints, trace_len) = build_trace(&[1], &program);
 
@@ -596,9 +597,10 @@ fn split_block_true() {
 
 #[test]
 fn split_block_false() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1.clone(), span2.clone());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
+    let program =
+        CodeBlock::new_split(span1.clone(), span2.clone(), [vm_core::SourceLocation::default(); 2]);
 
     let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
 
@@ -670,8 +672,8 @@ fn split_block_false() {
 
 #[test]
 fn loop_block() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body.clone());
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop], vec![]);
+    let program = CodeBlock::new_loop(loop_body.clone(), vm_core::SourceLocation::default());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0, 1], &program);
 
@@ -742,8 +744,8 @@ fn loop_block() {
 
 #[test]
 fn loop_block_skip() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body.clone());
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop], vec![]);
+    let program = CodeBlock::new_loop(loop_body.clone(), vm_core::SourceLocation::default());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
 
@@ -794,8 +796,8 @@ fn loop_block_skip() {
 
 #[test]
 fn loop_block_repeat() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body.clone());
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop], vec![]);
+    let program = CodeBlock::new_loop(loop_body.clone(), vm_core::SourceLocation::default());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0, 1, 1], &program);
 
@@ -907,11 +909,11 @@ fn call_block() {
         Operation::Push(TWO),
         Operation::FmpUpdate,
         Operation::Pad,
-    ]);
-    let foo_root = CodeBlock::new_span(vec![Operation::Push(ONE), Operation::FmpUpdate]);
-    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd]);
+    ], vec![]);
+    let foo_root = CodeBlock::new_span(vec![Operation::Push(ONE), Operation::FmpUpdate], vec![]);
+    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd], vec![]);
 
-    let foo_call = CodeBlock::new_call(foo_root.hash());
+    let foo_call = CodeBlock::new_call(foo_root.hash(), vm_core::SourceLocation::default());
     let join1 = CodeBlock::new_join([first_span.clone(), foo_call.clone()]);
     let program = CodeBlock::new_join([join1.clone(), last_span.clone()]);
 
@@ -1146,11 +1148,11 @@ fn syscall_block() {
     // end
 
     // build foo procedure body
-    let foo_root = CodeBlock::new_span(vec![Operation::Push(THREE), Operation::FmpUpdate]);
+    let foo_root = CodeBlock::new_span(vec![Operation::Push(THREE), Operation::FmpUpdate], vec![]);
 
     // build bar procedure body
-    let bar_span = CodeBlock::new_span(vec![Operation::Push(TWO), Operation::FmpUpdate]);
-    let foo_call = CodeBlock::new_syscall(foo_root.hash());
+    let bar_span = CodeBlock::new_span(vec![Operation::Push(TWO), Operation::FmpUpdate], vec![]);
+    let foo_call = CodeBlock::new_syscall(foo_root.hash(), vm_core::SourceLocation::default());
     let bar_root = CodeBlock::new_join([bar_span.clone(), foo_call.clone()]);
 
     // build the program
@@ -1158,10 +1160,10 @@ fn syscall_block() {
         Operation::Push(ONE),
         Operation::FmpUpdate,
         Operation::Pad,
-    ]);
-    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd]);
+    ], vec![]);
+    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd], vec![]);
 
-    let bar_call = CodeBlock::new_call(bar_root.hash());
+    let bar_call = CodeBlock::new_call(bar_root.hash(), vm_core::SourceLocation::default());
     let inner_join = CodeBlock::new_join([first_span.clone(), bar_call.clone()]);
     let program = CodeBlock::new_join([inner_join.clone(), last_span.clone()]);
 
@@ -1469,7 +1471,7 @@ fn syscall_block() {
 #[test]
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------
-    let program = CodeBlock::new_span(vec![Operation::U32div]);
+    let program = CodeBlock::new_span(vec![Operation::U32div], vec![]);
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };

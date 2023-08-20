@@ -64,8 +64,8 @@ fn decoder_p1_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_join() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
     let program = CodeBlock::new_join([span1, span2]);
 
     let mut trace = build_trace_from_block(&program, &[]);
@@ -124,9 +124,9 @@ fn decoder_p1_join() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_split() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1, span2);
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
+    let program = CodeBlock::new_split(span1, span2, [vm_core::SourceLocation::default(); 2]);
 
     let mut trace = build_trace_from_block(&program, &[1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -171,10 +171,10 @@ fn decoder_p1_split() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_loop_with_repeat() {
-    let span1 = CodeBlock::new_span(vec![Operation::Pad]);
-    let span2 = CodeBlock::new_span(vec![Operation::Drop]);
+    let span1 = CodeBlock::new_span(vec![Operation::Pad], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Drop], vec![]);
     let body = CodeBlock::new_join([span1, span2]);
-    let program = CodeBlock::new_loop(body);
+    let program = CodeBlock::new_loop(body, vm_core::SourceLocation::default());
 
     let mut trace = build_trace_from_block(&program, &[0, 1, 1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -289,7 +289,7 @@ fn decoder_p1_loop_with_repeat() {
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
-    let span = CodeBlock::new_span(ops);
+    let span = CodeBlock::new_span(ops, vec![]);
     let mut trace = build_trace_from_block(&span, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
@@ -318,8 +318,8 @@ fn decoder_p2_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_join() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
     let mut trace = build_trace_from_block(&program, &[]);
@@ -374,9 +374,10 @@ fn decoder_p2_join() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_split_true() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1.clone(), span2);
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
+    let program =
+        CodeBlock::new_split(span1.clone(), span2, [vm_core::SourceLocation::default(); 2]);
 
     let mut trace = build_trace_from_block(&program, &[1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -420,9 +421,10 @@ fn decoder_p2_split_true() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_split_false() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Add]);
-    let program = CodeBlock::new_split(span1, span2.clone());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add], vec![]);
+    let program =
+        CodeBlock::new_split(span1, span2.clone(), [vm_core::SourceLocation::default(); 2]);
 
     let mut trace = build_trace_from_block(&program, &[0]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -466,10 +468,10 @@ fn decoder_p2_split_false() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_loop_with_repeat() {
-    let span1 = CodeBlock::new_span(vec![Operation::Pad]);
-    let span2 = CodeBlock::new_span(vec![Operation::Drop]);
+    let span1 = CodeBlock::new_span(vec![Operation::Pad], vec![]);
+    let span2 = CodeBlock::new_span(vec![Operation::Drop], vec![]);
     let body = CodeBlock::new_join([span1.clone(), span2.clone()]);
-    let program = CodeBlock::new_loop(body.clone());
+    let program = CodeBlock::new_loop(body.clone(), vm_core::SourceLocation::default());
 
     let mut trace = build_trace_from_block(&program, &[0, 1, 1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();

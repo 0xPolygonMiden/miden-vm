@@ -160,8 +160,8 @@ fn caller() {
 }
 
 fn build_bar_hash() -> [u64; 4] {
-    let foo_root = CodeBlock::new_span(vec![Operation::Caller]);
-    let bar_root = CodeBlock::new_syscall(foo_root.hash());
+    let foo_root = CodeBlock::new_span(vec![Operation::Caller], vec![]);
+    let bar_root = CodeBlock::new_syscall(foo_root.hash(), vm_core::SourceLocation::default());
     let bar_hash: Word = bar_root.hash().into();
     [
         bar_hash[0].as_int(),

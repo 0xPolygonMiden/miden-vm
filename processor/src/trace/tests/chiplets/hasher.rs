@@ -46,7 +46,7 @@ pub const DECODER_OP_BITS_RANGE: Range<usize> =
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_span() {
-    let program = CodeBlock::new_span(vec![Operation::Add, Operation::Mul]);
+    let program = CodeBlock::new_span(vec![Operation::Add, Operation::Mul], vec![]);
     let mut trace = build_trace_from_block(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -111,7 +111,7 @@ pub fn b_chip_span() {
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
-    let program = CodeBlock::new_span(ops);
+    let program = CodeBlock::new_span(ops, vec![]);
     let mut trace = build_trace_from_block(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -196,9 +196,9 @@ pub fn b_chip_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_merge() {
-    let t_branch = CodeBlock::new_span(vec![Operation::Add]);
-    let f_branch = CodeBlock::new_span(vec![Operation::Mul]);
-    let program = CodeBlock::new_split(t_branch, f_branch);
+    let t_branch = CodeBlock::new_span(vec![Operation::Add], vec![]);
+    let f_branch = CodeBlock::new_span(vec![Operation::Mul], vec![]);
+    let program = CodeBlock::new_split(t_branch, f_branch, [vm_core::SourceLocation::default(); 2]);
     let mut trace = build_trace_from_block(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
@@ -303,7 +303,7 @@ pub fn b_chip_merge() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_permutation() {
-    let program = CodeBlock::new_span(vec![Operation::HPerm]);
+    let program = CodeBlock::new_span(vec![Operation::HPerm], vec![]);
     let stack = vec![8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
     let mut trace = build_trace_from_block(&program, &stack);
 

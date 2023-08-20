@@ -2,7 +2,7 @@ use super::{
     Assembler, AssemblyContext, AssemblyError, CodeBlock, Felt, Instruction, Operation,
     ProcedureId, RpoDigest, SpanBuilder, ONE, ZERO,
 };
-use crate::utils::bound_into_included_u64;
+use crate::{tokens::SourceLocation, utils::bound_into_included_u64};
 use core::ops::RangeBounds;
 use vm_core::{FieldElement, StarkField};
 
@@ -26,6 +26,7 @@ impl Assembler {
         instruction: &Instruction,
         span: &mut SpanBuilder,
         ctx: &mut AssemblyContext,
+        location: SourceLocation,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         use Operation::*;
 
@@ -301,10 +302,10 @@ impl Assembler {
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::ExecLocal(idx) => self.exec_local(*idx, ctx),
             Instruction::ExecImported(id) => self.exec_imported(id, ctx),
-            Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
-            Instruction::CallMastRoot(root) => self.call_mast_root(root, ctx),
-            Instruction::CallImported(id) => self.call_imported(id, ctx),
-            Instruction::SysCall(id) => self.syscall(id, ctx),
+            Instruction::CallLocal(idx) => self.call_local(*idx, ctx, location),
+            Instruction::CallMastRoot(root) => self.call_mast_root(root, ctx, location),
+            Instruction::CallImported(id) => self.call_imported(id, ctx, location),
+            Instruction::SysCall(id) => self.syscall(id, ctx, location),
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {

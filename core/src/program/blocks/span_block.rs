@@ -1,5 +1,5 @@
 use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
-use crate::{DecoratorIterator, DecoratorList};
+use crate::{program::debug::SourceLocation, DecoratorIterator, DecoratorList};
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -50,6 +50,7 @@ pub struct Span {
     op_batches: Vec<OpBatch>,
     hash: Digest,
     decorators: DecoratorList,
+    locations: Vec<SourceLocation>,
 }
 
 impl Span {
@@ -66,9 +67,9 @@ impl Span {
     /// Returns an error if:
     /// - `operations` vector is empty.
     /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>) -> Self {
+    pub fn new(operations: Vec<Operation>, locations: Vec<SourceLocation>) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
-        Self::with_decorators(operations, DecoratorList::new())
+        Self::with_decorators(operations, DecoratorList::new(), locations)
     }
 
     /// Returns a new [Span] block instantiated with the specified operations and decorators.
@@ -77,7 +78,11 @@ impl Span {
     /// Returns an error if:
     /// - `operations` vector is empty.
     /// - `operations` vector contains any number of system operations.
-    pub fn with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
+    pub fn with_decorators(
+        operations: Vec<Operation>,
+        decorators: DecoratorList,
+        locations: Vec<SourceLocation>,
+    ) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
 
         // validate decorators list (only in debug mode)
@@ -89,6 +94,7 @@ impl Span {
             op_batches,
             hash,
             decorators,
+            locations,
         }
     }
 
@@ -105,6 +111,11 @@ impl Span {
         &self.op_batches
     }
 
+    /// Returns a list of source locations for this span block.
+    pub fn locations(&self) -> &[SourceLocation] {
+        &self.locations
+    }
+
     // SPAN MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -114,8 +125,10 @@ impl Span {
     pub fn replicate(&self, num_copies: usize) -> Self {
         let own_ops = self.get_ops();
         let own_decorators = &self.decorators;
+        let own_locations = &self.locations;
         let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
         let mut decorators = DecoratorList::new();
+        let mut locations = Vec::with_capacity(own_locations.len() * num_copies);
 
         for i in 0..num_copies {
             // replicate decorators of a span block
@@ -123,8 +136,9 @@ impl Span {
                 decorators.push((own_ops.len() * i + decorator.0, decorator.1.clone()))
             }
             ops.extend_from_slice(&own_ops);
+            locations.extend_from_slice(&own_locations);
         }
-        Self::with_decorators(ops, decorators)
+        Self::with_decorators(ops, decorators, locations)
     }
 
     /// Returns a list of decorators in this span block

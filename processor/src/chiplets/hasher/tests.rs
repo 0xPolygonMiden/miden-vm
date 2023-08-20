@@ -639,10 +639,18 @@ fn hash_memoization_control_blocks() {
     //        /      \
     //      Split1     Split2 (memoized)
 
-    let t_branch = CodeBlock::new_span(vec![Operation::Push(ZERO)]);
-    let f_branch = CodeBlock::new_span(vec![Operation::Push(ONE)]);
-    let split1_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
-    let split2_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
+    let t_branch = CodeBlock::new_span(vec![Operation::Push(ZERO)], vec![]);
+    let f_branch = CodeBlock::new_span(vec![Operation::Push(ONE)], vec![]);
+    let split1_block = CodeBlock::new_split(
+        t_branch.clone(),
+        f_branch.clone(),
+        [vm_core::SourceLocation::default(); 2],
+    );
+    let split2_block = CodeBlock::new_split(
+        t_branch.clone(),
+        f_branch.clone(),
+        [vm_core::SourceLocation::default(); 2],
+    );
     let join_block = CodeBlock::new_join([split1_block.clone(), split2_block.clone()]);
 
     let mut hasher = Hasher::default();
@@ -775,49 +783,53 @@ fn hash_memoization_control_blocks() {
 #[test]
 fn hash_memoization_span_blocks() {
     // --- span block with 1 batch ----------------------------------------------------------------
-    let span_block = CodeBlock::new_span(vec![Operation::Push(Felt::new(10)), Operation::Drop]);
+    let span_block =
+        CodeBlock::new_span(vec![Operation::Push(Felt::new(10)), Operation::Drop], vec![]);
 
     hash_memoization_span_blocks_check(span_block);
 
     // --- span block with multiple batches -------------------------------------------------------
-    let span_block = CodeBlock::new_span(vec![
-        Operation::Push(Felt::new(1)),
-        Operation::Push(Felt::new(2)),
-        Operation::Push(Felt::new(3)),
-        Operation::Push(Felt::new(4)),
-        Operation::Push(Felt::new(5)),
-        Operation::Push(Felt::new(6)),
-        Operation::Push(Felt::new(7)),
-        Operation::Push(Felt::new(8)),
-        Operation::Push(Felt::new(9)),
-        Operation::Push(Felt::new(10)),
-        Operation::Push(Felt::new(11)),
-        Operation::Push(Felt::new(12)),
-        Operation::Push(Felt::new(13)),
-        Operation::Push(Felt::new(14)),
-        Operation::Push(Felt::new(15)),
-        Operation::Push(Felt::new(16)),
-        Operation::Push(Felt::new(17)),
-        Operation::Push(Felt::new(18)),
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-    ]);
+    let span_block = CodeBlock::new_span(
+        vec![
+            Operation::Push(Felt::new(1)),
+            Operation::Push(Felt::new(2)),
+            Operation::Push(Felt::new(3)),
+            Operation::Push(Felt::new(4)),
+            Operation::Push(Felt::new(5)),
+            Operation::Push(Felt::new(6)),
+            Operation::Push(Felt::new(7)),
+            Operation::Push(Felt::new(8)),
+            Operation::Push(Felt::new(9)),
+            Operation::Push(Felt::new(10)),
+            Operation::Push(Felt::new(11)),
+            Operation::Push(Felt::new(12)),
+            Operation::Push(Felt::new(13)),
+            Operation::Push(Felt::new(14)),
+            Operation::Push(Felt::new(15)),
+            Operation::Push(Felt::new(16)),
+            Operation::Push(Felt::new(17)),
+            Operation::Push(Felt::new(18)),
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+            Operation::Drop,
+        ],
+        vec![],
+    );
 
     hash_memoization_span_blocks_check(span_block);
 }
@@ -838,8 +850,9 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     //  Span1   Loop
 
     let span1_block = span_block.clone();
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Eq, Operation::Not]);
-    let loop_block = CodeBlock::new_loop(loop_body);
+    let loop_body =
+        CodeBlock::new_span(vec![Operation::Pad, Operation::Eq, Operation::Not], vec![]);
+    let loop_block = CodeBlock::new_loop(loop_body, vm_core::SourceLocation::default());
     let join2_block = CodeBlock::new_join([span1_block.clone(), loop_block.clone()]);
     let span2_block = span_block;
     let join1_block = CodeBlock::new_join([join2_block.clone(), span2_block.clone()]);

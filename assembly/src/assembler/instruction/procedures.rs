@@ -1,4 +1,5 @@
 use super::{Assembler, AssemblyContext, AssemblyError, CodeBlock, ProcedureId, RpoDigest};
+use crate::tokens::SourceLocation;
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -48,6 +49,7 @@ impl Assembler {
         &self,
         index: u16,
         context: &mut AssemblyContext,
+        location: SourceLocation,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         // register a "non-inlined" call to the procedure at the specified index in the module
         // currently being complied; this updates the callset of the procedure currently being
@@ -55,13 +57,17 @@ impl Assembler {
         let proc = context.register_local_call(index, false)?;
 
         // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(proc.mast_root())))
+        Ok(Some(CodeBlock::new_call(
+            proc.mast_root(),
+            vm_core::SourceLocation::new(0, location.line(), location.column()),
+        )))
     }
 
     pub(super) fn call_mast_root(
         &self,
         mast_root: &RpoDigest,
         context: &mut AssemblyContext,
+        location: SourceLocation,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
@@ -75,13 +81,17 @@ impl Assembler {
         }
 
         // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(*mast_root)))
+        Ok(Some(CodeBlock::new_call(
+            *mast_root,
+            vm_core::SourceLocation::new(0, location.line(), location.column()),
+        )))
     }
 
     pub(super) fn call_imported(
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
+        location: SourceLocation,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         // make sure the procedure is in procedure cache
         self.ensure_procedure_is_in_cache(proc_id, context)?;
@@ -95,13 +105,17 @@ impl Assembler {
         context.register_external_call(proc, false)?;
 
         // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(proc.mast_root())))
+        Ok(Some(CodeBlock::new_call(
+            proc.mast_root(),
+            vm_core::SourceLocation::new(0, location.line(), location.column()),
+        )))
     }
 
     pub(super) fn syscall(
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
+        location: SourceLocation,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         // fetch from proc cache and check if its a kernel procedure
         // note: the assembler is expected to have all kernel procedures properly inserted in the
@@ -121,6 +135,9 @@ impl Assembler {
         context.register_external_call(proc, false)?;
 
         // create a new SYSCALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_syscall(proc.mast_root())))
+        Ok(Some(CodeBlock::new_syscall(
+            proc.mast_root(),
+            vm_core::SourceLocation::new(0, location.line(), location.column()),
+        )))
     }
 }

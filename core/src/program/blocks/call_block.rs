@@ -1,5 +1,5 @@
 use super::{fmt, hasher, Digest, Felt, Operation};
-use crate::utils::to_hex;
+use crate::{program::debug::SourceLocation, utils::to_hex};
 
 // CALL BLOCK
 // ================================================================================================
@@ -19,6 +19,7 @@ pub struct Call {
     hash: Digest,
     fn_hash: Digest,
     is_syscall: bool,
+    location: SourceLocation,
 }
 
 impl Call {
@@ -32,23 +33,25 @@ impl Call {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Call] block instantiated with the specified function body hash.
-    pub fn new(fn_hash: Digest) -> Self {
+    pub fn new(fn_hash: Digest, location: SourceLocation) -> Self {
         let hash = hasher::merge_in_domain(&[fn_hash, Digest::default()], Self::CALL_DOMAIN);
         Self {
             hash,
             fn_hash,
             is_syscall: false,
+            location,
         }
     }
 
     /// Returns a new [Call] block instantiated with the specified function body hash and marked
     /// as a kernel call.
-    pub fn new_syscall(fn_hash: Digest) -> Self {
+    pub fn new_syscall(fn_hash: Digest, location: SourceLocation) -> Self {
         let hash = hasher::merge_in_domain(&[fn_hash, Digest::default()], Self::SYSCALL_DOMAIN);
         Self {
             hash,
             fn_hash,
             is_syscall: true,
+            location,
         }
     }
 

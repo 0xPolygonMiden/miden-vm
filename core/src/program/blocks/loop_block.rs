@@ -1,3 +1,5 @@
+use crate::program::debug::SourceLocation;
+
 use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // LOOP BLOCK
@@ -16,6 +18,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 pub struct Loop {
     body: Box<CodeBlock>,
     hash: Digest,
+    location: SourceLocation,
 }
 
 impl Loop {
@@ -27,11 +30,12 @@ impl Loop {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Loop] bock instantiated with the specified body.
-    pub fn new(body: CodeBlock) -> Self {
+    pub fn new(body: CodeBlock, location: SourceLocation) -> Self {
         let hash = hasher::merge_in_domain(&[body.hash(), Digest::default()], Self::DOMAIN);
         Self {
             body: Box::new(body),
             hash,
+            location,
         }
     }
 

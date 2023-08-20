@@ -29,7 +29,7 @@ pub fn build_trace_from_block(program: &CodeBlock, stack_inputs: &[u64]) -> Exec
 /// Builds a sample trace by executing a span block containing the specified operations. This
 /// results in 1 additional hash cycle (8 rows) at the beginning of the hash chiplet.
 pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> ExecutionTrace {
-    let program = CodeBlock::new_span(operations);
+    let program = CodeBlock::new_span(operations, vec![]);
     build_trace_from_block(&program, stack)
 }
 
@@ -44,7 +44,7 @@ pub fn build_trace_from_ops_with_inputs(
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let mut process =
         Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
-    let program = CodeBlock::new_span(operations);
+    let program = CodeBlock::new_span(operations, vec![]);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }

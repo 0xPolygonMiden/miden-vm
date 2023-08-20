@@ -114,7 +114,7 @@ fn build_trace(
     let advice_provider = MemAdviceProvider::default();
     let mut process =
         Process::new(kernel, stack_inputs, advice_provider, ExecutionOptions::default());
-    let program = CodeBlock::new_span(operations);
+    let program = CodeBlock::new_span(operations, vec![]);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);

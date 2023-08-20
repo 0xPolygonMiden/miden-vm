@@ -36,7 +36,9 @@ pub use math::{
 };
 
 mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};
+pub use program::{
+    blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo, SourceLocation,
+};
 
 mod operations;
 pub use operations::{

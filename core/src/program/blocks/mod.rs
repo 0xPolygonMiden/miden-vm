@@ -1,4 +1,4 @@
-use super::{hasher, Box, Digest, Felt, FieldElement, Operation, Vec};
+use super::{debug::SourceLocation, hasher, Box, Digest, Felt, FieldElement, Operation, Vec};
 use crate::DecoratorList;
 use core::fmt;
 
@@ -37,13 +37,17 @@ impl CodeBlock {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a new Span block instantiated with the provided operations.
-    pub fn new_span(operations: Vec<Operation>) -> Self {
-        Self::Span(Span::new(operations))
+    pub fn new_span(operations: Vec<Operation>, locations: Vec<SourceLocation>) -> Self {
+        Self::Span(Span::new(operations, locations))
     }
 
     /// Returns a new Span block instantiated with the provided operations and decorator list.
-    pub fn new_span_with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
-        Self::Span(Span::with_decorators(operations, decorators))
+    pub fn new_span_with_decorators(
+        operations: Vec<Operation>,
+        decorators: DecoratorList,
+        locations: Vec<SourceLocation>,
+    ) -> Self {
+        Self::Span(Span::with_decorators(operations, decorators, locations))
     }
 
     /// TODO: add comments
@@ -52,23 +56,27 @@ impl CodeBlock {
     }
 
     /// TODO: add comments
-    pub fn new_split(t_branch: CodeBlock, f_branch: CodeBlock) -> Self {
-        Self::Split(Split::new(t_branch, f_branch))
+    pub fn new_split(
+        t_branch: CodeBlock,
+        f_branch: CodeBlock,
+        locations: [SourceLocation; 2],
+    ) -> Self {
+        Self::Split(Split::new(t_branch, f_branch, locations))
     }
 
     /// TODO: add comments
-    pub fn new_loop(body: CodeBlock) -> Self {
-        Self::Loop(Loop::new(body))
+    pub fn new_loop(body: CodeBlock, location: SourceLocation) -> Self {
+        Self::Loop(Loop::new(body, location))
     }
 
     /// TODO: add comments
-    pub fn new_call(fn_hash: Digest) -> Self {
-        Self::Call(Call::new(fn_hash))
+    pub fn new_call(fn_hash: Digest, location: SourceLocation) -> Self {
+        Self::Call(Call::new(fn_hash, location))
     }
 
     /// TODO: add comments
-    pub fn new_syscall(fn_hash: Digest) -> Self {
-        Self::Call(Call::new_syscall(fn_hash))
+    pub fn new_syscall(fn_hash: Digest, location: SourceLocation) -> Self {
+        Self::Call(Call::new_syscall(fn_hash, location))
     }
 
     /// TODO: add comments
@@ -106,6 +114,19 @@ impl CodeBlock {
             CodeBlock::Split(_) => Split::DOMAIN,
             CodeBlock::Proxy(_) => panic!("Can't fetch `domain` for a `Proxy` block!"),
         }
+    }
+
+    pub fn to_u8(&self, child_path: u8) -> u8 {
+        let block_type = match self {
+            CodeBlock::Span(_) => 0,
+            CodeBlock::Join(_) => 1,
+            CodeBlock::Split(_) => 2,
+            CodeBlock::Loop(_) => 3,
+            CodeBlock::Call(_) => 4,
+            CodeBlock::Proxy(_) => 5,
+        };
+
+        (block_type << 4) | child_path
     }
 }
 

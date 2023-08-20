@@ -74,7 +74,7 @@ fn nested_blocks() {
         .borrow()
         .values()
         .next()
-        .map(|p| CodeBlock::new_syscall(p.mast_root()))
+        .map(|p| CodeBlock::new_syscall(p.mast_root(), vm_core::SourceLocation::default()))
         .unwrap();
 
     let program = r#"
@@ -113,29 +113,96 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
-    let before = CodeBlock::new_span(vec![Operation::Push(2u64.into())]);
+    let before = CodeBlock::new_span(vec![Operation::Push(2u64.into())], vec![]);
 
-    let r#true = CodeBlock::new_span(vec![Operation::Push(3u64.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(5u64.into())]);
-    let r#if = CodeBlock::new_split(r#true, r#false);
+    let r#true = CodeBlock::new_span(vec![Operation::Push(3u64.into())], vec![]);
+    let r#false = CodeBlock::new_span(vec![Operation::Push(5u64.into())], vec![]);
+    let r#if = CodeBlock::new_split(r#true, r#false, [vm_core::SourceLocation::default(); 2]);
 
-    let r#true = CodeBlock::new_span(vec![Operation::Push(7u64.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(11u64.into())]);
-    let r#true = CodeBlock::new_split(r#true, r#false);
-    let r#while = CodeBlock::new_span(vec![
-        Operation::Push(17u64.into()),
-        Operation::Push(19u64.into()),
-        Operation::Push(23u64.into()),
-    ]);
-    let r#while = CodeBlock::new_loop(r#while);
-    let span = CodeBlock::new_span(vec![Operation::Push(13u64.into())]);
+    let r#true = CodeBlock::new_span(vec![Operation::Push(7u64.into())], vec![]);
+    let r#false = CodeBlock::new_span(vec![Operation::Push(11u64.into())], vec![]);
+    let r#true = CodeBlock::new_split(r#true, r#false, [vm_core::SourceLocation::default(); 2]);
+    let r#while = CodeBlock::new_span(
+        vec![
+            Operation::Push(17u64.into()),
+            Operation::Push(19u64.into()),
+            Operation::Push(23u64.into()),
+        ],
+        vec![],
+    );
+    let r#while = CodeBlock::new_loop(r#while, vm_core::SourceLocation::default());
+    let span = CodeBlock::new_span(vec![Operation::Push(13u64.into())], vec![]);
     let r#false = CodeBlock::new_join([span, r#while]);
-    let nested = CodeBlock::new_split(r#true, r#false);
+    let nested = CodeBlock::new_split(r#true, r#false, [vm_core::SourceLocation::default(); 2]);
 
-    let exec = CodeBlock::new_span(vec![Operation::Push(29u64.into())]);
+    let exec = CodeBlock::new_span(vec![Operation::Push(29u64.into())], vec![]);
 
     let combined = combine_blocks(vec![before, r#if, nested, exec, syscall]);
     let program = assembler.compile(program).unwrap();
 
     assert_eq!(combined.hash(), program.hash());
+}
+
+#[test]
+fn mast_source_location_tracking() {
+    // const NAMESPACE: &str = "foo";
+    // const MODULE: &str = "bar";
+    // const PROCEDURE: &str = r#"
+    //     export.baz
+    //         push.29
+    //     end"#;
+
+    // pub struct DummyLibrary {
+    //     namespace: LibraryNamespace,
+    //     modules: Vec<Module>,
+    //     dependencies: Vec<LibraryNamespace>,
+    // }
+
+    // impl Default for DummyLibrary {
+    //     fn default() -> Self {
+    //         let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+    //         let path =
+    //             LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
+    //         let ast = ModuleAst::parse(PROCEDURE).unwrap();
+    //         Self {
+    //             namespace,
+    //             modules: vec![Module { path, ast }],
+    //             dependencies: Vec::new(),
+    //         }
+    //     }
+    // }
+
+    // impl Library for DummyLibrary {
+    //     type ModuleIterator<'a> = Iter<'a, Module>;
+
+    //     fn root_ns(&self) -> &LibraryNamespace {
+    //         &self.namespace
+    //     }
+
+    //     fn version(&self) -> &Version {
+    //         &Version::MIN
+    //     }
+
+    //     fn modules(&self) -> Self::ModuleIterator<'_> {
+    //         self.modules.iter()
+    //     }
+
+    //     fn dependencies(&self) -> &[LibraryNamespace] {
+    //         &self.dependencies
+    //     }
+    // }
+
+    let assembler = Assembler::default();
+    // .with_library(&DummyLibrary::default())
+    // .unwrap();
+
+    let program = r#"
+
+    begin
+        add
+        add
+        add
+        add
+    end"#;
+    let (_program, _debug_info) = assembler.compile_debug(program).unwrap();
 }
