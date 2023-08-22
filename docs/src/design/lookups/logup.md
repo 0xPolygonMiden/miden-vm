@@ -37,7 +37,7 @@ $$
 Since constraints must be expressed without division, the actual constraint which is enforced will be the following:
 
 > $$
-b' \cdot (\alpha - v) \cdot (\alpha - x) = b \cdot (\alpha - v) \cdot (\alpha - v) + m \cdot (\alpha - x) - (\alpha - v) \text{ | degree} = 3
+b' \cdot (\alpha - v) \cdot (\alpha - x) = b \cdot (\alpha - x) \cdot (\alpha - v) + m \cdot (\alpha - x) - (\alpha - v) \text{ | degree} = 3
 $$
 
 In general, we will write constraints within these docs using the previous form, since it's clearer and more readable.
