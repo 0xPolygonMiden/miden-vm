@@ -53,6 +53,14 @@ When executing a *syscall* block, the VM does the following:
 
 A *syscall* block does not have any children. Thus, it must be leaf node in the tree.
 
+
+### Dyn block
+A **dyn** block is used to describe a node whose target is specified dynamically via the stack. When the VM encounters a *dyn* block, it executes a program which hashes to the target specified by the top of the stack. Thus, it has a dynamic target rather than a hardcoded target. In order to execute a *dyn* block, the VM must be aware of a program with the hash value that is specified by the top of the stack. Otherwise, the execution fails.
+
+![dyn_block](../assets/design/programs/dyn_block.png)
+
+A *dyn* block must always have one (dynamically-specified) child. Thus, it cannot be a leaf node in the tree.
+
 ### Span block
 A **span** block is used to describe a linear sequence of operations. When the VM encounters a *span* block, it breaks the sequence of operations into batches and groups according to the following rules:
 * A group is represented by a single field element. Thus, assuming a single operation can be encoded using 7 bits, and assuming we are using a 64-bit field, a single group may encode up to 9 operations or a single immediate value.
@@ -118,5 +126,6 @@ Below we denote $hash$ to be an arithmetization-friendly hash function with $4$-
 * The hash of a **loop** block is computed as $hash_{loop}(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
 * The hash of a **call** block is computed as $hash_{call}(a, 0)$, where $a$ is a hash of a program of which the VM is aware.
 * The hash of a **syscall** block is computed as $hash_{syscall}(a, 0)$, where $a$ is a hash of a program belonging to the kernel against which the code was compiled.
+* The hash of a **dyn** block is set to a constant, so it is the same for all *dyn* blocks. It does not depend on the hash of the dynamic child. This constant is computed as the RPO hash of two empty words (`[ZERO, ZERO, ZERO, ZERO]`) using a domain value of `DYN_DOMAIN`, where `DYN_DOMAIN` is the op code of the `Dyn` operation.
 * The hash of a **span** block is computed as $hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
     * In cases when the number of operations is insufficient to fill the last batch entirely, `NOOPs` are appended to the end of the last batch to ensure that the number of operations in the batch is always equal to $8$.
