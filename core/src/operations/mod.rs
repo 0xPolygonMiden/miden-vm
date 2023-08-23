@@ -410,6 +410,9 @@ pub enum Operation {
 
     /// TODO: add docs
     FriE2F4,
+
+    /// TODO: add docs
+    RCOMB1,
 }
 
 impl Operation {
@@ -515,7 +518,7 @@ impl Operation {
             Self::Loop      => 0b0101_0101,
             Self::Span      => 0b0101_0110,
             Self::Join      => 0b0101_0111,
-            // <empty>      => 0b0101_1000,
+            Self::RCOMB1    => 0b0101_1000,
             // <empty>      => 0b0101_1001,
             // <empty>      => 0b0101_1010,
             // <empty>      => 0b0101_1011,
@@ -682,6 +685,7 @@ impl fmt::Display for Operation {
             Self::MpVerify => write!(f, "mpverify"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
+            Self::RCOMB1 => write!(f, "rcomb1"),
         }
     }
 }
