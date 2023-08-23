@@ -41,6 +41,12 @@ where
                 include_len,
                 key_offset,
             } => self.copy_map_value_to_adv_stack(*include_len, *key_offset),
+            AdviceInjector::MapValueToStackConst { include_len, key } => {
+                self.copy_map_value_to_adv_stack_const(*include_len, *key)
+            }
+            AdviceInjector::MapValueToStackMem { include_len, addr } => {
+                self.copy_map_value_to_adv_stack_mem(*include_len, *addr)
+            }
             AdviceInjector::DivU64 => self.push_u64_div_result(),
             AdviceInjector::Ext2Inv => self.push_ext2_inv_result(),
             AdviceInjector::Ext2Intt => self.push_ext2_intt_result(),

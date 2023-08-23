@@ -141,6 +141,101 @@ fn push_smtget() {
     }
 }
 
+// MAPVALUETOSTACK TESTS
+// ================================================================================================
+
+#[test]
+fn inject_map_value_to_stack() {
+    // put on the stack a key and an address where this key is stored in the memory
+    let stack_inputs = StackInputs::new(vec![
+        // the key is [1, 2, 3, 4]
+        Felt::from(1u64),
+        Felt::from(2u64),
+        Felt::from(3u64),
+        Felt::from(4u64),
+        // and the address is 20
+        Felt::from(20u64),
+    ]);
+
+    // --- create a map ---------------------------------------------------------------------------
+
+    let map_key = [Felt::from(1u64), Felt::from(2u64), Felt::from(3u64), Felt::from(4u64)];
+    let map_value =
+        vec![Felt::from(11u64), Felt::from(12u64), Felt::from(13u64), Felt::from(14u64)];
+    let map = vec![(map_key.into_bytes(), map_value)];
+    let advice_inputs = AdviceInputs::default().with_map(map);
+    let advice_provider = MemAdviceProvider::from(advice_inputs);
+
+    let mut process =
+        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
+
+    // --- store a key to the memory --------------------------------------------------------------
+
+    process.execute_op(Operation::Noop).unwrap();
+    process.execute_op(Operation::MStoreW).unwrap();
+    // remove the stored key from the stack
+    process.execute_op(Operation::Drop).unwrap();
+    process.execute_op(Operation::Drop).unwrap();
+    process.execute_op(Operation::Drop).unwrap();
+    process.execute_op(Operation::Drop).unwrap();
+
+    // --- load values from the advice map to the advice stack ------------------------------------
+
+    // use injector with a map key as an immediate value
+    process
+        .execute_decorator(&Decorator::Advice(AdviceInjector::MapValueToStackConst {
+            include_len: true,
+            key: map_key,
+        }))
+        .unwrap();
+
+    // pop the node from the advice stack and push it onto the operand stack
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+
+    // use injector with a memory address as an immediate value
+    process
+        .execute_decorator(&Decorator::Advice(AdviceInjector::MapValueToStackMem {
+            include_len: true,
+            addr: Felt::from(20u64),
+        }))
+        .unwrap();
+
+    // pop the node from the advice stack and push it onto the operand stack
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+    process.execute_op(Operation::AdvPop).unwrap();
+
+    let expected = vec![
+        // result of the work of the first decorator
+        Felt::from(14u64),
+        Felt::from(13u64),
+        Felt::from(12u64),
+        Felt::from(11u64),
+        Felt::from(4u64),
+        // result of the work of the first decorator
+        Felt::from(14u64),
+        Felt::from(13u64),
+        Felt::from(12u64),
+        Felt::from(11u64),
+        Felt::from(4u64),
+        // remaining stack
+        Felt::from(0u64),
+        Felt::from(0u64),
+        Felt::from(0u64),
+        Felt::from(0u64),
+        Felt::from(0u64),
+        Felt::from(0u64),
+    ];
+
+    assert_eq!(expected, process.stack.trace_state());
+}
+
 // SMTINSERT TESTS
 // ================================================================================================
 

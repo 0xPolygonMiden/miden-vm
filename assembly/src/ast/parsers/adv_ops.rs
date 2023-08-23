@@ -1,7 +1,9 @@
 use super::{
-    parse_checked_param,
+    parse_checked_param, parse_param, parse_param_with_constant_lookup,
     AdviceInjectorNode::*,
+    Felt,
     Instruction::AdvInject,
+    LocalConstMap,
     Node::{self, Instruction},
     ParsingError, Token, MAX_STACK_WORD_OFFSET,
 };
@@ -14,7 +16,7 @@ use super::{
 /// # Errors
 /// Returns an error if parsing of the internal advice injector variant fails due to wrong number
 /// of parameters or invalid parameter values.
-pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_adv_inject(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv");
     if op.num_parts() < 2 {
         return Err(ParsingError::missing_param(op));
@@ -58,6 +60,68 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
                 } else {
                     AdvInject(PushMapValNImm { offset })
                 }
+            }
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_mapval_const" => match op.num_parts() {
+            // if only one parameter provided, assume the key to be [param, 0, 0, 0]
+            3 => {
+                let key = [
+                    Felt::from(parse_param_with_constant_lookup::<u64>(op, 2, constants)?),
+                    Felt::from(0u64),
+                    Felt::from(0u64),
+                    Felt::from(0u64),
+                ];
+                AdvInject(PushMapValC { key })
+            }
+            _ if op.num_parts() < 6 => return Err(ParsingError::missing_param(op)),
+            6 => {
+                let key = [
+                    Felt::from(parse_param::<u64>(op, 2)?),
+                    Felt::from(parse_param::<u64>(op, 3)?),
+                    Felt::from(parse_param::<u64>(op, 4)?),
+                    Felt::from(parse_param::<u64>(op, 5)?),
+                ];
+                AdvInject(PushMapValC { key })
+            }
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_mapvaln_const" => match op.num_parts() {
+            // if only one parameter provided, assume the key to be [param, 0, 0, 0]
+            3 => {
+                let key = [
+                    Felt::from(parse_param_with_constant_lookup::<u64>(op, 2, constants)?),
+                    Felt::from(0u64),
+                    Felt::from(0u64),
+                    Felt::from(0u64),
+                ];
+                AdvInject(PushMapValNC { key })
+            }
+            _ if op.num_parts() < 6 => return Err(ParsingError::missing_param(op)),
+            6 => {
+                let key = [
+                    Felt::from(parse_param::<u64>(op, 2)?),
+                    Felt::from(parse_param::<u64>(op, 3)?),
+                    Felt::from(parse_param::<u64>(op, 4)?),
+                    Felt::from(parse_param::<u64>(op, 5)?),
+                ];
+                AdvInject(PushMapValNC { key })
+            }
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_mapval_mem" => match op.num_parts() {
+            2 => return Err(ParsingError::missing_param(op)),
+            3 => {
+                let addr = Felt::from(parse_param_with_constant_lookup::<u64>(op, 2, constants)?);
+                AdvInject(PushMapValM { addr })
+            }
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_mapvaln_mem" => match op.num_parts() {
+            2 => return Err(ParsingError::missing_param(op)),
+            3 => {
+                let addr = Felt::from(parse_param_with_constant_lookup::<u64>(op, 2, constants)?);
+                AdvInject(PushMapValNM { addr })
             }
             _ => return Err(ParsingError::extra_param(op)),
         },

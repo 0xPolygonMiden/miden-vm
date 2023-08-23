@@ -110,6 +110,52 @@ where
         self.advice_provider.push_stack(AdviceSource::Map { key, include_len })
     }
 
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map using the word provided through immediate value as the key. If `include_len` is set to
+    /// true, the number of elements in the value is also pushed onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [values_len?, values, ...]
+    ///   Advice map: {KEY: values}
+    pub(super) fn copy_map_value_to_adv_stack_const(
+        &mut self,
+        include_len: bool,
+        key: Word,
+    ) -> Result<(), ExecutionError> {
+        self.advice_provider.push_stack(AdviceSource::Map { key, include_len })
+    }
+
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map. The provided immediate value specifies a memory address that holds the key for the
+    /// advice map. If `include_len` is set to true, the number of elements in the value is also
+    /// pushed onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [values_len?, values, ...]
+    ///   Advice map: {KEY: values}
+    pub(super) fn copy_map_value_to_adv_stack_mem(
+        &mut self,
+        include_len: bool,
+        addr: Felt,
+    ) -> Result<(), ExecutionError> {
+        let ctx = self.system.ctx();
+        let key = self.chiplets.read_mem(ctx, addr);
+
+        self.advice_provider.push_stack(AdviceSource::Map { key, include_len })
+    }
+
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
     ///

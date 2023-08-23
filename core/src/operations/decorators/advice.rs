@@ -72,6 +72,37 @@ pub enum AdviceInjector {
         key_offset: usize,
     },
 
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map using the word provided through immediate value as the key. If `include_len` is set to
+    /// true, the number of elements in the value is also pushed onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [values_len?, values, ...]
+    ///   Advice map: {KEY: values}
+    MapValueToStackConst { include_len: bool, key: [Felt; 4] },
+
+    /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
+    /// map. The provided immediate value specifies a memory address that holds the key for the
+    /// advice map. If `include_len` is set to true, the number of elements in the value is also
+    /// pushed onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [...]
+    ///   Advice map: {KEY: values}
+    ///
+    /// Outputs:
+    ///   Operand stack: [...]
+    ///   Advice stack: [values_len?, values, ...]
+    ///   Advice map: {KEY: values}
+    MapValueToStackMem { include_len: bool, addr: Felt },
+
     /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
     /// stack.
     ///
@@ -244,6 +275,28 @@ impl fmt::Display for AdviceInjector {
                     write!(f, "map_value_to_stack_with_len.{key_offset}")
                 } else {
                     write!(f, "map_value_to_stack.{key_offset}")
+                }
+            }
+            Self::MapValueToStackConst { include_len, key } => {
+                if *include_len {
+                    write!(
+                        f,
+                        "map_value_to_stack_with_len_const.{}.{}.{}.{}",
+                        key[0], key[1], key[2], key[3]
+                    )
+                } else {
+                    write!(
+                        f,
+                        "map_value_to_stack_const.{}.{}.{}.{}",
+                        key[0], key[1], key[2], key[3]
+                    )
+                }
+            }
+            Self::MapValueToStackMem { include_len, addr } => {
+                if *include_len {
+                    write!(f, "map_value_to_stack_with_len_mem.{addr}")
+                } else {
+                    write!(f, "map_value_to_stack_mem.{addr}")
                 }
             }
             Self::DivU64 => write!(f, "div_u64"),

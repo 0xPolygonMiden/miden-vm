@@ -199,7 +199,7 @@ pub enum Operation {
     /// Pushes 0 onto the stack.
     Pad,
 
-    /// Removes to element from the stack.
+    /// Removes the top element from the stack.
     Drop,
 
     /// Pushes a copy of stack element 0 onto the stack.

@@ -3,7 +3,7 @@ use super::super::{
     MAX_STACK_WORD_OFFSET,
 };
 use core::fmt;
-use vm_core::{AdviceInjector, Felt, ZERO};
+use vm_core::{AdviceInjector, Felt, StarkField, Word, ZERO};
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -23,6 +23,10 @@ pub enum AdviceInjectorNode {
     PushMapValImm { offset: u8 },
     PushMapValN,
     PushMapValNImm { offset: u8 },
+    PushMapValC { key: Word },
+    PushMapValNC { key: Word },
+    PushMapValM { addr: Felt },
+    PushMapValNM { addr: Felt },
     PushMtNode,
     InsertMem,
     InsertHdword,
@@ -54,6 +58,23 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
                 include_len: true,
                 key_offset: (*offset) as usize,
             },
+            PushMapValC { key } => Self::MapValueToStackConst {
+                include_len: false,
+                key: *key,
+            },
+            PushMapValNC { key } => Self::MapValueToStackConst {
+                include_len: true,
+                key: *key,
+            },
+            PushMapValM { addr } => Self::MapValueToStackMem {
+                include_len: false,
+                addr: *addr,
+            },
+            PushMapValNM { addr } => Self::MapValueToStackMem {
+                include_len: true,
+                addr: *addr,
+            },
+
             PushMtNode => Self::MerkleNodeToStack,
             InsertMem => Self::MemToMap,
             InsertHdword => Self::HdwordToMap { domain: ZERO },
@@ -77,6 +98,14 @@ impl fmt::Display for AdviceInjectorNode {
             PushMapValImm { offset } => write!(f, "push_mapval.{offset}"),
             PushMapValN => write!(f, "push_mapvaln"),
             PushMapValNImm { offset } => write!(f, "push_mapvaln.{offset}"),
+            PushMapValC { key } => {
+                write!(f, "push_mapvalc.{}.{}.{}.{}", key[0], key[1], key[2], key[3])
+            }
+            PushMapValNC { key } => {
+                write!(f, "push_mapvalnc.{}.{}.{}.{}", key[0], key[1], key[2], key[3])
+            }
+            PushMapValM { addr } => write!(f, "push_mapvalm.{}", addr),
+            PushMapValNM { addr } => write!(f, "push_mapvalnm.{}", addr),
             PushMtNode => write!(f, "push_mtnode"),
             InsertMem => write!(f, "insert_mem"),
             InsertHdword => write!(f, "insert_hdword"),
@@ -97,11 +126,15 @@ const PUSH_MAPVAL: u8 = 4;
 const PUSH_MAPVAL_IMM: u8 = 5;
 const PUSH_MAPVALN: u8 = 6;
 const PUSH_MAPVALN_IMM: u8 = 7;
-const PUSH_MTNODE: u8 = 8;
-const INSERT_MEM: u8 = 9;
-const INSERT_HDWORD: u8 = 10;
-const INSERT_HDWORD_IMM: u8 = 11;
-const INSERT_HPERM: u8 = 12;
+const PUSH_MAPVAL_CONST: u8 = 8;
+const PUSH_MAPVALN_CONST: u8 = 9;
+const PUSH_MAPVAL_MEM: u8 = 10;
+const PUSH_MAPVALN_MEM: u8 = 11;
+const PUSH_MTNODE: u8 = 12;
+const INSERT_MEM: u8 = 13;
+const INSERT_HDWORD: u8 = 14;
+const INSERT_HDWORD_IMM: u8 = 15;
+const INSERT_HPERM: u8 = 16;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -120,6 +153,28 @@ impl Serializable for AdviceInjectorNode {
             PushMapValNImm { offset } => {
                 target.write_u8(PUSH_MAPVALN_IMM);
                 target.write_u8(*offset);
+            }
+            PushMapValC { key } => {
+                target.write_u8(PUSH_MAPVAL_CONST);
+                target.write_u64(key[0].as_int());
+                target.write_u64(key[1].as_int());
+                target.write_u64(key[2].as_int());
+                target.write_u64(key[3].as_int());
+            }
+            PushMapValNC { key } => {
+                target.write_u8(PUSH_MAPVALN_CONST);
+                target.write_u64(key[0].as_int());
+                target.write_u64(key[1].as_int());
+                target.write_u64(key[2].as_int());
+                target.write_u64(key[3].as_int());
+            }
+            PushMapValM { addr } => {
+                target.write_u8(PUSH_MAPVAL_MEM);
+                target.write_u64(addr.as_int());
+            }
+            PushMapValNM { addr } => {
+                target.write_u8(PUSH_MAPVALN_MEM);
+                target.write_u64(addr.as_int());
             }
             PushMtNode => target.write_u8(PUSH_MTNODE),
             InsertMem => target.write_u8(INSERT_MEM),
@@ -155,6 +210,32 @@ impl Deserializable for AdviceInjectorNode {
                     return Err(DeserializationError::InvalidValue("invalid offset".to_string()));
                 }
                 Ok(AdviceInjectorNode::PushMapValNImm { offset })
+            }
+            PUSH_MAPVAL_CONST => {
+                let key = [
+                    Felt::from(source.read_u64()?),
+                    Felt::from(source.read_u64()?),
+                    Felt::from(source.read_u64()?),
+                    Felt::from(source.read_u64()?),
+                ];
+                Ok(AdviceInjectorNode::PushMapValC { key })
+            }
+            PUSH_MAPVALN_CONST => {
+                let key = [
+                    Felt::from(source.read_u64()?),
+                    Felt::from(source.read_u64()?),
+                    Felt::from(source.read_u64()?),
+                    Felt::from(source.read_u64()?),
+                ];
+                Ok(AdviceInjectorNode::PushMapValNC { key })
+            }
+            PUSH_MAPVAL_MEM => {
+                let addr = Felt::from(source.read_u64()?);
+                Ok(AdviceInjectorNode::PushMapValM { addr })
+            }
+            PUSH_MAPVALN_MEM => {
+                let addr = Felt::from(source.read_u64()?);
+                Ok(AdviceInjectorNode::PushMapValNM { addr })
             }
             PUSH_MTNODE => Ok(AdviceInjectorNode::PushMtNode),
             INSERT_MEM => Ok(AdviceInjectorNode::InsertMem),

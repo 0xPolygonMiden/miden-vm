@@ -201,12 +201,50 @@ fn test_ast_parsing_adv_injection() {
     use super::AdviceInjectorNode::*;
     use Instruction::AdvInject;
 
-    let source = "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end";
+    let source = "begin adv.push_u64div adv.push_smtget adv.insert_mem end";
     let nodes: Vec<Node> = vec![
         Node::Instruction(AdvInject(PushU64div)),
-        Node::Instruction(AdvInject(PushMapVal)),
         Node::Instruction(AdvInject(PushSmtGet)),
         Node::Instruction(AdvInject(InsertMem)),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+
+    // test the mapval variants
+    let source = "\
+    const.TEST_VALUE=1234
+    begin 
+        adv.push_mapval.1 
+        adv.push_mapvaln.2 
+        adv.push_mapval_const.1.2.3.4
+        adv.push_mapvaln_const.1.2.3.4 
+        adv.push_mapval_const.TEST_VALUE
+        adv.push_mapvaln_const.10
+        adv.push_mapval_mem.1234 
+        adv.push_mapvaln_mem.TEST_VALUE 
+    end";
+
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(AdvInject(PushMapValImm { offset: 1 })),
+        Node::Instruction(AdvInject(PushMapValNImm { offset: 2 })),
+        Node::Instruction(AdvInject(PushMapValC {
+            key: [Felt::from(1u8), Felt::from(2u8), Felt::from(3u8), Felt::from(4u8)],
+        })),
+        Node::Instruction(AdvInject(PushMapValNC {
+            key: [Felt::from(1u8), Felt::from(2u8), Felt::from(3u8), Felt::from(4u8)],
+        })),
+        Node::Instruction(AdvInject(PushMapValC {
+            key: [Felt::from(1234u32), Felt::from(0u8), Felt::from(0u8), Felt::from(0u8)],
+        })),
+        Node::Instruction(AdvInject(PushMapValNC {
+            key: [Felt::from(10u8), Felt::from(0u8), Felt::from(0u8), Felt::from(0u8)],
+        })),
+        Node::Instruction(AdvInject(PushMapValM {
+            addr: Felt::from(1234u32),
+        })),
+        Node::Instruction(AdvInject(PushMapValNM {
+            addr: Felt::from(1234u32),
+        })),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);

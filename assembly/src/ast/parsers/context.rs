@@ -596,7 +596,7 @@ impl ParserContext<'_> {
             "adv_push" => io_ops::parse_adv_push(op),
             "adv_loadw" => simple_instruction(op, AdvLoadW),
 
-            "adv" => adv_ops::parse_adv_inject(op),
+            "adv" => adv_ops::parse_adv_inject(op, &self.local_constants),
 
             // ----- cryptographic operations -----------------------------------------------------
             "hash" => simple_instruction(op, Hash),
