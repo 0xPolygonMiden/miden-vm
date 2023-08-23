@@ -47,6 +47,7 @@ where
             Operation::Loop => unreachable!("control flow operation"),
             Operation::Call => unreachable!("control flow operation"),
             Operation::SysCall => unreachable!("control flow operation"),
+            Operation::Dyn => unreachable!("control flow operation"),
             Operation::Span => unreachable!("control flow operation"),
             Operation::Repeat => unreachable!("control flow operation"),
             Operation::Respan => unreachable!("control flow operation"),

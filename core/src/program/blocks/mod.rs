@@ -3,6 +3,7 @@ use crate::DecoratorList;
 use core::fmt;
 
 mod call_block;
+mod dyn_block;
 mod join_block;
 mod loop_block;
 mod proxy_block;
@@ -10,6 +11,7 @@ mod span_block;
 mod split_block;
 
 pub use call_block::Call;
+pub use dyn_block::Dyn;
 pub use join_block::Join;
 pub use loop_block::Loop;
 pub use proxy_block::Proxy;
@@ -29,6 +31,7 @@ pub enum CodeBlock {
     Split(Split),
     Loop(Loop),
     Call(Call),
+    Dyn(Dyn),
     Proxy(Proxy),
 }
 
@@ -72,6 +75,11 @@ impl CodeBlock {
     }
 
     /// TODO: add comments
+    pub fn new_dyn() -> Self {
+        Self::Dyn(Dyn::new())
+    }
+
+    /// TODO: add comments
     pub fn new_proxy(code_hash: Digest) -> Self {
         Self::Proxy(Proxy::new(code_hash))
     }
@@ -92,6 +100,7 @@ impl CodeBlock {
             CodeBlock::Split(block) => block.hash(),
             CodeBlock::Loop(block) => block.hash(),
             CodeBlock::Call(block) => block.hash(),
+            CodeBlock::Dyn(block) => block.hash(),
             CodeBlock::Proxy(block) => block.hash(),
         }
     }
@@ -100,6 +109,7 @@ impl CodeBlock {
     pub fn domain(&self) -> Felt {
         match self {
             CodeBlock::Call(block) => block.domain(),
+            CodeBlock::Dyn(_) => Dyn::DOMAIN,
             CodeBlock::Join(_) => Join::DOMAIN,
             CodeBlock::Loop(_) => Loop::DOMAIN,
             CodeBlock::Span(_) => Span::DOMAIN,
@@ -117,6 +127,7 @@ impl fmt::Display for CodeBlock {
             CodeBlock::Split(block) => write!(f, "{block}"),
             CodeBlock::Loop(block) => write!(f, "{block}"),
             CodeBlock::Call(block) => write!(f, "{block}"),
+            CodeBlock::Dyn(block) => write!(f, "{block}",),
             CodeBlock::Proxy(block) => write!(f, "{block}"),
         }
     }
