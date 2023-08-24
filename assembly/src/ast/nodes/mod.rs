@@ -286,6 +286,7 @@ pub enum Instruction {
 
     // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4,
+    RandCombMain,
 
     // ----- exec / call --------------------------------------------------------------------------
     ExecLocal(u16),
@@ -559,6 +560,7 @@ impl fmt::Display for Instruction {
             Self::MTreeMerge => write!(f, "mtree_merge"),
             Self::MTreeVerify => write!(f, "mtree_verify"),
             Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
+            Self::RandCombMain => write!(f, "rcomb1"),
 
             // ----- exec / call ------------------------------------------------------------------
             Self::ExecLocal(index) => write!(f, "exec.{index}"),

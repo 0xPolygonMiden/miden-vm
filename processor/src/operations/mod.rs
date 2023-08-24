@@ -148,7 +148,7 @@ where
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate => self.op_mrupdate()?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
-            Operation::RCOMB1 => self.op_rcomb_base()?,
+            Operation::RanComb1 => self.op_rcomb_base()?,
         }
 
         self.advance_clock()?;

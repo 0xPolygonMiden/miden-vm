@@ -465,6 +465,7 @@ impl Serializable for Instruction {
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),
+            Self::RandCombMain => OpCode::RandCombMain.write_into(target),
 
             // ----- exec / call ------------------------------------------------------------------
             Self::ExecLocal(v) => {
