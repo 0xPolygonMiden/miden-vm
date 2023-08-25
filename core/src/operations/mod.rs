@@ -413,6 +413,9 @@ pub enum Operation {
 
     /// TODO: add docs
     RanComb1,
+
+    /// TODO: add docs
+    RanComb2,
 }
 
 impl Operation {
@@ -519,7 +522,7 @@ impl Operation {
             Self::Span      => 0b0101_0110,
             Self::Join      => 0b0101_0111,
             Self::RanComb1    => 0b0101_1000,
-            // <empty>      => 0b0101_1001,
+            Self::RanComb2      => 0b0101_1001,
             // <empty>      => 0b0101_1010,
             // <empty>      => 0b0101_1011,
             // <empty>      => 0b0101_1100,
@@ -686,6 +689,7 @@ impl fmt::Display for Operation {
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::RanComb1 => write!(f, "rcomb1"),
+            Self::RanComb2 => write!(f, "rcomb2"),
         }
     }
 }

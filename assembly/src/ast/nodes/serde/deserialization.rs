@@ -347,6 +347,7 @@ impl Deserializable for Instruction {
             // ----- STARK proof verification -----------------------------------------------------
             OpCode::FriExt2Fold4 => Ok(Instruction::FriExt2Fold4),
             OpCode::RandCombMain => Ok(Instruction::RandCombMain),
+            OpCode::RandCombAux => Ok(Instruction::RandCombAux),
 
             // ----- exec / call ------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(source.read_u16()?)),

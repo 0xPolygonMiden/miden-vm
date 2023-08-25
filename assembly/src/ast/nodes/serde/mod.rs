@@ -265,14 +265,15 @@ pub enum OpCode {
     // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4 = 233,
     RandCombMain = 234,
+    RandCombAux = 235,
 
     // ----- exec / call --------------------------------------------------------------------------
-    ExecLocal = 235,
-    ExecImported = 236,
-    CallLocal = 237,
-    CallMastRoot = 238,
-    CallImported = 239,
-    SysCall = 240,
+    ExecLocal = 236,
+    ExecImported = 237,
+    CallLocal = 238,
+    CallMastRoot = 239,
+    CallImported = 240,
+    SysCall = 241,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,

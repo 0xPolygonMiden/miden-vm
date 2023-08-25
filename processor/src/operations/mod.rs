@@ -149,6 +149,7 @@ where
             Operation::MrUpdate => self.op_mrupdate()?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::RanComb1 => self.op_rcomb_base()?,
+            Operation::RanComb2 => self.op_rcomb_ext()?,
         }
 
         self.advance_clock()?;
