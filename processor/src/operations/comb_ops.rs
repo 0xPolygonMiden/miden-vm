@@ -85,7 +85,7 @@ where
         Ok(())
     }
 
-    // COMBINE VALUES IN BASE FIELD USING RANDOMNESS
+    // COMBINE VALUES IN EXTENSION FIELD USING RANDOMNESS
     // --------------------------------------------------------------------------------------------
     /// Performs a single step of a random linear combination defining the DEEP composition
     /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
@@ -161,8 +161,7 @@ where
     //// HELPER METHODS
     //// ------------------------------------------------------------------------------------------
 
-    /// Returns the top 8 elements of the operand stack representing cell values in the main trace
-    /// i.e., base field elements.
+    /// Returns the top 8 elements of the operand stack.
     fn get_trace_values(&self) -> [Felt; 8] {
         let v7 = self.stack.get(0);
         let v6 = self.stack.get(1);
@@ -195,7 +194,7 @@ where
         [QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])]
     }
 
-    /// Computes the updated accumulator values.
+    /// Computes the updated accumulator values for base field elements.
     fn compute_new_accumulator_base(
         &self,
         tz: QuadFelt,
@@ -216,7 +215,7 @@ where
         [p + alpha * (tx - tz), r + alpha * (tx - tgz)]
     }
 
-    /// Computes the updated accumulator values.
+    /// Computes the updated accumulator values for extension field elements.
     fn compute_new_accumulator_ext(
         &self,
         tz: QuadFelt,

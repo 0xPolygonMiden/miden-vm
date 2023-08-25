@@ -411,10 +411,26 @@ pub enum Operation {
     /// TODO: add docs
     FriE2F4,
 
-    /// TODO: add docs
+    /// Performs a single step of a random linear combination defining the DEEP composition
+    /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
+    /// \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
+    ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
+    ///
+    /// and the following instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$
+    /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
+    /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
+    /// the values $T_i(x)$ are base field elements.
     RanComb1,
 
-    /// TODO: add docs
+    /// Performs a single step of a random linear combination defining the DEEP composition
+    /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
+    /// \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
+    ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
+    ///
+    /// and the following instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$
+    /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
+    /// $r$ and $p$, respectively. This instruction is specialized to auxiliary trace columns i.e.
+    /// the values $T_i(x)$ are field elements in a quadratic extension field.
     RanComb2,
 }
 
