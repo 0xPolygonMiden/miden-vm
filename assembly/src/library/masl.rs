@@ -59,11 +59,11 @@ impl Library for MaslLibrary {
 
 impl MaslLibrary {
     /// File extension for the Assembly Library.
-    pub const LIBRARY_EXTENSION: &str = "masl";
+    pub const LIBRARY_EXTENSION: &'static str = "masl";
     /// File extension for the Assembly Module.
-    pub const MODULE_EXTENSION: &str = "masm";
+    pub const MODULE_EXTENSION: &'static str = "masm";
     /// Name of the root module.
-    pub const MOD: &str = "mod";
+    pub const MOD: &'static str = "mod";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------

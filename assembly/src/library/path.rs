@@ -24,13 +24,13 @@ impl LibraryPath {
     // --------------------------------------------------------------------------------------------
 
     /// Path delimiter.
-    pub const PATH_DELIM: &str = "::";
+    pub const PATH_DELIM: &'static str = "::";
 
     /// Base kernel path.
-    pub const KERNEL_PATH: &str = "#sys";
+    pub const KERNEL_PATH: &'static str = "#sys";
 
     /// Path for an executable module.
-    pub const EXEC_PATH: &str = "#exec";
+    pub const EXEC_PATH: &'static str = "#exec";
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------

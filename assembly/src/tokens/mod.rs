@@ -52,9 +52,9 @@ impl<'a> Token<'a> {
 
     // DELIMITERS
     // --------------------------------------------------------------------------------------------
-    pub const DOC_COMMENT_PREFIX: &str = "#!";
+    pub const DOC_COMMENT_PREFIX: &'static str = "#!";
     pub const COMMENT_PREFIX: char = '#';
-    pub const ALIAS_DELIM: &str = "->";
+    pub const ALIAS_DELIM: &'static str = "->";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------

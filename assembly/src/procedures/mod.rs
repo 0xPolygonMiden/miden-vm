@@ -167,7 +167,7 @@ impl ProcedureName {
     // --------------------------------------------------------------------------------------------
 
     /// Reserved name for a main procedure.
-    pub const MAIN_PROC_NAME: &str = "#main";
+    pub const MAIN_PROC_NAME: &'static str = "#main";
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
