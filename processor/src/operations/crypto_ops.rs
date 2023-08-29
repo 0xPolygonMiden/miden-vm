@@ -140,7 +140,8 @@ where
         // get a Merkle path to it. the length of the returned path is expected to match the
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let path = self.advice_provider.update_merkle_node(old_root, &depth, &index, new_node)?;
+        let (path, _) =
+            self.advice_provider.update_merkle_node(old_root, &depth, &index, new_node)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
         let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
