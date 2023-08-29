@@ -18,6 +18,7 @@
 - Improved handling of invalid/incomplete parameters in `StackOutputs` constructors (#1010).
 - Allowed the assembler to produce programs with "phantom" calls (#1019).
 - Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
+- Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049). 
 
 ## 0.6.1 (2023-06-29)
 

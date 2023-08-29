@@ -14,7 +14,7 @@ use super::{BTreeMap, Felt, StarkField, Vec, Word, INIT_MEM_VALUE};
 /// Within each segment, the memory is word-addressable. That is, four field elements are located
 /// at each memory address, and we can read and write elements to/from memory in batches of four.
 #[derive(Default)]
-pub struct MemorySegmentTrace(BTreeMap<u64, Vec<MemorySegmentAccess>>);
+pub struct MemorySegmentTrace(BTreeMap<u32, Vec<MemorySegmentAccess>>);
 
 impl MemorySegmentTrace {
     // PUBLIC ACCESSORS
@@ -25,7 +25,7 @@ impl MemorySegmentTrace {
     ///
     /// Unlike read() which modifies the memory access trace, this method returns the value at the
     /// specified address (if one exists) without altering the memory access trace.
-    pub fn get_value(&self, addr: u64) -> Option<Word> {
+    pub fn get_value(&self, addr: u32) -> Option<Word> {
         match self.0.get(&addr) {
             Some(addr_trace) => addr_trace.last().map(|access| access.value()),
             None => None,
@@ -47,13 +47,13 @@ impl MemorySegmentTrace {
 
         for (&addr, addr_trace) in self.0.iter() {
             match addr_trace.binary_search_by(|access| access.clk().as_int().cmp(&search_clk)) {
-                Ok(i) => result.push((addr, addr_trace[i].value())),
+                Ok(i) => result.push((addr.into(), addr_trace[i].value())),
                 Err(i) => {
                     // Binary search finds the index of the data with the specified clock cycle.
                     // Decrement the index to get the trace from the previously accessed clock
                     // cycle to insert into the results.
                     if i > 0 {
-                        result.push((addr, addr_trace[i - 1].value()));
+                        result.push((addr.into(), addr_trace[i - 1].value()));
                     }
                 }
             }
@@ -70,12 +70,12 @@ impl MemorySegmentTrace {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, addr: Felt, clk: Felt) -> Word {
+    pub fn read(&mut self, addr: u32, clk: Felt) -> Word {
         // look up the previous value in the appropriate address trace and add (clk, prev_value)
         // to it; if this is the first time we access this address, create address trace for it
         // with entry (clk, [ZERO, 4]). in both cases, return the last value in the address trace.
         self.0
-            .entry(addr.as_int())
+            .entry(addr)
             .and_modify(|addr_trace| {
                 let last_value = addr_trace.last().expect("empty address trace").value();
                 let access = MemorySegmentAccess::new(clk, MemoryOperation::CopyRead, last_value);
@@ -93,12 +93,12 @@ impl MemorySegmentTrace {
 
     /// Writes the provided word at the specified address. The memory access is assumed to happen
     /// at the provided clock cycle.
-    pub fn write(&mut self, addr: Felt, clk: Felt, value: Word) {
+    pub fn write(&mut self, addr: u32, clk: Felt, value: Word) {
         // add a memory access to the appropriate address trace; if this is the first time
         // we access this address, initialize address trace.
         let access = MemorySegmentAccess::new(clk, MemoryOperation::Write, value);
         self.0
-            .entry(addr.as_int())
+            .entry(addr)
             .and_modify(|addr_trace| addr_trace.push(access))
             .or_insert_with(|| vec![access]);
     }
@@ -107,12 +107,12 @@ impl MemorySegmentTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the map underlying this memory segment trace.
-    pub(super) fn inner(&self) -> &BTreeMap<u64, Vec<MemorySegmentAccess>> {
+    pub(super) fn inner(&self) -> &BTreeMap<u32, Vec<MemorySegmentAccess>> {
         &self.0
     }
 
     /// Returns a map underlying this memory segment trace while consuming self.
-    pub(super) fn into_inner(self) -> BTreeMap<u64, Vec<MemorySegmentAccess>> {
+    pub(super) fn into_inner(self) -> BTreeMap<u32, Vec<MemorySegmentAccess>> {
         self.0
     }
 
