@@ -66,7 +66,7 @@ impl RunCmd {
         let trace = processor::execute(&program, stack_inputs, advice_provider, execution_options)
             .map_err(|err| format!("Failed to generate execution trace = {:?}", err))?;
 
-        println!("done ({} steps in {} ms)", trace.get_trace_len(), now.elapsed().as_millis());
+        println!("done ({} ms)", now.elapsed().as_millis());
 
         if let Some(output_path) = &self.output_file {
             // write outputs to file if one was specified
@@ -75,6 +75,33 @@ impl RunCmd {
             // write the stack outputs to the screen.
             println!("Output: {:?}", trace.stack_outputs().stack_truncated(self.num_outputs));
         }
+
+        // calculate the percentage of padded rows
+        let padding_percentage = (trace.trace_len_summary().padded_trace_len()
+            - trace.trace_len_summary().trace_len())
+            * 100
+            / trace.trace_len_summary().padded_trace_len();
+        // print the required cycles for each component
+        println!(
+            "VM cycles: {} extended to {} steps ({}% padding).
+├── Stack rows: {}
+├── Range checker rows: {}
+└── Chiplets rows: {}
+    ├── Hash chiplet rows: {}
+    ├── Bitwise chiplet rows: {}
+    ├── Memory chiplet rows: {}
+    └── Kernel ROM rows: {}",
+            trace.trace_len_summary().trace_len(),
+            trace.trace_len_summary().padded_trace_len(),
+            padding_percentage,
+            trace.trace_len_summary().main_trace_len(),
+            trace.trace_len_summary().range_trace_len(),
+            trace.trace_len_summary().chiplets_trace_len().trace_len(),
+            trace.trace_len_summary().chiplets_trace_len().hash_chiplet_len(),
+            trace.trace_len_summary().chiplets_trace_len().bitwise_chiplet_len(),
+            trace.trace_len_summary().chiplets_trace_len().memory_chiplet_len(),
+            trace.trace_len_summary().chiplets_trace_len().kernel_rom_len(),
+        );
 
         Ok(())
     }
