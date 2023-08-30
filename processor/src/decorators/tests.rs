@@ -160,7 +160,7 @@ fn inject_smtinsert() {
     let is_16_or_32 = ONE;
     let is_16_or_48 = ONE;
     let expected_stack = [is_update, is_simple_insert, is_16_or_32, is_16_or_48];
-    let process = prepare_smt_insert(key_a, val_a, &smt, expected_stack.len(), Vec::new());
+    let process = prepare_smt_set(key_a, val_a, &smt, expected_stack.len(), Vec::new());
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 
     // --- update same key with different value -------------------------------
@@ -186,11 +186,11 @@ fn inject_smtinsert() {
         ZERO,
     ];
     let adv_map = vec![build_adv_map_entry(key_a, val_a, 16)];
-    let process = prepare_smt_insert(key_a, val_b, &smt, expected_stack.len(), adv_map);
+    let process = prepare_smt_set(key_a, val_b, &smt, expected_stack.len(), adv_map);
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 }
 
-fn prepare_smt_insert(
+fn prepare_smt_set(
     key: Word,
     value: Word,
     smt: &TieredSmt,
@@ -205,9 +205,7 @@ fn prepare_smt_insert(
     let mut process = build_process(stack_inputs, advice_inputs);
 
     process.execute_op(Operation::Noop).unwrap();
-    process
-        .execute_decorator(&Decorator::Advice(AdviceInjector::SmtInsert))
-        .unwrap();
+    process.execute_decorator(&Decorator::Advice(AdviceInjector::SmtSet)).unwrap();
 
     move_adv_to_stack(&mut process, adv_stack_depth);
 

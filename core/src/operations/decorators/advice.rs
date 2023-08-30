@@ -185,7 +185,7 @@ pub enum AdviceInjector {
     ///   - (1, 0): depth 32 -> 48
     ///   - (1, 1): depth 16, 32, or 48 -> 64
     /// - E_KEY and E_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
-    SmtInsert,
+    SmtSet,
 
     // ADVICE MAP INJECTORS
     // --------------------------------------------------------------------------------------------
@@ -253,7 +253,7 @@ impl fmt::Display for AdviceInjector {
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
-            Self::SmtInsert => write!(f, "smt_insert"),
+            Self::SmtSet => write!(f, "smt_set"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
             Self::HpermToMap => write!(f, "hperm_to_map"),

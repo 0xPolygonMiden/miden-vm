@@ -1151,7 +1151,7 @@ export.insert
     # arrange the data needed for the insert procedure on the advice stack and move the
     # first 4 flags onto the operand stack; meaning of the flags f0, f1, and f2 depends
     # on what type of insert is being executed (4 cycles)
-    adv.push_smtinsert adv_push.4
+    adv.push_smtset adv_push.4
     # => [is_update, f0, f1, f2, V, K, R, ...]
 
     # execute the actual insert procedure
@@ -1362,7 +1362,7 @@ proc.delete
         # => [V_old, R_new, R_new, K, R, ...]
 
         # prepare the stack for TSMT insert operation (9 cycles)
-        swapw.3 dupw.3 adv.push_smtinsert adv_push.4
+        swapw.3 dupw.3 adv.push_smtset adv_push.4
         # => [f0, f1, f2, f3, V_old, K, R_new, R_new, V_old, R, ...]
 
         # insert key-pair (K, V_old) into TSMT with root R_new - i.e., insert the key-value pair
@@ -1416,7 +1416,7 @@ export.set
     # arrange the data needed for the update procedure on the advice stack and move the first
     # 4 flags onto the operand stack; meaning of the flags f0, f1, f2, and f3 depends on what
     # type of update is being executed (4 cycles)
-    adv.push_smtinsert adv_push.4
+    adv.push_smtset adv_push.4
     # => [f0, f1, f2, f3, V, K, R, ...]
 
     # determine if the value is an empty word (15 cycles)

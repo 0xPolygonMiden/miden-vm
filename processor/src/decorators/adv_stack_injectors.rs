@@ -370,7 +370,7 @@ where
     ///
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
-    pub(super) fn push_smtinsert_inputs(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn push_smtset_inputs(&mut self) -> Result<(), ExecutionError> {
         // get the key, value, and tree root from the stack
         let value = self.stack.get_word(0);
         let key = self.stack.get_word(1);
