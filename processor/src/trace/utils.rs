@@ -247,6 +247,7 @@ impl HintCycle for u64 {
 /// - `range_trace_len` contains the length of the range checker trace.
 /// - `chiplets_trace_len` contains the trace lengths of the all chiplets (hash, bitwise, memory,
 /// kernel ROM)
+#[derive(Debug)]
 pub struct TraceLenSummary {
     main_trace_len: usize,
     range_trace_len: usize,
@@ -296,7 +297,7 @@ impl TraceLenSummary {
 
 /// Contains trace lengths of all chilplets: hash, bitwise, memory and kernel ROM trace
 /// lengths.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ChipletsLengths {
     hash_chiplet_len: usize,
     bitwise_chiplet_len: usize,

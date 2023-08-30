@@ -31,7 +31,7 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     // This tests what we want. Actually it outputs X steps in Y ms.
     // However we the X and the Y can change in future versions.
     // There is no other 'steps in' in the output
-    output.assert().stdout(predicate::str::contains("steps in"));
+    output.assert().stdout(predicate::str::contains("VM cycles"));
 
     Ok(())
 }

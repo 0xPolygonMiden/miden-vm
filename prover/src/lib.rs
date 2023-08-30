@@ -62,10 +62,16 @@ where
         *options.execution_options(),
     )?;
     #[cfg(feature = "std")]
+    let padding_percentage = (trace.trace_len_summary().padded_trace_len()
+        - trace.trace_len_summary().trace_len())
+        * 100
+        / trace.trace_len_summary().padded_trace_len();
+    #[cfg(feature = "std")]
     debug!(
-        "Generated execution trace of {} columns and {} steps in {} ms",
+        "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
         trace.layout().main_trace_width(),
-        trace.length(),
+        trace.trace_len_summary().padded_trace_len(),
+        padding_percentage,
         now.elapsed().as_millis()
     );
 
