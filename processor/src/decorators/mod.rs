@@ -46,6 +46,7 @@ where
             AdviceInjector::Ext2Intt => self.push_ext2_intt_result(),
             AdviceInjector::SmtGet => self.push_smtget_inputs(),
             AdviceInjector::SmtSet => self.push_smtset_inputs(),
+            AdviceInjector::SmtPeek => self.push_smtpeek_result(),
             AdviceInjector::MemToMap => self.insert_mem_values_into_adv_map(),
             AdviceInjector::HdwordToMap { domain } => self.insert_hdword_into_adv_map(*domain),
             AdviceInjector::HpermToMap => self.insert_hperm_into_adv_map(),

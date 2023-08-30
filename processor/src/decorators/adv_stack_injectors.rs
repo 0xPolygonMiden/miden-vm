@@ -291,7 +291,7 @@ where
     /// - f2 is a boolean flag set to `1` if the key is not zero.
     ///
     /// # Errors
-    /// Will return an error if the provided Merkle root doesn't exist on the advice provider.
+    /// Returns an error if the provided Merkle root doesn't exist on the advice provider.
     ///
     /// # Panics
     /// Will panic as unimplemented if the target depth is `64`.
@@ -300,21 +300,9 @@ where
         let key = self.stack.get_word(0);
         let root = self.stack.get_word(1);
 
-        let index = &key[3];
-        let depth = self.advice_provider.get_leaf_depth(root, &SMT_MAX_TREE_DEPTH, index)?;
-        debug_assert!(depth < 65);
-
-        // normalize the depth into one of the tiers. this is not a simple `next_power_of_two`
-        // because of `48`. using a lookup table is far more efficient than if/else if/else.
-        let depth = SMT_NORMALIZED_DEPTHS[depth as usize];
-        if depth == 64 {
-            unimplemented!("handling of bottom tier is not yet implemented");
-        }
-
-        // fetch the node value
-        let index = index.as_int() >> (64 - depth);
-        let index = Felt::new(index);
-        let node = self.advice_provider.get_tree_node(root, &Felt::new(depth as u64), &index)?;
+        // get the node from the SMT for the specified key; this node can be either a leaf node,
+        // or a root of an empty subtree at the returned depth
+        let (node, depth, _) = self.get_smt_node(root, key)?;
 
         // set the node value; zeroed if empty sub-tree
         let empty = EmptySubtreeRoots::empty_hashes(64);
@@ -343,6 +331,55 @@ where
         Ok(())
     }
 
+    /// Pushes onto the advice stack the value associated with the specified key in a Sparse
+    /// Merkle Tree defined by the specified root.
+    ///
+    /// If no value was previously associated with the specified key, [ZERO; 4] is pushed onto
+    /// the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [VALUE, ...]
+    ///
+    /// # Errors
+    /// Returns an error if the provided Merkle root doesn't exist on the advice provider.
+    ///
+    /// # Panics
+    /// Will panic as unimplemented if the target depth is `64`.
+    pub(super) fn push_smtpeek_result(&mut self) -> Result<(), ExecutionError> {
+        // fetch the arguments from the operand stack
+        let key = self.stack.get_word(0);
+        let root = self.stack.get_word(1);
+
+        // get the node from the SMT for the specified key; this node can be either a leaf node,
+        // or a root of an empty subtree at the returned depth
+        let (node, depth, _) = self.get_smt_node(root, key)?;
+
+        let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
+        if node == Word::from(empty) {
+            // if the node is a root of an empty subtree, then there is no value associated with
+            // the specified key
+            self.advice_provider.push_stack(AdviceSource::Word(TieredSmt::EMPTY_VALUE))?;
+        } else {
+            // get the key and value stored in the current leaf
+            let (leaf_key, leaf_value) = self.get_smt_upper_leaf_preimage(node)?;
+
+            // if the leaf is for a different key, then there is no value associated with the
+            // specified key
+            if leaf_key == key {
+                self.advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
+            } else {
+                self.advice_provider.push_stack(AdviceSource::Word(TieredSmt::EMPTY_VALUE))?;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Pushes values onto the advice stack which are required for successful insertion of a
     /// key-value pair into a Sparse Merkle Tree data structure.
     ///
@@ -362,7 +399,7 @@ where
     /// - OLD_VALUE is the value previously associated with the specified KEY.
     ///
     /// # Errors
-    /// Will return an error if:
+    /// Returns an error if:
     /// - The Merkle store does not contain a node with the specified root.
     /// - The Merkle store does not contain all nodes needed to validate the path between the root
     ///   and the relevant TSMT nodes.
@@ -376,21 +413,9 @@ where
         let key = self.stack.get_word(1);
         let root = self.stack.get_word(2);
 
-        // determine the depth of the first leaf or an empty tree node
-        let index = &key[3];
-        let depth = self.advice_provider.get_leaf_depth(root, &SMT_MAX_TREE_DEPTH, index)?;
-        debug_assert!(depth < 65);
-
-        // map the depth value to its tier; this rounds up depth to 16, 32, 48, or 64
-        let depth = SMT_NORMALIZED_DEPTHS[depth as usize];
-        if depth == 64 {
-            unimplemented!("handling of depth=64 tier hasn't been implemented yet");
-        }
-
-        // get the value of the node at this index/depth
-        let index = index.as_int() >> (64 - depth);
-        let index = Felt::new(index);
-        let node = self.advice_provider.get_tree_node(root, &Felt::from(depth), &index)?;
+        // get the node from the SMT for the specified key; this node can be either a leaf node,
+        // or a root of an empty subtree at the returned depth
+        let (node, depth, index) = self.get_smt_node(root, key)?;
 
         // if the value to be inserted is an empty word, we need to process it as a delete
         if value == TieredSmt::EMPTY_VALUE {
@@ -422,6 +447,30 @@ where
 
     // TSMT UPDATE HELPER METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns first leaf or an empty tree node for the provided key in the Sparse Merkle tree
+    /// with the specified root.
+    ///
+    /// Also returns the depth and index of the returned node at this depth.
+    fn get_smt_node(&self, root: Word, key: Word) -> Result<(Word, u8, Felt), ExecutionError> {
+        // determine the depth of the first leaf or an empty tree node
+        let index = &key[3];
+        let depth = self.advice_provider.get_leaf_depth(root, &SMT_MAX_TREE_DEPTH, index)?;
+        debug_assert!(depth < 65);
+
+        // map the depth value to its tier; this rounds up depth to 16, 32, 48, or 64
+        let depth = SMT_NORMALIZED_DEPTHS[depth as usize];
+        if depth == 64 {
+            unimplemented!("handling of depth=64 tier hasn't been implemented yet");
+        }
+
+        // get the value of the node at this index/depth
+        let index = index.as_int() >> (64 - depth);
+        let index = Felt::new(index);
+        let node = self.advice_provider.get_tree_node(root, &Felt::from(depth), &index)?;
+
+        Ok((node, depth, index))
+    }
 
     /// Retrieves a key-value pair for the specified leaf node from the advice map.
     ///

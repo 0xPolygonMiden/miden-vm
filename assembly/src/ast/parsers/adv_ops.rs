@@ -37,6 +37,10 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             2 => AdvInject(PushSmtSet),
             _ => return Err(ParsingError::extra_param(op)),
         },
+        "push_smtpeek" => match op.num_parts() {
+            2 => AdvInject(PushSmtPeek),
+            _ => return Err(ParsingError::extra_param(op)),
+        },
         "push_mapval" => match op.num_parts() {
             2 => AdvInject(PushMapVal),
             3 => {

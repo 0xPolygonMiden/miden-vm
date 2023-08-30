@@ -187,6 +187,21 @@ pub enum AdviceInjector {
     /// - E_KEY and E_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
     SmtSet,
 
+    /// Pushes onto the advice stack the value associated with the specified key in a Sparse
+    /// Merkle Tree defined by the specified root.
+    ///
+    /// If no value was previously associated with the specified key, [ZERO; 4] is pushed onto
+    /// the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [VALUE, ...]
+    SmtPeek,
+
     // ADVICE MAP INJECTORS
     // --------------------------------------------------------------------------------------------
     /// Reads words from memory at the specified range and inserts them into the advice map under
@@ -254,6 +269,7 @@ impl fmt::Display for AdviceInjector {
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
             Self::SmtSet => write!(f, "smt_set"),
+            Self::SmtPeek => write!(f, "smt_peek"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
