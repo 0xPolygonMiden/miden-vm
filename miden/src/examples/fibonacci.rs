@@ -1,4 +1,4 @@
-use super::Example;
+use super::{Example, ONE, ZERO};
 use miden::{
     math::{Felt, FieldElement, StarkField},
     Assembler, MemAdviceProvider, Program, StackInputs,
@@ -47,8 +47,8 @@ fn generate_fibonacci_program(n: usize) -> Program {
 
 /// Computes the `n`-th term of Fibonacci sequence
 fn compute_fibonacci(n: usize) -> Felt {
-    let mut t0 = Felt::ZERO;
-    let mut t1 = Felt::ONE;
+    let mut t0 = ZERO;
+    let mut t1 = ONE;
 
     for _ in 0..n {
         t1 = t0 + t1;

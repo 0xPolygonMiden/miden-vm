@@ -5,7 +5,10 @@ use crate::trace::chiplets::{
     },
     HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE,
 };
-use crate::utils::{are_equal, binary_not, is_binary, EvaluationResult};
+use crate::{
+    utils::{are_equal, binary_not, is_binary, EvaluationResult},
+    ONE, ZERO,
+};
 
 #[cfg(test)]
 mod tests;
@@ -517,40 +520,13 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 // ================================================================================================
 
 /// Periodic column mask used to indicate the last row of a cycle.
-pub const HASH_K0_MASK: [Felt; HASH_CYCLE_LEN] = [
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ONE,
-];
+pub const HASH_K0_MASK: [Felt; HASH_CYCLE_LEN] = [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE];
 
 /// Periodic column mask used to indicate when the next row will be the last row of a cycle.
-pub const HASH_K1_MASK: [Felt; HASH_CYCLE_LEN] = [
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ONE,
-    Felt::ZERO,
-];
+pub const HASH_K1_MASK: [Felt; HASH_CYCLE_LEN] = [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ZERO];
 
 /// Periodic column mask used to identify the first row of a cycle.
-pub const HASH_K2_MASK: [Felt; HASH_CYCLE_LEN] = [
-    Felt::ONE,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-];
+pub const HASH_K2_MASK: [Felt; HASH_CYCLE_LEN] = [ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO];
 
 // ROUND CONSTANTS
 // ================================================================================================
@@ -559,7 +535,7 @@ pub const HASH_K2_MASK: [Felt; HASH_CYCLE_LEN] = [
 pub fn get_round_constants() -> Vec<Vec<Felt>> {
     let mut constants = Vec::new();
     for _ in 0..(STATE_WIDTH * 2) {
-        constants.push(vec![Felt::ZERO; HASH_CYCLE_LEN]);
+        constants.push(vec![ZERO; HASH_CYCLE_LEN]);
     }
 
     #[allow(clippy::needless_range_loop)]

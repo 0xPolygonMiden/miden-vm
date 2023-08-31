@@ -1,5 +1,5 @@
 use super::{
-    super::{AdviceInputs, ExecutionOptions, Felt, FieldElement, Kernel, Operation, StarkField},
+    super::{AdviceInputs, ExecutionOptions, Felt, Kernel, Operation, StarkField},
     Process,
 };
 use crate::{MemAdviceProvider, StackInputs, Word};
@@ -11,7 +11,7 @@ use vm_core::{
     },
     utils::collections::Vec,
     utils::IntoBytes,
-    AdviceInjector, Decorator, ONE, ZERO,
+    AdviceInjector, Decorator, EMPTY_WORD, ONE, ZERO,
 };
 
 #[test]
@@ -52,7 +52,7 @@ fn push_merkle_node() {
         leaves[1][1],
         leaves[1][0],
         Felt::new(2),
-        Felt::new(1),
+        ONE,
         tree.root()[3],
         tree.root()[2],
         tree.root()[1],
@@ -165,13 +165,13 @@ fn inject_smtpeek() {
     let raw_b = 0b_11111111_11111111_00011111_11111111_10010110_10010011_11100000_00000000_u64;
     let key_b = build_key(raw_b);
     let process = prepare_smt_peek(key_b, &smt);
-    assert_eq!(build_expected(&[ZERO; 4]), process.stack.trace_state());
+    assert_eq!(build_expected(&EMPTY_WORD), process.stack.trace_state());
 
     // peeking another key with the same 16-bit prefix as key_a should return empty word
     let raw_c = 0b_00000000_11111111_10011111_11111111_10010110_10010011_11100000_00000000_u64;
     let key_c = build_key(raw_c);
     let process = prepare_smt_peek(key_c, &smt);
-    assert_eq!(build_expected(&[ZERO; 4]), process.stack.trace_state());
+    assert_eq!(build_expected(&EMPTY_WORD), process.stack.trace_state());
 }
 
 fn prepare_smt_peek(key: Word, smt: &TieredSmt) -> Process<MemAdviceProvider> {
@@ -188,7 +188,7 @@ fn prepare_smt_peek(key: Word, smt: &TieredSmt) -> Process<MemAdviceProvider> {
         .collect::<Vec<_>>();
     let advice_inputs = AdviceInputs::default().with_merkle_store(store).with_map(adv_map);
 
-    let stack_inputs = build_stack_inputs(key, root, [ZERO; 4]);
+    let stack_inputs = build_stack_inputs(key, root, EMPTY_WORD);
     let mut process = build_process(stack_inputs, advice_inputs);
 
     process.execute_op(Operation::Noop).unwrap();
@@ -274,11 +274,11 @@ fn prepare_smt_set(
 // ================================================================================================
 
 fn init_leaf(value: u64) -> Word {
-    [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
+    [Felt::new(value), ZERO, ZERO, ZERO]
 }
 
 fn build_expected(values: &[Felt]) -> [Felt; 16] {
-    let mut expected = [Felt::ZERO; 16];
+    let mut expected = [ZERO; 16];
     for (&value, result) in values.iter().zip(expected.iter_mut()) {
         *result = value
     }

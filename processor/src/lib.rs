@@ -11,7 +11,8 @@ use miden_air::trace::{
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
     chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
-    Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word,
+    Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD,
+    ONE, ZERO,
 };
 use vm_core::{
     code_blocks::{
@@ -19,7 +20,7 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
-    StackTopState, StarkField, ONE, ZERO,
+    StackTopState, StarkField,
 };
 
 use winter_prover::ColMatrix;

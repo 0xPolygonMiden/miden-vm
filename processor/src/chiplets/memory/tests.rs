@@ -1,7 +1,8 @@
 use super::{
     super::aux_trace::{ChipletLookup, ChipletsBusRow},
+    super::ZERO,
     ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, TraceFragment, Vec, ADDR_COL_IDX,
-    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE, V_COL_RANGE, ZERO,
+    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
 };
 use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
@@ -22,27 +23,27 @@ fn mem_read() {
     // read a value from address 0; clk = 1
     let addr0 = 0;
     let value = mem.read(0, addr0, 1);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // read a value from address 3; clk = 2
     let addr3 = 3;
     let value = mem.read(0, addr3, 2);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from address 0 again; clk = 3
     let value = mem.read(0, addr0, 3);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // read a value from address 2; clk = 4
     let addr2 = 2;
     let value = mem.read(0, addr2, 4);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
@@ -52,21 +53,21 @@ fn mem_read() {
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 1, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 1, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_INIT_READ, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 3, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 3, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 2
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 4, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 4, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_INIT_READ, &memory_access, prev_row);
 
     // address 3
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr3, 2, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr3, 2, EMPTY_WORD);
     verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_INIT_READ, &memory_access, prev_row);
 }
 
@@ -316,7 +317,7 @@ fn mem_get_state_at() {
 /// Builds a trace of the specified length and fills it with data from the provided Memory instance.
 fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
     let mut chiplets_bus = ChipletsBus::default();
-    let mut trace = (0..MEMORY_TRACE_WIDTH).map(|_| vec![Felt::ZERO; num_rows]).collect::<Vec<_>>();
+    let mut trace = (0..MEMORY_TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     mem.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 

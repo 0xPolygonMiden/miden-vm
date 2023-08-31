@@ -8,7 +8,7 @@ use miden_air::{
     Felt, FieldElement,
 };
 use std::time::Duration;
-use vm_core::Operation;
+use vm_core::{Operation, ZERO};
 
 fn enforce_stack_constraint(c: &mut Criterion) {
     let mut group = c.benchmark_group("enforce_stack_constraint");
@@ -27,7 +27,7 @@ fn enforce_stack_constraint(c: &mut Criterion) {
         frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(89u64);
         frame.next_mut()[STACK_TRACE_OFFSET] = Felt::new(89u64).inv();
 
-        let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+        let mut result = [ZERO; NUM_CONSTRAINTS];
 
         let frame = generate_evaluation_frame(36);
         bench.iter(|| {

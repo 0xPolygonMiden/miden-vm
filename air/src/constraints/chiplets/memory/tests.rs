@@ -9,7 +9,7 @@ use crate::trace::{
     },
     TRACE_WIDTH,
 };
-use crate::{chiplets::memory, Felt, FieldElement};
+use crate::{chiplets::memory, Felt, FieldElement, ONE, ZERO};
 use rand_utils::rand_value;
 use vm_core::utils::collections::Vec;
 
@@ -18,7 +18,7 @@ use vm_core::utils::collections::Vec;
 
 #[test]
 fn test_memory_write() {
-    let expected = [Felt::ZERO; memory::NUM_CONSTRAINTS];
+    let expected = [ZERO; memory::NUM_CONSTRAINTS];
 
     let old_values = vec![0, 0, 0, 0];
     let new_values = vec![1, 0, 0, 0];
@@ -53,7 +53,7 @@ fn test_memory_write() {
 
 #[test]
 fn test_memory_read() {
-    let expected = [Felt::ZERO; memory::NUM_CONSTRAINTS];
+    let expected = [ZERO; memory::NUM_CONSTRAINTS];
 
     let init_values = vec![0, 0, 0, 0];
     let old_values = vec![1, 0, 0, 0];
@@ -116,9 +116,9 @@ fn get_constraint_evaluation(
     let delta_row = get_test_delta_row(&delta_type);
     let frame = get_test_frame(selectors, &delta_type, &delta_row, old_values, new_values);
 
-    let mut result = [Felt::ZERO; memory::NUM_CONSTRAINTS];
+    let mut result = [ZERO; memory::NUM_CONSTRAINTS];
 
-    memory::enforce_constraints(&frame, &mut result, Felt::ONE);
+    memory::enforce_constraints(&frame, &mut result, ONE);
 
     result
 }
@@ -142,8 +142,8 @@ fn get_test_frame(
     old_values: &[u32],
     new_values: &[u32],
 ) -> EvaluationFrame<Felt> {
-    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
-    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut current = vec![ZERO; TRACE_WIDTH];
+    let mut next = vec![ZERO; TRACE_WIDTH];
 
     // Set the operation in the next row.
     next[MEMORY_TRACE_OFFSET] = selectors[0];
@@ -164,9 +164,9 @@ fn get_test_frame(
     }
 
     // Set the delta and delta inverse values. Treat the current row as if it's the first row.
-    current[MEMORY_D0_COL_IDX] = Felt::ZERO;
-    current[MEMORY_D1_COL_IDX] = Felt::ZERO;
-    current[MEMORY_D_INV_COL_IDX] = Felt::ZERO;
+    current[MEMORY_D0_COL_IDX] = ZERO;
+    current[MEMORY_D1_COL_IDX] = ZERO;
+    current[MEMORY_D_INV_COL_IDX] = ZERO;
 
     // Set the delta in the next row according to the specified delta type.
     let delta: u64 = match delta_type {

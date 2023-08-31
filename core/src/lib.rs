@@ -7,7 +7,7 @@ extern crate alloc;
 pub mod chiplets;
 pub mod errors;
 
-pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
+pub use ::crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
         pub use ::crypto::merkle::{

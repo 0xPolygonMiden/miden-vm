@@ -1,6 +1,5 @@
-use super::{
-    AdviceProvider, ExecutionError, Felt, FieldElement, Process, StarkField, STACK_TOP_SIZE,
-};
+use super::{AdviceProvider, ExecutionError, Process, StarkField, STACK_TOP_SIZE};
+use crate::ZERO;
 
 impl<A> Process<A>
 where
@@ -10,7 +9,7 @@ where
     // --------------------------------------------------------------------------------------------
     /// Pushes a ZERO onto the stack.
     pub(super) fn op_pad(&mut self) -> Result<(), ExecutionError> {
-        self.stack.set(0, Felt::ZERO);
+        self.stack.set(0, ZERO);
         self.stack.shift_right(0);
         Ok(())
     }
@@ -304,10 +303,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{FieldElement, Operation, Process},
-        Felt, STACK_TOP_SIZE,
+        super::{Operation, Process},
+        STACK_TOP_SIZE,
     };
-    use crate::StackInputs;
+    use crate::{Felt, StackInputs, ONE, ZERO};
 
     #[test]
     fn op_pad() {
@@ -315,7 +314,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         // push one item onto the stack
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -341,7 +340,7 @@ mod tests {
         // push a few items onto the stack
         let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Push(Felt::new(2))).unwrap();
 
         // drop the first value
@@ -366,7 +365,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         // push one item onto the stack
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -381,7 +380,7 @@ mod tests {
         process.execute_op(Operation::Drop).unwrap();
 
         // put 15 more items onto the stack
-        let mut expected = [Felt::ONE; 16];
+        let mut expected = [ONE; 16];
         for i in 2..17 {
             process.execute_op(Operation::Push(Felt::new(i))).unwrap();
             expected[16 - i as usize] = Felt::new(i);
@@ -390,13 +389,13 @@ mod tests {
 
         // duplicate last stack item
         process.execute_op(Operation::Dup15).unwrap();
-        assert_eq!(Felt::ONE, process.stack.trace_state()[0]);
+        assert_eq!(ONE, process.stack.trace_state()[0]);
         assert_eq!(&expected[..15], &process.stack.trace_state()[1..]);
 
         // duplicate 8th stack item
         process.execute_op(Operation::Dup7).unwrap();
         assert_eq!(Felt::new(10), process.stack.trace_state()[0]);
-        assert_eq!(Felt::new(1), process.stack.trace_state()[1]);
+        assert_eq!(ONE, process.stack.trace_state()[1]);
         assert_eq!(&expected[..14], &process.stack.trace_state()[2..]);
 
         // remove 4 items off the stack
@@ -408,8 +407,8 @@ mod tests {
         assert_eq!(STACK_TOP_SIZE + 15, process.stack.depth());
 
         assert_eq!(&expected[2..], &process.stack.trace_state()[..14]);
-        assert_eq!(Felt::ONE, process.stack.trace_state()[14]);
-        assert_eq!(Felt::ZERO, process.stack.trace_state()[15]);
+        assert_eq!(ONE, process.stack.trace_state()[14]);
+        assert_eq!(ZERO, process.stack.trace_state()[15]);
     }
 
     #[test]
@@ -602,7 +601,7 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     fn build_expected(values: &[u64]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value);
         }

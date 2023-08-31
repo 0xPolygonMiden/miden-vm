@@ -781,7 +781,7 @@ fn hash_memoization_span_blocks() {
 
     // --- span block with multiple batches -------------------------------------------------------
     let span_block = CodeBlock::new_span(vec![
-        Operation::Push(Felt::new(1)),
+        Operation::Push(ONE),
         Operation::Push(Felt::new(2)),
         Operation::Push(Felt::new(3)),
         Operation::Push(Felt::new(4)),
@@ -1034,7 +1034,7 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
 fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsVTableTraceBuilder) {
-    let mut trace = (0..TRACE_WIDTH).map(|_| vec![Felt::new(0); num_rows]).collect::<Vec<_>>();
+    let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     let aux_trace_builder = hasher.fill_trace(&mut fragment);
     (trace, aux_trace_builder)

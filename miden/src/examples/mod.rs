@@ -1,6 +1,6 @@
 use clap::Parser;
 use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProvingOptions, StackInputs};
-use processor::{ExecutionOptions, ExecutionOptionsError};
+use processor::{ExecutionOptions, ExecutionOptionsError, ONE, ZERO};
 use std::io::Write;
 use std::time::Instant;
 

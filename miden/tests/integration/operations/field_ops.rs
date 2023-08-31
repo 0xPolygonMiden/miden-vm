@@ -1,6 +1,6 @@
 use test_utils::{
     build_op_test, prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement,
-    StarkField, TestError, WORD_SIZE,
+    StarkField, TestError, ONE, WORD_SIZE,
 };
 
 // FIELD OPS ASSERTIONS - MANUAL TESTS
@@ -280,7 +280,7 @@ fn inv() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[Felt::new(1).inv().as_int()]);
+    test.expect_stack(&[ONE.inv().as_int()]);
 
     let test = build_op_test!(asm_op, &[64]);
     test.expect_stack(&[Felt::new(64).inv().as_int()]);

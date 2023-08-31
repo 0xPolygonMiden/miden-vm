@@ -1,4 +1,4 @@
-use super::{hasher, Box, Digest, Felt, FieldElement, Operation, Vec};
+use super::{hasher, Box, Digest, Felt, Operation, Vec};
 use crate::DecoratorList;
 use core::fmt;
 

@@ -17,7 +17,7 @@ proptest! {
 
     #[test]
     fn test_u32split_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_u32split_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -27,7 +27,7 @@ proptest! {
 
     #[test]
     fn test_u32add_operation(a in any::<u32>(), b in any::<u32>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_u32add_test_frame(a, b);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -37,7 +37,7 @@ proptest! {
 
     #[test]
     fn test_u32add3_operation(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_u32add3_test_frame(a, b, c);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -47,7 +47,7 @@ proptest! {
 
     #[test]
     fn test_u32mul_operation(a in any::<u32>(), b in any::<u32>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_u32mul_test_frame(a, b);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -58,7 +58,7 @@ proptest! {
     #[test]
     #[allow(arithmetic_overflow)]
     fn test_u32madd_operation(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_u32madd_test_frame(a, b, c);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -68,7 +68,7 @@ proptest! {
 
     #[test]
     fn test_u32sub_operation(a in any::<u32>(), b in any::<u32>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_u32sub_test_frame(a, b);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -78,7 +78,7 @@ proptest! {
 
     #[test]
     fn test_u32div_operation(a in any::<u32>(), b in any::<u32>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         if a != 0 {
             let frame = get_u32div_test_frame(a, b);
             let result = get_constraint_evaluation(frame);
@@ -93,7 +93,7 @@ proptest! {
 
 /// Returns the result of stack operation constraint evaluations on the provided frame.
 fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRAINTS] {
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+    let mut result = [ZERO; NUM_CONSTRAINTS];
 
     let op_flag = &OpFlags::new(&frame);
 

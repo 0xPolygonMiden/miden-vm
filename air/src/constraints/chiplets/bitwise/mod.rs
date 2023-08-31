@@ -6,6 +6,7 @@ use crate::{
         BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX,
     },
     utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult},
+    ONE, ZERO,
 };
 use winter_air::TransitionConstraintDegree;
 
@@ -413,27 +414,9 @@ pub fn agg_bits<E: FieldElement>(row: &[E], start_idx: usize) -> E {
 
 // CYCLE MASKS
 // ================================================================================================
-pub const BITWISE_K0_MASK: [Felt; OP_CYCLE_LEN] = [
-    Felt::ONE,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-];
+pub const BITWISE_K0_MASK: [Felt; OP_CYCLE_LEN] = [ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO];
 
-pub const BITWISE_K1_MASK: [Felt; OP_CYCLE_LEN] = [
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ZERO,
-];
+pub const BITWISE_K1_MASK: [Felt; OP_CYCLE_LEN] = [ONE, ONE, ONE, ONE, ONE, ONE, ONE, ZERO];
 
 // TEST HELPERS
 // ================================================================================================
@@ -442,8 +425,8 @@ pub const BITWISE_K1_MASK: [Felt; OP_CYCLE_LEN] = [
 #[cfg(test)]
 fn get_periodic_values(cycle_row: usize) -> [Felt; 2] {
     match cycle_row {
-        0 => [Felt::ONE, Felt::ONE],
-        8 => [Felt::ZERO, Felt::ZERO],
-        _ => [Felt::ZERO, Felt::ONE],
+        0 => [ONE, ONE],
+        8 => [ZERO, ZERO],
+        _ => [ZERO, ONE],
     }
 }

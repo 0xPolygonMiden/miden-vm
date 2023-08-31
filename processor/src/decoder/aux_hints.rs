@@ -1,6 +1,6 @@
 use super::{
     super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, ColMatrix, Felt,
-    FieldElement, StarkField, Vec, Word, ONE, ZERO,
+    FieldElement, StarkField, Vec, Word, EMPTY_WORD, ONE, ZERO,
 };
 
 // AUXILIARY TRACE HINTS
@@ -33,7 +33,7 @@ impl AuxTraceHints {
     pub fn new() -> Self {
         // initialize block hash table with an blank entry, this will be replaced with an entry
         // containing the actual program hash at the end of trace generation
-        let block_hash_rows = vec![BlockHashTableRow::from_program_hash([ZERO; 4])];
+        let block_hash_rows = vec![BlockHashTableRow::from_program_hash(EMPTY_WORD)];
 
         Self {
             block_exec_hints: Vec::new(),
@@ -308,7 +308,7 @@ impl BlockStackTableRow {
             parent_id,
             is_loop,
             parent_ctx: 0,
-            parent_fn_hash: [ZERO; 4],
+            parent_fn_hash: EMPTY_WORD,
             parent_fmp: ZERO,
             parent_stack_depth: 0,
             parent_next_overflow_addr: ZERO,
