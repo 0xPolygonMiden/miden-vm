@@ -1,5 +1,5 @@
 use processor::{AsmOpInfo, VmState};
-use test_utils::{build_debug_test, Felt, FieldElement, ToElements};
+use test_utils::{build_debug_test, Felt, ToElements, ONE};
 use vm_core::{AssemblyOp, Operation};
 
 // EXEC ITER TESTS
@@ -14,7 +14,7 @@ fn test_exec_iter() {
     let test = build_debug_test!(source, &init_stack);
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
-    let next_fmp = fmp + Felt::ONE;
+    let next_fmp = fmp + ONE;
     let mem = vec![(1_u64, slice_to_word(&[13, 14, 15, 16]))];
     let expected_states = vec![
         VmState {
@@ -143,7 +143,7 @@ fn test_exec_iter() {
         VmState {
             clk: 11,
             ctx: 0,
-            op: Some(Operation::Push(Felt::new(1))),
+            op: Some(Operation::Push(ONE)),
             asmop: None,
             stack: [1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp,

@@ -2,7 +2,7 @@ use super::{AdviceProvider, ExecutionError, Process};
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},
     utils::collections::Vec,
-    Felt, StarkField, WORD_SIZE, ZERO,
+    Felt, StarkField, EMPTY_WORD, WORD_SIZE,
 };
 
 // ADVICE INJECTORS
@@ -36,7 +36,7 @@ where
 
         let mut values = Vec::with_capacity(((end_addr - start_addr) as usize) * WORD_SIZE);
         for addr in start_addr..end_addr {
-            let mem_value = self.chiplets.get_mem_value(ctx, addr).unwrap_or([ZERO; WORD_SIZE]);
+            let mem_value = self.chiplets.get_mem_value(ctx, addr).unwrap_or(EMPTY_WORD);
             values.extend_from_slice(&mem_value);
         }
 

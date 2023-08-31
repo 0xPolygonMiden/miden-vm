@@ -8,7 +8,7 @@ use test_utils::{
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_vector_elements,
     math::fft,
-    Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, ZERO,
+    Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
@@ -446,7 +446,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
                 .zip(x.iter())
                 .map(|(a, b)| {
                     let mut value = QuadExt::slice_as_base_elements(b).to_owned();
-                    value.extend([ZERO; 4]);
+                    value.extend(EMPTY_WORD);
                     adv_key_map.push((a.to_owned().into_bytes(), value));
                 })
                 .collect();

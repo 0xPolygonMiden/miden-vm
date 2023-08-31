@@ -1,4 +1,4 @@
-use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec};
+use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec, ZERO};
 use core::ops::Range;
 use miden_air::trace::chiplets::{
     hasher::{
@@ -180,8 +180,8 @@ fn get_adjacent_hasher_rates(
 ) -> ([Felt; RATE_LEN], [Felt; RATE_LEN]) {
     let row = get_row_from_addr(addr);
 
-    let mut current = [Felt::ZERO; RATE_LEN];
-    let mut next = [Felt::ZERO; RATE_LEN];
+    let mut current = [ZERO; RATE_LEN];
+    let mut next = [ZERO; RATE_LEN];
     for (idx, col_idx) in HASHER_RATE_COL_RANGE.enumerate() {
         let column = main_trace.get_column(col_idx);
         current[idx] = column[row];

@@ -2,7 +2,7 @@ use super::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
-    Vec, Word, ONE, ZERO,
+    Vec, Word, EMPTY_WORD, ONE,
 };
 use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
@@ -18,7 +18,7 @@ mod tests;
 // ================================================================================================
 
 /// Initial value of every memory cell.
-const INIT_MEM_VALUE: Word = [ZERO; 4];
+const INIT_MEM_VALUE: Word = EMPTY_WORD;
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================

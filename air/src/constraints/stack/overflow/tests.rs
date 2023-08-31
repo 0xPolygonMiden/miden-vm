@@ -12,7 +12,7 @@ use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
 
 #[test]
 fn test_stack_overflow_constraints() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
 
     // ------------------ right shift operation ----------------------------------------------------
 
@@ -116,7 +116,7 @@ fn test_stack_depth_air() {
     frame.next_mut()[B1_COL_IDX] = Felt::new(12);
     frame.next_mut()[H0_COL_IDX] = Felt::new(depth - 1 - 16).inv();
 
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
     let result = get_constraint_evaluation(frame);
 
     assert_eq!(expected, result);
@@ -127,7 +127,7 @@ fn test_stack_depth_air() {
 
 /// Returns the result of stack operation constraint evaluations on the provided frame.
 fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRAINTS] {
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+    let mut result = [ZERO; NUM_CONSTRAINTS];
 
     let op_flag = &OpFlags::new(&frame);
 

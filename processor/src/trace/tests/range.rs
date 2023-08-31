@@ -25,8 +25,8 @@ fn b_range_trace_stack() {
     // --- Check the stack processor's range check lookups. ---------------------------------------
 
     // Before any range checks are executed, the value in b_range should be one.
-    assert_eq!(Felt::ONE, b_range[0]);
-    assert_eq!(Felt::ONE, b_range[1]);
+    assert_eq!(ONE, b_range[0]);
+    assert_eq!(ONE, b_range[1]);
 
     // The first range check lookup from the stack will happen when the add operation is executed,
     // at cycle 1. (The trace begins by executing `span`). It must be subtracted out of `b_range`.
@@ -61,7 +61,7 @@ fn b_range_trace_stack() {
     // --- Check the last value of the b_range column is one. ------------------------------------------
 
     let last_row = b_range.len() - NUM_RAND_ROWS - 1;
-    assert_eq!(Felt::ONE, b_range[last_row]);
+    assert_eq!(ONE, b_range[last_row]);
 }
 
 /// This test checks that range check lookups from memory operations are balanced by the

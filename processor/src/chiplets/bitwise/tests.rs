@@ -210,7 +210,7 @@ fn bitwise_multiple() {
 /// Builds a trace of the specified length and fills it with data from the provided Bitwise instance.
 fn build_trace(bitwise: Bitwise, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
     let mut chiplets_bus = ChipletsBus::default();
-    let mut trace = (0..TRACE_WIDTH).map(|_| vec![Felt::new(0); num_rows]).collect::<Vec<_>>();
+    let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     bitwise.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 

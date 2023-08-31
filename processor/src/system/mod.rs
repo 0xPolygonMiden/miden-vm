@@ -1,4 +1,6 @@
-use super::{ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, ONE, ZERO};
+use super::{
+    ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
+};
 
 #[cfg(test)]
 mod tests;
@@ -65,7 +67,7 @@ impl System {
             ctx: 0,
             fmp,
             in_syscall: false,
-            fn_hash: [ZERO; 4],
+            fn_hash: EMPTY_WORD,
             clk_trace: Felt::zeroed_vector(init_trace_capacity),
             ctx_trace: Felt::zeroed_vector(init_trace_capacity),
             fmp_trace,
@@ -265,7 +267,7 @@ impl System {
 
         // complete the fn hash columns by filling them with ZEROs as program execution must always
         // end in the root context.
-        debug_assert_eq!(self.fn_hash, [ZERO; 4]);
+        debug_assert_eq!(self.fn_hash, EMPTY_WORD);
         for mut column in self.fn_hash_trace.into_iter() {
             column.resize(trace_len, ZERO);
             trace.push(column);

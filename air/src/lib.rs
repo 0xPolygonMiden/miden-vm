@@ -133,7 +133,7 @@ impl Air for ProcessorAir {
 
         // --- set assertions for the first step --------------------------------------------------
         // first value of clk is 0
-        result.push(Assertion::single(CLK_COL_IDX, 0, Felt::ZERO));
+        result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
 
         // first value of fmp is 2^30
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));

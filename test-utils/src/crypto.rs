@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, Vec, Word};
+use super::{Felt, Vec, Word, ZERO};
 
 // RE-EXPORTS
 // ================================================================================================
@@ -30,5 +30,5 @@ pub fn init_merkle_leaves(values: &[u64]) -> Vec<Word> {
 }
 
 pub fn init_merkle_leaf(value: u64) -> Word {
-    [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
+    [Felt::new(value), ZERO, ZERO, ZERO]
 }

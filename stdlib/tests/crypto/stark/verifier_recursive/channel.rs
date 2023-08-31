@@ -7,7 +7,7 @@ use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
     group_vector_elements,
     math::{FieldElement, QuadExtension, StarkField},
-    Felt, IntoBytes, VerifierError, ZERO,
+    Felt, IntoBytes, VerifierError, EMPTY_WORD,
 };
 use winter_air::{
     proof::{Queries, StarkProof, Table},
@@ -272,7 +272,7 @@ impl VerifierChannel {
                 .zip(x.iter())
                 .map(|(a, b)| {
                     let mut value = QuadExt::slice_as_base_elements(b).to_owned();
-                    value.extend([ZERO; 4]);
+                    value.extend(EMPTY_WORD);
 
                     adv_key_map.push((a.to_owned().into_bytes(), value));
                 })

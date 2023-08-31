@@ -28,7 +28,7 @@ pub use verifier::{ProgramInfo, VerifierError};
 pub use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
-    Felt, FieldElement, Program, StarkField, Word, ONE, WORD_SIZE, ZERO,
+    Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 pub mod math {
@@ -175,7 +175,7 @@ impl Test {
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
             // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing easier
-            let mem_state = process.get_memory_value(0, mem_start_addr).unwrap_or([ZERO; 4]);
+            let mem_state = process.get_memory_value(0, mem_start_addr).unwrap_or(EMPTY_WORD);
 
             let mem_state = stack_to_ints(&mem_state);
             assert_eq!(
@@ -321,7 +321,7 @@ pub fn prop_randw<T: Arbitrary>() -> impl Strategy<Value = Vec<T>> {
 ///
 /// Return the result of the permutation in stack order.
 pub fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
-    let mut expected = [Felt::ZERO; STATE_WIDTH];
+    let mut expected = [ZERO; STATE_WIDTH];
     for (&value, result) in values.iter().zip(expected.iter_mut()) {
         *result = Felt::new(value);
     }

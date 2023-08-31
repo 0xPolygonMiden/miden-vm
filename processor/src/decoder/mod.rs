@@ -1,7 +1,7 @@
 use super::{
     AdviceProvider, Call, ColMatrix, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch,
-    Operation, Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
-    ZERO,
+    Operation, Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE,
+    OP_BATCH_SIZE, ZERO,
 };
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
@@ -125,7 +125,7 @@ where
         let body_hash = block.body().hash().into();
         let addr =
             self.chiplets
-                .hash_control_block(body_hash, [ZERO; 4], Loop::DOMAIN, block.hash());
+                .hash_control_block(body_hash, EMPTY_WORD, Loop::DOMAIN, block.hash());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -176,7 +176,7 @@ where
         let fn_hash = block.fn_hash().into();
         let addr =
             self.chiplets
-                .hash_control_block(fn_hash, [ZERO; 4], block.domain(), block.hash());
+                .hash_control_block(fn_hash, EMPTY_WORD, block.domain(), block.hash());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -449,7 +449,7 @@ impl Decoder {
         let enter_loop = stack_top == ONE;
         let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop), None);
         self.trace
-            .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
+            .append_block_start(parent_addr, Operation::Loop, loop_body_hash, EMPTY_WORD);
 
         // mark this cycle as the cycle at which a new LOOP block has started (this may affect
         // block hash table). A loop block has a single child only if the body of the loop is
@@ -490,7 +490,7 @@ impl Decoder {
 
         // push CALL block info onto the block stack and append a CALL row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
-        self.trace.append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
+        self.trace.append_block_start(parent_addr, Operation::Call, fn_hash, EMPTY_WORD);
 
         // mark this cycle as the cycle at which a new CALL block began execution (this affects
         // block stack and block hash tables). A CALL block has only a single child.
@@ -511,7 +511,7 @@ impl Decoder {
         // trace
         let parent_addr = self.block_stack.push(addr, BlockType::SysCall, Some(ctx_info));
         self.trace
-            .append_block_start(parent_addr, Operation::SysCall, fn_hash, [ZERO; 4]);
+            .append_block_start(parent_addr, Operation::SysCall, fn_hash, EMPTY_WORD);
 
         // mark this cycle as the cycle at which a new SYSCALL block began execution (this affects
         // block stack and block hash tables). A SYSCALL block has only a single child.

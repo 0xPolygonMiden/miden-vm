@@ -192,7 +192,7 @@ where
 /// Determines tau factor (needed to compute x value) for the specified domain segment.
 fn get_tau_factor(domain_segment: usize) -> Felt {
     match domain_segment {
-        0 => Felt::ONE,
+        0 => ONE,
         1 => TAU_INV,
         2 => TAU2_INV,
         3 => TAU3_INV,

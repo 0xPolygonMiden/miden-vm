@@ -3,7 +3,7 @@ use core::{
     cmp::PartialEq,
     ops::{Add, Div, Mul, Neg, Sub},
 };
-use test_utils::{rand::rand_value, Felt, FieldElement, StarkField};
+use test_utils::{rand::rand_value, Felt, FieldElement, StarkField, ONE, ZERO};
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings
@@ -29,16 +29,16 @@ fn legendre(v: Felt) -> Felt {
 }
 
 fn is_zero(a: Felt) -> Felt {
-    Felt::new((a == Felt::ZERO) as u64)
+    Felt::new((a == ZERO) as u64)
 }
 
 fn is_one(a: Felt) -> Felt {
-    Felt::new((a == Felt::ONE) as u64)
+    Felt::new((a == ONE) as u64)
 }
 
 pub fn bv_or(a: Felt, b: Felt) -> Felt {
-    let flg_a = (a == Felt::ZERO) | (a == Felt::ONE);
-    let flg_b = (b == Felt::ZERO) | (b == Felt::ONE);
+    let flg_a = (a == ZERO) | (a == ONE);
+    let flg_b = (b == ZERO) | (b == ONE);
 
     assert_eq!(flg_a & flg_b, true);
 
@@ -122,21 +122,21 @@ impl Ext5 {
 
     pub fn zero() -> Self {
         Self {
-            a0: Felt::new(0),
-            a1: Felt::new(0),
-            a2: Felt::new(0),
-            a3: Felt::new(0),
-            a4: Felt::new(0),
+            a0: ZERO,
+            a1: ZERO,
+            a2: ZERO,
+            a3: ZERO,
+            a4: ZERO,
         }
     }
 
     pub fn from_int(a: u64) -> Self {
         Self {
             a0: Felt::new(a),
-            a1: Felt::new(0),
-            a2: Felt::new(0),
-            a3: Felt::new(0),
-            a4: Felt::new(0),
+            a1: ZERO,
+            a2: ZERO,
+            a3: ZERO,
+            a4: ZERO,
         }
     }
 
@@ -203,9 +203,9 @@ impl Ext5 {
             + Felt::new(3)
                 * (self.a1 * t2.a4 + self.a2 * t2.a3 + self.a3 * t2.a2 + self.a4 * t2.a1);
 
-        let flg = t3 == Felt::new(0);
+        let flg = t3 == ZERO;
         let t3 = t3 + Felt::new(flg as u64);
-        let t4 = Felt::new(1) / t3;
+        let t4 = ONE / t3;
 
         Self {
             a0: t4 * t2.a0,
@@ -259,11 +259,11 @@ impl Ext5 {
     }
 
     pub fn is_zero(self) -> Felt {
-        let flg0 = self.a0 == Felt::ZERO;
-        let flg1 = self.a1 == Felt::ZERO;
-        let flg2 = self.a2 == Felt::ZERO;
-        let flg3 = self.a3 == Felt::ZERO;
-        let flg4 = self.a4 == Felt::ZERO;
+        let flg0 = self.a0 == ZERO;
+        let flg1 = self.a1 == ZERO;
+        let flg2 = self.a2 == ZERO;
+        let flg3 = self.a3 == ZERO;
+        let flg4 = self.a4 == ZERO;
 
         let flg = flg0 & flg1 & flg2 & flg3 & flg4;
         Felt::new(flg as u64)

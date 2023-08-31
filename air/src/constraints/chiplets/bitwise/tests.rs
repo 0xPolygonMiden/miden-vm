@@ -1,8 +1,8 @@
 use super::{
     enforce_constraints, get_periodic_values, EvaluationFrame, BITWISE_A_COL_IDX,
     BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE, BITWISE_OUTPUT_COL_IDX,
-    BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX, NUM_CONSTRAINTS, NUM_DECOMP_BITS,
-    OP_CYCLE_LEN,
+    BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX, NUM_CONSTRAINTS, NUM_DECOMP_BITS, ONE,
+    OP_CYCLE_LEN, ZERO,
 };
 use crate::{
     trace::{
@@ -12,7 +12,7 @@ use crate::{
         },
         TRACE_WIDTH,
     },
-    Felt, FieldElement,
+    Felt,
 };
 use rand_utils::rand_value;
 
@@ -25,7 +25,7 @@ use proptest::prelude::*;
 /// specify the operation change within a cycle.
 #[test]
 fn test_bitwise_change_ops_fail() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
 
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
@@ -48,28 +48,28 @@ fn output_aggregation_and() {
     let cycle_row = 0;
 
     // create a valid test frame manually
-    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
-    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut current = vec![ZERO; TRACE_WIDTH];
+    let mut next = vec![ZERO; TRACE_WIDTH];
 
     let current_bitwise = [
         // selector
         BITWISE_AND,
         // a
-        Felt::ONE,
+        ONE,
         // b
         Felt::new(9),
         // decomposition of a
-        Felt::ONE,
-        Felt::ZERO,
-        Felt::ZERO,
-        Felt::ZERO,
+        ONE,
+        ZERO,
+        ZERO,
+        ZERO,
         // decomposition of b
-        Felt::ONE,
-        Felt::ZERO,
-        Felt::ZERO,
-        Felt::ONE,
+        ONE,
+        ZERO,
+        ZERO,
+        ONE,
         // previous output
-        Felt::ZERO,
+        ZERO,
         // assert a false output
         Felt::new(1337),
     ];
@@ -82,15 +82,15 @@ fn output_aggregation_and() {
         // b
         Felt::new(157),
         // decomposition of a
-        Felt::ONE,
-        Felt::ONE,
-        Felt::ZERO,
-        Felt::ZERO,
+        ONE,
+        ONE,
+        ZERO,
+        ZERO,
         // decomposition of b
-        Felt::ONE,
-        Felt::ZERO,
-        Felt::ONE,
-        Felt::ONE,
+        ONE,
+        ZERO,
+        ONE,
+        ONE,
         // previous output
         Felt::new(1337),
         // output
@@ -104,7 +104,7 @@ fn output_aggregation_and() {
     let result = get_constraint_evaluation(frame, cycle_row);
 
     // expect a failure for the output aggregation constraint (the last one)
-    assert_ne!(Felt::ZERO, result[NUM_CONSTRAINTS - 1]);
+    assert_ne!(ZERO, result[NUM_CONSTRAINTS - 1]);
 }
 
 // RANDOMIZED TESTS
@@ -115,7 +115,7 @@ proptest! {
     /// compute the bitwise AND operation.
     #[test]
     fn test_bitwise_and(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_test_frame(BITWISE_AND, a, b, cycle_row);
         let result = get_constraint_evaluation(frame, cycle_row);
         assert_eq!(expected, result);
@@ -125,7 +125,7 @@ proptest! {
     /// compute the bitwise XOR operation.
     #[test]
     fn test_bitwise_xor(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_test_frame(BITWISE_XOR, a, b, cycle_row);
         let result = get_constraint_evaluation(frame, cycle_row);
         assert_eq!(expected, result);
@@ -139,9 +139,9 @@ proptest! {
 /// specified row.
 fn get_constraint_evaluation(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; NUM_CONSTRAINTS] {
     let periodic_values = get_periodic_values(row);
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+    let mut result = [ZERO; NUM_CONSTRAINTS];
 
-    enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
+    enforce_constraints(&frame, &periodic_values, &mut result, ONE);
 
     result
 }
@@ -165,8 +165,8 @@ pub fn get_test_frame(
     );
 
     // Initialize the rows.
-    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
-    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut current = vec![ZERO; TRACE_WIDTH];
+    let mut next = vec![ZERO; TRACE_WIDTH];
 
     // Set the operation selectors.
     current[BITWISE_SELECTOR_COL_IDX] = operation;
@@ -183,7 +183,7 @@ pub fn get_test_frame(
 
     // Set the previous output.
     let output_prev = if cycle_row_num == 0 {
-        Felt::ZERO
+        ZERO
     } else {
         Felt::new((result >> previous_shift) as u64)
     };
@@ -217,8 +217,8 @@ pub fn get_test_frame_with_two_ops(
     );
 
     // Initialize the rows.
-    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
-    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut current = vec![ZERO; TRACE_WIDTH];
+    let mut next = vec![ZERO; TRACE_WIDTH];
 
     // Set the operation selector.
     current[BITWISE_SELECTOR_COL_IDX] = op_current;
@@ -235,7 +235,7 @@ pub fn get_test_frame_with_two_ops(
 
     // Set the previous output.
     let output_prev = if cycle_row_num == 0 {
-        Felt::ZERO
+        ZERO
     } else {
         Felt::new((result_op_current >> previous_shift) as u64)
     };

@@ -8,7 +8,7 @@ pub use assembly::{Assembler, AssemblyError, ParsingError};
 pub use processor::{
     crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, ExecutionError,
     ExecutionTrace, Kernel, MemAdviceProvider, Operation, ProgramInfo, StackInputs, VmState,
-    VmStateIterator,
+    VmStateIterator, ZERO,
 };
 pub use prover::{
     math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Program,

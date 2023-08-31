@@ -26,6 +26,8 @@ mod decoder;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+use super::EMPTY_WORD;
 
 // CONSTANTS
 // ================================================================================================
@@ -180,7 +182,7 @@ impl ExecutionTrace {
     where
         A: AdviceProvider,
     {
-        let rng = RpoRandomCoin::new(&[ZERO; 4]);
+        let rng = RpoRandomCoin::new(&EMPTY_WORD);
         finalize_trace(process, rng)
     }
 }

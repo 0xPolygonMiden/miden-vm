@@ -5,7 +5,7 @@ use crate::{
     utils::are_equal,
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
-use vm_core::{utils::collections::Vec, ExtensionOf};
+use vm_core::{utils::collections::Vec, ExtensionOf, ZERO};
 use winter_air::AuxTraceRandElements;
 
 // CONSTANTS
@@ -40,7 +40,7 @@ pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [9];
 /// Returns the range checker's boundary assertions for the main trace at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
     let step = 0;
-    result.push(Assertion::single(V_COL_IDX, step, Felt::ZERO));
+    result.push(Assertion::single(V_COL_IDX, step, ZERO));
 }
 
 /// Returns the range checker's boundary assertions for the main trace at the last step.

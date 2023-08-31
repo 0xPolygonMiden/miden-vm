@@ -34,10 +34,10 @@ where
 mod tests {
     type QuadFelt = QuadExtension<Felt>;
     use super::{
-        super::{Felt, FieldElement, Operation, STACK_TOP_SIZE},
+        super::{Felt, Operation, STACK_TOP_SIZE},
         Process,
     };
-    use crate::StackInputs;
+    use crate::{StackInputs, ZERO};
     use rand_utils::rand_value;
     use vm_core::QuadExtension;
 
@@ -73,7 +73,7 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     fn build_expected(values: &[Felt]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
         }

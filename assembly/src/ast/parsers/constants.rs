@@ -291,8 +291,11 @@ fn compute_statement(
 #[cfg(test)]
 mod tests {
     use super::{Felt, LocalConstMap, Token};
-    use crate::ast::parsers::constants::{
-        build_postfix_expression, evaluate_postfix_expression, Operation,
+    use crate::{
+        ast::parsers::constants::{
+            build_postfix_expression, evaluate_postfix_expression, Operation,
+        },
+        ONE,
     };
     use Operation::*;
 
@@ -318,7 +321,7 @@ mod tests {
             Value(Felt::new(3)),
             Value(Felt::new(3)),
             FeltDiv,
-            Value(Felt::new(1)),
+            Value(ONE),
             Add,
             Sub,
             Add,
@@ -352,7 +355,7 @@ mod tests {
             Value(Felt::new(3)),
             Value(Felt::new(3)),
             FeltDiv,
-            Value(Felt::new(1)),
+            Value(ONE),
             Add,
             Sub,
             Add,

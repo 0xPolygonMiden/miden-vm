@@ -4,7 +4,7 @@ use super::{
         collections::{BTreeMap, Vec},
         Box,
     },
-    Felt, FieldElement, Operation,
+    Felt, Operation,
 };
 use core::fmt;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};

@@ -172,10 +172,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Operation, StarkField},
+        super::{Felt, Operation, StarkField},
         Process,
     };
-    use crate::{AdviceInputs, StackInputs, Word};
+    use crate::{AdviceInputs, StackInputs, Word, ZERO};
     use rand_utils::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
@@ -409,11 +409,11 @@ mod tests {
     }
 
     fn init_node(value: u64) -> Word {
-        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
+        [Felt::new(value), ZERO, ZERO, ZERO]
     }
 
     fn build_expected(values: &[Felt]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
         }
@@ -421,7 +421,7 @@ mod tests {
     }
 
     fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
-        let mut expected = [Felt::ZERO; STATE_WIDTH];
+        let mut expected = [ZERO; STATE_WIDTH];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value);
         }
