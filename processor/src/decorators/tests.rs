@@ -9,6 +9,7 @@ use vm_core::{
         hash::{Rpo256, RpoDigest},
         merkle::{EmptySubtreeRoots, MerkleStore, MerkleTree, NodeIndex, TieredSmt},
     },
+    utils::collections::Vec,
     utils::IntoBytes,
     AdviceInjector, Decorator, ONE, ZERO,
 };
@@ -73,7 +74,7 @@ fn push_smtget() {
     let value = seeded_word(&mut seed);
 
     // check leaves on empty trees
-    for depth in [16, 32, 48] {
+    for depth in [16_u8, 32, 48] {
         // compute node value
         let depth_element = Felt::from(depth);
         let store = MerkleStore::new();
@@ -81,7 +82,7 @@ fn push_smtget() {
 
         // expect absent value with constant depth 16
         let expected = [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE];
-        assert_case_smtget(depth, key, value, node, initial_root, store, &expected);
+        assert_case_smtget(key, value, node, initial_root, store, &expected);
     }
 
     // check leaves inserted on all tiers
@@ -112,7 +113,7 @@ fn push_smtget() {
             is_16_or_32,
             is_16_or_48,
         ];
-        assert_case_smtget(depth, key, value, node, root, store, &expected);
+        assert_case_smtget(key, value, node, root, store, &expected);
     }
 
     // check absent siblings of non-empty trees
@@ -137,15 +138,72 @@ fn push_smtget() {
         let root = store.set_node(initial_root, sibling, sibling_node).unwrap().root;
         let expected =
             [ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, is_16_or_32, is_16_or_48];
-        assert_case_smtget(depth, key, value, sibling_node, root, store, &expected);
+        assert_case_smtget(key, value, sibling_node, root, store, &expected);
     }
 }
 
-// SMTINSERT TESTS
+// SMTPEEK TESTS
 // ================================================================================================
 
 #[test]
-fn inject_smtinsert() {
+fn inject_smtpeek() {
+    let mut smt = TieredSmt::default();
+
+    // insert a single value into the tree (the node will be at depth 16)
+    let raw_a = 0b_00000000_11111111_00011111_11111111_10010110_10010011_11100000_00000000_u64;
+    let key_a = build_key(raw_a);
+    let val_a = [Felt::new(3), Felt::new(5), Felt::new(7), Felt::new(9)];
+    smt.insert(key_a.into(), val_a);
+
+    // peeking key_a should return val_a (in stack order)
+    let process = prepare_smt_peek(key_a, &smt);
+    let mut expected = val_a;
+    expected.reverse();
+    assert_eq!(build_expected(&expected), process.stack.trace_state());
+
+    // peeking another key should return empty word
+    let raw_b = 0b_11111111_11111111_00011111_11111111_10010110_10010011_11100000_00000000_u64;
+    let key_b = build_key(raw_b);
+    let process = prepare_smt_peek(key_b, &smt);
+    assert_eq!(build_expected(&[ZERO; 4]), process.stack.trace_state());
+
+    // peeking another key with the same 16-bit prefix as key_a should return empty word
+    let raw_c = 0b_00000000_11111111_10011111_11111111_10010110_10010011_11100000_00000000_u64;
+    let key_c = build_key(raw_c);
+    let process = prepare_smt_peek(key_c, &smt);
+    assert_eq!(build_expected(&[ZERO; 4]), process.stack.trace_state());
+}
+
+fn prepare_smt_peek(key: Word, smt: &TieredSmt) -> Process<MemAdviceProvider> {
+    let root: Word = smt.root().into();
+    let store = MerkleStore::from(smt);
+
+    let adv_map = smt
+        .upper_leaves()
+        .map(|(node, key, value)| {
+            let mut elements = key.as_elements().to_vec();
+            elements.extend(&value);
+            (node.as_bytes(), elements)
+        })
+        .collect::<Vec<_>>();
+    let advice_inputs = AdviceInputs::default().with_merkle_store(store).with_map(adv_map);
+
+    let stack_inputs = build_stack_inputs(key, root, [ZERO; 4]);
+    let mut process = build_process(stack_inputs, advice_inputs);
+
+    process.execute_op(Operation::Noop).unwrap();
+    process.execute_decorator(&Decorator::Advice(AdviceInjector::SmtPeek)).unwrap();
+
+    move_adv_to_stack(&mut process, 4);
+
+    process
+}
+
+// SMTSET TESTS
+// ================================================================================================
+
+#[test]
+fn inject_smtset() {
     let mut smt = TieredSmt::default();
 
     // --- insert into empty tree ---------------------------------------------
@@ -160,7 +218,7 @@ fn inject_smtinsert() {
     let is_16_or_32 = ONE;
     let is_16_or_48 = ONE;
     let expected_stack = [is_update, is_simple_insert, is_16_or_32, is_16_or_48];
-    let process = prepare_smt_insert(key_a, val_a, &smt, expected_stack.len(), Vec::new());
+    let process = prepare_smt_set(key_a, val_a, &smt, expected_stack.len(), Vec::new());
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 
     // --- update same key with different value -------------------------------
@@ -186,11 +244,11 @@ fn inject_smtinsert() {
         ZERO,
     ];
     let adv_map = vec![build_adv_map_entry(key_a, val_a, 16)];
-    let process = prepare_smt_insert(key_a, val_b, &smt, expected_stack.len(), adv_map);
+    let process = prepare_smt_set(key_a, val_b, &smt, expected_stack.len(), adv_map);
     assert_eq!(build_expected(&expected_stack), process.stack.trace_state());
 }
 
-fn prepare_smt_insert(
+fn prepare_smt_set(
     key: Word,
     value: Word,
     smt: &TieredSmt,
@@ -205,9 +263,7 @@ fn prepare_smt_insert(
     let mut process = build_process(stack_inputs, advice_inputs);
 
     process.execute_op(Operation::Noop).unwrap();
-    process
-        .execute_decorator(&Decorator::Advice(AdviceInjector::SmtInsert))
-        .unwrap();
+    process.execute_decorator(&Decorator::Advice(AdviceInjector::SmtSet)).unwrap();
 
     move_adv_to_stack(&mut process, adv_stack_depth);
 
@@ -230,7 +286,6 @@ fn build_expected(values: &[Felt]) -> [Felt; 16] {
 }
 
 fn assert_case_smtget(
-    _depth: u8,
     key: Word,
     value: Word,
     node: RpoDigest,

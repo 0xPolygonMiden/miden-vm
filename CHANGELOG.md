@@ -8,6 +8,7 @@
 - Added support for the arithmetic expressions in constant values (#1026).
 - Added support for module aliases (#1037).
 - Added `adv.insert_hperm` decorator (#1042).
+- Added `adv.push_smtpeek` decorator (#1056).
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
