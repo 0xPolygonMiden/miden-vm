@@ -198,7 +198,9 @@ impl Assembler {
         for reexporteed_proc in module.ast.reexported_procs().iter() {
             // make sure the re-exported procedure is loaded into the procedure cache
             let ref_proc_id = reexporteed_proc.proc_id();
-            self.ensure_procedure_is_in_cache(&ref_proc_id, context)?;
+            self.ensure_procedure_is_in_cache(&ref_proc_id, context).map_err(|_| {
+                AssemblyError::ReExportedProcModuleNotFound(reexporteed_proc.clone())
+            })?;
 
             // build procedure ID for the alias, and add it to the procedure cache
             let proc_name = reexporteed_proc.name();
