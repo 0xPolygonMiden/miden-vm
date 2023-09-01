@@ -1,6 +1,6 @@
 use super::{
-    crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace, ProcedureId, String,
-    ToString, Token, Vec,
+    ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace,
+    ProcedureId, String, ToString, Token, Vec,
 };
 use core::fmt;
 
@@ -20,6 +20,7 @@ pub enum AssemblyError {
     DuplicateProcId(ProcedureId),
     ExportedProcInProgram(String),
     ImportedProcModuleNotFound(ProcedureId),
+    ReExportedProcModuleNotFound(ProcReExport),
     ImportedProcNotFoundInModule(ProcedureId, String),
     InvalidProgramAssemblyContext,
     InvalidCacheLock,
@@ -135,6 +136,7 @@ impl fmt::Display for AssemblyError {
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
             ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
+            ReExportedProcModuleNotFound(reexport) => write!(f, "re-exported proc {} with id {} not found", reexport.name(), reexport.proc_id()),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
             InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
             InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
