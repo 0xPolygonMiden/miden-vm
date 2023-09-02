@@ -609,6 +609,8 @@ impl ParserContext<'_> {
             "mtree_verify" => simple_instruction(op, MTreeVerify),
 
             "fri_ext2fold4" => simple_instruction(op, FriExt2Fold4),
+            "rcomb1" => simple_instruction(op, RandCombMain),
+            "rcomb2" => simple_instruction(op, RandCombAux),
 
             // ----- procedure invocations --------------------------------------------------------
             "exec" => self.parse_exec(op),
