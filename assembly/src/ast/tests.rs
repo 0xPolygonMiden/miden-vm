@@ -1,7 +1,7 @@
 use super::{
     AstSerdeOptions, BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node,
-    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ProgramAst, SourceLocation, String,
-    ToString, Token,
+    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ProcedureScope, ProgramAst,
+    SourceLocation, String, ToString, Token,
 };
 use vm_core::utils::SliceReader;
 
@@ -113,7 +113,7 @@ fn test_ast_parsing_program_proc() {
                 String::from("foo").try_into().unwrap(),
                 1,
                 [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
-                false,
+                ProcedureScope::INTERNAL,
                 None,
             )
             .with_source_locations(
@@ -130,7 +130,7 @@ fn test_ast_parsing_program_proc() {
                 String::from("bar").try_into().unwrap(),
                 2,
                 [Node::Instruction(Instruction::PadW)].to_vec(),
-                false,
+                ProcedureScope::INTERNAL,
                 None,
             )
             .with_source_locations(
@@ -161,7 +161,7 @@ fn test_ast_parsing_module() {
                 String::from("foo").try_into().unwrap(),
                 1,
                 [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
-                true,
+                ProcedureScope::EXPORT,
                 None,
             )
             .with_source_locations(
@@ -292,7 +292,7 @@ fn test_ast_parsing_module_nested_if() {
                 String::from("foo").try_into().unwrap(),
                 0,
                 proc_body_nodes,
-                false,
+                ProcedureScope::INTERNAL,
                 None,
             )
             .with_source_locations(proc_body_locations, SourceLocation::new(1, 1)),
@@ -381,7 +381,7 @@ fn test_ast_parsing_module_sequential_if() {
                 String::from("foo").try_into().unwrap(),
                 0,
                 proc_body_nodes,
-                false,
+                ProcedureScope::INTERNAL,
                 None,
             )
             .with_source_locations(proc_body_locations, SourceLocation::new(1, 1)),
@@ -517,7 +517,7 @@ fn test_ast_parsing_simple_docs() {
         String::from("foo").try_into().unwrap(),
         1,
         [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
-        true,
+        ProcedureScope::EXPORT,
         Some(docs_foo),
     )
     .with_source_locations(
@@ -576,7 +576,7 @@ of the comments is correctly parsed. There was a bug here earlier."
                 String::from("foo").try_into().unwrap(),
                 1,
                 [Node::Instruction(Instruction::LocLoad(0))].to_vec(),
-                true,
+                ProcedureScope::EXPORT,
                 Some(docs_foo),
             )
             .with_source_locations(
@@ -594,7 +594,7 @@ of the comments is correctly parsed. There was a bug here earlier."
                 String::from("bar").try_into().unwrap(),
                 2,
                 [Node::Instruction(Instruction::PadW)].to_vec(),
-                false,
+                ProcedureScope::INTERNAL,
                 None,
             )
             .with_source_locations(
@@ -618,7 +618,7 @@ aliqua."
                 3,
                 [Node::Instruction(Instruction::PadW), Node::Instruction(Instruction::PushU8(0))]
                     .to_vec(),
-                true,
+                ProcedureScope::EXPORT,
                 Some(docs_baz),
             )
             .with_source_locations(

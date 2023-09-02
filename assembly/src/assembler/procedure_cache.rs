@@ -1,15 +1,44 @@
+use crate::{procedures::MaterializedProcedureScope, LibraryPath};
+
 use super::{
     btree_map::Entry, AssemblyError, BTreeMap, NamedProcedure, Procedure, ProcedureId, RpoDigest,
 };
 
 // PROCEDURE CACHE
 // ================================================================================================
+#[derive(Debug, Default)]
+pub struct SourceSet(BTreeMap<ProcedureId, MaterializedProcedureScope>);
+
+impl SourceSet {
+    pub fn is_valid_proc_id_invocation(
+        &self,
+        invocation_scope: &LibraryPath,
+        proc_id: &ProcedureId,
+    ) -> bool {
+        self.0
+            .get(proc_id)
+            .map_or(false, |scope| scope.is_valid_invocation(invocation_scope))
+    }
+
+    // pub fn is_valid_mast_invocation(&self, invocation_scope: LibraryPath) -> bool {
+    //     ...
+    //     bool
+    // }
+
+    pub fn insert_materialized_scope(
+        &mut self,
+        proc_id: ProcedureId,
+        scope: MaterializedProcedureScope,
+    ) {
+        self.0.insert(proc_id, scope);
+    }
+}
 
 /// The [ProcedureCache] is responsible for caching [Procedure]s. It allows [Procedure]s to be
 /// fetched using both procedure ID and procedure hash (i.e., MAST root of the procedure).
 #[derive(Debug, Default)]
 pub struct ProcedureCache {
-    procedures: BTreeMap<RpoDigest, Procedure>,
+    procedures: BTreeMap<RpoDigest, (Procedure, SourceSet)>,
     proc_id_map: BTreeMap<ProcedureId, RpoDigest>,
     proc_aliases: BTreeMap<ProcedureId, ProcedureId>,
 }
@@ -18,7 +47,7 @@ impl ProcedureCache {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     /// Returns a [Procedure] reference corresponding to the [ProcedureId].
-    pub fn get_by_id(&self, id: &ProcedureId) -> Option<&Procedure> {
+    pub fn get_by_id(&self, id: &ProcedureId) -> Option<&(Procedure, SourceSet)> {
         // first try to map the procedure ID to MAST root, and if a direct map is not found there,
         // try to look it up by its alias
         match self.proc_id_map.get(id) {
@@ -38,7 +67,7 @@ impl ProcedureCache {
     }
 
     /// Returns a [Procedure] reference corresponding to the MAST root ([RpoDigest]).
-    pub fn get_by_hash(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
+    pub fn get_by_hash(&self, mast_root: &RpoDigest) -> Option<&(Procedure, SourceSet)> {
         self.procedures.get(mast_root)
     }
 
@@ -67,18 +96,23 @@ impl ProcedureCache {
         // If the entry is `Vacant` then insert the Procedure. If the procedure with the same MAST
         // was inserted previously, make sure it doesn't conflict with the new procedure.
         match self.procedures.entry(proc.mast_root()) {
-            Entry::Occupied(cached_proc_entry) => {
-                let cached_proc = cached_proc_entry.get();
+            Entry::Occupied(mut cached_proc_entry) => {
+                let (cached_proc, source_set) = cached_proc_entry.get_mut();
                 if proc.num_locals() != cached_proc.num_locals() {
                     Err(AssemblyError::conflicting_num_locals(proc.name()))
                 } else {
                     self.proc_id_map.insert(*proc.id(), proc.mast_root());
+                    source_set.insert_materialized_scope(*proc.id(), proc.scope().clone());
                     Ok(())
                 }
             }
             Entry::Vacant(entry) => {
-                self.proc_id_map.insert(*proc.id(), proc.mast_root());
-                entry.insert(proc.into_inner());
+                let proc_id = *proc.id();
+                self.proc_id_map.insert(proc_id, proc.mast_root());
+                let (proc, scope) = proc.into_inner();
+                let mut source_set = SourceSet::default();
+                source_set.insert_materialized_scope(proc_id, scope);
+                entry.insert((proc, source_set));
                 Ok(())
             }
         }
@@ -127,7 +161,7 @@ impl ProcedureCache {
 
     /// Returns an iterator over the [Procedure]s in the [ProcedureCache].
     #[cfg(test)]
-    pub fn values(&self) -> impl Iterator<Item = &Procedure> {
+    pub fn values(&self) -> impl Iterator<Item = &(Procedure, SourceSet)> {
         self.procedures.values()
     }
 

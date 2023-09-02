@@ -33,6 +33,7 @@ pub enum AssemblyError {
     SysCallInKernel(String),
     LibraryError(String),
     Io(String),
+    ProcedureInvocationError,
 }
 
 impl AssemblyError {
@@ -147,6 +148,7 @@ impl fmt::Display for AssemblyError {
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             PhantomCallsNotAllowed(mast_root) => write!(f, "cannot call phantom procedure with MAST root {mast_root}: phantom calls not allowed"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
+            ProcedureInvocationError => write!(f, "invalid procedure invocation"),
         }
     }
 }

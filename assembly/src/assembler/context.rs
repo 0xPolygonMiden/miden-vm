@@ -1,6 +1,9 @@
+use crate::{ast::ProcedureScope, procedures::MaterializedProcedureScope};
+
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, NamedProcedure,
-    Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString, Vec,
+    procedure_cache::SourceSet, AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel,
+    LibraryPath, NamedProcedure, Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest,
+    ToString, Vec,
 };
 
 // ASSEMBLY CONTEXT
@@ -145,13 +148,15 @@ impl AssemblyContext {
     pub fn begin_proc(
         &mut self,
         name: &ProcedureName,
-        is_export: bool,
+        scope: ProcedureScope,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
+        let path = self.module_stack.last().expect("no modules").path.clone();
+        let scope = MaterializedProcedureScope::from_path(scope, path);
         self.module_stack
             .last_mut()
             .expect("no modules")
-            .begin_proc(name, is_export, num_locals)
+            .begin_proc(name, scope, num_locals)
     }
 
     /// Completes compilation of the current procedure and adds the compiled procedure to the list
@@ -205,6 +210,8 @@ impl AssemblyContext {
     pub fn register_external_call(
         &mut self,
         proc: &Procedure,
+        proc_id: Option<&ProcedureId>,
+        source_set: &SourceSet,
         inlined: bool,
     ) -> Result<(), AssemblyError> {
         // non-inlined calls (i.e., `call` instructions) cannot be executed in a kernel
@@ -216,7 +223,7 @@ impl AssemblyContext {
         self.module_stack
             .last_mut()
             .expect("no modules")
-            .register_external_call(proc, inlined);
+            .register_external_call(proc, proc_id, source_set, inlined)?;
 
         Ok(())
     }
@@ -281,7 +288,10 @@ impl AssemblyContext {
         for mast_root in main_module_context.callset.iter() {
             let proc = proc_cache
                 .get_by_hash(mast_root)
-                .or_else(|| main_module_context.find_local_proc(mast_root))
+                .map_or_else(
+                    || main_module_context.find_local_proc(mast_root),
+                    |(proc, source_set)| Some(proc),
+                )
                 .ok_or(AssemblyError::CallSetProcedureNotFound(*mast_root))?;
 
             cb_table.insert(proc.code().clone());
@@ -335,7 +345,11 @@ impl ModuleContext {
     /// "main" procedure.
     pub fn for_program() -> Self {
         let name = ProcedureName::main();
-        let main_proc_context = ProcedureContext::new(name, false, 0);
+        let main_proc_context = ProcedureContext::new(
+            name,
+            MaterializedProcedureScope::Internal(LibraryPath::exec_path()),
+            0,
+        );
         Self {
             proc_stack: vec![main_proc_context],
             compiled_procs: Vec::new(),
@@ -385,7 +399,7 @@ impl ModuleContext {
     pub fn begin_proc(
         &mut self,
         name: &ProcedureName,
-        is_export: bool,
+        scope: MaterializedProcedureScope,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
         // make sure a procedure with this name has not been compiled yet and is also not currently
@@ -396,7 +410,7 @@ impl ModuleContext {
             return Err(AssemblyError::duplicate_proc_name(name, &self.path));
         }
 
-        self.proc_stack.push(ProcedureContext::new(name.clone(), is_export, num_locals));
+        self.proc_stack.push(ProcedureContext::new(name.clone(), scope, num_locals));
         Ok(())
     }
 
@@ -412,7 +426,7 @@ impl ModuleContext {
         // build an ID for the procedure as follows:
         // - for exported procedures: hash("module_path::proc_name")
         // - for internal procedures: hash("module_path::proc_index")
-        let proc_id = if proc_context.is_export {
+        let proc_id = if proc_context.scope.is_export() {
             ProcedureId::from_name(&proc_context.name, &self.path)
         } else {
             let proc_idx = self.compiled_procs.len() as u16;
@@ -467,9 +481,21 @@ impl ModuleContext {
     /// This also appends the callset of the called procedure to the callset of the current
     /// procedure at the top of procedure stack. If inlined == false, the called procedure itself
     /// is added to the callset of the current procedure as well.
-    pub fn register_external_call(&mut self, called_proc: &Procedure, inlined: bool) {
+    pub fn register_external_call(
+        &mut self,
+        called_proc: &Procedure,
+        proc_id: Option<&ProcedureId>,
+        source_set: &SourceSet,
+        inlined: bool,
+    ) -> Result<(), AssemblyError> {
         // get the context of the procedure currently being compiled
         let context = self.proc_stack.last_mut().expect("no proc context");
+
+        if let Some(proc_id) = proc_id {
+            if !source_set.is_valid_proc_id_invocation(&self.path, proc_id) {
+                return Err(AssemblyError::ProcedureInvocationError);
+            }
+        }
 
         // append the callset of the called procedure to the current callset as all calls made as
         // the result of the called procedure may be made as a result of current procedure as well
@@ -479,6 +505,8 @@ impl ModuleContext {
         if !inlined {
             context.callset.insert(called_proc.mast_root());
         }
+
+        Ok(())
     }
 
     // EXECUTABLE FINALIZER
@@ -510,16 +538,16 @@ impl ModuleContext {
 #[derive(Debug)]
 struct ProcedureContext {
     name: ProcedureName,
-    is_export: bool,
+    scope: MaterializedProcedureScope,
     num_locals: u16,
     callset: CallSet,
 }
 
 impl ProcedureContext {
-    pub fn new(name: ProcedureName, is_export: bool, num_locals: u16) -> Self {
+    pub fn new(name: ProcedureName, scope: MaterializedProcedureScope, num_locals: u16) -> Self {
         Self {
             name,
-            is_export,
+            scope,
             num_locals,
             callset: CallSet::default(),
         }
@@ -539,11 +567,11 @@ impl ProcedureContext {
     pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> NamedProcedure {
         let Self {
             name,
-            is_export,
+            scope,
             num_locals,
             callset,
         } = self;
 
-        NamedProcedure::new(id, name, is_export, num_locals as u32, code_root, callset)
+        NamedProcedure::new(id, name, scope, num_locals as u32, code_root, callset)
     }
 }

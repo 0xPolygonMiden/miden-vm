@@ -1,3 +1,5 @@
+use crate::ast::ProcedureScope;
+
 use super::{
     CodeBody, FormattableNode, InvokedProcsMap, LibraryPath, ProcedureAst, ProcedureId,
     ProcedureName, Vec,
@@ -90,10 +92,10 @@ impl fmt::Display for FormattableProcedureAst<'_> {
         }
         // Procedure header
         self.context.indent(f)?;
-        if self.proc.is_export {
-            write!(f, "export.")?;
-        } else {
-            write!(f, "proc.")?;
+        match self.proc.scope {
+            ProcedureScope::INTERNAL => write!(f, "proc.")?,
+            ProcedureScope::EXPORT => write!(f, "export.")?,
+            ProcedureScope::LIBRARY => write!(f, "export(lib).")?,
         }
         writeln!(f, "{}.{}", self.proc.name, self.proc.num_locals)?;
         // Body

@@ -3,6 +3,7 @@ use super::{
     BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
     LibraryPath, Serializable, String, ToString, PROCEDURE_LABEL_PARSER,
 };
+use crate::{ast::ProcedureScope, LibraryNamespace};
 use core::{
     fmt,
     ops::{self, Deref},
@@ -11,6 +12,44 @@ use core::{
 
 // PROCEDURE
 // ================================================================================================
+
+#[derive(Clone, Debug)]
+pub enum MaterializedProcedureScope {
+    Internal(LibraryPath),
+    Exported,
+    Library(LibraryNamespace),
+}
+
+impl MaterializedProcedureScope {
+    pub fn from_path(scope: ProcedureScope, path: LibraryPath) -> Self {
+        match scope {
+            ProcedureScope::INTERNAL => Self::Internal(path),
+            ProcedureScope::EXPORT => Self::Exported,
+            ProcedureScope::LIBRARY => Self::Library(
+                LibraryNamespace::new(path.first()).expect("path must be well formed"),
+            ),
+        }
+    }
+
+    pub fn is_export(&self) -> bool {
+        matches!(
+            self,
+            MaterializedProcedureScope::Exported | MaterializedProcedureScope::Library(_)
+        )
+    }
+}
+
+impl MaterializedProcedureScope {
+    pub fn is_valid_invocation(&self, invocation_scope: &LibraryPath) -> bool {
+        match self {
+            MaterializedProcedureScope::Internal(scope) => scope == invocation_scope,
+            MaterializedProcedureScope::Exported => true,
+            MaterializedProcedureScope::Library(namespace) => {
+                invocation_scope.first() == namespace.as_str()
+            }
+        }
+    }
+}
 
 /// Miden assembly procedure consisting of procedure MAST and basic metadata.
 ///
@@ -62,7 +101,7 @@ impl Procedure {
 pub struct NamedProcedure {
     id: ProcedureId,
     name: ProcedureName,
-    is_export: bool,
+    scope: MaterializedProcedureScope,
     procedure: Procedure,
 }
 
@@ -73,7 +112,7 @@ impl NamedProcedure {
     pub fn new(
         id: ProcedureId,
         name: ProcedureName,
-        is_export: bool,
+        scope: MaterializedProcedureScope,
         num_locals: u32,
         code: CodeBlock,
         callset: CallSet,
@@ -81,7 +120,7 @@ impl NamedProcedure {
         NamedProcedure {
             id,
             name,
-            is_export,
+            scope,
             procedure: Procedure {
                 num_locals,
                 code,
@@ -103,9 +142,13 @@ impl NamedProcedure {
         &self.name
     }
 
+    pub fn scope(&self) -> &MaterializedProcedureScope {
+        &self.scope
+    }
+
     /// Returns `true` if this is an exported procedure.
     pub fn is_export(&self) -> bool {
-        self.is_export
+        self.scope.is_export()
     }
 
     /// Returns the number of memory locals reserved by the procedure.
@@ -137,8 +180,8 @@ impl NamedProcedure {
 
     /// Converts this procedure into its inner procedure containing all procedure attributes except
     /// for procedure name and ID.
-    pub fn into_inner(self) -> Procedure {
-        self.procedure
+    pub fn into_inner(self) -> (Procedure, MaterializedProcedureScope) {
+        (self.procedure, self.scope)
     }
 }
 
