@@ -338,6 +338,44 @@ where
 
         Ok(())
     }
+
+    /// Pushes values onto the advice stack which are required for successful retrieval of a
+    /// value from a Sparse Merkle Tree data structure.
+    ///
+    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    /// The depth flags define the tier on which the leaf is located.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [f0, f1, K, V, f2]
+    ///
+    /// Where:
+    /// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - K is the key; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
+    /// - f2 is a boolean flag set to `1` if the key is not zero.
+    ///
+    /// # Errors
+    /// Will return an error if the provided Merkle root doesn't exist on the advice provider.
+    ///
+    /// # Panics
+    /// Will panic as unimplemented if the target depth is `64`.
+    pub(super) fn push_falcon_signature(&self) -> Result<(), ExecutionError> {
+        // fetch the arguments from the operand stack
+        let pub_key = self.stack.get_word(0);
+        let msg = self.stack.get_word(1);
+        let result: Vec<Felt> = self.advice_provider.falcon_sign(pub_key, msg)?;
+        for r in result{
+            self.advice_provider.push_stack(AdviceSource::Value(r));
+        }
+        Ok(())
+
+    }
 }
 
 // HELPER FUNCTIONS

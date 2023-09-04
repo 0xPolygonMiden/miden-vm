@@ -106,6 +106,28 @@ where
         Ok(())
     }
 
+    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        let result = self
+            .map
+            .get(&pub_key.into_bytes())
+            .ok_or(ExecutionError::AdviceKeyNotFound(pub_key))?;
+        let expanded_pub_key = result[..512].to_vec();
+        let sk = result[512..].to_vec();
+
+        let sk: SecretKeyBytes =
+            sk.into_iter().flat_map(|s: Felt| s.as_int().to_le_bytes()).collect();
+        let sk = SecretKey(&sk);
+
+        let sig = sk.sign(&msg, expanded_pub_key);
+        let s2: Polynomial = sig.into();
+        let h: Polynomial = Polynomial::from_pubkey(&expanded_pub_key);
+
+        let mut result: Vec<Felt> = s2.inner().iter().map(|a| Felt::new(a as u64)).collect();
+        result.extend(h.inner().map(|a| Felt::new(a as u64)).collect());
+
+        Ok(result)
+    }
+
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
@@ -271,6 +293,10 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
+    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.falcon_sign(pub_key, msg)
+    }
+
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
@@ -394,6 +420,10 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         self.provider.insert_into_map(key, values)
+    }
+
+    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.falcon_sign(pub_key, msg)
     }
 
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {

@@ -101,6 +101,9 @@ pub trait AdviceProvider {
     /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
 
+    /// TODO
+    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError>;
+
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
@@ -284,5 +287,9 @@ where
 
     fn advance_clock(&mut self) {
         T::advance_clock(self)
+    }
+
+    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        T::falcon_sign(self, pub_key, msg)
     }
 }
