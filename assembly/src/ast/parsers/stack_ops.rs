@@ -126,7 +126,7 @@ pub fn parse_movup(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "movup");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "movup.<index>")),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovUp2)),
             "3" => Ok(Instruction(MovUp3)),
@@ -157,7 +157,7 @@ pub fn parse_movdn(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "movdn");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "movdn.<index>")),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovDn2)),
             "3" => Ok(Instruction(MovDn3)),
@@ -188,7 +188,7 @@ pub fn parse_movupw(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "movupw");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "movupw.<index>")),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovUpW2)),
             "3" => Ok(Instruction(MovUpW3)),
@@ -207,7 +207,7 @@ pub fn parse_movdnw(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "movdnw");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "movdnw.<index>")),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovDnW2)),
             "3" => Ok(Instruction(MovDnW3)),

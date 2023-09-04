@@ -1302,7 +1302,10 @@ fn invalid_while() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.to_string(), "malformed instruction 'while': missing required parameter");
+        assert_eq!(
+            error.to_string(),
+            "malformed instruction 'while': expected format `while.true`"
+        );
     }
 
     let source = "begin push.1 add while.abc mul end end";
