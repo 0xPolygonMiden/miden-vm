@@ -2,7 +2,7 @@ use crate::build_test;
 use crate::math::ecgfp5::base_field::Ext5;
 use crate::math::ecgfp5::group::ECExt5;
 use std::ops::Add;
-use test_utils::{rand::rand_array, FieldElement, Felt, StarkField};
+use test_utils::{rand::rand_array, Felt, FieldElement, StarkField};
 
 fn gen_random_private_key() -> [u32; 10] {
     rand_array::<u32, 10>()
@@ -34,7 +34,8 @@ fn test_elgamal_keygen() {
     let private_key = gen_random_private_key();
     let q1 = gen.scalar_mul(&private_key);
 
-    let mut stack: [u64; 10] = private_key.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap();
+    let mut stack: [u64; 10] =
+        private_key.iter().map(|x| *x as u64).collect::<Vec<u64>>().try_into().unwrap();
 
     let source = "
         use.std::crypto::elgamal_ecgfp5
@@ -85,7 +86,6 @@ fn test_elgamal_encrypt() {
     ];
 
     let pm = gen.scalar_mul(&plaintext_scalar);
-
 
     let ca = gen.scalar_mul(&r);
     let h = gen.scalar_mul(&private_key);
@@ -142,6 +142,16 @@ fn test_elgamal_encrypt() {
         h.y.a3.as_int(),
         h.y.a4.as_int(),
         h.point_at_infinity.as_int(),
+        r[0] as u64,
+        r[1] as u64,
+        r[2] as u64,
+        r[3] as u64,
+        r[4] as u64,
+        r[5] as u64,
+        r[6] as u64,
+        r[7] as u64,
+        r[8] as u64,
+        r[9] as u64,
         pm.x.a0.as_int(),
         pm.x.a1.as_int(),
         pm.x.a2.as_int(),
@@ -153,16 +163,6 @@ fn test_elgamal_encrypt() {
         pm.y.a3.as_int(),
         pm.y.a4.as_int(),
         pm.point_at_infinity.as_int(),
-        r[0] as u64,
-        r[1] as u64,
-        r[2] as u64,
-        r[3] as u64,
-        r[4] as u64,
-        r[5] as u64,
-        r[6] as u64,
-        r[7] as u64,
-        r[8] as u64,
-        r[9] as u64,
     ];
 
     let source = "
@@ -236,6 +236,16 @@ fn test_elgamal_remask() {
     ";
 
     let mut stack = [
+        r_prime[0] as u64,
+        r_prime[1] as u64,
+        r_prime[2] as u64,
+        r_prime[3] as u64,
+        r_prime[4] as u64,
+        r_prime[5] as u64,
+        r_prime[6] as u64,
+        r_prime[7] as u64,
+        r_prime[8] as u64,
+        r_prime[9] as u64,
         ca.x.a0.as_int(),
         ca.x.a1.as_int(),
         ca.x.a2.as_int(),
@@ -247,16 +257,6 @@ fn test_elgamal_remask() {
         ca.y.a3.as_int(),
         ca.y.a4.as_int(),
         ca.point_at_infinity.as_int(),
-        r_prime[0] as u64,
-        r_prime[1] as u64,
-        r_prime[2] as u64,
-        r_prime[3] as u64,
-        r_prime[4] as u64,
-        r_prime[5] as u64,
-        r_prime[6] as u64,
-        r_prime[7] as u64,
-        r_prime[8] as u64,
-        r_prime[9] as u64,
     ];
     stack.reverse();
 
@@ -274,7 +274,7 @@ fn test_elgamal_remask() {
     assert_eq!(strace[8], c_prime_a.y.a3);
     assert_eq!(strace[9], c_prime_a.y.a4);
     assert_eq!(strace[10], c_prime_a.point_at_infinity);
-    
+
     let source = "
         use.std::crypto::elgamal_ecgfp5
 
@@ -284,17 +284,6 @@ fn test_elgamal_remask() {
     ";
 
     let mut stack = [
-        cb.x.a0.as_int(),
-        cb.x.a1.as_int(),
-        cb.x.a2.as_int(),
-        cb.x.a3.as_int(),
-        cb.x.a4.as_int(),
-        cb.y.a0.as_int(),
-        cb.y.a1.as_int(),
-        cb.y.a2.as_int(),
-        cb.y.a3.as_int(),
-        cb.y.a4.as_int(),
-        cb.point_at_infinity.as_int(),
         h.x.a0.as_int(),
         h.x.a1.as_int(),
         h.x.a2.as_int(),
@@ -316,6 +305,17 @@ fn test_elgamal_remask() {
         r_prime[7] as u64,
         r_prime[8] as u64,
         r_prime[9] as u64,
+        cb.x.a0.as_int(),
+        cb.x.a1.as_int(),
+        cb.x.a2.as_int(),
+        cb.x.a3.as_int(),
+        cb.x.a4.as_int(),
+        cb.y.a0.as_int(),
+        cb.y.a1.as_int(),
+        cb.y.a2.as_int(),
+        cb.y.a3.as_int(),
+        cb.y.a4.as_int(),
+        cb.point_at_infinity.as_int(),
     ];
     stack.reverse();
 
@@ -333,5 +333,4 @@ fn test_elgamal_remask() {
     assert_eq!(strace[8], c_prime_b.y.a3);
     assert_eq!(strace[9], c_prime_b.y.a4);
     assert_eq!(strace[10], c_prime_b.point_at_infinity);
-
 }
