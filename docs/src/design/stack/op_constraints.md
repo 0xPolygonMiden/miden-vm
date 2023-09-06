@@ -292,5 +292,5 @@ f_{end,repeat,respan,halt} = e_1 \cdot b_4  \text{ | degree} = 2
 $$
 
 $$
-f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{call} + f_{syscall} \text{ | degree} = 3
+f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} + f_{dyn} + f_{call} + f_{syscall} \text{ | degree} = 5
 $$
