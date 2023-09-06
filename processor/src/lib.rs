@@ -16,7 +16,7 @@ pub use vm_core::{
 };
 use vm_core::{
     code_blocks::{
-        Call, CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
+        Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
@@ -232,6 +232,7 @@ where
             CodeBlock::Split(block) => self.execute_split_block(block, cb_table),
             CodeBlock::Loop(block) => self.execute_loop_block(block, cb_table),
             CodeBlock::Call(block) => self.execute_call_block(block, cb_table),
+            CodeBlock::Dyn(block) => self.execute_dyn_block(block, cb_table),
             CodeBlock::Span(block) => self.execute_span_block(block),
             CodeBlock::Proxy(_) => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
         }
@@ -331,6 +332,27 @@ where
         self.execute_code_block(fn_body, cb_table)?;
 
         self.end_call_block(block)
+    }
+
+    /// Executes the specified [Dyn] block.
+    #[inline(always)]
+    fn execute_dyn_block(
+        &mut self,
+        block: &Dyn,
+        cb_table: &CodeBlockTable,
+    ) -> Result<(), ExecutionError> {
+        // get target hash from the stack
+        let dyn_hash = self.stack.get_word(0);
+        self.start_dyn_block(block, dyn_hash)?;
+
+        // get dynamic code from the code block table and execute it
+        let dyn_digest = dyn_hash.into();
+        let dyn_code = cb_table
+            .get(dyn_digest)
+            .ok_or_else(|| ExecutionError::DynamicCodeBlockNotFound(dyn_digest))?;
+        self.execute_code_block(dyn_code, cb_table)?;
+
+        self.end_dyn_block(block)
     }
 
     /// Executes the specified [Span] block.

@@ -49,6 +49,9 @@ pub enum Operation {
     /// Marks the beginning of a function call.
     Call,
 
+    /// Marks the beginning of a dynamic code block, where the target is specified by the stack.
+    Dyn,
+
     /// Marks the beginning of a kernel call.
     SysCall,
 
@@ -515,7 +518,7 @@ impl Operation {
             Self::Loop      => 0b0101_0101,
             Self::Span      => 0b0101_0110,
             Self::Join      => 0b0101_0111,
-            // <empty>      => 0b0101_1000,
+            Self::Dyn       => 0b0101_1000,
             // <empty>      => 0b0101_1001,
             // <empty>      => 0b0101_1010,
             // <empty>      => 0b0101_1011,
@@ -557,6 +560,7 @@ impl Operation {
                 | Self::Halt
                 | Self::Call
                 | Self::SysCall
+                | Self::Dyn
         )
     }
 }
@@ -582,6 +586,7 @@ impl fmt::Display for Operation {
             Self::Loop => write!(f, "loop"),
             Self::Call => writeln!(f, "call"),
             Self::SysCall => writeln!(f, "syscall"),
+            Self::Dyn => writeln!(f, "dyn"),
             Self::Span => write!(f, "span"),
             Self::End => write!(f, "end"),
             Self::Repeat => write!(f, "repeat"),

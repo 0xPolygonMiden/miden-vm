@@ -147,6 +147,7 @@ impl BlockInfo {
             BlockType::Split => 1,
             BlockType::Loop(is_entered) => u32::from(is_entered),
             BlockType::Call => 1,
+            BlockType::Dyn => 1,
             BlockType::SysCall => 1,
             BlockType::Span => 0,
         }
@@ -202,6 +203,7 @@ pub enum BlockType {
     Split,
     Loop(bool), // internal value set to false if the loop is never entered
     Call,
+    Dyn,
     SysCall,
     Span,
 }

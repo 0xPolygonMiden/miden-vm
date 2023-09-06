@@ -20,6 +20,7 @@ pub enum ExecutionError {
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
     CodeBlockNotFound(Digest),
+    DynamicCodeBlockNotFound(Digest),
     CycleLimitExceeded(u32),
     DivideByZero(u32),
     Ext2InttError(Ext2InttError),
@@ -68,6 +69,13 @@ impl Display for ExecutionError {
                 write!(
                     f,
                     "Failed to execute code block with root {hex}; the block could not be found"
+                )
+            }
+            DynamicCodeBlockNotFound(digest) => {
+                let hex = to_hex(&digest.as_bytes())?;
+                write!(
+                    f,
+                    "Failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found"
                 )
             }
             CycleLimitExceeded(max_cycles) => {
