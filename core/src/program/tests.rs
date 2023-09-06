@@ -1,7 +1,14 @@
-use super::{Deserializable, Digest, Felt, Kernel, ProgramInfo, Serializable};
-use crate::Word;
+use super::{blocks::Dyn, Deserializable, Digest, Felt, Kernel, ProgramInfo, Serializable};
+use crate::{chiplets::hasher, Word};
 use proptest::prelude::*;
 use rand_utils::prng_array;
+
+#[test]
+fn dyn_hash_is_correct() {
+    let expected_constant =
+        hasher::merge_in_domain(&[Digest::default(), Digest::default()], Dyn::DOMAIN);
+    assert_eq!(expected_constant, Dyn::new().hash());
+}
 
 proptest! {
     #[test]
