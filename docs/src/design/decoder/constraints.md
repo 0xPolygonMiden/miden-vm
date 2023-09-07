@@ -19,8 +19,8 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 | `SPAN`    | $f_{span}$    | 5      | Stack remains unchanged.                                                                         |
 | `RESPAN`  | $f_{respan}$  | 4      | Stack remains unchanged.                                                                         |
 | `DYN`     | $f_{dyn}$     | 5      | Stack remains unchanged.                                                                         |
-| `CALL`    | $f_{call}$    | 4      | Top stack element is dropped.                                                                    |
-| `SYSCALL` | $f_{syscall}$ | 4      | Top stack element is dropped.                                                                    |
+| `CALL`    | $f_{call}$    | 4      | Stack remains unchanged.                                                                         |
+| `SYSCALL` | $f_{syscall}$ | 4      | Stack remains unchanged.                                                                         |
 | `END`     | $f_{end}$     | 4      | When exiting a loop block, top stack element is dropped; otherwise, the stack remains unchanged. |
 | `HALT`    | $f_{halt}$    | 4      | Stack remains unchanged.                                                                         |
 | `PUSH`    | $f_{push}$    | 4      | An immediate value is pushed onto the stack.                                                     |
@@ -42,7 +42,7 @@ $$
 When a `DYN` operation is executed, the hasher registers must all be set to $0$:
 
 > $$
-f_{dyn} \cdot (1 - h_i) = 0 \text { for } i \in [0, 8) \text{ | degree} = 2
+f_{dyn} \cdot (1 - h_i) = 0 \text { for } i \in [0, 8) \text{ | degree} = 6
 $$
 
 When `REPEAT` operation is executed, the value at the top of the operand stack must be $1$:
