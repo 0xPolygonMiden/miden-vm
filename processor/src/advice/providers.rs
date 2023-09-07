@@ -2,6 +2,9 @@ use super::{
     AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes, KvMap,
     MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec, Word,
 };
+use vm_core::crypto::dsa::{
+    elements_as_bytes, Polynomial, PublicKeyBytes, SecretKey, SecretKeyBytes, PK_LEN, SK_LEN,
+};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -107,24 +110,59 @@ where
     }
 
     fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-        let result = self
+        let pk_sk = self
             .map
             .get(&pub_key.into_bytes())
             .ok_or(ExecutionError::AdviceKeyNotFound(pub_key))?;
-        let expanded_pub_key = result[..512].to_vec();
-        let sk = result[512..].to_vec();
 
-        let sk: SecretKeyBytes =
-            sk.into_iter().flat_map(|s: Felt| s.as_int().to_le_bytes()).collect();
-        let sk = SecretKey(&sk);
+        if pk_sk.len() != (PK_LEN + SK_LEN) {
+            return Err(ExecutionError::AdviceStackReadFailed(0));
+        }
 
-        let sig = sk.sign(&msg, expanded_pub_key);
-        let s2: Polynomial = sig.into();
-        let h: Polynomial = Polynomial::from_pubkey(&expanded_pub_key);
+        // To generate a signature, we need the expanded key as well as the secret key
+        let pk_exp = pk_sk[..PK_LEN].to_vec();
+        let pk_exp: PublicKeyBytes = vec_felt_to_u8(&pk_exp)
+            .try_into()
+            .expect("Should not fail as we've checked the length of the combined vector");
 
-        let mut result: Vec<Felt> = s2.inner().iter().map(|a| Felt::new(a as u64)).collect();
-        result.extend(h.inner().map(|a| Felt::new(a as u64)).collect());
+        let sk = pk_sk[PK_LEN..].to_vec();
+        let sk: SecretKeyBytes = vec_felt_to_u8(&sk)
+            .try_into()
+            .expect("Should not fail as we've checked the length of the combined vector");
+        let sk = SecretKey::new(sk);
 
+        // We need to convert the message to a byte array
+        let msg_u64 = vec_felt_to_u64(&msg);
+        let msg = elements_as_bytes(&msg_u64);
+
+        // We can now generate the signature
+        let sig = sk.sign(msg, pk_exp);
+
+        // The signature is composed of a nonce and a polynomial s2
+
+        // We first convert the nonce, a [40; u8], to 8 field elements.
+        let nonce = sig.nonce();
+        let nonce = convert_nonce(nonce);
+
+        // We convert the signature to a polynomial
+        let s2: Polynomial = (&sig).into();
+
+        // We also need in the VM the expanded key corresponding to the public key the was provided
+        // via the operand stack
+        let h: Polynomial = Polynomial::from_pubkey(&pk_exp);
+
+        // Lastly, for the probabilistic product routine that is part of the verification procedure,
+        // we need to compute the product of the expanded key and the signature polynomial in
+        // the ring of polynomials with coefficients in the Miden field.
+        let pi = Polynomial::mul_modulo_p(&h, &s2);
+
+        // We now push the nonce, the expanded key, the signature polynomial, and the product of the
+        // expanded key and the signature polynomial to the advice stack.
+        let mut result: Vec<Felt> = nonce.iter().map(|a| Felt::new(*a)).collect::<Vec<Felt>>();
+        result.extend(h.inner().iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>());
+        result.extend(s2.inner().iter().map(|&a| Felt::new(a as u64)).collect::<Vec<Felt>>());
+        result.extend(pi.iter().map(|&a| Felt::new(a)).collect::<Vec<Felt>>());
+        result.reverse();
         Ok(result)
     }
 
@@ -497,4 +535,30 @@ impl RecAdviceProvider {
 
         (proof, stack, map, store.into())
     }
+}
+
+// HELPERS
+// ================================================================================================
+
+fn vec_felt_to_u8(felts: &[Felt]) -> Vec<u8> {
+    felts.iter().map(|f| f.as_int() as u8).collect()
+}
+fn vec_felt_to_u64(felts: &[Felt]) -> Vec<u64> {
+    felts.iter().map(|f| f.as_int()).collect()
+}
+fn convert_nonce(nonce: &[u8]) -> Vec<u64> {
+    let mut result = vec![];
+    for i in 0..8 {
+        result.push(u64::from_le_bytes([
+            nonce[i * 5],
+            nonce[i * 5 + 1],
+            nonce[i * 5 + 2],
+            nonce[i * 5 + 3],
+            nonce[i * 5 + 4],
+            0,
+            0,
+            0,
+        ]));
+    }
+    result
 }

@@ -5,7 +5,7 @@ use.std::math::poly512
 # HASH-TO-POINT  
 # =============================================================================================
 
-#! Takes as input a message digest, a nonce of size 40 bytes represented as 5 field elements
+#! Takes as input a message digest, a nonce of size 40 bytes represented as 8 field elements
 #! and a pointer. The procedure absorbs MSG and NONCE into a fresh RPO state and squeezes the
 #! coefficients of a polynomial c representing the hash-to-point of (MSG || NONCE). The coefficients
 #! are then saved in the memory region [c_ptr, c_ptr + 128).
@@ -13,7 +13,7 @@ use.std::math::poly512
 #! required in the per-the-spec algorithm by using the observation on page 31 in 
 #! https://falcon-sign.info/falcon.pdf
 #!
-#! Input: [c_ptr, MSG, NONCE, ...]
+#! Input: [c_ptr, MSG, NONCE1, NONCE0, ...]
 #! Output: [...]
 #!
 #! Cycles: 1884
@@ -22,18 +22,15 @@ export.hash_to_point.6
     # Store c_ptr
     loc_store.4
     
-    # Store the 4th element of the message
-    loc_store.5
+    # Store the message
+    loc_storew.5 dropw
 
-    # deficit counter
-    push.0 movdn.8
-
-    # Absorb the first 3 elements of the message in addition to the 5 elements nonce
     padw movdnw.2
     hperm
 
-    # Absorb the last element of the message digest
-    loc_load.5 swap.8 drop
+    swapw
+    loc_loadw.5
+    swapw
 
     repeat.63
         hperm
@@ -45,13 +42,42 @@ export.hash_to_point.6
     movupw.2 dropw
 
     # address of last coefficient-quadruple
-    loc_load.4 add.127 
+    loc_load.4 add.127
 
     # Save the coefficients of c
     repeat.128
         dup sub.1 movdn.5 mem_storew dropw
     end
+
     drop
+
+    ## deficit counter
+    #push.0 movdn.8
+
+    ## Absorb the first 3 elements of the message in addition to the 5 elements nonce
+    #padw movdnw.2
+    #hperm
+
+    ## Absorb the last element of the message digest
+    #loc_load.5 swap.8 drop
+
+    #repeat.63
+        #hperm
+        #movupw.2
+        #dupw.2 dupw.2
+    #end
+    
+    #hperm 
+    #movupw.2 dropw
+
+    ## address of last coefficient-quadruple
+    #loc_load.4 add.127 
+
+    ## Save the coefficients of c
+    #repeat.128
+        #dup sub.1 movdn.5 mem_storew dropw
+    #end
+    #drop
 end
 
 
@@ -130,8 +156,7 @@ export.load_h_s2_and_product.1
     loc_storew.0
 
     # 2) Prepare stack and load h polynomial
-    padw swapw 
-    padw
+    padw swapw padw
     repeat.64
         adv_pipe hperm
     end
@@ -359,7 +384,6 @@ end
 #!
 #! Cycles: 21
 export.norm_sq
-    
     dup
     dup mul
     swap
@@ -411,6 +435,8 @@ export.diff_mod_q
     #=> [e, ...]
 end
 
+#! TODO: Either revert back the hash-to-point algorithm or update the following comment.
+#!
 #! Takes a pointer to a polynomial pi of degree less than 1024 with coefficients in Z_Q.
 #! The goal is to compute s1 = c - pi  = c - h * s2 in Z_q[x]/(phi)
 #! The pointer pi_ptr points to pi and c through the relation c_ptr = pi_ptr + offset
@@ -448,7 +474,7 @@ end
 #! Input: [pi_ptr, ...]
 #! Output: [norm_sq(s1), ...]
 #!
-#! Cycles: 38920
+#! Cycles: 58888
 export.compute_s1_norm_sq 
     repeat.128
         # 1) Load the next 4 * 3 coefficients
@@ -470,6 +496,7 @@ export.compute_s1_norm_sq
 
         # 2) Compute the squared norm of (i + 0)-th coefficient of s1
         movup.8
+        exec.poly512::mod_12289
         movup.5
         #=> [v, w, u, ...] where u is the i-th coefficient of `pi`, v is the i-th
         # coefficient of `c` and w is the (512 + i)-th coefficient of `pi` polynomial.
@@ -485,6 +512,7 @@ export.compute_s1_norm_sq
    
         # 3) Compute the squared norm of (i + 1)-th coefficient of s1
         movup.6
+        exec.poly512::mod_12289
         movup.4
         exec.diff_mod_q
         exec.norm_sq
@@ -492,6 +520,7 @@ export.compute_s1_norm_sq
     
         # 4) Compute the squared norm of (i + 2)-th coefficient of s1
         movup.4
+        exec.poly512::mod_12289
         movup.3
         exec.diff_mod_q
         exec.norm_sq
@@ -499,6 +528,7 @@ export.compute_s1_norm_sq
 
         # 5) Compute the squared norm of (i + 3)-th coefficient of s1
         movup.2
+        exec.poly512::mod_12289
         movup.2
         exec.diff_mod_q
         exec.norm_sq
@@ -549,35 +579,46 @@ end
 #! via the advice stack.
 #! The signature is valid if and only if the procedure returns.
 #!
-#! Input: [PK, MSG, NONCE, ...]
+#! Input: [PK, MSG, ...]
 #! Output: [...]
 #!
 #! Cycles: ~ 73395
 export.verify.1665
 
-    # 1) Load the public key polynomial h and the signature polynomial s2 and the product of
+    # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
+    adv.falcon_sign
+    #=> [PK, MSG, ...]
+
+    # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements
+    padw adv_loadw padw adv_loadw
+    #=> [PK, MSG, NONCE1, NONCE0, ...]
+
+
+    # 3) Load the public key polynomial h and the signature polynomial s2 and the product of
     # the two polynomials pi := h * s2 in Z_Q[x]. This also checks that h hashes to the provided
     # digest PK. While loading the polynomials, the hash of the three polynomials is computed
     # and the first half of the digest is kept on the stack for later use by the `probablistic_product`
     # procedure.
 
+    swapdw
     locaddr.0
     exec.load_h_s2_and_product
-    #=> [tau1, tau0, tau_ptr, MSG, NONCE, ...]      (Cycles: 571)
+    #=> [tau1, tau0, tau_ptr, MSG, NONCE1, NONCE0, ...]      (Cycles: 571)
 
     exec.powers_of_tau
-    #=> [zeros_ptr, MSG, NONCE, ...]                (Cycles: 8323)
+    #=> [zeros_ptr, MSG, NONCE1, NONCE0, ...]                (Cycles: 8323)
 
     exec.set_to_zero
-    #=> [c_ptr, MSG, NONCE, ...]                    (Cycles: 2607)
+    #=> [c_ptr, MSG, NONCE1, NONCE0, ...]                    (Cycles: 2607)
 
-    # 2) Compute the hash-to-point of the message MSG from the provided NONCE and save
+
+    # 4) Compute the hash-to-point of the message MSG from the provided NONCE and save
     # the resulting polynomial c in the memory region [c_ptr, c_ptr + 128)
 
     exec.hash_to_point
     #=> [...]                                       (Cycles: 1884)
 
-    # 3) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
+    # 5) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
     # where tau is a random (Fiat-Shamir) challenge resulting from hashing h, s2 and pi.
 
     locaddr.512     # tau_ptr
@@ -588,7 +629,7 @@ export.verify.1665
     exec.probablistic_product
     #=> [...]                                       (Cycles: 7760)
 
-    # 4) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
+    # 6) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
     
     locaddr.256
     #=> [pi_ptr, ...]
@@ -596,7 +637,7 @@ export.verify.1665
     exec.compute_s1_norm_sq
     #=> [norm_sq(s1), ...]                          (Cycles: 38920)  
 
-    # 5) Compute the squared norm of s2
+    # 7) Compute the squared norm of s2
 
     locaddr.128
     #=> [s2_ptr, norm_sq(s1), ...]                  
@@ -604,7 +645,7 @@ export.verify.1665
     exec.compute_s2_norm_sq                         
     #=> [norm_sq(s2), norm_sq(s1), ...]             (Cycles: 13322)
 
-    # 6) Check that ||(s1, s2)||^2 < K
+    # 8) Check that ||(s1, s2)||^2 < K
 
     add
     #=> [norm_sq(s1) + norm_sq(s2), ...]

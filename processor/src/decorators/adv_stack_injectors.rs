@@ -339,42 +339,49 @@ where
         Ok(())
     }
 
-    /// Pushes values onto the advice stack which are required for successful retrieval of a
-    /// value from a Sparse Merkle Tree data structure.
+    /// Pushes values onto the advice stack which are required for a Falcon signature verification.
+    /// These are:
     ///
-    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
-    /// The depth flags define the tier on which the leaf is located.
+    /// 1. The nonce represented as 8 field elements.
+    /// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
+    /// 3. The signature represented as the coefficients of a polynomial of degree < 512.
+    /// 4. The product of the above two polynomials in the ring of polynomials with coefficients
+    /// in the Miden field.
     ///
     /// Inputs:
-    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Operand stack: [PK, MSG, ...]
     ///   Advice stack: [...]
+    ///   Advice map: {PK: [pk_raw, sk_raw]}
     ///
     /// Outputs:
-    ///   Operand stack: [KEY, ROOT, ...]
-    ///   Advice stack: [f0, f1, K, V, f2]
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [NONCE1, NONCE0, h, s2, pi]
+    ///   Advice map: {PK: [pk_raw, sk_raw]}
     ///
     /// Where:
-    /// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
-    /// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
-    /// - K is the key; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - f2 is a boolean flag set to `1` if the key is not zero.
+    /// - PK is the digest of an expanded public.
+    /// - MSG is the digest of the message to be signed.
+    /// - [NONCE0, NONCE1] is a double-word representing a 40 bit nonce that is used in the Falcon
+    /// hash-to-point algorithm.
+    /// - h is the polynomial representing the expanded public key corresponding to the digest PK.
+    /// - s2 is the polynomial representing the signature with the secret key associated to PK on
+    /// the message MSG.
+    /// - pi is the product of the above two polynomials.
+    /// - pk_raw are raw bytes of the expanded public key.
+    /// - sk_raw are raw bytes of the secret key.
     ///
     /// # Errors
-    /// Will return an error if the provided Merkle root doesn't exist on the advice provider.
-    ///
-    /// # Panics
-    /// Will panic as unimplemented if the target depth is `64`.
-    pub(super) fn push_falcon_signature(&self) -> Result<(), ExecutionError> {
-        // fetch the arguments from the operand stack
+    /// Will return an error if either:
+    /// - The advice map does not contain an entry with key PK.
+    /// - The advice map entry under key PK is not a vector of the expected length.
+    pub(super) fn push_falcon_signature(&mut self) -> Result<(), ExecutionError> {
         let pub_key = self.stack.get_word(0);
         let msg = self.stack.get_word(1);
         let result: Vec<Felt> = self.advice_provider.falcon_sign(pub_key, msg)?;
-        for r in result{
-            self.advice_provider.push_stack(AdviceSource::Value(r));
+        for r in result {
+            self.advice_provider.push_stack(AdviceSource::Value(r))?;
         }
         Ok(())
-
     }
 }
 

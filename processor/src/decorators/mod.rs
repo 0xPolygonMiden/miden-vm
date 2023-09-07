@@ -47,6 +47,7 @@ where
             AdviceInjector::SmtGet => self.push_smtget_inputs(),
             AdviceInjector::MemToMap => self.insert_mem_values_into_adv_map(),
             AdviceInjector::HdwordToMap { domain } => self.insert_hdword_into_adv_map(*domain),
+            AdviceInjector::FalconSign => self.push_falcon_signature(),
         }
     }
 

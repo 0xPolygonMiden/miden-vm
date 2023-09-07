@@ -77,6 +77,11 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             }
             _ => return Err(ParsingError::extra_param(op)),
         },
+        "falcon_sign" => match op.num_parts() {
+            2 => AdvInject(FalconSign),
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+
         _ => return Err(ParsingError::invalid_op(op)),
     };
 

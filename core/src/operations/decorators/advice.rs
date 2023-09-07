@@ -181,6 +181,9 @@ pub enum AdviceInjector {
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
     HdwordToMap { domain: Felt },
+
+    /// TODO
+    FalconSign,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -204,6 +207,7 @@ impl fmt::Display for AdviceInjector {
             Self::SmtGet => write!(f, "smt_get"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
+            Self::FalconSign => write!(f, "falcon_sign"),
         }
     }
 }
