@@ -17,7 +17,7 @@ use super::{
 pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv");
     if op.num_parts() < 2 {
-        return Err(ParsingError::missing_param(op));
+        return Err(ParsingError::missing_param(op, "adv.<injector>.<injector_param?>"));
     }
 
     let injector = match op.parts()[1] {

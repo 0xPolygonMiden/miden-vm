@@ -57,12 +57,12 @@ pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, Parsin
 fn parse_constant(token: &Token, constants: &LocalConstMap) -> Result<(String, u64), ParsingError> {
     match token.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(token)),
+        1 => Err(ParsingError::missing_param(token, "const.<name>=<value>")),
         2 => {
             let const_declaration: Vec<&str> = token.parts()[1].split('=').collect();
             match const_declaration.len() {
                 0 => unreachable!(),
-                1 => Err(ParsingError::missing_param(token)),
+                1 => Err(ParsingError::missing_param(token, "const.<name>=<value>")),
                 2 => {
                     let name = CONSTANT_LABEL_PARSER
                         .parse_label(const_declaration[0])

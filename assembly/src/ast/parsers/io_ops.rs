@@ -27,7 +27,7 @@ pub fn parse_push(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsing
     debug_assert_eq!(op.parts()[0], "push");
     match op.num_parts() {
         0 => unreachable!("missing token"),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "push.<a?>")),
         2 => {
             let param_str = op.parts()[1];
             match param_str.strip_prefix("0x") {
@@ -65,7 +65,7 @@ pub fn parse_locaddr(op: &Token, constants: &LocalConstMap) -> Result<Node, Pars
     debug_assert_eq!(op.parts()[0], "locaddr");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "locaddr.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(Locaddr(index)))
@@ -83,7 +83,7 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv_push");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "adv_push.<num_vals>")),
         2 => {
             let num_vals = parse_checked_param(op, 1, 1..=ADVICE_READ_LIMIT)?;
             Ok(Instruction(AdvPush(num_vals)))
@@ -120,7 +120,7 @@ pub fn parse_loc_load(op: &Token, constants: &LocalConstMap) -> Result<Node, Par
     debug_assert_eq!(op.parts()[0], "loc_load");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_load.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocLoad(index)))
@@ -157,7 +157,7 @@ pub fn parse_loc_loadw(op: &Token, constants: &LocalConstMap) -> Result<Node, Pa
     debug_assert_eq!(op.parts()[0], "loc_loadw");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_loadw.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocLoadW(index)))
@@ -194,7 +194,7 @@ pub fn parse_loc_store(op: &Token, constants: &LocalConstMap) -> Result<Node, Pa
     debug_assert_eq!(op.parts()[0], "loc_store");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_store.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocStore(index)))
@@ -231,7 +231,7 @@ pub fn parse_loc_storew(op: &Token, constants: &LocalConstMap) -> Result<Node, P
     debug_assert_eq!(op.parts()[0], "loc_storew");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_storew.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocStoreW(index)))

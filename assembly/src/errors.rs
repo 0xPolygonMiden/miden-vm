@@ -273,9 +273,12 @@ impl ParsingError {
         }
     }
 
-    pub fn missing_param(token: &Token) -> Self {
+    pub fn missing_param(token: &Token, expected_format: &str) -> Self {
+        let _actual_params: usize = token.num_parts();
         ParsingError {
-            message: format!("malformed instruction '{token}': missing required parameter"),
+            message: format!(
+                "malformed instruction '{token}': expected format `{expected_format}`"
+            ),
             location: *token.location(),
             op: token.to_string(),
         }
