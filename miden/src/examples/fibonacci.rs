@@ -1,6 +1,6 @@
 use super::{Example, ONE, ZERO};
 use miden::{
-    math::{Felt, FieldElement, StarkField},
+    math::{Felt, StarkField},
     Assembler, MemAdviceProvider, Program, StackInputs,
 };
 

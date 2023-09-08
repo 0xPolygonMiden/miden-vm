@@ -1,6 +1,6 @@
 use super::{
     ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace,
-    ProcedureId, String, ToString, Token, Vec,
+    ProcedureId, ProcedureName, String, ToString, Token, Vec,
 };
 use core::fmt;
 
@@ -19,7 +19,7 @@ pub enum AssemblyError {
     DuplicateProcName(String, String),
     DuplicateProcId(ProcedureId),
     ExportedProcInProgram(String),
-    ImportedProcModuleNotFound(ProcedureId),
+    ImportedProcModuleNotFound(ProcedureId, String),
     ReExportedProcModuleNotFound(ProcReExport),
     ImportedProcNotFoundInModule(ProcedureId, String),
     InvalidProgramAssemblyContext,
@@ -71,8 +71,15 @@ impl AssemblyError {
         Self::ExportedProcInProgram(proc_name.to_string())
     }
 
-    pub fn imported_proc_module_not_found(proc_id: &ProcedureId) -> Self {
-        Self::ImportedProcModuleNotFound(*proc_id)
+    pub fn imported_proc_module_not_found(
+        proc_id: &ProcedureId,
+        proc_name: Option<ProcedureName>,
+    ) -> Self {
+        if let Some(proc_name) = proc_name {
+            Self::ImportedProcModuleNotFound(*proc_id, proc_name.to_string())
+        } else {
+            Self::ImportedProcModuleNotFound(*proc_id, "[unknown]".to_string())
+        }
     }
 
     pub fn imported_proc_not_found_in_module(proc_id: &ProcedureId, module_path: &str) -> Self {
@@ -135,7 +142,7 @@ impl fmt::Display for AssemblyError {
             DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
-            ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
+            ImportedProcModuleNotFound(proc_id, proc_name) => write!(f, "module for imported procedure `{proc_name}` with ID {proc_id} not found"),
             ReExportedProcModuleNotFound(reexport) => write!(f, "re-exported proc {} with id {} not found", reexport.name(), reexport.proc_id()),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
             InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
