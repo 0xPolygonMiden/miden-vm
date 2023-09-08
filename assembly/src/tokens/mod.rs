@@ -257,7 +257,7 @@ impl<'a> Token<'a> {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(
                 self,
-                &format!("{invocation_token}.<procedure_name>").to_string(),
+                format!("{invocation_token}.<procedure_name>").as_str(),
             )),
             2 => InvocationTarget::parse(self.parts[1], self),
             _ => Err(ParsingError::extra_param(self)),
