@@ -1,4 +1,4 @@
-use super::{ByteWriter, Instruction, Node, OpCode, Serializable};
+use super::{debug, ByteWriter, Instruction, Node, OpCode, Serializable};
 use crate::ast::MAX_BODY_LEN;
 
 // NODE SERIALIZATION
@@ -495,6 +495,11 @@ impl Serializable for Instruction {
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => {
                 // this is a transparent instruction and will not be encoded into the library
+            }
+
+            Self::Debug(options) => {
+                OpCode::Debug.write_into(target);
+                debug::write_options_into(target, options);
             }
         }
     }

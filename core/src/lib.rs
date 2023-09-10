@@ -40,7 +40,8 @@ pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, Progra
 
 mod operations;
 pub use operations::{
-    AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList, Operation,
+    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
+    Operation,
 };
 
 pub mod stack;

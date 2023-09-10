@@ -26,7 +26,7 @@ pub struct RunCmd {
     #[clap(short = 'm', long = "max-cycles", default_value = "4294967295")]
     max_cycles: u32,
 
-    /// Number of ouptuts
+    /// Number of outputs
     #[clap(short = 'n', long = "num-outputs", default_value = "16")]
     num_outputs: usize,
 

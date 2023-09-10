@@ -125,11 +125,16 @@ impl Stack {
     /// stack + overflow entries.
     ///
     /// # Panics
-    /// Panics if invoked on a stack instantiated with `keep_overflow_trace` set to false.
+    /// Panics if invoked for non-last clock cycle on a stack instantiated with
+    /// `keep_overflow_trace` set to false.
     pub fn get_state_at(&self, clk: u32) -> Vec<Felt> {
         let mut result = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut result, clk);
-        self.overflow.append_state_into(&mut result, clk as u64);
+        if clk == self.clk {
+            self.overflow.append_into(&mut result);
+        } else {
+            self.overflow.append_state_into(&mut result, clk as u64);
+        }
 
         result
     }

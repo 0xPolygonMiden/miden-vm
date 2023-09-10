@@ -377,7 +377,17 @@ where
             op_offset += op_batch.ops().len();
         }
 
-        self.end_span_block(block)
+        self.end_span_block(block)?;
+
+        // execute any decorators which have not been executed during span ops execution; this
+        // can happen for decorators appearing after all operations in a block. these decorators
+        // are executed after SPAN block is closed to make sure the VM clock cycle advances beyond
+        // the last clock cycle of the SPAN block ops.
+        if let Some(decorator) = decorators.next() {
+            self.execute_decorator(decorator)?;
+        }
+
+        Ok(())
     }
 
     /// Executes all operations in an [OpBatch]. This also ensures that all alignment rules are
@@ -405,7 +415,7 @@ where
 
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
-            while let Some(decorator) = decorators.next(i + op_offset) {
+            while let Some(decorator) = decorators.next_filtered(i + op_offset) {
                 self.execute_decorator(decorator)?;
             }
 

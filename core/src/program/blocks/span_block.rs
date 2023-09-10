@@ -390,7 +390,7 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
 /// - Assert the decorator list is in ascending order.
-/// - Assert the last op index in decorator list is less than the number of operations.
+/// - Assert the last op index in decorator list is less than or equal to the number of operations.
 #[cfg(debug_assertions)]
 fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
     if !decorators.is_empty() {
@@ -400,8 +400,8 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
         }
         // assert the last index in decorator list is less than operations vector length
         debug_assert!(
-            operations.len() > decorators.last().expect("empty decorators list").0,
-            "last op index in decorator list should be less than number of ops"
+            operations.len() >= decorators.last().expect("empty decorators list").0,
+            "last op index in decorator list should be less than or equal to the number of ops"
         );
     }
 }

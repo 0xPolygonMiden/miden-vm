@@ -17,6 +17,7 @@
     - [Stack manipulation](./user_docs/assembly/stack_manipulation.md)
     - [Input / Output Operations](./user_docs/assembly/io_operations.md)
     - [Cryptographic Operations](./user_docs/assembly/cryptographic_operations.md)
+    - [Debugging](./user_docs/assembly/debugging.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
     - [std::collections](./user_docs/stdlib/collections.md)
     - [std::crypto::fri](./user_docs/stdlib/crypto/fri.md)
