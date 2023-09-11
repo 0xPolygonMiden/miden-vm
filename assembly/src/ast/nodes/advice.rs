@@ -3,7 +3,7 @@ use super::super::{
     MAX_STACK_WORD_OFFSET,
 };
 use core::fmt;
-use vm_core::{AdviceInjector, Felt, ZERO};
+use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -26,7 +26,7 @@ pub enum AdviceInjectorNode {
     InsertMem,
     InsertHdword,
     InsertHdwordImm { domain: u8 },
-    FalconSign,
+    PushSignature { kind: SignatureKind },
 }
 
 impl From<&AdviceInjectorNode> for AdviceInjector {
@@ -58,7 +58,7 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             InsertHdwordImm { domain } => Self::HdwordToMap {
                 domain: Felt::from(*domain),
             },
-            FalconSign => Self::FalconSign,
+            PushSignature { kind } => Self::PSign { sign_kind: *kind },
         }
     }
 }
@@ -78,7 +78,7 @@ impl fmt::Display for AdviceInjectorNode {
             InsertMem => write!(f, "insert_mem"),
             InsertHdword => write!(f, "insert_hdword"),
             InsertHdwordImm { domain } => write!(f, "insert_hdword.{domain}"),
-            FalconSign => write!(f, "falcon_sign"),
+            PushSignature { kind } => write!(f, "push_sig.{kind}"),
         }
     }
 }
@@ -97,7 +97,7 @@ const PUSH_MTNODE: u8 = 7;
 const INSERT_MEM: u8 = 8;
 const INSERT_HDWORD: u8 = 9;
 const INSERT_HDWORD_IMM: u8 = 10;
-const FALCON_SIGN: u8 = 11;
+const PUSH_SIGN: u8 = 11;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -123,7 +123,7 @@ impl Serializable for AdviceInjectorNode {
                 target.write_u8(INSERT_HDWORD_IMM);
                 target.write_u8(*domain);
             }
-            FalconSign => target.write_u8(FALCON_SIGN),
+            PushSignature { kind: _ } => target.write_u8(PUSH_SIGN),
         }
     }
 }
@@ -157,7 +157,9 @@ impl Deserializable for AdviceInjectorNode {
                 let domain = source.read_u8()?;
                 Ok(AdviceInjectorNode::InsertHdwordImm { domain })
             }
-            FALCON_SIGN => Ok(AdviceInjectorNode::FalconSign),
+            PUSH_SIGN => Ok(AdviceInjectorNode::PushSignature {
+                kind: SignatureKind::RpoFalcon512,
+            }),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
     }

@@ -1,4 +1,4 @@
-//#[cfg(feature = "std")]
+#[cfg(feature = "std")]
 mod falcon;
 
 mod blake3;

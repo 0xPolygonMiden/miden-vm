@@ -1,7 +1,7 @@
 use super::{super::Ext2InttError, AdviceProvider, AdviceSource, ExecutionError, Process};
 use vm_core::{
     crypto::merkle::EmptySubtreeRoots, utils::collections::Vec, Felt, FieldElement, QuadExtension,
-    StarkField, Word, ONE, ZERO,
+    SignatureKind, StarkField, Word, ONE, ZERO,
 };
 use winter_prover::math::fft;
 
@@ -339,45 +339,31 @@ where
         Ok(())
     }
 
-    /// Pushes values onto the advice stack which are required for a Falcon signature verification.
-    /// These are:
-    ///
-    /// 1. The nonce represented as 8 field elements.
-    /// 2. The expanded public key represented as the coefficients of a polynomial of degree < 512.
-    /// 3. The signature represented as the coefficients of a polynomial of degree < 512.
-    /// 4. The product of the above two polynomials in the ring of polynomials with coefficients
-    /// in the Miden field.
+    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden VM.
     ///
     /// Inputs:
     ///   Operand stack: [PK, MSG, ...]
     ///   Advice stack: [...]
-    ///   Advice map: {PK: [pk_raw, sk_raw]}
+    ///   Advice map: {PK: [SK]}
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [NONCE1, NONCE0, h, s2, pi]
-    ///   Advice map: {PK: [pk_raw, sk_raw]}
+    ///   Advice stack: [DATA]
+    ///   Advice map: {PK: [SK]}
     ///
     /// Where:
     /// - PK is the digest of an expanded public.
     /// - MSG is the digest of the message to be signed.
-    /// - [NONCE0, NONCE1] is a double-word representing a 40 bit nonce that is used in the Falcon
-    /// hash-to-point algorithm.
-    /// - h is the polynomial representing the expanded public key corresponding to the digest PK.
-    /// - s2 is the polynomial representing the signature with the secret key associated to PK on
-    /// the message MSG.
-    /// - pi is the product of the above two polynomials.
-    /// - pk_raw are raw bytes of the expanded public key.
-    /// - sk_raw are raw bytes of the secret key.
-    ///
-    /// # Errors
-    /// Will return an error if either:
-    /// - The advice map does not contain an entry with key PK.
-    /// - The advice map entry under key PK is not a vector of the expected length.
-    pub(super) fn push_falcon_signature(&mut self) -> Result<(), ExecutionError> {
+    /// - DATA is the needed data for signature verification in the VM.
+    /// - SK is the secret key corresponding to the public key. This can also include the
+    ///   public key itself, if PK is not expanded.
+    pub(super) fn push_signature(
+        &mut self,
+        sign_kind: SignatureKind,
+    ) -> Result<(), ExecutionError> {
         let pub_key = self.stack.get_word(0);
         let msg = self.stack.get_word(1);
-        let result: Vec<Felt> = self.advice_provider.falcon_sign(pub_key, msg)?;
+        let result: Vec<Felt> = self.advice_provider.get_signature(sign_kind, pub_key, msg)?;
         for r in result {
             self.advice_provider.push_stack(AdviceSource::Value(r))?;
         }

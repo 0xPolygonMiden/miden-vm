@@ -7,6 +7,8 @@ extern crate alloc;
 pub mod chiplets;
 pub mod errors;
 
+use core::fmt;
+
 pub use ::miden_crypto::{Word, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
@@ -59,3 +61,20 @@ pub mod utils;
 // ================================================================================================
 
 pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];
+
+// TYPES AND INTERFACES
+// ================================================================================================
+
+// Collection of signature schemes supported
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SignatureKind {
+    RpoFalcon512,
+}
+
+impl fmt::Display for SignatureKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RpoFalcon512 => write!(f, "rpo_falcon512"),
+        }
+    }
+}

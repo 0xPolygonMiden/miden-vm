@@ -9,6 +9,7 @@ use vm_core::{
         collections::{BTreeMap, KvMap, RecordingMap, Vec},
         IntoBytes,
     },
+    SignatureKind,
 };
 
 mod inputs;
@@ -19,6 +20,9 @@ pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;
+
+mod dsa;
+pub use dsa::falcon_sign;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -101,8 +105,13 @@ pub trait AdviceProvider {
     /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
 
-    /// TODO
-    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError>;
+    /// Returns a signature on a message using a public key.
+    fn get_signature(
+        &self,
+        signature: SignatureKind,
+        pub_key: Word,
+        msg: Word,
+    ) -> Result<Vec<Felt>, ExecutionError>;
 
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
@@ -289,7 +298,12 @@ where
         T::advance_clock(self)
     }
 
-    fn falcon_sign(&self, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-        T::falcon_sign(self, pub_key, msg)
+    fn get_signature(
+        &self,
+        signature: SignatureKind,
+        pub_key: Word,
+        msg: Word,
+    ) -> Result<Vec<Felt>, ExecutionError> {
+        T::get_signature(self, signature, pub_key, msg)
     }
 }

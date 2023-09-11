@@ -1,3 +1,5 @@
+use vm_core::SignatureKind;
+
 use super::{
     parse_checked_param,
     AdviceInjectorNode::*,
@@ -77,8 +79,13 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             }
             _ => return Err(ParsingError::extra_param(op)),
         },
-        "falcon_sign" => match op.num_parts() {
-            2 => AdvInject(FalconSign),
+        "push_sign" => match op.num_parts() {
+            3 => match op.parts()[2] {
+                "rpo_falcon512" => AdvInject(PushSignature {
+                    kind: SignatureKind::RpoFalcon512,
+                }),
+                _ => return Err(ParsingError::invalid_param(op, 1)),
+            },
             _ => return Err(ParsingError::extra_param(op)),
         },
 

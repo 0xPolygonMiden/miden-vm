@@ -1,4 +1,4 @@
-use crate::Felt;
+use crate::{Felt, SignatureKind};
 use core::fmt;
 
 // ADVICE INJECTORS
@@ -183,7 +183,7 @@ pub enum AdviceInjector {
     HdwordToMap { domain: Felt },
 
     /// TODO
-    FalconSign,
+    PSign { sign_kind: SignatureKind },
 }
 
 impl fmt::Display for AdviceInjector {
@@ -207,7 +207,7 @@ impl fmt::Display for AdviceInjector {
             Self::SmtGet => write!(f, "smt_get"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
-            Self::FalconSign => write!(f, "falcon_sign"),
+            Self::PSign { sign_kind } => write!(f, "push_sign.{sign_kind}"),
         }
     }
 }
