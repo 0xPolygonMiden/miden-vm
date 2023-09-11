@@ -18,7 +18,7 @@ mod span_builder;
 use span_builder::SpanBuilder;
 
 mod context;
-pub use context::{AssemblyContext, AssemblyContextType};
+pub use context::AssemblyContext;
 
 mod procedure_cache;
 use procedure_cache::ProcedureCache;
@@ -88,7 +88,7 @@ impl Assembler {
     /// Returns an error if compiling kernel source results in an error.
     pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
-        let mut context = AssemblyContext::new(AssemblyContextType::Kernel);
+        let mut context = AssemblyContext::for_module(true);
         let kernel = Module::kernel(module);
         self.compile_module(&kernel, &mut context)?;
 
@@ -131,7 +131,7 @@ impl Assembler {
         let program = ProgramAst::parse(source)?;
 
         // compile the program
-        let mut context = AssemblyContext::new(AssemblyContextType::Program);
+        let mut context = AssemblyContext::for_program(&program);
         let program_root = self.compile_in_context(&program, &mut context)?;
 
         // convert the context into a call block table for the program
@@ -191,8 +191,7 @@ impl Assembler {
     ) -> Result<Vec<RpoDigest>, AssemblyError> {
         // a variable to track MAST roots of all procedures exported from this module
         let mut proc_roots = Vec::new();
-
-        context.begin_module(&module.path)?;
+        context.begin_module(&module.path, &module.ast)?;
 
         // process all re-exported procedures
         for reexporteed_proc in module.ast.reexported_procs().iter() {
@@ -255,7 +254,6 @@ impl Assembler {
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
         context.begin_proc(&proc.name, proc.is_export, proc.num_locals)?;
-
         let code = if proc.num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
@@ -370,10 +368,10 @@ impl Assembler {
     ) -> Result<(), AssemblyError> {
         if !self.proc_cache.borrow().contains_id(proc_id) {
             // if procedure is not in cache, try to get its module and compile it
-            let module = self
-                .module_provider
-                .get_module(proc_id)
-                .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
+            let module = self.module_provider.get_module(proc_id).ok_or_else(|| {
+                let proc_name = context.get_imported_procedure_name(proc_id);
+                AssemblyError::imported_proc_module_not_found(proc_id, proc_name)
+            })?;
             self.compile_module(module, context)?;
             // if the procedure is still not in cache, then there was some error
             if !self.proc_cache.borrow().contains_id(proc_id) {

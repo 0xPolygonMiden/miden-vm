@@ -1,7 +1,9 @@
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, NamedProcedure,
-    Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString, Vec,
+    AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath,
+    NamedProcedure, Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString,
+    Vec,
 };
+use crate::ast::{ModuleAst, ProgramAst};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -19,33 +21,29 @@ pub struct AssemblyContext {
     allow_phantom_calls: bool,
 }
 
-/// Describes which type of Miden assembly modules can be compiled with a given [AssemblyContext].
-#[derive(PartialEq)]
-pub enum AssemblyContextType {
-    Kernel,
-    Module,
-    Program,
-}
-
 impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AssemblyContext].
+    /// Returns a new [AssemblyContext] for non-execurable kernel and non-kernel modules.
     ///
-    /// The `context_type` specifies how the context will be used and the [AssemblyContext] is
-    /// instantiated accordingly.
-    pub fn new(context_type: AssemblyContextType) -> Self {
-        let modules = match context_type {
-            AssemblyContextType::Kernel | AssemblyContextType::Module => Vec::new(),
-            // for executable programs we initialize the module stack with the context of the
-            // executable module itself
-            AssemblyContextType::Program => vec![ModuleContext::for_program()],
-        };
-
+    /// The `is_kernel_module` specifies whether provided module is a kernel module.
+    pub fn for_module(is_kernel_module: bool) -> Self {
         Self {
-            module_stack: modules,
-            is_kernel: context_type == AssemblyContextType::Kernel,
+            module_stack: Vec::new(),
+            is_kernel: is_kernel_module,
+            kernel: None,
+            allow_phantom_calls: false,
+        }
+    }
+
+    /// Returns a new [AssemblyContext] for execurable module.
+    ///
+    /// The `program` is required to provide data about IDs and names of imported procedures.
+    pub fn for_program(program: &ProgramAst) -> Self {
+        Self {
+            module_stack: vec![ModuleContext::for_program(program.get_imported_procedures_map())],
+            is_kernel: false,
             kernel: None,
             allow_phantom_calls: false,
         }
@@ -77,6 +75,15 @@ impl AssemblyContext {
         self.current_proc_context().expect("no procedures").num_locals
     }
 
+    /// Returns the name of the procedure by its ID from the procedure map.
+    pub fn get_imported_procedure_name(&self, id: &ProcedureId) -> Option<ProcedureName> {
+        if let Some(module) = self.module_stack.first() {
+            module.proc_map.get(id).cloned()
+        } else {
+            None
+        }
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -87,7 +94,11 @@ impl AssemblyContext {
     ///
     /// # Errors
     /// Returns an error if a module with the same path already exists in the module stack.
-    pub fn begin_module(&mut self, module_path: &LibraryPath) -> Result<(), AssemblyError> {
+    pub fn begin_module(
+        &mut self,
+        module_path: &LibraryPath,
+        module_ast: &ModuleAst,
+    ) -> Result<(), AssemblyError> {
         if self.is_kernel && self.module_stack.is_empty() {
             // a kernel context must be initialized with a kernel module path
             debug_assert!(
@@ -103,8 +114,11 @@ impl AssemblyContext {
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
         }
 
+        // get the imported procedures map
+        let proc_map = module_ast.get_imported_procedures_map();
+
         // push a new module context onto the module stack and return
-        self.module_stack.push(ModuleContext::for_module(module_path));
+        self.module_stack.push(ModuleContext::for_module(module_path, proc_map));
         Ok(())
     }
 
@@ -323,6 +337,8 @@ struct ModuleContext {
     path: LibraryPath,
     /// A combined callset of all procedure callsets in this module.
     callset: CallSet,
+    /// A map containing id and names of all imported procedures in the module.
+    proc_map: BTreeMap<ProcedureId, ProcedureName>,
 }
 
 impl ModuleContext {
@@ -333,7 +349,7 @@ impl ModuleContext {
     ///
     /// Procedure in the returned module context is initialized with procedure context for the
     /// "main" procedure.
-    pub fn for_program() -> Self {
+    pub fn for_program(proc_map: BTreeMap<ProcedureId, ProcedureName>) -> Self {
         let name = ProcedureName::main();
         let main_proc_context = ProcedureContext::new(name, false, 0);
         Self {
@@ -341,18 +357,23 @@ impl ModuleContext {
             compiled_procs: Vec::new(),
             path: LibraryPath::exec_path(),
             callset: CallSet::default(),
+            proc_map,
         }
     }
 
     /// Returns a new [ModuleContext] instantiated for compiling library modules.
     ///
     /// A library module must be identified by a unique module path.
-    pub fn for_module(module_path: &LibraryPath) -> Self {
+    pub fn for_module(
+        module_path: &LibraryPath,
+        proc_map: BTreeMap<ProcedureId, ProcedureName>,
+    ) -> Self {
         Self {
             proc_stack: Vec::new(),
             compiled_procs: Vec::new(),
             path: module_path.clone(),
             callset: CallSet::default(),
+            proc_map,
         }
     }
 

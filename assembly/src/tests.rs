@@ -1,7 +1,6 @@
 use crate::{
     ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContext, AssemblyContextType, Library, LibraryNamespace, LibraryPath,
-    Module, Version,
+    Assembler, AssemblyContext, Library, LibraryNamespace, LibraryPath, Module, Version,
 };
 use core::slice::Iter;
 
@@ -134,24 +133,21 @@ fn simple_main_call() {
     .unwrap();
     let account_module = Module::new(account_path, account_code);
     let _method_roots = assembler
-        .compile_module(
-            &account_module,
-            &mut super::AssemblyContext::new(AssemblyContextType::Module),
-        )
+        .compile_module(&account_module, &mut super::AssemblyContext::for_module(false))
         .unwrap();
 
     // compile note 1 program
     let note_1 =
         ProgramAst::parse("use.context::account begin call.account::account_method_1 end").unwrap();
     let _note_1_root = assembler
-        .compile_in_context(&note_1, &mut super::AssemblyContext::new(AssemblyContextType::Program))
+        .compile_in_context(&note_1, &mut super::AssemblyContext::for_program(&note_1))
         .unwrap();
 
     // compile note 2 program
     let note_2 =
         ProgramAst::parse("use.context::account begin call.account::account_method_2 end").unwrap();
     let _note_2_root = assembler
-        .compile_in_context(&note_2, &mut super::AssemblyContext::new(AssemblyContextType::Program))
+        .compile_in_context(&note_2, &mut super::AssemblyContext::for_program(&note_2))
         .unwrap();
 }
 
@@ -691,14 +687,14 @@ fn program_with_phantom_mast_call() {
     let ast = ProgramAst::parse(source).unwrap();
 
     // phantom calls not allowed
-    let mut context = AssemblyContext::new(AssemblyContextType::Program).with_phantom_calls(false);
+    let mut context = AssemblyContext::for_program(&ast).with_phantom_calls(false);
     let result = assembler.compile_in_context(&ast, &mut context);
     let err = result.err().unwrap();
     let expected_error = "cannot call phantom procedure with MAST root 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae: phantom calls not allowed";
     assert_eq!(expected_error, err.to_string());
 
     // phantom calls allowed
-    let mut context = AssemblyContext::new(AssemblyContextType::Program).with_phantom_calls(true);
+    let mut context = AssemblyContext::for_program(&ast).with_phantom_calls(true);
     let result = assembler.compile_in_context(&ast, &mut context);
     assert!(result.is_ok());
 }
@@ -1073,7 +1069,10 @@ fn program_with_import_errors() {
             push.4 push.3 \
             exec.u256::foo \
         end";
-    assert!(assembler.compile(source).is_err());
+    assert_eq!(
+        assembler.compile(source).err().unwrap().to_string(),
+        "module for imported procedure `foo` with ID 0xda3d281108b7ac61ba9591322a200f5cc0b29140 not found"
+    );
 }
 
 // COMMENTS

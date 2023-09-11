@@ -152,6 +152,15 @@ impl ProgramAst {
         &self.body
     }
 
+    /// Returns a map containing IDs and names of imported procedures.
+    pub fn get_imported_procedures_map(&self) -> BTreeMap<ProcedureId, ProcedureName> {
+        if let Some(info) = &self.import_info {
+            info.invoked_procs().iter().map(|(&id, (name, _))| (id, name.clone())).collect()
+        } else {
+            BTreeMap::new()
+        }
+    }
+
     // PARSER
     // --------------------------------------------------------------------------------------------
     /// Parses the provided source into a [ProgramAst].
@@ -489,6 +498,15 @@ impl ModuleAst {
         match &self.import_info {
             Some(info) => info.import_paths(),
             None => Vec::<&LibraryPath>::new(),
+        }
+    }
+
+    /// Returns a map containing IDs and names of imported procedures.
+    pub fn get_imported_procedures_map(&self) -> BTreeMap<ProcedureId, ProcedureName> {
+        if let Some(info) = &self.import_info {
+            info.invoked_procs().iter().map(|(&id, (name, _))| (id, name.clone())).collect()
+        } else {
+            BTreeMap::new()
         }
     }
 
