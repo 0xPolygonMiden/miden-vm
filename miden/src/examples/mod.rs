@@ -30,7 +30,7 @@ pub struct ExampleOptions {
     pub example: ExampleType,
 
     /// Number of cycles the program is expected to consume
-    #[clap(short = 'r', long = "exp-cycles", default_value = "64")]
+    #[clap(short = 'e', long = "exp-cycles", default_value = "64")]
     expected_cycles: u32,
 
     /// Maximum number of cycles a program is allowed to consume
