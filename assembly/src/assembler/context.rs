@@ -25,7 +25,7 @@ impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [AssemblyContext] for non-execurable kernel and non-kernel modules.
+    /// Returns a new [AssemblyContext] for non-executable kernel and non-kernel modules.
     ///
     /// The `is_kernel_module` specifies whether provided module is a kernel module.
     pub fn for_module(is_kernel_module: bool) -> Self {
@@ -37,12 +37,15 @@ impl AssemblyContext {
         }
     }
 
-    /// Returns a new [AssemblyContext] for execurable module.
+    /// Returns a new [AssemblyContext] for executable module.
     ///
-    /// The `program` is required to provide data about IDs and names of imported procedures.
-    pub fn for_program(program: &ProgramAst) -> Self {
+    /// If [ProgramAst] is provided, the context will contain info about the procedures imported
+    /// by the program, and thus, will be able to determine names of imported procedures for error
+    /// reporting purposes.
+    pub fn for_program(program: Option<&ProgramAst>) -> Self {
+        let program_imports = program.map(|p| p.get_imported_procedures_map()).unwrap_or_default();
         Self {
-            module_stack: vec![ModuleContext::for_program(program.get_imported_procedures_map())],
+            module_stack: vec![ModuleContext::for_program(program_imports)],
             is_kernel: false,
             kernel: None,
             allow_phantom_calls: false,

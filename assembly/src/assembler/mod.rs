@@ -131,7 +131,7 @@ impl Assembler {
         let program = ProgramAst::parse(source)?;
 
         // compile the program
-        let mut context = AssemblyContext::for_program(&program);
+        let mut context = AssemblyContext::for_program(Some(&program));
         let program_root = self.compile_in_context(&program, &mut context)?;
 
         // convert the context into a call block table for the program

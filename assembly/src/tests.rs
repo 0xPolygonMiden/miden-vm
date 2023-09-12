@@ -140,14 +140,14 @@ fn simple_main_call() {
     let note_1 =
         ProgramAst::parse("use.context::account begin call.account::account_method_1 end").unwrap();
     let _note_1_root = assembler
-        .compile_in_context(&note_1, &mut super::AssemblyContext::for_program(&note_1))
+        .compile_in_context(&note_1, &mut super::AssemblyContext::for_program(Some(&note_1)))
         .unwrap();
 
     // compile note 2 program
     let note_2 =
         ProgramAst::parse("use.context::account begin call.account::account_method_2 end").unwrap();
     let _note_2_root = assembler
-        .compile_in_context(&note_2, &mut super::AssemblyContext::for_program(&note_2))
+        .compile_in_context(&note_2, &mut super::AssemblyContext::for_program(Some(&note_2)))
         .unwrap();
 }
 
@@ -687,14 +687,14 @@ fn program_with_phantom_mast_call() {
     let ast = ProgramAst::parse(source).unwrap();
 
     // phantom calls not allowed
-    let mut context = AssemblyContext::for_program(&ast).with_phantom_calls(false);
+    let mut context = AssemblyContext::for_program(Some(&ast)).with_phantom_calls(false);
     let result = assembler.compile_in_context(&ast, &mut context);
     let err = result.err().unwrap();
     let expected_error = "cannot call phantom procedure with MAST root 0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae: phantom calls not allowed";
     assert_eq!(expected_error, err.to_string());
 
     // phantom calls allowed
-    let mut context = AssemblyContext::for_program(&ast).with_phantom_calls(true);
+    let mut context = AssemblyContext::for_program(Some(&ast)).with_phantom_calls(true);
     let result = assembler.compile_in_context(&ast, &mut context);
     assert!(result.is_ok());
 }
