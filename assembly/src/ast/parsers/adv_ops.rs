@@ -1,5 +1,3 @@
-use vm_core::SignatureKind;
-
 use super::{
     parse_checked_param,
     AdviceInjectorNode::*,
@@ -7,6 +5,7 @@ use super::{
     Node::{self, Instruction},
     ParsingError, Token, MAX_STACK_WORD_OFFSET,
 };
+use vm_core::SignatureKind;
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -79,7 +78,7 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             }
             _ => return Err(ParsingError::extra_param(op)),
         },
-        "push_sign" => match op.num_parts() {
+        "sig_to_stack" => match op.num_parts() {
             3 => match op.parts()[2] {
                 "rpo_falcon512" => AdvInject(PushSignature {
                     kind: SignatureKind::RpoFalcon512,

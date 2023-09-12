@@ -1,9 +1,9 @@
 use vm_core::SignatureKind;
 
 use super::{
-    falcon_sign, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt,
-    IntoBytes, KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField,
-    StoreNode, Vec, Word,
+    super::advice::dsa::falcon_sign, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap,
+    ExecutionError, Felt, IntoBytes, KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap,
+    RpoDigest, StarkField, StoreNode, Vec, Word,
 };
 
 // TYPE ALIASES
@@ -111,7 +111,7 @@ where
 
     fn get_signature(
         &self,
-        signature: SignatureKind,
+        kind: SignatureKind,
         pub_key: Word,
         msg: Word,
     ) -> Result<Vec<Felt>, ExecutionError> {
@@ -120,7 +120,7 @@ where
             .get(&pub_key.into_bytes())
             .ok_or(ExecutionError::AdviceKeyNotFound(pub_key))?;
 
-        match signature {
+        match kind {
             SignatureKind::RpoFalcon512 => falcon_sign(pk_sk, msg),
         }
     }
@@ -290,8 +290,8 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
-    fn get_signature(&self, signature: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-        self.provider.get_signature(signature, pub_key, msg)
+    fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.get_signature(kind, pub_key, msg)
     }
 
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
@@ -419,8 +419,8 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
-    fn get_signature(&self, signature: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-        self.provider.get_signature(signature, pub_key, msg)
+    fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.get_signature(kind, pub_key, msg)
     }
 
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {

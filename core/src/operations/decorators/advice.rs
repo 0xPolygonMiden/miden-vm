@@ -1,5 +1,7 @@
-use crate::{Felt, SignatureKind};
+use crate::Felt;
 use core::fmt;
+
+use super::SignatureKind;
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -182,8 +184,20 @@ pub enum AdviceInjector {
     /// value.
     HdwordToMap { domain: Felt },
 
-    /// TODO
-    PSign { sign_kind: SignatureKind },
+    /// Reads two words from the stack and pushes values onto the advice stack which are required
+    /// for verification of a DSA in Miden VM.
+    ///
+    /// Inputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [SIG_DATA]
+    ///
+    /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
+    /// is the signature data.
+    SigToStack { kind: SignatureKind },
 }
 
 impl fmt::Display for AdviceInjector {
@@ -207,7 +221,7 @@ impl fmt::Display for AdviceInjector {
             Self::SmtGet => write!(f, "smt_get"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
-            Self::PSign { sign_kind } => write!(f, "push_sign.{sign_kind}"),
+            Self::SigToStack { kind } => write!(f, "sig_to_stack.{kind}"),
         }
     }
 }

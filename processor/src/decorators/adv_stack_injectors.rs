@@ -344,26 +344,21 @@ where
     /// Inputs:
     ///   Operand stack: [PK, MSG, ...]
     ///   Advice stack: [...]
-    ///   Advice map: {PK: [SK]}
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
     ///   Advice stack: [DATA]
-    ///   Advice map: {PK: [SK]}
     ///
     /// Where:
     /// - PK is the digest of an expanded public.
     /// - MSG is the digest of the message to be signed.
     /// - DATA is the needed data for signature verification in the VM.
-    /// - SK is the secret key corresponding to the public key. This can also include the
-    ///   public key itself, if PK is not expanded.
-    pub(super) fn push_signature(
-        &mut self,
-        sign_kind: SignatureKind,
-    ) -> Result<(), ExecutionError> {
+    ///
+    /// The advice provider is expected to contain the private key associated to the public key PK.
+    pub(super) fn push_signature(&mut self, kind: SignatureKind) -> Result<(), ExecutionError> {
         let pub_key = self.stack.get_word(0);
         let msg = self.stack.get_word(1);
-        let result: Vec<Felt> = self.advice_provider.get_signature(sign_kind, pub_key, msg)?;
+        let result: Vec<Felt> = self.advice_provider.get_signature(kind, pub_key, msg)?;
         for r in result {
             self.advice_provider.push_stack(AdviceSource::Value(r))?;
         }

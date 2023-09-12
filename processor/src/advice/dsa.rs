@@ -39,6 +39,9 @@ use vm_core::crypto::dsa::{
 /// Will return an error if either:
 /// - The advice map does not contain an entry with key PK.
 /// - The advice map entry under key PK is not a vector of the expected length.
+/// ///
+/// The function only generates non-deterministic input that is required for the Falcon verification
+/// procedure inside the VM and as such does interact with the VM only through the advice provider.
 pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
     if pk_sk.len() != (PK_LEN + SK_LEN) {
         return Err(ExecutionError::AdviceStackReadFailed(0));

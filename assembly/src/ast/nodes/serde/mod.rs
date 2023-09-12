@@ -6,6 +6,7 @@ use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationErro
 
 mod deserialization;
 mod serialization;
+pub mod signatures;
 
 // OPERATION CODES ENUM
 // ================================================================================================

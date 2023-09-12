@@ -22,7 +22,6 @@ mod source;
 pub use source::AdviceSource;
 
 mod dsa;
-pub use dsa::falcon_sign;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -108,7 +107,7 @@ pub trait AdviceProvider {
     /// Returns a signature on a message using a public key.
     fn get_signature(
         &self,
-        signature: SignatureKind,
+        kind: SignatureKind,
         pub_key: Word,
         msg: Word,
     ) -> Result<Vec<Felt>, ExecutionError>;
@@ -300,10 +299,10 @@ where
 
     fn get_signature(
         &self,
-        signature: SignatureKind,
+        kind: SignatureKind,
         pub_key: Word,
         msg: Word,
     ) -> Result<Vec<Felt>, ExecutionError> {
-        T::get_signature(self, signature, pub_key, msg)
+        T::get_signature(self, kind, pub_key, msg)
     }
 }

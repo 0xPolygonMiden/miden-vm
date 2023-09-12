@@ -1,6 +1,11 @@
-use super::super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
-    MAX_STACK_WORD_OFFSET,
+use crate::ast::nodes::serde::signatures;
+
+use super::{
+    super::{
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
+        MAX_STACK_WORD_OFFSET,
+    },
+    serde::signatures::read_options_from,
 };
 use core::fmt;
 use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
@@ -58,7 +63,7 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
             InsertHdwordImm { domain } => Self::HdwordToMap {
                 domain: Felt::from(*domain),
             },
-            PushSignature { kind } => Self::PSign { sign_kind: *kind },
+            PushSignature { kind } => Self::SigToStack { kind: *kind },
         }
     }
 }
@@ -97,7 +102,7 @@ const PUSH_MTNODE: u8 = 7;
 const INSERT_MEM: u8 = 8;
 const INSERT_HDWORD: u8 = 9;
 const INSERT_HDWORD_IMM: u8 = 10;
-const PUSH_SIGN: u8 = 11;
+const PUSH_SIG: u8 = 11;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -123,7 +128,10 @@ impl Serializable for AdviceInjectorNode {
                 target.write_u8(INSERT_HDWORD_IMM);
                 target.write_u8(*domain);
             }
-            PushSignature { kind: _ } => target.write_u8(PUSH_SIGN),
+            PushSignature { kind } => {
+                target.write_u8(PUSH_SIG);
+                signatures::write_options_into(target, kind)
+            }
         }
     }
 }
@@ -157,8 +165,8 @@ impl Deserializable for AdviceInjectorNode {
                 let domain = source.read_u8()?;
                 Ok(AdviceInjectorNode::InsertHdwordImm { domain })
             }
-            PUSH_SIGN => Ok(AdviceInjectorNode::PushSignature {
-                kind: SignatureKind::RpoFalcon512,
+            PUSH_SIG => Ok(AdviceInjectorNode::PushSignature {
+                kind: read_options_from(source)?,
             }),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
