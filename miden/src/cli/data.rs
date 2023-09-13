@@ -1,6 +1,6 @@
 use assembly::{Library, MaslLibrary};
 use miden::{
-    crypto::{MerkleStore, MerkleTree, SimpleSmt},
+    crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
     math::Felt,
     utils::{Deserializable, SliceReader},
     AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
@@ -39,7 +39,7 @@ impl Debug {
 /// merkle tree or a Sparse Merkle Tree.
 #[derive(Deserialize, Debug)]
 pub enum MerkleData {
-    /// String representation of a merkle tree.  The merkle tree is represented as a vector of
+    /// String representation of a merkle tree. The merkle tree is represented as a vector of
     /// 32 byte hex strings where each string represents a leaf in the tree.
     #[serde(rename = "merkle_tree")]
     MerkleTree(Vec<String>),
@@ -48,6 +48,11 @@ pub enum MerkleData {
     /// representing the value of the node.
     #[serde(rename = "sparse_merkle_tree")]
     SparseMerkleTree(Vec<(u64, String)>),
+    /// String representation of a Partial Merkle Tree. The Partial Merkle Tree is represented as a
+    /// vector of tuples where each tuple consists of a leaf index tuple (depth, index) and a 32
+    /// byte hex string representing the value of the leaf.
+    #[serde(rename = "partial_merkle_tree")]
+    PartialMerkleTree(Vec<((u8, u64), String)>),
 }
 
 // INPUT FILE
@@ -194,12 +199,27 @@ impl InputFile {
                     let tree = MerkleTree::new(leaves)
                         .map_err(|e| format!("failed to parse a Merkle tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
+                    println!("Added Merkle tree with root {} to the Merkle store", tree.root());
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
                     let tree = SimpleSmt::with_leaves(u64::BITS as u8, entries)
                         .map_err(|e| format!("failed to parse a Sparse Merkle Tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
+                    println!(
+                        "Added Sparse Merkle tree with root {} to the Merkle store",
+                        tree.root()
+                    );
+                }
+                MerkleData::PartialMerkleTree(data) => {
+                    let entries = Self::parse_partial_merkle_tree(data)?;
+                    let tree = PartialMerkleTree::with_leaves(entries)
+                        .map_err(|e| format!("failed to parse a Partial Merkle Tree: {e}"))?;
+                    merkle_store.extend(tree.inner_nodes());
+                    println!(
+                        "Added Partial Merkle tree with root {} to the Merkle store",
+                        tree.root()
+                    );
                 }
             }
         }
@@ -227,10 +247,28 @@ impl InputFile {
             .collect()
     }
 
+    /// Parse and return Partial Merkle Tree entries.
+    fn parse_partial_merkle_tree(
+        tree: &[((u8, u64), String)],
+    ) -> Result<Vec<(NodeIndex, RpoDigest)>, String> {
+        tree.iter()
+            .map(|((depth, index), v)| {
+                let node_index = NodeIndex::new(*depth, *index).map_err(|e| {
+                    format!(
+                        "failed to create node index with depth {depth} and index {index} - {e}"
+                    )
+                })?;
+                let leaf = Self::parse_word(v)?;
+                Ok((node_index, RpoDigest::new(leaf)))
+            })
+            .collect()
+    }
+
     /// Parse a `Word` from a hex string.
     pub fn parse_word(word_hex: &str) -> Result<Word, String> {
+        let word_value = &word_hex[2..];
         let mut word_data = [0u8; 32];
-        hex::decode_to_slice(word_hex, &mut word_data)
+        hex::decode_to_slice(word_value, &mut word_data)
             .map_err(|e| format!("failed to decode `Word` from hex {word_hex} - {e}"))?;
         let mut word = Word::default();
         for (i, value) in word_data.chunks(8).enumerate() {
@@ -478,5 +516,85 @@ impl Libraries {
         }
 
         Ok(Self { libraries })
+    }
+}
+
+// TESTS
+// ================================================================================================
+#[cfg(test)]
+mod test {
+    use super::InputFile;
+
+    #[test]
+    fn test_merkle_data_parsing() {
+        let program_with_pmt = "
+        {
+            \"operand_stack\": [\"1\"],
+            \"merkle_store\": [
+                {
+                    \"partial_merkle_tree\": [
+                        [
+                            [2, 0],
+                            \"0x1400000000000000000000000000000000000000000000000000000000000000\"
+                        ],
+                        [
+                            [2, 1],
+                            \"0x1500000000000000000000000000000000000000000000000000000000000000\"
+                        ],
+                        [
+                            [1, 1],
+                            \"0x0b00000000000000000000000000000000000000000000000000000000000000\"
+                        ]
+                    ]
+                }
+            ]
+        }";
+        let inputs: InputFile = serde_json::from_str(&program_with_pmt).unwrap();
+        let merkle_store = inputs.parse_merkle_store().unwrap();
+        assert!(merkle_store.is_some());
+
+        let program_with_smt = "
+        {
+            \"operand_stack\": [\"1\"],
+            \"merkle_store\": [
+              {
+                \"sparse_merkle_tree\": [
+                  [
+                    0,
+                    \"0x1400000000000000000000000000000000000000000000000000000000000000\"
+                  ],
+                  [
+                    1,
+                    \"0x1500000000000000000000000000000000000000000000000000000000000000\"
+                  ],
+                  [
+                    3,
+                    \"0x1700000000000000000000000000000000000000000000000000000000000000\"
+                  ]
+                ]
+              }
+            ]
+          }";
+        let inputs: InputFile = serde_json::from_str(&program_with_smt).unwrap();
+        let merkle_store = inputs.parse_merkle_store().unwrap();
+        assert!(merkle_store.is_some());
+
+        let program_with_merkle_tree = "
+        {
+            \"operand_stack\": [\"1\"],
+            \"merkle_store\": [
+                {
+                    \"merkle_tree\": [
+                        \"0x1400000000000000000000000000000000000000000000000000000000000000\",
+                        \"0x1500000000000000000000000000000000000000000000000000000000000000\",
+                        \"0x1600000000000000000000000000000000000000000000000000000000000000\",
+                        \"0x1700000000000000000000000000000000000000000000000000000000000000\"
+                    ]
+                }
+            ]
+        }";
+        let inputs: InputFile = serde_json::from_str(&program_with_merkle_tree).unwrap();
+        let merkle_store = inputs.parse_merkle_store().unwrap();
+        assert!(merkle_store.is_some());
     }
 }
