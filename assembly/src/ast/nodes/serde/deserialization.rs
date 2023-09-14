@@ -1,6 +1,6 @@
 use super::{
-    super::AdviceInjectorNode, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
-    Instruction, Node, OpCode, ProcedureId, RpoDigest, ToString, MAX_PUSH_INPUTS,
+    super::AdviceInjectorNode, debug, ByteReader, CodeBody, Deserializable, DeserializationError,
+    Felt, Instruction, Node, OpCode, ProcedureId, RpoDigest, ToString, MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION
@@ -354,6 +354,12 @@ impl Deserializable for Instruction {
             OpCode::CallMastRoot => Ok(Instruction::CallMastRoot(RpoDigest::read_from(source)?)),
             OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(source)?)),
             OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(source)?)),
+
+            // ----- debugging --------------------------------------------------------------------
+            OpCode::Debug => {
+                let options = debug::read_options_from(source)?;
+                Ok(Instruction::Debug(options))
+            }
 
             // ----- control flow -----------------------------------------------------------------
             // control flow instructions should be parsed as a part of Node::read_from() and we

@@ -1,9 +1,9 @@
 use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest, ToString};
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;
-
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
+mod debug;
 mod deserialization;
 mod serialization;
 
@@ -272,6 +272,9 @@ pub enum OpCode {
     CallMastRoot = 237,
     CallImported = 238,
     SysCall = 239,
+
+    // ----- debugging ----------------------------------------------------------------------------
+    Debug = 240,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,

@@ -9,6 +9,7 @@
 - Added support for module aliases (#1037).
 - Added `adv.insert_hperm` decorator (#1042).
 - Added `adv.push_smtpeek` decorator (#1056).
+- Added `debug` decorator (#1069).
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).

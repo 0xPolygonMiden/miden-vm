@@ -2,6 +2,7 @@ use super::{
     AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest, ToString, Vec,
 };
 use core::fmt;
+use vm_core::DebugOptions;
 
 mod advice;
 pub use advice::AdviceInjectorNode;
@@ -297,6 +298,7 @@ pub enum Instruction {
 
     // ----- debug decorators ---------------------------------------------------------------------
     Breakpoint,
+    Debug(DebugOptions),
 }
 
 impl Instruction {
@@ -573,6 +575,7 @@ impl fmt::Display for Instruction {
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => write!(f, "breakpoint"),
+            Self::Debug(options) => write!(f, "debug.{options}"),
         }
     }
 }

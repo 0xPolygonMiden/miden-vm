@@ -147,7 +147,8 @@ impl SpanBuilder {
         } else if !self.decorators.is_empty() {
             // this is a bug in the assembler. we shouldn't have decorators added without their
             // associated operations
-            unreachable!()
+            // TODO: change this to an error or allow decorators in empty span blocks
+            unreachable!("decorators in an empty SPAN block")
         }
     }
 

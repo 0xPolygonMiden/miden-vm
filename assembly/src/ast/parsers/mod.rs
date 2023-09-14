@@ -7,14 +7,15 @@ use super::{
 };
 use core::{fmt::Display, ops::RangeBounds};
 
-pub mod adv_ops;
-pub mod field_ops;
-pub mod io_ops;
-pub mod stack_ops;
-pub mod u32_ops;
+mod adv_ops;
+mod debug;
+mod field_ops;
+mod io_ops;
+mod stack_ops;
+mod u32_ops;
 
-pub mod constants;
-pub use constants::calculate_const_value;
+mod constants;
+use constants::calculate_const_value;
 
 mod context;
 pub use context::ParserContext;

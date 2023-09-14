@@ -1,4 +1,7 @@
-use super::{AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Process};
+use super::{
+    AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Felt, Process, Vec,
+};
+use vm_core::DebugOptions;
 
 mod adv_map_injectors;
 mod adv_stack_injectors;
@@ -25,6 +28,7 @@ where
                     self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
             }
+            Decorator::Debug(options) => self.dec_debug(options)?,
         }
         Ok(())
     }
@@ -33,7 +37,7 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Process the specified advice injector.
-    pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
+    fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNodeMerge => self.merge_merkle_nodes(),
             AdviceInjector::MerkleNodeToStack => self.copy_merkle_node_to_adv_stack(),
@@ -83,4 +87,54 @@ where
 
         Ok(())
     }
+
+    // DEBUG
+    // --------------------------------------------------------------------------------------------
+
+    /// Prints the info about the VM state specified by the provided options to stdout.
+    fn dec_debug(&self, options: &DebugOptions) -> Result<(), ExecutionError> {
+        let clk = self.system.clk();
+        match options {
+            DebugOptions::StackAll => {
+                let stack = self.stack.get_state_at(clk);
+                let n = stack.len();
+                print_vm_stack(clk, stack, n);
+            }
+            DebugOptions::StackTop(n) => {
+                let stack = self.stack.get_state_at(clk);
+                print_vm_stack(clk, stack, *n as usize);
+            }
+        }
+        Ok(())
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+#[cfg(feature = "std")]
+fn print_vm_stack(clk: u32, stack: Vec<Felt>, n: usize) {
+    // determine how many items to print out
+    let num_items = core::cmp::min(stack.len(), n);
+
+    // print all items except for the last one
+    println!("Stack state before step {clk}:");
+    for (i, element) in stack.iter().take(num_items - 1).enumerate() {
+        println!("├── {i:>2}: {element}");
+    }
+
+    // print the last item, and in case the stack has more items, print the total number of
+    // un-printed items
+    let i = num_items - 1;
+    if num_items == stack.len() {
+        println!("└── {i:>2}: {}", stack[i]);
+    } else {
+        println!("├── {i:>2}: {}", stack[i]);
+        println!("└── ({} more items)", stack.len() - num_items);
+    }
+}
+
+#[cfg(not(feature = "std"))]
+fn print_vm_stack(_clk: u32, _stack: Vec<Felt>, _n: usize) {
+    // in no_std environments, this is a NOOP
 }

@@ -4,7 +4,7 @@ use super::{
 };
 use crate::utils::bound_into_included_u64;
 use core::ops::RangeBounds;
-use vm_core::{FieldElement, StarkField};
+use vm_core::{Decorator, FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;
@@ -311,6 +311,13 @@ impl Assembler {
                 if self.in_debug_mode() {
                     span.add_op(Noop)?;
                     span.track_instruction(instruction, ctx);
+                }
+                Ok(None)
+            }
+
+            Instruction::Debug(options) => {
+                if self.in_debug_mode() {
+                    span.push_decorator(Decorator::Debug(*options))
                 }
                 Ok(None)
             }
