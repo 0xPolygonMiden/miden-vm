@@ -624,7 +624,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of ASSERT operation.
     #[inline(always)]
     pub fn assert(&self) -> E {
-        self.degree7_op_flags[get_op_index(Operation::Assert.op_code())]
+        self.degree7_op_flags[get_op_index(Operation::Assert(ZERO).op_code())]
     }
 
     /// Operation Flag of EQ operation.

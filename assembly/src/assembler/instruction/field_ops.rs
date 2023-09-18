@@ -14,7 +14,19 @@ const TWO: Felt = Felt::new(2);
 ///
 /// VM cycles: 11 cycles
 pub fn assertw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_ops([MovUp4, Eq, Assert, MovUp3, Eq, Assert, MovUp2, Eq, Assert, Eq, Assert])
+    span.add_ops([
+        MovUp4,
+        Eq,
+        Assert(ZERO),
+        MovUp3,
+        Eq,
+        Assert(ZERO),
+        MovUp2,
+        Eq,
+        Assert(ZERO),
+        Eq,
+        Assert(ZERO),
+    ])
 }
 
 // BASIC ARITHMETIC OPERATIONS
@@ -110,7 +122,7 @@ pub fn append_pow2_op(span: &mut SpanBuilder) {
     // drop the top two elements bit and exp value of the latest bit.
     span.push_ops([Drop, Drop]);
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span.push_ops([Swap, Eqz, Assert]);
+    span.push_ops([Swap, Eqz, Assert(ZERO)]);
 }
 
 // EXPONENTIATION OPERATION
@@ -139,7 +151,7 @@ pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>
     span.push_ops([Drop, Drop]);
 
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span.push_ops([Swap, Eqz, Assert]);
+    span.push_ops([Swap, Eqz, Assert(ZERO)]);
     Ok(None)
 }
 

@@ -14,7 +14,7 @@ fn simple_instructions() {
     let program = assembler.compile(source).unwrap();
     let expected = "\
         begin \
-                span pad eqz assert end \
+                span pad eqz assert(0) end \
         end";
     assert_eq!(expected, format!("{program}"));
 
@@ -1005,7 +1005,7 @@ fn module_alias() {
                 pad incr pad push(2) pad \
                 swap movup3 u32assert2 \
                 u32add movup3 movup3 \
-                u32assert2 u32add3 eqz assert \
+                u32assert2 u32add3 eqz assert(0) \
             end \
         end";
     assert_eq!(expected, format!("{program}"));
