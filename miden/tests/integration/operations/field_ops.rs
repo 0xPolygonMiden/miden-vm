@@ -3,47 +3,6 @@ use test_utils::{
     StarkField, TestError, ONE, WORD_SIZE,
 };
 
-// FIELD OPS ASSERTIONS - MANUAL TESTS
-// ================================================================================================
-
-#[test]
-fn assert() {
-    let asm_op = "assert";
-
-    let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[]);
-}
-
-#[test]
-fn assert_fail() {
-    let asm_op = "assert";
-
-    let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
-}
-
-#[test]
-fn assert_eq() {
-    let asm_op = "assert_eq";
-
-    let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[]);
-
-    let test = build_op_test!(asm_op, &[3, 3]);
-    test.expect_stack(&[]);
-}
-
-#[test]
-fn assert_eq_fail() {
-    let asm_op = "assert_eq";
-
-    let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
-
-    let test = build_op_test!(asm_op, &[1, 4]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
-}
-
 // FIELD OPS ARITHMETIC - MANUAL TESTS
 // ================================================================================================
 

@@ -13,19 +13,23 @@ const TWO: Felt = Felt::new(2);
 /// Asserts that the top two words in the stack are equal.
 ///
 /// VM cycles: 11 cycles
-pub fn assertw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn assertw(
+    span: &mut SpanBuilder,
+    err_code: Option<u32>,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    let err_code = err_code.map(Felt::from).unwrap_or(ZERO);
     span.add_ops([
         MovUp4,
         Eq,
-        Assert(ZERO),
+        Assert(err_code),
         MovUp3,
         Eq,
-        Assert(ZERO),
+        Assert(err_code),
         MovUp2,
         Eq,
-        Assert(ZERO),
+        Assert(err_code),
         Eq,
-        Assert(ZERO),
+        Assert(err_code),
     ])
 }
 

@@ -37,9 +37,13 @@ pub enum Node {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
     Assert,
+    AssertWithCode(u32),
     AssertEq,
+    AssertEqWithCode(u32),
     AssertEqw,
+    AssertEqwWithCode(u32),
     Assertz,
+    AssertzWithCode(u32),
     Add,
     AddImm(Felt),
     Sub,
@@ -312,9 +316,13 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Assert => write!(f, "assert"),
+            Self::AssertWithCode(err_code) => write!(f, "assert.err={err_code}"),
             Self::AssertEq => write!(f, "assert_eq"),
+            Self::AssertEqWithCode(err_code) => write!(f, "assert_eq.err={err_code}"),
             Self::AssertEqw => write!(f, "assert_eqw"),
+            Self::AssertEqwWithCode(err_code) => write!(f, "assert_eqw.err={err_code}"),
             Self::Assertz => write!(f, "assertz"),
+            Self::AssertzWithCode(err_code) => write!(f, "assertz.err={err_code}"),
             Self::Add => write!(f, "add"),
             Self::AddImm(value) => write!(f, "add.{value}"),
             Self::Sub => write!(f, "sub"),

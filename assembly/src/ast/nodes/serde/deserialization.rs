@@ -59,9 +59,13 @@ impl Deserializable for Instruction {
 
         match opcode {
             OpCode::Assert => Ok(Instruction::Assert),
+            OpCode::AssertWithCode => Ok(Instruction::AssertWithCode(source.read_u32()?)),
             OpCode::AssertEq => Ok(Instruction::AssertEq),
+            OpCode::AssertEqWithCode => Ok(Instruction::AssertEqWithCode(source.read_u32()?)),
             OpCode::AssertEqw => Ok(Instruction::AssertEqw),
+            OpCode::AssertEqwWithCode => Ok(Instruction::AssertEqwWithCode(source.read_u32()?)),
             OpCode::Assertz => Ok(Instruction::Assertz),
+            OpCode::AssertzWithCode => Ok(Instruction::AssertzWithCode(source.read_u32()?)),
             OpCode::Add => Ok(Instruction::Add),
             OpCode::AddImm => Ok(Instruction::AddImm(Felt::read_from(source)?)),
             OpCode::Sub => Ok(Instruction::Sub),
