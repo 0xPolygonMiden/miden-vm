@@ -53,23 +53,23 @@ impl Serializable for Instruction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
             Self::Assert => OpCode::Assert.write_into(target),
-            Self::AssertWithCode(err_code) => {
-                OpCode::AssertWithCode.write_into(target);
+            Self::AssertWithError(err_code) => {
+                OpCode::AssertWithError.write_into(target);
                 target.write_u32(*err_code);
             }
             Self::AssertEq => OpCode::AssertEq.write_into(target),
-            Self::AssertEqWithCode(err_code) => {
-                OpCode::AssertEqWithCode.write_into(target);
+            Self::AssertEqWithError(err_code) => {
+                OpCode::AssertEqWithError.write_into(target);
                 target.write_u32(*err_code);
             }
             Self::AssertEqw => OpCode::AssertEqw.write_into(target),
-            Self::AssertEqwWithCode(err_code) => {
-                OpCode::AssertEqwWithCode.write_into(target);
+            Self::AssertEqwWithError(err_code) => {
+                OpCode::AssertEqwWithError.write_into(target);
                 target.write_u32(*err_code);
             }
             Self::Assertz => OpCode::Assertz.write_into(target),
-            Self::AssertzWithCode(err_code) => {
-                OpCode::AssertzWithCode.write_into(target);
+            Self::AssertzWithError(err_code) => {
+                OpCode::AssertzWithError.write_into(target);
                 target.write_u32(*err_code);
             }
             Self::Add => OpCode::Add.write_into(target),

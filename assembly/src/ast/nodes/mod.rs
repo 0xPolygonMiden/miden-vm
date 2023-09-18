@@ -12,6 +12,11 @@ pub use format::*;
 
 mod serde;
 
+// TYPE ALIASES
+// ================================================================================================
+
+type ErrorCode = u32;
+
 // NODES
 // ================================================================================================
 
@@ -37,13 +42,13 @@ pub enum Node {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
     Assert,
-    AssertWithCode(u32),
+    AssertWithError(ErrorCode),
     AssertEq,
-    AssertEqWithCode(u32),
+    AssertEqWithError(ErrorCode),
     AssertEqw,
-    AssertEqwWithCode(u32),
+    AssertEqwWithError(ErrorCode),
     Assertz,
-    AssertzWithCode(u32),
+    AssertzWithError(ErrorCode),
     Add,
     AddImm(Felt),
     Sub,
@@ -316,13 +321,13 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Assert => write!(f, "assert"),
-            Self::AssertWithCode(err_code) => write!(f, "assert.err={err_code}"),
+            Self::AssertWithError(err_code) => write!(f, "assert.err={err_code}"),
             Self::AssertEq => write!(f, "assert_eq"),
-            Self::AssertEqWithCode(err_code) => write!(f, "assert_eq.err={err_code}"),
+            Self::AssertEqWithError(err_code) => write!(f, "assert_eq.err={err_code}"),
             Self::AssertEqw => write!(f, "assert_eqw"),
-            Self::AssertEqwWithCode(err_code) => write!(f, "assert_eqw.err={err_code}"),
+            Self::AssertEqwWithError(err_code) => write!(f, "assert_eqw.err={err_code}"),
             Self::Assertz => write!(f, "assertz"),
-            Self::AssertzWithCode(err_code) => write!(f, "assertz.err={err_code}"),
+            Self::AssertzWithError(err_code) => write!(f, "assertz.err={err_code}"),
             Self::Add => write!(f, "add"),
             Self::AddImm(value) => write!(f, "add.{value}"),
             Self::Sub => write!(f, "sub"),

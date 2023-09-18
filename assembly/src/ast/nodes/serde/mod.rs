@@ -14,13 +14,13 @@ mod serialization;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
 pub enum OpCode {
     Assert = 0,
-    AssertWithCode = 1,
+    AssertWithError = 1,
     AssertEq = 2,
-    AssertEqWithCode = 3,
+    AssertEqWithError = 3,
     AssertEqw = 4,
-    AssertEqwWithCode = 5,
+    AssertEqwWithError = 5,
     Assertz = 6,
-    AssertzWithCode = 7,
+    AssertzWithError = 7,
     Add = 8,
     AddImm = 9,
     Sub = 10,

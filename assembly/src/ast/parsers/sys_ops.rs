@@ -6,7 +6,7 @@ use super::{
     ParsingError, Token, Vec,
 };
 
-/// Returns `Assert` instruction node if no error code value is provided, or `AssertWithCode`
+/// Returns `Assert` instruction node if no error code value is provided, or `AssertWithError`
 /// instruction node otherwise.
 ///
 /// # Errors
@@ -22,14 +22,14 @@ pub fn parse_assert(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsi
             if err_code == 0 {
                 Ok(Instruction(Assert))
             } else {
-                Ok(Instruction(AssertWithCode(err_code)))
+                Ok(Instruction(AssertWithError(err_code)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns `Assertz` instruction node if no error code value is provided, or `AssertzWithCode`
+/// Returns `Assertz` instruction node if no error code value is provided, or `AssertzWithError`
 /// instruction node otherwise.
 ///
 /// # Errors
@@ -45,14 +45,14 @@ pub fn parse_assertz(op: &Token, constants: &LocalConstMap) -> Result<Node, Pars
             if err_code == 0 {
                 Ok(Instruction(Assertz))
             } else {
-                Ok(Instruction(AssertzWithCode(err_code)))
+                Ok(Instruction(AssertzWithError(err_code)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns `AssertEq` instruction node if no error code value is provided, or `AssertEqWithCode`
+/// Returns `AssertEq` instruction node if no error code value is provided, or `AssertEqWithError`
 /// instruction node otherwise.
 ///
 /// # Errors
@@ -68,7 +68,7 @@ pub fn parse_assert_eq(op: &Token, constants: &LocalConstMap) -> Result<Node, Pa
             if err_code == 0 {
                 Ok(Instruction(AssertEq))
             } else {
-                Ok(Instruction(AssertEqWithCode(err_code)))
+                Ok(Instruction(AssertEqWithError(err_code)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -91,7 +91,7 @@ pub fn parse_assert_eqw(op: &Token, constants: &LocalConstMap) -> Result<Node, P
             if err_code == 0 {
                 Ok(Instruction(AssertEqw))
             } else {
-                Ok(Instruction(AssertEqwWithCode(err_code)))
+                Ok(Instruction(AssertEqwWithError(err_code)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -105,7 +105,7 @@ pub fn parse_assert_eqw(op: &Token, constants: &LocalConstMap) -> Result<Node, P
 /// code.
 ///
 /// The code is expected to be specified via the first instruction parameter and have the form
-/// `err=<code`.
+/// `err=<code>`.
 fn parse_error_code(token: &Token, constants: &LocalConstMap) -> Result<u32, ParsingError> {
     let inst = token.parts()[0];
     let err_code_parts: Vec<&str> = token.parts()[1].split('=').collect();

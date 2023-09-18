@@ -38,15 +38,15 @@ impl Assembler {
 
         let result = match instruction {
             Instruction::Assert => span.add_op(Assert(ZERO)),
-            Instruction::AssertWithCode(err_code) => span.add_op(Assert(Felt::from(*err_code))),
+            Instruction::AssertWithError(err_code) => span.add_op(Assert(Felt::from(*err_code))),
             Instruction::AssertEq => span.add_ops([Eq, Assert(ZERO)]),
-            Instruction::AssertEqWithCode(err_code) => {
+            Instruction::AssertEqWithError(err_code) => {
                 span.add_ops([Eq, Assert(Felt::from(*err_code))])
             }
             Instruction::AssertEqw => field_ops::assertw(span, None),
-            Instruction::AssertEqwWithCode(err_code) => field_ops::assertw(span, Some(*err_code)),
+            Instruction::AssertEqwWithError(err_code) => field_ops::assertw(span, Some(*err_code)),
             Instruction::Assertz => span.add_ops([Eqz, Assert(ZERO)]),
-            Instruction::AssertzWithCode(err_code) => {
+            Instruction::AssertzWithError(err_code) => {
                 span.add_ops([Eqz, Assert(Felt::from(*err_code))])
             }
 
