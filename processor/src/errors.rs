@@ -24,7 +24,7 @@ pub enum ExecutionError {
     CycleLimitExceeded(u32),
     DivideByZero(u32),
     Ext2InttError(Ext2InttError),
-    FailedAssertion(u32),
+    FailedAssertion(u32, Felt),
     InvalidFmpValue(Felt, Felt),
     InvalidFriDomainSegment(u64),
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
@@ -83,7 +83,9 @@ impl Display for ExecutionError {
             }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),
-            FailedAssertion(clk) => write!(f, "Assertion failed at clock cycle {clk}"),
+            FailedAssertion(clk, err_code) => {
+                write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
+            }
             InvalidFmpValue(old, new) => {
                 write!(f, "Updating FMP register from {old} to {new} failed because {new} is outside of {FMP_MIN}..{FMP_MAX}")
             }

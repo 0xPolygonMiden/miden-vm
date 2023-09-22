@@ -2,7 +2,7 @@ use super::{
     field_ops::append_pow2_op,
     push_u32_value, validate_param, AssemblyError, CodeBlock, Felt,
     Operation::{self, *},
-    SpanBuilder,
+    SpanBuilder, ZERO,
 };
 use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};
 
@@ -318,7 +318,7 @@ pub fn u32rotr(
                 U32assert2,
 
                 // Calculate 32 - b and assert that the shift value b <= 31.
-                Push(Felt::from(MAX_U32_ROTATE_VALUE)), Dup1, U32sub, Not, Assert, Incr, Dup1,
+                Push(Felt::from(MAX_U32_ROTATE_VALUE)), Dup1, U32sub, Not, Assert(ZERO), Incr, Dup1,
 
                 // If 32-b = 32, replace it with 0.
                 Eqz, Not, CSwap, Drop,
@@ -417,7 +417,7 @@ fn handle_arithmetic_operation(
     span.push_op(op);
 
     if assert_u32_res {
-        span.add_ops([Eqz, Assert])
+        span.add_ops([Eqz, Assert(ZERO)])
     } else if drop_high_bits {
         span.add_op(Drop)
     } else {

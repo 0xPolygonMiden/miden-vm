@@ -30,7 +30,7 @@ where
         match op {
             // ----- system operations ------------------------------------------------------------
             Operation::Noop => self.stack.copy_state(0),
-            Operation::Assert => self.op_assert()?,
+            Operation::Assert(err_code) => self.op_assert(err_code)?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,

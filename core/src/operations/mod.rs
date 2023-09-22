@@ -18,7 +18,10 @@ pub enum Operation {
     Noop,
 
     /// Pops the stack; if the popped value is not 1, execution fails.
-    Assert,
+    ///
+    /// The internal value specifies an error code associated with the error in case when the
+    /// execution fails.
+    Assert(Felt),
 
     /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
     /// pushes the result back onto the stack.
@@ -127,14 +130,14 @@ pub enum Operation {
     /// - accumulated power of base number `a` so far
     /// - number which needs to be shifted to the right
     ///
-    /// At the end of the operation, exponent is replaced with its square, current value of power of base
-    /// number `a` on exponent is incorported into the accumulator and the number is shifted to the right
-    /// by one bit.
+    /// At the end of the operation, exponent is replaced with its square, current value of power
+    /// of base number `a` on exponent is incorporated into the accumulator and the number is
+    /// shifted to the right by one bit.
     Expacc,
 
-    // ----- ext2 operations -----------------------------------------------------------------------
+    // ----- ext2 operations ----------------------------------------------------------------------
     /// Computes the product of two elements in the extension field of degree 2 and pushes the
-    /// result back onto the stack as the third and fourth elemtns. Pushes 0 onto the stack as
+    /// result back onto the stack as the third and fourth elements. Pushes 0 onto the stack as
     /// the first and second elements.
     Ext2Mul,
 
@@ -469,7 +472,7 @@ impl Operation {
             Self::SwapDW    => 0b0001_1110,
             // <empty>      => 0b0001_1111,
 
-            Self::Assert    => 0b0010_0000,
+            Self::Assert(_) => 0b0010_0000,
             Self::Eq        => 0b0010_0001,
             Self::Add       => 0b0010_0010,
             Self::Mul       => 0b0010_0011,
@@ -572,7 +575,7 @@ impl fmt::Display for Operation {
         match self {
             // ----- system operations ------------------------------------------------------------
             Self::Noop => write!(f, "noop"),
-            Self::Assert => write!(f, "assert"),
+            Self::Assert(err_code) => write!(f, "assert({err_code})"),
 
             Self::FmpAdd => write!(f, "fmpadd"),
             Self::FmpUpdate => write!(f, "fmpupdate"),

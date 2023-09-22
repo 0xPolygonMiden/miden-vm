@@ -12,6 +12,11 @@ pub use format::*;
 
 mod serde;
 
+// TYPE ALIASES
+// ================================================================================================
+
+type ErrorCode = u32;
+
 // NODES
 // ================================================================================================
 
@@ -37,9 +42,13 @@ pub enum Node {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
     Assert,
+    AssertWithError(ErrorCode),
     AssertEq,
+    AssertEqWithError(ErrorCode),
     AssertEqw,
+    AssertEqwWithError(ErrorCode),
     Assertz,
+    AssertzWithError(ErrorCode),
     Add,
     AddImm(Felt),
     Sub,
@@ -312,9 +321,13 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Assert => write!(f, "assert"),
+            Self::AssertWithError(err_code) => write!(f, "assert.err={err_code}"),
             Self::AssertEq => write!(f, "assert_eq"),
+            Self::AssertEqWithError(err_code) => write!(f, "assert_eq.err={err_code}"),
             Self::AssertEqw => write!(f, "assert_eqw"),
+            Self::AssertEqwWithError(err_code) => write!(f, "assert_eqw.err={err_code}"),
             Self::Assertz => write!(f, "assertz"),
+            Self::AssertzWithError(err_code) => write!(f, "assertz.err={err_code}"),
             Self::Add => write!(f, "add"),
             Self::AddImm(value) => write!(f, "add.{value}"),
             Self::Sub => write!(f, "sub"),

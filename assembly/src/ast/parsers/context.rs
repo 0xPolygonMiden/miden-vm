@@ -1,5 +1,5 @@
 use super::{
-    super::ProcReExport, adv_ops, debug, field_ops, io_ops, stack_ops, u32_ops, CodeBody,
+    super::ProcReExport, adv_ops, debug, field_ops, io_ops, stack_ops, sys_ops, u32_ops, CodeBody,
     Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node,
     ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap, Token, TokenStream,
     MAX_BODY_LEN, MAX_DOCS_LEN,
@@ -438,10 +438,10 @@ impl ParserContext<'_> {
         // based on the instruction, invoke the correct parser for the operation
         match op.parts()[0] {
             // ----- field operations -------------------------------------------------------------
-            "assert" => simple_instruction(op, Assert),
-            "assertz" => simple_instruction(op, Assertz),
-            "assert_eq" => simple_instruction(op, AssertEq),
-            "assert_eqw" => simple_instruction(op, AssertEqw),
+            "assert" => sys_ops::parse_assert(op, &self.local_constants),
+            "assertz" => sys_ops::parse_assertz(op, &self.local_constants),
+            "assert_eq" => sys_ops::parse_assert_eq(op, &self.local_constants),
+            "assert_eqw" => sys_ops::parse_assert_eqw(op, &self.local_constants),
 
             "add" => field_ops::parse_add(op),
             "sub" => field_ops::parse_sub(op),

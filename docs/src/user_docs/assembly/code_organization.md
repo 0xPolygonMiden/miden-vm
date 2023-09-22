@@ -119,7 +119,7 @@ end
 In addition to the locally-defined procedure `foo`, the above module also exports procedures `add` and `mul64` implementations of which will be identical to `add` and `mul` procedures from the `std::math::u64` module respectively.
 
 ### Constants
-Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`.
+Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `assert`, `assertz`, `asert_eq`, `assert_eqw`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`.
 
 Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100. 
 

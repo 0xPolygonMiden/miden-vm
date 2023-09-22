@@ -12,6 +12,7 @@ mod debug;
 mod field_ops;
 mod io_ops;
 mod stack_ops;
+mod sys_ops;
 mod u32_ops;
 
 mod constants;
@@ -81,7 +82,25 @@ fn parse_constant(token: &Token, constants: &LocalConstMap) -> Result<(String, u
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Parses a constant value and ensures it falls within bounds specified by the caller
+/// If `constant_name` is a valid constant name, returns the value of this constant or an error if
+/// the constant does not exist in set of available constants.
+///
+/// If `constant_name` is not a valid constant name, returns None.
+fn try_get_constant_value(
+    op: &Token,
+    const_name: &str,
+    constants: &LocalConstMap,
+) -> Result<Option<u64>, ParsingError> {
+    match CONSTANT_LABEL_PARSER.parse_label(const_name) {
+        Ok(_) => constants
+            .get(const_name)
+            .ok_or_else(|| ParsingError::const_not_found(op))
+            .map(|v| Some(*v)),
+        Err(_) => Ok(None),
+    }
+}
+
+/// Parses a constant value and ensures it falls within bounds specified by the caller.
 fn parse_const_value(
     op: &Token,
     const_value: &str,
@@ -92,12 +111,12 @@ fn parse_const_value(
         Err(_) => calculate_const_value(op, const_value, constants)?.as_int(),
     };
 
-    let range = 0..Felt::MODULUS;
-    range.contains(&result).then_some(result).ok_or_else(|| ParsingError::invalid_const_value(op, const_value, format!(
-        "constant value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true),
-        upper_bound = bound_into_included_u64(range.end_bound(), false)
-    )
-    .as_str(),))
+    if result >= Felt::MODULUS {
+        let reason = format!("constant value must be smaller than {}", Felt::MODULUS);
+        Err(ParsingError::invalid_const_value(op, const_value, &reason))
+    } else {
+        Ok(result)
+    }
 }
 
 /// Parses a param from the op token with the specified type and index. If the param is a constant
@@ -111,17 +130,11 @@ where
     R: TryFrom<u64> + core::str::FromStr,
 {
     let param_str = op.parts()[param_idx];
-    match CONSTANT_LABEL_PARSER.parse_label(param_str) {
-        Ok(_) => {
-            let constant = constants
-                .get(param_str)
-                .cloned()
-                .ok_or_else(|| ParsingError::const_not_found(op))?;
-            constant
-                .try_into()
-                .map_err(|_| ParsingError::const_conversion_failed(op, core::any::type_name::<R>()))
-        }
-        Err(_) => parse_param::<R>(op, param_idx),
+    match try_get_constant_value(op, param_str, constants)? {
+        Some(val) => val
+            .try_into()
+            .map_err(|_| ParsingError::const_conversion_failed(op, core::any::type_name::<R>())),
+        None => parse_param::<R>(op, param_idx),
     }
 }
 

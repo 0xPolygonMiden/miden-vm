@@ -14,7 +14,7 @@ fn simple_instructions() {
     let program = assembler.compile(source).unwrap();
     let expected = "\
         begin \
-                span pad eqz assert end \
+                span pad eqz assert(0) end \
         end";
     assert_eq!(expected, format!("{program}"));
 
@@ -338,9 +338,9 @@ fn constant_must_be_within_valid_felt_range() {
     let result = assembler.compile(source);
     assert!(result.is_err());
     let err = result.err().unwrap();
-    let expected_error = "malformed constant `const.CONSTANT=18446744073709551615` - invalid value: \
-     `18446744073709551615` - reason: constant value must be greater than or equal to 0 and less than or \
-      equal to 18446744069414584320";
+    let expected_error =
+        "malformed constant `const.CONSTANT=18446744073709551615` - invalid value: \
+     `18446744073709551615` - reason: constant value must be smaller than 18446744069414584321";
     assert_eq!(expected_error, err.to_string());
 }
 
@@ -525,6 +525,105 @@ fn const_conversion_failed_to_u32() {
     let expected_error =
         "failed to convert u64 constant used in `mem_load.CONSTANT` to required type u32";
     assert_eq!(expected_error, err.to_string());
+}
+
+// ASSERTIONS
+// ================================================================================================
+
+#[test]
+fn assert_with_code() {
+    let source = format!(
+        "\
+    const.ERR1=1
+
+    begin
+        assert
+        assert.err=ERR1
+        assert.err=2
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span assert(0) assert(1) assert(2) end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn assertz_with_code() {
+    let source = format!(
+        "\
+    const.ERR1=1
+
+    begin
+        assertz
+        assertz.err=ERR1
+        assertz.err=2
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span eqz assert(0) eqz assert(1) eqz assert(2) end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn assert_eq_with_code() {
+    let source = format!(
+        "\
+    const.ERR1=1
+
+    begin
+        assert_eq
+        assert_eq.err=ERR1
+        assert_eq.err=2
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span eq assert(0) eq assert(1) eq assert(2) end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn assert_eqw_with_code() {
+    let source = format!(
+        "\
+    const.ERR1=1
+
+    begin
+        assert_eqw
+        assert_eqw.err=ERR1
+        assert_eqw.err=2
+    end
+    "
+    );
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span \
+                movup4 eq assert(0) movup3 eq assert(0) movup2 eq assert(0) eq assert(0) \
+                movup4 eq assert(1) movup3 eq assert(1) movup2 eq assert(1) eq assert(1) \
+                movup4 eq assert(2) movup3 eq assert(2) movup2 eq assert(2) eq assert(2) \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
 }
 
 // NESTED CONTROL BLOCKS
@@ -1005,7 +1104,7 @@ fn module_alias() {
                 pad incr pad push(2) pad \
                 swap movup3 u32assert2 \
                 u32add movup3 movup3 \
-                u32assert2 u32add3 eqz assert \
+                u32assert2 u32add3 eqz assert(0) \
             end \
         end";
     assert_eq!(expected, format!("{program}"));
