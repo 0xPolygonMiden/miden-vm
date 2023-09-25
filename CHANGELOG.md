@@ -21,6 +21,7 @@
 - Allowed the assembler to produce programs with "phantom" calls (#1019).
 - Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
 - Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049). 
+- Supported `PartialMerkleTree` as a secret input in `.input` file (#1072).
 
 #### Stdlib
 - Completed `std::collections::smt` module by implementing `insert` and `set` procedures (#1036, #1038, #1046).
