@@ -1,3 +1,5 @@
+use crate::ProcessState;
+
 use super::{
     AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes, KvMap,
     MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec, Word,
@@ -23,7 +25,6 @@ where
     M: KvMap<[u8; 32], Vec<Felt>>,
     S: KvMap<RpoDigest, StoreNode>,
 {
-    step: u32,
     stack: Vec<Felt>,
     map: M,
     store: MerkleStore<S>,
@@ -38,7 +39,6 @@ where
         let (mut stack, map, store) = inputs.into_parts();
         stack.reverse();
         Self {
-            step: 0,
             stack,
             map: map.into_iter().collect(),
             store: store.inner_nodes().collect(),
@@ -54,13 +54,13 @@ where
     // ADVICE STACK
     // --------------------------------------------------------------------------------------------
 
-    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
-        self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(self.step))
+    fn pop_stack<P: ProcessState>(&mut self, process: &P) -> Result<Felt, ExecutionError> {
+        self.stack.pop().ok_or(ExecutionError::AdviceStackReadFailed(process.clk()))
     }
 
-    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
+    fn pop_stack_word<P: ProcessState>(&mut self, process: &P) -> Result<Word, ExecutionError> {
         if self.stack.len() < 4 {
-            return Err(ExecutionError::AdviceStackReadFailed(self.step));
+            return Err(ExecutionError::AdviceStackReadFailed(process.clk()));
         }
 
         let idx = self.stack.len() - 4;
@@ -72,9 +72,12 @@ where
         Ok(result)
     }
 
-    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.pop_stack_word()?;
-        let word1 = self.pop_stack_word()?;
+    fn pop_stack_dword<P: ProcessState>(
+        &mut self,
+        process: &P,
+    ) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.pop_stack_word(process)?;
+        let word1 = self.pop_stack_word(process)?;
 
         Ok([word0, word1])
     }
@@ -212,13 +215,6 @@ where
     {
         self.store.subset(roots).into_inner().into_iter().collect()
     }
-
-    // CONTEXT MANAGEMENT
-    // --------------------------------------------------------------------------------------------
-
-    fn advance_clock(&mut self) {
-        self.step += 1;
-    }
 }
 
 // MEMORY ADVICE PROVIDER
@@ -266,16 +262,16 @@ impl MemAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for MemAdviceProvider {
-    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
-        self.provider.pop_stack()
+    fn pop_stack<S: ProcessState>(&mut self, process: &S)-> Result<Felt, ExecutionError> {
+        self.provider.pop_stack(process)
     }
 
-    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
-        self.provider.pop_stack_word()
+    fn pop_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
+        self.provider.pop_stack_word(process)
     }
 
-    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
-        self.provider.pop_stack_dword()
+    fn pop_stack_dword<S: ProcessState>(&mut self, process: &S) -> Result<[Word; 2], ExecutionError> {
+        self.provider.pop_stack_dword(process)
     }
 
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
@@ -321,9 +317,6 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.get_store_subset(roots)
     }
 
-    fn advance_clock(&mut self) {
-        self.provider.advance_clock()
-    }
 }
 
 impl MemAdviceProvider {
@@ -332,12 +325,7 @@ impl MemAdviceProvider {
     /// Consumes the [MemAdviceProvider] and returns a (Vec<Felt>, SimpleAdviceMap, MerkleStore),
     /// containing the stack, map, store respectively, of the advice provider.
     pub fn into_parts(self) -> (Vec<Felt>, SimpleAdviceMap, MerkleStore) {
-        let BaseAdviceProvider {
-            step: _step,
-            stack,
-            map,
-            store,
-        } = self.provider;
+        let BaseAdviceProvider { stack, map, store } = self.provider;
         (stack, map, store)
     }
 }
@@ -395,16 +383,16 @@ impl RecAdviceProvider {
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for RecAdviceProvider {
-    fn pop_stack(&mut self) -> Result<Felt, ExecutionError> {
-        self.provider.pop_stack()
+    fn pop_stack<S: ProcessState>(&mut self, process: &S) -> Result<Felt, ExecutionError> {
+        self.provider.pop_stack(process)
     }
 
-    fn pop_stack_word(&mut self) -> Result<Word, ExecutionError> {
-        self.provider.pop_stack_word()
+    fn pop_stack_word<S: ProcessState>(&mut self, process: &S) -> Result<Word, ExecutionError> {
+        self.provider.pop_stack_word(process)
     }
 
-    fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
-        self.provider.pop_stack_dword()
+    fn pop_stack_dword<S: ProcessState>(&mut self, process: &S) -> Result<[Word; 2], ExecutionError> {
+        self.provider.pop_stack_dword(process)
     }
 
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
@@ -449,10 +437,6 @@ impl AdviceProvider for RecAdviceProvider {
             R: core::borrow::Borrow<RpoDigest> {
         self.provider.get_store_subset(roots)
     }
-
-    fn advance_clock(&mut self) {
-        self.provider.advance_clock()
-    }
 }
 
 impl RecAdviceProvider {
@@ -473,12 +457,7 @@ impl RecAdviceProvider {
             provider,
             init_stack,
         } = self;
-        let BaseAdviceProvider {
-            step: _step,
-            stack,
-            map,
-            store,
-        } = provider;
+        let BaseAdviceProvider { stack, map, store } = provider;
 
         let (map, map_proof) = map.finalize();
         let (store, store_proof) = store.into_inner().finalize();

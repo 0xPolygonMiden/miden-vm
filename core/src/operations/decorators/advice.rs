@@ -1,4 +1,4 @@
-use crate::Felt;
+use crate::{crypto::hash::RpoDigest, Felt, Word};
 use core::fmt;
 
 // ADVICE INJECTORS
@@ -10,8 +10,8 @@ use core::fmt;
 /// These actions can affect all 3 components of the advice provider: Merkle store, advice stack,
 /// and advice map.
 ///
-/// All actions, except for `MerkleNodeMerge` and `Ext2Inv`, can be invoked directly from Miden
-/// assembly via dedicated instructions.
+/// All actions, except for `MerkleNodeMerge`, `Ext2Inv` and `UpdateMerkleNode` can be invoked
+/// directly from Miden assembly via dedicated instructions.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AdviceInjector {
     // MERKLE STORE INJECTORS
@@ -46,6 +46,26 @@ pub enum AdviceInjector {
     ///   Advice stack: [NODE, ...]
     ///   Merkle store: {TREE_ROOT<-NODE}
     MerkleNodeToStack,
+
+    /// Updates the node of a Merkle tree specified by the values of the provided root, depth and
+    /// index. Pushes the Merkle path from the updated node to the new root onto the advice stack.
+    ///
+    /// Inputs:
+    ///  Operand stack: [...]
+    ///  Advice: [...]
+    ///  Merkle store: {...}
+    ///
+    /// Outputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [path, ...]
+    ///  Merkle store: {path, ...}
+    ///  Return: [path]
+    UpdateMerkleNode {
+        root: Word,
+        depth: Felt,
+        index: Felt,
+        value: Word,
+    },
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
     /// map using the specified word from the operand stack as the key. If `include_len` is set to
@@ -254,6 +274,22 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
+            Self::UpdateMerkleNode {
+                root,
+                depth,
+                index,
+                value,
+            } => {
+                write!(
+                    f,
+                    "update_merkle_node.{root}.{depth}.{index}.{value}",
+                    root = RpoDigest::new(*root),
+                    depth = depth,
+                    index = index,
+                    // TODO: Are we happy to print the value as a digest or should we print using debug? ({:?})
+                    value = RpoDigest::new(*value)
+                )
+            }
             Self::MapValueToStack {
                 include_len,
                 key_offset,

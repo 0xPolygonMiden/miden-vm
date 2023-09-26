@@ -1,13 +1,13 @@
-use super::{AdviceProvider, ExecutionError, Felt, Process};
+use super::{ExecutionError, Felt, Host, Process};
 
 // EXTENSION FIELD OPERATIONS
 // ================================================================================================
 
 const TWO: Felt = Felt::new(2);
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
