@@ -1,6 +1,5 @@
 use crate::{
-    advice::AdviceProvider, Chiplets, Decoder, ExecutionError, Felt, Process, Stack, StarkField,
-    System, Vec,
+    Chiplets, Decoder, ExecutionError, Felt, Host, Process, Stack, StarkField, System, Vec,
 };
 use core::fmt;
 use vm_core::{
@@ -59,9 +58,9 @@ pub struct VmStateIterator {
 }
 
 impl VmStateIterator {
-    pub(super) fn new<A>(process: Process<A>, result: Result<StackOutputs, ExecutionError>) -> Self
+    pub(super) fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
     where
-        A: AdviceProvider,
+        H: Host,
     {
         let (system, decoder, stack, _, chiplets, _) = process.into_parts();
         Self {

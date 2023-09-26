@@ -2,8 +2,8 @@ use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, AdviceProvider, ColMatrix, Digest, Felt,
-    FieldElement, Process, StackTopState, Vec,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
+    Process, StackTopState, Vec,
 };
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -72,9 +72,9 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new<A>(process: Process<A>, stack_outputs: StackOutputs) -> Self
+    pub(super) fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
     where
-        A: AdviceProvider,
+        H: Host,
     {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
@@ -176,11 +176,11 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace<A>(
-        process: Process<A>,
+    pub fn test_finalize_trace<H>(
+        process: Process<H>,
     ) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
     where
-        A: AdviceProvider,
+        H: Host,
     {
         let rng = RpoRandomCoin::new(&EMPTY_WORD);
         finalize_trace(process, rng)
@@ -277,12 +277,12 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<A>(
-    process: Process<A>,
+fn finalize_trace<H>(
+    process: Process<H>,
     mut rng: RpoRandomCoin,
 ) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
 where
-    A: AdviceProvider,
+    H: Host,
 {
     let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
 

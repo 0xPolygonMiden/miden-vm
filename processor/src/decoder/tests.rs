@@ -1,11 +1,12 @@
 use super::{
     super::{
-        utils::get_trace_len, ExecutionOptions, ExecutionTrace, Felt, Kernel, MemAdviceProvider,
-        Operation, Process, StackInputs, Word,
+        utils::get_trace_len, ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process,
+        StackInputs, Word,
     },
     build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
     ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
 };
+use crate::DefaultHost;
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -1659,9 +1660,9 @@ fn set_user_op_helpers_many() {
 
 fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
-    let advice_provider = MemAdviceProvider::default();
+    let host = DefaultHost::default();
     let mut process =
-        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
+        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, aux_hints, _) = ExecutionTrace::test_finalize_trace(process);
@@ -1683,9 +1684,9 @@ fn build_dyn_trace(
     fn_block: CodeBlock,
 ) -> (DecoderTrace, AuxTraceHints, usize) {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
-    let advice_provider = MemAdviceProvider::default();
+    let host = DefaultHost::default();
     let mut process =
-        Process::new(Kernel::default(), stack_inputs, advice_provider, ExecutionOptions::default());
+        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();
@@ -1715,10 +1716,9 @@ fn build_call_trace(
         Some(ref proc) => Kernel::new(&[proc.hash()]),
         None => Kernel::default(),
     };
-    let advice_provider = MemAdviceProvider::default();
+    let host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
-    let mut process =
-        Process::new(kernel, stack_inputs, advice_provider, ExecutionOptions::default());
+    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();

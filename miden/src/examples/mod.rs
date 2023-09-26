@@ -1,5 +1,5 @@
 use clap::Parser;
-use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProvingOptions, StackInputs};
+use miden::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, ONE, ZERO};
 use std::io::Write;
 use std::time::Instant;
@@ -9,13 +9,13 @@ pub mod fibonacci;
 // EXAMPLE
 // ================================================================================================
 
-pub struct Example<A>
+pub struct Example<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     pub program: Program,
     pub stack_inputs: StackInputs,
-    pub advice_provider: A,
+    pub host: H,
     pub num_outputs: usize,
     pub expected_result: Vec<u64>,
 }
@@ -87,7 +87,7 @@ impl ExampleOptions {
         let Example {
             program,
             stack_inputs,
-            advice_provider,
+            host,
             num_outputs,
             expected_result,
             ..
@@ -97,7 +97,7 @@ impl ExampleOptions {
         // execute the program and generate the proof of execution
         let now = Instant::now();
         let (stack_outputs, proof) =
-            miden::prove(&program, stack_inputs.clone(), advice_provider, proof_options).unwrap();
+            miden::prove(&program, stack_inputs.clone(), host, proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -137,21 +137,20 @@ impl ExampleOptions {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn test_example<A>(example: Example<A>, fail: bool)
+pub fn test_example<H>(example: Example<H>, fail: bool)
 where
-    A: AdviceProvider,
+    H: Host,
 {
     let Example {
         program,
         stack_inputs,
-        advice_provider,
+        host,
         num_outputs,
         expected_result,
     } = example;
 
     let (mut outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), advice_provider, ProvingOptions::default())
-            .unwrap();
+        miden::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
     assert_eq!(
         expected_result,

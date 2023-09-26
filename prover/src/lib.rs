@@ -26,8 +26,8 @@ mod gpu;
 
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
-    crypto, math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
-    MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
+    crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
+    Program, StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::StarkProof;
 
@@ -43,24 +43,20 @@ pub use winter_prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn prove<A>(
+pub fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_provider: A,
+    host: H,
     options: ProvingOptions,
 ) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(
-        program,
-        stack_inputs.clone(),
-        advice_provider,
-        *options.execution_options(),
-    )?;
+    let trace =
+        processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
     #[cfg(feature = "std")]
     let padding_percentage = (trace.trace_len_summary().padded_trace_len()
         - trace.trace_len_summary().trace_len())

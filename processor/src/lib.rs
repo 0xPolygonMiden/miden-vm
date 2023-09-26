@@ -4,28 +4,28 @@
 #[macro_use]
 extern crate alloc;
 
+use core::cell::RefCell;
+
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
-    chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AssemblyOp, Kernel,
-    Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD,
-    ONE, ZERO,
+    chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AdviceInjector,
+    AssemblyOp, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs,
+    Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
-    StackTopState, StarkField,
+    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
 };
 
 use winter_prover::ColMatrix;
 
-mod decorators;
 mod operations;
 
 mod system;
@@ -41,9 +41,10 @@ use stack::Stack;
 mod range;
 use range::RangeChecker;
 
-mod advice;
-pub use advice::{
-    AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider,
+mod host;
+pub use host::{
+    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    DefaultHost, Host,
 };
 
 mod chiplets;
@@ -112,17 +113,16 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute<A>(
+pub fn execute<H>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_provider: A,
+    host: H,
     options: ExecutionOptions,
 ) -> Result<ExecutionTrace, ExecutionError>
 where
-    A: AdviceProvider,
+    H: Host,
 {
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, advice_provider, options);
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -131,15 +131,11 @@ where
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter<A>(
-    program: &Program,
-    stack_inputs: StackInputs,
-    advice_provider: A,
-) -> VmStateIterator
+pub fn execute_iter<H>(program: &Program, stack_inputs: StackInputs, host: H) -> VmStateIterator
 where
-    A: AdviceProvider,
+    H: Host,
 {
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -155,22 +151,22 @@ where
 // ================================================================================================
 
 #[cfg(not(any(test, feature = "internals")))]
-struct Process<A>
+struct Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     system: System,
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    advice_provider: A,
+    host: RefCell<H>,
     max_cycles: u32,
 }
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -178,21 +174,21 @@ where
     pub fn new(
         kernel: Kernel,
         stack_inputs: StackInputs,
-        advice_provider: A,
+        host: H,
         execution_options: ExecutionOptions,
     ) -> Self {
-        Self::initialize(kernel, stack_inputs, advice_provider, false, execution_options)
+        Self::initialize(kernel, stack_inputs, host, false, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
-        Self::initialize(kernel, stack_inputs, advice_provider, true, ExecutionOptions::default())
+    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, host: H) -> Self {
+        Self::initialize(kernel, stack_inputs, host, true, ExecutionOptions::default())
     }
 
     fn initialize(
         kernel: Kernel,
         stack: StackInputs,
-        advice_provider: A,
+        host: H,
         in_debug_mode: bool,
         execution_options: ExecutionOptions,
     ) -> Self {
@@ -202,7 +198,7 @@ where
             stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            advice_provider,
+            host: RefCell::new(host),
             max_cycles: execution_options.max_cycles(),
         }
     }
@@ -485,6 +481,24 @@ where
         Ok(())
     }
 
+    /// Executes the specified decorator
+    fn execute_decorator(&mut self, decorator: &Decorator) -> Result<(), ExecutionError> {
+        match decorator {
+            Decorator::Advice(injector) => {
+                self.host.borrow_mut().set_advice(self, *injector)?;
+            }
+            Decorator::Debug(options) => {
+                self.host.borrow_mut().on_debug(self, options)?;
+            }
+            Decorator::AsmOp(assembly_op) => {
+                if self.decoder.in_debug_mode() {
+                    self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
+                }
+            }
+        }
+        Ok(())
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -492,19 +506,76 @@ where
         self.chiplets.kernel()
     }
 
-    pub fn get_memory_value(&self, ctx: u32, addr: u32) -> Option<Word> {
-        self.chiplets.get_mem_value(ctx, addr)
-    }
-
-    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, A) {
+    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, H) {
         (
             self.system,
             self.decoder,
             self.stack,
             self.range,
             self.chiplets,
-            self.advice_provider,
+            self.host.into_inner(),
         )
+    }
+}
+
+// PROCESS STATE
+// ================================================================================================
+
+/// A trait that defines a set of methods which allow access to the state of the process.
+pub trait ProcessState {
+    /// Returns the current clock cycle of a process.
+    fn clk(&self) -> u32;
+
+    /// Returns the current execution context ID.
+    fn ctx(&self) -> u32;
+
+    /// Returns the value located at the specified position on the stack at the current clock cycle.
+    fn get_stack_item(&self, pos: usize) -> Felt;
+
+    /// Returns a word located at the specified word index on the stack.
+    ///
+    /// Specifically, word 0 is defined by the first 4 elements of the stack, word 1 is defined
+    /// by the next 4 elements etc. Since the top of the stack contains 4 word, the highest valid
+    /// word index is 3.
+    ///
+    /// The words are created in reverse order. For example, for word 0 the top element of the
+    /// stack will be at the last position in the word.
+    ///
+    /// Creating a word does not change the state of the stack.
+    fn get_stack_word(&self, word_idx: usize) -> Word;
+
+    /// Returns stack state at the current clock cycle. This includes the top 16 items of the
+    /// stack + overflow entries.
+    fn get_stack_state(&self) -> Vec<Felt>;
+
+    /// Returns a word located at the specified context/address, or None if the address hasn't
+    /// been accessed previously.
+    fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word>;
+}
+
+impl<H: Host> ProcessState for Process<H> {
+    fn clk(&self) -> u32 {
+        self.system.clk()
+    }
+
+    fn ctx(&self) -> u32 {
+        self.system.ctx()
+    }
+
+    fn get_stack_item(&self, pos: usize) -> Felt {
+        self.stack.get(pos)
+    }
+
+    fn get_stack_word(&self, word_idx: usize) -> Word {
+        self.stack.get_word(word_idx)
+    }
+
+    fn get_stack_state(&self) -> Vec<Felt> {
+        self.stack.get_state_at(self.system.clk())
+    }
+
+    fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word> {
+        self.chiplets.get_mem_value(ctx, addr)
     }
 }
 
@@ -512,15 +583,15 @@ where
 // ================================================================================================
 
 #[cfg(any(test, feature = "internals"))]
-pub struct Process<A>
+pub struct Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     pub system: System,
     pub decoder: Decoder,
     pub stack: Stack,
     pub range: RangeChecker,
     pub chiplets: Chiplets,
-    pub advice_provider: A,
+    pub host: RefCell<H>,
     pub max_cycles: u32,
 }
