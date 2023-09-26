@@ -15,7 +15,7 @@ The `execute_iter()` function returns a `VmStateIterator` which can be used to i
 For example:
 ```Rust
 use miden_assembly::Assembler;
-use miden_processor::{execute, execute_iter, ExecutionOptions, MemAdviceProvider, StackInputs, };
+use miden_processor::{execute, execute_iter, ExecutionOptions, DefaultHost, StackInputs, };
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -27,16 +27,16 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 let stack_inputs = StackInputs::default();
 
 // instantiate an empty advice provider
-let mut advice_provider = MemAdviceProvider::default();
+let mut host = DefaultHost::default();
 
 // instantiate default execution options
 let exec_options = ExecutionOptions::default();
 
 // execute the program with no inputs
-let trace = execute(&program, stack_inputs.clone(), &mut advice_provider, exec_options).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, advice_provider, exec_options) {
+for vm_state in execute_iter(&program, stack_inputs, host, exec_options) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),

@@ -3,6 +3,7 @@ use core::fmt;
 mod decorators;
 pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
+    HostFunction,
 };
 
 // OPERATIONS

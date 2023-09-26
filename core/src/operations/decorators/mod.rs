@@ -10,36 +10,35 @@ pub use assembly_op::AssemblyOp;
 mod debug;
 pub use debug::DebugOptions;
 
+mod host_function;
+pub use host_function::HostFunction;
+
 // DECORATORS
 // ================================================================================================
 
 /// A set of decorators which can be executed by the VM.
 ///
 /// Executing a decorator does not affect the state of the main VM components such as operand stack
-/// and memory. However, decorators may modify the advice provider.
+/// and memory. However, decorators may modify the host.
 ///
 /// Executing decorators does not advance the VM clock. As such, many decorators can be executed in
 /// a single VM cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decorator {
-    /// Injects new data into the advice provider, as specified by the injector.
-    Advice(AdviceInjector),
+    /// Executes a host function against the host.
+    HostFunction(HostFunction),
     /// Adds information about the assembly instruction at a particular index (only applicable in
     /// debug mode).
     AsmOp(AssemblyOp),
-    /// Prints out information about the state of the VM based on the specified options. This
-    /// decorator is executed only in debug mode.
-    Debug(DebugOptions),
 }
 
 impl fmt::Display for Decorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Advice(injector) => write!(f, "advice({injector})"),
             Self::AsmOp(assembly_op) => {
                 write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
             }
-            Self::Debug(options) => write!(f, "debug({options})"),
+            Self::HostFunction(host_function) => write!(f, "{}", host_function),
         }
     }
 }

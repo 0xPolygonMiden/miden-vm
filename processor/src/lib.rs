@@ -4,6 +4,8 @@
 #[macro_use]
 extern crate alloc;
 
+use core::cell::RefCell;
+
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -19,13 +21,11 @@ use vm_core::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
-    StackTopState, StarkField,
+    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
 };
 
 use winter_prover::ColMatrix;
 
-mod decorators;
 mod operations;
 
 mod system;
@@ -41,9 +41,10 @@ use stack::Stack;
 mod range;
 use range::RangeChecker;
 
-mod advice;
-pub use advice::{
-    AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider,
+mod host;
+pub use host::{
+    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    DefaultHost, Host,
 };
 
 mod chiplets;
@@ -109,17 +110,16 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute<A>(
+pub fn execute<H>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_provider: A,
+    host: H,
     options: ExecutionOptions,
 ) -> Result<ExecutionTrace, ExecutionError>
 where
-    A: AdviceProvider,
+    H: Host,
 {
-    let mut process =
-        Process::new(program.kernel().clone(), stack_inputs, advice_provider, options);
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -128,13 +128,13 @@ where
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter<A>(
+pub fn execute_iter<H>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_provider: A,
+    advice_provider: H,
 ) -> VmStateIterator
 where
-    A: AdviceProvider,
+    H: Host,
 {
     let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
     let result = process.execute(program);
@@ -152,22 +152,22 @@ where
 // ================================================================================================
 
 #[cfg(not(any(test, feature = "internals")))]
-struct Process<A>
+struct Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     system: System,
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    advice_provider: A,
+    advice_provider: RefCell<H>,
     max_cycles: u32,
 }
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -175,21 +175,21 @@ where
     pub fn new(
         kernel: Kernel,
         stack_inputs: StackInputs,
-        advice_provider: A,
+        advice_provider: H,
         execution_options: ExecutionOptions,
     ) -> Self {
         Self::initialize(kernel, stack_inputs, advice_provider, false, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: H) -> Self {
         Self::initialize(kernel, stack_inputs, advice_provider, true, ExecutionOptions::default())
     }
 
     fn initialize(
         kernel: Kernel,
         stack: StackInputs,
-        advice_provider: A,
+        advice_provider: H,
         in_debug_mode: bool,
         execution_options: ExecutionOptions,
     ) -> Self {
@@ -199,7 +199,7 @@ where
             stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            advice_provider,
+            host: RefCell::new(advice_provider),
             max_cycles: execution_options.max_cycles(),
         }
     }
@@ -477,6 +477,21 @@ where
         Ok(())
     }
 
+    /// Executes the specified decorator
+    fn execute_decorator(&mut self, decorator: &Decorator) -> Result<(), ExecutionError> {
+        match decorator {
+            Decorator::HostFunction(host_function) => {
+                self.host.borrow_mut().execute_host_function(self, host_function)?;
+            }
+            Decorator::AsmOp(assembly_op) => {
+                if self.decoder.in_debug_mode() {
+                    self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
+                }
+            }
+        }
+        Ok(())
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -488,15 +503,44 @@ where
         self.chiplets.get_mem_value(ctx, addr)
     }
 
-    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, A) {
+    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, H) {
         (
             self.system,
             self.decoder,
             self.stack,
             self.range,
             self.chiplets,
-            self.advice_provider,
+            self.host.into_inner(),
         )
+    }
+}
+
+// PROCESS STATE
+// ================================================================================================
+
+/// A trait that defines a set of methods which allow access to the state of the process.
+pub trait ProcessState {
+    /// Returns a reference to the [Chiplets].
+    fn chiplets(&self) -> &Chiplets;
+
+    /// Returns a reference to the [Stack].
+    fn stack(&self) -> &Stack;
+
+    /// Returns a reference to the [System].
+    fn system(&self) -> &System;
+}
+
+impl<H: Host> ProcessState for Process<H> {
+    fn chiplets(&self) -> &Chiplets {
+        &self.chiplets
+    }
+
+    fn stack(&self) -> &Stack {
+        &self.stack
+    }
+
+    fn system(&self) -> &System {
+        &self.system
     }
 }
 
@@ -504,15 +548,15 @@ where
 // ================================================================================================
 
 #[cfg(any(test, feature = "internals"))]
-pub struct Process<A>
+pub struct Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     pub system: System,
     pub decoder: Decoder,
     pub stack: Stack,
     pub range: RangeChecker,
     pub chiplets: Chiplets,
-    pub advice_provider: A,
+    pub host: RefCell<H>,
     pub max_cycles: u32,
 }

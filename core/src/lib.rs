@@ -41,7 +41,7 @@ pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, Progra
 mod operations;
 pub use operations::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
-    Operation,
+    HostFunction, Operation,
 };
 
 pub mod stack;

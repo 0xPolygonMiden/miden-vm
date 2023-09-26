@@ -1,5 +1,5 @@
 use clap::Parser;
-use miden::{AdviceProvider, ExecutionProof, Program, ProgramInfo, ProvingOptions, StackInputs};
+use miden::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, ONE, ZERO};
 use std::io::Write;
 use std::time::Instant;
@@ -9,13 +9,13 @@ pub mod fibonacci;
 // EXAMPLE
 // ================================================================================================
 
-pub struct Example<A>
+pub struct Example<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     pub program: Program,
     pub stack_inputs: StackInputs,
-    pub advice_provider: A,
+    pub advice_provider: H,
     pub num_outputs: usize,
     pub expected_result: Vec<u64>,
 }
@@ -137,9 +137,9 @@ impl ExampleOptions {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn test_example<A>(example: Example<A>, fail: bool)
+pub fn test_example<H>(example: Example<H>, fail: bool)
 where
-    A: AdviceProvider,
+    H: Host,
 {
     let Example {
         program,

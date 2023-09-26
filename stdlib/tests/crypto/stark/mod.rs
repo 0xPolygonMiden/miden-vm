@@ -5,6 +5,7 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 use crate::build_test;
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
+use processor::DefaultHost;
 use test_utils::{
     prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs, VerifierError,
 };
@@ -55,12 +56,12 @@ pub fn generate_recursive_verifier_data(
     let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
+    let host = DefaultHost::new(advice_provider);
 
     let options =
         ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) =
-        prove(&program, stack_inputs.clone(), advice_provider, options).unwrap();
+    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), host, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 

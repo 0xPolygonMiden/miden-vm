@@ -1,12 +1,12 @@
-use super::{utils::assert_binary, AdviceProvider, ExecutionError, Felt, FieldElement, Process};
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
 use vm_core::{Operation, StarkField, ONE, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------

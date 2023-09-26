@@ -1,12 +1,12 @@
 use super::{
     super::utils::{split_element, split_u32_into_u16},
-    AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField,
+    ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField,
 };
 use crate::ZERO;
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------

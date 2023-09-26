@@ -1,7 +1,7 @@
 use super::{
-    AdviceProvider, Call, ColMatrix, Dyn, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch,
-    Operation, Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE,
-    OP_BATCH_SIZE, ZERO,
+    Call, ColMatrix, Dyn, ExecutionError, Felt, FieldElement, Host, Join, Loop, OpBatch, Operation,
+    Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
+    ZERO,
 };
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
@@ -38,9 +38,9 @@ const HASH_CYCLE_LEN: Felt = Felt::new(miden_air::trace::chiplets::hasher::HASH_
 // DECODER PROCESS EXTENSION
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // JOIN BLOCK
     // --------------------------------------------------------------------------------------------

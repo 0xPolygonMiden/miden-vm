@@ -79,6 +79,17 @@ where
         Ok([word0, word1])
     }
 
+    fn drain_stack_vec(&mut self, len: usize) -> Result<Vec<Felt>, ExecutionError> {
+        if self.stack.len() < len {
+            return Err(ExecutionError::AdviceStackReadFailed(self.step));
+        }
+
+        let start = self.stack.len() - len;
+        let result = self.stack.drain(start..).collect();
+
+        Ok(result)
+    }
+
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
         match source {
             AdviceSource::Value(value) => {
@@ -278,6 +289,10 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.pop_stack_dword()
     }
 
+    fn drain_stack_vec(&mut self, len: usize) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.drain_stack_vec(len)
+    }
+
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
         self.provider.push_stack(source)
     }
@@ -405,6 +420,10 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn pop_stack_dword(&mut self) -> Result<[Word; 2], ExecutionError> {
         self.provider.pop_stack_dword()
+    }
+
+    fn drain_stack_vec(&mut self, len: usize) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.drain_stack_vec(len)
     }
 
     fn push_stack(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
