@@ -42,6 +42,23 @@ begin
 end
 ```
 
+#### Dynamic procedures
+
+The dynamic procedure instruction `dynexec` is used to execute a dynamically-specified code target whose hash is not revealed to the verifier. Instead of a code target being specified in the program's MAST, it is specified by the stack, and a [`DYN` node](../../design/programs.md#dyn-block) is placed in the MAST to indicate a dynamically-specified target must be executed. When computing the MAST root of programs, `DYN` nodes all have the same constant value. Thus, `dynexec` can be used to increase privacy, since it enables code block execution without revealing the hash of the code block to the verifier.
+
+Dynamic code execution is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+
+```
+dynexec
+```
+
+This causes the VM to do the following:
+
+1. Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).
+2. Execute the code block which hashes to the specified target. The VM must know the specified code block and hash (they must be in the CodeBlockTable of the executing Program).
+
+> **Note**: The stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.
+
 ### Modules
 A *module* consists of one or more procedures. There are two types of modules: *library modules* and *executable modules* (also called *programs*).
 
