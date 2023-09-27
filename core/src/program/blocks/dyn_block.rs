@@ -57,7 +57,7 @@ impl Default for Dyn {
 
 impl fmt::Display for Dyn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Dyn")?;
+        write!(f, "dyn")?;
 
         Ok(())
     }
