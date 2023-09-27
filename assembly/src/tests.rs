@@ -740,6 +740,18 @@ fn program_with_exported_procedure() {
     assert!(assembler.compile(source).is_err());
 }
 
+// PROGRAMS WITH DYNAMIC CODE BLOCKS
+// ================================================================================================
+
+#[test]
+fn program_with_dynamic_code_execution() {
+    let assembler = super::Assembler::default();
+    let source = "begin dynexec end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin dyn end";
+    assert_eq!(expected, format!("{program}"));
+}
+
 // MAST ROOT CALLS
 // ================================================================================================
 

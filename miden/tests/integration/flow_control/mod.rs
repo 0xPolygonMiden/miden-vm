@@ -209,3 +209,71 @@ fn simple_syscall() {
 
     test.prove_and_verify(vec![1, 2], false);
 }
+
+// DYNAMIC CODE EXECUTION
+// ================================================================================================
+
+#[test]
+fn simple_dyn_exec() {
+    let program_source = "
+        proc.foo
+            # drop the top 4 values, since that will be the code hash when we call this dynamically
+            dropw
+            add
+        end
+
+        begin
+            # call foo directly so it will get added to the CodeBlockTable
+            padw
+            call.foo
+
+            # move the first result of foo out of the way
+            movdn.4
+
+            # use dynexec to call foo again via its hash, which is on the stack
+            dynexec
+        end";
+
+    // The hash of foo can be obtained from the code block table by:
+    // let cb_table = test.compile().cb_table();
+    // Result:
+    //   [BaseElement(14592192105906586403), BaseElement(9256464248508904838),
+    //    BaseElement(17436090329036592832), BaseElement(10814467189528518943)]
+    // Integer values can be obtained via Felt::from_mont(14592192105906586403).as_int(), etc.
+    // As ints:
+    //   [16045159387802755434, 10308872899350860082, 17306481765929021384, 16642043361554117790]
+
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: None,
+        stack_inputs: StackInputs::try_from_values([
+            3,
+            // put the hash of foo on the stack
+            16045159387802755434,
+            10308872899350860082,
+            17306481765929021384,
+            16642043361554117790,
+            1,
+            2,
+        ])
+        .unwrap(),
+        advice_inputs: AdviceInputs::default(),
+        in_debug_mode: false,
+        libraries: Vec::default(),
+    };
+
+    test.expect_stack(&[6]);
+
+    test.prove_and_verify(
+        vec![
+            3,
+            16045159387802755434,
+            10308872899350860082,
+            17306481765929021384,
+            16642043361554117790,
+            1,
+            2,
+        ],
+        false,
+    );
+}
