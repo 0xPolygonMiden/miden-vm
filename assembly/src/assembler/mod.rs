@@ -90,7 +90,7 @@ impl Assembler {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
         let mut context = AssemblyContext::for_module(true);
         let kernel = Module::kernel(module);
-        self.compile_module(&kernel, &mut context)?;
+        self.compile_module(&kernel.ast, Some(&kernel.path), &mut context)?;
 
         // convert the context into Kernel; this builds the kernel from hashes of procedures
         // exported form the kernel module
@@ -186,38 +186,48 @@ impl Assembler {
     /// - If a lock to the [ProcedureCache] can not be attained.
     pub fn compile_module(
         &self,
-        module: &Module,
+        module: &ModuleAst,
+        path: Option<&LibraryPath>,
         context: &mut AssemblyContext,
     ) -> Result<Vec<RpoDigest>, AssemblyError> {
         // a variable to track MAST roots of all procedures exported from this module
         let mut proc_roots = Vec::new();
-        context.begin_module(&module.path, &module.ast)?;
+        context.begin_module(path.unwrap_or(&LibraryPath::anon_path()), module)?;
 
         // process all re-exported procedures
-        for reexporteed_proc in module.ast.reexported_procs().iter() {
+        for reexporteed_proc in module.reexported_procs().iter() {
             // make sure the re-exported procedure is loaded into the procedure cache
             let ref_proc_id = reexporteed_proc.proc_id();
             self.ensure_procedure_is_in_cache(&ref_proc_id, context).map_err(|_| {
                 AssemblyError::ReExportedProcModuleNotFound(reexporteed_proc.clone())
             })?;
 
-            // build procedure ID for the alias, and add it to the procedure cache
-            let proc_name = reexporteed_proc.name();
-            let alias_proc_id = ProcedureId::from_name(proc_name, &module.path);
-            let proc_mast_root = self
-                .proc_cache
-                .try_borrow_mut()
-                .map_err(|_| AssemblyError::InvalidCacheLock)?
-                .insert_proc_alias(alias_proc_id, ref_proc_id)?;
+            // if the library path is provided, build procedure ID for the alias and add it to the
+            // procedure cache
+            let proc_mast_root = if let Some(path) = path {
+                let proc_name = reexporteed_proc.name();
+                let alias_proc_id = ProcedureId::from_name(proc_name, path);
+                self.proc_cache
+                    .try_borrow_mut()
+                    .map_err(|_| AssemblyError::InvalidCacheLock)?
+                    .insert_proc_alias(alias_proc_id, ref_proc_id)?
+            } else {
+                self.proc_cache
+                    .try_borrow_mut()
+                    .map_err(|_| AssemblyError::InvalidCacheLock)?
+                    .get_proc_root_by_id(&ref_proc_id)
+                    .expect("procedure ID not in cache")
+            };
 
             // add the MAST root of the re-exported procedure to the set of procedures exported
             // from this module
             proc_roots.push(proc_mast_root);
         }
 
-        // compile all local procedures in the module; once the compilation is complete, we get
-        // all compiled procedures (and their combined callset) from the context
-        for proc_ast in module.ast.procs().iter() {
+        // compile all local (internal end exported) procedures in the module; once the compilation
+        // is complete, we get all compiled procedures (and their combined callset) from the
+        // context
+        for proc_ast in module.procs().iter() {
             self.compile_procedure(proc_ast, context)?;
         }
         let (module_procs, module_callset) = context.complete_module();
@@ -227,17 +237,20 @@ impl Assembler {
         // - a procedure is exported from the module, or
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
-        for proc in module_procs.into_iter() {
+        for (proc_index, proc) in module_procs.into_iter().enumerate() {
             if proc.is_export() {
                 proc_roots.push(proc.mast_root());
             }
 
             if proc.is_export() || module_callset.contains(&proc.mast_root()) {
+                // build the procedure ID if this module has the library path
+                let proc_id = build_procedure_id(path, &proc, proc_index);
+
                 // this is safe because we fail if the cache is borrowed.
                 self.proc_cache
                     .try_borrow_mut()
                     .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .insert(proc)?;
+                    .insert(proc, proc_id)?;
             }
         }
 
@@ -372,7 +385,7 @@ impl Assembler {
                 let proc_name = context.get_imported_procedure_name(proc_id);
                 AssemblyError::imported_proc_module_not_found(proc_id, proc_name)
             })?;
-            self.compile_module(module, context)?;
+            self.compile_module(&module.ast, Some(&module.path), context)?;
             // if the procedure is still not in cache, then there was some error
             if !self.proc_cache.borrow().contains_id(proc_id) {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
@@ -479,4 +492,23 @@ fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
         }
     });
     CodeBlock::new_span_with_decorators(ops, decorators)
+}
+
+/// Builds a procedure ID based on the provided parameters.
+///
+/// Returns [ProcedureId] if `path` is provided, [None] otherwise.
+fn build_procedure_id(
+    path: Option<&LibraryPath>,
+    proc: &NamedProcedure,
+    proc_index: usize,
+) -> Option<ProcedureId> {
+    let mut proc_id = None;
+    if let Some(path) = path {
+        if proc.is_export() {
+            proc_id = Some(ProcedureId::from_name(proc.name(), path));
+        } else {
+            proc_id = Some(ProcedureId::from_index(proc_index as u16, path))
+        }
+    }
+    proc_id
 }

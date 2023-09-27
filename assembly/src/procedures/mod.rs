@@ -54,13 +54,10 @@ impl Procedure {
 ///
 /// Procedure metadata includes:
 /// - Procedure name.
-/// - Procedure ID which is computed as a hash of the procedure's fully qualified path.
 /// - A boolean flag indicating whether the procedure is exported from a module.
-/// - Number of procedure locals available to the procedure.
 /// - A set of MAST roots of procedures which are invoked from this procedure.
 #[derive(Clone, Debug)]
 pub struct NamedProcedure {
-    id: ProcedureId,
     name: ProcedureName,
     is_export: bool,
     procedure: Procedure,
@@ -71,7 +68,6 @@ impl NamedProcedure {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Procedure] instantiated with the specified properties.
     pub fn new(
-        id: ProcedureId,
         name: ProcedureName,
         is_export: bool,
         num_locals: u32,
@@ -79,7 +75,6 @@ impl NamedProcedure {
         callset: CallSet,
     ) -> Self {
         NamedProcedure {
-            id,
             name,
             is_export,
             procedure: Procedure {
@@ -92,11 +87,6 @@ impl NamedProcedure {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-
-    /// Returns ID of this procedure.
-    pub fn id(&self) -> &ProcedureId {
-        &self.id
-    }
 
     /// Returns a label of this procedure.
     pub fn name(&self) -> &ProcedureName {

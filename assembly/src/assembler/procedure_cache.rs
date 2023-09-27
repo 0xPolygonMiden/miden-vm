@@ -42,6 +42,11 @@ impl ProcedureCache {
         self.procedures.get(mast_root)
     }
 
+    /// Returns a MAST root ([RpoDigest]) reference corresponding to the provided [ProcedureId].
+    pub fn get_proc_root_by_id(&self, id: &ProcedureId) -> Option<RpoDigest> {
+        self.proc_id_map.get(id).cloned()
+    }
+
     /// Returns true if the [ProcedureCache] contains a [Procedure] for the specified
     /// [ProcedureId].
     pub fn contains_id(&self, id: &ProcedureId) -> bool {
@@ -58,10 +63,14 @@ impl ProcedureCache {
     /// - A procedure with the same ID is already in the cache.
     /// - A procedure with the same MAST root but conflicting procedure metadata exists in the
     ///   cache.
-    pub fn insert(&mut self, proc: NamedProcedure) -> Result<(), AssemblyError> {
+    pub fn insert(
+        &mut self,
+        proc: NamedProcedure,
+        id: Option<ProcedureId>,
+    ) -> Result<(), AssemblyError> {
         // if a procedure with the same id is already in the cache, return an error
-        if self.contains_id(proc.id()) {
-            return Err(AssemblyError::duplicate_proc_id(proc.id()));
+        if id.is_some_and(|id| self.contains_id(&id)) {
+            return Err(AssemblyError::duplicate_proc_id(&id.unwrap()));
         }
 
         // If the entry is `Vacant` then insert the Procedure. If the procedure with the same MAST
@@ -72,12 +81,16 @@ impl ProcedureCache {
                 if proc.num_locals() != cached_proc.num_locals() {
                     Err(AssemblyError::conflicting_num_locals(proc.name()))
                 } else {
-                    self.proc_id_map.insert(*proc.id(), proc.mast_root());
+                    if let Some(id) = id {
+                        self.proc_id_map.insert(id, proc.mast_root());
+                    }
                     Ok(())
                 }
             }
             Entry::Vacant(entry) => {
-                self.proc_id_map.insert(*proc.id(), proc.mast_root());
+                if let Some(id) = id {
+                    self.proc_id_map.insert(id, proc.mast_root());
+                }
                 entry.insert(proc.into_inner());
                 Ok(())
             }
