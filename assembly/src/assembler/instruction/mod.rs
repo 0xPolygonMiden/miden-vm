@@ -314,6 +314,7 @@ impl Assembler {
             Instruction::CallImported(id) => self.call_imported(id, ctx),
             Instruction::SysCall(id) => self.syscall(id, ctx),
             Instruction::DynExec => self.dynexec(),
+            Instruction::DynCall => self.dyncall(),
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {

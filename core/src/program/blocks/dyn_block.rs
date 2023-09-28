@@ -45,6 +45,11 @@ impl Dyn {
 
     /// Returns a hash of this code block.
     pub fn hash(&self) -> Digest {
+        Self::dyn_hash()
+    }
+
+    /// Returns a hash of this code block.
+    pub fn dyn_hash() -> Digest {
         DYN_CONSTANT
     }
 }

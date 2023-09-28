@@ -305,6 +305,7 @@ pub enum Instruction {
     CallImported(ProcedureId),
     SysCall(ProcedureId),
     DynExec,
+    DynCall,
 
     // ----- debug decorators ---------------------------------------------------------------------
     Breakpoint,
@@ -587,6 +588,7 @@ impl fmt::Display for Instruction {
             Self::CallImported(proc_id) => write!(f, "call.{proc_id}"),
             Self::SysCall(proc_id) => write!(f, "syscall.{proc_id}"),
             Self::DynExec => write!(f, "dynexec"),
+            Self::DynCall => write!(f, "dyncall"),
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => write!(f, "breakpoint"),
