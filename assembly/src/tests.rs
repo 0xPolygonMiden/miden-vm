@@ -818,6 +818,16 @@ fn program_with_dynamic_code_execution() {
     assert_eq!(expected, format!("{program}"));
 }
 
+#[test]
+fn program_with_dynamic_code_execution_in_new_context() {
+    let assembler = super::Assembler::default();
+    let source = "begin dyncall end";
+    let program = assembler.compile(source).unwrap();
+    let expected =
+        "begin call.0xc75c340ec6a69e708457544d38783abbb604d881b7dc62d00bfc2b10f52808e6 end";
+    assert_eq!(expected, format!("{program}"));
+}
+
 // MAST ROOT CALLS
 // ================================================================================================
 

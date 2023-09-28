@@ -235,7 +235,8 @@ fn simple_dyn_exec() {
         end";
 
     // The hash of foo can be obtained from the code block table by:
-    // let cb_table = test.compile().cb_table();
+    // let program = test.compile();
+    // let cb_table = program.cb_table();
     // Result:
     //   [BaseElement(14592192105906586403), BaseElement(9256464248508904838),
     //    BaseElement(17436090329036592832), BaseElement(10814467189528518943)]
@@ -271,6 +272,80 @@ fn simple_dyn_exec() {
             10308872899350860082,
             17306481765929021384,
             16642043361554117790,
+            1,
+            2,
+        ],
+        false,
+    );
+}
+
+#[test]
+fn simple_dyncall() {
+    let program_source = "
+        proc.foo
+            # drop the top 4 values, since that will be the code hash when we call this dynamically
+            dropw
+            
+            # test that the execution context has changed
+            mem_load.0 assertz
+
+            # add the two values on top of the stack
+            add
+        end
+
+        begin
+            # write to memory so we can test that `call` and `dyncall` change the execution context
+            push.5 mem_store.0
+
+            # call foo directly so it will get added to the CodeBlockTable
+            padw
+            call.foo
+
+            # move the first result of foo out of the way
+            movdn.4
+
+            # use dyncall to call foo again via its hash, which is on the stack
+            dyncall
+        end";
+
+    // The hash of foo can be obtained from the code block table by:
+    // let program = test.compile();
+    // let cb_table = program.cb_table();
+    // Result:
+    //   [BaseElement(3961142802598954486), BaseElement(5305628994393606376),
+    //    BaseElement(7971171833137344204), BaseElement(10465350313512331391)]
+    // Integer values can be obtained via Felt::from_mont(14592192105906586403).as_int(), etc.
+    // As ints:
+    //   [8324248212344458853, 17691992706129158519, 18131640149172243086, 16129275750103409835]
+
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: None,
+        stack_inputs: StackInputs::try_from_values([
+            3,
+            // put the hash of foo on the stack
+            8324248212344458853,
+            17691992706129158519,
+            18131640149172243086,
+            16129275750103409835,
+            1,
+            2,
+        ])
+        .unwrap(),
+        advice_inputs: AdviceInputs::default(),
+        in_debug_mode: false,
+        libraries: Vec::default(),
+    };
+
+    test.expect_stack(&[6]);
+
+    test.prove_and_verify(
+        vec![
+            3,
+            8324248212344458853,
+            17691992706129158519,
+            18131640149172243086,
+            16129275750103409835,
             1,
             2,
         ],
