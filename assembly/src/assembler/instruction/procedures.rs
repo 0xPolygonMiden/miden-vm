@@ -128,4 +128,9 @@ impl Assembler {
         // create a new DYN block for the dynamic code execution and return
         Ok(Some(CodeBlock::new_dyn()))
     }
+
+    pub(super) fn dyncall(&self) -> Result<Option<CodeBlock>, AssemblyError> {
+        // create a new CALL block whose target is DYN
+        Ok(Some(CodeBlock::new_dyncall()))
+    }
 }

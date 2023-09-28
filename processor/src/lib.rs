@@ -328,11 +328,16 @@ where
 
         self.start_call_block(block)?;
 
-        // get function body from the code block table and execute it
-        let fn_body = cb_table
-            .get(block.fn_hash())
-            .ok_or_else(|| ExecutionError::CodeBlockNotFound(block.fn_hash()))?;
-        self.execute_code_block(fn_body, cb_table)?;
+        // if this is a dyncall, execute the dynamic code block
+        if block.fn_hash() == Dyn::dyn_hash() {
+            self.execute_dyn_block(&Dyn::new(), cb_table)?;
+        } else {
+            // get function body from the code block table and execute it
+            let fn_body = cb_table
+                .get(block.fn_hash())
+                .ok_or_else(|| ExecutionError::CodeBlockNotFound(block.fn_hash()))?;
+            self.execute_code_block(fn_body, cb_table)?;
+        }
 
         self.end_call_block(block)
     }

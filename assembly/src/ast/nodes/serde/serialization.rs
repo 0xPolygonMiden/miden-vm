@@ -520,6 +520,7 @@ impl Serializable for Instruction {
                 imported.write_into(target)
             }
             Self::DynExec => OpCode::DynExec.write_into(target),
+            Self::DynCall => OpCode::DynCall.write_into(target),
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => {
