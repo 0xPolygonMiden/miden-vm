@@ -838,7 +838,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of U32ASSERT2 operation.
     #[inline(always)]
     pub fn u32assert2(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::U32assert2.op_code())]
+        self.degree6_op_flags[get_op_index(Operation::U32assert2(ZERO).op_code())]
     }
 
     /// Operation Flag of U32ADD3 operation.

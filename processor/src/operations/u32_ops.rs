@@ -25,20 +25,21 @@ where
         Ok(())
     }
 
-    /// Pops top two element off the stack, splits both into low and high 32-bit values, checks if both
-    /// high are equal to 0, if it passes, put both of them onto the stack, else throws an execution error
-    pub(super) fn op_u32assert2(&mut self) -> Result<(), ExecutionError> {
+    /// Pops top two element off the stack, splits them into low and high 32-bit values, checks if
+    /// the high values are equal to 0; if they are, puts the original elements back onto the
+    /// stack; if they are not, returns an error.
+    pub(super) fn op_u32assert2(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         let b = self.stack.get(1);
 
         if a.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(a));
+            return Err(ExecutionError::NotU32Value(a, err_code));
         }
         if b.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(b));
+            return Err(ExecutionError::NotU32Value(b, err_code));
         }
 
-        self.add_range_checks(Operation::U32assert2, a, b, false);
+        self.add_range_checks(Operation::U32assert2(err_code), a, b, false);
 
         self.stack.copy_state(0);
         Ok(())
@@ -279,7 +280,7 @@ mod tests {
         let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
-        process.execute_op(Operation::U32assert2).unwrap();
+        process.execute_op(Operation::U32assert2(ZERO)).unwrap();
         let expected = build_expected(&[a, b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }

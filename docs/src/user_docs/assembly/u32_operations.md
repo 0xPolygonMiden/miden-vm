@@ -15,12 +15,18 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | ---------------------------------------------- | ----------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | u32test <br> - *(5 cycles)*                    | [a, ...]    | [b, a, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ a < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$                                  |
 | u32testw <br> - *(23 cycles)*                  | [A, ...]    | [b, A, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ \forall\ i \in \{0, 1, 2, 3\}\ a_i < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
-| u32assert <br> u32assert.1 <br> - *(3 cycles)* | [a, ...]    | [a, ...]      | Fails if $a \ge 2^{32}$                                                                                                        |
-| u32assert.2 <br> - *(1 cycle)*                 | [b, a,...]  | [b, a,...]    | Fails if $a \ge 2^{32}$ or $b \ge 2^{32}$                                                                                      |
-| u32assertw <br> - *(6 cycles)*                 | [A, ...]    | [A, ...]      | Fails if $\exists\ i \in \{0, 1, 2, 3\} \ni a_i \ge 2^{32}$                                                                    |
+| u32assert <br> - *(3 cycles)* | [a, ...]    | [a, ...]      | Fails if $a \ge 2^{32}$                                                                                                        |
+| u32assert2 <br> - *(1 cycle)*                 | [b, a,...]  | [b, a,...]    | Fails if $a \ge 2^{32}$ or $b \ge 2^{32}$                                                                                      |
+| u32assertw <br> - *(6 cycles)*                 | [A, ...]    | [A, ...]      | Fails if $\exists\ i \in \{0, 1, 2, 3\} : a_i \ge 2^{32}$                                                                    |
 | u32cast <br> - *(2 cycles)*                    | [a, ...]    | [b, ...]      | $b \leftarrow a \mod 2^{32}$                                                                                                   |
 | u32split <br> - *(1 cycle)*                    | [a, ...]    | [c, b, ...]   | $b \leftarrow a \mod 2^{32}$, $c \leftarrow \lfloor{a / 2^{32}}\rfloor$                                                        |
 
+The instructions `u32assert`, `u32assert2` and `u32assertw` can also be parametrized with an error code which can be any 32-bit value specified either directly or via a [named constant](./code_organization.md#constants). For example:
+```
+u32assert.err=123
+u32assert.err=MY_CONSTANT
+```
+If the error code is omitted, the default value of $0$ is assumed.
 
 ### Arithmetic operations
 
