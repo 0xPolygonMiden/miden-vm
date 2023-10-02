@@ -50,34 +50,6 @@ export.hash_to_point.6
     end
 
     drop
-
-    ## deficit counter
-    #push.0 movdn.8
-
-    ## Absorb the first 3 elements of the message in addition to the 5 elements nonce
-    #padw movdnw.2
-    #hperm
-
-    ## Absorb the last element of the message digest
-    #loc_load.5 swap.8 drop
-
-    #repeat.63
-        #hperm
-        #movupw.2
-        #dupw.2 dupw.2
-    #end
-    
-    #hperm 
-    #movupw.2 dropw
-
-    ## address of last coefficient-quadruple
-    #loc_load.4 add.127 
-
-    ## Save the coefficients of c
-    #repeat.128
-        #dup sub.1 movdn.5 mem_storew dropw
-    #end
-    #drop
 end
 
 
@@ -409,7 +381,7 @@ end
 #! 
 #! 1. q is much smaller than the Miden prime. Precisely, q * 2^50 < Q 
 #! 2. The coefficients of the product polynomial, u and w, are less than J := 512 * q^2
-#! 3. The coefficients of c are less than q as they are the result of `hash_to_point`
+#! 3. The coefficients of c are less than q.
 #!
 #! This means that we can substitute (v - (u + (- w % q) % q) % q) with  v + w + J - u without
 #! risking overflow since |v + w + J - u| < 1025 * q^2
@@ -435,41 +407,33 @@ export.diff_mod_q
     #=> [e, ...]
 end
 
-#! TODO: Either revert back the hash-to-point algorithm or update the following comment.
-#!
-#! Takes a pointer to a polynomial pi of degree less than 1024 with coefficients in Z_Q.
-#! The goal is to compute s1 = c - pi  = c - h * s2 in Z_q[x]/(phi)
-#! The pointer pi_ptr points to pi and c through the relation c_ptr = pi_ptr + offset
-#! where offset := 2304.
+#! Takes a pointer to a polynomial pi of degree less than 1024 with coefficients in Z_Q and
+#! a polynomial c of degree 512 with coefficients also in Z_Q, where Q is the Miden prime.
+#! The goal is to compute s1 = c - pi  = c - h * s2 in Z_q[x]/(phi) where q is the Falcon prime.
+#! The pointer pi_ptr points both to pi and c through the relation c_ptr = pi_ptr + offset
+#! where offset := 1281.
 #! The naive way to compute s1 would be to first reduce the polynomial pi modulo the Falcon
-#! prime q and then modulo the irreducible polynomial phi = x^512 + 1. Then we need to negate
-#! the coefficients of pi modulo q. We can then add these coefficients to the coefficients
-#! of c and finally reduce the result modulo q one last time.
-#! Knowing that the end goal of computing c is to compute its norm square, we can do better.
+#! prime q and then modulo the irreducible polynomial phi = x^512 + 1. Then we would need to negate
+#! the coefficients of pi modulo q and only then can we add these coefficients to the coefficients
+#! of c and then reduce the result modulo q one more time.
+#! Knowing that the end goal of computing c is to compute its norm squared, we can do better.
 #!
 #! We can compute s1 in a single pass by delaying the q-modular reduction til the end. This can
 #! be achieved through a careful analysis of the computation of the difference between pi and c.
 #!
-#! The i-th coefficient of s1 is equal to c_i - (pi_i - pi_{512 + i}) which is equal to 
+#! The i-th coefficient s1_i of s1 is equal to c_i - (pi_i - pi_{512 + i}) which is equal to 
 #! c_i  + pi_{512 + i} - pi_i. Now, we know that the size of the pi_i coefficients is bounded by
 #! J := 512 * q^2 and this means that J + pi_{512 + i} - pi_i does not Q-underflow and since 
 #! J = 0 modulo q, the addition of J does not affect the final result. It is also important to 
-#! see that adding J does not Q-overflow by virtue of q * 2^50 < Q.
-#! All of the above implies that we can compute c_i with only one modular reduction at the end.
-#! Moreover, since we are only interested in the square norm of c_i, we do not have to store
-#! c_i and then load it, and instead we can immediatly follow the computation of c_i with computing
-#! its square norm. 
-#! After computing the square norm of c_i, we can accumulate into an accumulator to compute the
-#! sum of the square norms of all the coefficients of polynomial c.
-#!
-#! To summarize, the naive strategy would require:
-#!
-#! 1. 128 * 6 mem_loadw
-#! 2. 128 * 3 mem_storew
-#! 3. 4 * 512 modulo q reductions
-#! 
-#! while the strategy we follow requires only 3 * 128 mem_loadw to load the coefficents of c 
-#! and pi and only 512 modular reductions.
+#! note that adding J does not Q-overflow by virtue of q * 2^50 < Q.
+#! All of the above implies that we can compute s1_i with only one modular reduction at the end,
+#! in addition to one modular reduction applied to c_i.
+#! Moreover, since we are only interested in the square norm of s1_i, we do not have to store
+#! s1_i and then load it at a later point, and instead we can immediatly follow the computation
+#! of s1_i with computing its square norm. 
+#! After computing the square norm of s1_i, we can accumulate into an accumulator to compute the
+#! sum of the square norms of all the coefficients of polynomial c. Using the overflow stack, this
+#! can be delayed til the end.
 #!
 #! Input: [pi_ptr, ...]
 #! Output: [norm_sq(s1), ...]
@@ -582,7 +546,7 @@ end
 #! Input: [PK, MSG, ...]
 #! Output: [...]
 #!
-#! Cycles: ~ 73395
+#! Cycles: ~ 93363
 export.verify.1665
 
     # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
@@ -635,7 +599,7 @@ export.verify.1665
     #=> [pi_ptr, ...]
 
     exec.compute_s1_norm_sq
-    #=> [norm_sq(s1), ...]                          (Cycles: 38920)  
+    #=> [norm_sq(s1), ...]                          (Cycles: 58888)  
 
     # 7) Compute the squared norm of s2
 
