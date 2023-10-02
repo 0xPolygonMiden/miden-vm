@@ -12,11 +12,12 @@ Miden assembly provides a set of instructions for moving data between the operan
 | ------------------------------------------------------------------------- | ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | push.*a* <br> - *(1-2 cycles)* <br> push.*a*.*b* <br> push.*a*.*b*.*c*... | [ ... ]     | [a, ... ] <br> [b, a, ... ] <br> [c, b, a, ... ] | Pushes values $a$, $b$, $c$ etc. onto the stack. Up to $16$ values can be specified. All values must be valid field elements in decimal (e.g., $123$) or hexadecimal (e.g., $0x7b$) representation. |
 
-When specifying values in hexadecimal format, it is possible to omit the periods between individual values as long as total number of specified bytes is a multiple of $8$. That is, the following are semantically equivalent:
+The value can be specified in hexadecimal form without periods between individual values as long as it describes a full word ($4$ field elements or $32$ bytes). Note that hexadecimal values separated by periods (short hexadecimal strings) are assumed to be in big-endian order, while the strings specifying whole words (long hexadecimal strings) are assumed to be in little-endian order. That is, the following are semantically equivalent:
 
 ```
-push.0x1234.0xabcd
-push.0x0000000000001234000000000000abcd
+push.0x00001234.0x00005678.0x00009012.0x0000abcd
+push.0x341200000000000078560000000000001290000000000000cdab000000000000
+push.4660.22136.36882.43981
 ```
 In both case the values must still encode valid field elements.
 

@@ -10,6 +10,7 @@
 - Added `adv.insert_hperm` decorator (#1042).
 - Added `adv.push_smtpeek` decorator (#1056).
 - Added `debug` decorator (#1069).
+- Refactored `push` instruction so now it parses long hex string in little-endian (#1076).
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).

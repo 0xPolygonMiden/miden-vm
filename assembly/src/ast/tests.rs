@@ -23,7 +23,17 @@ fn test_ast_parsing_program_simple() {
 
 #[test]
 fn test_ast_parsing_program_push() {
-    let source = "begin push.10 push.500 push.70000 push.5000000000 push.5000000000.7000000000.9000000000.11000000000 push.5.7 push.500.700 push.70000.90000 push.5000000000.7000000000 end";
+    let source = "\
+    begin \
+        push.10 push.500 push.70000 push.5000000000 \
+        push.5000000000.7000000000.9000000000.11000000000 \
+        push.5.7 \
+        push.500.700 \
+        push.70000.90000 \
+        push.5000000000.7000000000 
+
+        push.0x0000000000000000010000000000000002000000000000000300000000000000
+    end";
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::PushU8(10)),
         Node::Instruction(Instruction::PushU16(500)),
@@ -46,9 +56,28 @@ fn test_ast_parsing_program_push() {
             Felt::from(5000000000_u64),
             Felt::from(7000000000_u64),
         ])),
+        Node::Instruction(Instruction::PushU8List(vec![0, 1, 2, 3])),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);
+
+    // Push a hexadecimal string containing more than 4 values
+    let source_too_long = "begin push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000";
+    let result = ProgramAst::parse(source_too_long)
+        .expect_err("long hex string must contain exactly 64 characters");
+    assert_eq!(result.message(), "malformed instruction 'push.0x00000000000000001000000000000000200000000000000030000000000000004000000000000000', \
+                                  parameter 0x00000000000000001000000000000000200000000000000030000000000000004000000000000000 is invalid: long hex \
+                                  string '00000000000000001000000000000000200000000000000030000000000000004000000000000000' must contain exactly 64 \
+                                  characters");
+
+    // Push a hexadecimal string containing less than 4 values
+    let source_too_long = "begin push.0x00000000000000001000000000000000";
+    let result = ProgramAst::parse(source_too_long)
+        .expect_err("long hex string must contain exactly 64 characters");
+    assert_eq!(result.message(), "malformed instruction 'push.0x00000000000000001000000000000000', \
+                                  parameter 0x00000000000000001000000000000000 is invalid: long hex \
+                                  string '00000000000000001000000000000000' must contain exactly 64 \
+                                  characters");
 }
 
 #[test]

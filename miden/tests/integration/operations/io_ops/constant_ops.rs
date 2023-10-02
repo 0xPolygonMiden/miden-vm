@@ -65,20 +65,15 @@ fn push_many() {
 
 #[test]
 fn push_without_separator() {
-    let base_op = "push";
-
-    // --- multiple values as a hexadecimal string ------------------------------------------------
-    let asm_op = format!("{base_op}.0x0000000000004321000000000000dcba");
-
-    let test = build_op_test!(asm_op);
-    test.expect_stack(&[56506, 17185]);
-
-    // --- push the maximum number of hexadecimal values without separators (16) ------------------
-    let asm_op =    format!("{base_op}.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F");
-    let mut expected = Vec::with_capacity(16);
-    for i in (0..16).rev() {
-        expected.push(i);
-    }
+    // --- push the maximum allowed number of hexadecimal values without separators (4) ------------------
+    let asm_op = format!(
+        "push.0x\
+    0000000000000000\
+    0100000000000000\
+    0200000000000000\
+    0300000000000000"
+    );
+    let expected = vec![3, 2, 1, 0];
 
     let test = build_op_test!(asm_op);
     test.expect_stack(&expected);
