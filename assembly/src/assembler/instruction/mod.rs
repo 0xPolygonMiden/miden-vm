@@ -43,8 +43,10 @@ impl Assembler {
             Instruction::AssertEqWithError(err_code) => {
                 span.add_ops([Eq, Assert(Felt::from(*err_code))])
             }
-            Instruction::AssertEqw => field_ops::assertw(span, None),
-            Instruction::AssertEqwWithError(err_code) => field_ops::assertw(span, Some(*err_code)),
+            Instruction::AssertEqw => field_ops::assertw(span, ZERO),
+            Instruction::AssertEqwWithError(err_code) => {
+                field_ops::assertw(span, Felt::from(*err_code))
+            }
             Instruction::Assertz => span.add_ops([Eqz, Assert(ZERO)]),
             Instruction::AssertzWithError(err_code) => {
                 span.add_ops([Eqz, Assert(Felt::from(*err_code))])
@@ -94,9 +96,19 @@ impl Assembler {
             // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => span.add_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(span),
-            Instruction::U32Assert => span.add_ops([Pad, U32assert2, Drop]),
-            Instruction::U32Assert2 => span.add_op(U32assert2),
-            Instruction::U32AssertW => u32_ops::u32assertw(span),
+            Instruction::U32Assert => span.add_ops([Pad, U32assert2(ZERO), Drop]),
+            Instruction::U32AssertWithError(err_code) => {
+                span.add_ops([Pad, U32assert2(Felt::from(*err_code)), Drop])
+            }
+            Instruction::U32Assert2 => span.add_op(U32assert2(ZERO)),
+            Instruction::U32Assert2WithError(err_code) => {
+                span.add_op(U32assert2(Felt::from(*err_code)))
+            }
+            Instruction::U32AssertW => u32_ops::u32assertw(span, ZERO),
+            Instruction::U32AssertWWithError(err_code) => {
+                u32_ops::u32assertw(span, Felt::from(*err_code))
+            }
+
             Instruction::U32Cast => span.add_ops([U32split, Drop]),
             Instruction::U32Split => span.add_op(U32split),
 

@@ -38,7 +38,7 @@ pub enum ExecutionError {
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
-    NotU32Value(Felt),
+    NotU32Value(Felt, Felt),
     ProverError(ProverError),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
@@ -128,8 +128,11 @@ impl Display for ExecutionError {
             NotBinaryValue(v) => {
                 write!(f, "An operation expected a binary value, but received {v}")
             }
-            NotU32Value(v) => {
-                write!(f, "An operation expected a u32 value, but received {v}")
+            NotU32Value(v, err_code) => {
+                write!(
+                    f,
+                    "An operation expected a u32 value, but received {v} (error code: {err_code})"
+                )
             }
             ProverError(error) => write!(f, "Proof generation failed: {error}"),
             SyscallTargetNotInKernel(proc) => {

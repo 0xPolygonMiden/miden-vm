@@ -532,8 +532,7 @@ fn const_conversion_failed_to_u32() {
 
 #[test]
 fn assert_with_code() {
-    let source = format!(
-        "\
+    let source = "\
     const.ERR1=1
 
     begin
@@ -542,7 +541,7 @@ fn assert_with_code() {
         assert.err=2
     end
     "
-    );
+    .to_string();
     let assembler = super::Assembler::default();
     let program = assembler.compile(source).unwrap();
 
@@ -555,8 +554,7 @@ fn assert_with_code() {
 
 #[test]
 fn assertz_with_code() {
-    let source = format!(
-        "\
+    let source = "\
     const.ERR1=1
 
     begin
@@ -565,7 +563,7 @@ fn assertz_with_code() {
         assertz.err=2
     end
     "
-    );
+    .to_string();
     let assembler = super::Assembler::default();
     let program = assembler.compile(source).unwrap();
 
@@ -578,8 +576,7 @@ fn assertz_with_code() {
 
 #[test]
 fn assert_eq_with_code() {
-    let source = format!(
-        "\
+    let source = "\
     const.ERR1=1
 
     begin
@@ -588,7 +585,7 @@ fn assert_eq_with_code() {
         assert_eq.err=2
     end
     "
-    );
+    .to_string();
     let assembler = super::Assembler::default();
     let program = assembler.compile(source).unwrap();
 
@@ -601,8 +598,7 @@ fn assert_eq_with_code() {
 
 #[test]
 fn assert_eqw_with_code() {
-    let source = format!(
-        "\
+    let source = "\
     const.ERR1=1
 
     begin
@@ -611,7 +607,7 @@ fn assert_eqw_with_code() {
         assert_eqw.err=2
     end
     "
-    );
+    .to_string();
     let assembler = super::Assembler::default();
     let program = assembler.compile(source).unwrap();
 
@@ -621,6 +617,76 @@ fn assert_eqw_with_code() {
                 movup4 eq assert(0) movup3 eq assert(0) movup2 eq assert(0) eq assert(0) \
                 movup4 eq assert(1) movup3 eq assert(1) movup2 eq assert(1) eq assert(1) \
                 movup4 eq assert(2) movup3 eq assert(2) movup2 eq assert(2) eq assert(2) \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn u32assert_with_code() {
+    let source = "\
+    const.ERR1=1
+
+    begin
+        u32assert
+        u32assert.err=ERR1
+        u32assert.err=2
+    end
+    "
+    .to_string();
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span pad u32assert2(0) drop pad u32assert2(1) drop pad u32assert2(2) drop end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn u32assert2_with_code() {
+    let source = "\
+    const.ERR1=1
+
+    begin
+        u32assert2
+        u32assert2.err=ERR1
+        u32assert2.err=2
+    end
+    "
+    .to_string();
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span u32assert2(0) u32assert2(1) u32assert2(2) end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
+fn u32assertw_with_code() {
+    let source = "\
+    const.ERR1=1
+
+    begin
+        u32assertw
+        u32assertw.err=ERR1
+        u32assertw.err=2
+    end
+    "
+    .to_string();
+    let assembler = super::Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span \
+                u32assert2(0) movup3 movup3 u32assert2(0) movup3 movup3 \
+                u32assert2(1) movup3 movup3 u32assert2(1) movup3 movup3 \
+                u32assert2(2) movup3 movup3 u32assert2(2) movup3 movup3 \
             end \
         end";
     assert_eq!(expected, format!("{program}"));
@@ -901,7 +967,7 @@ fn program_with_reexported_proc_in_same_library() {
     const REF_MODULE: &str = "math::u64";
     const REF_MODULE_BODY: &str = r#"
         export.checked_eqz
-            u32assert.2
+            u32assert2
             eq.0
             swap
             eq.0
@@ -971,7 +1037,7 @@ fn program_with_reexported_proc_in_same_library() {
         begin \
             span \
                 push(4) push(3) \
-                u32assert2 \
+                u32assert2(0) \
                 eqz swap eqz and \
                 eqz swap eqz and \
             end \
@@ -987,7 +1053,7 @@ fn program_with_reexported_proc_in_another_library() {
     const REF_MODULE: &str = "math::u64";
     const REF_MODULE_BODY: &str = r#"
         export.checked_eqz
-            u32assert.2
+            u32assert2
             eq.0
             swap
             eq.0
@@ -1041,7 +1107,7 @@ fn program_with_reexported_proc_in_another_library() {
         begin \
             span \
                 push(4) push(3) \
-                u32assert2 \
+                u32assert2(0) \
                 eqz swap eqz and \
                 eqz swap eqz and \
             end \
@@ -1071,11 +1137,11 @@ fn module_alias() {
         export.checked_add
             swap
             movup.3
-            u32assert.2
+            u32assert2
             u32overflowing_add
             movup.3
             movup.3
-            u32assert.2
+            u32assert2
             u32overflowing_add3
             eq.0
             assert
@@ -1102,9 +1168,9 @@ fn module_alias() {
         begin \
             span \
                 pad incr pad push(2) pad \
-                swap movup3 u32assert2 \
+                swap movup3 u32assert2(0) \
                 u32add movup3 movup3 \
-                u32assert2 u32add3 eqz assert(0) \
+                u32assert2(0) u32add3 eqz assert(0) \
             end \
         end";
     assert_eq!(expected, format!("{program}"));

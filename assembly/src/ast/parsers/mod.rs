@@ -189,3 +189,30 @@ fn check_div_by_zero(value: u64, op: &Token, param_idx: usize) -> Result<(), Par
         Ok(())
     }
 }
+
+/// Parses the error code declaration for an assertion instruction, and returns the value of the
+/// code.
+///
+/// The code is expected to be specified via the first instruction parameter and have the form
+/// `err=<code>`.
+fn parse_error_code(token: &Token, constants: &LocalConstMap) -> Result<u32, ParsingError> {
+    let inst = token.parts()[0];
+    let err_code_parts: Vec<&str> = token.parts()[1].split('=').collect();
+    match err_code_parts.len() {
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(token, format!("{inst}.err=<code>").as_str())),
+        2 => {
+            if err_code_parts[0] != "err" {
+                return Err(ParsingError::invalid_param(token, 1));
+            }
+
+            let err_code_str = err_code_parts[1];
+            let err_code = match try_get_constant_value(token, err_code_str, constants)? {
+                Some(val) => val.try_into().map_err(|_| ParsingError::invalid_param(token, 1))?,
+                None => err_code_str.parse().map_err(|_| ParsingError::invalid_param(token, 1))?,
+            };
+            Ok(err_code)
+        }
+        _ => Err(ParsingError::extra_param(token)),
+    }
+}

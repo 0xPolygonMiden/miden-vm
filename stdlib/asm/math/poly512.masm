@@ -81,7 +81,7 @@ export.mod_12289
     adv.push_u64div
 
     adv_push.2
-    u32assert.2
+    u32assert2
 
     swap
     push.12289

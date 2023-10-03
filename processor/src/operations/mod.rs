@@ -84,7 +84,7 @@ where
 
             Operation::U32and => self.op_u32and()?,
             Operation::U32xor => self.op_u32xor()?,
-            Operation::U32assert2 => self.op_u32assert2()?,
+            Operation::U32assert2(err_code) => self.op_u32assert2(err_code)?,
 
             // ----- stack manipulation -----------------------------------------------------------
             Operation::Pad => self.op_pad()?,

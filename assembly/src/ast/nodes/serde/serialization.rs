@@ -138,8 +138,20 @@ impl Serializable for Instruction {
             Self::U32Test => OpCode::U32Test.write_into(target),
             Self::U32TestW => OpCode::U32TestW.write_into(target),
             Self::U32Assert => OpCode::U32Assert.write_into(target),
+            Self::U32AssertWithError(err_code) => {
+                OpCode::U32AssertWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::U32Assert2 => OpCode::U32Assert2.write_into(target),
+            Self::U32Assert2WithError(err_code) => {
+                OpCode::U32Assert2WithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::U32AssertW => OpCode::U32AssertW.write_into(target),
+            Self::U32AssertWWithError(err_code) => {
+                OpCode::U32AssertWWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::U32Split => OpCode::U32Split.write_into(target),
             Self::U32Cast => OpCode::U32Cast.write_into(target),
             Self::U32CheckedAdd => OpCode::U32CheckedAdd.write_into(target),
