@@ -1,5 +1,5 @@
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField};
-use vm_core::{stack::STACK_TOP_SIZE, HostFunction};
+use vm_core::{stack::STACK_TOP_SIZE, AdviceFunction, HostFunction};
 
 mod crypto_ops;
 mod ext2_ops;
@@ -160,9 +160,10 @@ where
         self.system.advance_clock(self.max_cycles)?;
         self.stack.advance_clock();
         self.chiplets.advance_clock();
-        self.host
-            .borrow_mut()
-            .execute_host_function(self, &HostFunction::AdvanceClock)?;
+        self.host.borrow_mut().execute_host_function(
+            self,
+            &HostFunction::AdviceFunction(AdviceFunction::AdvanceClock),
+        )?;
         Ok(())
     }
 

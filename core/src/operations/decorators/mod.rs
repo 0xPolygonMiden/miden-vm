@@ -2,7 +2,7 @@ use crate::utils::collections::Vec;
 use core::fmt;
 
 mod advice;
-pub use advice::AdviceInjector;
+pub use advice::{AdviceExtractor, AdviceFunction, AdviceInjector};
 
 mod assembly_op;
 pub use assembly_op::AssemblyOp;
@@ -11,7 +11,7 @@ mod debug;
 pub use debug::DebugOptions;
 
 mod host_function;
-pub use host_function::HostFunction;
+pub use host_function::{HostFunction, HostResult};
 
 // DECORATORS
 // ================================================================================================

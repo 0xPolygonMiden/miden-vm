@@ -1,4 +1,4 @@
-use super::super::{AdviceSource, ExecutionError, Felt, StarkField, Word};
+use super::super::{AdviceSource, ExecutionError, Felt, HostResult, StarkField, Word};
 use crate::{AdviceProvider, ProcessState};
 use vm_core::{
     crypto::{
@@ -54,7 +54,7 @@ const SMT_NORMALIZED_DEPTHS: [u8; 65] = [
 pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // fetch the arguments from the operand stack
     let key = process.stack().get_word(0);
     let root = process.stack().get_word(1);
@@ -87,7 +87,7 @@ pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
     advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
     advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
 
-    Ok(11)
+    Ok(HostResult::Unit)
 }
 
 /// Pushes onto the advice stack the value associated with the specified key in a Sparse
@@ -112,7 +112,7 @@ pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // fetch the arguments from the operand stack
     let key = process.stack().get_word(0);
     let root = process.stack().get_word(1);
@@ -139,7 +139,7 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
         }
     }
 
-    Ok(4)
+    Ok(HostResult::Unit)
 }
 
 /// Pushes values onto the advice stack which are required for successful insertion of a
@@ -172,7 +172,7 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn push_smtset_inputs<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // get the key, value, and tree root from the stack
     let value = process.stack().get_word(0);
     let key = process.stack().get_word(1);
@@ -275,7 +275,7 @@ fn handle_smt_update<A: AdviceProvider>(
     advice_provider: &mut A,
     depth: u8,
     old_value: Word,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // put the old value onto the advice stack
     advice_provider.push_stack(AdviceSource::Word(old_value))?;
 
@@ -291,7 +291,7 @@ fn handle_smt_update<A: AdviceProvider>(
     // we expect 4 flag values on the top of the advice stack
     advice_provider.push_stack(AdviceSource::Value(ZERO))?;
 
-    Ok(8)
+    Ok(HostResult::Unit)
 }
 
 /// Prepares the advice stack for a TSMT simple insert operation (i.e., when we are replacing
@@ -309,8 +309,7 @@ fn handle_smt_simple_insert<A: AdviceProvider>(
     root: Word,
     depth: u8,
     index: Felt,
-) -> Result<usize, ExecutionError> {
-    let mut adv_stack_len = 0;
+) -> Result<HostResult, ExecutionError> {
     // put additional data onto the advice stack as needed
     match depth {
         16 => (), // nothing to do; all the required data is already in the VM
@@ -321,7 +320,6 @@ fn handle_smt_simple_insert<A: AdviceProvider>(
             let p_depth = Felt::from(depth - 16);
             let p_node = advice_provider.get_tree_node(root, &p_depth, &p_index)?;
             advice_provider.push_stack(AdviceSource::Word(p_node))?;
-            adv_stack_len += 4;
         }
         64 => unimplemented!("insertions at depth 64 are not yet implemented"),
         _ => unreachable!("invalid depth {depth}"),
@@ -335,9 +333,8 @@ fn handle_smt_simple_insert<A: AdviceProvider>(
     let (is_16_or_32, is_16_or_48) = get_depth_flags(depth);
     advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
     advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
-    adv_stack_len += 4;
 
-    Ok(adv_stack_len)
+    Ok(HostResult::Unit)
 }
 
 /// Prepares the advice stack for a TSMT complex insert operation (i.e., when a leaf node needs
@@ -360,7 +357,7 @@ fn handle_smt_complex_insert<A: AdviceProvider>(
     key: Word,
     leaf_key: Word,
     leaf_value: Word,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // push the key and value onto the advice stack
     advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
     advice_provider.push_stack(AdviceSource::Word(leaf_key))?;
@@ -390,7 +387,7 @@ fn handle_smt_complex_insert<A: AdviceProvider>(
         _ => unreachable!("invalid source/target tier combination: {depth} -> {target_depth}"),
     }
 
-    Ok(16)
+    Ok(HostResult::Unit)
 }
 
 /// Prepares the advice stack for a TSMT deletion operation. Specifically, the advice stack
@@ -416,7 +413,7 @@ fn handle_smt_delete<A: AdviceProvider>(
     depth: u8,
     index: Felt,
     key: Word,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     let empty = EmptySubtreeRoots::empty_hashes(TieredSmt::MAX_DEPTH)[depth as usize];
 
     if node == Word::from(empty) {
@@ -430,7 +427,7 @@ fn handle_smt_delete<A: AdviceProvider>(
         advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
         advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
 
-        Ok(4)
+        Ok(HostResult::Unit)
     } else {
         // if the node is not a root of an empty subtree, it must be a leaf; thus we can get
         // the key and the value stored in the leaf.
@@ -504,7 +501,7 @@ fn handle_smt_delete<A: AdviceProvider>(
             advice_provider.push_stack(AdviceSource::Value(ZERO))?;
             advice_provider.push_stack(AdviceSource::Value(ZERO))?;
         }
-        Ok(12)
+        Ok(HostResult::Unit)
     }
 }
 

@@ -1,6 +1,5 @@
 use super::{ExecutionError, Host, Operation, Process};
-use crate::crypto::{MerklePath, RpoDigest};
-use vm_core::{AdviceInjector, HostFunction, StarkField, Word, WORD_SIZE};
+use vm_core::{AdviceExtractor, AdviceInjector, HostFunction, HostResult, StarkField};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -76,11 +75,19 @@ where
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path_num_elements = self.host.borrow_mut().execute_host_function(
-            self,
-            &HostFunction::AdviceInjector(AdviceInjector::MerklePathToStack { root, depth, index }),
-        )?;
-        let path = self.extract_path_from_host(path_num_elements)?;
+        let path = if let HostResult::MerklePath(path) =
+            self.host.borrow_mut().execute_host_function(
+                self,
+                &HostFunction::new_advice_extractor(AdviceExtractor::GetMerklePath {
+                    root,
+                    depth,
+                    index,
+                }),
+            )? {
+            path
+        } else {
+            unreachable!("expected HostResult::MerklePath")
+        };
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
@@ -144,16 +151,20 @@ where
         // get a Merkle path to it. the length of the returned path is expected to match the
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let path_num_elements = self.host.borrow_mut().execute_host_function(
-            self,
-            &HostFunction::AdviceInjector(AdviceInjector::UpdateMerkleNode {
-                root: old_root,
-                depth,
-                index,
-                value: new_node,
-            }),
-        )?;
-        let path = self.extract_path_from_host(path_num_elements)?;
+        let path = if let HostResult::MerklePath(path) =
+            self.host.borrow_mut().execute_host_function(
+                self,
+                &HostFunction::new_advice_injector(AdviceInjector::UpdateMerkleNode {
+                    root: old_root,
+                    depth,
+                    index,
+                    value: new_node,
+                }),
+            )? {
+            path
+        } else {
+            unreachable!("expected HostResult::MerklePath")
+        };
 
         assert_eq!(path.len(), depth.as_int() as usize);
 
@@ -176,24 +187,6 @@ where
         self.stack.copy_state(4);
 
         Ok(())
-    }
-
-    // HELPERS
-    // --------------------------------------------------------------------------------------------
-
-    /// Extracts a Merkle path of the specified number of elements from the host stack and converts
-    /// the elements into a Merkle path.
-    fn extract_path_from_host(
-        &mut self,
-        path_num_elements: usize,
-    ) -> Result<MerklePath, ExecutionError> {
-        debug_assert!(path_num_elements % WORD_SIZE == 0);
-        let elements = self.host.borrow_mut().drain_stack_vec(path_num_elements)?;
-        let path: MerklePath = elements
-            .chunks(WORD_SIZE)
-            .map(|x| RpoDigest::from(Word::try_from(x).expect("chunk size is WORD_SIZE")))
-            .collect();
-        Ok(path)
     }
 }
 

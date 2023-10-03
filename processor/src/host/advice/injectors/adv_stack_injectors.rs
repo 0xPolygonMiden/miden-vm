@@ -1,6 +1,6 @@
-use super::super::{AdviceSource, ExecutionError, Felt, StarkField, Word, WORD_SIZE};
+use super::super::{AdviceSource, ExecutionError, Felt, HostResult, StarkField};
 use crate::{AdviceProvider, Ext2InttError, FieldElement, ProcessState};
-use vm_core::{utils::IntoBytes, QuadExtension};
+use vm_core::QuadExtension;
 use winter_prover::math::fft;
 
 // TYPE ALIASES
@@ -32,7 +32,7 @@ type QuadFelt = QuadExtension<Felt>;
 pub(crate) fn copy_merkle_node_to_adv_stack<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // read node depth, node index, and tree root from the stack
     let depth = process.stack().get(0);
     let index = process.stack().get(1);
@@ -53,38 +53,7 @@ pub(crate) fn copy_merkle_node_to_adv_stack<S: ProcessState, A: AdviceProvider>(
     advice_provider.push_stack(AdviceSource::Value(node[1]))?;
     advice_provider.push_stack(AdviceSource::Value(node[0]))?;
 
-    Ok(4)
-}
-
-/// Pushes the Merkle path for the node specified by the provided root, depth, and index onto
-/// the advice stack.
-///
-/// Inputs:
-///  Operand stack: [...]
-///  Advice stack: [...]
-///  Merkle store: {...}
-///
-/// Outputs:
-///  Operand stack: [...]
-///  Advice stack: [path, ...]
-///  Merkle store: {...}
-///
-/// # Errors:
-/// Returns an error if the Merkle path for the specified node cannot be found in the advice
-/// provider.
-pub(crate) fn copy_merkle_path_to_adv_stack<A: AdviceProvider>(
-    advice_provider: &mut A,
-    root: Word,
-    depth: &Felt,
-    index: &Felt,
-) -> Result<usize, ExecutionError> {
-    let path = advice_provider.get_merkle_path(root, depth, index)?;
-    let num_elements = path.len() * WORD_SIZE;
-    for element in path.into_iter().flat_map(Word::from) {
-        advice_provider.push_stack(AdviceSource::Value(element))?;
-    }
-
-    Ok(num_elements)
+    Ok(HostResult::Unit)
 }
 
 /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
@@ -116,7 +85,7 @@ pub(crate) fn copy_map_value_to_adv_stack<S: ProcessState, A: AdviceProvider>(
     process: &S,
     include_len: bool,
     key_offset: usize,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     if key_offset > 12 {
         return Err(ExecutionError::InvalidStackWordOffset(key_offset));
     }
@@ -129,13 +98,7 @@ pub(crate) fn copy_map_value_to_adv_stack<S: ProcessState, A: AdviceProvider>(
     ];
     advice_provider.push_stack(AdviceSource::Map { key, include_len })?;
 
-    let data_len = advice_provider
-        .get_mapped_values(&key.into_bytes())
-        .expect("entry exists")
-        .len();
-    let len = if include_len { data_len + 1 } else { data_len };
-
-    Ok(len)
+    Ok(HostResult::Unit)
 }
 
 /// Pushes the result of [u64] division (both the quotient and the remainder) onto the advice
@@ -159,7 +122,7 @@ pub(crate) fn copy_map_value_to_adv_stack<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn push_u64_div_result<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     let divisor_hi = process.stack().get(0).as_int();
     let divisor_lo = process.stack().get(1).as_int();
     let divisor = (divisor_hi << 32) + divisor_lo;
@@ -183,7 +146,7 @@ pub(crate) fn push_u64_div_result<S: ProcessState, A: AdviceProvider>(
     advice_provider.push_stack(AdviceSource::Value(q_hi))?;
     advice_provider.push_stack(AdviceSource::Value(q_lo))?;
 
-    Ok(4)
+    Ok(HostResult::Unit)
 }
 
 /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
@@ -205,7 +168,7 @@ pub(crate) fn push_u64_div_result<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn push_ext2_inv_result<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     let coef0 = process.stack().get(1);
     let coef1 = process.stack().get(0);
 
@@ -218,7 +181,7 @@ pub(crate) fn push_ext2_inv_result<S: ProcessState, A: AdviceProvider>(
     advice_provider.push_stack(AdviceSource::Value(result[1]))?;
     advice_provider.push_stack(AdviceSource::Value(result[0]))?;
 
-    Ok(2)
+    Ok(HostResult::Unit)
 }
 
 /// Given evaluations of a polynomial over some specified domain, interpolates the evaluations
@@ -253,7 +216,7 @@ pub(crate) fn push_ext2_inv_result<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn push_ext2_intt_result<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     let output_size = process.stack().get(0).as_int() as usize;
     let input_size = process.stack().get(1).as_int() as usize;
     let input_start_ptr = process.stack().get(2).as_int();
@@ -301,7 +264,7 @@ pub(crate) fn push_ext2_intt_result<S: ProcessState, A: AdviceProvider>(
         advice_provider.push_stack(AdviceSource::Value(*element))?;
     }
 
-    Ok(output_size)
+    Ok(HostResult::Unit)
 }
 
 // HELPER FUNCTIONS

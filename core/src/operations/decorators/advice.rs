@@ -1,6 +1,33 @@
 use crate::{crypto::hash::RpoDigest, Felt, Word};
 use core::fmt;
 
+// ADVICE FUNCTIONS
+// ================================================================================================
+
+/// Defines a set of actions which can be initiated from the VM to interact with the advice
+/// provider. These actions are categorized into: injectors, extractors and advance clock. Injectors
+/// are used to inject new data into the advice provider, extractors are used to extract data
+/// from the advice provider and advance clock advances the clock of the host.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum AdviceFunction {
+    /// Injects data into the advice provider as specified by the injector.
+    Injector(AdviceInjector),
+    /// Extracts data from the advice provider as specified by the extractor.
+    Extractor(AdviceExtractor),
+    /// Advances the clock of the host by one cycle.
+    AdvanceClock,
+}
+
+impl fmt::Display for AdviceFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Injector(injector) => write!(f, "host::advice_injector({injector})"),
+            Self::Extractor(extractor) => write!(f, "host::advice_extractor({extractor})"),
+            Self::AdvanceClock => write!(f, "host::advance_clock"),
+        }
+    }
+}
+
 // ADVICE INJECTORS
 // ================================================================================================
 
@@ -47,24 +74,6 @@ pub enum AdviceInjector {
     ///   Merkle store: {TREE_ROOT<-NODE}
     MerkleNodeToStack,
 
-    /// Pushes a Merkle path to the Merkle node specified by the values of the provided root,
-    /// depth and index onto the advice stack.
-    ///
-    /// Inputs:
-    ///  Operand stack: [...]
-    ///  Advice stack: [...]
-    ///  Merkle store: {...}
-    ///
-    /// Outputs:
-    ///  Operand stack: [...]
-    ///  Advice stack: [path, ...]
-    ///  Merkle store: {...}
-    MerklePathToStack {
-        root: Word,
-        depth: Felt,
-        index: Felt,
-    },
-
     /// Updates the node of a Merkle tree specified by the values of the provided root, depth and
     /// index. Pushes the Merkle path from the updated node to the new root onto the advice stack.
     ///
@@ -77,6 +86,7 @@ pub enum AdviceInjector {
     ///  Operand stack: [...]
     ///  Advice stack: [path, ...]
     ///  Merkle store: {path, ...}
+    ///  Return: [path]
     UpdateMerkleNode {
         root: Word,
         depth: Felt,
@@ -291,13 +301,6 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
-            Self::MerklePathToStack { root, depth, index } => {
-                write!(
-                    f,
-                    "merkle_path_to_stack.{root}.{depth}.{index}",
-                    root = RpoDigest::new(*root)
-                )
-            }
             Self::UpdateMerkleNode {
                 root,
                 depth,
@@ -333,6 +336,121 @@ impl fmt::Display for AdviceInjector {
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
+        }
+    }
+}
+
+// ADVICE EXTRACTORS
+// ================================================================================================
+
+/// Defines a set of actions which can be initiated from the VM to extract data from the advice
+/// provider. These actions can only modify the advice stack.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum AdviceExtractor {
+    /// Pops an element from the advice stack and returns it.
+    ///
+    /// # Errors
+    /// Returns an error if the advice stack is empty.
+    ///
+    /// Inputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [value, ...]
+    ///  Advice map: {...}
+    ///  Merkle store: {...}
+    ///
+    /// Outputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [...]
+    ///  Advice map: {...}
+    ///  Merkle store: {...}
+    ///  Return: [value]
+    PopStack,
+
+    /// Pops a word (4 elements) from the advice stack and returns it.
+    ///
+    /// Note: a word is popped off the stack element-by-element. For example, a `[d, c, b, a, ...]`
+    /// stack (i.e., `d` is at the top of the stack) will yield `[d, c, b, a]`.
+    ///
+    /// # Errors
+    /// Returns an error if the advice stack does not contain a full word.
+    ///
+    /// Inputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [d, c, b, a, ...]
+    ///  Advice map: {...}
+    ///  Merkle store: {...}
+    ///  
+    /// Outputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [...]
+    ///  Advice map: {...}
+    ///  Merkle store: {...}
+    ///  Return: [a, b, c, d]
+    PopStackWord,
+
+    /// Pops a double word (8 elements) from the advice stack and returns them.
+    ///
+    /// Note: words are popped off the stack element-by-element. For example, a
+    /// `[h, g, f, e, d, c, b, a, ...]` stack (i.e., `h` is at the top of the stack) will yield
+    /// two words: `[h, g, f,e ], [d, c, b, a]`.
+    ///
+    /// # Errors
+    /// Returns an error if the advice stack does not contain two words.
+    ///
+    /// Inputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [h, g, f, e, d, c, b, a, ...]
+    ///  Advice map: {...}
+    ///  Merkle store: {...}
+    ///
+    /// Outputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [...]
+    ///  Advice map: {...}
+    ///  Merkle store: {...}
+    ///  Return: [a, b, c, d, e, f, g, h]
+    PopStackDWord,
+
+    /// Extracts a Merkle path for the node specified by the provided root, depth and index from
+    /// Merkle store and returns it.
+    ///
+    /// # Errors
+    /// Returns an error if the Merkle store does not contain the specified Merkle path.
+    ///
+    /// Inputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [...]
+    ///  Advice map: {...}
+    ///  Merkle store: {path, ...}
+    ///
+    /// Outputs:
+    ///  Operand stack: [...]
+    ///  Advice stack: [...]
+    ///  Advice map: {...}
+    ///  Merkle store: {path, ...}
+    ///  Return: [path]
+    GetMerklePath {
+        root: Word,
+        depth: Felt,
+        index: Felt,
+    },
+}
+
+impl fmt::Display for AdviceExtractor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PopStack => write!(f, "pop_stack"),
+            Self::PopStackWord => write!(f, "pop_stack_word"),
+            Self::PopStackDWord => write!(f, "pop_stack_dword"),
+            Self::GetMerklePath { root, depth, index } => {
+                write!(
+                    f,
+                    "get_merkle_path.{root}.{depth}.{index}",
+                    root = RpoDigest::new(*root),
+                    depth = depth,
+                    index = index
+                )
+            }
         }
     }
 }

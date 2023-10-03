@@ -91,7 +91,7 @@ impl SpanBuilder {
 
     /// Adds the specified advice injector to the list of span decorators.
     pub fn push_advice_injector(&mut self, injector: AdviceInjector) {
-        self.push_decorator(Decorator::HostFunction(HostFunction::AdviceInjector(injector)));
+        self.push_decorator(Decorator::HostFunction(HostFunction::new_advice_injector(injector)));
     }
 
     /// Adds an AsmOp decorator to the list of span decorators.

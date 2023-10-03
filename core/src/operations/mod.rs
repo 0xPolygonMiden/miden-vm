@@ -2,8 +2,8 @@ use super::Felt;
 use core::fmt;
 mod decorators;
 pub use decorators::{
-    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
-    HostFunction,
+    AdviceExtractor, AdviceFunction, AdviceInjector, AssemblyOp, DebugOptions, Decorator,
+    DecoratorIterator, DecoratorList, HostFunction, HostResult,
 };
 
 // OPERATIONS

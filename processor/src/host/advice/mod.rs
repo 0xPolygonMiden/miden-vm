@@ -9,7 +9,7 @@ use vm_core::{
         collections::{BTreeMap, KvMap, RecordingMap, Vec},
         IntoBytes,
     },
-    AdviceInjector, WORD_SIZE,
+    AdviceExtractor, AdviceFunction, AdviceInjector, HostResult,
 };
 
 mod inputs;
@@ -42,21 +42,34 @@ pub use source::AdviceSource;
 ///    Merkle paths from the store, as well as mutate it by updating or merging nodes contained in
 ///    the store.
 pub trait AdviceProvider: Sized {
-    // ADVICE INJECTOR HANDLER
+    // ADVICE HANDLERS
     // --------------------------------------------------------------------------------------------
+
+    /// Handles the specified advice function request.
+    fn handle_advice_function<S: ProcessState>(
+        &mut self,
+        process: &S,
+        advice_function: &AdviceFunction,
+    ) -> Result<HostResult, ExecutionError> {
+        match advice_function {
+            AdviceFunction::Injector(injector) => self.handle_advice_injector(process, injector),
+            AdviceFunction::Extractor(extractor) => self.handle_advice_extractor(extractor),
+            AdviceFunction::AdvanceClock => {
+                self.advance_clock();
+                Ok(HostResult::Unit)
+            }
+        }
+    }
 
     /// Handles the specified advice injector request.
     fn handle_advice_injector<S: ProcessState>(
         &mut self,
         process: &S,
-        injector: &AdviceInjector,
-    ) -> Result<usize, ExecutionError> {
-        match injector {
+        advice_injector: &AdviceInjector,
+    ) -> Result<HostResult, ExecutionError> {
+        match advice_injector {
             AdviceInjector::MerkleNodeMerge => self.merge_merkle_nodes(process),
             AdviceInjector::MerkleNodeToStack => self.copy_merkle_node_to_adv_stack(process),
-            AdviceInjector::MerklePathToStack { root, depth, index } => {
-                self.copy_merkle_path_to_adv_stack(*root, depth, index)
-            }
             AdviceInjector::MapValueToStack {
                 include_len,
                 key_offset,
@@ -68,11 +81,7 @@ pub trait AdviceProvider: Sized {
                 value,
             } => {
                 let (path, _) = self.update_merkle_node(*root, depth, index, *value)?;
-                let num_elements = path.len() * WORD_SIZE;
-                for element in path.into_iter().flat_map(Word::from) {
-                    self.push_stack(AdviceSource::Value(element))?;
-                }
-                Ok(num_elements)
+                Ok(HostResult::MerklePath(path))
             }
             AdviceInjector::DivU64 => self.push_u64_div_result(process),
             AdviceInjector::Ext2Inv => self.push_ext2_inv_result(process),
@@ -85,6 +94,21 @@ pub trait AdviceProvider: Sized {
                 self.insert_hdword_into_adv_map(process, *domain)
             }
             AdviceInjector::HpermToMap => self.insert_hperm_into_adv_map(process),
+        }
+    }
+
+    /// Handles the specified advice extractor request.
+    fn handle_advice_extractor(
+        &mut self,
+        advice_extractor: &AdviceExtractor,
+    ) -> Result<HostResult, ExecutionError> {
+        match advice_extractor {
+            AdviceExtractor::PopStack => self.pop_stack().map(HostResult::Element),
+            AdviceExtractor::PopStackDWord => self.pop_stack_dword().map(HostResult::DoubleWord),
+            AdviceExtractor::PopStackWord => self.pop_stack_word().map(HostResult::Word),
+            AdviceExtractor::GetMerklePath { root, depth, index } => {
+                self.get_merkle_path(*root, depth, index).map(HostResult::MerklePath)
+            }
         }
     }
 
@@ -112,7 +136,7 @@ pub trait AdviceProvider: Sized {
     fn insert_mem_values_into_adv_map<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_map_injectors::insert_mem_values_into_adv_map(self, process)
     }
 
@@ -133,7 +157,7 @@ pub trait AdviceProvider: Sized {
         &mut self,
         process: &S,
         domain: Felt,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_map_injectors::insert_hdword_into_adv_map(self, process, domain)
     }
 
@@ -153,7 +177,7 @@ pub trait AdviceProvider: Sized {
     fn insert_hperm_into_adv_map<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_map_injectors::insert_hperm_into_adv_map(self, process)
     }
 
@@ -177,7 +201,7 @@ pub trait AdviceProvider: Sized {
     fn merge_merkle_nodes<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_map_injectors::merge_merkle_nodes(self, process)
     }
 
@@ -206,17 +230,8 @@ pub trait AdviceProvider: Sized {
     fn copy_merkle_node_to_adv_stack<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_stack_injectors::copy_merkle_node_to_adv_stack(self, process)
-    }
-
-    fn copy_merkle_path_to_adv_stack(
-        &mut self,
-        root: Word,
-        depth: &Felt,
-        index: &Felt,
-    ) -> Result<usize, ExecutionError> {
-        injectors::adv_stack_injectors::copy_merkle_path_to_adv_stack(self, root, depth, index)
     }
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
@@ -248,7 +263,7 @@ pub trait AdviceProvider: Sized {
         process: &S,
         include_len: bool,
         key_offset: usize,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_stack_injectors::copy_map_value_to_adv_stack(
             self,
             process,
@@ -278,7 +293,7 @@ pub trait AdviceProvider: Sized {
     fn push_u64_div_result<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_stack_injectors::push_u64_div_result(self, process)
     }
 
@@ -301,7 +316,7 @@ pub trait AdviceProvider: Sized {
     fn push_ext2_inv_result<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_stack_injectors::push_ext2_inv_result(self, process)
     }
 
@@ -337,7 +352,7 @@ pub trait AdviceProvider: Sized {
     fn push_ext2_intt_result<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::adv_stack_injectors::push_ext2_intt_result(self, process)
     }
 
@@ -373,7 +388,7 @@ pub trait AdviceProvider: Sized {
     fn push_smtget_inputs<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::smt::push_smtget_inputs(self, process)
     }
 
@@ -399,7 +414,7 @@ pub trait AdviceProvider: Sized {
     fn push_smtpeek_result<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::smt::push_smtpeek_result(self, process)
     }
 
@@ -433,7 +448,7 @@ pub trait AdviceProvider: Sized {
     fn push_smtset_inputs<S: ProcessState>(
         &mut self,
         process: &S,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         injectors::smt::push_smtset_inputs(self, process)
     }
 

@@ -1,5 +1,5 @@
 use super::{ExecutionError, Felt, Host, Operation, Process};
-use vm_core::StarkField;
+use vm_core::{AdviceExtractor, HostFunction, HostResult, StarkField};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -193,7 +193,15 @@ where
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // pop two words from the advice stack
-        let words = self.host.borrow_mut().pop_stack_dword()?;
+        let words = if let HostResult::DoubleWord(words) =
+            self.host.borrow_mut().execute_host_function(
+                self,
+                &HostFunction::new_advice_extractor(vm_core::AdviceExtractor::PopStackDWord),
+            )? {
+            words
+        } else {
+            unreachable!("expected HostResult::DoubleWord")
+        };
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
@@ -226,7 +234,15 @@ where
     /// # Errors
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self) -> Result<(), ExecutionError> {
-        let value = self.host.borrow_mut().pop_stack()?;
+        let value = if let HostResult::Element(value) =
+            self.host.borrow_mut().execute_host_function(
+                self,
+                &HostFunction::new_advice_extractor(vm_core::AdviceExtractor::PopStack),
+            )? {
+            value
+        } else {
+            unreachable!("expected HostResult::Word")
+        };
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -238,7 +254,14 @@ where
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_advpopw(&mut self) -> Result<(), ExecutionError> {
-        let word = self.host.borrow_mut().pop_stack_word()?;
+        let word = if let HostResult::Word(word) = self.host.borrow_mut().execute_host_function(
+            self,
+            &HostFunction::new_advice_extractor(AdviceExtractor::PopStackWord),
+        )? {
+            word
+        } else {
+            unreachable!("expected HostResult::Word")
+        };
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);

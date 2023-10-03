@@ -1,4 +1,4 @@
-use super::super::{AdviceProvider, ExecutionError, Felt, StarkField};
+use super::super::{AdviceProvider, ExecutionError, Felt, HostResult, StarkField};
 use crate::ProcessState;
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},
@@ -30,7 +30,7 @@ use vm_core::{
 pub(crate) fn insert_mem_values_into_adv_map<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     let (start_addr, end_addr) = get_mem_addr_range(process, 4, 5)?;
     let ctx = process.system().ctx();
 
@@ -43,7 +43,7 @@ pub(crate) fn insert_mem_values_into_adv_map<S: ProcessState, A: AdviceProvider>
     let key = process.stack().get_word(0);
     advice_provider.insert_into_map(key, values)?;
 
-    Ok(0)
+    Ok(HostResult::Unit)
 }
 
 /// Reads two word from the operand stack and inserts them into the advice map under the key
@@ -63,7 +63,7 @@ pub(crate) fn insert_hdword_into_adv_map<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
     domain: Felt,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // get the top two words from the stack and hash them to compute the key value
     let word0 = process.stack().get_word(0);
     let word1 = process.stack().get_word(1);
@@ -76,7 +76,7 @@ pub(crate) fn insert_hdword_into_adv_map<S: ProcessState, A: AdviceProvider>(
     values.extend_from_slice(&word0);
     advice_provider.insert_into_map(key.into(), values)?;
 
-    Ok(0)
+    Ok(HostResult::Unit)
 }
 
 /// Reads three words from the operand stack and inserts the top two words into the advice map
@@ -95,7 +95,7 @@ pub(crate) fn insert_hdword_into_adv_map<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn insert_hperm_into_adv_map<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // read the state from the stack
     let mut state = [
         process.stack().get(11),
@@ -125,7 +125,7 @@ pub(crate) fn insert_hperm_into_adv_map<S: ProcessState, A: AdviceProvider>(
 
     advice_provider.insert_into_map(key.into(), values)?;
 
-    Ok(0)
+    Ok(HostResult::Unit)
 }
 
 /// Creates a new Merkle tree in the advice provider by combining Merkle trees with the
@@ -148,7 +148,7 @@ pub(crate) fn insert_hperm_into_adv_map<S: ProcessState, A: AdviceProvider>(
 pub(crate) fn merge_merkle_nodes<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
-) -> Result<usize, ExecutionError> {
+) -> Result<HostResult, ExecutionError> {
     // fetch the arguments from the stack
     let lhs = process.stack().get_word(1);
     let rhs = process.stack().get_word(0);
@@ -156,7 +156,7 @@ pub(crate) fn merge_merkle_nodes<S: ProcessState, A: AdviceProvider>(
     // perform the merge
     advice_provider.merge_roots(lhs, rhs)?;
 
-    Ok(0)
+    Ok(HostResult::Unit)
 }
 
 // HELPER METHODS

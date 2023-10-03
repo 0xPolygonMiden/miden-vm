@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, ProcessState};
+use super::{ExecutionError, Felt, HostResult, ProcessState};
 use vm_core::DebugOptions;
 
 // DEBUG HANDLER
@@ -10,7 +10,7 @@ pub trait DebugHandler {
         &self,
         process: &S,
         options: &DebugOptions,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         match options {
             DebugOptions::StackAll | DebugOptions::StackTop(_) => {
                 self.handle_stack_debug(process, options)
@@ -23,7 +23,7 @@ pub trait DebugHandler {
         &self,
         process: &S,
         options: &DebugOptions,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         let clk = process.system().clk();
         match options {
             DebugOptions::StackAll => {
@@ -37,7 +37,7 @@ pub trait DebugHandler {
             }
         }
 
-        Ok(0)
+        Ok(HostResult::Unit)
     }
 
     /// Handles the provided memory debug request.
@@ -45,7 +45,7 @@ pub trait DebugHandler {
         &self,
         _process: &S,
         _options: &DebugOptions,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         todo!()
     }
 
@@ -54,7 +54,7 @@ pub trait DebugHandler {
         &self,
         _process: &S,
         _options: &DebugOptions,
-    ) -> Result<usize, ExecutionError> {
+    ) -> Result<HostResult, ExecutionError> {
         todo!()
     }
 }
