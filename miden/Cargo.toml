@@ -39,7 +39,7 @@ path = "tests/integration/main.rs"
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "clap", "rustyline"]
+executable = ["dep:env_logger", "dep:hex", "hex?/std", "std", "dep:serde", "serde?/std", "dep:serde_derive", "dep:serde_json", "serde_json?/std", "dep:clap", "dep:rustyline"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
@@ -47,13 +47,13 @@ assembly = { package = "miden-assembly", path = "../assembly", version = "0.7", 
 clap = { version = "4.0", features = ["derive"], optional = true }
 env_logger = { version = "0.10", default-features = false, optional = true }
 hex = { version = "0.4", optional = true }
-log = { version = "0.4", default-features = false }
+log = { version = "0.4", default-features = false, optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.7", default-features = false }
 prover = { package = "miden-prover", path = "../prover", version = "0.7", default-features = false }
 rustyline = { version = "12.0", default-features = false, optional = true }
-serde = {version = "1.0.117", optional = true }
-serde_derive = {version = "1.0.117", optional = true }
-serde_json = {version = "1.0.59", optional = true }
+serde = {version = "1.0", optional = true }
+serde_derive = {version = "1.0", optional = true }
+serde_json = {version = "1.0", optional = true }
 stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.6", default-features = false }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.7", default-features = false }
 
