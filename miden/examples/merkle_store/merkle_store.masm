@@ -6,10 +6,9 @@ begin
     push.0.2
     mtree_get
     # check that returned value is equal to 20
-    push.20
-    assert_eq
+    push.20.0.0.0
+    assert_eqw
 
-    swapw
     dropw
     
     # push the root of the Sparse Merkle Tree on the stack
@@ -19,10 +18,9 @@ begin
     push.1.64
     mtree_get
     # check that returned value is equal to 21
-    push.21
-    assert_eq
+    push.21.0.0.0
+    assert_eqw
 
-    swapw
     dropw
     
     # push the root of the Merkle Tree on the stack
@@ -32,10 +30,9 @@ begin
     push.2.2
     mtree_get
     # check that returned value is equal to 22
-    push.22
-    assert_eq
+    push.22.0.0.0
+    assert_eqw
 
-    swapw
     dropw
 
 end
