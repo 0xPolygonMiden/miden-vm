@@ -19,6 +19,10 @@ doctest = false
 name = "stdlib"
 path = "tests/main.rs"
 
+[features]
+default = ["std"]
+std = ["test-utils/std"]
+
 [dependencies]
 assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.7" }
 
