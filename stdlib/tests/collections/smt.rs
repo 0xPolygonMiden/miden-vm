@@ -348,7 +348,7 @@ fn assert_insert(
     assert_eq!(stack, expected_output);
 
     // remove the initial key-value pairs from the advice map
-    let mut new_adv_map = process.host.borrow().advice_provider().map().clone();
+    let mut new_adv_map = process.host.advice_provider().map().clone();
     for (key, value) in adv_map.iter() {
         let init_value = new_adv_map.remove(key).unwrap();
         assert_eq!(value, &init_value);
@@ -639,7 +639,7 @@ fn assert_set(
     assert_eq!(stack, expected_output);
 
     // remove the initial key-value pairs from the advice map
-    let mut new_adv_map = process.host.borrow().advice_provider().map().clone();
+    let mut new_adv_map = process.host.advice_provider().map().clone();
     for (key, value) in adv_map.iter() {
         let init_value = new_adv_map.remove(key).unwrap();
         assert_eq!(value, &init_value);

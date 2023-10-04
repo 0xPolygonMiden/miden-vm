@@ -1,6 +1,7 @@
 use super::{
     AdviceExtractor, ExecutionError, Felt, Host, HostRequest, HostResponse, Operation, Process,
 };
+use crate::ProcessStateObserver;
 use vm_core::StarkField;
 
 // INPUT / OUTPUT OPERATIONS
@@ -195,11 +196,10 @@ where
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // pop two words from the advice stack
-        let words = if let HostResponse::DoubleWord(words) = self
-            .host
-            .borrow_mut()
-            .handle_request(self, &HostRequest::GetAdvice(AdviceExtractor::PopStackDWord))?
-        {
+        let words = if let HostResponse::DoubleWord(words) = self.host.handle_request(
+            &ProcessStateObserver::new(&self.system, &self.stack, &self.chiplets),
+            &HostRequest::GetAdvice(AdviceExtractor::PopStackDWord),
+        )? {
             words
         } else {
             unreachable!("expected HostResponse::DoubleWord")
@@ -236,11 +236,10 @@ where
     /// # Errors
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self) -> Result<(), ExecutionError> {
-        let value = if let HostResponse::Element(value) = self
-            .host
-            .borrow_mut()
-            .handle_request(self, &HostRequest::GetAdvice(AdviceExtractor::PopStack))?
-        {
+        let value = if let HostResponse::Element(value) = self.host.handle_request(
+            &ProcessStateObserver::new(&self.system, &self.stack, &self.chiplets),
+            &HostRequest::GetAdvice(AdviceExtractor::PopStack),
+        )? {
             value
         } else {
             unreachable!("expected HostResponse::Word")
@@ -256,11 +255,10 @@ where
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_advpopw(&mut self) -> Result<(), ExecutionError> {
-        let word = if let HostResponse::Word(word) = self
-            .host
-            .borrow_mut()
-            .handle_request(self, &HostRequest::GetAdvice(AdviceExtractor::PopStackWord))?
-        {
+        let word = if let HostResponse::Word(word) = self.host.handle_request(
+            &ProcessStateObserver::new(&self.system, &self.stack, &self.chiplets),
+            &HostRequest::GetAdvice(AdviceExtractor::PopStackWord),
+        )? {
             word
         } else {
             unreachable!("expected HostResponse::Word")
@@ -540,7 +538,6 @@ mod tests {
             // reverse the word order, since elements are pushed onto the advice stack.
             process
                 .host
-                .borrow_mut()
                 .advice_provider_mut()
                 .push_stack(AdviceSource::Value(element))
                 .unwrap();

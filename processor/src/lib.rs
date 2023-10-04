@@ -4,8 +4,6 @@
 #[macro_use]
 extern crate alloc;
 
-use core::cell::RefCell;
-
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH,
@@ -158,7 +156,7 @@ where
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    host: RefCell<H>,
+    host: H,
     max_cycles: u32,
 }
 
@@ -196,7 +194,7 @@ where
             stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            host: RefCell::new(host),
+            host,
             max_cycles: execution_options.max_cycles(),
         }
     }
@@ -478,12 +476,16 @@ where
     fn execute_decorator(&mut self, decorator: &Decorator) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Advice(injector) => {
-                self.host
-                    .borrow_mut()
-                    .handle_request(self, &HostRequest::PrepAdvice(*injector))?;
+                self.host.handle_request(
+                    &ProcessStateObserver::new(&self.system, &self.stack, &self.chiplets),
+                    &HostRequest::PrepAdvice(*injector),
+                )?;
             }
             Decorator::Debug(options) => {
-                self.host.borrow_mut().handle_request(self, &HostRequest::Debug(*options))?;
+                self.host.handle_request(
+                    &ProcessStateObserver::new(&self.system, &self.stack, &self.chiplets),
+                    &HostRequest::Debug(*options),
+                )?;
             }
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {
@@ -506,14 +508,7 @@ where
     }
 
     pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, H) {
-        (
-            self.system,
-            self.decoder,
-            self.stack,
-            self.range,
-            self.chiplets,
-            self.host.into_inner(),
-        )
+        (self.system, self.decoder, self.stack, self.range, self.chiplets, self.host)
     }
 }
 
@@ -559,7 +554,25 @@ pub trait ProcessState {
     fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word>;
 }
 
-impl<H: Host> ProcessState for Process<H> {
+// STATE OBSERVER
+// ================================================================================================
+pub struct ProcessStateObserver<'a> {
+    system: &'a System,
+    stack: &'a Stack,
+    chiplets: &'a Chiplets,
+}
+
+impl<'a> ProcessStateObserver<'a> {
+    pub fn new(system: &'a System, stack: &'a Stack, chiplets: &'a Chiplets) -> Self {
+        Self {
+            system,
+            stack,
+            chiplets,
+        }
+    }
+}
+
+impl<'a> ProcessState for ProcessStateObserver<'a> {
     fn clk(&self) -> u32 {
         self.system.clk()
     }
@@ -581,7 +594,7 @@ impl<H: Host> ProcessState for Process<H> {
     }
 
     fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word> {
-        self.get_memory_value(ctx, addr)
+        self.chiplets.get_mem_value(ctx, addr)
     }
 }
 
@@ -598,6 +611,6 @@ where
     pub stack: Stack,
     pub range: RangeChecker,
     pub chiplets: Chiplets,
-    pub host: RefCell<H>,
+    pub host: H,
     pub max_cycles: u32,
 }
