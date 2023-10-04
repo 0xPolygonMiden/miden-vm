@@ -42,11 +42,8 @@ begin
 end
 ```
 
-#### Dynamic procedures
-
-There are two dynamic procedure instructions, `dynexec` and `dyncall`, which can be used to execute a dynamically-specified code target whose hash is not revealed to the verifier. Instead of the code target being specified in the program's MAST, it is specified by the stack, and a [`DYN` node](../../design/programs.md#dyn-block) is placed in the MAST to indicate a dynamically-specified target must be executed. When computing the MAST root of programs, `DYN` nodes all have the same constant value. Thus, `dynexec` and `dyncall` can be used to increase privacy, since they enable code block execution without revealing the hash of the code block to the verifier.
-
-The difference between `dynexec` and `dyncall` is that `dyncall` will change context before executing the dynamic code target, while `dynexec` will cause the code target to be executed in the current context. Execution contexts are explained in the [next section](./execution_contexts.md).
+#### Dynamic procedure invocation
+It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` is that `dyncall` will [change context](./execution_contexts.md) before executing the dynamic code target, while `dynexec` will cause the code target to be executed in the current context.
 
 Dynamic code execution in the same context is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
 
