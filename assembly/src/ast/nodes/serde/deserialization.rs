@@ -361,6 +361,8 @@ impl Deserializable for Instruction {
             OpCode::CallMastRoot => Ok(Instruction::CallMastRoot(RpoDigest::read_from(source)?)),
             OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(source)?)),
             OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(source)?)),
+            OpCode::DynExec => Ok(Instruction::DynExec),
+            OpCode::DynCall => Ok(Instruction::DynCall),
 
             // ----- debugging --------------------------------------------------------------------
             OpCode::Debug => {

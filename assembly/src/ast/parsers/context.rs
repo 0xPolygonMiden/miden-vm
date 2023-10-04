@@ -615,6 +615,8 @@ impl ParserContext<'_> {
             "exec" => self.parse_exec(op),
             "call" => self.parse_call(op),
             "syscall" => self.parse_syscall(op),
+            "dynexec" => simple_instruction(op, DynExec),
+            "dyncall" => simple_instruction(op, DynCall),
 
             // ----- constant statements ----------------------------------------------------------
             "const" => Err(ParsingError::const_invalid_scope(op)),

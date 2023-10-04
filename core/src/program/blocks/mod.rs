@@ -80,6 +80,11 @@ impl CodeBlock {
     }
 
     /// TODO: add comments
+    pub fn new_dyncall() -> Self {
+        Self::Call(Call::new(Dyn::dyn_hash()))
+    }
+
+    /// TODO: add comments
     pub fn new_proxy(code_hash: Digest) -> Self {
         Self::Proxy(Proxy::new(code_hash))
     }

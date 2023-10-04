@@ -42,6 +42,28 @@ begin
 end
 ```
 
+#### Dynamic procedure invocation
+It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` is that `dyncall` will [change context](./execution_contexts.md) before executing the dynamic code target, while `dynexec` will cause the code target to be executed in the current context.
+
+Dynamic code execution in the same context is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+
+```
+dynexec
+```
+
+This causes the VM to do the following:
+
+1. Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).
+2. Execute the code block which hashes to the specified target. The VM must know the specified code block and hash (they must be in the CodeBlockTable of the executing Program).
+
+Dynamic code execution in a new context can be achieved similarly by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+
+```
+dyncall
+```
+
+> **Note**: In both cases, the stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.
+
 ### Modules
 A *module* consists of one or more procedures. There are two types of modules: *library modules* and *executable modules* (also called *programs*).
 

@@ -123,4 +123,14 @@ impl Assembler {
         // create a new SYSCALL block for the procedure call and return
         Ok(Some(CodeBlock::new_syscall(proc.mast_root())))
     }
+
+    pub(super) fn dynexec(&self) -> Result<Option<CodeBlock>, AssemblyError> {
+        // create a new DYN block for the dynamic code execution and return
+        Ok(Some(CodeBlock::new_dyn()))
+    }
+
+    pub(super) fn dyncall(&self) -> Result<Option<CodeBlock>, AssemblyError> {
+        // create a new CALL block whose target is DYN
+        Ok(Some(CodeBlock::new_dyncall()))
+    }
 }

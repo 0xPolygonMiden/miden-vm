@@ -519,6 +519,8 @@ impl Serializable for Instruction {
                 OpCode::SysCall.write_into(target);
                 imported.write_into(target)
             }
+            Self::DynExec => OpCode::DynExec.write_into(target),
+            Self::DynCall => OpCode::DynCall.write_into(target),
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => {
