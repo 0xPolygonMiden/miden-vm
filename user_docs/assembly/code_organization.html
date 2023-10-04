@@ -209,6 +209,22 @@ begin
     exec.foo
 end
 </code></pre>
+<h4 id="dynamic-procedure-invocation"><a class="header" href="#dynamic-procedure-invocation">Dynamic procedure invocation</a></h4>
+<p>It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. There are two instructions, <code>dynexec</code> and <code>dyncall</code>, which can be used to execute dynamically-specified code targets. Both instructions expect <a href="../../design/programs.html">MAST root</a> of the target to be provided via the stack. The difference between <code>dynexec</code> and <code>dyncall</code> is that <code>dyncall</code> will <a href="./execution_contexts.html">change context</a> before executing the dynamic code target, while <code>dynexec</code> will cause the code target to be executed in the current context.</p>
+<p>Dynamic code execution in the same context is achieved by setting the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> elements of the stack to the hash of the dynamic code block and then executing the following instruction:</p>
+<pre><code>dynexec
+</code></pre>
+<p>This causes the VM to do the following:</p>
+<ol>
+<li>Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).</li>
+<li>Execute the code block which hashes to the specified target. The VM must know the specified code block and hash (they must be in the CodeBlockTable of the executing Program).</li>
+</ol>
+<p>Dynamic code execution in a new context can be achieved similarly by setting the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> elements of the stack to the hash of the dynamic code block and then executing the following instruction:</p>
+<pre><code>dyncall
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: In both cases, the stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.</p>
+</blockquote>
 <h3 id="modules"><a class="header" href="#modules">Modules</a></h3>
 <p>A <em>module</em> consists of one or more procedures. There are two types of modules: <em>library modules</em> and <em>executable modules</em> (also called <em>programs</em>).</p>
 <h4 id="library-modules"><a class="header" href="#library-modules">Library modules</a></h4>
