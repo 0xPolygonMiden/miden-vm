@@ -1,8 +1,10 @@
+use crate::AdviceSource;
+
 use super::{AdviceProvider, ExecutionError, Process};
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},
     utils::collections::Vec,
-    Felt, StarkField, EMPTY_WORD, WORD_SIZE,
+    Felt, SignatureKind, StarkField, EMPTY_WORD, WORD_SIZE,
 };
 
 // ADVICE INJECTORS
@@ -148,5 +150,31 @@ where
         }
 
         Ok((start_addr as u32, end_addr as u32))
+    }
+
+    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden VM.
+    ///
+    /// Inputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [DATA]
+    ///
+    /// Where:
+    /// - PK is the digest of an expanded public.
+    /// - MSG is the digest of the message to be signed.
+    /// - DATA is the needed data for signature verification in the VM.
+    ///
+    /// The advice provider is expected to contain the private key associated to the public key PK.
+    pub(super) fn push_signature(&mut self, kind: SignatureKind) -> Result<(), ExecutionError> {
+        let pub_key = self.stack.get_word(0);
+        let msg = self.stack.get_word(1);
+        let result: Vec<Felt> = self.advice_provider.get_signature(kind, pub_key, msg)?;
+        for r in result {
+            self.advice_provider.push_stack(AdviceSource::Value(r))?;
+        }
+        Ok(())
     }
 }

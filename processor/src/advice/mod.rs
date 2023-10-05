@@ -9,6 +9,7 @@ use vm_core::{
         collections::{BTreeMap, KvMap, RecordingMap, Vec},
         IntoBytes,
     },
+    SignatureKind,
 };
 
 mod inputs;
@@ -19,6 +20,8 @@ pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;
+
+mod dsa;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -106,6 +109,14 @@ pub trait AdviceProvider {
     /// If the specified key is already present in the advice map, the values under the key
     /// are replaced with the specified values.
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
+
+    /// Returns a signature on a message using a public key.
+    fn get_signature(
+        &self,
+        kind: SignatureKind,
+        pub_key: Word,
+        msg: Word,
+    ) -> Result<Vec<Felt>, ExecutionError>;
 
     // MERKLE STORE
     // --------------------------------------------------------------------------------------------
@@ -309,5 +320,14 @@ where
 
     fn advance_clock(&mut self) {
         T::advance_clock(self)
+    }
+
+    fn get_signature(
+        &self,
+        kind: SignatureKind,
+        pub_key: Word,
+        msg: Word,
+    ) -> Result<Vec<Felt>, ExecutionError> {
+        T::get_signature(self, kind, pub_key, msg)
     }
 }

@@ -1,9 +1,14 @@
-use super::super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
-    MAX_STACK_WORD_OFFSET,
+use crate::ast::nodes::serde::signatures;
+
+use super::{
+    super::{
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
+        MAX_STACK_WORD_OFFSET,
+    },
+    serde::signatures::read_options_from,
 };
 use core::fmt;
-use vm_core::{AdviceInjector, Felt, ZERO};
+use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
 
 // ADVICE INJECTORS
 // ================================================================================================
@@ -29,6 +34,7 @@ pub enum AdviceInjectorNode {
     InsertHdword,
     InsertHdwordImm { domain: u8 },
     InsertHperm,
+    PushSignature { kind: SignatureKind },
 }
 
 impl From<&AdviceInjectorNode> for AdviceInjector {
@@ -63,6 +69,7 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
                 domain: Felt::from(*domain),
             },
             InsertHperm => Self::HpermToMap,
+            PushSignature { kind } => Self::SigToStack { kind: *kind },
         }
     }
 }
@@ -85,6 +92,7 @@ impl fmt::Display for AdviceInjectorNode {
             InsertHdword => write!(f, "insert_hdword"),
             InsertHdwordImm { domain } => write!(f, "insert_hdword.{domain}"),
             InsertHperm => writeln!(f, "insert_hperm"),
+            PushSignature { kind } => write!(f, "push_sig.{kind}"),
         }
     }
 }
@@ -106,6 +114,7 @@ const INSERT_MEM: u8 = 10;
 const INSERT_HDWORD: u8 = 11;
 const INSERT_HDWORD_IMM: u8 = 12;
 const INSERT_HPERM: u8 = 13;
+const PUSH_SIG: u8 = 14;
 
 impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -134,6 +143,10 @@ impl Serializable for AdviceInjectorNode {
                 target.write_u8(*domain);
             }
             InsertHperm => target.write_u8(INSERT_HPERM),
+            PushSignature { kind } => {
+                target.write_u8(PUSH_SIG);
+                signatures::write_options_into(target, kind)
+            }
         }
     }
 }
@@ -170,6 +183,9 @@ impl Deserializable for AdviceInjectorNode {
                 Ok(AdviceInjectorNode::InsertHdwordImm { domain })
             }
             INSERT_HPERM => Ok(AdviceInjectorNode::InsertHperm),
+            PUSH_SIG => Ok(AdviceInjectorNode::PushSignature {
+                kind: read_options_from(source)?,
+            }),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
     }

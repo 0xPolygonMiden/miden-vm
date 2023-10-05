@@ -1,3 +1,4 @@
+use super::SignatureKind;
 use crate::Felt;
 use core::fmt;
 
@@ -247,6 +248,21 @@ pub enum AdviceInjector {
     /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
     /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
     HpermToMap,
+
+    /// Reads two words from the stack and pushes values onto the advice stack which are required
+    /// for verification of a DSA in Miden VM.
+    ///
+    /// Inputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [SIG_DATA]
+    ///
+    /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
+    /// is the signature data.
+    SigToStack { kind: SignatureKind },
 }
 
 impl fmt::Display for AdviceInjector {
@@ -273,6 +289,7 @@ impl fmt::Display for AdviceInjector {
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
+            Self::SigToStack { kind } => write!(f, "sig_to_stack.{kind}"),
         }
     }
 }
