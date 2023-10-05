@@ -26,7 +26,7 @@ export.mod_12289
     adv.push_u64div
 
     adv_push.2
-    u32assert.2
+    u32assert2
 
     swap
     push.M
@@ -189,18 +189,18 @@ export.load_h_s2_and_product.1
         adv_pipe
 
         dupw.1
-        u32assert.2
+        u32assert2
         push.M u32unchecked_lt assert
         push.M u32unchecked_lt assert
-        u32assert.2
+        u32assert2
         push.M u32unchecked_lt assert
         push.M u32unchecked_lt assert
 
         dupw
-        u32assert.2
+        u32assert2
         push.M u32unchecked_lt assert
         push.M u32unchecked_lt assert
-        u32assert.2
+        u32assert2
         push.M u32unchecked_lt assert
         push.M u32unchecked_lt assert
 

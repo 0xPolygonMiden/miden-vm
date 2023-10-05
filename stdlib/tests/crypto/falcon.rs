@@ -2,7 +2,10 @@ use miden_air::{Felt, StarkField};
 
 use std::vec;
 use test_utils::{
-    crypto::{KeyPair, Polynomial, Rpo256, Signature},
+    crypto::{
+        rpo_falcon512::{KeyPair, Polynomial, Signature},
+        Rpo256,
+    },
     rand::rand_vector,
     Test, Word,
 };
