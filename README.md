@@ -11,7 +11,7 @@ A STARK-based virtual machine.
 ## Overview
 Miden VM is a zero-knowledge virtual machine written in Rust. For any program executed on Miden VM, a STARK-based proof of execution is automatically generated. This proof can then be used by anyone to verify that the program was executed correctly without the need for re-executing the program or even knowing the contents of the program.
 
-* If you'd like to learn more about how Miden VM works, check out the [documentation](https://wiki.polygon.technology/docs/miden/intro/main/).
+* If you'd like to learn more about how Miden VM works, check out the [documentation](https://0xpolygonmiden.github.io/miden-vm/).
 * If you'd like to start using Miden VM, check out the [miden](miden) crate.
 * If you'd like to learn more about STARKs, check out the [references](#references) section.
 
