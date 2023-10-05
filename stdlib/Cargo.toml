@@ -19,17 +19,21 @@ doctest = false
 name = "stdlib"
 path = "tests/main.rs"
 
+[features]
+default = ["std"]
+std = ["test-utils/std"]
+
 [dependencies]
 assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.7" }
 
 [dev-dependencies]
-blake3 = "1.3.3"
+blake3 = "1.4"
 miden-air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
-num-bigint = "0.4.3"
+num-bigint = "0.4"
 processor = { package = "miden-processor", path = "../processor", version = "0.7", features = ["internals"], default-features = false }
-serde_json = "1.0.94"
-sha2 = "0.10.6"
-sha3 = "0.10.6"
+serde_json = "1.0"
+sha2 = "0.10"
+sha3 = "0.10"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-air = { package = "winter-air", version = "0.6" }
 winter-fri = { package = "winter-fri", version = "0.6" }

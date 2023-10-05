@@ -4,6 +4,7 @@ use super::{Felt, Vec, Word, ZERO};
 // ================================================================================================
 
 pub use vm_core::crypto::{
+    dsa::*,
     hash::{Rpo256, RpoDigest},
     merkle::{
         EmptySubtreeRoots, MerkleError, MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks,
