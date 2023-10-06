@@ -32,6 +32,9 @@ impl LibraryPath {
     /// Path for an executable module.
     pub const EXEC_PATH: &'static str = "#exec";
 
+    /// Path for a module without library path.
+    pub const ANON_PATH: &'static str = "#anon";
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -68,6 +71,14 @@ impl LibraryPath {
     pub fn exec_path() -> Self {
         Self {
             path: Self::EXEC_PATH.into(),
+            num_components: 1,
+        }
+    }
+
+    /// Returns a path for a module without library path.
+    pub fn anon_path() -> Self {
+        Self {
+            path: Self::ANON_PATH.into(),
             num_components: 1,
         }
     }

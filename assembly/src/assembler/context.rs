@@ -432,18 +432,7 @@ impl ModuleContext {
     /// This also updates module callset to include the callset of the newly compiled procedure.
     pub fn complete_proc(&mut self, code: CodeBlock) {
         let proc_context = self.proc_stack.pop().expect("no procedures");
-
-        // build an ID for the procedure as follows:
-        // - for exported procedures: hash("module_path::proc_name")
-        // - for internal procedures: hash("module_path::proc_index")
-        let proc_id = if proc_context.is_export {
-            ProcedureId::from_name(&proc_context.name, &self.path)
-        } else {
-            let proc_idx = self.compiled_procs.len() as u16;
-            ProcedureId::from_index(proc_idx, &self.path)
-        };
-
-        let proc = proc_context.into_procedure(proc_id, code);
+        let proc = proc_context.into_procedure(code);
         self.callset.append(proc.callset());
         self.compiled_procs.push(proc);
     }
@@ -560,7 +549,7 @@ impl ProcedureContext {
         &self.name
     }
 
-    pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> NamedProcedure {
+    pub fn into_procedure(self, code_root: CodeBlock) -> NamedProcedure {
         let Self {
             name,
             is_export,
@@ -568,6 +557,6 @@ impl ProcedureContext {
             callset,
         } = self;
 
-        NamedProcedure::new(id, name, is_export, num_locals as u32, code_root, callset)
+        NamedProcedure::new(name, is_export, num_locals as u32, code_root, callset)
     }
 }

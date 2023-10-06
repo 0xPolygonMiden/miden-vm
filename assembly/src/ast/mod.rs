@@ -384,8 +384,7 @@ impl fmt::Display for ProgramAst {
 /// An abstract syntax tree of a Miden module.
 ///
 /// A module AST consists of a list of procedure ASTs, a list of re-exported procedures, a list of
-/// imports, a map from procedure ids to procedure names for imported procedures used in the module,
-/// and module documentation. Local procedures could be internal or exported.
+/// imports, and module documentation. Local procedures could be internal or exported.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleAst {
     local_procs: Vec<ProcedureAst>,

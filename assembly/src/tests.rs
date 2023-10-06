@@ -9,7 +9,7 @@ use core::slice::Iter;
 
 #[test]
 fn simple_instructions() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin push.0 assertz end";
     let program = assembler.compile(source).unwrap();
     let expected = "\
@@ -37,7 +37,7 @@ fn simple_instructions() {
 
 #[test]
 fn empty_program() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span noop end end";
@@ -46,7 +46,7 @@ fn empty_program() {
 
 #[test]
 fn empty_if() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin if.true end end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin if.true span noop end else span noop end end end";
@@ -55,7 +55,7 @@ fn empty_if() {
 
 #[test]
 fn empty_while() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin while.true end end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin while.true span noop end end end";
@@ -64,7 +64,7 @@ fn empty_while() {
 
 #[test]
 fn empty_repeat() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin repeat.5 end end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span noop noop noop noop noop end end";
@@ -73,7 +73,7 @@ fn empty_repeat() {
 
 #[test]
 fn single_span() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin push.1 push.2 add end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -82,7 +82,7 @@ fn single_span() {
 
 #[test]
 fn span_and_simple_if() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // if with else
     let source = "begin push.2 push.3 if.true add else mul end end";
@@ -115,7 +115,7 @@ fn span_and_simple_if() {
 #[test]
 fn simple_main_call() {
     // instantiate assembler
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // compile account module
     let account_path = LibraryPath::new("context::account").unwrap();
@@ -131,23 +131,88 @@ fn simple_main_call() {
     ",
     )
     .unwrap();
-    let account_module = Module::new(account_path, account_code);
     let _method_roots = assembler
-        .compile_module(&account_module, &mut super::AssemblyContext::for_module(false))
+        .compile_module(&account_code, Some(&account_path), &mut AssemblyContext::for_module(false))
         .unwrap();
 
     // compile note 1 program
     let note_1 =
         ProgramAst::parse("use.context::account begin call.account::account_method_1 end").unwrap();
     let _note_1_root = assembler
-        .compile_in_context(&note_1, &mut super::AssemblyContext::for_program(Some(&note_1)))
+        .compile_in_context(&note_1, &mut AssemblyContext::for_program(Some(&note_1)))
         .unwrap();
 
     // compile note 2 program
     let note_2 =
         ProgramAst::parse("use.context::account begin call.account::account_method_2 end").unwrap();
     let _note_2_root = assembler
-        .compile_in_context(&note_2, &mut super::AssemblyContext::for_program(Some(&note_2)))
+        .compile_in_context(&note_2, &mut AssemblyContext::for_program(Some(&note_2)))
+        .unwrap();
+}
+
+#[test]
+fn call_without_path() {
+    // instantiate assembler
+    let assembler = Assembler::default();
+
+    // compile first module
+    let account_code1 = ModuleAst::parse(
+        "\
+    export.account_method_1
+        push.2.1 add
+    end
+    
+    export.account_method_2
+        push.3.1 sub
+    end
+    ",
+    )
+    .unwrap();
+    assembler
+        .compile_module(&account_code1, None, &mut AssemblyContext::for_module(false))
+        .unwrap();
+
+    //---------------------------------------------------------------------------------------------
+
+    // compile second module
+    let account_code2 = ModuleAst::parse(
+        "\
+    export.account_method_1
+        push.2.2 add
+    end
+    
+    export.account_method_2
+        push.4.1 sub
+    end
+    ",
+    )
+    .unwrap();
+    assembler
+        .compile_module(&account_code2, None, &mut AssemblyContext::for_module(false))
+        .unwrap();
+
+    //---------------------------------------------------------------------------------------------
+
+    // compile program in which functions from different modules but with equal names are called
+    let source = ProgramAst::parse(
+        "begin 
+            # call the account_method_1 from the first module (account_code1)
+            call.0x81e0b1afdbd431e4c9d4b86599b82c3852ecf507ae318b71c099cdeba0169068 
+
+            # call the account_method_2 from the first module (account_code1)
+            call.0x1bc375fc794af6637af3f428286bf6ac1a24617640ed29f8bc533f48316c6d75
+
+            # call the account_method_1 from the second module (account_code2)
+            call.0xcfadd74886ea075d15826a4f59fb4db3a10cde6e6e953603cba96b4dcbb94321 
+
+            # call the account_method_2 from the second module (account_code2)
+            call.0x1976bf72d457bd567036d3648b7e3f3c22eca4096936931e59796ec05c0ecb10
+        end",
+    )
+    .unwrap();
+
+    assembler
+        .compile_in_context(&source, &mut AssemblyContext::for_program(Some(&source)))
         .unwrap();
 }
 
@@ -156,7 +221,7 @@ fn simple_main_call() {
 
 #[test]
 fn simple_constant() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT=7 \
     begin \
     push.TEST_CONSTANT \
@@ -174,7 +239,7 @@ fn simple_constant() {
 
 #[test]
 fn multiple_constants_push() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.CONSTANT_1=21 \
     const.CONSTANT_2=44 \
     begin \
@@ -192,7 +257,7 @@ fn multiple_constants_push() {
 
 #[test]
 fn constant_numeric_expression() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT=11-2+4*(12-(10+1))+9+8//4*2 \
     begin \
     push.TEST_CONSTANT \
@@ -210,7 +275,7 @@ fn constant_numeric_expression() {
 
 #[test]
 fn constant_alphanumeric_expression() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT_1=(18-1+10)*6-((13+7)*2) \
     const.TEST_CONSTANT_2=11-2+4*(12-(10+1))+9
     const.TEST_CONSTANT_3=(TEST_CONSTANT_1-(TEST_CONSTANT_2+10))//5+3
@@ -230,7 +295,7 @@ fn constant_alphanumeric_expression() {
 
 #[test]
 fn constant_field_division() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT=(17//4)/4*(1//2)+2 \
     begin \
     push.TEST_CONSTANT \
@@ -248,7 +313,7 @@ fn constant_field_division() {
 
 #[test]
 fn constant_err_const_not_initialized() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT=5+A \
     begin \
     push.TEST_CONSTANT \
@@ -262,7 +327,7 @@ fn constant_err_const_not_initialized() {
 
 #[test]
 fn constant_err_div_by_zero() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT=5/0 \
     begin \
     push.TEST_CONSTANT \
@@ -286,7 +351,7 @@ fn constant_err_div_by_zero() {
 
 #[test]
 fn constants_must_be_uppercase() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.constant_1=12 \
     begin \
     push.constant_1 \
@@ -300,7 +365,7 @@ fn constants_must_be_uppercase() {
 
 #[test]
 fn duplicate_constant_name() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.CONSTANT=12 \
     const.CONSTANT=14 \
     begin \
@@ -315,7 +380,7 @@ fn duplicate_constant_name() {
 
 #[test]
 fn constant_must_be_valid_felt() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.CONSTANT=1122INVALID \
     begin \
     push.CONSTANT \
@@ -330,7 +395,7 @@ fn constant_must_be_valid_felt() {
 
 #[test]
 fn constant_must_be_within_valid_felt_range() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "const.CONSTANT=18446744073709551615 \
     begin \
     push.CONSTANT \
@@ -346,7 +411,7 @@ fn constant_must_be_within_valid_felt_range() {
 
 #[test]
 fn constants_defined_in_global_scope() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "
     begin \
     const.CONSTANT=12
@@ -361,7 +426,7 @@ fn constants_defined_in_global_scope() {
 
 #[test]
 fn constant_not_found() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "
     begin \
     push.CONSTANT \
@@ -375,7 +440,7 @@ fn constant_not_found() {
 
 #[test]
 fn mem_operations_with_constants() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // Define constant values
     const PROC_LOC_STORE_PTR: u64 = 0;
@@ -495,7 +560,7 @@ fn const_conversion_failed_to_u16() {
     end
     "
     );
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let result = assembler.compile(source);
     assert!(result.is_err());
     let err = result.err().unwrap();
@@ -518,7 +583,7 @@ fn const_conversion_failed_to_u32() {
     end
     "
     );
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let result = assembler.compile(source);
     assert!(result.is_err());
     let err = result.err().unwrap();
@@ -542,7 +607,7 @@ fn assert_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -564,7 +629,7 @@ fn assertz_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -586,7 +651,7 @@ fn assert_eq_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -608,7 +673,7 @@ fn assert_eqw_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -634,7 +699,7 @@ fn u32assert_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -656,7 +721,7 @@ fn u32assert2_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -678,7 +743,7 @@ fn u32assertw_with_code() {
     end
     "
     .to_string();
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let program = assembler.compile(source).unwrap();
 
     let expected = "\
@@ -697,7 +762,7 @@ fn u32assertw_with_code() {
 
 #[test]
 fn nested_control_blocks() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // if with else
     let source = "begin \
@@ -738,7 +803,7 @@ fn nested_control_blocks() {
 
 #[test]
 fn program_with_one_procedure() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span push(2) push(3) add push(3) push(7) mul end end";
@@ -747,7 +812,7 @@ fn program_with_one_procedure() {
 
 #[test]
 fn program_with_one_empty_procedure() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "proc.foo end begin exec.foo end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span noop end end";
@@ -756,7 +821,7 @@ fn program_with_one_empty_procedure() {
 
 #[test]
 fn program_with_nested_procedure() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "\
         proc.foo push.3 push.7 mul end \
         proc.bar push.5 exec.foo add end \
@@ -771,7 +836,7 @@ fn program_with_nested_procedure() {
 
 #[test]
 fn program_with_proc_locals() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "\
         proc.foo.1 \
             loc_store.0 \
@@ -801,7 +866,7 @@ fn program_with_proc_locals() {
 
 #[test]
 fn program_with_exported_procedure() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "export.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     assert!(assembler.compile(source).is_err());
 }
@@ -833,7 +898,7 @@ fn program_with_dynamic_code_execution_in_new_context() {
 
 #[test]
 fn program_with_incorrect_mast_root_length() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin call.0x1234 end";
     let result = assembler.compile(source);
     let err = result.err().unwrap();
@@ -843,7 +908,7 @@ fn program_with_incorrect_mast_root_length() {
 
 #[test]
 fn program_with_invalid_mast_root_chars() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source =
         "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb end";
     let result = assembler.compile(source);
@@ -855,7 +920,7 @@ fn program_with_invalid_mast_root_chars() {
 
 #[test]
 fn program_with_invalid_rpo_digest_call() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source =
         "begin call.0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff end";
     let result = assembler.compile(source);
@@ -867,7 +932,7 @@ fn program_with_invalid_rpo_digest_call() {
 
 #[test]
 fn program_with_phantom_mast_call() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     let source =
         "begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae end";
@@ -909,7 +974,7 @@ fn program_with_one_import_and_hex_call() {
     let modules = vec![Module { path, ast }];
     let library = DummyLibrary::new(namespace, modules);
 
-    let assembler = super::Assembler::default().with_library(&library).unwrap();
+    let assembler = Assembler::default().with_library(&library).unwrap();
     let source = format!(
         r#"
         use.{NAMESPACE}::{MODULE}
@@ -969,7 +1034,7 @@ fn program_with_two_imported_procs_with_same_mast_root() {
     let modules = vec![Module { path, ast }];
     let library = DummyLibrary::new(namespace, modules);
 
-    let assembler = super::Assembler::default().with_library(&library).unwrap();
+    let assembler = Assembler::default().with_library(&library).unwrap();
     let source = format!(
         r#"
         use.{NAMESPACE}::{MODULE}
@@ -1042,7 +1107,7 @@ fn program_with_reexported_proc_in_same_library() {
             ast: ref_ast,
         },
     ];
-    let assembler = super::Assembler::default()
+    let assembler = Assembler::default()
         .with_library(&DummyLibrary::new(namespace, modules))
         .unwrap();
     let source = format!(
@@ -1112,7 +1177,7 @@ fn program_with_reexported_proc_in_another_library() {
     }];
     let dummy_library_1 = DummyLibrary::new(namespace, modules);
     let dummy_library_2 = DummyLibrary::new(ref_namespace, ref_modules);
-    let assembler = super::Assembler::default()
+    let assembler = Assembler::default()
         .with_libraries([&dummy_library_1, &dummy_library_2].into_iter())
         .unwrap();
     let source = format!(
@@ -1138,7 +1203,7 @@ fn program_with_reexported_proc_in_another_library() {
 
     // when the re-exported proc is part of a different library and the library is not passed to
     // the assembler it should fail
-    let assembler = super::Assembler::default().with_library(&dummy_library_1).unwrap();
+    let assembler = Assembler::default().with_library(&dummy_library_1).unwrap();
     let source = format!(
         r#"
         use.{NAMESPACE}::{MODULE}
@@ -1175,7 +1240,7 @@ fn module_alias() {
     let modules = vec![Module { path, ast }];
     let library = DummyLibrary::new(namespace, modules);
 
-    let assembler = super::Assembler::default().with_library(&library).unwrap();
+    let assembler = Assembler::default().with_library(&library).unwrap();
 
     let source = "
         use.dummy::math::u64->bigint
@@ -1239,7 +1304,7 @@ fn module_alias() {
 #[test]
 fn program_with_import_errors() {
     // --- non-existent import ------------------------------------------------
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "\
         use.std::math::u512
         begin \
@@ -1249,7 +1314,7 @@ fn program_with_import_errors() {
     assert!(assembler.compile(source).is_err());
 
     // --- non-existent procedure in import -----------------------------------
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "\
         use.std::math::u256
         begin \
@@ -1267,7 +1332,7 @@ fn program_with_import_errors() {
 
 #[test]
 fn comment_simple() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin # simple comment \n push.1 push.2 add end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -1276,7 +1341,7 @@ fn comment_simple() {
 
 #[test]
 fn comment_in_nested_control_blocks() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // if with else
     let source = "begin \
@@ -1316,7 +1381,7 @@ fn comment_in_nested_control_blocks() {
 
 #[test]
 fn comment_before_program() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = " # starting comment \n begin push.1 push.2 add end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -1325,7 +1390,7 @@ fn comment_before_program() {
 
 #[test]
 fn comment_after_program() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "begin push.1 push.2 add end # closing comment";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -1337,7 +1402,7 @@ fn comment_after_program() {
 
 #[test]
 fn invalid_program() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
     let source = "";
     let program = assembler.compile(source);
     assert!(program.is_err());
@@ -1416,7 +1481,7 @@ fn invalid_proc() {
 
 #[test]
 fn invalid_if_else() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // --- unmatched if ---------------------------------------------------------------------------
     let source = "begin push.1 add if.true mul";
@@ -1458,7 +1523,7 @@ fn invalid_if_else() {
 
 #[test]
 fn invalid_repeat() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     // unmatched repeat
     let source = "begin push.1 add repeat.10 mul";
@@ -1482,7 +1547,7 @@ fn invalid_repeat() {
 
 #[test]
 fn invalid_while() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     let source = "begin push.1 add while mul end end";
     let program = assembler.compile(source);
