@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["cryptography", "no-std"]
 keywords = ["air", "arithmetization", "crypto", "miden"]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.73"
 
 [lib]
 bench = false
@@ -33,5 +33,5 @@ winter-air = { package = "winter-air", version = "0.6", default-features = false
 
 [dev-dependencies]
 criterion = "0.5"
-proptest = "1.1"
+proptest = "1.3"
 rand-utils = { package = "winter-rand-utils", version = "0.6" }

@@ -225,7 +225,7 @@ mod tests {
         Process,
     };
     use crate::{AdviceInputs, StackInputs};
-    use rand_utils::rand_value;
+    use test_utils::rand::rand_value;
     use vm_core::{ONE, ZERO};
 
     // ARITHMETIC OPERATIONS

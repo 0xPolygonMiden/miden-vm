@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["compilers", "no-std"]
 keywords = ["assembler", "assembly", "language", "miden"]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.73"
 
 [lib]
 bench = false
@@ -20,5 +20,5 @@ default = ["std"]
 std = ["vm-core/std"]
 
 [dependencies]
-num_enum = "0.6.1"
+num_enum = "0.7"
 vm-core = { package = "miden-core", path = "../core", version = "0.7", default-features = false }

@@ -1,6 +1,6 @@
 use super::{BTreeMap, Felt, RangeChecker, Vec, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
-use rand_utils::rand_array;
+use test_utils::rand::rand_array;
 use vm_core::{utils::ToElements, StarkField};
 
 #[test]

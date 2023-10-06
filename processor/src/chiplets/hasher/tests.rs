@@ -11,7 +11,7 @@ use miden_air::trace::chiplets::hasher::{
     MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
     STATE_COL_RANGE,
 };
-use rand_utils::rand_array;
+use test_utils::rand::rand_array;
 use vm_core::{
     chiplets::hasher,
     code_blocks::CodeBlock,

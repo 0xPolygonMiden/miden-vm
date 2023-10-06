@@ -11,7 +11,7 @@ use miden_air::trace::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
     AUX_TRACE_RAND_ELEMENTS,
 };
-use rand_utils::rand_array;
+use test_utils::rand::rand_array;
 use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, ONE, ZERO};
 
 // BLOCK STACK TABLE TESTS

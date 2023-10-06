@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "stark", "virtual-machine", "zkp"]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.73"
 
 [[bin]]
 name = "miden"
@@ -44,7 +44,7 @@ std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.7", default-features = false }
-clap = { version = "4.0", features = ["derive"], optional = true }
+clap = { version = "4.4", features = ["derive"], optional = true }
 env_logger = { version = "0.10", default-features = false, optional = true }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false, optional = true }
@@ -60,7 +60,7 @@ verifier = { package = "miden-verifier", path = "../verifier", version = "0.7", 
 [dev-dependencies]
 assert_cmd = "2.0"
 criterion = "0.5"
-escargot = "0.5.7"
+escargot = "0.5"
 num-bigint = "0.4"
 predicates = "3.0"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
