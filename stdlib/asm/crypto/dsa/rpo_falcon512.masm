@@ -589,18 +589,27 @@ end
 #! via the advice stack.
 #! The signature is valid if and only if the procedure returns.
 #!
-#! Input: [PK, MSG, NONCE1, NONCE1, ...]
+#! Input: [PK, MSG, ...]
 #! Output: [...]
 #!
 #! Cycles: ~ 92029
 export.verify.1665
 
-    # 1) Load the public key polynomial h and the signature polynomial s2 and the product of
+    # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
+    adv.push_sig.rpo_falcon512
+    #=> [PK, MSG, ...]
+
+    # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements
+    padw adv_loadw padw adv_loadw
+    #=> [PK, MSG, NONCE1, NONCE0, ...]
+
+    # 3) Load the public key polynomial h and the signature polynomial s2 and the product of
     # the two polynomials pi := h * s2 in Z_Q[x]. This also checks that h hashes to the provided
     # digest PK. While loading the polynomials, the hash of the three polynomials is computed
     # and the first half of the digest is kept on the stack for later use by the
     # `probablistic_product` procedure.
 
+    swapdw
     locaddr.0
     exec.load_h_s2_and_product
     #=> [tau1, tau0, tau_ptr, MSG, NONCE1, NONCE1, ...]      (Cycles: 5050)
@@ -611,13 +620,13 @@ export.verify.1665
     exec.set_to_zero
     #=> [c_ptr, MSG, NONCE1, NONCE1, ...]                    (Cycles: 2607)
 
-    # 2) Compute the hash-to-point of the message MSG from the provided NONCE and save
+    # 4) Compute the hash-to-point of the message MSG from the provided NONCE and save
     # the resulting polynomial c in the memory region [c_ptr, c_ptr + 128)
 
     exec.hash_to_point
     #=> [...]                                       (Cycles: 1327)
 
-    # 3) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
+    # 5) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
     # where tau is a random (Fiat-Shamir) challenge resulting from hashing h, s2 and pi.
 
     locaddr.512     # tau_ptr
@@ -628,7 +637,7 @@ export.verify.1665
     exec.probablistic_product
     #=> [...]                                       (Cycles: 2504)
 
-    # 4) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
+    # 6) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
     
     locaddr.256
     #=> [pi_ptr, ...]
@@ -636,7 +645,7 @@ export.verify.1665
     exec.compute_s1_norm_sq
     #=> [norm_sq(s1), ...]                          (Cycles: 58888)  
 
-    # 5) Compute the squared norm of s2
+    # 7) Compute the squared norm of s2
 
     locaddr.128
     #=> [s2_ptr, norm_sq(s1), ...]                  
@@ -644,7 +653,7 @@ export.verify.1665
     exec.compute_s2_norm_sq                         
     #=> [norm_sq(s2), norm_sq(s1), ...]             (Cycles: 13322)
 
-    # 6) Check that ||(s1, s2)||^2 < K
+    # 8) Check that ||(s1, s2)||^2 < K
 
     add
     #=> [norm_sq(s1) + norm_sq(s2), ...]

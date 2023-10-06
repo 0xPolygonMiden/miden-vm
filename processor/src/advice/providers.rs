@@ -1,7 +1,9 @@
 use super::{
-    AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes, KvMap,
-    MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec, Word,
+    dsa, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
+    KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec,
+    Word,
 };
+use vm_core::SignatureKind;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -101,6 +103,22 @@ where
         }
 
         Ok(())
+    }
+
+    fn get_signature(
+        &self,
+        kind: SignatureKind,
+        pub_key: Word,
+        msg: Word,
+    ) -> Result<Vec<Felt>, ExecutionError> {
+        let pk_sk = self
+            .map
+            .get(&pub_key.into_bytes())
+            .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+
+        match kind {
+            SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg),
+        }
     }
 
     // ADVICE MAP
@@ -286,6 +304,10 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.insert_into_map(key, values)
     }
 
+    fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.get_signature(kind, pub_key, msg)
+    }
+
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
@@ -413,6 +435,10 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         self.provider.insert_into_map(key, values)
+    }
+    
+    fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+        self.provider.get_signature(kind, pub_key, msg)
     }
 
     fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
