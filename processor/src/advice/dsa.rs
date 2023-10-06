@@ -18,6 +18,7 @@ use vm_core::{
 /// Will return an error if either:
 /// - The keys are malformed due to either incorrect length or failed decoding.
 /// - The signature generation failed.
+#[cfg(feature = "std")]
 pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
     // Create the corresponding key pair
     let mut key_pair_bytes = Vec::with_capacity(pk_sk.len());
@@ -62,4 +63,11 @@ pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionErro
     result.extend(pi.iter().map(|a| Felt::new(*a)));
     result.reverse();
     Ok(result)
+}
+
+#[cfg(not(feature = "std"))]
+pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+    Err(ExecutionError::FailedSignatureGeneration(
+        "RPO Falcon512 signature generation is not available in no_std context",
+    ))
 }

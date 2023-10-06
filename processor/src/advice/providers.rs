@@ -1,7 +1,7 @@
 use super::{
-    super::advice::dsa::falcon_sign, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap,
-    ExecutionError, Felt, IntoBytes, KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap,
-    RpoDigest, StarkField, StoreNode, Vec, Word,
+    dsa, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, IntoBytes,
+    KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec,
+    Word,
 };
 use vm_core::SignatureKind;
 
@@ -117,7 +117,7 @@ where
             .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
 
         match kind {
-            SignatureKind::RpoFalcon512 => falcon_sign(pk_sk, msg),
+            SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg),
         }
     }
 
