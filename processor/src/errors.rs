@@ -42,6 +42,8 @@ pub enum ExecutionError {
     ProverError(ProverError),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
+    MalformedSignatureKey(&'static str),
+    FailedSignatureGeneration(&'static str),
 }
 
 impl Display for ExecutionError {
@@ -141,6 +143,10 @@ impl Display for ExecutionError {
             }
             UnexecutableCodeBlock(block) => {
                 write!(f, "Execution reached unexecutable code block {block:?}")
+            }
+            MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
+            FailedSignatureGeneration(signature) => {
+                write!(f, "Failed to generate signature: {signature}")
             }
         }
     }

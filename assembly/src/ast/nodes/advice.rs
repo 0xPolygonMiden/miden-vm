@@ -1,11 +1,9 @@
-use crate::ast::nodes::serde::signatures;
-
 use super::{
     super::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
         MAX_STACK_WORD_OFFSET,
     },
-    serde::signatures::read_options_from,
+    serde::signatures,
 };
 use core::fmt;
 use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
@@ -184,7 +182,7 @@ impl Deserializable for AdviceInjectorNode {
             }
             INSERT_HPERM => Ok(AdviceInjectorNode::InsertHperm),
             PUSH_SIG => Ok(AdviceInjectorNode::PushSignature {
-                kind: read_options_from(source)?,
+                kind: signatures::read_options_from(source)?,
             }),
             val => Err(DeserializationError::InvalidValue(val.to_string())),
         }
