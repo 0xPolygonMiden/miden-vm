@@ -90,7 +90,7 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             2 => AdvInject(InsertHperm),
             _ => return Err(ParsingError::extra_param(op)),
         },
-        "sig_to_stack" => match op.num_parts() {
+        "push_sig" => match op.num_parts() {
             3 => match op.parts()[2] {
                 "rpo_falcon512" => AdvInject(PushSignature {
                     kind: SignatureKind::RpoFalcon512,

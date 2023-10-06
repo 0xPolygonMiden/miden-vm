@@ -596,7 +596,7 @@ end
 export.verify.1665
 
     # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
-    adv.sig_to_stack.rpo_falcon512
+    adv.push_sig.rpo_falcon512
     #=> [PK, MSG, ...]
 
     # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements

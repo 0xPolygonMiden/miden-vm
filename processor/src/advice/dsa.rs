@@ -16,11 +16,8 @@ use vm_core::{
 ///
 /// # Errors
 /// Will return an error if either:
-/// - The advice map does not contain an entry with key PK.
-/// - The advice map entry under key PK is not a vector of the expected length.
-///
-/// The function only generates non-deterministic input that is required for the Falcon verification
-/// procedure inside the VM and as such does interact with the VM only through the advice provider.
+/// - The keys are malformed due to either incorrect length or failed decoding.
+/// - The signature generation failed.
 pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
     // Create the corresponding key pair
     let mut key_pair_bytes = Vec::with_capacity(pk_sk.len());
@@ -60,8 +57,8 @@ pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionErro
     // We now push the nonce, the expanded key, the signature polynomial, and the product of the
     // expanded key and the signature polynomial to the advice stack.
     let mut result: Vec<Felt> = nonce.to_vec();
-    result.extend(h.inner().iter().map(|a| Felt::new(*a as u64)));
-    result.extend(s2.inner().iter().map(|a| Felt::new(*a as u64)));
+    result.extend(h.inner().iter().map(|a| Felt::from(*a)));
+    result.extend(s2.inner().iter().map(|a| Felt::from(*a)));
     result.extend(pi.iter().map(|a| Felt::new(*a)));
     result.reverse();
     Ok(result)
