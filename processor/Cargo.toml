@@ -16,13 +16,14 @@ bench = false
 doctest = false
 
 [features]
-concurrent = ["winter-prover/concurrent", "std"]
+concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
 internals = []
-std = ["vm-core/std", "winter-prover/std", "log/std"]
+std = ["log/std", "vm-core/std", "winter-prover/std"]
+sve = ["std", "vm-core/sve"]
 
 [dependencies]
-log = "0.4"
+log = { version = "0.4", default-features = false, optional = true }
 vm-core = { package = "miden-core", path = "../core", version = "0.7", default-features = false }
 miden-air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }

@@ -16,6 +16,7 @@ concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:ministark-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
 std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
+sve = ["processor/sve", "std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
