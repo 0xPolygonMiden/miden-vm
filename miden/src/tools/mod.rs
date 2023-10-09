@@ -2,7 +2,7 @@ use super::{cli::InputFile, ProgramError};
 use clap::Parser;
 use core::fmt;
 use miden::{utils::collections::Vec, Assembler, DefaultHost, Host, Operation, StackInputs};
-use processor::AsmOpInfo;
+use processor::{AsmOpInfo, TraceLenSummary};
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
 
@@ -36,6 +36,23 @@ impl Analyze {
 
         let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
             .expect("Could not retrieve execution details");
+        let program_name = self
+            .assembly_file
+            .file_name()
+            .expect("provided file path is incorrect")
+            .to_str()
+            .unwrap();
+
+        println!("============================================================");
+        print!("Analyzed {} program", program_name);
+        if let Some(input_path) = &self.input_file {
+            let input_name = input_path
+                .file_name()
+                .expect("provided input path is incorrect")
+                .to_str()
+                .unwrap();
+            println!(" with {}", input_name);
+        }
 
         println!("{}", execution_details);
 
@@ -49,20 +66,15 @@ impl Analyze {
 /// Contains details of executing a program, used for program analysis.
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ExecutionDetails {
-    /// Number of VM cycles it took to execute the entire program.
-    total_vm_cycles: u32,
     /// Number of noops executed as part of a program.
     total_noops: usize,
     /// Statistics about individual assembly operations executed by the VM, see [AsmOpStats].
     asm_op_stats: Vec<AsmOpStats>,
+    /// Information about VM components trace lengths.
+    trace_len_summary: TraceLenSummary,
 }
 
 impl ExecutionDetails {
-    /// Returns total vm cycles to execute a program
-    pub fn total_vm_cycles(&self) -> u32 {
-        self.total_vm_cycles
-    }
-
     /// Returns total noops executed as part of a program
     pub fn total_noops(&self) -> usize {
         self.total_noops
@@ -74,17 +86,17 @@ impl ExecutionDetails {
         &self.asm_op_stats
     }
 
+    /// Returns [TraceLenSummary] that contains the data about lengths of the trace parts.
+    pub fn trace_len_summary(&self) -> TraceLenSummary {
+        self.trace_len_summary
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
     /// Increments the noop count by one
     pub fn incr_noop_count(&mut self) {
         self.total_noops += 1;
-    }
-
-    /// Sets the total vm cycles to the provided value
-    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: u32) {
-        self.total_vm_cycles = total_vm_cycles;
     }
 
     /// Records a new occurrence of asmop in the sorted asmop stats vector of this program info.
@@ -115,30 +127,76 @@ impl ExecutionDetails {
             }
         }
     }
+
+    /// Sets the information about lengths of the trace parts.
+    pub fn set_trace_len_summary(&mut self, extended_cycles_info: &TraceLenSummary) {
+        self.trace_len_summary = *extended_cycles_info;
+    }
 }
 
 impl fmt::Display for ExecutionDetails {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let total_vm_cycles = self.total_vm_cycles();
-        let total_noops = self.total_noops();
-        let asm_op_stats = self.asm_op_stats();
-        writeln!(f, "Total Number of VM Cycles: {}\n", total_vm_cycles)?;
-        writeln!(f, "Total Number of NOOPs executed: {}\n", total_noops)?;
+        // calculate the percentage of padded rows
+        let padding_percentage = (self.trace_len_summary().padded_trace_len()
+            - self.trace_len_summary().trace_len())
+            * 100
+            / self.trace_len_summary().padded_trace_len();
+
         writeln!(
             f,
-            "{0: <20} | {1: <20} | {2: <20} | {3: <20}",
-            "AsmOp", "Frequency", "Total Cycles", "Avg Instruction Cycles"
+            "\nVM cycles: {} extended to {} steps ({}% padding).
+├── Stack rows: {}
+├── Range checker rows: {}
+└── Chiplets rows: {}
+    ├── Hash chiplet rows: {}
+    ├── Bitwise chiplet rows: {}
+    ├── Memory chiplet rows: {}
+    └── Kernel ROM rows: {}\n",
+            self.trace_len_summary().trace_len(),
+            self.trace_len_summary().padded_trace_len(),
+            padding_percentage,
+            self.trace_len_summary().main_trace_len(),
+            self.trace_len_summary().range_trace_len(),
+            self.trace_len_summary().chiplets_trace_len().trace_len(),
+            self.trace_len_summary().chiplets_trace_len().hash_chiplet_len(),
+            self.trace_len_summary().chiplets_trace_len().bitwise_chiplet_len(),
+            self.trace_len_summary().chiplets_trace_len().memory_chiplet_len(),
+            self.trace_len_summary().chiplets_trace_len().kernel_rom_len(),
         )?;
+        let total_noops = self.total_noops();
+        let asm_op_stats = self.asm_op_stats();
+
+        // calculate the total length of pading for the `AsmOp` column
+        let padding =
+            asm_op_stats.iter().try_fold(20, |max, value| Ok(value.op().len().max(max)))?;
+
+        writeln!(
+            f,
+            "{0: <width$} | {1: <20} | {2: <20} | {3:}",
+            "Assembly instruction",
+            "Frequency",
+            "Total Cycles",
+            "Avg Instruction Cycles",
+            width = padding,
+        )?;
+
+        let delimeter = "-".repeat(padding + 71);
+        writeln!(f, "{delimeter}")?;
+
         for op_info in asm_op_stats {
             writeln!(
                 f,
-                "{0: <20} | {1: <20} | {2: <20} | {3: <20.2}",
+                "{0: <width$} | {1: <20} | {2: <20} | {3:.2}",
                 op_info.op(),
                 op_info.frequency(),
                 op_info.total_vm_cycles(),
-                op_info.total_vm_cycles() as f64 / op_info.frequency() as f64
+                op_info.total_vm_cycles() as f64 / op_info.frequency() as f64,
+                width = padding,
             )?;
         }
+
+        writeln!(f, "\nTotal number of NOOPs executed: {}", total_noops)?;
+
         Ok(())
     }
 }
@@ -158,8 +216,10 @@ where
         .map_err(ProgramError::AssemblyError)?
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
-    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);
     let mut execution_details = ExecutionDetails::default();
+
+    let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);
+    execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
         let vm_state = state.map_err(ProgramError::ExecutionError)?;
@@ -169,7 +229,6 @@ where
         if let Some(asmop_info) = vm_state.asmop {
             execution_details.record_asmop(asmop_info);
         }
-        execution_details.set_total_vm_cycles(vm_state.clk);
     }
 
     Ok(execution_details)
@@ -232,8 +291,7 @@ impl AsmOpStats {
 #[cfg(test)]
 mod tests {
     use super::{AsmOpStats, ExecutionDetails, StackInputs};
-    use miden::MemAdviceProvider;
-    use processor::DefaultHost;
+    use processor::{ChipletsLengths, DefaultHost, TraceLenSummary};
 
     #[test]
     fn analyze_test() {
@@ -244,7 +302,6 @@ mod tests {
         let execution_details =
             super::analyze(source, stack_inputs, host).expect("analyze_test: Unexpected Error");
         let expected_details = ExecutionDetails {
-            total_vm_cycles: 23,
             total_noops: 2,
             asm_op_stats: vec![
                 AsmOpStats::new("dropw".to_string(), 1, 4),
@@ -253,6 +310,11 @@ mod tests {
                 AsmOpStats::new("movdn.2".to_string(), 1, 1),
                 AsmOpStats::new("push".to_string(), 2, 3),
             ],
+            trace_len_summary: TraceLenSummary::new(
+                23,
+                39,
+                ChipletsLengths::from_parts(8, 0, 2, 0),
+            ),
         };
         assert_eq!(execution_details, expected_details);
     }
