@@ -192,6 +192,7 @@ impl From<HostResponse> for Felt {
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
 
+/// TODO: add comments
 pub struct DefaultHost<A> {
     adv_provider: A,
 }
@@ -217,6 +218,10 @@ impl<A: AdviceProvider> DefaultHost<A> {
     #[cfg(any(test, feature = "internals"))]
     pub fn advice_provider_mut(&mut self) -> &mut A {
         &mut self.adv_provider
+    }
+
+    pub fn into_inner(self) -> A {
+        self.adv_provider
     }
 }
 
