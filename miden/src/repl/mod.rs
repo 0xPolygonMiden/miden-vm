@@ -1,7 +1,7 @@
 use super::ProgramError;
 use miden::{
     math::{Felt, StarkField},
-    MemAdviceProvider, StackInputs, Word,
+    DefaultHost, StackInputs, Word,
 };
 use rustyline::{error::ReadlineError, DefaultEditor};
 
@@ -267,9 +267,9 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
         .map_err(ProgramError::AssemblyError)?;
 
     let stack_inputs = StackInputs::default();
-    let advice_provider = MemAdviceProvider::default();
+    let host = DefaultHost::default();
 
-    let state_iter = processor::execute_iter(&program, stack_inputs, advice_provider);
+    let state_iter = processor::execute_iter(&program, stack_inputs, host);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
         return Err(ProgramError::ExecutionError(err));

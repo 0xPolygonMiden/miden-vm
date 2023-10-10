@@ -11,8 +11,8 @@ use core::fmt;
 /// These actions can affect all 3 components of the advice provider: Merkle store, advice stack,
 /// and advice map.
 ///
-/// All actions, except for `MerkleNodeMerge` and `Ext2Inv`, can be invoked directly from Miden
-/// assembly via dedicated instructions.
+/// All actions, except for `MerkleNodeMerge`, `Ext2Inv` and `UpdateMerkleNode` can be invoked
+/// directly from Miden assembly via dedicated instructions.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AdviceInjector {
     // MERKLE STORE INJECTORS
@@ -47,6 +47,21 @@ pub enum AdviceInjector {
     ///   Advice stack: [NODE, ...]
     ///   Merkle store: {TREE_ROOT<-NODE}
     MerkleNodeToStack,
+
+    /// Updates the node of a Merkle tree specified by the values at the top of the operand stack.
+    /// Returns the path from the updated node to the new root of the tree to the caller.
+    ///
+    /// Inputs:
+    ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
+    ///  Advice: [...]
+    ///  Merkle store: {...}
+    ///
+    /// Outputs:
+    ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
+    ///  Advice stack: [...]
+    ///  Merkle store: {path, ...}
+    ///  Return: [path]
+    UpdateMerkleNode,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
     /// map using the specified word from the operand stack as the key. If `include_len` is set to
@@ -270,6 +285,9 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
+            Self::UpdateMerkleNode => {
+                write!(f, "update_merkle_node")
+            }
             Self::MapValueToStack {
                 include_len,
                 key_offset,

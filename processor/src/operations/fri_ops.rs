@@ -1,4 +1,4 @@
-use super::{super::QuadFelt, AdviceProvider, ExecutionError, Felt, Operation, Process};
+use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
 use vm_core::{ExtensionOf, FieldElement, StarkField, ONE, ZERO};
 
 // CONSTANTS
@@ -19,9 +19,9 @@ const TAU3_INV: Felt = Felt::new(281474976710656); // tau^{-3}
 // FRI OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // FRI FOLDING OPERATION
     // --------------------------------------------------------------------------------------------

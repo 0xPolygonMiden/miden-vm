@@ -3,15 +3,15 @@ use super::{
         system::{FMP_MAX, FMP_MIN},
         ONE,
     },
-    AdviceProvider, ExecutionError, Felt, Process, StarkField,
+    ExecutionError, Felt, Host, Process, StarkField,
 };
 
 // SYSTEM OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     /// Pops a value off the stack and asserts that it is equal to ONE.
     ///

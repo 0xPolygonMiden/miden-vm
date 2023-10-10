@@ -1,6 +1,6 @@
 use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
 use clap::Parser;
-use processor::ExecutionOptions;
+use processor::{DefaultHost, ExecutionOptions};
 use std::{path::PathBuf, time::Instant};
 
 #[derive(Debug, Clone, Parser)]
@@ -56,14 +56,14 @@ impl RunCmd {
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs()?;
-        let advice_provider = input_data.parse_advice_provider()?;
+        let host = DefaultHost::new(input_data.parse_advice_provider()?);
 
         let program_hash: [u8; 32] = program.hash().into();
         print!("Executing program with hash {}... ", hex::encode(program_hash));
         let now = Instant::now();
 
         // execute program and generate outputs
-        let trace = processor::execute(&program, stack_inputs, advice_provider, execution_options)
+        let trace = processor::execute(&program, stack_inputs, host, execution_options)
             .map_err(|err| format!("Failed to generate execution trace = {:?}", err))?;
 
         println!("done ({} ms)", now.elapsed().as_millis());

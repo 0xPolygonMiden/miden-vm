@@ -1,4 +1,4 @@
-use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField};
 use vm_core::stack::STACK_TOP_SIZE;
 
 mod crypto_ops;
@@ -17,9 +17,9 @@ use super::Kernel;
 // OPERATION DISPATCHER
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     /// Executes the specified operation.
     pub(super) fn execute_op(&mut self, op: Operation) -> Result<(), ExecutionError> {
@@ -160,7 +160,6 @@ where
         self.system.advance_clock(self.max_cycles)?;
         self.stack.advance_clock();
         self.chiplets.advance_clock();
-        self.advice_provider.advance_clock();
         Ok(())
     }
 
@@ -172,20 +171,16 @@ where
 }
 
 #[cfg(test)]
-impl Process<super::MemAdviceProvider> {
+impl Process<super::DefaultHost<super::MemAdviceProvider>> {
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
     /// Instantiates a new blank process for testing purposes. The stack in the process is
     /// initialized with the provided values.
     fn new_dummy(stack_inputs: super::StackInputs) -> Self {
-        let advice_provider = super::MemAdviceProvider::default();
-        let mut process = Self::new(
-            Kernel::default(),
-            stack_inputs,
-            advice_provider,
-            super::ExecutionOptions::default(),
-        );
+        let host = super::DefaultHost::default();
+        let mut process =
+            Self::new(Kernel::default(), stack_inputs, host, super::ExecutionOptions::default());
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -203,12 +198,9 @@ impl Process<super::MemAdviceProvider> {
             .with_stack_values(advice_stack.iter().copied())
             .unwrap();
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let mut process = Self::new(
-            Kernel::default(),
-            stack_inputs,
-            advice_provider,
-            super::ExecutionOptions::default(),
-        );
+        let host = super::DefaultHost::new(advice_provider);
+        let mut process =
+            Self::new(Kernel::default(), stack_inputs, host, super::ExecutionOptions::default());
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -236,12 +228,9 @@ impl Process<super::MemAdviceProvider> {
         advice_inputs: super::AdviceInputs,
     ) -> Self {
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let mut process = Self::new(
-            Kernel::default(),
-            stack_inputs,
-            advice_provider,
-            super::ExecutionOptions::default(),
-        );
+        let host = super::DefaultHost::new(advice_provider);
+        let mut process =
+            Self::new(Kernel::default(), stack_inputs, host, super::ExecutionOptions::default());
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
         process

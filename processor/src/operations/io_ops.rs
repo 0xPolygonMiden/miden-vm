@@ -1,13 +1,13 @@
+use super::{ExecutionError, Felt, Host, Operation, Process};
+use crate::Word;
 use vm_core::StarkField;
-
-use super::{AdviceProvider, ExecutionError, Felt, Operation, Process};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // CONSTANT INPUTS
     // --------------------------------------------------------------------------------------------
@@ -194,7 +194,7 @@ where
         let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // pop two words from the advice stack
-        let words = self.advice_provider.pop_stack_dword()?;
+        let words = self.host.borrow_mut().pop_adv_stack_dword(self)?;
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
@@ -227,7 +227,7 @@ where
     /// # Errors
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self) -> Result<(), ExecutionError> {
-        let value = self.advice_provider.pop_stack()?;
+        let value = self.host.borrow_mut().pop_adv_stack(self)?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -239,7 +239,7 @@ where
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_advpopw(&mut self) -> Result<(), ExecutionError> {
-        let word = self.advice_provider.pop_stack_word()?;
+        let word: Word = self.host.borrow_mut().pop_adv_stack_word(self)?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);
@@ -272,8 +272,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Operation, STACK_TOP_SIZE},
-        AdviceProvider, Felt, Process,
+        super::{super::AdviceProvider, Operation, STACK_TOP_SIZE},
+        Felt, Host, Process,
     };
     use crate::AdviceSource;
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
@@ -513,7 +513,12 @@ mod tests {
         let word2_felts: Word = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice stack.
-            process.advice_provider.push_stack(AdviceSource::Value(element)).unwrap();
+            process
+                .host
+                .borrow_mut()
+                .advice_provider_mut()
+                .push_stack(AdviceSource::Value(element))
+                .unwrap();
         }
 
         // arrange the stack such that:
@@ -580,9 +585,9 @@ mod tests {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn store_value<A>(process: &mut Process<A>, addr: u64, value: [Felt; 4])
+    fn store_value<H>(process: &mut Process<H>, addr: u64, value: [Felt; 4])
     where
-        A: AdviceProvider,
+        H: Host,
     {
         for &value in value.iter() {
             process.execute_op(Operation::Push(value)).unwrap();
@@ -592,9 +597,9 @@ mod tests {
         process.execute_op(Operation::MStoreW).unwrap();
     }
 
-    fn store_element<A>(process: &mut Process<A>, addr: u64, value: Felt)
+    fn store_element<H>(process: &mut Process<H>, addr: u64, value: Felt)
     where
-        A: AdviceProvider,
+        H: Host,
     {
         process.execute_op(Operation::Push(value)).unwrap();
         let addr = Felt::new(addr);

@@ -1,9 +1,9 @@
-use super::{AdviceProvider, ExecutionError, Process, StarkField, STACK_TOP_SIZE};
+use super::{ExecutionError, Host, Process, StarkField, STACK_TOP_SIZE};
 use crate::ZERO;
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
