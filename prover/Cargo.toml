@@ -9,13 +9,14 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.73"
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:ministark-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
 std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
+sve = ["processor/sve", "std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
@@ -25,5 +26,5 @@ winter-prover = { package = "winter-prover", version = "0.6", default-features =
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 ministark-gpu = { version = "0.1", features = [ "winterfell" ], optional = true }
-elsa = { version = "1.7", optional = true }
+elsa = { version = "1.9", optional = true }
 pollster = { version = "0.3", optional = true }

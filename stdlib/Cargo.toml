@@ -9,7 +9,7 @@ repository = "https://github.com/0xPolygonMiden/miden-vm"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.73"
 
 [lib]
 bench = false
@@ -27,7 +27,7 @@ std = ["test-utils/std"]
 assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.7" }
 
 [dev-dependencies]
-blake3 = "1.4"
+blake3 = "1.5"
 miden-air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
 num-bigint = "0.4"
 processor = { package = "miden-processor", path = "../processor", version = "0.7", features = ["internals"], default-features = false }

@@ -7,7 +7,7 @@ use super::{
 use miden_air::trace::{
     chiplets::hasher::HASH_CYCLE_LEN, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET,
 };
-use rand_utils::rand_value;
+use test_utils::rand::rand_value;
 
 mod bitwise;
 mod hasher;

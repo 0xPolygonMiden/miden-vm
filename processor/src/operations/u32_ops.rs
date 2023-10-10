@@ -238,7 +238,7 @@ mod tests {
     };
     use crate::{StackInputs, ZERO};
     use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
-    use rand_utils::rand_value;
+    use test_utils::rand::rand_value;
 
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------

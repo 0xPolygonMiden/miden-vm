@@ -3,7 +3,7 @@ use super::{
     Process, Trace, Vec, NUM_RAND_ROWS,
 };
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
-use rand_utils::rand_array;
+use test_utils::rand::rand_array;
 use vm_core::{
     code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, StackOutputs, Word, ONE, ZERO,
 };

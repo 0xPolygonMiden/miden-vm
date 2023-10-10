@@ -17,7 +17,7 @@ use miden_air::trace::{
     CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
     IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
 };
-use rand_utils::rand_value;
+use test_utils::rand::rand_value;
 use vm_core::{
     code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
