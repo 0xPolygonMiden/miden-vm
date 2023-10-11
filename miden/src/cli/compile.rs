@@ -12,6 +12,9 @@ pub struct CompileCmd {
     /// Paths to .masl library files
     #[clap(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
+    /// Path to output file
+    #[clap(short = 'o', long = "output", value_parser)]
+    output_file: Option<PathBuf>,
 }
 
 impl CompileCmd {
@@ -20,16 +23,20 @@ impl CompileCmd {
         println!("Compile program");
         println!("============================================================");
 
+        // load the program from file and parse it
+        let program = ProgramFile::read(&self.assembly_file)?;
+
         // load libraries from files
         let libraries = Libraries::new(&self.library_paths)?;
 
-        // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file, &Debug::Off, libraries.libraries)?;
+        // compile the program
+        let compiled_program = program.compile(&Debug::Off, libraries.libraries)?;
 
         // report program hash to user
-        let program_hash: [u8; 32] = program.hash().into();
+        let program_hash: [u8; 32] = compiled_program.hash().into();
         println!("program hash is {}", hex::encode(program_hash));
 
-        Ok(())
+        // write the compiled file
+        program.write(self.output_file.clone())
     }
 }

@@ -10,6 +10,8 @@ use super::{
     MAX_LABEL_LEN,
 };
 use core::{fmt, iter, str::from_utf8};
+#[cfg(feature = "std")]
+use std::{fs, io, path::Path};
 use vm_core::utils::bound_into_included_u64;
 
 pub use super::tokens::SourceLocation;
@@ -335,6 +337,26 @@ impl ProgramAst {
     /// Clear import info from the program
     pub fn clear_imports(&mut self) {
         self.import_info = None;
+    }
+
+    // WRITE TO FILE
+    // --------------------------------------------------------------------------------------------
+
+    /// Writes ProgramAst to provided file path
+    #[cfg(feature = "std")]
+    pub fn write_to_file<P>(&self, file_path: P) -> io::Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let path = file_path.as_ref();
+        if let Some(dir) = path.parent() {
+            fs::create_dir_all(dir)?;
+        }
+
+        let bytes = self.to_bytes(AstSerdeOptions {
+            serialize_imports: true,
+        });
+        fs::write(path, bytes)
     }
 }
 

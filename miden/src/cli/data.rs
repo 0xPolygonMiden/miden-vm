@@ -3,8 +3,8 @@ use miden::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
     math::Felt,
     utils::{Deserializable, SliceReader},
-    AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs,
-    StackOutputs, Word,
+    AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, ProgramAst,
+    StackInputs, StackOutputs, Word,
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
@@ -69,7 +69,7 @@ pub enum MerkleData {
 pub struct InputFile {
     /// String representation of the initial operand stack, composed of chained field elements.
     pub operand_stack: Vec<String>,
-    /// Opitonal string representation of the initial advice stack, composed of chained field
+    /// Optional string representation of the initial advice stack, composed of chained field
     /// elements.
     pub advice_stack: Option<Vec<String>>,
     /// Optional map of 32 byte hex strings to vectors of u64s representing the initial advice map.
@@ -371,21 +371,40 @@ impl OutputFile {
 // PROGRAM FILE
 // ================================================================================================
 
-pub struct ProgramFile;
+pub struct ProgramFile {
+    ast: ProgramAst,
+    path: PathBuf,
+}
 
-/// Helper methods to interact with masm program file
+/// Helper methods to interact with masm program file.
 impl ProgramFile {
-    pub fn read<I, L>(path: &PathBuf, debug: &Debug, libraries: I) -> Result<Program, String>
+    /// Reads the masm file at the specified path and parses it into a [ProgramAst].
+    pub fn read(path: &PathBuf) -> Result<Self, String> {
+        // read program file to string
+        println!("Reading program file `{}`", path.display());
+        let source = fs::read_to_string(&path)
+            .map_err(|err| format!("Failed to open program file `{}` - {}", path.display(), err))?;
+
+        // parse the program into an AST
+        print!("Parsing program... ");
+        let now = Instant::now();
+        let ast = ProgramAst::parse(&source).map_err(|err| {
+            format!("Failed to parse program file `{}` - {}", path.display(), err)
+        })?;
+        println!("done ({} ms)", now.elapsed().as_millis());
+
+        Ok(Self {
+            ast,
+            path: path.clone(),
+        })
+    }
+
+    /// Compiles this program file into a [Program].
+    pub fn compile<I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, String>
     where
         I: IntoIterator<Item = L>,
         L: Library,
     {
-        println!("Reading program file `{}`", path.display());
-
-        // read program file to string
-        let program_file = fs::read_to_string(&path)
-            .map_err(|err| format!("Failed to open program file `{}` - {}", path.display(), err))?;
-
         print!("Compiling program... ");
         let now = Instant::now();
 
@@ -400,12 +419,26 @@ impl ProgramFile {
             .map_err(|err| format!("Failed to load libraries `{}`", err))?;
 
         let program = assembler
-            .compile(&program_file)
+            .compile_ast(&self.ast)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 
         println!("done ({} ms)", now.elapsed().as_millis());
 
         Ok(program)
+    }
+
+    /// Writes this file into the specified path, if one is provided. If the path is not provided,
+    /// writes the file into the same directory as the source file, but with `.masb` extension.
+    pub fn write(&self, out_path: Option<PathBuf>) -> Result<(), String> {
+        let out_path = out_path.unwrap_or_else(|| {
+            let mut out_file = self.path.clone();
+            out_file.set_extension("masb");
+            out_file
+        });
+
+        self.ast
+            .write_to_file(out_path)
+            .map_err(|err| format!("Failed to write the compiled file: {err}"))
     }
 }
 
