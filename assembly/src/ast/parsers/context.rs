@@ -15,6 +15,7 @@ pub struct ParserContext<'a> {
     pub local_procs: LocalProcMap,
     pub reexported_procs: ReExportedProcMap,
     pub local_constants: LocalConstMap,
+    pub num_proc_locals: u16,
 }
 
 impl ParserContext<'_> {
@@ -290,8 +291,12 @@ impl ParserContext<'_> {
             None
         };
 
+        self.num_proc_locals = num_locals;
+
         // parse procedure body
         let body = self.parse_body(tokens, false)?;
+
+        self.num_proc_locals = 0;
 
         // consume the 'end' token
         match tokens.read() {
@@ -623,7 +628,7 @@ impl ParserContext<'_> {
 
             // ----- debug decorators -------------------------------------------------------------
             "breakpoint" => simple_instruction(op, Breakpoint),
-            "debug" => debug::parse_debug(op),
+            "debug" => debug::parse_debug(op, self.num_proc_locals),
 
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),

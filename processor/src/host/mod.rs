@@ -5,6 +5,7 @@ use vm_core::{crypto::merkle::MerklePath, AdviceInjector, DebugOptions, Word};
 pub(super) mod advice;
 use advice::{AdviceExtractor, AdviceProvider};
 
+#[cfg(feature = "std")]
 mod debug;
 
 // HOST TRAIT
@@ -60,6 +61,7 @@ pub trait Host {
         process: &S,
         options: &DebugOptions,
     ) -> Result<HostResponse, ExecutionError> {
+        #[cfg(feature = "std")]
         debug::print_debug_info(process, options);
         Ok(HostResponse::None)
     }
