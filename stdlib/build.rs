@@ -1,5 +1,5 @@
 use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
-use std::{collections::BTreeMap, fs, io};
+use std::{env, collections::BTreeMap, fs, io, path::Path};
 
 mod md_renderer;
 use md_renderer::MarkdownRenderer;
@@ -38,7 +38,8 @@ fn main() -> io::Result<()> {
         .collect();
 
     // write the masl output
-    stdlib.write_to_dir(ASL_DIR_PATH)?;
+    let build_dir = env::var("OUT_DIR").unwrap();
+    stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
 
     // updates the documentation of these modules
     build_stdlib_docs(&docs, DOC_DIR_PATH);

@@ -16,7 +16,7 @@ impl From<StdLibrary> for MaslLibrary {
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        let bytes = include_bytes!("../assets/std.masl");
+        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/assets/std.masl"));
         let contents = MaslLibrary::read_from_bytes(bytes).expect("failed to read std masl!");
         Self(contents)
     }
