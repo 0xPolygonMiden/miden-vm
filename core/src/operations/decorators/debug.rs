@@ -13,6 +13,19 @@ pub enum DebugOptions {
     StackAll,
     /// Prints out the top n items of the stack for the current context.
     StackTop(u16),
+    /// Prints out the entire contents of RAM.
+    MemAll,
+    /// Prints out the contents of memory stored in the provided interval. Interval boundaries are
+    /// both inclusive.
+    ///
+    /// First parameter specifies the interval starting address, second -- the ending address.
+    MemInterval(u32, u32),
+    /// Prints out locals stored in the provided interval of the currently executing procedure.
+    /// Interval boundaries are both inclusive.
+    ///
+    /// First parameter specifies the starting address, second -- the ending address, and the third
+    /// specifies the overall number of locals.
+    LocalInterval(u16, u16, u16),
 }
 
 impl fmt::Display for DebugOptions {
@@ -20,6 +33,11 @@ impl fmt::Display for DebugOptions {
         match self {
             Self::StackAll => write!(f, "stack"),
             Self::StackTop(n) => write!(f, "stack.{n}"),
+            Self::MemAll => write!(f, "mem"),
+            Self::MemInterval(n, m) => write!(f, "mem.{n}.{m}"),
+            Self::LocalInterval(start, end, _) => {
+                write!(f, "local.{start}.{end}")
+            }
         }
     }
 }

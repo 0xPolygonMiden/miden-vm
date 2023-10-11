@@ -2,6 +2,9 @@
 
 ## 0.8.0 (TBD)
 
+#### Assembly
+- Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations.
+
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt` 
   and `std::collections::smt64` to use the procedure (#1107).
