@@ -1,5 +1,5 @@
 use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
-use std::{env, collections::BTreeMap, fs, io, path::Path};
+use std::{collections::BTreeMap, env, fs, io, path::Path};
 
 mod md_renderer;
 use md_renderer::MarkdownRenderer;
