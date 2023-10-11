@@ -6,7 +6,6 @@ use crate::utils::{are_equal, binary_not, is_binary};
 mod bitwise;
 mod hasher;
 mod memory;
-pub use memory::MemoryFrameExt;
 
 // CONSTANTS
 // ================================================================================================

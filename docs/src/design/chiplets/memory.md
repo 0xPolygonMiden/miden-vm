@@ -2,7 +2,7 @@
 
 Miden VM supports linear read-write random access memory. This memory is word-addressable, meaning, four values are located at each address, and we can read and write values to/from memory in batches of four. Each value is a field element in a $64$-bit prime field with modulus $2^{64} - 2^{32} + 1$. Memory address can be any field element.
 
-In this note we describe the rational for selecting the above design and describe AIR constraints needed to support it.
+In this note we describe the rationale for selecting the above design and describe AIR constraints needed to support it.
 
 The design makes extensive use of $16$-bit range checks. An efficient way of implementing such range checks is described [here](../range.md).
 
@@ -29,8 +29,6 @@ $$
 $$
 
 where $v$ is the value in `value` column at the current row, and $v'$ is the value in this column in the next row.
-
-In addition to the above constraints we would also need to impose constraints needed for permutation checks, but we omit these constraints here because they are needed for all designs described in this note.
 
 As mentioned above, this approach is very efficient: each memory access requires just $2$ trace cells.
 
@@ -112,7 +110,7 @@ The above constraint, in combination with $16$-bit range checks against columns 
 
 ### Context separation
 
-In many situations it may be desirable to assign memories to different context. For example, when making a cross-contract calls, memories of the caller and the callee should be separate. That is, caller should not be able to access the memory of the callee and vice-versa.
+In many situations it may be desirable to assign memories to different contexts. For example, when making a cross-contract calls, the memories of the caller and the callee should be separate. That is, the caller should not be able to access the memory of the callee and vice-versa.
 
 To accommodate this feature, we need to add one more column as illustrated below.
 
@@ -124,7 +122,7 @@ This new column `ctx` should behave similarly to the address column: values in i
 - If the context remains the same but the address changes, column `t` should be set to the inverse of $(a' - a)$.
 - Otherwise, column `t` should be set to $0$.
 
-To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
+To simplify the description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
 n_0 = (c' - c) \cdot t' \\
@@ -253,7 +251,7 @@ $$
 
 Where $\Delta i = i' - i - 1$.
 
-In addition to this constraint, we also need to make sure that values in registers $d_0$ and $d_1$ are less than $2^{16}$, and this can be done with permutation-based range checks.
+In addition to this constraint, we also need to make sure that the values in registers $d_0$ and $d_1$ are less than $2^{16}$, and this can be done with [range checks](../range.md).
 
 Next, we need to make sure that values at a given memory address are always initialized to $0$. This can be done with the following constraint:
 

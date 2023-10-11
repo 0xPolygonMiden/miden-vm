@@ -12,7 +12,7 @@ use pollster::block_on;
 use processor::{
     crypto::{RandomCoin, Rpo256, RpoDigest},
     math::{fft, Felt},
-    ExecutionTrace,
+    ExecutionTrace, ONE,
 };
 use std::time::Instant;
 use winter_prover::{
@@ -108,7 +108,7 @@ where
                 let rpo_pad_column = num_base_columns % RPO_RATE;
                 rpo_padded_segment = unsafe { page_aligned_uninit_vector(lde_domain_size) };
                 rpo_padded_segment.copy_from_slice(segment);
-                rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = Felt::ONE);
+                rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = ONE);
                 row_hasher.update(&rpo_padded_segment);
                 assert!(lde_segment_iter.next().is_none(), "padded segment should be the last");
                 break;
@@ -200,7 +200,7 @@ where
                 let rpo_pad_column = num_base_columns % RPO_RATE;
                 rpo_padded_segment = unsafe { page_aligned_uninit_vector(lde_domain_size) };
                 rpo_padded_segment.copy_from_slice(segment);
-                rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = Felt::ONE);
+                rpo_padded_segment.iter_mut().for_each(|row| row[rpo_pad_column] = ONE);
                 row_hasher.update(&rpo_padded_segment);
                 assert_eq!(segments.len() - 1, segment_idx, "padded segment should be the last");
                 break;
@@ -324,7 +324,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use air::{ProofOptions, StarkField};
+    use air::{ProvingOptions, StarkField};
     use processor::{crypto::RpoRandomCoin, StackInputs, StackOutputs};
     use winter_prover::math::fields::CubeExtension;
 
@@ -404,7 +404,7 @@ mod tests {
 
     fn create_test_prover() -> ExecutionProver<Rpo256, RpoRandomCoin> {
         ExecutionProver::new(
-            ProofOptions::with_128_bit_security(true),
+            ProvingOptions::with_128_bit_security(true),
             StackInputs::default(),
             StackOutputs::default(),
         )

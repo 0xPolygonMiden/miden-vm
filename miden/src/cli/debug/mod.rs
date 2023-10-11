@@ -1,7 +1,7 @@
 use super::data::{Debug, InputFile, Libraries, ProgramFile};
-use rustyline::{error::ReadlineError, Config, EditMode, Editor};
+use clap::Parser;
+use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
 mod command;
 use command::DebugCommand;
@@ -9,20 +9,20 @@ use command::DebugCommand;
 mod executor;
 use executor::DebugExecutor;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "Debug", about = "Debug a miden program")]
+#[derive(Debug, Clone, Parser)]
+#[clap(about = "Debug a miden program")]
 pub struct DebugCmd {
     /// Path to .masm assembly file
-    #[structopt(short = "a", long = "assembly", parse(from_os_str))]
+    #[clap(short = 'a', long = "assembly", value_parser)]
     assembly_file: PathBuf,
     /// Path to input file
-    #[structopt(short = "i", long = "input", parse(from_os_str))]
+    #[clap(short = 'i', long = "input", value_parser)]
     input_file: Option<PathBuf>,
     /// Enable vi edit mode
-    #[structopt(short = "vi", long = "vim_edit_mode")]
+    #[clap(long = "vi", long = "vim_edit_mode")]
     vim_edit_mode: Option<String>,
     /// Paths to .masl library files
-    #[structopt(short = "l", long = "libraries", parse(from_os_str))]
+    #[clap(short = 'l', long = "libraries", value_parser)]
     library_paths: Vec<PathBuf>,
 }
 
@@ -36,7 +36,8 @@ impl DebugCmd {
         let libraries = Libraries::new(&self.library_paths)?;
 
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file, &Debug::On, libraries.libraries)?;
+        let program =
+            ProgramFile::read(&self.assembly_file)?.compile(&Debug::On, libraries.libraries)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}... ", hex::encode(program_hash));
@@ -60,7 +61,7 @@ impl DebugCmd {
 
         // initialize readline
         let mut rl =
-            Editor::<()>::with_config(rl_config).expect("Readline couldn't be initialized");
+            DefaultEditor::with_config(rl_config).expect("Readline couldn't be initialized");
 
         println!("Welcome! Enter `h` for help.");
 

@@ -1,6 +1,9 @@
+#[cfg(feature = "std")]
+mod falcon;
+
 mod blake3;
 mod ecdsa_secp256k1;
-mod falcon;
+mod elgamal;
 mod fri;
 mod keccak256;
 mod native;

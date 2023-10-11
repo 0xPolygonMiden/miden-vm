@@ -9,6 +9,13 @@ use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
 use core::{convert::TryFrom, ops::RangeBounds};
 use vm_core::WORD_SIZE;
 
+/// Helper enum for endianness determination in the parsing functions.
+#[derive(Debug)]
+enum Endianness {
+    Little,
+    Big,
+}
+
 // CONSTANTS
 // ================================================================================================
 
@@ -27,13 +34,13 @@ pub fn parse_push(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsing
     debug_assert_eq!(op.parts()[0], "push");
     match op.num_parts() {
         0 => unreachable!("missing token"),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "push.<a?>")),
         2 => {
             let param_str = op.parts()[1];
             match param_str.strip_prefix("0x") {
                 // if we have only one hex parameter
                 Some(param_str) if param_str.len() <= HEX_CHUNK_SIZE => {
-                    let value = parse_hex_value(op, param_str, 1)?;
+                    let value = parse_hex_value(op, param_str, 1, Endianness::Big)?;
                     build_push_one_instruction(value)
                 }
                 // if we have many hex parameters without delimiter
@@ -65,7 +72,7 @@ pub fn parse_locaddr(op: &Token, constants: &LocalConstMap) -> Result<Node, Pars
     debug_assert_eq!(op.parts()[0], "locaddr");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "locaddr.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(Locaddr(index)))
@@ -83,7 +90,7 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv_push");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "adv_push.<num_vals>")),
         2 => {
             let num_vals = parse_checked_param(op, 1, 1..=ADVICE_READ_LIMIT)?;
             Ok(Instruction(AdvPush(num_vals)))
@@ -120,7 +127,7 @@ pub fn parse_loc_load(op: &Token, constants: &LocalConstMap) -> Result<Node, Par
     debug_assert_eq!(op.parts()[0], "loc_load");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_load.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocLoad(index)))
@@ -157,7 +164,7 @@ pub fn parse_loc_loadw(op: &Token, constants: &LocalConstMap) -> Result<Node, Pa
     debug_assert_eq!(op.parts()[0], "loc_loadw");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_loadw.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocLoadW(index)))
@@ -194,7 +201,7 @@ pub fn parse_loc_store(op: &Token, constants: &LocalConstMap) -> Result<Node, Pa
     debug_assert_eq!(op.parts()[0], "loc_store");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_store.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocStore(index)))
@@ -231,7 +238,7 @@ pub fn parse_loc_storew(op: &Token, constants: &LocalConstMap) -> Result<Node, P
     debug_assert_eq!(op.parts()[0], "loc_storew");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op, "loc_storew.<index>")),
         2 => {
             let index = parse_param_with_constant_lookup::<u16>(op, 1, constants)?;
             Ok(Instruction(LocStoreW(index)))
@@ -249,7 +256,7 @@ fn parse_param_list(op: &Token, constants: &LocalConstMap) -> Result<Node, Parsi
     let values =
         op.parts().iter().enumerate().skip(1).map(|(param_idx, &param_str)| {
             match param_str.strip_prefix("0x") {
-                Some(param_str) => parse_hex_value(op, param_str, param_idx),
+                Some(param_str) => parse_hex_value(op, param_str, param_idx, Endianness::Big),
                 None => parse_non_hex_param_with_constants_lookup(
                     op,
                     constants,
@@ -281,32 +288,29 @@ fn parse_non_hex_param_with_constants_lookup<R: RangeBounds<u64>>(
     }
 }
 
-/// Parses a single hexadecimal parameter into multiple values and returns an appropriate push
+/// Parses a 64-character hex string into a word (4 field elements) and returns an appropriate push
 /// instruction node.
 ///
 /// # Errors
 /// Returns an error if:
-/// - The length of hex string is not even.
-/// - The length of hex string is not divisible by 16.
+/// - The length of hex string is not equal to 64.
 /// - If the string does not contain a valid hexadecimal value.
 /// - If the parsed value is greater than or equal to the field modulus.
-fn parse_long_hex_param(op: &Token, param_str: &str) -> Result<Node, ParsingError> {
+fn parse_long_hex_param(op: &Token, hex_str: &str) -> Result<Node, ParsingError> {
     // handle error cases where the hex string is poorly formed
-    if param_str.len() % HEX_CHUNK_SIZE != 0 {
+    if hex_str.len() != HEX_CHUNK_SIZE * WORD_SIZE {
         // hex string doesn't contain a valid number of bytes
         return Err(ParsingError::invalid_param_with_reason(
             op,
             1,
-            &format!(
-                "hex string '{param_str}' does not contain a number of characters multiple 16"
-            ),
+            &format!("long hex string '{hex_str}' must contain exactly 64 characters"),
         ));
     }
 
     // iterate over the multi-value hex string and parse each 8-byte chunk into a valid u64
-    let values = (0..param_str.len())
+    let values = (0..hex_str.len())
         .step_by(HEX_CHUNK_SIZE)
-        .map(|i| parse_hex_value(op, &param_str[i..i + HEX_CHUNK_SIZE], 1));
+        .map(|i| parse_hex_value(op, &hex_str[i..i + HEX_CHUNK_SIZE], 1, Endianness::Little));
 
     build_push_many_instruction(values)
 }
@@ -315,35 +319,57 @@ fn parse_long_hex_param(op: &Token, param_str: &str) -> Result<Node, ParsingErro
 ///
 /// # Errors
 /// Returns an error if:
-/// - The length of hex string is not even.
-/// - The length of hex string is greater than 16.
+/// - The length of a short hex string (big-endian) is not even.
+/// - The length of a short hex string (big-endian) is greater than 16.
+/// - The length of the chunk of a long hex string (little-endian) is not equal to 16.
 /// - If the string does not contain a valid hexadecimal value.
 /// - If the parsed value is greater than or equal to the field modulus.
-fn parse_hex_value(op: &Token, param_str: &str, param_idx: usize) -> Result<u64, ParsingError> {
-    if param_str.len() % 2 != 0 {
-        return Err(ParsingError::invalid_param_with_reason(
-            op,
-            param_idx,
-            &format!("hex string '{param_str}' does not contain an even number of characters"),
-        ));
-    }
-
-    if param_str.len() > HEX_CHUNK_SIZE {
-        return Err(ParsingError::invalid_param_with_reason(
-            op,
-            param_idx,
-            &format!("hex string '{param_str}' contains too many characters"),
-        ));
-    }
-
-    let value = u64::from_str_radix(param_str, 16)
-        .map_err(|_| ParsingError::invalid_param(op, param_idx))?;
+fn parse_hex_value(
+    op: &Token,
+    hex_str: &str,
+    param_idx: usize,
+    endianness: Endianness,
+) -> Result<u64, ParsingError> {
+    let value = match endianness {
+        Endianness::Big => {
+            if hex_str.len() % 2 != 0 {
+                return Err(ParsingError::invalid_param_with_reason(
+                    op,
+                    param_idx,
+                    &format!(
+                        "hex string '{hex_str}' does not contain an even number of characters"
+                    ),
+                ));
+            }
+            if hex_str.len() > HEX_CHUNK_SIZE {
+                return Err(ParsingError::invalid_param_with_reason(
+                    op,
+                    param_idx,
+                    &format!("hex string '{hex_str}' contains too many characters"),
+                ));
+            }
+            u64::from_str_radix(hex_str, 16)
+                .map_err(|_| ParsingError::invalid_param(op, param_idx))?
+        }
+        Endianness::Little => {
+            if hex_str.len() != HEX_CHUNK_SIZE {
+                return Err(ParsingError::invalid_param_with_reason(
+                    op,
+                    param_idx,
+                    &format!("hex string chunk '{hex_str}' must contain exactly 16 characters"),
+                ));
+            }
+            u64::from_str_radix(hex_str, 16)
+                .map(|v| v.swap_bytes())
+                .map_err(|_| ParsingError::invalid_param(op, param_idx))?
+        }
+    };
 
     if value >= Felt::MODULUS {
         Err(ParsingError::invalid_param_with_reason(
             op,
             param_idx,
-            &format!("hex string '{param_str}' contains value greater than field modulus"),
+            &format!("hex string '{hex_str}' contains value greater than field modulus"),
         ))
     } else {
         Ok(value)

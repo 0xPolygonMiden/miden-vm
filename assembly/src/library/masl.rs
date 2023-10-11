@@ -9,8 +9,9 @@ use core::slice::Iter;
 // ================================================================================================
 //
 
-/// Serialization options for [ModuleAst]. Imports are part of the ModuleAst serialization.
-const AST_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions {
+/// Serialization options for [ModuleAst]. Imports and information about imported procedures are
+/// part of the ModuleAst serialization by default.
+const AST_DEFAULT_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions {
     serialize_imports: true,
 };
 
@@ -58,9 +59,11 @@ impl Library for MaslLibrary {
 
 impl MaslLibrary {
     /// File extension for the Assembly Library.
-    pub const LIBRARY_EXTENSION: &str = "masl";
+    pub const LIBRARY_EXTENSION: &'static str = "masl";
     /// File extension for the Assembly Module.
-    pub const MODULE_EXTENSION: &str = "masm";
+    pub const MODULE_EXTENSION: &'static str = "masm";
+    /// Name of the root module.
+    pub const MOD: &'static str = "mod";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -155,6 +158,14 @@ mod use_std {
             let module_path = LibraryPath::new(&namespace)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
 
+            // mod.masm is not allowed in the root directory
+            if path.as_ref().join("mod.masm").exists() {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "mod.masm is not allowed in the root directory",
+                ));
+            }
+
             let modules = read_from_dir_helper(
                 Default::default(),
                 path,
@@ -245,20 +256,36 @@ mod use_std {
                         io::Error::new(io::ErrorKind::Other, "invalid directory entry!")
                     })?;
 
+                    // check if a directory with the same name exists in the directory
+                    if path.with_file_name(name).is_dir() {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!(
+                                "file and directory with the same name '{}' are not allowed",
+                                name
+                            ),
+                        ));
+                    }
+
                     // read & parse file
                     let contents = fs::read_to_string(&path)?;
                     let ast = ModuleAst::parse(&contents)?;
 
                     // add dependencies of this module to the dependencies of this library
-                    for path in ast.imports().values() {
+                    for path in ast.import_paths() {
                         let ns = LibraryNamespace::new(path.first())?;
                         deps.insert(ns);
                     }
 
                     // build module path and add it to the map of modules
-                    let module = module_path
-                        .append(name)
-                        .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
+                    let module = if name == MaslLibrary::MOD {
+                        module_path.clone()
+                    } else {
+                        module_path
+                            .append(name)
+                            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?
+                    };
+
                     if state.insert(module, ast).is_some() {
                         unreachable!(
                             "the filesystem is inconsistent as it produced duplicated module paths"
@@ -290,7 +317,7 @@ impl Serializable for MaslLibrary {
             LibraryPath::strip_first(&module.path)
                 .expect("module path consists of a single component")
                 .write_into(target);
-            module.ast.write_into(target, AST_SERDE_OPTIONS);
+            module.ast.write_into(target, AST_DEFAULT_SERDE_OPTIONS);
         });
 
         // optionally write the locations into the target. given the modules count is already
@@ -321,7 +348,7 @@ impl Deserializable for MaslLibrary {
             let path = LibraryPath::read_from(source)?
                 .prepend(&namespace)
                 .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
-            let ast = ModuleAst::read_from(source, AST_SERDE_OPTIONS)?;
+            let ast = ModuleAst::read_from(source, AST_DEFAULT_SERDE_OPTIONS)?;
             modules.push(Module { path, ast });
         }
 

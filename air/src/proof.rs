@@ -3,7 +3,7 @@ use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
     utils::collections::Vec,
 };
-use winter_air::{proof::StarkProof, FieldExtension, ProofOptions as WinterProofOptions};
+use winter_air::proof::StarkProof;
 
 // EXECUTION PROOF
 // ================================================================================================
@@ -78,104 +78,6 @@ impl ExecutionProof {
     /// Returns components of this execution proof.
     pub fn into_parts(self) -> (HashFunction, StarkProof) {
         (self.hash_fn, self.proof)
-    }
-}
-
-// PROOF OPTIONS
-// ================================================================================================
-
-/// A set of parameters specifying how Miden VM execution proofs are to be generated.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ProofOptions {
-    pub options: WinterProofOptions,
-    pub hash_fn: HashFunction,
-}
-
-impl ProofOptions {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-
-    /// Creates a new instance of [ProofOptions] from the specified parameters.
-    pub fn new(
-        num_queries: usize,
-        blowup_factor: usize,
-        grinding_factor: u32,
-        field_extension: FieldExtension,
-        fri_folding_factor: usize,
-        fri_max_remainder_size: usize,
-        hash_fn: HashFunction,
-    ) -> Self {
-        let options = WinterProofOptions::new(
-            num_queries,
-            blowup_factor,
-            grinding_factor,
-            field_extension,
-            fri_folding_factor,
-            fri_max_remainder_size,
-        );
-        Self { options, hash_fn }
-    }
-
-    /// Creates a new preset instance of [ProofOptions] targeting 96-bit security level.
-    ///
-    /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
-    /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
-    /// but may take significantly longer to generate.
-    pub fn with_96_bit_security(recursive: bool) -> Self {
-        if recursive {
-            let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
-            Self {
-                hash_fn: HashFunction::Rpo256,
-                options,
-            }
-        } else {
-            let options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
-            Self {
-                hash_fn: HashFunction::Blake3_192,
-                options,
-            }
-        }
-    }
-
-    /// Creates a new preset instance of [ProofOptions] targeting 128-bit security level.
-    ///
-    /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
-    /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
-    /// but may take significantly longer to generate.
-    pub fn with_128_bit_security(recursive: bool) -> Self {
-        if recursive {
-            let options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
-            Self {
-                hash_fn: HashFunction::Rpo256,
-                options,
-            }
-        } else {
-            let options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
-            Self {
-                hash_fn: HashFunction::Blake3_256,
-                options,
-            }
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the hash function to be used in STARK proof generation.
-    pub const fn hash_fn(&self) -> HashFunction {
-        self.hash_fn
-    }
-}
-
-impl Default for ProofOptions {
-    fn default() -> Self {
-        Self::with_96_bit_security(false)
-    }
-}
-
-impl From<ProofOptions> for WinterProofOptions {
-    fn from(options: ProofOptions) -> Self {
-        options.options
     }
 }
 

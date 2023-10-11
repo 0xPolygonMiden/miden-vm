@@ -1,5 +1,5 @@
 # Usage
-Before you can use Miden VM, you'll need to make sure you have Rust [installed](https://www.rust-lang.org/tools/install). Miden VM v0.6 requires Rust version **1.67** or later.
+Before you can use Miden VM, you'll need to make sure you have Rust [installed](https://www.rust-lang.org/tools/install). Miden VM v0.7 requires Rust version **1.67** or later.
 
 Miden VM consists of several crates, each of which exposes a small set of functionality. The most notable of these crates are:
 * [miden-processor](https://crates.io/crates/miden-processor), which can be used to execute Miden VM programs.
@@ -33,14 +33,23 @@ In this case, the `miden` executable will be placed in the `./target/release` di
 Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
 
 ### GPU acceleration
-Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via Metal). To compile Miden VM with Metal acceleration enabled, you can run the following command:
+Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via [Metal](https://en.wikipedia.org/wiki/Metal_(API))). To compile Miden VM with Metal acceleration enabled, you can run the following command:
 ```
 make exec-metal
 ```
 
-Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized directory`.
+Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized` directory.
 
-Currently, GPU acceleration is applicable only to recursive proofs which can be generated using `-r` flag.
+Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the `-r` flag.
+
+### SIMD acceleration
+Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled only on platforms supporting [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)) instructions (e.g., Graviton 3). To compile Miden VM with SVE acceleration enabled, you can run the following command:
+```
+make exec-graviton
+```
+This will place the resulting `miden` executable into the `./target/optimized` directory.
+
+Similar to Metal acceleration, SVE acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
 
 ### Running Miden VM
 Once the executable has been compiled, you can run Miden VM like so:
@@ -76,10 +85,10 @@ As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.htm
 * Secret (or nondeterministic) inputs:
   * `advice_stack` - can be supplied to the VM. There is no limit on how much data the advice provider can hold. This is provided as a string array where each string entry represents a field element.
   * `advice_map` - is supplied as a map of 64-character hex keys, each mapped to an array of numbers.  The hex keys are interpreted as 4 field elements and the arrays of numbers are interpreted as arrays of field elements.
-  * `merkle_store` - the Merkle store is container that allows the user to define `merkle_tree` and `sparse_merkle_tree` data structures.
+  * `merkle_store` - the Merkle store is container that allows the user to define `merkle_tree`, `sparse_merkle_tree` and `partial_merkle_tree` data structures.
     * `merkle_tree` - is supplied as an array of 64-character hex values where each value represents a leaf (4 elements) in the tree.
-    * `sparse_merkle_tree` - is supplied an an array of tuples of the form (number, 64-character hex string).  The number represents the leaf index and the hex string
-    represents the leaf value (4 elements).
+    * `sparse_merkle_tree` - is supplied as an array of tuples of the form (number, 64-character hex string).  The number represents the leaf index and the hex string represents the leaf value (4 elements).
+    * `partial_merkle_tree` - is supplied as an array of tuples of the form ((number, number), 64-character hex string). The internal tuple represents the leaf depth and index at this depth, and the hex string represents the leaf value (4 elements).
 
 *Check out the [comparison example](https://github.com/0xPolygonMiden/examples/blob/main/examples/comparison.masm) to see how secret inputs work.*
 

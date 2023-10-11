@@ -4,14 +4,17 @@
 // EXPORTS
 // ================================================================================================
 
-pub use assembly::{Assembler, AssemblyError, ParsingError};
+pub use assembly::{
+    ast::{ModuleAst, ProgramAst},
+    Assembler, AssemblyError, ParsingError,
+};
 pub use processor::{
-    crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, ExecutionError,
-    ExecutionTrace, Kernel, MemAdviceProvider, Operation, ProgramInfo, StackInputs, VmState,
-    VmStateIterator,
+    crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost,
+    ExecutionError, ExecutionTrace, Host, Kernel, MemAdviceProvider, Operation, Program,
+    ProgramInfo, StackInputs, VmState, VmStateIterator, ZERO,
 };
 pub use prover::{
-    math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Program,
-    ProofOptions, StackOutputs, StarkProof, Word,
+    math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, ProvingOptions,
+    StackOutputs, StarkProof, Word,
 };
 pub use verifier::{verify, VerificationError};

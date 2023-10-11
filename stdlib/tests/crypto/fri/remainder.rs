@@ -1,6 +1,6 @@
 use crate::build_test;
 use test_utils::{
-    math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField,
+    math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField, ONE,
 };
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
@@ -62,7 +62,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
 
     let poly = rand_vector::<QuadFelt>(in_poly_len);
     let twiddles = fft::get_twiddles(poly.len());
-    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::ONE, blowup);
+    let evals = fft::evaluate_poly_with_offset(&poly, &twiddles, ONE, blowup);
 
     let ifelts = QuadFelt::slice_as_base_elements(&evals);
     let iu64s = ifelts.iter().map(|v| v.as_int()).collect::<Vec<u64>>();

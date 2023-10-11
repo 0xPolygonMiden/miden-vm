@@ -1,5 +1,5 @@
-use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
-use crate::{DecoratorIterator, DecoratorList};
+use super::{fmt, hasher, Digest, Felt, Operation, Vec};
+use crate::{DecoratorIterator, DecoratorList, ZERO};
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -56,7 +56,7 @@ impl Span {
     // CONSTANTS
     // --------------------------------------------------------------------------------------------
     /// The domain of the span block (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::ZERO;
+    pub const DOMAIN: Felt = ZERO;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ impl OpBatchAccumulator {
     pub fn new() -> Self {
         Self {
             ops: Vec::new(),
-            groups: [Felt::ZERO; BATCH_SIZE],
+            groups: [ZERO; BATCH_SIZE],
             op_counts: [0; BATCH_SIZE],
             group: 0,
             op_idx: 0,
@@ -390,7 +390,7 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
 /// - Assert the decorator list is in ascending order.
-/// - Assert the last op index in decorator list is less than the number of operations.
+/// - Assert the last op index in decorator list is less than or equal to the number of operations.
 #[cfg(debug_assertions)]
 fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
     if !decorators.is_empty() {
@@ -400,8 +400,8 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
         }
         // assert the last index in decorator list is less than operations vector length
         debug_assert!(
-            operations.len() > decorators.last().expect("empty decorators list").0,
-            "last op index in decorator list should be less than number of ops"
+            operations.len() >= decorators.last().expect("empty decorators list").0,
+            "last op index in decorator list should be less than or equal to the number of ops"
         );
     }
 }
@@ -411,7 +411,8 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
 
 #[cfg(test)]
 mod tests {
-    use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
+    use super::{hasher, Felt, Operation, BATCH_SIZE, ZERO};
+    use crate::ONE;
 
     #[test]
     fn batch_ops() {
@@ -424,7 +425,7 @@ mod tests {
         assert_eq!(ops, batch.ops);
         assert_eq!(1, batch.num_groups());
 
-        let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
+        let mut batch_groups = [ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
 
         assert_eq!(batch_groups, batch.groups);
@@ -440,7 +441,7 @@ mod tests {
         assert_eq!(ops, batch.ops);
         assert_eq!(1, batch.num_groups());
 
-        let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
+        let mut batch_groups = [ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
 
         assert_eq!(batch_groups, batch.groups);
@@ -456,7 +457,7 @@ mod tests {
         assert_eq!(ops, batch.ops);
         assert_eq!(2, batch.num_groups());
 
-        let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
+        let mut batch_groups = [ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
         batch_groups[1] = Felt::new(12345678);
 
@@ -466,7 +467,7 @@ mod tests {
 
         // --- one group with 7 immediate values --------------------------------------------------
         let ops = vec![
-            Operation::Push(Felt::new(1)),
+            Operation::Push(ONE),
             Operation::Push(Felt::new(2)),
             Operation::Push(Felt::new(3)),
             Operation::Push(Felt::new(4)),
@@ -484,7 +485,7 @@ mod tests {
 
         let batch_groups = [
             build_group(&ops),
-            Felt::new(1),
+            ONE,
             Felt::new(2),
             Felt::new(3),
             Felt::new(4),
@@ -501,7 +502,7 @@ mod tests {
         let ops = vec![
             Operation::Add,
             Operation::Mul,
-            Operation::Push(Felt::new(1)),
+            Operation::Push(ONE),
             Operation::Push(Felt::new(2)),
             Operation::Push(Felt::new(3)),
             Operation::Push(Felt::new(4)),
@@ -519,13 +520,13 @@ mod tests {
 
         let batch0_groups = [
             build_group(&ops[..9]),
-            Felt::new(1),
+            ONE,
             Felt::new(2),
             Felt::new(3),
             Felt::new(4),
             Felt::new(5),
             Felt::new(6),
-            Felt::ZERO,
+            ZERO,
         ];
 
         assert_eq!(batch0_groups, batch0.groups);
@@ -535,7 +536,7 @@ mod tests {
         assert_eq!(vec![ops[9]], batch1.ops);
         assert_eq!(2, batch1.num_groups());
 
-        let mut batch1_groups = [Felt::ZERO; BATCH_SIZE];
+        let mut batch1_groups = [ZERO; BATCH_SIZE];
         batch1_groups[0] = build_group(&[ops[9]]);
         batch1_groups[1] = Felt::new(7);
 
@@ -571,10 +572,10 @@ mod tests {
             Felt::new(7),
             Felt::new(11),
             build_group(&ops[9..]),
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
         ];
 
         assert_eq!([9_usize, 0, 0, 1, 0, 0, 0, 0], batch.op_counts);
@@ -604,11 +605,11 @@ mod tests {
             build_group(&ops[..8]),
             build_group(&[ops[8]]),
             Felt::new(11),
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
         ];
 
         assert_eq!(batch_groups, batch.groups);
@@ -624,7 +625,7 @@ mod tests {
             Operation::Add,
             Operation::Mul,
             Operation::Mul,
-            Operation::Push(Felt::new(1)),
+            Operation::Push(ONE),
             Operation::Push(Felt::new(2)),
         ];
         let (batches, hash) = super::batch_ops(ops.clone());
@@ -636,13 +637,13 @@ mod tests {
 
         let batch_groups = [
             build_group(&ops[..8]),
-            Felt::new(1),
+            ONE,
             build_group(&[ops[8]]),
             Felt::new(2),
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
         ];
 
         assert_eq!(batch_groups, batch.groups);
@@ -653,7 +654,7 @@ mod tests {
         let ops = vec![
             Operation::Add,
             Operation::Mul,
-            Operation::Push(Felt::new(1)),
+            Operation::Push(ONE),
             Operation::Push(Felt::new(2)),
             Operation::Push(Felt::new(3)),
             Operation::Push(Felt::new(4)),
@@ -681,13 +682,13 @@ mod tests {
 
         let batch0_groups = [
             build_group(&ops[..9]),
-            Felt::new(1),
+            ONE,
             Felt::new(2),
             Felt::new(3),
             Felt::new(4),
             Felt::new(5),
             build_group(&ops[9..17]),
-            Felt::ZERO,
+            ZERO,
         ];
 
         assert_eq!(batch0_groups, batch0.groups);
@@ -697,16 +698,8 @@ mod tests {
         assert_eq!(ops[17..], batch1.ops);
         assert_eq!(2, batch1.num_groups());
 
-        let batch1_groups = [
-            build_group(&ops[17..]),
-            Felt::new(6),
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-            Felt::ZERO,
-        ];
+        let batch1_groups =
+            [build_group(&ops[17..]), Felt::new(6), ZERO, ZERO, ZERO, ZERO, ZERO, ZERO];
         assert_eq!(batch1_groups, batch1.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
 

@@ -1,6 +1,6 @@
 use super::{
     trace::LookupTableRow, utils::get_trace_len, ChipletsBus, ColMatrix, ExecutionError, Felt,
-    FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL,
+    FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL, ZERO,
 };
 use miden_air::trace::chiplets::bitwise::{
     A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
@@ -234,7 +234,7 @@ impl Default for Bitwise {
 pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
     let val_u64 = value.as_int();
     if val_u64 > u32::MAX.into() {
-        Err(ExecutionError::NotU32Value(value))
+        Err(ExecutionError::NotU32Value(value, ZERO))
     } else {
         Ok(value)
     }

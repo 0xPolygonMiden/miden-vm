@@ -52,9 +52,9 @@ impl<'a> Token<'a> {
 
     // DELIMITERS
     // --------------------------------------------------------------------------------------------
-    pub const DOC_COMMENT_PREFIX: &str = "#!";
+    pub const DOC_COMMENT_PREFIX: &'static str = "#!";
     pub const COMMENT_PREFIX: char = '#';
-    pub const EXPORT_ALIAS_DELIM: &str = "->";
+    pub const ALIAS_DELIM: &'static str = "->";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -67,6 +67,14 @@ impl<'a> Token<'a> {
         Self {
             parts: token.split('.').collect(),
             location,
+        }
+    }
+
+    /// Returns a new token intended for use in tests
+    pub fn new_dummy() -> Self {
+        Self {
+            parts: vec!["dummy_token"],
+            location: SourceLocation::new(0, 0),
         }
     }
 
@@ -104,12 +112,23 @@ impl<'a> Token<'a> {
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn parse_use(&self) -> Result<LibraryPath, ParsingError> {
+    pub fn parse_use(&self) -> Result<(LibraryPath, String), ParsingError> {
         assert_eq!(Self::USE, self.parts[0], "not a use");
         match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
-            2 => validate_import_path(self.parts[1], self),
+            1 => Err(ParsingError::missing_param(self, "use.<absolute_module_path>")),
+            2 => {
+                if let Some((module_path, module_name)) =
+                    self.parts[1].split_once(Self::ALIAS_DELIM)
+                {
+                    validate_module_name(module_name, self)?;
+                    Ok((validate_import_path(module_path, self)?, module_name.to_string()))
+                } else {
+                    let module_path = validate_import_path(self.parts[1], self)?;
+                    let module_name = module_path.last().to_string();
+                    Ok((module_path, module_name))
+                }
+            }
             _ => Err(ParsingError::extra_param(self)),
         }
     }
@@ -131,7 +150,7 @@ impl<'a> Token<'a> {
         let is_export = self.parts[0] == Self::EXPORT;
         let (name_str, num_locals) = match self.num_parts() {
             0 => unreachable!(),
-            1 => return Err(ParsingError::missing_param(self)),
+            1 => return Err(ParsingError::missing_param(self, "[proc|export].<procedure_name>")),
             2 => (self.parts[1], 0),
             3 => {
                 let num_locals = validate_proc_locals(self.parts[2], self)?;
@@ -151,7 +170,7 @@ impl<'a> Token<'a> {
         assert_eq!(Self::EXPORT, self.parts[0], "not an export");
         match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self, "export.<procedure_path>")),
             2 => {
                 if self.parts[1].matches(LibraryPath::PATH_DELIM).count() != 1 {
                     return Err(ParsingError::invalid_reexported_procedure(self, self.parts[1]));
@@ -163,7 +182,7 @@ impl<'a> Token<'a> {
 
                 // get the alias name if it exists else export it with the original name
                 let (ref_name, proc_name) = proc_name_with_alias
-                    .split_once(Self::EXPORT_ALIAS_DELIM)
+                    .split_once(Self::ALIAS_DELIM)
                     .unwrap_or((proc_name_with_alias, proc_name_with_alias));
 
                 // validate the procedure names
@@ -182,7 +201,7 @@ impl<'a> Token<'a> {
         assert_eq!(Self::IF, self.parts[0], "not an if");
         match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self, "if.true")),
             2 => {
                 if self.parts[1] != "true" {
                     Err(ParsingError::invalid_param(self, 1))
@@ -207,7 +226,7 @@ impl<'a> Token<'a> {
         assert_eq!(Self::WHILE, self.parts[0], "not a while");
         match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self, "while.true")),
             2 => {
                 if self.parts[1] != "true" {
                     Err(ParsingError::invalid_param(self, 1))
@@ -223,7 +242,7 @@ impl<'a> Token<'a> {
         assert_eq!(Self::REPEAT, self.parts[0], "not a repeat");
         match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self, "repeat.<num_repetitions>")),
             2 => self.parts[1].parse::<u32>().map_err(|_| ParsingError::invalid_param(self, 1)),
             _ => Err(ParsingError::extra_param(self)),
         }
@@ -236,7 +255,10 @@ impl<'a> Token<'a> {
         assert_eq!(invocation_token, self.parts[0], "not an {invocation_token}");
         match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(
+                self,
+                format!("{invocation_token}.<procedure_name>").as_str(),
+            )),
             2 => InvocationTarget::parse(self.parts[1], self),
             _ => Err(ParsingError::extra_param(self)),
         }
@@ -279,5 +301,21 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
             Ok(num_locals as u16)
         }
         Err(_) => Err(ParsingError::invalid_proc_locals(token, locals)),
+    }
+}
+
+/// A module name must comply with the following rules:
+/// - The name must be between 1 and 255 characters long.
+/// - The name must start with an ASCII letter.
+/// - The name can contain only ASCII letters, numbers, or underscores.
+fn validate_module_name(name: &str, token: &Token) -> Result<(), ParsingError> {
+    if name.is_empty()
+        || name.len() > crate::MAX_LABEL_LEN
+        || !name.chars().next().unwrap().is_ascii_alphabetic()
+        || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    {
+        Err(ParsingError::invalid_module_name(token, name))
+    } else {
+        Ok(())
     }
 }

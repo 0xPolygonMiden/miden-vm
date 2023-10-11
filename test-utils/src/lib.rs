@@ -19,16 +19,16 @@ pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
-    AdviceInputs, AdviceProvider, ExecutionError, ExecutionTrace, Process, StackInputs,
-    VmStateIterator,
+    AdviceInputs, AdviceProvider, DefaultHost, ExecutionError, ExecutionOptions, ExecutionTrace,
+    Process, ProcessState, StackInputs, VmStateIterator,
 };
-pub use prover::{prove, MemAdviceProvider, ProofOptions};
+pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{ProgramInfo, VerifierError};
 pub use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
-    Felt, FieldElement, Program, StarkField, Word, ONE, WORD_SIZE, ZERO,
+    Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 pub mod math {
@@ -161,17 +161,21 @@ impl Test {
     ) {
         // compile the program
         let program = self.compile();
-        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
 
         // execute the test
-        let mut process =
-            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
+        let mut process = Process::new(
+            program.kernel().clone(),
+            self.stack_inputs.clone(),
+            host,
+            ExecutionOptions::default(),
+        );
         process.execute(&program).unwrap();
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
             // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing easier
-            let mem_state = process.get_memory_value(0, mem_start_addr).unwrap_or([ZERO; 4]);
+            let mem_state = process.get_mem_value(0, mem_start_addr).unwrap_or(EMPTY_WORD);
 
             let mem_state = stack_to_ints(&mem_state);
             assert_eq!(
@@ -222,17 +226,23 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
-        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        processor::execute(&program, self.stack_inputs.clone(), advice_provider)
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
     /// process once execution is finished.
-    pub fn execute_process(&self) -> Result<Process<MemAdviceProvider>, ExecutionError> {
+    pub fn execute_process(
+        &self,
+    ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
         let program = self.compile();
-        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        let mut process =
-            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let mut process = Process::new(
+            program.kernel().clone(),
+            self.stack_inputs.clone(),
+            host,
+            ExecutionOptions::default(),
+        );
         process.execute(&program)?;
         Ok(process)
     }
@@ -243,10 +253,9 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
-        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), advice_provider, ProofOptions::default())
-                .unwrap();
+            prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -263,8 +272,8 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
-        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        processor::execute_iter(&program, self.stack_inputs.clone(), advice_provider)
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }
 
     /// Returns the last state of the stack after executing a test.
@@ -304,7 +313,7 @@ pub fn prop_randw<T: Arbitrary>() -> impl Strategy<Value = Vec<T>> {
 ///
 /// Return the result of the permutation in stack order.
 pub fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
-    let mut expected = [Felt::ZERO; STATE_WIDTH];
+    let mut expected = [ZERO; STATE_WIDTH];
     for (&value, result) in values.iter().zip(expected.iter_mut()) {
         *result = Felt::new(value);
     }

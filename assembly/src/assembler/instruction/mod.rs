@@ -4,7 +4,7 @@ use super::{
 };
 use crate::utils::bound_into_included_u64;
 use core::ops::RangeBounds;
-use vm_core::{FieldElement, StarkField};
+use vm_core::{Decorator, FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;
@@ -37,10 +37,20 @@ impl Assembler {
         }
 
         let result = match instruction {
-            Instruction::Assert => span.add_op(Assert),
-            Instruction::AssertEq => span.add_ops([Eq, Assert]),
-            Instruction::AssertEqw => field_ops::assertw(span),
-            Instruction::Assertz => span.add_ops([Eqz, Assert]),
+            Instruction::Assert => span.add_op(Assert(ZERO)),
+            Instruction::AssertWithError(err_code) => span.add_op(Assert(Felt::from(*err_code))),
+            Instruction::AssertEq => span.add_ops([Eq, Assert(ZERO)]),
+            Instruction::AssertEqWithError(err_code) => {
+                span.add_ops([Eq, Assert(Felt::from(*err_code))])
+            }
+            Instruction::AssertEqw => field_ops::assertw(span, ZERO),
+            Instruction::AssertEqwWithError(err_code) => {
+                field_ops::assertw(span, Felt::from(*err_code))
+            }
+            Instruction::Assertz => span.add_ops([Eqz, Assert(ZERO)]),
+            Instruction::AssertzWithError(err_code) => {
+                span.add_ops([Eqz, Assert(Felt::from(*err_code))])
+            }
 
             Instruction::Add => span.add_op(Add),
             Instruction::AddImm(imm) => field_ops::add_imm(span, *imm),
@@ -86,9 +96,19 @@ impl Assembler {
             // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => span.add_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(span),
-            Instruction::U32Assert => span.add_ops([Pad, U32assert2, Drop]),
-            Instruction::U32Assert2 => span.add_op(U32assert2),
-            Instruction::U32AssertW => u32_ops::u32assertw(span),
+            Instruction::U32Assert => span.add_ops([Pad, U32assert2(ZERO), Drop]),
+            Instruction::U32AssertWithError(err_code) => {
+                span.add_ops([Pad, U32assert2(Felt::from(*err_code)), Drop])
+            }
+            Instruction::U32Assert2 => span.add_op(U32assert2(ZERO)),
+            Instruction::U32Assert2WithError(err_code) => {
+                span.add_op(U32assert2(Felt::from(*err_code)))
+            }
+            Instruction::U32AssertW => u32_ops::u32assertw(span, ZERO),
+            Instruction::U32AssertWWithError(err_code) => {
+                u32_ops::u32assertw(span, Felt::from(*err_code))
+            }
+
             Instruction::U32Cast => span.add_ops([U32split, Drop]),
             Instruction::U32Split => span.add_op(U32split),
 
@@ -305,12 +325,21 @@ impl Assembler {
             Instruction::CallMastRoot(root) => self.call_mast_root(root, ctx),
             Instruction::CallImported(id) => self.call_imported(id, ctx),
             Instruction::SysCall(id) => self.syscall(id, ctx),
+            Instruction::DynExec => self.dynexec(),
+            Instruction::DynCall => self.dyncall(),
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {
                 if self.in_debug_mode() {
                     span.add_op(Noop)?;
                     span.track_instruction(instruction, ctx);
+                }
+                Ok(None)
+            }
+
+            Instruction::Debug(options) => {
+                if self.in_debug_mode() {
+                    span.push_decorator(Decorator::Debug(*options))
                 }
                 Ok(None)
             }

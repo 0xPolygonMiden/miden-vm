@@ -15,13 +15,16 @@ use std::error::Error;
 
 #[derive(Debug)]
 pub enum ExecutionError {
-    AdviceKeyNotFound(Word),
+    AdviceMapKeyNotFound(Word),
+    AdviceMapValueInvalidLength(Word, usize, usize),
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
     CodeBlockNotFound(Digest),
+    DynamicCodeBlockNotFound(Digest),
+    CycleLimitExceeded(u32),
     DivideByZero(u32),
     Ext2InttError(Ext2InttError),
-    FailedAssertion(u32),
+    FailedAssertion(u32, Felt),
     InvalidFmpValue(Felt, Felt),
     InvalidFriDomainSegment(u64),
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
@@ -35,10 +38,12 @@ pub enum ExecutionError {
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
-    NotU32Value(Felt),
+    NotU32Value(Felt, Felt),
     ProverError(ProverError),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
+    MalformedSignatureKey(&'static str),
+    FailedSignatureGeneration(&'static str),
 }
 
 impl Display for ExecutionError {
@@ -46,9 +51,16 @@ impl Display for ExecutionError {
         use ExecutionError::*;
 
         match self {
-            AdviceKeyNotFound(key) => {
+            AdviceMapKeyNotFound(key) => {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
-                write!(f, "Can't push values onto the advice stack: value for key {hex} not present in the advice map.")
+                write!(f, "Value for key {hex} not present in the advice map")
+            }
+            AdviceMapValueInvalidLength(key, expected, actual) => {
+                let hex = to_hex(Felt::elements_as_bytes(key))?;
+                write!(
+                    f,
+                    "Expected value for key {hex} to contain {expected} elements, but was {actual}"
+                )
             }
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
             CallerNotInSyscall => {
@@ -61,9 +73,21 @@ impl Display for ExecutionError {
                     "Failed to execute code block with root {hex}; the block could not be found"
                 )
             }
+            DynamicCodeBlockNotFound(digest) => {
+                let hex = to_hex(&digest.as_bytes())?;
+                write!(
+                    f,
+                    "Failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found"
+                )
+            }
+            CycleLimitExceeded(max_cycles) => {
+                write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
+            }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),
-            FailedAssertion(clk) => write!(f, "Assertion failed at clock cycle {clk}"),
+            FailedAssertion(clk, err_code) => {
+                write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
+            }
             InvalidFmpValue(old, new) => {
                 write!(f, "Updating FMP register from {old} to {new} failed because {new} is outside of {FMP_MIN}..{FMP_MAX}")
             }
@@ -106,8 +130,11 @@ impl Display for ExecutionError {
             NotBinaryValue(v) => {
                 write!(f, "An operation expected a binary value, but received {v}")
             }
-            NotU32Value(v) => {
-                write!(f, "An operation expected a u32 value, but received {v}")
+            NotU32Value(v, err_code) => {
+                write!(
+                    f,
+                    "An operation expected a u32 value, but received {v} (error code: {err_code})"
+                )
             }
             ProverError(error) => write!(f, "Proof generation failed: {error}"),
             SyscallTargetNotInKernel(proc) => {
@@ -116,6 +143,10 @@ impl Display for ExecutionError {
             }
             UnexecutableCodeBlock(block) => {
                 write!(f, "Execution reached unexecutable code block {block:?}")
+            }
+            MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
+            FailedSignatureGeneration(signature) => {
+                write!(f, "Failed to generate signature: {signature}")
             }
         }
     }

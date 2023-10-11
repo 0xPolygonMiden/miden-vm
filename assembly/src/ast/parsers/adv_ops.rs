@@ -5,6 +5,7 @@ use super::{
     Node::{self, Instruction},
     ParsingError, Token, MAX_STACK_WORD_OFFSET,
 };
+use vm_core::SignatureKind;
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -17,7 +18,7 @@ use super::{
 pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv");
     if op.num_parts() < 2 {
-        return Err(ParsingError::missing_param(op));
+        return Err(ParsingError::missing_param(op, "adv.<injector>.<injector_param?>"));
     }
 
     let injector = match op.parts()[1] {
@@ -31,6 +32,14 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
         },
         "push_smtget" => match op.num_parts() {
             2 => AdvInject(PushSmtGet),
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_smtset" => match op.num_parts() {
+            2 => AdvInject(PushSmtSet),
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_smtpeek" => match op.num_parts() {
+            2 => AdvInject(PushSmtPeek),
             _ => return Err(ParsingError::extra_param(op)),
         },
         "push_mapval" => match op.num_parts() {
@@ -75,6 +84,19 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
                     AdvInject(InsertHdwordImm { domain })
                 }
             }
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "insert_hperm" => match op.num_parts() {
+            2 => AdvInject(InsertHperm),
+            _ => return Err(ParsingError::extra_param(op)),
+        },
+        "push_sig" => match op.num_parts() {
+            3 => match op.parts()[2] {
+                "rpo_falcon512" => AdvInject(PushSignature {
+                    kind: SignatureKind::RpoFalcon512,
+                }),
+                _ => return Err(ParsingError::invalid_param(op, 1)),
+            },
             _ => return Err(ParsingError::extra_param(op)),
         },
         _ => return Err(ParsingError::invalid_op(op)),

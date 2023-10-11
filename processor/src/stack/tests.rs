@@ -53,7 +53,7 @@ fn initialize_overflow() {
     ];
     let init_addr = Felt::MODULUS - 3;
     let expected_overflow_rows = vec![
-        OverflowTableRow::new(init_addr, Felt::new(1), ZERO),
+        OverflowTableRow::new(init_addr, ONE, ZERO),
         OverflowTableRow::new(init_addr + 1, Felt::new(2), Felt::new(init_addr)),
         OverflowTableRow::new(init_addr + 2, Felt::new(3), Felt::new(init_addr + 1)),
     ];

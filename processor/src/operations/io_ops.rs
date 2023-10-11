@@ -1,16 +1,13 @@
-use super::{AdviceProvider, ExecutionError, Felt, Operation, Process};
-
-// CONSTANTS
-// ================================================================================================
-
-const TWO: Felt = Felt::new(2);
+use super::{ExecutionError, Felt, Host, Operation, Process};
+use crate::Word;
+use vm_core::StarkField;
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // CONSTANT INPUTS
     // --------------------------------------------------------------------------------------------
@@ -40,7 +37,7 @@ where
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from current memory context
         let ctx = self.system.ctx();
-        let addr = self.stack.get(0);
+        let addr = Self::get_valid_address(self.stack.get(0))?;
         let word = self.chiplets.read_mem(ctx, addr);
 
         // reverse the order of the memory word & update the stack state
@@ -67,7 +64,7 @@ where
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let ctx = self.system.ctx();
-        let addr = self.stack.get(0);
+        let addr = Self::get_valid_address(self.stack.get(0))?;
         let mut word = self.chiplets.read_mem(ctx, addr);
         // put the retrieved word into stack order
         word.reverse();
@@ -95,7 +92,7 @@ where
     pub(super) fn op_mstream(&mut self) -> Result<(), ExecutionError> {
         // get the address from position 12 on the stack
         let ctx = self.system.ctx();
-        let addr = self.stack.get(12);
+        let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // load two words from memory
         let words = self.chiplets.read_mem_double(ctx, addr);
@@ -112,7 +109,7 @@ where
         }
 
         // increment the address by 2
-        self.stack.set(12, addr + TWO);
+        self.stack.set(12, Felt::from(addr + 2));
 
         // copy over the rest of the stack
         self.stack.copy_state(13);
@@ -131,7 +128,7 @@ where
     pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let ctx = self.system.ctx();
-        let addr = self.stack.get(0);
+        let addr = Self::get_valid_address(self.stack.get(0))?;
 
         // build the word in memory order (reverse of stack order)
         let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
@@ -164,7 +161,7 @@ where
     pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
         // get the address and the value from the stack
         let ctx = self.system.ctx();
-        let addr = self.stack.get(0);
+        let addr = Self::get_valid_address(self.stack.get(0))?;
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
@@ -194,10 +191,10 @@ where
     pub(super) fn op_pipe(&mut self) -> Result<(), ExecutionError> {
         // get the address from position 12 on the stack
         let ctx = self.system.ctx();
-        let addr = self.stack.get(12);
+        let addr = Self::get_valid_address(self.stack.get(12))?;
 
         // pop two words from the advice stack
-        let words = self.advice_provider.pop_stack_dword()?;
+        let words = self.host.borrow_mut().pop_adv_stack_dword(self)?;
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
@@ -214,7 +211,7 @@ where
         }
 
         // increment the address by 2
-        self.stack.set(12, addr + TWO);
+        self.stack.set(12, Felt::from(addr + 2));
 
         // copy over the rest of the stack
         self.stack.copy_state(13);
@@ -230,7 +227,7 @@ where
     /// # Errors
     /// Returns an error if the advice stack is empty.
     pub(super) fn op_advpop(&mut self) -> Result<(), ExecutionError> {
-        let value = self.advice_provider.pop_stack()?;
+        let value = self.host.borrow_mut().pop_adv_stack(self)?;
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -242,7 +239,7 @@ where
     /// # Errors
     /// Returns an error if the advice stack contains fewer than four elements.
     pub(super) fn op_advpopw(&mut self) -> Result<(), ExecutionError> {
-        let word = self.advice_provider.pop_stack_word()?;
+        let word: Word = self.host.borrow_mut().pop_adv_stack_word(self)?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);
@@ -252,6 +249,21 @@ where
 
         Ok(())
     }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Checks that provided address is less than u32::MAX and returns it cast to u32.
+    ///
+    /// # Errors
+    /// Returns an error if the provided address is greater than u32::MAX.
+    fn get_valid_address(addr: Felt) -> Result<u32, ExecutionError> {
+        let addr = addr.as_int();
+        if addr > u32::MAX as u64 {
+            return Err(ExecutionError::MemoryAddressOutOfBounds(addr));
+        }
+        Ok(addr as u32)
+    }
 }
 
 // TESTS
@@ -260,8 +272,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Operation, STACK_TOP_SIZE},
-        AdviceProvider, Felt, Process,
+        super::{super::AdviceProvider, Operation, STACK_TOP_SIZE},
+        Felt, Host, Process,
     };
     use crate::AdviceSource;
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
@@ -322,7 +334,11 @@ mod tests {
         assert_eq!(1, process.chiplets.get_mem_size());
         assert_eq!(word, process.chiplets.get_mem_value(0, 1).unwrap());
 
-        // --- calling LOADW with a stack of minimum depth is ok ----------------
+        // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
+        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        assert!(process.execute_op(Operation::MLoadW).is_err());
+
+        // --- calling MLOADW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
         assert!(process.execute_op(Operation::MLoadW).is_ok());
     }
@@ -346,6 +362,10 @@ mod tests {
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
         assert_eq!(word, process.chiplets.get_mem_value(0, 2).unwrap());
+
+        // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
+        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        assert!(process.execute_op(Operation::MLoad).is_err());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
@@ -428,6 +448,10 @@ mod tests {
         assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
         assert_eq!(word2, process.chiplets.get_mem_value(0, 3).unwrap());
 
+        // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
+        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        assert!(process.execute_op(Operation::MStoreW).is_err());
+
         // --- calling STOREW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
         assert!(process.execute_op(Operation::MStoreW).is_ok());
@@ -469,6 +493,10 @@ mod tests {
         assert_eq!(2, process.chiplets.get_mem_size());
         assert_eq!(mem_2, process.chiplets.get_mem_value(0, 2).unwrap());
 
+        // --- calling MSTORE with address greater than u32::MAX leads to an error ----------------
+        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        assert!(process.execute_op(Operation::MStore).is_err());
+
         // --- calling MSTORE with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
         assert!(process.execute_op(Operation::MStore).is_ok());
@@ -485,7 +513,12 @@ mod tests {
         let word2_felts: Word = word2.to_elements().try_into().unwrap();
         for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice stack.
-            process.advice_provider.push_stack(AdviceSource::Value(element)).unwrap();
+            process
+                .host
+                .borrow_mut()
+                .advice_provider_mut()
+                .push_stack(AdviceSource::Value(element))
+                .unwrap();
         }
 
         // arrange the stack such that:
@@ -552,9 +585,9 @@ mod tests {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn store_value<A>(process: &mut Process<A>, addr: u64, value: [Felt; 4])
+    fn store_value<H>(process: &mut Process<H>, addr: u64, value: [Felt; 4])
     where
-        A: AdviceProvider,
+        H: Host,
     {
         for &value in value.iter() {
             process.execute_op(Operation::Push(value)).unwrap();
@@ -564,9 +597,9 @@ mod tests {
         process.execute_op(Operation::MStoreW).unwrap();
     }
 
-    fn store_element<A>(process: &mut Process<A>, addr: u64, value: Felt)
+    fn store_element<H>(process: &mut Process<H>, addr: u64, value: Felt)
     where
-        A: AdviceProvider,
+        H: Host,
     {
         process.execute_op(Operation::Push(value)).unwrap();
         let addr = Felt::new(addr);

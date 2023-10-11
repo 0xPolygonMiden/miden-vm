@@ -1,12 +1,13 @@
-use super::{AdviceProvider, ExecutionError, Operation, Process};
-use vm_core::StarkField;
+use super::{ExecutionError, Host, Operation, Process};
+use crate::crypto::MerklePath;
+use vm_core::{AdviceInjector, StarkField};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -69,14 +70,12 @@ where
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
-        let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let provided_root =
-            [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
+        let root = [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = self.advice_provider.get_merkle_path(provided_root, &depth, &index)?;
+        let path = self.host.borrow_mut().get_adv_merkle_path(self)?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
@@ -87,7 +86,7 @@ where
 
         // Asserting the computed root of the Merkle path from the advice provider is consistent with
         // the input root.
-        assert_eq!(provided_root, computed_root, "inconsistent Merkle tree root");
+        assert_eq!(root, computed_root, "inconsistent Merkle tree root");
 
         // The same state is copied over to the next clock cycle with no changes.
         self.stack.copy_state(0);
@@ -140,7 +139,12 @@ where
         // get a Merkle path to it. the length of the returned path is expected to match the
         // specified depth. if the new node is the root of a tree, this instruction will append the
         // whole sub-tree to this node.
-        let path = self.advice_provider.update_merkle_node(old_root, &depth, &index, new_node)?;
+        let path: MerklePath = self
+            .host
+            .borrow_mut()
+            .set_advice(self, AdviceInjector::UpdateMerkleNode)?
+            .into();
+
         assert_eq!(path.len(), depth.as_int() as usize);
 
         let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
@@ -171,11 +175,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Operation, StarkField},
+        super::{Felt, Operation, StarkField},
         Process,
     };
-    use crate::{AdviceInputs, StackInputs, Word};
-    use rand_utils::rand_vector;
+    use crate::{AdviceInputs, StackInputs, Word, ZERO};
+    use test_utils::rand::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
@@ -317,8 +321,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure both Merkle trees are still in the advice provider
-        assert!(process.advice_provider.has_merkle_root(tree.root()));
-        assert!(process.advice_provider.has_merkle_root(new_tree.root()));
+        assert!(process.host.borrow().advice_provider().has_merkle_root(tree.root()));
+        assert!(process.host.borrow().advice_provider().has_merkle_root(new_tree.root()));
     }
 
     #[test]
@@ -375,7 +379,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // assert the expected root doesn't exist before the merge operation
-        assert!(!process.advice_provider.has_merkle_root(expected_root));
+        assert!(!process.host.borrow().advice_provider().has_merkle_root(expected_root));
 
         // update the previous root
         process.execute_op(Operation::MrUpdate).unwrap();
@@ -398,7 +402,7 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // assert the expected root now exists in the advice provider
-        assert!(process.advice_provider.has_merkle_root(expected_root));
+        assert!(process.host.borrow().advice_provider().has_merkle_root(expected_root));
     }
 
     // HELPER FUNCTIONS
@@ -408,11 +412,11 @@ mod tests {
     }
 
     fn init_node(value: u64) -> Word {
-        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
+        [Felt::new(value), ZERO, ZERO, ZERO]
     }
 
     fn build_expected(values: &[Felt]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
         }
@@ -420,7 +424,7 @@ mod tests {
     }
 
     fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
-        let mut expected = [Felt::ZERO; STATE_WIDTH];
+        let mut expected = [ZERO; STATE_WIDTH];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value);
         }

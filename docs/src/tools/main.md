@@ -2,7 +2,7 @@
 
 The following tools are available for interacting with Miden VM:
 
-* Via the [miden-vm](https://crates.io/crates/miden) crate (or within the Miden VM repo):
+* Via the [miden-vm](https://crates.io/crates/miden-vm) crate (or within the Miden VM repo):
     * [CLI](../intro/usage.md#cli-interface)
     * [Debugger](./debugger.md)
     * [REPL](./repl.md)

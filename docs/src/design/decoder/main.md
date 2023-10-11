@@ -27,6 +27,7 @@ Managing control flow in the VM is accomplished by executing control flow operat
 | `REPEAT`  | Initiates a new iteration of an executing loop.                              |
 | `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block).       |
 | `RESPAN`  | Initiates processing of a new operation batch within a span block.           |
+| `DYN`     | Initiates processing of a new [Dyn block](../programs.md#dyn-block).         |
 | `CALL`    | Initiates processing of a new [Call block](../programs.md#call-block).       |
 | `SYSCALL` | Initiates processing ofa new  [Syscall block](../programs.md#syscall-block). |
 | `END`     | Marks the end of a program block.                                            |
@@ -326,6 +327,22 @@ When the VM executes a `SPAN` operation, it does the following:
 5. Decrements `group_count` register by $1$.
 6. Sets the `op_index` register to $0$.
 
+
+#### DYN operation
+
+Before a `DYN` operation is executed by the VM, the prover populates $h_0, ..., h_7$ registers with $0$ as shown in the diagram below.
+
+![decoder_dyn_operation](../../assets/design/decoder/decoder_dyn_operation.png)
+
+In the above diagram, `blk` is the ID of the *dyn* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
+
+When the VM executes a `DYN` operation, it does the following:
+
+1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
+2. Gets the hash of the dynamic code block `dynamic_block_hash` from the top four elements of the stack.
+2. Adds the tuple `(blk, dynamic_block_hash, 0, 0)` to the block hash table.
+3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
+
 #### END operation
 
 Before an `END` operation is executed by the VM, the prover populates $h_0, ..., h_3$ registers with the hash of the block which is about to end. The prover also sets values in $h_4$ and $h_5$ registers as follows:
@@ -445,6 +462,14 @@ If the top of the stack is $0$, the VM still executes the `LOOP` operation. But 
 ![decoder_loop_skipping](../../assets/design/decoder/decoder_loop_skipping.png)
 
 Moreover, since we've set the `is_loop` flag to $0$, executing the `END` operation does not remove any items from the stack.
+
+### DYN block decoding
+
+When decoding a *dyn* bock, the VM first executes a `DYN` operation, then executes the child block dynamically specified by the top of the stack. Once the child of the *dyn* block has been executed, the VM executes an `END` operation. This is illustrated in the diagram below.
+
+![decoder_dyn_block_decoding](../../assets/design/decoder/decoder_dyn_block_decoding.png)
+
+As described previously, when the VM executes a `DYN` operation, the hash of the child is added to the block hash table. This hash is removed only when the `END` operation for the child block is executed. Thus, until the child block corresponding to the dynamically specified target is executed, the block hash table is not cleared.
 
 ### SPAN block decoding
 

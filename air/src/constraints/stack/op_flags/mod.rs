@@ -624,7 +624,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of ASSERT operation.
     #[inline(always)]
     pub fn assert(&self) -> E {
-        self.degree7_op_flags[get_op_index(Operation::Assert.op_code())]
+        self.degree7_op_flags[get_op_index(Operation::Assert(ZERO).op_code())]
     }
 
     /// Operation Flag of EQ operation.
@@ -838,7 +838,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of U32ASSERT2 operation.
     #[inline(always)]
     pub fn u32assert2(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::U32assert2.op_code())]
+        self.degree6_op_flags[get_op_index(Operation::U32assert2(ZERO).op_code())]
     }
 
     /// Operation Flag of U32ADD3 operation.
@@ -989,7 +989,7 @@ impl<E: FieldElement> OpFlags<E> {
         self.control_flow
     }
 
-    /// Returns the flag when the stack operation is a u32 operation.
+    /// Returns true when the stack operation is a u32 operation that requires range checks.
     #[inline(always)]
     pub fn u32_rc_op(&self) -> E {
         self.u32_rc_op

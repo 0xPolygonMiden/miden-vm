@@ -1,12 +1,12 @@
-use super::{utils::assert_binary, AdviceProvider, ExecutionError, Felt, FieldElement, Process};
-use vm_core::{Operation, StarkField, ZERO};
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
+use vm_core::{Operation, StarkField, ONE, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ where
     /// Returns an error if the value on the top of the stack is ZERO.
     pub(super) fn op_inv(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
-        if a == Felt::ZERO {
+        if a == ZERO {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
         }
 
@@ -58,7 +58,7 @@ where
     /// Pops an element off the stack, adds ONE to it, and pushes the result back onto the stack.
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
-        self.stack.set(0, a + Felt::ONE);
+        self.stack.set(0, a + ONE);
         self.stack.copy_state(1);
         Ok(())
     }
@@ -75,10 +75,10 @@ where
     pub(super) fn op_and(&mut self) -> Result<(), ExecutionError> {
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
-        if a == Felt::ONE && b == Felt::ONE {
-            self.stack.set(0, Felt::ONE);
+        if a == ONE && b == ONE {
+            self.stack.set(0, ONE);
         } else {
-            self.stack.set(0, Felt::ZERO);
+            self.stack.set(0, ZERO);
         }
         self.stack.shift_left(2);
         Ok(())
@@ -93,10 +93,10 @@ where
     pub(super) fn op_or(&mut self) -> Result<(), ExecutionError> {
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
-        if a == Felt::ONE || b == Felt::ONE {
-            self.stack.set(0, Felt::ONE);
+        if a == ONE || b == ONE {
+            self.stack.set(0, ONE);
         } else {
-            self.stack.set(0, Felt::ZERO);
+            self.stack.set(0, ZERO);
         }
         self.stack.shift_left(2);
         Ok(())
@@ -109,7 +109,7 @@ where
     /// Returns an error if the value on the top of the stack is not a binary value.
     pub(super) fn op_not(&mut self) -> Result<(), ExecutionError> {
         let a = assert_binary(self.stack.get(0))?;
-        self.stack.set(0, Felt::ONE - a);
+        self.stack.set(0, ONE - a);
         self.stack.copy_state(1);
         Ok(())
     }
@@ -128,9 +128,9 @@ where
         let mut h0 = ZERO;
 
         if a == b {
-            self.stack.set(0, Felt::ONE);
+            self.stack.set(0, ONE);
         } else {
-            self.stack.set(0, Felt::ZERO);
+            self.stack.set(0, ZERO);
             // setting h0 to the inverse of the difference between the top two elements of the stack.
             h0 = (b - a).inv();
         }
@@ -151,12 +151,12 @@ where
         // otherwise set it to the inverse of the top element in the stack.
         let mut h0 = ZERO;
 
-        if a == Felt::ZERO {
-            self.stack.set(0, Felt::ONE);
+        if a == ZERO {
+            self.stack.set(0, ONE);
         } else {
             // setting h0 to the inverse of the top element of the stack.
             h0 = a.inv();
-            self.stack.set(0, Felt::ZERO);
+            self.stack.set(0, ZERO);
         }
 
         // save h0 in the decoder helper register.
@@ -225,7 +225,7 @@ mod tests {
         Process,
     };
     use crate::{AdviceInputs, StackInputs};
-    use rand_utils::rand_value;
+    use test_utils::rand::rand_value;
     use vm_core::{ONE, ZERO};
 
     // ARITHMETIC OPERATIONS
@@ -295,7 +295,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         // invert the top value
-        if b != Felt::ZERO {
+        if b != ZERO {
             process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
@@ -318,7 +318,7 @@ mod tests {
 
         // negate the top value
         process.execute_op(Operation::Incr).unwrap();
-        let expected = build_expected(&[a + Felt::ONE, b, c]);
+        let expected = build_expected(&[a + ONE, b, c]);
 
         assert_eq!(STACK_TOP_SIZE, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
@@ -335,7 +335,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
@@ -343,7 +343,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 AND 1 ---------------------------------------------------
@@ -351,7 +351,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 1 ---------------------------------------------------
@@ -359,7 +359,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
@@ -384,7 +384,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 OR 0 ---------------------------------------------------
@@ -392,7 +392,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 OR 1 ---------------------------------------------------
@@ -400,7 +400,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 OR 0 ---------------------------------------------------
@@ -408,7 +408,7 @@ mod tests {
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
@@ -432,14 +432,14 @@ mod tests {
         let stack = StackInputs::try_from_values([2, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::Not).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test NOT 1 ----------------------------------------------------
         let stack = StackInputs::try_from_values([2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::Not).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- operand is not binary ------------------------------------------
@@ -460,7 +460,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Eq).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(3)]);
+        let expected = build_expected(&[ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top two values are not equal -------------------------
@@ -470,7 +470,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Eq).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
+        let expected = build_expected(&[ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- calling EQ with a stack of minimum depth is a ok ---------------
@@ -490,7 +490,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Eqz).unwrap();
-        let expected = build_expected(&[Felt::ONE, Felt::new(3)]);
+        let expected = build_expected(&[ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top is not zero --------------------------------------
@@ -500,7 +500,7 @@ mod tests {
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::Eqz).unwrap();
-        let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
+        let expected = build_expected(&[ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -567,7 +567,7 @@ mod tests {
     }
 
     fn build_expected(values: &[Felt]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
         }

@@ -1,22 +1,35 @@
-mod advice;
-mod assembly_op;
 use crate::utils::collections::Vec;
-pub use advice::AdviceInjector;
-pub use assembly_op::AssemblyOp;
 use core::fmt;
+
+mod advice;
+pub use advice::AdviceInjector;
+
+mod assembly_op;
+pub use assembly_op::AssemblyOp;
+
+mod debug;
+pub use debug::DebugOptions;
 
 // DECORATORS
 // ================================================================================================
 
+/// A set of decorators which can be executed by the VM.
+///
+/// Executing a decorator does not affect the state of the main VM components such as operand stack
+/// and memory. However, decorators may modify the advice provider.
+///
+/// Executing decorators does not advance the VM clock. As such, many decorators can be executed in
+/// a single VM cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decorator {
-    /// Pushes zero or more values onto the advice stack, as specified by the injector. This
-    /// operation affects only the advice stack and has no effect on other VM components (e.g.
-    /// operand stack, memory), and does not advance the VM clock.
+    /// Injects new data into the advice provider, as specified by the injector.
     Advice(AdviceInjector),
-    /// Adds information about the assembly instruction at a particular index
-    /// (only applicable in debug mode)
+    /// Adds information about the assembly instruction at a particular index (only applicable in
+    /// debug mode).
     AsmOp(AssemblyOp),
+    /// Prints out information about the state of the VM based on the specified options. This
+    /// decorator is executed only in debug mode.
+    Debug(DebugOptions),
 }
 
 impl fmt::Display for Decorator {
@@ -26,6 +39,7 @@ impl fmt::Display for Decorator {
             Self::AsmOp(assembly_op) => {
                 write!(f, "asmOp({}, {})", assembly_op.op(), assembly_op.num_cycles())
             }
+            Self::Debug(options) => write!(f, "debug({options})"),
         }
     }
 }
@@ -46,16 +60,45 @@ impl<'a> DecoratorIterator<'a> {
         Self { decorators, idx: 0 }
     }
 
-    /// Returns the next decorator at the specified position.
-    /// - Returns the decorator if a decorator at the specified position exists and increments the internal pointer.
-    /// - Returns None if no decorator is to be executed at the specified position.
+    /// Returns the next decorator but only if its position matches the specified position,
+    /// otherwise, None is returned.
     #[inline(always)]
-    pub fn next(&mut self, pos: usize) -> Option<&Decorator> {
+    pub fn next_filtered(&mut self, pos: usize) -> Option<&Decorator> {
         if self.idx < self.decorators.len() && self.decorators[self.idx].0 == pos {
             self.idx += 1;
             Some(&self.decorators[self.idx - 1].1)
         } else {
             None
+        }
+    }
+}
+
+impl<'a> Iterator for DecoratorIterator<'a> {
+    type Item = &'a Decorator;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.idx < self.decorators.len() {
+            self.idx += 1;
+            Some(&self.decorators[self.idx - 1].1)
+        } else {
+            None
+        }
+    }
+}
+
+// TYPES AND INTERFACES
+// ================================================================================================
+
+// Collection of signature schemes supported
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SignatureKind {
+    RpoFalcon512,
+}
+
+impl fmt::Display for SignatureKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RpoFalcon512 => write!(f, "rpo_falcon512"),
         }
     }
 }

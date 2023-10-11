@@ -1,6 +1,6 @@
 use super::{
-    super::AdviceInjectorNode, ByteReader, CodeBody, Deserializable, DeserializationError, Felt,
-    Instruction, Node, OpCode, ProcedureId, RpoDigest, ToString, MAX_PUSH_INPUTS,
+    super::AdviceInjectorNode, debug, ByteReader, CodeBody, Deserializable, DeserializationError,
+    Felt, Instruction, Node, OpCode, ProcedureId, RpoDigest, ToString, MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION
@@ -59,9 +59,13 @@ impl Deserializable for Instruction {
 
         match opcode {
             OpCode::Assert => Ok(Instruction::Assert),
+            OpCode::AssertWithError => Ok(Instruction::AssertWithError(source.read_u32()?)),
             OpCode::AssertEq => Ok(Instruction::AssertEq),
+            OpCode::AssertEqWithError => Ok(Instruction::AssertEqWithError(source.read_u32()?)),
             OpCode::AssertEqw => Ok(Instruction::AssertEqw),
+            OpCode::AssertEqwWithError => Ok(Instruction::AssertEqwWithError(source.read_u32()?)),
             OpCode::Assertz => Ok(Instruction::Assertz),
+            OpCode::AssertzWithError => Ok(Instruction::AssertzWithError(source.read_u32()?)),
             OpCode::Add => Ok(Instruction::Add),
             OpCode::AddImm => Ok(Instruction::AddImm(Felt::read_from(source)?)),
             OpCode::Sub => Ok(Instruction::Sub),
@@ -104,8 +108,11 @@ impl Deserializable for Instruction {
             OpCode::U32Test => Ok(Instruction::U32Test),
             OpCode::U32TestW => Ok(Instruction::U32TestW),
             OpCode::U32Assert => Ok(Instruction::U32Assert),
+            OpCode::U32AssertWithError => Ok(Instruction::U32AssertWithError(source.read_u32()?)),
             OpCode::U32Assert2 => Ok(Instruction::U32Assert2),
+            OpCode::U32Assert2WithError => Ok(Instruction::U32Assert2WithError(source.read_u32()?)),
             OpCode::U32AssertW => Ok(Instruction::U32AssertW),
+            OpCode::U32AssertWWithError => Ok(Instruction::U32AssertWWithError(source.read_u32()?)),
             OpCode::U32Split => Ok(Instruction::U32Split),
             OpCode::U32Cast => Ok(Instruction::U32Cast),
             OpCode::U32CheckedAdd => Ok(Instruction::U32CheckedAdd),
@@ -354,6 +361,14 @@ impl Deserializable for Instruction {
             OpCode::CallMastRoot => Ok(Instruction::CallMastRoot(RpoDigest::read_from(source)?)),
             OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(source)?)),
             OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(source)?)),
+            OpCode::DynExec => Ok(Instruction::DynExec),
+            OpCode::DynCall => Ok(Instruction::DynCall),
+
+            // ----- debugging --------------------------------------------------------------------
+            OpCode::Debug => {
+                let options = debug::read_options_from(source)?;
+                Ok(Instruction::Debug(options))
+            }
 
             // ----- control flow -----------------------------------------------------------------
             // control flow instructions should be parsed as a part of Node::read_from() and we

@@ -1,6 +1,6 @@
 use crate::{
-    utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, MemAdviceProvider, Operation, Process,
-    StackInputs, Vec,
+    utils::get_trace_len, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
+    Operation, Process, StackInputs, Vec,
 };
 use miden_air::trace::{
     chiplets::{
@@ -111,12 +111,12 @@ fn build_trace(
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
-    let advice_provider = MemAdviceProvider::default();
-    let mut process = Process::new(kernel, stack_inputs, advice_provider);
+    let host = DefaultHost::default();
+    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 
-    let (trace, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (

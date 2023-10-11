@@ -1,6 +1,6 @@
 use crate::{
-    advice::AdviceProvider, Chiplets, Decoder, ExecutionError, Felt, Process, Stack, StarkField,
-    System, Vec,
+    range::RangeChecker, Chiplets, ChipletsLengths, Decoder, ExecutionError, Felt, Host, Process,
+    Stack, StarkField, System, TraceLenSummary, Vec,
 };
 use core::fmt;
 use vm_core::{
@@ -56,14 +56,17 @@ pub struct VmStateIterator {
     clk: u32,
     asmop_idx: usize,
     forward: bool,
+    trace_len_summary: TraceLenSummary,
 }
 
 impl VmStateIterator {
-    pub(super) fn new<A>(process: Process<A>, result: Result<StackOutputs, ExecutionError>) -> Self
+    pub(super) fn new<H>(process: Process<H>, result: Result<StackOutputs, ExecutionError>) -> Self
     where
-        A: AdviceProvider,
+        H: Host,
     {
-        let (system, decoder, stack, _, chiplets, _) = process.into_parts();
+        let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
+        let trace_len_summary = Self::build_trace_len_summary(&system, &mut range, &chiplets);
+
         Self {
             chiplets,
             decoder,
@@ -73,6 +76,7 @@ impl VmStateIterator {
             clk: 0,
             asmop_idx: 0,
             forward: true,
+            trace_len_summary,
         }
     }
 
@@ -171,6 +175,23 @@ impl VmStateIterator {
 
     pub fn into_parts(self) -> (System, Decoder, Stack, Chiplets, Option<ExecutionError>) {
         (self.system, self.decoder, self.stack, self.chiplets, self.error)
+    }
+
+    pub fn trace_len_summary(&self) -> &TraceLenSummary {
+        &self.trace_len_summary
+    }
+
+    /// Returns an instance of [TraceLenSummary] based on provided data.
+    fn build_trace_len_summary(
+        system: &System,
+        range: &mut RangeChecker,
+        chiplets: &Chiplets,
+    ) -> TraceLenSummary {
+        let clk = system.clk();
+        let range_table_len = range.get_number_range_checker_rows();
+        chiplets.append_range_checks(range);
+
+        TraceLenSummary::new(clk as usize, range_table_len, ChipletsLengths::new(chiplets))
     }
 }
 

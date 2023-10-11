@@ -42,6 +42,28 @@ begin
 end
 ```
 
+#### Dynamic procedure invocation
+It is also possible to invoke procedures dynamically - i.e., without specifying target procedure labels at compile time. There are two instructions, `dynexec` and `dyncall`, which can be used to execute dynamically-specified code targets. Both instructions expect [MAST root](../../design/programs.md) of the target to be provided via the stack. The difference between `dynexec` and `dyncall` is that `dyncall` will [change context](./execution_contexts.md) before executing the dynamic code target, while `dynexec` will cause the code target to be executed in the current context.
+
+Dynamic code execution in the same context is achieved by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+
+```
+dynexec
+```
+
+This causes the VM to do the following:
+
+1. Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).
+2. Execute the code block which hashes to the specified target. The VM must know the specified code block and hash (they must be in the CodeBlockTable of the executing Program).
+
+Dynamic code execution in a new context can be achieved similarly by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
+
+```
+dyncall
+```
+
+> **Note**: In both cases, the stack is left unchanged. Therefore, if the dynamic code is intended to manipulate the stack, it should start by either dropping or moving the code block hash from the top of the stack.
+
 ### Modules
 A *module* consists of one or more procedures. There are two types of modules: *library modules* and *executable modules* (also called *programs*).
 
@@ -90,6 +112,18 @@ end
 ```
 In the above example we import `std::math::u64` module from the [standard library](../stdlib/main.md). We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.
 
+We can also define aliases for imported modules. For example:
+
+```
+use.std::math::u64->bigint
+
+begin
+    push.1.0
+    push.2.0
+    exec.bigint::checked_add
+end
+```
+
 The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
 
 #### Re-exporting procedures
@@ -107,15 +141,17 @@ end
 In addition to the locally-defined procedure `foo`, the above module also exports procedures `add` and `mul64` implementations of which will be identical to `add` and `mul` procedures from the `std::math::u64` module respectively.
 
 ### Constants
-Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`.
+Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Constants are supported as immediate values for the following instructions: `push`, `assert`, `assertz`, `asert_eq`, `assert_eqw`, `locaddr`, `loc_load`, `loc_loadw`, `loc_store`, `loc_storew`, `mem_load`, `mem_loadw`, `mem_store`, `mem_storew`.
 
-Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100.
+Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (`_`). The number of characters in a constant name cannot exceed 100. 
+
+A constant's value must be in the range between $0$ and $2^{64} - 2^{32}$ (both inclusive) and can be defined by an arithmetic expression using `+`, `-`, `*`, `/`, `//`, `(`, `)` operators and references to the previously defined constants. Here `/` is a field division and `//` is an integer division. Note that the arithmetic expression cannot contain spaces.
 
 ```
 use.std::math::u64
 
 const.CONSTANT_1=100
-const.CONSTANT_2=200
+const.CONSTANT_2=200+(CONSTANT_1-50)
 const.ADDR_1=3
 
 begin

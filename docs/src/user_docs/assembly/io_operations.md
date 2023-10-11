@@ -12,11 +12,12 @@ Miden assembly provides a set of instructions for moving data between the operan
 | ------------------------------------------------------------------------- | ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | push.*a* <br> - *(1-2 cycles)* <br> push.*a*.*b* <br> push.*a*.*b*.*c*... | [ ... ]     | [a, ... ] <br> [b, a, ... ] <br> [c, b, a, ... ] | Pushes values $a$, $b$, $c$ etc. onto the stack. Up to $16$ values can be specified. All values must be valid field elements in decimal (e.g., $123$) or hexadecimal (e.g., $0x7b$) representation. |
 
-When specifying values in hexadecimal format, it is possible to omit the periods between individual values as long as total number of specified bytes is a multiple of $8$. That is, the following are semantically equivalent:
+The value can be specified in hexadecimal form without periods between individual values as long as it describes a full word ($4$ field elements or $32$ bytes). Note that hexadecimal values separated by periods (short hexadecimal strings) are assumed to be in big-endian order, while the strings specifying whole words (long hexadecimal strings) are assumed to be in little-endian order. That is, the following are semantically equivalent:
 
 ```
-push.0x1234.0xabcd
-push.0x0000000000001234000000000000abcd
+push.0x00001234.0x00005678.0x00009012.0x0000abcd
+push.0x341200000000000078560000000000001290000000000000cdab000000000000
+push.4660.22136.36882.43981
 ```
 In both case the values must still encode valid field elements.
 
@@ -47,14 +48,18 @@ Advice injectors fall into two categories: (1) injectors which push new data ont
 
 | Instruction                                  | Stack_input                | Stack_output               | Notes                                                                                                                                                                                                                                           |
 | -------------------------------------------- | -------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| adv.push_mapval <br> adv.push_mapval.*s*     | [K, ... ]                  | [K, ... ]                  | Pushes a list of field elements onto the advice stack. The list is looked up in the advice map using word $K$ as the key. If offset $s$ is provided, the key is taken starting from item $s$ on the stack.                                      |
+| adv.push_mapval <br> adv.push_mapval.*s*     | [K, ... ]                  | [K, ... ]                  | Pushes a list of field elements onto the advice stack. The list is looked up in the advice map using word $K$ as the key. If offset $s$ is provided, the key is taken starting from item $s$ on the stack. |
 | adv.push_mapvaln <br> adv.push_mapvaln.*s*   | [K, ... ]                  | [K, ... ]                  | Pushes a list of field elements together with the number of elements onto the advice stack. The list is looked up in the advice map using word $K$ as the key. If offset $s$ is provided, the key is taken starting from item $s$ on the stack. |
-| adv.push_mtnode                              | [d, i, R, ... ]            | [d, i, R, ... ]            | Pushes a node of a Merkle tree with root $R$ at depth $d$ and index $i$ from Merkle store onto the advice stack.                                                                                                                                |
-| adv.push_u64div                              | [b1, b0, a1, a0, ...]      | [b1, b0, a1, a0, ...]      | Pushes the result of `u64` division $a / b$ onto the advice stack. Both $a$ and $b$ are represented using 32-bit limbs. The result consists of both the quotient and the remainder.                                                             |
-| adv.push_ext2intt                            | [osize, isize, iptr, ... ] | [osize, isize, iptr, ... ] | Given evaluations of a polynomial over some specified domain, interpolates the evaluations into a polynomial in coefficient form and pushes the result into the advice stack.                                                                   |
-| adv.smt_get                                  | [K, R, ... ]               | [K, R, ... ]               | Pushes values onto the advice stack which are required for successful retrieval of a  value under the key $K$ from a Sparse Merkle Tree with root $R$.                                                                                          |
-| adv.insert_mem                               | [K, a, b, ... ]            | [K, a, b, ... ]            | Reads words $data \leftarrow mem[a] .. mem[b]$ from memory, and save the data into $advice\_map[K] \leftarrow data$.                                                                                                                            |
-| adv.insert_hdword <br> adv.insert_hdword.*d* | [B, A, ... ]               | [B, A, ... ]               | Reads top two words from the stack, computes a key as $K \leftarrow hash(A || b, d)$, and saves the data into $advice\_map[K] \leftarrow [A, B]$. $d$ is an optional domain value which can be between $0$ and $255$, default value $0$.        |
+| adv.push_mtnode                              | [d, i, R, ... ]            | [d, i, R, ... ]            | Pushes a node of a Merkle tree with root $R$ at depth $d$ and index $i$ from Merkle store onto the advice stack. |
+| adv.push_u64div                              | [b1, b0, a1, a0, ...]      | [b1, b0, a1, a0, ...]      | Pushes the result of `u64` division $a / b$ onto the advice stack. Both $a$ and $b$ are represented using 32-bit limbs. The result consists of both the quotient and the remainder. |
+| adv.push_ext2intt                            | [osize, isize, iptr, ... ] | [osize, isize, iptr, ... ] | Given evaluations of a polynomial over some specified domain, interpolates the evaluations into a polynomial in coefficient form and pushes the result into the advice stack. |
+| adv.push_sig.*kind*                          | [K, M, ...]                | [K, M, ...]                | Pushes values onto the advice stack which are required for verification of a DSA with scheme specified by *kind* against the public key commitment $K$ and message $M$. |
+| adv.smt_get                                  | [K, R, ... ]               | [K, R, ... ]               | Pushes values onto the advice stack which are required for successful retrieval of a value under the key $K$ from a Sparse Merkle Tree with root $R$. |
+| adv.smt_set                                  | [V, K, R, ...]             | [V, K, R, ...]             | Pushes values onto the advice stack which are required for successful insertion of a key-value pair $(K, V)$ into a Sparse Merkle Tree with root $R$. |
+| adv.smt_peek                                 | [K, R, ... ]               | [K, R, ... ]               | Pushes value onto the advice stack which is associated with key $K$ in a Sparse Merkle Tree with root $R$. |
+| adv.insert_mem                               | [K, a, b, ... ]            | [K, a, b, ... ]            | Reads words $data \leftarrow mem[a] .. mem[b]$ from memory, and save the data into $advice\_map[K] \leftarrow data$. |
+| adv.insert_hdword <br> adv.insert_hdword.*d* | [B, A, ... ]               | [B, A, ... ]               | Reads top two words from the stack, computes a key as $K \leftarrow hash(A || b, d)$, and saves the data into $advice\_map[K] \leftarrow [A, B]$. $d$ is an optional domain value which can be between $0$ and $255$, default value $0$. |
+| adv.insert_hperm                             | [B, A, C, ...]             | [B, A, C, ...]             | Reads top three words from the stack, computes a key as $K \leftarrow permute(C, A, B).digest$, and saves data into $advice\_mpa[K] \leftarrow [A, B]$. |
 
 ### Random access memory
 

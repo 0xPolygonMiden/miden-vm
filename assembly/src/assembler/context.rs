@@ -1,8 +1,9 @@
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, Procedure,
-    ProcedureCache, ProcedureId, ToString, Vec,
+    AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath,
+    NamedProcedure, Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString,
+    Vec,
 };
-use crate::ProcedureName;
+use crate::ast::{ModuleAst, ProgramAst};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -17,36 +18,51 @@ pub struct AssemblyContext {
     module_stack: Vec<ModuleContext>,
     is_kernel: bool,
     kernel: Option<Kernel>,
-}
-
-/// Describes which type of Miden assembly modules can be compiled with a given [AssemblyContext].
-#[derive(PartialEq)]
-pub enum AssemblyContextType {
-    Kernel,
-    Module,
-    Program,
+    allow_phantom_calls: bool,
 }
 
 impl AssemblyContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [AssemblyContext].
-    ///
-    /// The `context_type` specifies how the context will be used and the [AssemblyContext] is
-    /// instantiated accordingly.
-    pub fn new(context_type: AssemblyContextType) -> Self {
-        let modules = match context_type {
-            AssemblyContextType::Kernel | AssemblyContextType::Module => Vec::new(),
-            // for executable programs we initialize the module stack with the context of the
-            // executable module itself
-            AssemblyContextType::Program => vec![ModuleContext::for_program()],
-        };
 
+    /// Returns a new [AssemblyContext] for non-executable kernel and non-kernel modules.
+    ///
+    /// The `is_kernel_module` specifies whether provided module is a kernel module.
+    pub fn for_module(is_kernel_module: bool) -> Self {
         Self {
-            module_stack: modules,
-            is_kernel: context_type == AssemblyContextType::Kernel,
+            module_stack: Vec::new(),
+            is_kernel: is_kernel_module,
             kernel: None,
+            allow_phantom_calls: false,
         }
+    }
+
+    /// Returns a new [AssemblyContext] for executable module.
+    ///
+    /// If [ProgramAst] is provided, the context will contain info about the procedures imported
+    /// by the program, and thus, will be able to determine names of imported procedures for error
+    /// reporting purposes.
+    pub fn for_program(program: Option<&ProgramAst>) -> Self {
+        let program_imports = program.map(|p| p.get_imported_procedures_map()).unwrap_or_default();
+        Self {
+            module_stack: vec![ModuleContext::for_program(program_imports)],
+            is_kernel: false,
+            kernel: None,
+            allow_phantom_calls: false,
+        }
+    }
+
+    /// Sets the flag specifying whether phantom calls are allowed in this context.
+    ///
+    /// # Panics
+    /// Panics if the context was instantiated for compiling a kernel module as procedure calls
+    /// are not allowed in kernel modules in general.
+    pub fn with_phantom_calls(mut self, allow_phantom_calls: bool) -> Self {
+        if self.is_kernel {
+            assert!(!allow_phantom_calls);
+        }
+        self.allow_phantom_calls = allow_phantom_calls;
+        self
     }
 
     // PUBLIC ACCESSORS
@@ -62,6 +78,15 @@ impl AssemblyContext {
         self.current_proc_context().expect("no procedures").num_locals
     }
 
+    /// Returns the name of the procedure by its ID from the procedure map.
+    pub fn get_imported_procedure_name(&self, id: &ProcedureId) -> Option<ProcedureName> {
+        if let Some(module) = self.module_stack.first() {
+            module.proc_map.get(id).cloned()
+        } else {
+            None
+        }
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -72,7 +97,11 @@ impl AssemblyContext {
     ///
     /// # Errors
     /// Returns an error if a module with the same path already exists in the module stack.
-    pub fn begin_module(&mut self, module_path: &LibraryPath) -> Result<(), AssemblyError> {
+    pub fn begin_module(
+        &mut self,
+        module_path: &LibraryPath,
+        module_ast: &ModuleAst,
+    ) -> Result<(), AssemblyError> {
         if self.is_kernel && self.module_stack.is_empty() {
             // a kernel context must be initialized with a kernel module path
             debug_assert!(
@@ -88,8 +117,11 @@ impl AssemblyContext {
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
         }
 
+        // get the imported procedures map
+        let proc_map = module_ast.get_imported_procedures_map();
+
         // push a new module context onto the module stack and return
-        self.module_stack.push(ModuleContext::for_module(module_path));
+        self.module_stack.push(ModuleContext::for_module(module_path, proc_map));
         Ok(())
     }
 
@@ -97,19 +129,19 @@ impl AssemblyContext {
     ///
     /// This pops the module off the module stack and return all local procedures of the module
     /// (both exported and internal) together with the combined callset of module's procedures.
-    pub fn complete_module(&mut self) -> (Vec<Procedure>, CallSet) {
+    pub fn complete_module(&mut self) -> (Vec<NamedProcedure>, CallSet) {
         let module_ctx = self.module_stack.pop().expect("no modules");
         if self.is_kernel && self.module_stack.is_empty() {
             // if we are compiling a kernel and this is the last module on the module stack, then
             // it must be the Kernel module; thus, we build a Kernel struct from the procedures
             // exported from the kernel module
-            let hashes = module_ctx
+            let proc_roots = module_ctx
                 .compiled_procs
                 .iter()
                 .filter(|proc| proc.is_export())
-                .map(|proc| proc.code_root().hash())
+                .map(|proc| proc.mast_root())
                 .collect::<Vec<_>>();
-            self.kernel = Some(Kernel::new(&hashes));
+            self.kernel = Some(Kernel::new(&proc_roots));
         }
 
         // return compiled procedures and callset from the module
@@ -141,8 +173,8 @@ impl AssemblyContext {
 
     /// Completes compilation of the current procedure and adds the compiled procedure to the list
     /// of the current module's compiled procedures.
-    pub fn complete_proc(&mut self, code_root: CodeBlock) {
-        self.module_stack.last_mut().expect("no modules").complete_proc(code_root);
+    pub fn complete_proc(&mut self, code: CodeBlock) {
+        self.module_stack.last_mut().expect("no modules").complete_proc(code);
     }
 
     // CALL PROCESSORS
@@ -206,6 +238,22 @@ impl AssemblyContext {
         Ok(())
     }
 
+    /// Registers a "phantom" call to the procedure with the specified MAST root.
+    ///
+    /// A phantom call indicates that code for the procedure is not available. Executing a phantom
+    /// call will result in a runtime error. However, the VM may be able to execute a program with
+    /// phantom calls as long as the branches containing them are not taken.
+    ///
+    /// # Errors
+    /// Returns an error if phantom calls are not allowed in this assembly context.
+    pub fn register_phantom_call(&mut self, mast_root: RpoDigest) -> Result<(), AssemblyError> {
+        if !self.allow_phantom_calls {
+            Err(AssemblyError::phantom_calls_not_allowed(mast_root))
+        } else {
+            Ok(())
+        }
+    }
+
     // CONTEXT FINALIZERS
     // --------------------------------------------------------------------------------------------
 
@@ -247,13 +295,13 @@ impl AssemblyContext {
         // procedures can be either in the specified procedure cache (for procedures imported from
         // other modules) or in the module's procedures (for procedures defined locally).
         let mut cb_table = CodeBlockTable::default();
-        for proc_id in main_module_context.callset.iter() {
+        for mast_root in main_module_context.callset.iter() {
             let proc = proc_cache
-                .get_by_id(proc_id)
-                .or_else(|| main_module_context.find_local_proc(proc_id))
-                .ok_or(AssemblyError::CallSetProcedureNotFound(*proc_id))?;
+                .get_by_hash(mast_root)
+                .or_else(|| main_module_context.find_local_proc(mast_root))
+                .ok_or(AssemblyError::CallSetProcedureNotFound(*mast_root))?;
 
-            cb_table.insert(proc.code_root().clone());
+            cb_table.insert(proc.code().clone());
         }
 
         Ok(cb_table)
@@ -287,11 +335,13 @@ struct ModuleContext {
     /// is currently being compiled is at the top of this list.
     proc_stack: Vec<ProcedureContext>,
     /// List of local procedures which have already been compiled for this module.
-    compiled_procs: Vec<Procedure>,
+    compiled_procs: Vec<NamedProcedure>,
     /// Fully qualified path of this module.
     path: LibraryPath,
     /// A combined callset of all procedure callsets in this module.
     callset: CallSet,
+    /// A map containing id and names of all imported procedures in the module.
+    proc_map: BTreeMap<ProcedureId, ProcedureName>,
 }
 
 impl ModuleContext {
@@ -302,7 +352,7 @@ impl ModuleContext {
     ///
     /// Procedure in the returned module context is initialized with procedure context for the
     /// "main" procedure.
-    pub fn for_program() -> Self {
+    pub fn for_program(proc_map: BTreeMap<ProcedureId, ProcedureName>) -> Self {
         let name = ProcedureName::main();
         let main_proc_context = ProcedureContext::new(name, false, 0);
         Self {
@@ -310,18 +360,23 @@ impl ModuleContext {
             compiled_procs: Vec::new(),
             path: LibraryPath::exec_path(),
             callset: CallSet::default(),
+            proc_map,
         }
     }
 
     /// Returns a new [ModuleContext] instantiated for compiling library modules.
     ///
     /// A library module must be identified by a unique module path.
-    pub fn for_module(module_path: &LibraryPath) -> Self {
+    pub fn for_module(
+        module_path: &LibraryPath,
+        proc_map: BTreeMap<ProcedureId, ProcedureName>,
+    ) -> Self {
         Self {
             proc_stack: Vec::new(),
             compiled_procs: Vec::new(),
             path: module_path.clone(),
             callset: CallSet::default(),
+            proc_map,
         }
     }
 
@@ -333,10 +388,13 @@ impl ModuleContext {
         self.path.is_exec_path()
     }
 
-    /// Returns a [Procedure] with the specified ID, or None if a compiled procedure with such ID
-    /// could not be found in this context.
-    pub fn find_local_proc(&self, proc_id: &ProcedureId) -> Option<&Procedure> {
-        self.compiled_procs.iter().find(|proc| proc.id() == proc_id)
+    /// Returns a [Procedure] with the specified MAST root, or None if a compiled procedure with
+    /// such MAST root could not be found in this context.
+    pub fn find_local_proc(&self, mast_root: &RpoDigest) -> Option<&Procedure> {
+        self.compiled_procs
+            .iter()
+            .find(|proc| proc.mast_root() == *mast_root)
+            .map(|proc| proc.inner())
     }
 
     // PROCEDURE PROCESSORS
@@ -354,16 +412,15 @@ impl ModuleContext {
         is_export: bool,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
-        // make sure a procedure with this name as not been compiled yet and is also not currently
+        // make sure a procedure with this name has not been compiled yet and is also not currently
         // on the stack of procedures being compiled
-        if self.compiled_procs.iter().any(|p| p.label() == name)
+        if self.compiled_procs.iter().any(|p| p.name() == name)
             || self.proc_stack.iter().any(|p| &p.name == name)
         {
             return Err(AssemblyError::duplicate_proc_name(name, &self.path));
         }
 
-        let name = ProcedureName::try_from(name.to_string())?;
-        self.proc_stack.push(ProcedureContext::new(name, is_export, num_locals));
+        self.proc_stack.push(ProcedureContext::new(name.clone(), is_export, num_locals));
         Ok(())
     }
 
@@ -373,20 +430,9 @@ impl ModuleContext {
     /// compiled procedure, and adds it to the list of compiled procedures.
     ///
     /// This also updates module callset to include the callset of the newly compiled procedure.
-    pub fn complete_proc(&mut self, code_root: CodeBlock) {
+    pub fn complete_proc(&mut self, code: CodeBlock) {
         let proc_context = self.proc_stack.pop().expect("no procedures");
-
-        // build an ID for the procedure as follows:
-        // - for exported procedures: hash("module_path::proc_name")
-        // - for internal procedures: hash("module_path::proc_index")
-        let proc_id = if proc_context.is_export {
-            ProcedureId::from_name(&proc_context.name, &self.path)
-        } else {
-            let proc_idx = self.compiled_procs.len() as u16;
-            ProcedureId::from_index(proc_idx, &self.path)
-        };
-
-        let proc = proc_context.into_procedure(proc_id, code_root);
+        let proc = proc_context.into_procedure(code);
         self.callset.append(proc.callset());
         self.compiled_procs.push(proc);
     }
@@ -423,9 +469,9 @@ impl ModuleContext {
 
         // if the called procedure was not inlined, we include it in the current callset as well
         if !inlined {
-            context.callset.insert(*called_proc.id());
+            context.callset.insert(called_proc.mast_root());
         }
-        Ok(called_proc)
+        Ok(called_proc.inner())
     }
 
     /// Registers a call to the specified external procedure (i.e., a procedure which is not a part
@@ -444,7 +490,7 @@ impl ModuleContext {
 
         // if the called procedure was not inlined, we include it in the current callset as well
         if !inlined {
-            context.callset.insert(*called_proc.id());
+            context.callset.insert(called_proc.mast_root());
         }
     }
 
@@ -503,7 +549,7 @@ impl ProcedureContext {
         &self.name
     }
 
-    pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> Procedure {
+    pub fn into_procedure(self, code_root: CodeBlock) -> NamedProcedure {
         let Self {
             name,
             is_export,
@@ -511,6 +557,6 @@ impl ProcedureContext {
             callset,
         } = self;
 
-        Procedure::new(id, name, is_export, num_locals as u32, code_root, callset)
+        NamedProcedure::new(name, is_export, num_locals as u32, code_root, callset)
     }
 }

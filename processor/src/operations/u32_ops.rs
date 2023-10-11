@@ -1,11 +1,12 @@
 use super::{
     super::utils::{split_element, split_u32_into_u16},
-    AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField,
+    ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField,
 };
+use crate::ZERO;
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -24,20 +25,21 @@ where
         Ok(())
     }
 
-    /// Pops top two element off the stack, splits both into low and high 32-bit values, checks if both
-    /// high are equal to 0, if it passes, put both of them onto the stack, else throws an execution error
-    pub(super) fn op_u32assert2(&mut self) -> Result<(), ExecutionError> {
+    /// Pops top two element off the stack, splits them into low and high 32-bit values, checks if
+    /// the high values are equal to 0; if they are, puts the original elements back onto the
+    /// stack; if they are not, returns an error.
+    pub(super) fn op_u32assert2(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         let b = self.stack.get(1);
 
         if a.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(a));
+            return Err(ExecutionError::NotU32Value(a, err_code));
         }
         if b.as_int() >> 32 != 0 {
-            return Err(ExecutionError::NotU32Value(b));
+            return Err(ExecutionError::NotU32Value(b, err_code));
         }
 
-        self.add_range_checks(Operation::U32assert2, a, b, false);
+        self.add_range_checks(Operation::U32assert2(err_code), a, b, false);
 
         self.stack.copy_state(0);
         Ok(())
@@ -92,7 +94,7 @@ where
         // Force this operation to consume 4 range checks, even though only `lo` is needed.
         // This is required for making the constraints more uniform and grouping the opcodes of
         // operations requiring range checks under a common degree-4 prefix.
-        self.add_range_checks(Operation::U32sub, c, Felt::ZERO, false);
+        self.add_range_checks(Operation::U32sub, c, ZERO, false);
 
         self.stack.set(0, d);
         self.stack.set(1, c);
@@ -210,11 +212,11 @@ where
         let (t3, t2) = split_u32_into_u16(hi.as_int());
 
         // add lookup values to the range checker.
-        self.range.add_stack_checks(self.system.clk(), &[t0, t1, t2, t3]);
+        self.range.add_range_checks(self.system.clk(), &[t0, t1, t2, t3]);
 
         // save the range check lookups to the decoder's user operation helper columns.
         let mut helper_values =
-            [Felt::from(t0), Felt::from(t1), Felt::from(t2), Felt::from(t3), Felt::ZERO];
+            [Felt::from(t0), Felt::from(t1), Felt::from(t2), Felt::from(t3), ZERO];
 
         if check_element_validity {
             let m = (Felt::from(u32::MAX) - hi).inv();
@@ -231,12 +233,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Operation},
+        super::{Felt, Operation},
         split_u32_into_u16, Process,
     };
-    use crate::StackInputs;
+    use crate::{StackInputs, ZERO};
     use miden_air::trace::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
-    use rand_utils::rand_value;
+    use test_utils::rand::rand_value;
 
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -251,7 +253,7 @@ mod tests {
         let lo = (a as u32) as u64;
 
         process.execute_op(Operation::U32split).unwrap();
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         expected[0] = Felt::new(hi);
         expected[1] = Felt::new(lo);
         assert_eq!(expected, process.stack.trace_state());
@@ -264,7 +266,7 @@ mod tests {
         let lo = (b as u32) as u64;
 
         process.execute_op(Operation::U32split).unwrap();
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         expected[0] = Felt::new(hi);
         expected[1] = Felt::new(lo);
         expected[2] = Felt::new(a);
@@ -278,7 +280,7 @@ mod tests {
         let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
-        process.execute_op(Operation::U32assert2).unwrap();
+        process.execute_op(Operation::U32assert2(ZERO)).unwrap();
         let expected = build_expected(&[a, b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -455,7 +457,7 @@ mod tests {
     }
 
     fn build_expected(values: &[u32]) -> [Felt; STACK_TOP_SIZE] {
-        let mut expected = [Felt::ZERO; STACK_TOP_SIZE];
+        let mut expected = [ZERO; STACK_TOP_SIZE];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value as u64);
         }
@@ -463,7 +465,7 @@ mod tests {
     }
 
     fn build_expected_helper_registers(values: &[u32]) -> [Felt; NUM_USER_OP_HELPERS] {
-        let mut expected = [Felt::ZERO; NUM_USER_OP_HELPERS];
+        let mut expected = [ZERO; NUM_USER_OP_HELPERS];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value as u64);
         }

@@ -1,6 +1,6 @@
 use super::{
-    AdviceProvider, Call, ColMatrix, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch,
-    Operation, Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
+    Call, ColMatrix, Dyn, ExecutionError, Felt, FieldElement, Host, Join, Loop, OpBatch, Operation,
+    Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
     ZERO,
 };
 use miden_air::trace::{
@@ -38,9 +38,9 @@ const HASH_CYCLE_LEN: Felt = Felt::new(miden_air::trace::chiplets::hasher::HASH_
 // DECODER PROCESS EXTENSION
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // JOIN BLOCK
     // --------------------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ where
         let body_hash = block.body().hash().into();
         let addr =
             self.chiplets
-                .hash_control_block(body_hash, [ZERO; 4], Loop::DOMAIN, block.hash());
+                .hash_control_block(body_hash, EMPTY_WORD, Loop::DOMAIN, block.hash());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -176,7 +176,7 @@ where
         let fn_hash = block.fn_hash().into();
         let addr =
             self.chiplets
-                .hash_control_block(fn_hash, [ZERO; 4], block.domain(), block.hash());
+                .hash_control_block(fn_hash, EMPTY_WORD, block.domain(), block.hash());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
@@ -238,6 +238,35 @@ where
         );
 
         // the rest of the VM state does not change
+        self.execute_op(Operation::Noop)
+    }
+
+    // DYN BLOCK
+    // --------------------------------------------------------------------------------------------
+
+    /// Starts decoding of a DYN block.
+    pub(super) fn start_dyn_block(
+        &mut self,
+        block: &Dyn,
+        dyn_hash: Word,
+    ) -> Result<(), ExecutionError> {
+        let addr =
+            self.chiplets
+                .hash_control_block(EMPTY_WORD, EMPTY_WORD, Dyn::DOMAIN, block.hash());
+
+        self.decoder.start_dyn(dyn_hash, addr);
+        self.execute_op(Operation::Noop)
+    }
+
+    /// Ends decoding of a DYN block.
+    pub(super) fn end_dyn_block(&mut self, block: &Dyn) -> Result<(), ExecutionError> {
+        // this appends a row with END operation to the decoder trace. when the END operation is
+        // executed the rest of the VM state does not change
+        self.decoder.end_control_block(block.hash().into());
+
+        // send the end of control block to the chiplets bus to handle the final hash request.
+        self.chiplets.read_hash_result();
+
         self.execute_op(Operation::Noop)
     }
 
@@ -449,7 +478,7 @@ impl Decoder {
         let enter_loop = stack_top == ONE;
         let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop), None);
         self.trace
-            .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
+            .append_block_start(parent_addr, Operation::Loop, loop_body_hash, EMPTY_WORD);
 
         // mark this cycle as the cycle at which a new LOOP block has started (this may affect
         // block hash table). A loop block has a single child only if the body of the loop is
@@ -490,7 +519,7 @@ impl Decoder {
 
         // push CALL block info onto the block stack and append a CALL row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
-        self.trace.append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
+        self.trace.append_block_start(parent_addr, Operation::Call, fn_hash, EMPTY_WORD);
 
         // mark this cycle as the cycle at which a new CALL block began execution (this affects
         // block stack and block hash tables). A CALL block has only a single child.
@@ -511,13 +540,33 @@ impl Decoder {
         // trace
         let parent_addr = self.block_stack.push(addr, BlockType::SysCall, Some(ctx_info));
         self.trace
-            .append_block_start(parent_addr, Operation::SysCall, fn_hash, [ZERO; 4]);
+            .append_block_start(parent_addr, Operation::SysCall, fn_hash, EMPTY_WORD);
 
         // mark this cycle as the cycle at which a new SYSCALL block began execution (this affects
         // block stack and block hash tables). A SYSCALL block has only a single child.
         self.aux_hints.block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
 
         self.debug_info.append_operation(Operation::SysCall);
+    }
+
+    /// Starts decoding of a DYN block.
+    ///
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a DYN
+    /// operation to the trace.
+    pub fn start_dyn(&mut self, dyn_hash: Word, addr: Felt) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len() as u32;
+
+        // push DYN block info onto the block stack and append a DYN row to the execution trace
+        let parent_addr = self.block_stack.push(addr, BlockType::Dyn, None);
+        self.trace.append_block_start(parent_addr, Operation::Dyn, dyn_hash, [ZERO; 4]);
+
+        // mark this cycle as the cycle at which a new DYN block began execution (this affects
+        // block stack and block hash tables). A DYN block has no children but points to the hash
+        // provided on the stack.
+        self.aux_hints.block_started(clk, self.block_stack.peek(), Some(dyn_hash), None);
+
+        self.debug_info.append_operation(Operation::Dyn);
     }
 
     /// Ends decoding of a control block (i.e., a non-SPAN block).

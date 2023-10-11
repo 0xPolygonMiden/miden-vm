@@ -1,8 +1,8 @@
 use super::{
     super::aux_trace::{ChipletLookup, ChipletsBusRow},
-    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, Vec,
-    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, ONE,
-    V_COL_RANGE, ZERO,
+    super::ZERO,
+    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, TraceFragment, Vec, ADDR_COL_IDX,
+    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
 };
 use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
@@ -21,29 +21,29 @@ fn mem_read() {
     let mut mem = Memory::default();
 
     // read a value from address 0; clk = 1
-    let addr0 = Felt::new(0);
+    let addr0 = 0;
     let value = mem.read(0, addr0, 1);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // read a value from address 3; clk = 2
-    let addr3 = Felt::new(3);
+    let addr3 = 3;
     let value = mem.read(0, addr3, 2);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from address 0 again; clk = 3
     let value = mem.read(0, addr0, 3);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // read a value from address 2; clk = 4
-    let addr2 = Felt::new(2);
+    let addr2 = 2;
     let value = mem.read(0, addr2, 4);
-    assert_eq!([ZERO; 4], value);
+    assert_eq!(EMPTY_WORD, value);
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
@@ -53,21 +53,21 @@ fn mem_read() {
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 1, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 1, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_INIT_READ, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 3, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 3, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 2
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 4, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 4, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_INIT_READ, &memory_access, prev_row);
 
     // address 3
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr3, 2, [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr3, 2, EMPTY_WORD);
     verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_INIT_READ, &memory_access, prev_row);
 }
 
@@ -76,33 +76,33 @@ fn mem_write() {
     let mut mem = Memory::default();
 
     // write a value into address 0; clk = 1
-    let addr0 = Felt::new(0);
+    let addr0 = 0;
     let value1 = [ONE, ZERO, ZERO, ZERO];
     mem.write(0, addr0, 1, value1);
-    assert_eq!(value1, mem.get_value(0, addr0.as_int()).unwrap());
+    assert_eq!(value1, mem.get_value(0, addr0).unwrap());
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // write a value into address 2; clk = 2
-    let addr2 = Felt::new(2);
+    let addr2 = 2;
     let value5 = [Felt::new(5), ZERO, ZERO, ZERO];
     mem.write(0, addr2, 2, value5);
-    assert_eq!(value5, mem.get_value(0, addr2.as_int()).unwrap());
+    assert_eq!(value5, mem.get_value(0, addr2).unwrap());
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // write a value into address 1; clk = 3
-    let addr1 = Felt::new(1);
+    let addr1 = 1;
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
     mem.write(0, addr1, 3, value7);
-    assert_eq!(value7, mem.get_value(0, addr1.as_int()).unwrap());
+    assert_eq!(value7, mem.get_value(0, addr1).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // write a value into address 0; clk = 4
     let value9 = [Felt::new(9), ZERO, ZERO, ZERO];
     mem.write(0, addr0, 4, value9);
-    assert_eq!(value7, mem.get_value(0, addr1.as_int()).unwrap());
+    assert_eq!(value7, mem.get_value(0, addr1).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
@@ -135,12 +135,12 @@ fn mem_write_read() {
     let mut mem = Memory::default();
 
     // write 1 into address 5; clk = 1
-    let addr5 = Felt::new(5);
+    let addr5 = 5;
     let value1 = [ONE, ZERO, ZERO, ZERO];
     mem.write(0, addr5, 1, value1);
 
     // write 4 into address 2; clk = 2
-    let addr2 = Felt::new(2);
+    let addr2 = 2;
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
     mem.write(0, addr2, 2, value4);
 
@@ -216,33 +216,33 @@ fn mem_multi_context() {
 
     // write a value into ctx = 0, addr = 0; clk = 1
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, ZERO, 1, value1);
+    mem.write(0, 0, 1, value1);
     assert_eq!(value1, mem.get_value(0, 0).unwrap());
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // write a value into ctx = 3, addr = 1; clk = 4
     let value2 = [ZERO, ONE, ZERO, ZERO];
-    mem.write(3, ONE, 4, value2);
+    mem.write(3, 1, 4, value2);
     assert_eq!(value2, mem.get_value(3, 1).unwrap());
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from ctx = 3, addr = 1; clk = 6
-    let value = mem.read(3, ONE, 6);
+    let value = mem.read(3, 1, 6);
     assert_eq!(value2, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // write a value into ctx = 3, addr = 0; clk = 7
     let value3 = [ZERO, ZERO, ONE, ZERO];
-    mem.write(3, ZERO, 7, value3);
+    mem.write(3, 0, 7, value3);
     assert_eq!(value3, mem.get_value(3, 0).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
     // read a value from ctx = 0, addr = 0; clk = 9
-    let value = mem.read(0, ZERO, 9);
+    let value = mem.read(0, 0, 9);
     assert_eq!(value1, value);
     assert_eq!(3, mem.size());
     assert_eq!(5, mem.trace_len());
@@ -253,25 +253,25 @@ fn mem_multi_context() {
 
     // ctx = 0, addr = 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, ZERO, 1, value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, 0, 1, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, ZERO, 9, value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, 0, 9, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // ctx = 3, addr = 0
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, ZERO, 7, value3);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, 0, 7, value3);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
 
     // ctx = 3, addr = 1
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, ONE, 4, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, 1, 4, value2);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 3, ONE, 6, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 3, 1, 6, value2);
     verify_memory_access(&trace, &chiplets_bus, 4, MEMORY_COPY_READ, &memory_access, prev_row);
 }
 
@@ -282,17 +282,17 @@ fn mem_get_state_at() {
     // Write 1 into (ctx = 0, addr = 5) at clk = 1.
     // This means that mem[5] = 1 at the beginning of clk = 2
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, Felt::new(5), 1, value1);
+    mem.write(0, 5, 1, value1);
 
     // Write 4 into (ctx = 0, addr = 2) at clk = 2.
     // This means that mem[2] = 4 at the beginning of clk = 3
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
-    mem.write(0, Felt::new(2), 2, value4);
+    mem.write(0, 2, 2, value4);
 
     // write 7 into (ctx = 3, addr = 3) at clk = 4
     // This means that mem[3] = 7 at the beginning of clk = 4
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(3, Felt::new(3), 4, value7);
+    mem.write(3, 3, 4, value7);
 
     // Check memory state at clk = 2
     assert_eq!(mem.get_state_at(0, 2), vec![(5, value1)]);
@@ -317,7 +317,7 @@ fn mem_get_state_at() {
 /// Builds a trace of the specified length and fills it with data from the provided Memory instance.
 fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
     let mut chiplets_bus = ChipletsBus::default();
-    let mut trace = (0..MEMORY_TRACE_WIDTH).map(|_| vec![Felt::ZERO; num_rows]).collect::<Vec<_>>();
+    let mut trace = (0..MEMORY_TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     mem.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 
@@ -350,7 +350,7 @@ fn build_trace_row(
     row[0] = op_selectors[0];
     row[1] = op_selectors[1];
     row[CTX_COL_IDX] = ctx;
-    row[ADDR_COL_IDX] = addr;
+    row[ADDR_COL_IDX] = Felt::from(addr);
     row[CLK_COL_IDX] = clk;
     row[V_COL_RANGE.start] = new_val[0];
     row[V_COL_RANGE.start + 1] = new_val[1];

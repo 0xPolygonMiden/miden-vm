@@ -24,18 +24,18 @@ mod gpu;
 // EXPORTS
 // ================================================================================================
 
-pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProofOptions};
+pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
-    crypto, math, utils, AdviceInputs, AdviceProvider, Digest, ExecutionError, InputError,
-    MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
+    crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
+    Program, StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::StarkProof;
 
 // PROVER
 // ================================================================================================
 
-/// Executes and proves the specified `program` and returns the result together with a STARK-based proof of
-/// the program's execution.
+/// Executes and proves the specified `program` and returns the result together with a STARK-based
+/// proof of the program's execution.
 ///
 /// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
 ///   inputs for the VM.
@@ -43,24 +43,31 @@ pub use winter_prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn prove<A>(
+pub fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_provider: A,
-    options: ProofOptions,
+    host: H,
+    options: ProvingOptions,
 ) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, stack_inputs.clone(), advice_provider)?;
+    let trace =
+        processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
+    #[cfg(feature = "std")]
+    let padding_percentage = (trace.trace_len_summary().padded_trace_len()
+        - trace.trace_len_summary().trace_len())
+        * 100
+        / trace.trace_len_summary().padded_trace_len();
     #[cfg(feature = "std")]
     debug!(
-        "Generated execution trace of {} columns and {} steps in {} ms",
+        "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
         trace.layout().main_trace_width(),
-        trace.length(),
+        trace.trace_len_summary().padded_trace_len(),
+        padding_percentage,
         now.elapsed().as_millis()
     );
 
@@ -118,7 +125,7 @@ where
     R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
     pub fn new(
-        options: ProofOptions,
+        options: ProvingOptions,
         stack_inputs: StackInputs,
         stack_outputs: StackOutputs,
     ) -> Self {

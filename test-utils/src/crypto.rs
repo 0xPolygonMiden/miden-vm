@@ -1,13 +1,14 @@
-use super::{Felt, FieldElement, StarkField, Vec, Word};
+use super::{Felt, Vec, Word, ZERO};
 
 // RE-EXPORTS
 // ================================================================================================
 
 pub use vm_core::crypto::{
+    dsa::*,
     hash::{Rpo256, RpoDigest},
     merkle::{
-        EmptySubtreeRoots, MerkleError, MerklePath, MerklePathSet, MerkleStore, MerkleTree, Mmr,
-        MmrPeaks, NodeIndex, SimpleSmt,
+        EmptySubtreeRoots, MerkleError, MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks,
+        NodeIndex, PartialMerkleTree, SimpleSmt, TieredSmt,
     },
 };
 
@@ -30,15 +31,5 @@ pub fn init_merkle_leaves(values: &[u64]) -> Vec<Word> {
 }
 
 pub fn init_merkle_leaf(value: u64) -> Word {
-    [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
-}
-
-/// Returns a remaining path key for a Sparse Merkle Tree
-pub fn get_smt_remaining_key(mut key: Word, depth: u8) -> Word {
-    key[3] = Felt::new(match depth {
-        16 | 32 | 48 => (key[3].as_int() << depth) >> depth,
-        64 => 0,
-        _ => unreachable!(),
-    });
-    key
+    [Felt::new(value), ZERO, ZERO, ZERO]
 }

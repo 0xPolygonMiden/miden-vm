@@ -19,7 +19,7 @@ proptest! {
 
     #[test]
     fn test_eqz_stack_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
 
         // ----------------- top element is anything except 0 ------------------------------------
         if a != 0 {
@@ -39,7 +39,7 @@ proptest! {
 
     #[test]
     fn test_incr_stack_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_incr_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -49,7 +49,7 @@ proptest! {
 
     #[test]
     fn test_inv_stack_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_inv_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -58,7 +58,7 @@ proptest! {
 
     #[test]
     fn test_neg_stack_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_neg_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -68,7 +68,7 @@ proptest! {
 
     #[test]
     fn test_add_stack_operation(a in any::<u64>(), b in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_add_test_frame(a, b);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -78,7 +78,7 @@ proptest! {
 
     #[test]
     fn test_mul_stack_operation(a in any::<u64>(), b in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_mul_test_frame(a, b);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -88,7 +88,7 @@ proptest! {
 
     #[test]
     fn test_eq_stack_operation(a in any::<u64>(), b in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
 
         // ----------------- top two elements are not same ------------------------------------
         if a != b {
@@ -108,7 +108,7 @@ proptest! {
 
     #[test]
     fn test_expacc_stack_operation(a in any::<u64>(), b in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let no_bits_stack = (b as f64).log2().ceil() as u64;
         for c in 0..no_bits_stack{
             let frame = get_expacc_test_frame(c, a, b);
@@ -121,7 +121,7 @@ proptest! {
 
     #[test]
     fn test_ext2mul_stack_operation(a0 in any::<u64>(), a1 in any::<u64>(), b0 in any::<u64>(), b1 in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_ext2_mul_test_frame(Felt::new(a0), Felt::new(a1), Felt::new(b0), Felt::new(b1));
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -135,7 +135,7 @@ proptest! {
 
 #[test]
 fn test_not_stack_operation() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
 
     // ----------------- top element is 1 -----------------------------------------------------
     let a = ONE;
@@ -154,7 +154,7 @@ fn test_not_stack_operation() {
 
 #[test]
 fn test_and_stack_operation() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
 
     // ----------------- top elements are 0 and 0 -----------------------------------------------------
     let a = ZERO;
@@ -192,7 +192,7 @@ fn test_and_stack_operation() {
 
 #[test]
 fn test_or_stack_operation() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
 
     // ----------------- top elements are 0 and 0 -----------------------------------------------------
     let a = ZERO;
@@ -231,7 +231,7 @@ fn test_or_stack_operation() {
 
 /// Returns the result of stack operation constraint evaluations on the provided frame.
 fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRAINTS] {
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+    let mut result = [ZERO; NUM_CONSTRAINTS];
 
     let op_flag = OpFlags::new(&frame);
 

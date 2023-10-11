@@ -1,12 +1,11 @@
 use crate::{
-    chiplets::{ChipletsFrameExt, MemoryFrameExt},
-    trace::range::{
-        P0_COL_IDX, P1_COL_IDX, Q_COL_IDX, S0_COL_IDX, S1_COL_IDX, T_COL_IDX, V_COL_IDX,
-    },
-    utils::{are_equal, binary_not, is_binary},
+    chiplets::ChipletsFrameExt,
+    constraints::MainFrameExt,
+    trace::range::{B_RANGE_COL_IDX, M_COL_IDX, V_COL_IDX},
+    utils::are_equal,
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
-use vm_core::{utils::collections::Vec, ExtensionOf};
+use vm_core::{utils::collections::Vec, ExtensionOf, ZERO};
 use winter_air::AuxTraceRandElements;
 
 // CONSTANTS
@@ -17,24 +16,21 @@ use winter_air::AuxTraceRandElements;
 /// The number of boundary constraints required by the Range Checker
 pub const NUM_ASSERTIONS: usize = 2;
 /// The number of transition constraints required by the Range Checker.
-pub const NUM_CONSTRAINTS: usize = 7;
+pub const NUM_CONSTRAINTS: usize = 1;
 /// The degrees of the range checker's constraints, in the order they'll be added to the the result
 /// array when a transition is evaluated.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
-    2, 2, 2, // Selector flags must be binary: t, s0, s1.
-    3, // Constrain the row transitions in the 8-bit section of the table.
-    2, // Transition from 8-bit to 16-bit section of range check table occurs at most once.
-    3, 3, // Enforce values of column v before and after 8-bit to 16-bit transition.
+    9, // Enforce values of column v transition.
 ];
 
 // --- Auxiliary column constraints for multiset checks -------------------------------------------
 
 /// The number of auxiliary assertions for multiset checks.
-pub const NUM_AUX_ASSERTIONS: usize = 4;
+pub const NUM_AUX_ASSERTIONS: usize = 2;
 /// The number of transition constraints required by multiset checks for the Range Checker.
-pub const NUM_AUX_CONSTRAINTS: usize = 2;
+pub const NUM_AUX_CONSTRAINTS: usize = 1;
 /// The degrees of the Range Checker's auxiliary column constraints, used for multiset checks.
-pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [8, 8];
+pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [9];
 
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
@@ -44,7 +40,7 @@ pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [8, 8];
 /// Returns the range checker's boundary assertions for the main trace at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
     let step = 0;
-    result.push(Assertion::single(V_COL_IDX, step, Felt::ZERO));
+    result.push(Assertion::single(V_COL_IDX, step, ZERO));
 }
 
 /// Returns the range checker's boundary assertions for the main trace at the last step.
@@ -57,14 +53,12 @@ pub fn get_assertions_last_step(result: &mut Vec<Assertion<Felt>>, step: usize) 
 /// Returns the range checker's boundary assertions for auxiliary columns at the first step.
 pub fn get_aux_assertions_first_step<E: FieldElement>(result: &mut Vec<Assertion<E>>) {
     let step = 0;
-    result.push(Assertion::single(P0_COL_IDX, step, E::ONE));
-    result.push(Assertion::single(P1_COL_IDX, step, E::ONE));
+    result.push(Assertion::single(B_RANGE_COL_IDX, step, E::ONE));
 }
 
 /// Returns the range checker's boundary assertions for auxiliary columns at the last step.
 pub fn get_aux_assertions_last_step<E: FieldElement>(result: &mut Vec<Assertion<E>>, step: usize) {
-    result.push(Assertion::single(P0_COL_IDX, step, E::ONE));
-    result.push(Assertion::single(P1_COL_IDX, step, E::ONE));
+    result.push(Assertion::single(B_RANGE_COL_IDX, step, E::ONE));
 }
 
 // TRANSITION CONSTRAINTS
@@ -87,14 +81,16 @@ pub fn get_transition_constraint_count() -> usize {
 
 /// Enforces constraints for the range checker.
 pub fn enforce_constraints<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) {
-    // Constrain the selector flags.
-    let mut index = enforce_flags(frame, result);
-
-    // Constrain the row transitions in the 8-bit section of the table.
-    index += enforce_8bit(frame, &mut result[index..]);
-
-    // Constrain the transition from 8-bit to 16-bit section of the table.
-    enforce_16bit(frame, &mut result[index..]);
+    // Constrain the transition of the value column between rows in the range checker table.
+    result[0] = frame.change(V_COL_IDX)
+        * (frame.change(V_COL_IDX) - E::ONE)
+        * (frame.change(V_COL_IDX) - E::from(3_u8))
+        * (frame.change(V_COL_IDX) - E::from(9_u8))
+        * (frame.change(V_COL_IDX) - E::from(27_u8))
+        * (frame.change(V_COL_IDX) - E::from(81_u8))
+        * (frame.change(V_COL_IDX) - E::from(243_u8))
+        * (frame.change(V_COL_IDX) - E::from(729_u16))
+        * (frame.change(V_COL_IDX) - E::from(2187_u16));
 }
 
 // --- AUXILIARY COLUMNS (FOR MULTISET CHECKS) ----------------------------------------------------
@@ -121,92 +117,41 @@ pub fn enforce_aux_constraints<F, E>(
     // Get the first random element for this segment.
     let alpha = aux_rand_elements.get_segment_elements(0)[0];
 
-    // Enforce p0.
-    let index = enforce_running_product_p0(main_frame, aux_frame, alpha, result);
-
-    // Enforce p1.
-    enforce_running_product_p1(main_frame, aux_frame, alpha, &mut result[index..]);
+    // Enforce b_range.
+    enforce_b_range(main_frame, aux_frame, alpha, result);
 }
 
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-// --- MAIN TRACE ---------------------------------------------------------------------------------
-
-/// Constrain the selector flags to binary values.
-fn enforce_flags<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) -> usize {
-    let constraint_count = 3;
-
-    result[0] = is_binary(frame.t());
-    result[1] = is_binary(frame.s0());
-    result[2] = is_binary(frame.s1());
-
-    constraint_count
-}
-
-/// Constrain the row transitions in the 8-bit section of the table.
-fn enforce_8bit<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) -> usize {
-    let constraint_count = 1;
-    let v_change = frame.change(V_COL_IDX);
-
-    result[0] = binary_not(frame.t_next()) * (v_change) * (v_change - E::ONE);
-
-    constraint_count
-}
-
-/// Constrain the transition from 8-bit to 16-bit section of the table.
-fn enforce_16bit<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) -> usize {
-    let constraint_count = 3;
-
-    // Values in column t can "flip" from 0 to 1 only once.
-    result[0] = frame.t() * binary_not(frame.t_next());
-
-    // When column t "flips", column v must equal 255.
-    result[1] = frame.flip_to_16bit_flag() * (frame.v() - E::from(255_u8));
-
-    // When column t "flips", the next value column v must be reset to 0.
-    result[2] = frame.flip_to_16bit_flag() * frame.v_next();
-
-    constraint_count
-}
-
 // --- AUXILIARY COLUMNS (FOR MULTISET CHECKS) ----------------------------------------------------
 
-/// Ensures that the running product auxiliary column `p0` is correctly built up during the 8-bit
-/// section of the range check table and then correctly reduced in the 16-bit section of the table.
+/// Ensures that the range checker bus is computed correctly. It enforces an implementation of the
+/// LogUp lookup as a running sum "bus" column. All values in the range checker trace are saved
+/// with their lookup multiplicity and the logarithmic derivatives are added to b_range. Values
+/// for which lookups are requested from the stack and memory are each looked up with multiplicity
+/// one, and the logarithmic derivatives are subtracted from b_range.
 ///
-/// In the 8-bit section, when `t=0` the value of `z` is included in the running product at each
-/// step, and the constraint reduces to p0' = p0 * z.
-/// In the 16-bit section, when `t=1`, the running product is reduced by the difference between the
-/// current and next value, and the constraint reduces to p0' * (alpha + v' - v) = p0.
-fn enforce_running_product_p0<E, F>(
-    main_frame: &EvaluationFrame<F>,
-    aux_frame: &EvaluationFrame<E>,
-    alpha: E,
-    result: &mut [E],
-) -> usize
-where
-    F: FieldElement<BaseField = Felt>,
-    E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
-{
-    let mut constraint_offset = 0;
-
-    let z = get_z(main_frame, alpha);
-    let t = main_frame.t().into();
-    let p0_term = aux_frame.p0() * (z - z * t + t);
-    let p0_next_term = aux_frame.p0_next()
-        * ((alpha + main_frame.v_next().into() - main_frame.v().into()) * t - t + E::ONE);
-    result[constraint_offset] = p0_next_term - p0_term;
-    constraint_offset += 1;
-
-    constraint_offset
-}
-
-/// Ensures that the 16-bit running product is computed correctly in the column `p1`. It enforces
-/// that the value only changes during the 16-bit section of the table, where the value of `z` is
-/// included at each step, ensuring that the values in the 16-bit section are multiplied into `p1`
-/// 0, 1, 2, or 4 times, according to the selector flags.
-fn enforce_running_product_p1<E, F>(
+/// Define the following variables:
+/// - rc_value: the range checker value
+/// - rc_multiplicity: the range checker multiplicity value
+/// - flag_s: boolean flag indicating a stack operation with range checks. This flag is degree 3.
+/// - sv0-sv3: stack value 0-3, the 4 values range-checked from the stack
+/// - flag_m: boolean flag indicating the memory chiplet is active (i.e. range checks are required).
+///   This flag is degree 3.
+/// - mv0-mv1: memory value 0-1, the 2 values range-checked from the memory chiplet
+///
+/// The constraint expression looks as follows:
+/// b' = b + rc_multiplicity / (alpha - rc_value)
+///        - flag_s / (alpha - sv0) - flag_s / (alpha - sv1)
+///        - flag_s / (alpha - sv2) - flag_s / (alpha - sv3)
+///        - flag_m / (alpha - mv0) - flag_m / (alpha - mv1)
+///
+/// However, to enforce the constraint, all denominators are multiplied so that no divisions are
+/// included in the actual constraint expression.
+///
+/// Constraint degree: 9
+fn enforce_b_range<E, F>(
     main_frame: &EvaluationFrame<F>,
     aux_frame: &EvaluationFrame<E>,
     alpha: E,
@@ -215,54 +160,43 @@ fn enforce_running_product_p1<E, F>(
     F: FieldElement<BaseField = Felt>,
     E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
 {
-    // The running product column must enforce that the next step has the values from the range
-    // checker multiplied in (z) and the values from the stack (q) and the memory divided out. This
-    // is enforced by ensuring that p1_next multiplied by the stack and memory lookups at this step
-    // is equal to the combination of p1 and the range checker's values for this step.
-    let lookups = aux_frame.q() * get_memory_lookups(main_frame, alpha);
-    let t: E = main_frame.t().into();
-    let range_checks = get_z(main_frame, alpha) * t - t + E::ONE;
+    // The denominator values for the LogUp lookup.
+    let mv0: E = main_frame.lookup_mv0(alpha);
+    let mv1: E = main_frame.lookup_mv1(alpha);
+    let sv0: E = main_frame.lookup_sv0(alpha);
+    let sv1: E = main_frame.lookup_sv1(alpha);
+    let sv2: E = main_frame.lookup_sv2(alpha);
+    let sv3: E = main_frame.lookup_sv3(alpha);
+    let range_check: E = alpha - main_frame.v().into();
+    let memory_lookups: E = mv0.mul(mv1); // degree 2
+    let stack_lookups: E = sv0.mul(sv1).mul(sv2).mul(sv3); // degree 4
+    let lookups = range_check.mul(stack_lookups).mul(memory_lookups); // degree 7
 
-    result[0] = are_equal(aux_frame.p1_next() * lookups, aux_frame.p1() * range_checks);
-}
+    // An intermediate value required by all stack terms that includes the flag indicating a stack
+    // operation with range checks. This value has degree 6.
+    let sflag_rc_mem: E = range_check
+        .mul(memory_lookups)
+        .mul_base(<EvaluationFrame<F> as MainFrameExt<F, E>>::u32_rc_op(main_frame));
+    // An intermediate value required by all memory terms that includes the flag indicating the
+    // memory portion of the chiplets trace. This value has degree 8.
+    let mflag_rc_stack: E =
+        range_check.mul(stack_lookups).mul_base(main_frame.chiplets_memory_flag());
 
-/// The value to be included in the running product column for memory lookups at this row. These are
-/// only included for steps in the memory section of the trace (when the memory_flag is one).
-fn get_memory_lookups<E, F>(main_frame: &EvaluationFrame<F>, alpha: E) -> E
-where
-    F: FieldElement<BaseField = Felt>,
-    E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
-{
-    let memory_flag: E = main_frame.chiplets_memory_flag().into();
-    let d0: E = main_frame.memory_d0().into();
-    let d1: E = main_frame.memory_d1().into();
+    // The terms for the LogUp check after all denominators have been multiplied in.
+    let b_next_term = aux_frame.b_range_next().mul(lookups); // degree 8
+    let b_term = aux_frame.b_range().mul(lookups); // degree 8
+    let rc_term = stack_lookups.mul(memory_lookups).mul_base(main_frame.multiplicity()); // degree 7
+    let s0_term = sflag_rc_mem.mul(sv1).mul(sv2).mul(sv3); // degree 9
+    let s1_term = sflag_rc_mem.mul(sv0).mul(sv2).mul(sv3); // degree 9
+    let s2_term = sflag_rc_mem.mul(sv0).mul(sv1).mul(sv3); // degree 9
+    let s3_term = sflag_rc_mem.mul(sv0).mul(sv1).mul(sv2); // degree 9
+    let m0_term = mflag_rc_stack.mul(mv1); // degree 9
+    let m1_term = mflag_rc_stack.mul(mv0); // degree 9
 
-    E::ONE + memory_flag * ((d0 + alpha) * (d1 + alpha) - E::ONE)
-}
-
-/// Returns the value `z` which is included in the running product columns at each step. `z` causes
-/// the row's value to be included 0, 1, 2, or 4 times, according to the row's selector flags row.
-fn get_z<E, F>(main_frame: &EvaluationFrame<F>, alpha: E) -> E
-where
-    F: FieldElement<BaseField = Felt>,
-    E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
-{
-    // Get the selectors and the value from the main frame.
-    let s0: E = main_frame.s0().into();
-    let s1: E = main_frame.s1().into();
-    let v: E = main_frame.v().into();
-
-    // Define the flags.
-    let f0: E = binary_not(s0) * binary_not(s1);
-    let f1: E = s0 * binary_not(s1);
-    let f2: E = binary_not(s0) * s1;
-    let f3: E = s0 * s1;
-
-    // Compute z.
-    let v_alpha = v + alpha;
-    let v_alpha2 = v_alpha.square();
-    let v_alpha4 = v_alpha2.square();
-    f3 * v_alpha4 + f2 * v_alpha2 + f1 * v_alpha + f0
+    result[0] = are_equal(
+        b_next_term,
+        b_term + rc_term - s0_term - s1_term - s2_term - s3_term - m0_term - m1_term,
+    );
 }
 
 // RANGE CHECKER FRAME EXTENSION TRAIT
@@ -273,65 +207,28 @@ where
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
-    /// The current value in column T.
-    fn t(&self) -> E;
-    /// The next value in column T.
-    fn t_next(&self) -> E;
-    /// The current value in column s0.
-    fn s0(&self) -> E;
-    /// The current value in column s1.
-    fn s1(&self) -> E;
+    /// The current value in the lookup multiplicity column.
+    fn multiplicity(&self) -> E;
     /// The current value in column V.
     fn v(&self) -> E;
-    /// The next value in column V.
-    fn v_next(&self) -> E;
-    /// The current value in auxiliary column p0.
-    fn p0(&self) -> E;
-    /// The next value in auxiliary column p0.
-    fn p0_next(&self) -> E;
-    /// The current value in auxiliary column p1.
-    fn p1(&self) -> E;
-
-    /// The next value in auxiliary column p1.
-    fn p1_next(&self) -> E;
-
-    /// The current value in auxiliary column q.
-    fn q(&self) -> E;
+    /// The current value in auxiliary column b_range.
+    fn b_range(&self) -> E;
+    /// The next value in auxiliary column b_range.
+    fn b_range_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
     /// The change between the current value in the specified column and the next value, calculated
     /// as `next - current`.
     fn change(&self, column: usize) -> E;
-
-    // --- Flags ----------------------------------------------------------------------------------
-
-    /// A flag set to 1 when column t changes for 0 to 1 indicating the transition from the 8-bit to
-    /// 16-bit sections of the range checker table.
-    fn flip_to_16bit_flag(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
     #[inline(always)]
-    fn t(&self) -> E {
-        self.current()[T_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn t_next(&self) -> E {
-        self.next()[T_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn s0(&self) -> E {
-        self.current()[S0_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn s1(&self) -> E {
-        self.current()[S1_COL_IDX]
+    fn multiplicity(&self) -> E {
+        self.current()[M_COL_IDX]
     }
 
     #[inline(always)]
@@ -340,33 +237,13 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
-    fn v_next(&self) -> E {
-        self.next()[V_COL_IDX]
+    fn b_range(&self) -> E {
+        self.current()[B_RANGE_COL_IDX]
     }
 
     #[inline(always)]
-    fn p0(&self) -> E {
-        self.current()[P0_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn p0_next(&self) -> E {
-        self.next()[P0_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn p1(&self) -> E {
-        self.current()[P1_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn p1_next(&self) -> E {
-        self.next()[P1_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn q(&self) -> E {
-        self.current()[Q_COL_IDX]
+    fn b_range_next(&self) -> E {
+        self.next()[B_RANGE_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
@@ -374,12 +251,5 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn change(&self, column: usize) -> E {
         self.next()[column] - self.current()[column]
-    }
-
-    // --- Flags ----------------------------------------------------------------------------------
-
-    #[inline(always)]
-    fn flip_to_16bit_flag(&self) -> E {
-        binary_not(self.t()) * self.t_next()
     }
 }

@@ -1,7 +1,10 @@
 use super::Felt;
 use core::fmt;
 mod decorators;
-pub use decorators::{AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList};
+pub use decorators::{
+    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
+    SignatureKind,
+};
 
 // OPERATIONS
 // ================================================================================================
@@ -16,7 +19,10 @@ pub enum Operation {
     Noop,
 
     /// Pops the stack; if the popped value is not 1, execution fails.
-    Assert,
+    ///
+    /// The internal value specifies an error code associated with the error in case when the
+    /// execution fails.
+    Assert(Felt),
 
     /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
     /// pushes the result back onto the stack.
@@ -48,6 +54,9 @@ pub enum Operation {
 
     /// Marks the beginning of a function call.
     Call,
+
+    /// Marks the beginning of a dynamic code block, where the target is specified by the stack.
+    Dyn,
 
     /// Marks the beginning of a kernel call.
     SysCall,
@@ -122,14 +131,14 @@ pub enum Operation {
     /// - accumulated power of base number `a` so far
     /// - number which needs to be shifted to the right
     ///
-    /// At the end of the operation, exponent is replaced with its square, current value of power of base
-    /// number `a` on exponent is incorported into the accumulator and the number is shifted to the right
-    /// by one bit.
+    /// At the end of the operation, exponent is replaced with its square, current value of power
+    /// of base number `a` on exponent is incorporated into the accumulator and the number is
+    /// shifted to the right by one bit.
     Expacc,
 
-    // ----- ext2 operations -----------------------------------------------------------------------
+    // ----- ext2 operations ----------------------------------------------------------------------
     /// Computes the product of two elements in the extension field of degree 2 and pushes the
-    /// result back onto the stack as the third and fourth elemtns. Pushes 0 onto the stack as
+    /// result back onto the stack as the third and fourth elements. Pushes 0 onto the stack as
     /// the first and second elements.
     Ext2Mul,
 
@@ -147,7 +156,10 @@ pub enum Operation {
 
     /// Pops two elements off the stack and checks if each of them represents a 32-bit value.
     /// If both of them are, they are pushed back onto the stack, otherwise an error is returned.
-    U32assert2,
+    ///
+    /// The internal value specifies an error code associated with the error in case when the
+    /// assertion fails.
+    U32assert2(Felt),
 
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
@@ -430,108 +442,108 @@ impl Operation {
     #[rustfmt::skip]
     pub const fn op_code(&self) -> u8 {
         match self {
-            Self::Noop      => 0b0000_0000,
-            Self::Eqz       => 0b0000_0001,
-            Self::Neg       => 0b0000_0010,
-            Self::Inv       => 0b0000_0011,
-            Self::Incr      => 0b0000_0100,
-            Self::Not       => 0b0000_0101,
-            Self::FmpAdd    => 0b0000_0110,
-            Self::MLoad     => 0b0000_0111,
-            Self::Swap      => 0b0000_1000,
-            Self::Caller    => 0b0000_1001,
-            Self::MovUp2    => 0b0000_1010,
-            Self::MovDn2    => 0b0000_1011,
-            Self::MovUp3    => 0b0000_1100,
-            Self::MovDn3    => 0b0000_1101,
-            Self::AdvPopW   => 0b0000_1110,
-            Self::Expacc    => 0b0000_1111,
+            Self::Noop          => 0b0000_0000,
+            Self::Eqz           => 0b0000_0001,
+            Self::Neg           => 0b0000_0010,
+            Self::Inv           => 0b0000_0011,
+            Self::Incr          => 0b0000_0100,
+            Self::Not           => 0b0000_0101,
+            Self::FmpAdd        => 0b0000_0110,
+            Self::MLoad         => 0b0000_0111,
+            Self::Swap          => 0b0000_1000,
+            Self::Caller        => 0b0000_1001,
+            Self::MovUp2        => 0b0000_1010,
+            Self::MovDn2        => 0b0000_1011,
+            Self::MovUp3        => 0b0000_1100,
+            Self::MovDn3        => 0b0000_1101,
+            Self::AdvPopW       => 0b0000_1110,
+            Self::Expacc        => 0b0000_1111,
 
-            Self::MovUp4    => 0b0001_0000,
-            Self::MovDn4    => 0b0001_0001,
-            Self::MovUp5    => 0b0001_0010,
-            Self::MovDn5    => 0b0001_0011,
-            Self::MovUp6    => 0b0001_0100,
-            Self::MovDn6    => 0b0001_0101,
-            Self::MovUp7    => 0b0001_0110,
-            Self::MovDn7    => 0b0001_0111,
-            Self::SwapW     => 0b0001_1000,
-            Self::Ext2Mul   => 0b0001_1001,
-            Self::MovUp8    => 0b0001_1010,
-            Self::MovDn8    => 0b0001_1011,
-            Self::SwapW2    => 0b0001_1100,
-            Self::SwapW3    => 0b0001_1101,
-            Self::SwapDW    => 0b0001_1110,
-            // <empty>      => 0b0001_1111,
+            Self::MovUp4        => 0b0001_0000,
+            Self::MovDn4        => 0b0001_0001,
+            Self::MovUp5        => 0b0001_0010,
+            Self::MovDn5        => 0b0001_0011,
+            Self::MovUp6        => 0b0001_0100,
+            Self::MovDn6        => 0b0001_0101,
+            Self::MovUp7        => 0b0001_0110,
+            Self::MovDn7        => 0b0001_0111,
+            Self::SwapW         => 0b0001_1000,
+            Self::Ext2Mul       => 0b0001_1001,
+            Self::MovUp8        => 0b0001_1010,
+            Self::MovDn8        => 0b0001_1011,
+            Self::SwapW2        => 0b0001_1100,
+            Self::SwapW3        => 0b0001_1101,
+            Self::SwapDW        => 0b0001_1110,
+            // <empty>          => 0b0001_1111,
 
-            Self::Assert    => 0b0010_0000,
-            Self::Eq        => 0b0010_0001,
-            Self::Add       => 0b0010_0010,
-            Self::Mul       => 0b0010_0011,
-            Self::And       => 0b0010_0100,
-            Self::Or        => 0b0010_0101,
-            Self::U32and    => 0b0010_0110,
-            Self::U32xor    => 0b0010_0111,
-            Self::FriE2F4   => 0b0010_1000,
-            Self::Drop      => 0b0010_1001,
-            Self::CSwap     => 0b0010_1010,
-            Self::CSwapW    => 0b0010_1011,
-            Self::MLoadW    => 0b0010_1100,
-            Self::MStore    => 0b0010_1101,
-            Self::MStoreW   => 0b0010_1110,
-            Self::FmpUpdate => 0b0010_1111,
+            Self::Assert(_)     => 0b0010_0000,
+            Self::Eq            => 0b0010_0001,
+            Self::Add           => 0b0010_0010,
+            Self::Mul           => 0b0010_0011,
+            Self::And           => 0b0010_0100,
+            Self::Or            => 0b0010_0101,
+            Self::U32and        => 0b0010_0110,
+            Self::U32xor        => 0b0010_0111,
+            Self::FriE2F4       => 0b0010_1000,
+            Self::Drop          => 0b0010_1001,
+            Self::CSwap         => 0b0010_1010,
+            Self::CSwapW        => 0b0010_1011,
+            Self::MLoadW        => 0b0010_1100,
+            Self::MStore        => 0b0010_1101,
+            Self::MStoreW       => 0b0010_1110,
+            Self::FmpUpdate     => 0b0010_1111,
 
-            Self::Pad       => 0b0011_0000,
-            Self::Dup0      => 0b0011_0001,
-            Self::Dup1      => 0b0011_0010,
-            Self::Dup2      => 0b0011_0011,
-            Self::Dup3      => 0b0011_0100,
-            Self::Dup4      => 0b0011_0101,
-            Self::Dup5      => 0b0011_0110,
-            Self::Dup6      => 0b0011_0111,
-            Self::Dup7      => 0b0011_1000,
-            Self::Dup9      => 0b0011_1001,
-            Self::Dup11     => 0b0011_1010,
-            Self::Dup13     => 0b0011_1011,
-            Self::Dup15     => 0b0011_1100,
-            Self::AdvPop    => 0b0011_1101,
-            Self::SDepth    => 0b0011_1110,
-            Self::Clk       => 0b0011_1111,
+            Self::Pad           => 0b0011_0000,
+            Self::Dup0          => 0b0011_0001,
+            Self::Dup1          => 0b0011_0010,
+            Self::Dup2          => 0b0011_0011,
+            Self::Dup3          => 0b0011_0100,
+            Self::Dup4          => 0b0011_0101,
+            Self::Dup5          => 0b0011_0110,
+            Self::Dup6          => 0b0011_0111,
+            Self::Dup7          => 0b0011_1000,
+            Self::Dup9          => 0b0011_1001,
+            Self::Dup11         => 0b0011_1010,
+            Self::Dup13         => 0b0011_1011,
+            Self::Dup15         => 0b0011_1100,
+            Self::AdvPop        => 0b0011_1101,
+            Self::SDepth        => 0b0011_1110,
+            Self::Clk           => 0b0011_1111,
 
-            Self::U32add    => 0b0100_0000,
-            Self::U32sub    => 0b0100_0010,
-            Self::U32mul    => 0b0100_0100,
-            Self::U32div    => 0b0100_0110,
-            Self::U32split  => 0b0100_1000,
-            Self::U32assert2 => 0b0100_1010,
-            Self::U32add3   => 0b0100_1100,
-            Self::U32madd   => 0b0100_1110,
+            Self::U32add        => 0b0100_0000,
+            Self::U32sub        => 0b0100_0010,
+            Self::U32mul        => 0b0100_0100,
+            Self::U32div        => 0b0100_0110,
+            Self::U32split      => 0b0100_1000,
+            Self::U32assert2(_) => 0b0100_1010,
+            Self::U32add3       => 0b0100_1100,
+            Self::U32madd       => 0b0100_1110,
 
-            Self::HPerm     => 0b0101_0000,
-            Self::MpVerify  => 0b0101_0001,
-            Self::Pipe      => 0b0101_0010,
-            Self::MStream   => 0b0101_0011,
-            Self::Split     => 0b0101_0100,
-            Self::Loop      => 0b0101_0101,
-            Self::Span      => 0b0101_0110,
-            Self::Join      => 0b0101_0111,
-            // <empty>      => 0b0101_1000,
-            // <empty>      => 0b0101_1001,
-            // <empty>      => 0b0101_1010,
-            // <empty>      => 0b0101_1011,
-            // <empty>      => 0b0101_1100,
-            // <empty>      => 0b0101_1101,
-            // <empty>      => 0b0101_1110,
-            // <empty>      => 0b0101_1111,
+            Self::HPerm         => 0b0101_0000,
+            Self::MpVerify      => 0b0101_0001,
+            Self::Pipe          => 0b0101_0010,
+            Self::MStream       => 0b0101_0011,
+            Self::Split         => 0b0101_0100,
+            Self::Loop          => 0b0101_0101,
+            Self::Span          => 0b0101_0110,
+            Self::Join          => 0b0101_0111,
+            Self::Dyn           => 0b0101_1000,
+            // <empty>          => 0b0101_1001,
+            // <empty>          => 0b0101_1010,
+            // <empty>          => 0b0101_1011,
+            // <empty>          => 0b0101_1100,
+            // <empty>          => 0b0101_1101,
+            // <empty>          => 0b0101_1110,
+            // <empty>          => 0b0101_1111,
 
-            Self::MrUpdate  => 0b0110_0000,
-            Self::Push(_)   => 0b0110_0100,
-            Self::SysCall   => 0b0110_1000,
-            Self::Call      => 0b0110_1100,
-            Self::End       => 0b0111_0000,
-            Self::Repeat    => 0b0111_0100,
-            Self::Respan    => 0b0111_1000,
-            Self::Halt      => 0b0111_1100,
+            Self::MrUpdate      => 0b0110_0000,
+            Self::Push(_)       => 0b0110_0100,
+            Self::SysCall       => 0b0110_1000,
+            Self::Call          => 0b0110_1100,
+            Self::End           => 0b0111_0000,
+            Self::Repeat        => 0b0111_0100,
+            Self::Respan        => 0b0111_1000,
+            Self::Halt          => 0b0111_1100,
         }
     }
 
@@ -557,6 +569,7 @@ impl Operation {
                 | Self::Halt
                 | Self::Call
                 | Self::SysCall
+                | Self::Dyn
         )
     }
 }
@@ -566,7 +579,7 @@ impl fmt::Display for Operation {
         match self {
             // ----- system operations ------------------------------------------------------------
             Self::Noop => write!(f, "noop"),
-            Self::Assert => write!(f, "assert"),
+            Self::Assert(err_code) => write!(f, "assert({err_code})"),
 
             Self::FmpAdd => write!(f, "fmpadd"),
             Self::FmpUpdate => write!(f, "fmpupdate"),
@@ -582,6 +595,7 @@ impl fmt::Display for Operation {
             Self::Loop => write!(f, "loop"),
             Self::Call => writeln!(f, "call"),
             Self::SysCall => writeln!(f, "syscall"),
+            Self::Dyn => writeln!(f, "dyn"),
             Self::Span => write!(f, "span"),
             Self::End => write!(f, "end"),
             Self::Repeat => write!(f, "repeat"),
@@ -608,7 +622,7 @@ impl fmt::Display for Operation {
             Self::Ext2Mul => write!(f, "ext2mul"),
 
             // ----- u32 operations ---------------------------------------------------------------
-            Self::U32assert2 => write!(f, "u32assert2"),
+            Self::U32assert2(err_code) => write!(f, "u32assert2({err_code})"),
             Self::U32split => write!(f, "u32split"),
             Self::U32add => write!(f, "u32add"),
             Self::U32add3 => write!(f, "u32add3"),

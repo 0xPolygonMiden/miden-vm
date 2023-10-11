@@ -14,6 +14,12 @@ For instructions where one or more operands can be provided as immediate paramet
 | assert_eq <br> - *(2 cycles)*   | [b, a, ...] | [...]         | If $a = b$, removes them from the stack. <br> Fails if $a \ne b$ |
 | assert_eqw <br> - *(11 cycles)* | [B, A, ...] | [...]         | If $A = B$, removes them from the stack. <br> Fails if $A \ne B$ |
 
+The above instructions can also be parametrized with an error code which can be any 32-bit value specified either directly or via a [named constant](./code_organization.md#constants). For example:
+```
+assert.err=123
+assert.err=MY_CONSTANT
+```
+If the error code is omitted, the default value of $0$ is assumed.
 
 ### Arithmetic and Boolean operations
 

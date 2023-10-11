@@ -7,18 +7,18 @@ extern crate alloc;
 pub mod chiplets;
 pub mod errors;
 
-pub use ::crypto::{Word, ONE, WORD_SIZE, ZERO};
+pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
-        pub use ::crypto::merkle::{
+        pub use miden_crypto::merkle::{
             DefaultMerkleStore, EmptySubtreeRoots, InnerNodeInfo, MerkleError, MerklePath,
-            MerklePathSet, MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, RecordingMerkleStore,
-            SimpleSmt, StoreNode,
+            MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, PartialMerkleTree,
+            RecordingMerkleStore, SimpleSmt, StoreNode, TieredSmt,
         };
     }
 
     pub mod hash {
-        pub use ::crypto::hash::{
+        pub use miden_crypto::hash::{
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
             ElementHasher, Hasher,
@@ -27,6 +27,10 @@ pub mod crypto {
 
     pub mod random {
         pub use crate::random::*;
+    }
+
+    pub mod dsa {
+        pub use miden_crypto::dsa::rpo_falcon512;
     }
 }
 
@@ -40,7 +44,8 @@ pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, Progra
 
 mod operations;
 pub use operations::{
-    AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList, Operation,
+    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
+    Operation, SignatureKind,
 };
 
 pub mod stack;

@@ -1,4 +1,4 @@
-use super::{ByteWriter, Instruction, Node, OpCode, Serializable};
+use super::{debug, ByteWriter, Instruction, Node, OpCode, Serializable};
 use crate::ast::MAX_BODY_LEN;
 
 // NODE SERIALIZATION
@@ -53,9 +53,25 @@ impl Serializable for Instruction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
             Self::Assert => OpCode::Assert.write_into(target),
+            Self::AssertWithError(err_code) => {
+                OpCode::AssertWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::AssertEq => OpCode::AssertEq.write_into(target),
+            Self::AssertEqWithError(err_code) => {
+                OpCode::AssertEqWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::AssertEqw => OpCode::AssertEqw.write_into(target),
+            Self::AssertEqwWithError(err_code) => {
+                OpCode::AssertEqwWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::Assertz => OpCode::Assertz.write_into(target),
+            Self::AssertzWithError(err_code) => {
+                OpCode::AssertzWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::Add => OpCode::Add.write_into(target),
             Self::AddImm(v) => {
                 OpCode::AddImm.write_into(target);
@@ -122,8 +138,20 @@ impl Serializable for Instruction {
             Self::U32Test => OpCode::U32Test.write_into(target),
             Self::U32TestW => OpCode::U32TestW.write_into(target),
             Self::U32Assert => OpCode::U32Assert.write_into(target),
+            Self::U32AssertWithError(err_code) => {
+                OpCode::U32AssertWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::U32Assert2 => OpCode::U32Assert2.write_into(target),
+            Self::U32Assert2WithError(err_code) => {
+                OpCode::U32Assert2WithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::U32AssertW => OpCode::U32AssertW.write_into(target),
+            Self::U32AssertWWithError(err_code) => {
+                OpCode::U32AssertWWithError.write_into(target);
+                target.write_u32(*err_code);
+            }
             Self::U32Split => OpCode::U32Split.write_into(target),
             Self::U32Cast => OpCode::U32Cast.write_into(target),
             Self::U32CheckedAdd => OpCode::U32CheckedAdd.write_into(target),
@@ -491,10 +519,17 @@ impl Serializable for Instruction {
                 OpCode::SysCall.write_into(target);
                 imported.write_into(target)
             }
+            Self::DynExec => OpCode::DynExec.write_into(target),
+            Self::DynCall => OpCode::DynCall.write_into(target),
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => {
                 // this is a transparent instruction and will not be encoded into the library
+            }
+
+            Self::Debug(options) => {
+                OpCode::Debug.write_into(target);
+                debug::write_options_into(target, options);
             }
         }
     }

@@ -1,9 +1,8 @@
 use super::{
-    crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace, ProcedureId, String,
-    ToString, Token, Vec,
+    ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace,
+    ProcedureId, ProcedureName, String, ToString, Token, Vec,
 };
 use core::fmt;
-use vm_core::utils::write_hex_bytes;
 
 // ASSEMBLY ERROR
 // ================================================================================================
@@ -13,14 +12,15 @@ use vm_core::utils::write_hex_bytes;
 pub enum AssemblyError {
     CallInKernel(String),
     CallerOutOKernel,
-    CallSetProcedureNotFound(ProcedureId),
+    CallSetProcedureNotFound(RpoDigest),
     CircularModuleDependency(Vec<String>),
+    ConflictingNumLocals(String),
     DivisionByZero,
     DuplicateProcName(String, String),
     DuplicateProcId(ProcedureId),
     ExportedProcInProgram(String),
-    ProcMastRootNotFound(RpoDigest),
-    ImportedProcModuleNotFound(ProcedureId),
+    ImportedProcModuleNotFound(ProcedureId, String),
+    ReExportedProcModuleNotFound(ProcReExport),
     ImportedProcNotFoundInModule(ProcedureId, String),
     InvalidProgramAssemblyContext,
     InvalidCacheLock,
@@ -28,6 +28,7 @@ pub enum AssemblyError {
     LocalProcNotFound(u16, String),
     ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
+    PhantomCallsNotAllowed(RpoDigest),
     ProcedureNameError(String),
     SysCallInKernel(String),
     LibraryError(String),
@@ -50,6 +51,10 @@ impl AssemblyError {
         Self::CircularModuleDependency(dep_chain.to_vec())
     }
 
+    pub fn conflicting_num_locals(proc_name: &str) -> Self {
+        Self::ConflictingNumLocals(proc_name.to_string())
+    }
+
     pub fn division_by_zero() -> Self {
         Self::DivisionByZero
     }
@@ -66,12 +71,15 @@ impl AssemblyError {
         Self::ExportedProcInProgram(proc_name.to_string())
     }
 
-    pub fn proc_mast_root_not_found(root: &RpoDigest) -> Self {
-        Self::ProcMastRootNotFound(*root)
-    }
-
-    pub fn imported_proc_module_not_found(proc_id: &ProcedureId) -> Self {
-        Self::ImportedProcModuleNotFound(*proc_id)
+    pub fn imported_proc_module_not_found(
+        proc_id: &ProcedureId,
+        proc_name: Option<ProcedureName>,
+    ) -> Self {
+        if let Some(proc_name) = proc_name {
+            Self::ImportedProcModuleNotFound(*proc_id, proc_name.to_string())
+        } else {
+            Self::ImportedProcModuleNotFound(*proc_id, "[unknown]".to_string())
+        }
     }
 
     pub fn imported_proc_not_found_in_module(proc_id: &ProcedureId, module_path: &str) -> Self {
@@ -88,6 +96,10 @@ impl AssemblyError {
 
     pub fn param_out_of_bounds(value: u64, min: u64, max: u64) -> Self {
         Self::ParamOutOfBounds(value, min, max)
+    }
+
+    pub fn phantom_calls_not_allowed(mast_root: RpoDigest) -> Self {
+        Self::PhantomCallsNotAllowed(mast_root)
     }
 
     pub fn syscall_in_kernel(kernel_proc_name: &str) -> Self {
@@ -123,13 +135,15 @@ impl fmt::Display for AssemblyError {
         match self {
             CallInKernel(proc_name) => write!(f, "call instruction used kernel procedure '{proc_name}'"),
             CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
-            CallSetProcedureNotFound(proc_id) => write!(f, "callset procedure not found in assembler cache for procedure  '{proc_id}'"),
+            CallSetProcedureNotFound(mast_root) => write!(f, "callset procedure not found in assembler cache for procedure with MAST root {mast_root}"),
             CircularModuleDependency(dep_chain) => write!(f, "circular module dependency in the following chain: {dep_chain:?}"),
+            ConflictingNumLocals(proc_name) => write!(f, "procedure `{proc_name}` has the same MAST as another procedure but different number of locals"),
             DivisionByZero => write!(f, "division by zero"),
             DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
-            ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
+            ImportedProcModuleNotFound(proc_id, proc_name) => write!(f, "module for imported procedure `{proc_name}` with ID {proc_id} not found"),
+            ReExportedProcModuleNotFound(reexport) => write!(f, "re-exported proc {} with id {} not found", reexport.name(), reexport.proc_id()),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
             InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
             InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
@@ -138,10 +152,7 @@ impl fmt::Display for AssemblyError {
             LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
-            ProcMastRootNotFound(digest) => {
-                write!(f, "procedure mast root not found for digest - ")?;
-                write_hex_bytes(f, &digest.as_bytes())
-            },
+            PhantomCallsNotAllowed(mast_root) => write!(f, "cannot call phantom procedure with MAST root {mast_root}: phantom calls not allowed"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
         }
     }
@@ -250,6 +261,14 @@ impl ParsingError {
         }
     }
 
+    pub fn const_division_by_zero(token: &Token) -> Self {
+        ParsingError {
+            message: format!("constant expression {token} contains division by zero"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     // INVALID / MALFORMED INSTRUCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -261,9 +280,12 @@ impl ParsingError {
         }
     }
 
-    pub fn missing_param(token: &Token) -> Self {
+    pub fn missing_param(token: &Token, expected_format: &str) -> Self {
+        let _actual_params: usize = token.num_parts();
         ParsingError {
-            message: format!("malformed instruction '{token}': missing required parameter"),
+            message: format!(
+                "malformed instruction '{token}': expected format `{expected_format}`"
+            ),
             location: *token.location(),
             op: token.to_string(),
         }
@@ -550,6 +572,20 @@ impl ParsingError {
         }
     }
 
+    pub fn too_many_imported_procs_invoked(
+        token: &Token,
+        num_procs: usize,
+        max_procs: usize,
+    ) -> Self {
+        ParsingError {
+            message: format!(
+                "a module cannot invoke more than {max_procs} imported procedures, but had {num_procs}"
+            ),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 
@@ -564,6 +600,14 @@ impl ParsingError {
     pub fn invalid_module_path(token: &Token, module_path: &str) -> Self {
         ParsingError {
             message: format!("invalid module import path: {module_path}"),
+            location: *token.location(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_module_name(token: &Token, name: &str) -> Self {
+        ParsingError {
+            message: format!("invalid module name: {name}"),
             location: *token.location(),
             op: token.to_string(),
         }

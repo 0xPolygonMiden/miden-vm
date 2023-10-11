@@ -1,10 +1,21 @@
-use super::{CodeBody, Felt, ProcedureId, RpoDigest, ToString, Vec};
+use super::{
+    AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest, ToString, Vec,
+};
 use core::fmt;
+use vm_core::DebugOptions;
 
 mod advice;
 pub use advice::AdviceInjectorNode;
 
+mod format;
+pub use format::*;
+
 mod serde;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type ErrorCode = u32;
 
 // NODES
 // ================================================================================================
@@ -31,9 +42,13 @@ pub enum Node {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
     Assert,
+    AssertWithError(ErrorCode),
     AssertEq,
+    AssertEqWithError(ErrorCode),
     AssertEqw,
+    AssertEqwWithError(ErrorCode),
     Assertz,
+    AssertzWithError(ErrorCode),
     Add,
     AddImm(Felt),
     Sub,
@@ -76,8 +91,11 @@ pub enum Instruction {
     U32Test,
     U32TestW,
     U32Assert,
+    U32AssertWithError(ErrorCode),
     U32Assert2,
+    U32Assert2WithError(ErrorCode),
     U32AssertW,
+    U32AssertWWithError(ErrorCode),
     U32Split,
     U32Cast,
     U32CheckedAdd,
@@ -289,9 +307,12 @@ pub enum Instruction {
     CallMastRoot(RpoDigest),
     CallImported(ProcedureId),
     SysCall(ProcedureId),
+    DynExec,
+    DynCall,
 
     // ----- debug decorators ---------------------------------------------------------------------
     Breakpoint,
+    Debug(DebugOptions),
 }
 
 impl Instruction {
@@ -305,9 +326,13 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Assert => write!(f, "assert"),
+            Self::AssertWithError(err_code) => write!(f, "assert.err={err_code}"),
             Self::AssertEq => write!(f, "assert_eq"),
+            Self::AssertEqWithError(err_code) => write!(f, "assert_eq.err={err_code}"),
             Self::AssertEqw => write!(f, "assert_eqw"),
+            Self::AssertEqwWithError(err_code) => write!(f, "assert_eqw.err={err_code}"),
             Self::Assertz => write!(f, "assertz"),
+            Self::AssertzWithError(err_code) => write!(f, "assertz.err={err_code}"),
             Self::Add => write!(f, "add"),
             Self::AddImm(value) => write!(f, "add.{value}"),
             Self::Sub => write!(f, "sub"),
@@ -349,9 +374,12 @@ impl fmt::Display for Instruction {
             // ----- u32 manipulation ---------------------------------------------------------------
             Self::U32Test => write!(f, "u32test"),
             Self::U32TestW => write!(f, "u32testw"),
-            Self::U32Assert => write!(f, "u32assert.1"),
-            Self::U32Assert2 => write!(f, "u32assert.2"),
+            Self::U32Assert => write!(f, "u32assert"),
+            Self::U32AssertWithError(err_code) => write!(f, "u32assert.err={err_code}"),
+            Self::U32Assert2 => write!(f, "u32assert2"),
+            Self::U32Assert2WithError(err_code) => write!(f, "u32assert2.err={err_code}"),
             Self::U32AssertW => write!(f, "u32assertw"),
+            Self::U32AssertWWithError(err_code) => write!(f, "u32assertw.err={err_code}"),
             Self::U32Split => write!(f, "u32split"),
             Self::U32Cast => write!(f, "u32cast"),
             Self::U32CheckedAdd => write!(f, "u32checked_add"),
@@ -556,7 +584,6 @@ impl fmt::Display for Instruction {
             Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
 
             // ----- exec / call ------------------------------------------------------------------
-            // TODO: print exec/call instructions with procedures names, not indexes or id's
             Self::ExecLocal(index) => write!(f, "exec.{index}"),
             Self::ExecImported(proc_id) => write!(f, "exec.{proc_id}"),
             Self::CallLocal(index) => write!(f, "call.{index}"),
@@ -566,32 +593,14 @@ impl fmt::Display for Instruction {
             }
             Self::CallImported(proc_id) => write!(f, "call.{proc_id}"),
             Self::SysCall(proc_id) => write!(f, "syscall.{proc_id}"),
+            Self::DynExec => write!(f, "dynexec"),
+            Self::DynCall => write!(f, "dyncall"),
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => write!(f, "breakpoint"),
+            Self::Debug(options) => write!(f, "debug.{options}"),
         }
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Builds a hex string from a byte slice
-pub fn display_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "0x")?;
-    for byte in bytes {
-        write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-}
-
-/// Builds a string from input vector to display push operation
-fn display_push_vec<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[T]) -> fmt::Result {
-    write!(f, "push")?;
-    for elem in values {
-        write!(f, ".{elem}")?;
-    }
-    Ok(())
 }
 
 // TESTS

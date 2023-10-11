@@ -16,14 +16,22 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cmd = bin_under_test.command();
 
-    cmd.arg("run").arg("-a").arg("examples/fib/fib.masm").arg("-n").arg("1");
+    cmd.arg("run")
+        .arg("-a")
+        .arg("examples/fib/fib.masm")
+        .arg("-n")
+        .arg("1")
+        .arg("-m")
+        .arg("4096")
+        .arg("-e")
+        .arg("4096");
 
     let output = cmd.unwrap();
 
     // This tests what we want. Actually it outputs X steps in Y ms.
     // However we the X and the Y can change in future versions.
     // There is no other 'steps in' in the output
-    output.assert().stdout(predicate::str::contains("steps in"));
+    output.assert().stdout(predicate::str::contains("VM cycles"));
 
     Ok(())
 }

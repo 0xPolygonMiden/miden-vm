@@ -10,13 +10,13 @@ pub mod stack;
 // ================================================================================================
 
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
-pub const MIN_TRACE_LEN: usize = 1024;
+pub const MIN_TRACE_LEN: usize = 64;
 
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks       chiplets
-//    (8 columns)     (24 columns)    (19 columns)    (4 columns)     (17 columns)
+//    (8 columns)     (24 columns)    (19 columns)    (3 columns)     (17 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
@@ -42,7 +42,7 @@ pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRAC
 
 // Range check trace
 pub const RANGE_CHECK_TRACE_OFFSET: usize = STACK_TRACE_RANGE.end;
-pub const RANGE_CHECK_TRACE_WIDTH: usize = 4;
+pub const RANGE_CHECK_TRACE_WIDTH: usize = 2;
 pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_WIDTH);
 
@@ -57,7 +57,7 @@ pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 // ------------------------------------------------------------------------------------------------
 
 //      decoder         stack       range checks      hasher         chiplets
-//    (3 columns)     (1 column)     (3 columns)    (1 column)      (1 column)
+//    (3 columns)     (1 column)     (1 column)    (1 column)      (1 column)
 // ├───────────────┴──────────────┴──────────────┴───────────────┴───────────────┤
 
 // Decoder auxiliary columns
@@ -74,7 +74,7 @@ pub const STACK_AUX_TRACE_RANGE: Range<usize> =
 
 // Range check auxiliary columns
 pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
-pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 3;
+pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 1;
 pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
 

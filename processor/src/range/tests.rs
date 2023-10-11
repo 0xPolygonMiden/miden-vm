@@ -1,6 +1,6 @@
-use super::{BTreeMap, Felt, RangeChecker, Vec, ONE, ZERO};
+use super::{BTreeMap, Felt, RangeChecker, Vec, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
-use rand_utils::rand_array;
+use test_utils::rand::rand_array;
 use vm_core::{utils::ToElements, StarkField};
 
 #[test]
@@ -10,32 +10,40 @@ fn range_checks() {
     let values = [0, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 100, 355, 620].to_elements();
 
     for &value in values.iter() {
-        checker.add_value(value.as_int() as u16)
+        // add the value to the range checker's trace
+        checker.add_value(value.as_int() as u16);
     }
 
     let RangeCheckTrace {
         trace,
         aux_builder: _,
-    } = checker.into_trace(1024, 0);
+    } = checker.into_trace(64, 0);
     validate_trace(&trace, &values);
 
-    // skip the 8-bit portion of the trace
+    // skip the padded rows
     let mut i = 0;
-    while trace[0][i] == ZERO {
-        i += 1
+    while trace[0][i] == ZERO && trace[1][i] == ZERO {
+        i += 1;
     }
 
     // make sure the values are arranged as expected
-    validate_row(&trace, i, 0, 1);
-    validate_row(&trace, i + 1, 1, 1);
-    validate_row(&trace, i + 2, 2, 4);
-    validate_row(&trace, i + 3, 3, 2);
-    validate_row(&trace, i + 4, 3, 1);
-    validate_row(&trace, i + 5, 4, 2);
-    validate_row(&trace, i + 6, 100, 1);
-    validate_row(&trace, i + 7, 355, 1);
-    validate_row(&trace, i + 8, 610, 0);
-    validate_row(&trace, i + 9, 620, 1);
+    validate_row(&trace, &mut i, 0, 1);
+    validate_row(&trace, &mut i, 1, 1);
+    validate_row(&trace, &mut i, 2, 4);
+    validate_row(&trace, &mut i, 3, 3);
+    validate_row(&trace, &mut i, 4, 2);
+
+    validate_bridge_rows(&trace, &mut i, 4, 100);
+
+    validate_row(&trace, &mut i, 100, 1);
+
+    validate_bridge_rows(&trace, &mut i, 100, 355);
+
+    validate_row(&trace, &mut i, 355, 1);
+
+    validate_bridge_rows(&trace, &mut i, 355, 620);
+
+    validate_row(&trace, &mut i, 620, 1);
 }
 
 #[test]
@@ -43,7 +51,6 @@ fn range_checks_rand() {
     let mut checker = RangeChecker::new();
     let values = rand_array::<u64, 300>();
     let values = values.into_iter().map(|v| Felt::new(v as u16 as u64)).collect::<Vec<_>>();
-
     for &value in values.iter() {
         checker.add_value(value.as_int() as u16);
     }
@@ -59,113 +66,57 @@ fn range_checks_rand() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn validate_row(trace: &[Vec<Felt>], row_idx: usize, value: u64, num_lookups: u64) {
-    let (s0, s1) = match num_lookups {
-        0 => (ZERO, ZERO),
-        1 => (ONE, ZERO),
-        2 => (ZERO, ONE),
-        4 => (ONE, ONE),
-        _ => panic!("invalid lookup value"),
-    };
-
-    assert_eq!(s0, trace[1][row_idx]);
-    assert_eq!(s1, trace[2][row_idx]);
-    assert_eq!(Felt::new(value), trace[3][row_idx]);
+fn validate_row(trace: &[Vec<Felt>], row_idx: &mut usize, value: u64, num_lookups: u64) {
+    assert_eq!(trace[0][*row_idx], Felt::from(num_lookups));
+    assert_eq!(trace[1][*row_idx], Felt::from(value));
+    *row_idx += 1;
 }
 
 fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
-    assert_eq!(4, trace.len());
+    assert_eq!(2, trace.len());
 
     // trace length must be a power of two
     let trace_len = get_trace_len(trace);
     assert!(trace_len.is_power_of_two());
 
-    // --- validate the 8-bit segment of the trace ----------------------------
-
-    // should start with a ZERO
-    assert_eq!(ZERO, trace[0][0]);
-    assert_eq!(ZERO, trace[3][0]);
-
-    let mut lookups_8bit = BTreeMap::new();
-
-    // values in the 8-bit segment should be 8 bits; also, count the number of lookups
-    // for each 8-bit value.
+    // --- validate the trace ---------------------------
     let mut i = 0;
-    let mut prev_value = 0u8;
-    while trace[0][i] == ZERO {
-        // make sure the value is an 8-bit value
-        let value = trace[3][i].as_int();
-        assert!(value <= 255, "not an 8-bit value");
-        let value = value as u8;
-
-        // make sure the delta between this and the previous value is either 0 or 1
-        let delta = value - prev_value;
-        assert!(delta <= 1);
-
-        // keep track of lookup count for each value
-        let count = get_lookup_count(trace, i);
-        lookups_8bit.entry(value).and_modify(|value| *value += count).or_insert(count);
-
-        i += 1;
-        prev_value = value;
-    }
-
-    // validate the last row (must be 255)
-    let last_value = trace[3][i - 1].as_int();
-    assert_eq!(255, last_value);
-
-    // all possible 8-bit values must be in the map
-    assert_eq!(256, lookups_8bit.len());
-
-    // --- validate the 16-bit segment of the trace ---------------------------
-
     let mut lookups_16bit = BTreeMap::new();
 
     // process the first row
-    assert_eq!(ZERO, trace[3][i]);
-    let count = get_lookup_count(trace, i);
+    assert_eq!(trace[1][i], ZERO);
+    let count = trace[0][i].as_int();
     lookups_16bit.insert(0u16, count);
     i += 1;
 
     // process all other rows
     let mut prev_value = 0u16;
     while i < trace_len {
-        // segment identifier must be set to ONE
-        assert_eq!(ONE, trace[0][i]);
-
         // make sure the value is a 16-bit value
-        let value = trace[3][i].as_int();
-        assert!(value <= 65535, "not an 8-bit value");
+        let value = trace[1][i].as_int();
+        assert!(value <= 65535, "not a 16-bit value");
         let value = value as u16;
 
-        // make sure the delta between this and the previous value is less than 255,
-        // and remove the delta from the 8-bit table
+        // make sure the delta between this and the previous value is 0 or a power of 3 and at most 3^7
         let delta = value - prev_value;
-        assert!(delta <= 255);
-        let delta = delta as u8;
-        lookups_8bit.entry(delta).and_modify(|count| {
-            assert!(*count > 0);
-            *count -= 1;
-        });
+        assert!(valid_delta(delta));
 
         // keep track of lookup count for each value
-        let count = get_lookup_count(trace, i);
-        lookups_16bit.entry(value).and_modify(|value| *value += count).or_insert(count);
+        let multiplicity = trace[0][i].as_int();
+        lookups_16bit
+            .entry(value)
+            .and_modify(|count| *count += multiplicity)
+            .or_insert(multiplicity);
 
         i += 1;
         prev_value = value;
     }
 
     // validate the last row (must be 65535)
-    let last_value = trace[3][i - 1].as_int();
+    let last_value = trace[1][i - 1].as_int();
     assert_eq!(65535, last_value);
 
-    // at the end, 8-bit table should be empty
-    for &value in lookups_8bit.values() {
-        assert_eq!(0, value);
-    }
-
-    // remove all the looked up values from the 16-bit lookup table
+    // remove all the looked up values from the lookup table
     for value in lookups {
         let value = value.as_int();
         assert!(value <= 65535, "not a 16-bit value");
@@ -184,16 +135,27 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     }
 }
 
-fn get_lookup_count(trace: &[Vec<Felt>], step: usize) -> usize {
-    if trace[1][step] == ZERO && trace[2][step] == ZERO {
-        0
-    } else if trace[1][step] == ONE && trace[2][step] == ZERO {
-        1
-    } else if trace[1][step] == ZERO && trace[2][step] == ONE {
-        2
-    } else if trace[1][step] == ONE && trace[2][step] == ONE {
-        4
-    } else {
-        panic!("not a valid count");
+fn validate_bridge_rows(
+    trace: &[Vec<Felt>],
+    row_idx: &mut usize,
+    curr_value: u64,
+    next_value: u64,
+) {
+    let mut gap = next_value - curr_value;
+    let mut bridge_val = curr_value;
+    let mut stride = 3_u64.pow(7);
+    while gap != stride {
+        if gap > stride {
+            gap -= stride;
+            bridge_val += stride;
+            validate_row(trace, row_idx, bridge_val, 0);
+        } else {
+            stride /= 3;
+        }
     }
+}
+
+/// Checks if the delta between two values is 0 or a power of 3 and at most 3^7
+fn valid_delta(delta: u16) -> bool {
+    delta == 0 || (59049 % delta == 0 && delta <= 2187)
 }

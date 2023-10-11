@@ -3,7 +3,7 @@ use super::{
     enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS,
 };
 use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
-use vm_core::{Felt, FieldElement, Operation, ONE};
+use vm_core::{Felt, Operation, ONE, ZERO};
 
 use proptest::prelude::*;
 
@@ -16,7 +16,7 @@ proptest! {
 
     #[test]
     fn test_fmpadd_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_fmpadd_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -26,7 +26,7 @@ proptest! {
 
     #[test]
     fn test_fmpupdate_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_fmpupdate_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -36,7 +36,7 @@ proptest! {
 
     #[test]
     fn test_clk_operation(a in any::<u64>()) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let expected = [ZERO; NUM_CONSTRAINTS];
         let frame = get_clk_test_frame(a);
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
@@ -48,7 +48,7 @@ proptest! {
 
 #[test]
 fn test_assert_operation() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
     let frame = get_assert_test_frame();
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
@@ -59,7 +59,7 @@ fn test_assert_operation() {
 
 /// Returns the result of stack operation constraint evaluations on the provided frame.
 fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRAINTS] {
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+    let mut result = [ZERO; NUM_CONSTRAINTS];
 
     let op_flag = &OpFlags::new(&frame);
 
@@ -71,7 +71,7 @@ fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRA
 /// Generates the correct current and next rows for the FMPADD operation and inputs and
 /// returns an EvaluationFrame for testing.
 pub fn get_fmpadd_test_frame(a: u64) -> EvaluationFrame<Felt> {
-    // frame initialised with a fmpadd operation using it's unique opcode.
+    // frame initialized with a fmpadd operation using it's unique opcode.
     let mut frame = generate_evaluation_frame(Operation::FmpAdd.op_code() as usize);
 
     // Set the output. First element in the next frame should be incremented
@@ -101,8 +101,8 @@ pub fn get_fmpupdate_test_frame(a: u64) -> EvaluationFrame<Felt> {
 /// Generates the correct current and next rows for the ASSERT operation and inputs and
 /// returns an EvaluationFrame for testing.
 pub fn get_assert_test_frame() -> EvaluationFrame<Felt> {
-    // frame initialised with a fmpupdate operation using it's unique opcode.
-    let mut frame = generate_evaluation_frame(Operation::Assert.op_code() as usize);
+    // frame initialized with a fmpupdate operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Assert(ZERO).op_code() as usize);
 
     // Set the output. The top element in the current frame of the stack should be ONE.
     frame.current_mut()[STACK_TRACE_OFFSET] = ONE;

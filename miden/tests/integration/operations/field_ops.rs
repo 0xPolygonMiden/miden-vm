@@ -1,48 +1,7 @@
 use test_utils::{
     build_op_test, prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement,
-    StarkField, TestError, WORD_SIZE,
+    StarkField, TestError, ONE, WORD_SIZE,
 };
-
-// FIELD OPS ASSERTIONS - MANUAL TESTS
-// ================================================================================================
-
-#[test]
-fn assert() {
-    let asm_op = "assert";
-
-    let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[]);
-}
-
-#[test]
-fn assert_fail() {
-    let asm_op = "assert";
-
-    let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
-}
-
-#[test]
-fn assert_eq() {
-    let asm_op = "assert_eq";
-
-    let test = build_op_test!(asm_op, &[1, 1]);
-    test.expect_stack(&[]);
-
-    let test = build_op_test!(asm_op, &[3, 3]);
-    test.expect_stack(&[]);
-}
-
-#[test]
-fn assert_eq_fail() {
-    let asm_op = "assert_eq";
-
-    let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
-
-    let test = build_op_test!(asm_op, &[1, 4]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
-}
 
 // FIELD OPS ARITHMETIC - MANUAL TESTS
 // ================================================================================================
@@ -280,7 +239,7 @@ fn inv() {
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_stack(&[Felt::new(1).inv().as_int()]);
+    test.expect_stack(&[ONE.inv().as_int()]);
 
     let test = build_op_test!(asm_op, &[64]);
     test.expect_stack(&[Felt::new(64).inv().as_int()]);

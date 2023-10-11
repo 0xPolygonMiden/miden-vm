@@ -3,7 +3,7 @@ use test_utils::{
         init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
         RpoDigest,
     },
-    hash_elements, stack_to_ints, Felt, StarkField, Word, ZERO,
+    hash_elements, stack_to_ints, Felt, StarkField, Word, EMPTY_WORD, ONE, ZERO,
 };
 
 // TESTS
@@ -345,23 +345,23 @@ fn test_mmr_unpack() {
     let hash_data: [[Felt; 4]; 16] = [
         // 3 peaks. These hashes are invalid, we can't produce data for any of these peaks (only
         // for testing)
-        [ZERO, ZERO, ZERO, Felt::new(1)],
+        [ZERO, ZERO, ZERO, ONE],
         [ZERO, ZERO, ZERO, Felt::new(2)],
         [ZERO, ZERO, ZERO, Felt::new(3)],
         // Padding, the MMR is padded to a minimum length o 16
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
     ];
     let hash = hash_elements(&hash_data.concat());
 
@@ -407,23 +407,23 @@ fn test_mmr_unpack_invalid_hash() {
     let mut hash_data: [[Felt; 4]; 16] = [
         // 3 peaks. These hashes are invalid, we can't produce data for any of these peaks (only
         // for testing)
-        [ZERO, ZERO, ZERO, Felt::new(1)],
+        [ZERO, ZERO, ZERO, ONE],
         [ZERO, ZERO, ZERO, Felt::new(2)],
         [ZERO, ZERO, ZERO, Felt::new(3)],
         // Padding, the MMR is padded to a minimum length o 16
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
-        [ZERO, ZERO, ZERO, ZERO],
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
+        EMPTY_WORD,
     ];
     let hash = hash_elements(&hash_data.concat());
 
@@ -438,7 +438,7 @@ fn test_mmr_unpack_invalid_hash() {
     let store = MerkleStore::new();
 
     // corrupt the data, this changes the hash and the commitment check must fail
-    hash_data[0][0] = hash_data[0][0] + Felt::new(1);
+    hash_data[0][0] = hash_data[0][0] + ONE;
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     map_data.extend_from_slice(&[Felt::new(0b10101), ZERO, ZERO, ZERO]); // 3 peaks, 21 leaves
@@ -467,7 +467,7 @@ fn test_mmr_unpack_large_mmr() {
     let hash_data: [[Felt; 4]; 18] = [
         // These hashes are invalid, we can't produce data for any of these peaks (only for
         // testing)
-        [ZERO, ZERO, ZERO, Felt::new(1)],
+        [ZERO, ZERO, ZERO, ONE],
         [ZERO, ZERO, ZERO, Felt::new(2)],
         [ZERO, ZERO, ZERO, Felt::new(3)],
         [ZERO, ZERO, ZERO, Felt::new(4)],
@@ -485,7 +485,7 @@ fn test_mmr_unpack_large_mmr() {
         [ZERO, ZERO, ZERO, Felt::new(16)],
         // Padding, peaks greater than 16 are padded to an even number
         [ZERO, ZERO, ZERO, Felt::new(17)],
-        [ZERO, ZERO, ZERO, ZERO],
+        EMPTY_WORD,
     ];
     let hash = hash_elements(&hash_data.concat());
 
@@ -617,7 +617,7 @@ fn test_mmr_pack() {
 
     #[rustfmt::skip]
     hash_data.extend_from_slice( &[
-        Felt::new(1), ZERO, ZERO, ZERO, // peak1
+        ONE, ZERO, ZERO, ZERO, // peak1
         Felt::new(2), ZERO, ZERO, ZERO, // peak2
     ]);
     hash_data.resize(16 * 4, ZERO); // padding data
@@ -631,7 +631,8 @@ fn test_mmr_pack() {
 
     let process = build_test!(source).execute_process().unwrap();
 
-    let advice_data = process.advice_provider.map().get(&hash_u8).unwrap();
+    let host = process.host.borrow_mut();
+    let advice_data = host.advice_provider().map().get(&hash_u8).unwrap();
     assert_eq!(stack_to_ints(advice_data), stack_to_ints(&expect_data));
 }
 
@@ -680,7 +681,7 @@ fn test_mmr_two() {
     );
 
     let mut mmr = Mmr::new();
-    mmr.add([Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)].into());
+    mmr.add([ONE, Felt::new(2), Felt::new(3), Felt::new(4)].into());
     mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into());
 
     let accumulator = mmr.accumulator();
@@ -715,13 +716,13 @@ fn test_mmr_large() {
     );
 
     let mut mmr = Mmr::new();
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)].into());
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)].into());
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)].into());
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)].into());
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)].into());
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)].into());
-    mmr.add([Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)].into());
+    mmr.add([ZERO, ZERO, ZERO, ONE].into());
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(2)].into());
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(3)].into());
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(4)].into());
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(5)].into());
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(6)].into());
+    mmr.add([ZERO, ZERO, ZERO, Felt::new(7)].into());
 
     let accumulator = mmr.accumulator();
 
@@ -739,13 +740,13 @@ fn test_mmr_large_add_roundtrip() {
     let mmr_ptr = 1000_u32;
 
     let mut mmr: Mmr = Mmr::from([
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(1)].into(),
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(2)].into(),
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(3)].into(),
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(4)].into(),
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(5)].into(),
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(6)].into(),
-        [Felt::new(0), Felt::new(0), Felt::new(0), Felt::new(7)].into(),
+        [ZERO, ZERO, ZERO, ONE].into(),
+        [ZERO, ZERO, ZERO, Felt::new(2)].into(),
+        [ZERO, ZERO, ZERO, Felt::new(3)].into(),
+        [ZERO, ZERO, ZERO, Felt::new(4)].into(),
+        [ZERO, ZERO, ZERO, Felt::new(5)].into(),
+        [ZERO, ZERO, ZERO, Felt::new(6)].into(),
+        [ZERO, ZERO, ZERO, Felt::new(7)].into(),
     ]);
 
     let old_accumulator = mmr.accumulator();

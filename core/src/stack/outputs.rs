@@ -1,5 +1,6 @@
 use super::{
-    ByteWriter, Felt, Serializable, StackTopState, StarkField, ToElements, Vec, STACK_TOP_SIZE,
+    ByteWriter, Felt, OutputError, Serializable, StackTopState, StarkField, ToElements, Vec,
+    STACK_TOP_SIZE,
 };
 
 // STACK OUTPUTS
@@ -30,30 +31,54 @@ pub struct StackOutputs {
 impl StackOutputs {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    pub fn new(stack: Vec<u64>, overflow_addrs: Vec<u64>) -> Self {
-        debug_assert!(
-            are_valid_elements(&stack),
-            "stack outputs contain values that are not valid field elements",
-        );
-        debug_assert!(
-            are_valid_elements(&overflow_addrs),
-            "overflow address outputs contain values that are not valid field elements",
-        );
+    /// Constructs a new [StackOutputs] struct from the provided stack elements and overflow
+    /// addresses.
+    ///
+    /// # Errors
+    /// - If any of the provided stack elements are invalid field elements.
+    /// - If any of the provided overflow addresses are invalid field elements.
+    /// - If the number of stack elements is greater than `STACK_TOP_SIZE` (16) and `overflow_addrs`
+    ///   does not contain exactly `stack.len() + 1 - STACK_TOP_SIZE` elements.
+    pub fn new(mut stack: Vec<u64>, overflow_addrs: Vec<u64>) -> Result<Self, OutputError> {
+        // Validate stack elements
+        if let Some(element) = find_invalid_elements(&stack) {
+            return Err(OutputError::InvalidStackElement(element));
+        }
 
-        Self {
+        // Validate overflow address elements
+        if let Some(element) = find_invalid_elements(&overflow_addrs) {
+            return Err(OutputError::InvalidOverflowAddress(element));
+        }
+
+        // pad stack to the `STACK_TOP_SIZE`
+        if stack.len() < STACK_TOP_SIZE {
+            stack.resize(STACK_TOP_SIZE, 0);
+        }
+
+        // validate overflow_addrs length
+        let expected_overflow_addrs_len = if stack.len() > STACK_TOP_SIZE {
+            stack.len() + 1 - STACK_TOP_SIZE
+        } else {
+            0
+        };
+        if overflow_addrs.len() != expected_overflow_addrs_len {
+            return Err(OutputError::InvalidOverflowAddressLength(
+                overflow_addrs.len(),
+                expected_overflow_addrs_len,
+            ));
+        }
+
+        Ok(Self {
             stack,
             overflow_addrs,
-        }
+        })
     }
 
-    pub fn from_elements(stack: Vec<Felt>, overflow_addrs: Vec<Felt>) -> Self {
+    pub fn from_elements(stack: Vec<Felt>, overflow_addrs: Vec<Felt>) -> Result<Self, OutputError> {
         let stack = stack.iter().map(|&v| v.as_int()).collect::<Vec<_>>();
         let overflow_addrs = overflow_addrs.iter().map(|&v| v.as_int()).collect::<Vec<_>>();
 
-        Self {
-            stack,
-            overflow_addrs,
-        }
+        Self::new(stack, overflow_addrs)
     }
 
     // PUBLIC ACCESSORS
@@ -129,14 +154,14 @@ impl StackOutputs {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Verify that each element in the provided slice of outputs is a valid field element.
-fn are_valid_elements(outputs: &[u64]) -> bool {
+/// Find and return the first invalid field element in the provided vector of elements.
+fn find_invalid_elements(outputs: &[u64]) -> Option<u64> {
     for val in outputs {
         if *val >= Felt::MODULUS {
-            return false;
+            return Some(*val);
         }
     }
-    true
+    None
 }
 
 impl Serializable for StackOutputs {

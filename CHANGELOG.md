@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.7.0 (2023-10-11)
+
+#### Assembly
+- Added ability to attach doc comments to re-exported procedures (#994).
+- Added support for nested modules (#992).
+- Added support for the arithmetic expressions in constant values (#1026).
+- Added support for module aliases (#1037).
+- Added `adv.insert_hperm` decorator (#1042).
+- Added `adv.push_smtpeek` decorator (#1056).
+- Added `debug` decorator (#1069).
+- Refactored `push` instruction so now it parses long hex string in little-endian (#1076).
+
+#### CLI
+- Implemented ability to output compiled `.masb` files to disk (#1102).
+
+#### VM Internals
+- Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
+- Migrated range checker lookups to use LogUp and reduced the number of trace columns to 2 main and 
+  1 auxiliary (#1027).
+- Added `get_mapped_values()` and `get_store_subset()` methods to the `AdviceProvider` trait (#987).
+- [BREAKING] Added options to specify maximum number of cycles and expected number of cycles for a program (#998).
+- Improved handling of invalid/incomplete parameters in `StackOutputs` constructors (#1010).
+- Allowed the assembler to produce programs with "phantom" calls (#1019).
+- Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
+- Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049). 
+- Supported `PartialMerkleTree` as a secret input in `.input` file (#1072).
+- [BREAKING] Refactored `AdviceProvider` interface into [Host] interface (#1082).
+
+#### Stdlib
+- Completed `std::collections::smt` module by implementing `insert` and `set` procedures (#1036, #1038, #1046).
+- Added new module `std::crypto::dsa::rpo_falcon512` to support Falcon signature verification (#1000, #1094)
+
 ## 0.6.1 (2023-06-29)
 
 - Fixed `no-std` compilation for `miden-core`, `miden-assembly`, and `miden-processor` crates.

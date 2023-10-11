@@ -18,15 +18,16 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 | `REPEAT`  | $f_{repeat}$  | 4      | Top stack element is dropped.                                                                    |
 | `SPAN`    | $f_{span}$    | 5      | Stack remains unchanged.                                                                         |
 | `RESPAN`  | $f_{respan}$  | 4      | Stack remains unchanged.                                                                         |
-| `CALL`    | $f_{call}$    | 4      | Top stack element is dropped.                                                                    |
-| `SYSCALL` | $f_{syscall}$ | 4      | Top stack element is dropped.                                                                    |
+| `DYN`     | $f_{dyn}$     | 5      | Stack remains unchanged.                                                                         |
+| `CALL`    | $f_{call}$    | 4      | Stack remains unchanged.                                                                         |
+| `SYSCALL` | $f_{syscall}$ | 4      | Stack remains unchanged.                                                                         |
 | `END`     | $f_{end}$     | 4      | When exiting a loop block, top stack element is dropped; otherwise, the stack remains unchanged. |
 | `HALT`    | $f_{halt}$    | 4      | Stack remains unchanged.                                                                         |
 | `PUSH`    | $f_{push}$    | 4      | An immediate value is pushed onto the stack.                                                     |
 
-We also use the [control flow flag](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ exposed by the VM, which is set when any one of the above control flow operations is being executed. It has degree $3$.
+We also use the [control flow flag](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ exposed by the VM, which is set when any one of the above control flow operations is being executed. It has degree $5$.
 
-As described [previously](./main.md#program-decoding), the general idea of the decoder is that the prove provides the program to the VM by populating some of cells in the trace non-deterministically. Values in these are then used to update virtual tables (represented via multiset checks) such as block hash table, block stack table etc. Transition constraints are used to enforce that the tables are updates correctly, and we also apply boundary constraints to enforce the correct initial and final states of these tables. One of these boundary constraints binds the execution trace to the hash of the program being executed. Thus, if the virtual tables were updated correctly and boundary constraints hold, we can be convinced that the prover executed the claimed program on the VM.
+As described [previously](./main.md#program-decoding), the general idea of the decoder is that the prover provides the program to the VM by populating some of cells in the trace non-deterministically. Values in these are then used to update virtual tables (represented via multiset checks) such as block hash table, block stack table etc. Transition constraints are used to enforce that the tables are updates correctly, and we also apply boundary constraints to enforce the correct initial and final states of these tables. One of these boundary constraints binds the execution trace to the hash of the program being executed. Thus, if the virtual tables were updated correctly and boundary constraints hold, we can be convinced that the prover executed the claimed program on the VM.
 
 In the sections below, we describe constraints according to their logical grouping. However, we start out with a set of general constraints which are applicable to multiple parts of the decoder.
 
@@ -36,6 +37,12 @@ When `SPLIT` or `LOOP` operation is executed, the top of the operand stack must 
 
 > $$
 (f_{split} + f_{loop}) \cdot (s_0^2 - s_0) = 0 \text{ | degree} = 7
+$$
+
+When a `DYN` operation is executed, the hasher registers must all be set to $0$:
+
+> $$
+f_{dyn} \cdot (1 - h_i) = 0 \text { for } i \in [0, 8) \text{ | degree} = 6
 $$
 
 When `REPEAT` operation is executed, the value at the top of the operand stack must be $1$:
@@ -89,13 +96,13 @@ $$
 When the value in `in_span` column is set to $1$, control flow operations cannot be executed on the VM, but when `in_span` flag is $0$, only control flow operations can be executed on the VM:
 
 > $$
-1 - sp - f_{ctrl} = 0 \text{ | degree} = 3
+1 - sp - f_{ctrl} = 0 \text{ | degree} = 5
 $$
 
 ## Block hash computation constraints
 As described [previously](./main.md#program-block-hashing), when the VM starts executing a new block, it also initiates computation of the block's hash. There are two separate methodologies for computing block hashes.
 
-For *join*, *split*, and *loop* blocks, the hash is computed directly from the hashes of the block's children. The prover provides these child hashes non-deterministically by populating registers $h_0,..., h_7$. The hasher is initialized using the hash chiplet, and we use the address of the hasher as the block's ID. The result of the hash is available $7$ rows down in the hasher table (i.e., at row with index equal to block ID plus $7$). We read the result from the hasher table at the time the `END` operation is executed for a given block.
+For *join*, *split*, and *loop* blocks, the hash is computed directly from the hashes of the block's children. The prover provides these child hashes non-deterministically by populating registers $h_0,..., h_7$. For *dyn*, the hasher registers are populated with zeros, so the resulting hash is a constant value. The hasher is initialized using the hash chiplet, and we use the address of the hasher as the block's ID. The result of the hash is available $7$ rows down in the hasher table (i.e., at row with index equal to block ID plus $7$). We read the result from the hasher table at the time the `END` operation is executed for a given block.
 
 For *span* blocks, the hash is computed by absorbing a linear sequence of instructions (organized into operation groups and batches) into the hasher and then returning the result. The prover provides operation batches non-deterministically by populating registers $h_0, ..., h_7$. Similarly to other blocks, the hasher is initialized using the hash chiplet at the start of the block, and we use the address of the hasher as the ID of the first operation batch in the block. As we absorb additional operation batches into the hasher (by executing `RESPAN` operation), the batch address is incremented by $8$. This moves the "pointer" into the hasher table $8$ rows down with every new batch. We read the result from the hasher table at the time the `END` operation is executed for a given block.
 
@@ -130,7 +137,7 @@ $$
 In the above, $a$ represents the address value in the decoder which corresponds to the hasher chiplet address at which the hasher was initialized (or the last absorption took place).  As such, $a + 7$ corresponds to the hasher chiplet address at which the result is returned.
 
 $$
-f_{ctrli} = f_{join} + f_{split} + f_{loop} +  f_{call} \text{ | degree} = 5
+f_{ctrli} = f_{join} + f_{split} + f_{loop} + f_{dyn} + f_{call} \text{ | degree} = 5
 $$
 
 In the above, $f_{ctrli}$ is set to $1$ when a control flow operation that signifies the initialization of a control block is being executed on the VM.  Otherwise, it is set to $0$. An exception is made for the `SYSCALL` operation. Although it also signifies the initialization of a control block, it must additionally send a procedure access request to the [kernel ROM chiplet](../chiplets/kernel_rom.md) via the chiplets bus. Therefore, it is excluded from this flag and its communication with the chiplets bus is handled separately.
@@ -143,7 +150,7 @@ In the above, $d$ represents the opcode value of the opcode being executed on th
 
 Using the above variables, we define operation values as described below.
 
-When a control block initializer operation (`JOIN`, `SPLIT`, `LOOP`, `CALL`, `SYSCALL`) is executed, a new hasher is initialized and the contents of $h_0, ..., h_7$ are absorbed into the hasher. As mentioned above, the opcode value $d$ is populated in the second capacity resister via the $\alpha_5$ term.
+When a control block initializer operation (`JOIN`, `SPLIT`, `LOOP`, `DYN`, `CALL`, `SYSCALL`) is executed, a new hasher is initialized and the contents of $h_0, ..., h_7$ are absorbed into the hasher. As mentioned above, the opcode value $d$ is populated in the second capacity resister via the $\alpha_5$ term.
 
 $$
 u_{ctrli} = f_{ctrli} \cdot (h_{init} + \alpha_5 \cdot d) \text{ | degree} = 6
@@ -207,7 +214,7 @@ $$
 v_{join} = f_{join} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
 $$
 
-When `SPLIT` operation is executed, row $(a', a, 0)$ added to the block stack table:
+When `SPLIT` operation is executed, row $(a', a, 0)$ is added to the block stack table:
 
 $$
 v_{split} = f_{split} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
@@ -232,6 +239,12 @@ u_{respan} = f_{respan} \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot h_1'
 v_{respan} = f_{respan} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot h_1') \text{ | degree} = 5
 $$
 
+When a `DYN` operation is executed, row $(a', a, 0)$ is added to the block stack table:
+
+$$
+v_{dyn} = f_{dyn} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
+$$
+
 When `END` operation is executed, row $(a, a', h_5)$ is removed from the block span table. Register $h_5$ contains the `is_loop` flag:
 
 $$
@@ -241,8 +254,9 @@ $$
 Using the above definitions, we can describe the constraint for updating the block stack table as follows:
 
 > $$
-p_1' \cdot (u_{end} + u_{respan} + 1 - (f_{end} + f_{respan})) = \\
-p_1 \cdot (v_{join} + v_{split} + v_{loop} + v_{span} + v_{respan} + 1 - (f_{join} + f_{split} + f_{loop} + f_{span} + f_{respan} ))
+p_1' \cdot (u_{end} + u_{respan} + 1 - (f_{end} + f_{respan})) = p_1 \cdot \\
+(v_{join} + v_{split} + v_{loop} + v_{span} + v_{respan} + v_{dyn} + 1 - \\
+(f_{join} + f_{split} + f_{loop} + f_{span} + f_{respan} + f_{dyn}))
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_1' = p_1$.
@@ -252,7 +266,7 @@ The degree of this constraint is $7$.
 In addition to the above transition constraint, we also need to impose boundary constraints against the $p_1$ column to make sure the first and the last value in the column is set to $1$. This enforces that the block stack table starts and ends in an empty state.
 
 ## Block hash table constraints
-As described [previously](./main.md#block-hash-table), when the VM starts executing a new program block, it adds hashes of the block's children to the block hash table. And when the VM finishes executing a block, it removes the block's hash from the block hash table. This means that the block hash tables gets updated when we execute `JOIN`, `SPLIT`, `LOOP`, `REPEAT`, and `END` operations (executing `SPAN` operation does not affect the block hash table because a *span* block has no children).
+As described [previously](./main.md#block-hash-table), when the VM starts executing a new program block, it adds hashes of the block's children to the block hash table. And when the VM finishes executing a block, it removes the block's hash from the block hash table. This means that the block hash table gets updated when we execute the `JOIN`, `SPLIT`, `LOOP`, `REPEAT`, `DYN`, and `END` operations (executing `SPAN` operation does not affect the block hash table because a *span* block has no children).
 
 Adding and removing entries to/from the block hash table is accomplished as follows:
 * To add an entry, we multiply the value in column $p_2$ by a value representing a tuple `(prnt_id, block_hash, is_first_child, is_loop_body)`. A constraint to enforce this would look as $p_2' = p_2 \cdot v$, where $v$ is the value representing the row to be added.
@@ -301,6 +315,16 @@ When `REPEAT` operation is executed, hash of loop body is added to the block has
 
 $$v_{repeat} = f_{repeat} \cdot (ch_1 + \alpha_7) \text{ | } \text{degree} = 5$$
 
+When the `DYN` operation is executed, the hash of the dynamic child is added to the block hash table. Since the child is dynamically specified by the top four elements of the stack, the value representing the *dyn* block's child must be computed based on the stack rather than from the decoder's hasher registers:
+
+$$
+ch_{dyn} = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(\alpha_{i+2} \cdot s_{3-i}) \text{ | degree} = 1
+$$
+
+$$
+v_{dyn} = f_{dyn} \cdot ch_{dyn}  \text{ | degree} = 6
+$$
+
 When `END` operation is executed, hash of the completed block is removed from the block hash table. However, we also need to differentiate between removing the first and the second child of a *join* block. We do this by looking at the next operation. Specifically, if the next operation is neither `END` nor `REPEAT` we know that another block is about to be executed, and thus, we have just finished executing the first child of a *join* block. Thus, if the next operation is neither `END` nor `REPEAT` we need to set the term for $\alpha_6$ coefficient to $1$ as shown below:
 
 $$
@@ -311,7 +335,7 @@ Using the above definitions, we can describe the constraint for updating the blo
 
 > $$
 p_2' \cdot (u_{end} + 1 - f_{end}) = \\
-p_2 \cdot (v_{join} + v_{split} + v_{loop} + v_{repeat} + 1 - (f_{join} + f_{split} + f_{loop} + f_{repeat}))
+p_2 \cdot (v_{join} + v_{split} + v_{loop} + v_{repeat} + v_{dyn} + 1 - (f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{dyn}))
 $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_2' = p_2$.

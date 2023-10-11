@@ -2,7 +2,7 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable, String,
     ToString, MAX_LABEL_LEN,
 };
-use core::{ops::Deref, str::from_utf8};
+use core::{fmt, ops::Deref, str::from_utf8};
 
 // CONSTANTS
 // ================================================================================================
@@ -24,13 +24,16 @@ impl LibraryPath {
     // --------------------------------------------------------------------------------------------
 
     /// Path delimiter.
-    pub const PATH_DELIM: &str = "::";
+    pub const PATH_DELIM: &'static str = "::";
 
     /// Base kernel path.
-    pub const KERNEL_PATH: &str = "#sys";
+    pub const KERNEL_PATH: &'static str = "#sys";
 
     /// Path for an executable module.
-    pub const EXEC_PATH: &str = "#exec";
+    pub const EXEC_PATH: &'static str = "#exec";
+
+    /// Path for a module without library path.
+    pub const ANON_PATH: &'static str = "#anon";
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -68,6 +71,14 @@ impl LibraryPath {
     pub fn exec_path() -> Self {
         Self {
             path: Self::EXEC_PATH.into(),
+            num_components: 1,
+        }
+    }
+
+    /// Returns a path for a module without library path.
+    pub fn anon_path() -> Self {
+        Self {
+            path: Self::ANON_PATH.into(),
             num_components: 1,
         }
     }
@@ -203,7 +214,7 @@ impl LibraryPath {
             .path
             .rsplit_once(Self::PATH_DELIM)
             .expect("failed to split path on module delimiter")
-            .1;
+            .0;
 
         Ok(Self {
             path: rem.to_string(),
@@ -309,6 +320,12 @@ impl Deserializable for LibraryPath {
         let path =
             from_utf8(&path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         Self::new(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))
+    }
+}
+
+impl fmt::Display for LibraryPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.path)
     }
 }
 

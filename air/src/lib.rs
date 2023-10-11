@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use vm_core::{
-    utils::{collections::Vec, ByteWriter, Serializable},
+    utils::{collections::Vec, string::String, ByteWriter, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
@@ -20,6 +20,8 @@ use constraints::{chiplets, range};
 pub mod trace;
 use trace::*;
 
+mod errors;
+mod options;
 mod proof;
 
 mod utils;
@@ -28,7 +30,9 @@ use utils::TransitionConstraintRange;
 // EXPORTS
 // ================================================================================================
 
-pub use proof::{ExecutionProof, HashFunction, ProofOptions};
+pub use errors::ExecutionOptionsError;
+pub use options::{ExecutionOptions, ProvingOptions};
+pub use proof::{ExecutionProof, HashFunction};
 pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
@@ -129,7 +133,7 @@ impl Air for ProcessorAir {
 
         // --- set assertions for the first step --------------------------------------------------
         // first value of clk is 0
-        result.push(Assertion::single(CLK_COL_IDX, 0, Felt::ZERO));
+        result.push(Assertion::single(CLK_COL_IDX, 0, ZERO));
 
         // first value of fmp is 2^30
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));

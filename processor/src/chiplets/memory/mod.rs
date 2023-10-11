@@ -2,7 +2,7 @@ use super::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
-    Vec, Word, ONE, ZERO,
+    Vec, Word, EMPTY_WORD, ONE,
 };
 use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
@@ -18,7 +18,7 @@ mod tests;
 // ================================================================================================
 
 /// Initial value of every memory cell.
-const INIT_MEM_VALUE: Word = [ZERO; 4];
+const INIT_MEM_VALUE: Word = EMPTY_WORD;
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================
@@ -96,7 +96,7 @@ impl Memory {
     ///
     /// Unlike read() which modifies the memory access trace, this method returns the value at the
     /// specified address (if one exists) without altering the memory access trace.
-    pub fn get_value(&self, ctx: u32, addr: u64) -> Option<Word> {
+    pub fn get_value(&self, ctx: u32, addr: u32) -> Option<Word> {
         match self.trace.get(&ctx) {
             Some(segment) => segment.get_value(addr),
             None => None,
@@ -105,7 +105,7 @@ impl Memory {
 
     /// Returns the word at the specified context/address which should be used as the "old value" for a
     /// write request. It will be the previously stored value, if one exists, or initialized memory.
-    pub fn get_old_value(&self, ctx: u32, addr: u64) -> Word {
+    pub fn get_old_value(&self, ctx: u32, addr: u32) -> Word {
         // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
         self.get_value(ctx, addr).unwrap_or(INIT_MEM_VALUE)
     }
@@ -131,22 +131,15 @@ impl Memory {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, ctx: u32, addr: Felt, clk: u32) -> Word {
+    pub fn read(&mut self, ctx: u32, addr: u32, clk: u32) -> Word {
         self.num_trace_rows += 1;
-        self.trace
-            .entry(ctx)
-            .or_insert_with(MemorySegmentTrace::default)
-            .read(addr, Felt::from(clk))
+        self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
     }
 
     /// Writes the provided word at the specified context/address.
-    pub fn write(&mut self, ctx: u32, addr: Felt, clk: u32, value: Word) {
+    pub fn write(&mut self, ctx: u32, addr: u32, clk: u32, value: Word) {
         self.num_trace_rows += 1;
-        self.trace.entry(ctx).or_insert_with(MemorySegmentTrace::default).write(
-            addr,
-            Felt::from(clk),
-            value,
-        );
+        self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
     }
 
     // EXECUTION TRACE GENERATION
@@ -177,13 +170,13 @@ impl Memory {
                     let delta = if prev_ctx != ctx {
                         (ctx - prev_ctx) as u64
                     } else if prev_addr != addr {
-                        addr - prev_addr
+                        (addr - prev_addr) as u64
                     } else {
                         clk - prev_clk - 1
                     };
 
                     let (delta_hi, delta_lo) = split_u32_into_u16(delta);
-                    range.add_mem_checks(row, &[delta_lo, delta_hi]);
+                    range.add_range_checks(row, &[delta_lo, delta_hi]);
 
                     // update values for the next iteration of the loop
                     prev_ctx = ctx;
@@ -221,7 +214,7 @@ impl Memory {
             for (addr, addr_trace) in segment.into_inner() {
                 // when we start a new address, we set the previous value to all zeros. the effect of
                 // this is that memory is always initialized to zero.
-                let addr = Felt::new(addr);
+                let felt_addr = Felt::from(addr);
                 for memory_access in addr_trace {
                     let clk = memory_access.clk();
                     let value = memory_access.value();
@@ -230,7 +223,7 @@ impl Memory {
                     trace.set(row, 0, selectors[0]);
                     trace.set(row, 1, selectors[1]);
                     trace.set(row, CTX_COL_IDX, ctx);
-                    trace.set(row, ADDR_COL_IDX, addr);
+                    trace.set(row, ADDR_COL_IDX, felt_addr);
                     trace.set(row, CLK_COL_IDX, clk);
                     for (idx, col) in V_COL_RANGE.enumerate() {
                         trace.set(row, col, value[idx]);
@@ -239,8 +232,8 @@ impl Memory {
                     // compute delta as difference between context IDs, addresses, or clock cycles
                     let delta = if prev_ctx != ctx {
                         ctx - prev_ctx
-                    } else if prev_addr != addr {
-                        addr - prev_addr
+                    } else if prev_addr != felt_addr {
+                        felt_addr - prev_addr
                     } else {
                         clk - prev_clk - ONE
                     };
@@ -252,14 +245,19 @@ impl Memory {
                     trace.set(row, D_INV_COL_IDX, delta.inv());
 
                     // provide the memory access data to the chiplets bus.
-                    let memory_lookup =
-                        MemoryLookup::new(memory_access.op_label(), ctx, addr, clk, value);
+                    let memory_lookup = MemoryLookup::new(
+                        memory_access.op_label(),
+                        ctx,
+                        Felt::from(addr),
+                        clk,
+                        value,
+                    );
                     chiplets_bus
                         .provide_memory_operation(memory_lookup, (memory_start_row + row) as u32);
 
                     // update values for the next iteration of the loop
                     prev_ctx = ctx;
-                    prev_addr = addr;
+                    prev_addr = felt_addr;
                     prev_clk = clk;
                     row += 1;
                 }
@@ -272,7 +270,7 @@ impl Memory {
 
     /// Returns the context, address, and clock cycle of the first trace row, or None if the trace
     /// is empty.
-    fn get_first_row_info(&self) -> Option<(u32, u64, Felt)> {
+    fn get_first_row_info(&self) -> Option<(u32, u32, Felt)> {
         let (ctx, segment) = match self.trace.iter().next() {
             Some((&ctx, segment)) => (ctx, segment),
             None => return None,
@@ -318,11 +316,11 @@ impl MemoryLookup {
         }
     }
 
-    pub fn from_ints(label: u8, ctx: u32, addr: Felt, clk: u32, word: Word) -> Self {
+    pub fn from_ints(label: u8, ctx: u32, addr: u32, clk: u32, word: Word) -> Self {
         Self {
             label,
             ctx: Felt::from(ctx),
-            addr,
+            addr: Felt::from(addr),
             clk: Felt::from(clk),
             word,
         }

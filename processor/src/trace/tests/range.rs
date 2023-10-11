@@ -1,120 +1,16 @@
 use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
 use miden_air::trace::{
-    chiplets::hasher::HASH_CYCLE_LEN,
-    range::{P0_COL_IDX, P1_COL_IDX, Q_COL_IDX},
-    AUX_TRACE_RAND_ELEMENTS,
+    chiplets::hasher::HASH_CYCLE_LEN, range::B_RANGE_COL_IDX, AUX_TRACE_RAND_ELEMENTS,
 };
-use rand_utils::rand_array;
-use vm_core::Operation;
-
-#[test]
-fn p0_trace() {
-    // --- Range check 256_u32 (4 16-bit range checks: 0, 256 and 0, 0) ---------------------------
-    let stack = [1, 255];
-    let operations = vec![Operation::U32add];
-    let mut trace = build_trace_from_ops(operations, &stack);
-
-    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let p0 = aux_columns.get_column(P0_COL_IDX);
-
-    assert_eq!(trace.length(), p0.len());
-
-    // 256 8-bit rows are needed to for each value 0-255. 64 8-bit rows are needed to check 256
-    // increments of 255 in the 16-bit portion of the table, for a total of 256 + 63 = 319 rows.
-    let len_8bit = 319;
-    // 260 16-bit rows are needed for 0, 0, 255, 256, ... 255 increments of 255 ..., 65535. (0 is
-    // range-checked in 2 rows for a total of 3 lookups. 256 is range-checked in one row. 65535 is
-    // the max, and the rest are "bridge" values.) An extra row is added to pad the u16::MAX value.
-    let len_16bit = 260 + 1;
-    // The range checker is padded at the beginning, so the padding must be skipped.
-    let start_8bit = trace.length() - len_8bit - len_16bit - NUM_RAND_ROWS;
-    let start_16bit = trace.length() - len_16bit - NUM_RAND_ROWS;
-
-    // The padded portion of the column should be all ones.
-    let expected_padding = vec![ONE; start_8bit];
-    assert_eq!(expected_padding, p0[..start_8bit]);
-
-    // The first value in the 8-bit portion should be one.
-    assert_eq!(ONE, p0[start_8bit]);
-
-    // The 8-bit portion should include two lookups of zero (included at the next row).
-    let mut expected = alpha.square();
-    assert_eq!(alpha.square(), p0[start_8bit + 1]);
-
-    // The 8-bit portion should include 1 lookup of one.
-    expected *= alpha + ONE;
-    assert_eq!(expected, p0[start_8bit + 2]);
-
-    // Nothing changes until the lookup of 254.
-    for i in 3..255 {
-        assert_eq!(expected, p0[start_8bit + i])
-    }
-
-    // The 8-bit portion should include 1 lookup of 254.
-    expected *= alpha + Felt::new(254);
-    assert_eq!(expected, p0[start_8bit + 255]);
-
-    // Finally, the 8-bit portion should include 256 lookups of 255, so that at the start of the
-    // 16-bit portion, the value of `p0` includes all the 8-bit lookups
-    let mut acc_255 = alpha + Felt::new(255);
-    for _ in 0..8 {
-        acc_255 *= acc_255;
-    }
-    expected *= acc_255;
-    assert_eq!(expected, p0[start_16bit]);
-
-    // The final value at the end of the 16-bit portion should be 1. This will be the last row
-    // before the random row.
-    assert_eq!(ONE, p0[p0.len() - 1 - NUM_RAND_ROWS]);
-}
-
-#[test]
-#[allow(clippy::needless_range_loop)]
-fn q_trace() {
-    let stack = [1, 255];
-    let operations = vec![
-        Operation::U32add,
-        Operation::MStoreW,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-    ];
-    let mut trace = build_trace_from_ops(operations, &stack);
-
-    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let q = aux_columns.get_column(Q_COL_IDX);
-
-    assert_eq!(trace.length(), q.len());
-
-    // --- Check the stack processor's range check lookups. ---------------------------------------
-
-    // Before any range checks are executed, the value in p1 should be one.
-    assert_eq!(Felt::ONE, q[0]);
-
-    // The first range check lookup from the stack will happen when the add operation is executed,
-    // at cycle 1. (The trace begins by executing `span`). It must be divided out of `p1`.
-    // The range-checked values are 0, 256, 0, 0.
-    let expected = (alpha) * (Felt::new(256) + alpha) * alpha.square();
-    assert_eq!(expected, q[1]);
-
-    // --- Check the last value of the q column is one. ------------------------------------------
-
-    for row in 2..(q.len() - NUM_RAND_ROWS) {
-        assert_eq!(Felt::ONE, q[row]);
-    }
-}
+use test_utils::rand::rand_array;
+use vm_core::{ExtensionOf, Operation};
 
 /// This test checks that range check lookups from stack operations are balanced by the range checks
 /// processed in the Range Checker.
 ///
 /// The `U32add` operation results in 4 16-bit range checks of 256, 0, 0, 0.
 #[test]
-fn p1_trace_stack() {
+fn b_range_trace_stack() {
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
     let mut trace = build_trace_from_ops(operations, &stack);
@@ -122,54 +18,50 @@ fn p1_trace_stack() {
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let p1 = aux_columns.get_column(P1_COL_IDX);
+    let b_range = aux_columns.get_column(B_RANGE_COL_IDX);
 
-    assert_eq!(trace.length(), p1.len());
+    assert_eq!(trace.length(), b_range.len());
 
     // --- Check the stack processor's range check lookups. ---------------------------------------
 
-    // Before any range checks are executed, the value in p1 should be one.
-    assert_eq!(Felt::ONE, p1[0]);
-    assert_eq!(Felt::ONE, p1[1]);
+    // Before any range checks are executed, the value in b_range should be one.
+    assert_eq!(ONE, b_range[0]);
+    assert_eq!(ONE, b_range[1]);
 
     // The first range check lookup from the stack will happen when the add operation is executed,
-    // at cycle 1. (The trace begins by executing `span`). It must be divided out of `p1`.
-    // The range-checked values are 0, 256, 0, 0.
-    let lookup_product = (alpha) * (Felt::new(256) + alpha) * alpha.square();
-    let mut expected = lookup_product.inv();
-    assert_eq!(expected, p1[2]);
+    // at cycle 1. (The trace begins by executing `span`). It must be subtracted out of `b_range`.
+    // The range-checked values are 0, 256, 0, 0, so the values to subtract are 3/(alpha - 0) and
+    // 1/(alpha - 256).
+    let lookups = alpha.inv().mul_base(Felt::new(3)) + (alpha - Felt::new(256)).inv();
+    let mut expected = b_range[1] - lookups;
+    assert_eq!(expected, b_range[2]);
 
     // --- Check the range checker's lookups. -----------------------------------------------------
 
-    // 260 16-bit rows are needed for 0, 0, 255, 256, ... 255 increments of 255 ..., 65535. (0 is
-    // range-checked in 2 rows for a total of 3 lookups. 256 is range-checked in one row. 65535 is
-    // the max, and the rest are "bridge" values.) An extra row is added to pad the u16::MAX value.
-    let len_16bit = 260 + 1;
-    // The start of the 16-bit section of the range checker table.
-    let start_16bit = trace.length() - len_16bit - NUM_RAND_ROWS;
+    // 44 rows are needed for 0, 243, 252, 255, 256, ... 38 additional bridge rows of powers of
+    // 3 ..., 65535. (0 and 256 are range-checked. 65535 is the max, and the rest are "bridge"
+    // values.) An extra row is added to pad the u16::MAX value.
+    let len_16bit = 44 + 1;
+    // The start of the values in the range checker table.
+    let values_start = trace.length() - len_16bit - NUM_RAND_ROWS;
 
-    // The values in p1 should not change again until the range checker's 16-bit table starts
-    let expected_vec = vec![expected; start_16bit - 3];
-    assert_eq!(expected_vec, p1[3..start_16bit]);
-
-    // When the 16-bit portion of the table starts, the first value will be unchanged.
-    assert_eq!(expected, p1[start_16bit]);
-    // We include 2 lookups of 0, so the next value should be multiplied by alpha squared.
-    expected *= alpha.square();
-    assert_eq!(expected, p1[start_16bit + 1]);
-    // Then we include our third lookup of 0, so the next value should be multiplied by alpha.
-    expected *= alpha;
-    assert_eq!(expected, p1[start_16bit + 2]);
-    // Then we have a bridge row for 255 where the value does not change
-    assert_eq!(expected, p1[start_16bit + 3]);
+    // After the padded rows, the first value will be unchanged.
+    assert_eq!(expected, b_range[values_start]);
+    // We include 3 lookups of 0.
+    expected += alpha.inv().mul_base(Felt::new(3));
+    assert_eq!(expected, b_range[values_start + 1]);
+    // Then we have 3 bridge rows between 0 and 255 where the value does not change
+    assert_eq!(expected, b_range[values_start + 2]);
+    assert_eq!(expected, b_range[values_start + 3]);
+    assert_eq!(expected, b_range[values_start + 4]);
     // Then we include 1 lookup of 256, so it should be multiplied by alpha + 256.
-    expected *= alpha + Felt::new(256);
-    assert_eq!(expected, p1[start_16bit + 4]);
+    expected += (alpha - Felt::new(256)).inv();
+    assert_eq!(expected, b_range[values_start + 5]);
 
-    // --- Check the last value of the p1 column is one. ------------------------------------------
+    // --- Check the last value of the b_range column is one. ------------------------------------------
 
-    let last_row = p1.len() - NUM_RAND_ROWS - 1;
-    assert_eq!(Felt::ONE, p1[last_row]);
+    let last_row = b_range.len() - NUM_RAND_ROWS - 1;
+    assert_eq!(ONE, b_range[last_row]);
 }
 
 /// This test checks that range check lookups from memory operations are balanced by the
@@ -179,7 +71,7 @@ fn p1_trace_stack() {
 /// The `LoadW` memory operation results in 2 16-bit range checks of 0, 0.
 #[test]
 #[allow(clippy::needless_range_loop)]
-fn p1_trace_mem() {
+fn b_range_trace_mem() {
     let stack = [0, 1, 2, 3, 4, 0];
     let operations = vec![
         Operation::MStoreW,
@@ -194,23 +86,23 @@ fn p1_trace_mem() {
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let p1 = aux_columns.get_column(P1_COL_IDX);
+    let b_range = aux_columns.get_column(B_RANGE_COL_IDX);
 
-    assert_eq!(trace.length(), p1.len());
+    assert_eq!(trace.length(), b_range.len());
 
     // The memory section of the chiplets trace starts after the span hash.
     let memory_start = HASH_CYCLE_LEN;
-    // 260 16-bit rows are needed for 0, 0, 4, ... 256 increments of 255 ..., 65535. (0 is
-    // range-checked in 2 rows for a total of 3 lookups. Four is range checked in one row for a
-    // total of one lookup. 65535 is the max, and the rest are "bridge" values.) An extra row is
-    // added to pad the u16::MAX value.
-    let len_16bit = 260 + 1;
-    let start_16bit = trace.length() - len_16bit - NUM_RAND_ROWS;
+
+    // 40 rows are needed for 0, 3, 4, ... 36 bridge additional bridge rows of powers of
+    // 3  ..., 65535. (0 and 4 are both range-checked. 65535 is the max, and the rest are "bridge"
+    // values.) An extra row is added to pad the u16::MAX value.
+    let len_16bit = 40 + 1;
+    let values_start = trace.length() - len_16bit - NUM_RAND_ROWS;
 
     // The value should start at ONE and be unchanged until the memory processor section begins.
     let mut expected = ONE;
-    for row in 0..=memory_start {
-        assert_eq!(expected, p1[row]);
+    for row in 0..memory_start {
+        assert_eq!(expected, b_range[row]);
     }
 
     // --- Check the memory processor's range check lookups. --------------------------------------
@@ -223,32 +115,33 @@ fn p1_trace_mem() {
     let (d0_load, d1_load) = (Felt::new(4), ZERO);
 
     // Include the lookups from the `MStoreW` operation at the next row.
-    expected *= ((d0_store + alpha) * (d1_store + alpha)).inv();
-    assert_eq!(expected, p1[memory_start + 1]);
+    expected -= (alpha - d0_store).inv() + (alpha - d1_store).inv();
+    assert_eq!(expected, b_range[memory_start + 1]);
     // Include the lookup from the `MLoadW` operation at the next row.
-    expected *= ((d0_load + alpha) * (d1_load + alpha)).inv();
-    assert_eq!(expected, p1[memory_start + 2]);
+    expected -= (alpha - d0_load).inv() + (alpha - d1_load).inv();
+    assert_eq!(expected, b_range[memory_start + 2]);
 
-    // The values in p1 should not change again until the range checker's 16-bit table starts
-    for row in (memory_start + 3)..=start_16bit {
-        assert_eq!(expected, p1[row]);
+    // The value should be unchanged until the range checker's lookups are included.
+    for row in memory_start + 2..=values_start {
+        assert_eq!(expected, b_range[row]);
     }
 
     // --- Check the range checker's lookups. -----------------------------------------------------
 
-    // We include 2 lookups of ZERO in the next row.
-    expected *= alpha.square();
-    assert_eq!(expected, p1[start_16bit + 1]);
-    // We include 1 more lookup of ZERO in the next row.
-    expected *= d0_store + alpha;
-    assert_eq!(expected, p1[start_16bit + 2]);
+    // We include 3 lookups of ZERO in the next row.
+    expected += alpha.inv().mul_base(Felt::new(3));
+    assert_eq!(expected, b_range[values_start + 1]);
+
+    // then we have one bridge row between 0 and 4 where the value does not change.
+    assert_eq!(expected, b_range[values_start + 2]);
+
     // We include 1 lookup of 4 in the next row.
-    expected *= d0_load + alpha;
-    assert_eq!(expected, p1[start_16bit + 3]);
+    expected += (alpha - d0_load).inv();
+    assert_eq!(expected, b_range[values_start + 3]);
 
     // --- The value should now be ONE for the rest of the trace. ---------------------------------
     assert_eq!(expected, ONE);
-    for i in (start_16bit + 4)..(p1.len() - NUM_RAND_ROWS) {
-        assert_eq!(ONE, p1[i]);
+    for i in (values_start + 3)..(b_range.len() - NUM_RAND_ROWS) {
+        assert_eq!(ONE, b_range[i]);
     }
 }

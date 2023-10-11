@@ -25,3 +25,32 @@ impl fmt::Display for InputError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for InputError {}
+
+// OUTPUT ERROR
+// ================================================================================================
+#[derive(Clone, Debug)]
+pub enum OutputError {
+    InvalidOverflowAddress(u64),
+    InvalidOverflowAddressLength(usize, usize),
+    InvalidStackElement(u64),
+}
+
+impl fmt::Display for OutputError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use OutputError::*;
+        match self {
+            InvalidOverflowAddress(address) => {
+                write!(f, "overflow addresses contains {address} that is not a valid field element")
+            }
+            InvalidOverflowAddressLength(actual, expected) => {
+                write!(f, "overflow addresses length is {actual}, but expected {expected}")
+            }
+            InvalidStackElement(element) => {
+                write!(f, "stack contains {element} that is not a valid field element")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for OutputError {}

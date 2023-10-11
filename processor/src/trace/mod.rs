@@ -2,8 +2,8 @@ use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, AdviceProvider, ColMatrix, Digest, Felt,
-    FieldElement, Process, StackTopState, Vec,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
+    Process, StackTopState, Vec,
 };
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -17,12 +17,17 @@ use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow, TraceFragment};
+pub use utils::{
+    build_lookup_table_row_values, AuxColumnBuilder, ChipletsLengths, LookupTableRow,
+    TraceFragment, TraceLenSummary,
+};
 
 mod decoder;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+use super::EMPTY_WORD;
 
 // CONSTANTS
 // ================================================================================================
@@ -54,6 +59,7 @@ pub struct ExecutionTrace {
     aux_trace_hints: AuxTraceHints,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,
+    trace_len_summary: TraceLenSummary,
 }
 
 impl ExecutionTrace {
@@ -66,9 +72,9 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new<A>(process: Process<A>, stack_outputs: StackOutputs) -> Self
+    pub(super) fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
     where
-        A: AdviceProvider,
+        H: Host,
     {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
@@ -80,7 +86,7 @@ impl ExecutionTrace {
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
         let program_info = ProgramInfo::new(program_hash, kernel);
-        let (main_trace, aux_trace_hints) = finalize_trace(process, rng);
+        let (main_trace, aux_trace_hints, trace_len_summary) = finalize_trace(process, rng);
 
         Self {
             meta: Vec::new(),
@@ -89,6 +95,7 @@ impl ExecutionTrace {
             aux_trace_hints,
             program_info,
             stack_outputs,
+            trace_len_summary,
         }
     }
 
@@ -143,6 +150,11 @@ impl ExecutionTrace {
         self.main_trace.num_rows()
     }
 
+    /// Returns a summary of the lengths of main, range and chiplet traces.
+    pub fn trace_len_summary(&self) -> &TraceLenSummary {
+        &self.trace_len_summary
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -164,11 +176,13 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace<A>(process: Process<A>) -> (Vec<Vec<Felt>>, AuxTraceHints)
+    pub fn test_finalize_trace<H>(
+        process: Process<H>,
+    ) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
     where
-        A: AdviceProvider,
+        H: Host,
     {
-        let rng = RpoRandomCoin::new(&[ZERO; 4]);
+        let rng = RpoRandomCoin::new(&EMPTY_WORD);
         finalize_trace(process, rng)
     }
 }
@@ -263,9 +277,12 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<A>(process: Process<A>, mut rng: RpoRandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints)
+fn finalize_trace<H>(
+    process: Process<H>,
+    mut rng: RpoRandomCoin,
+) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
 where
-    A: AdviceProvider,
+    H: Host,
 {
     let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
 
@@ -279,11 +296,11 @@ where
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
 
-    // Generate the 8bit tables for the range trace.
-    let range_table = range.build_8bit_lookup();
+    // Generate number of rows for the range trace.
+    let range_table_len = range.get_number_range_checker_rows();
 
     // Get the trace length required to hold all execution trace steps.
-    let max_len = range_table.len.max(clk as usize).max(chiplets.trace_len());
+    let max_len = range_table_len.max(clk as usize).max(chiplets.trace_len());
 
     // pad the trace length to the next power of two and ensure that there is space for the
     // rows to hold random values
@@ -293,6 +310,10 @@ where
         "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}",
     );
 
+    // get the lengths of the traces: main, range, and chiplets
+    let trace_len_summary =
+        TraceLenSummary::new(clk as usize, range_table_len, ChipletsLengths::new(&chiplets));
+
     // combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
     let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
@@ -300,7 +321,7 @@ where
     let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
 
     // combine the range trace segment using the support lookup table
-    let range_check_trace = range.into_trace_with_table(range_table, trace_len, NUM_RAND_ROWS);
+    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
         .into_iter()
@@ -324,5 +345,5 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    (trace, aux_trace_hints)
+    (trace, aux_trace_hints, trace_len_summary)
 }

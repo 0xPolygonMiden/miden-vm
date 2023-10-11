@@ -682,7 +682,7 @@ fn extract_control_block_domain_from_trace(trace: &ExecutionTrace, row: usize) -
     if control_block_initializers.contains(&opcode_value) {
         Felt::from(opcode_value)
     } else {
-        Felt::ZERO
+        ZERO
     }
 }
 
@@ -705,5 +705,5 @@ fn init_leaves(values: &[u64]) -> Vec<Word> {
 
 /// Initializes a Merkle tree leaf with the specified value.
 fn init_leaf(value: u64) -> Word {
-    [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
+    [Felt::new(value), ZERO, ZERO, ZERO]
 }

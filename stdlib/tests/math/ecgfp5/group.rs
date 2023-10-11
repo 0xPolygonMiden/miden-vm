@@ -1,10 +1,10 @@
 use super::base_field::{bv_or, Ext5};
 use crate::build_test;
 use std::ops::Add;
-use test_utils::{test_case, Felt, FieldElement, StarkField};
+use test_utils::{test_case, Felt, StarkField, ONE, ZERO};
 
-#[derive(Copy, Clone, Debug)]
-struct ECExt5 {
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub struct ECExt5 {
     pub x: Ext5,
     pub y: Ext5,
     pub point_at_infinity: Felt,
@@ -55,7 +55,7 @@ impl ECExt5 {
         Self {
             x: Ext5::zero(),
             y: Ext5::zero(),
-            point_at_infinity: Felt::ONE,
+            point_at_infinity: ONE,
         }
     }
 
@@ -65,7 +65,7 @@ impl ECExt5 {
     pub fn validate(w: Ext5) -> Felt {
         let e = w.square() - Self::a();
         let delta = e.square().subk1(Self::bmul4_1());
-        bv_or(Felt::new((delta.legendre() == Felt::ONE) as u64), w.is_zero())
+        bv_or(Felt::new((delta.legendre() == ONE) as u64), w.is_zero())
     }
 
     // Given an encoded elliptic curve point, this routine attempts to decode it using
@@ -79,10 +79,10 @@ impl ECExt5 {
         let x1 = (e + r) / Ext5::from_int(2);
         let x2 = (e - r) / Ext5::from_int(2);
 
-        let flg = x1.legendre() == Felt::ONE;
+        let flg = x1.legendre() == ONE;
         let x = if flg { x1 } else { x2 };
         let y = -w * x;
-        let inf = Felt::ONE - c;
+        let inf = ONE - c;
         let c = bv_or(c, w.is_zero());
 
         (
@@ -101,7 +101,7 @@ impl ECExt5 {
     // See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1214-L1216 for reference implementation
     pub fn encode(self) -> Ext5 {
         let w = self.y / (Self::adiv3() - self.x);
-        let flg = self.point_at_infinity == Felt::ONE;
+        let flg = self.point_at_infinity == ONE;
 
         if flg {
             Ext5::zero()
@@ -173,23 +173,23 @@ impl Add for ECExt5 {
         let inf3 = Felt::new((samex & diffy) as u64);
 
         Self {
-            x: if rhs.point_at_infinity == Felt::ONE {
+            x: if rhs.point_at_infinity == ONE {
                 self.x
-            } else if self.point_at_infinity == Felt::ONE {
+            } else if self.point_at_infinity == ONE {
                 rhs.x
             } else {
                 x3
             },
-            y: if rhs.point_at_infinity == Felt::ONE {
+            y: if rhs.point_at_infinity == ONE {
                 self.y
-            } else if self.point_at_infinity == Felt::ONE {
+            } else if self.point_at_infinity == ONE {
                 rhs.y
             } else {
                 y3
             },
-            point_at_infinity: if rhs.point_at_infinity == Felt::ONE {
+            point_at_infinity: if rhs.point_at_infinity == ONE {
                 self.point_at_infinity
-            } else if self.point_at_infinity == Felt::ONE {
+            } else if self.point_at_infinity == ONE {
                 rhs.point_at_infinity
             } else {
                 inf3
@@ -301,7 +301,7 @@ fn test_ec_ext5_point_encode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) {
     let w = Ext5::new(a0, a1, a2, a3, a4);
     let (point, flg) = ECExt5::decode(w);
 
-    assert_eq!(flg, Felt::ONE);
+    assert_eq!(flg, ONE);
 
     let w_prime = point.encode();
 
@@ -592,7 +592,7 @@ fn test_ec_ext5_gen_multiplication() {
             0x1e0f15c7fd44c28e,
             0x21fa7ffcc8252211,
         ) * Ext5::from_int(4),
-        point_at_infinity: Felt::ZERO,
+        point_at_infinity: ZERO,
     };
     // = 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
     // = N ( See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L922 )

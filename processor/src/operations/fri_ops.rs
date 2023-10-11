@@ -1,4 +1,4 @@
-use super::{super::QuadFelt, AdviceProvider, ExecutionError, Felt, Operation, Process};
+use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
 use vm_core::{ExtensionOf, FieldElement, StarkField, ONE, ZERO};
 
 // CONSTANTS
@@ -19,9 +19,9 @@ const TAU3_INV: Felt = Felt::new(281474976710656); // tau^{-3}
 // FRI OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     // FRI FOLDING OPERATION
     // --------------------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ where
 /// Determines tau factor (needed to compute x value) for the specified domain segment.
 fn get_tau_factor(domain_segment: usize) -> Felt {
     match domain_segment {
-        0 => Felt::ONE,
+        0 => ONE,
         1 => TAU_INV,
         2 => TAU2_INV,
         3 => TAU3_INV,
@@ -243,7 +243,7 @@ mod tests {
     use super::{
         ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
     };
-    use rand_utils::{rand_array, rand_value, rand_vector};
+    use test_utils::rand::{rand_array, rand_value, rand_vector};
     use vm_core::{utils::collections::Vec, StackInputs};
     use winter_prover::math::{fft, get_power_series_with_offset};
     use winter_utils::transpose_slice;

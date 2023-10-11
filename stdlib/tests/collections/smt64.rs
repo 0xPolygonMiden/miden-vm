@@ -1,4 +1,4 @@
-use super::{Felt, MerkleStore, SimpleSmt, StarkField, TestError, Word, ONE, ZERO};
+use super::{Felt, MerkleStore, SimpleSmt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO};
 use crate::build_test;
 
 // TEST DATA
@@ -7,7 +7,7 @@ use crate::build_test;
 const LEAVES: [(u64, Word); 5] = [
     (
         0b00000000_00000000_11111111_11111111_11111111_11111111_11111111_11111111_u64,
-        [Felt::new(1), ZERO, ZERO, ZERO],
+        [ONE, ZERO, ZERO, ZERO],
     ),
     (
         // different from the first key starting from the first bit
@@ -80,7 +80,7 @@ fn insert() {
     build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
 
     // try to insert an invalid value
-    let value = [ZERO; 4];
+    let value = EMPTY_WORD;
     let (init_stack, _, store) = prepare_insert_or_set(index, value, &mut smt);
     build_test!(source, &init_stack, &[], store, vec![])
         .expect_error(TestError::ExecutionError("FailedAssertion"));
@@ -115,7 +115,7 @@ fn set() {
 
     // setting to [ZERO; 4] should return the tree to the prior state
     for (index, old_value) in LEAVES.iter().rev() {
-        let value = [ZERO; 4];
+        let value = EMPTY_WORD;
         let (init_stack, final_stack, store) = prepare_insert_or_set(*index, value, &mut smt);
 
         let expected_final_stack =

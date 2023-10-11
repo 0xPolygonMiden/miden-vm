@@ -4,14 +4,14 @@ use crate::stack::{
     B0_COL_IDX, STACK_TRACE_OFFSET,
 };
 use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, Operation};
+use vm_core::{Felt, Operation, ZERO};
 
 // UNIT TESTS
 // ================================================================================================
 
 #[test]
 fn test_sdepth_operation() {
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let expected = [ZERO; NUM_CONSTRAINTS];
     let depth = rand_value::<u32>() as u64;
 
     let frame = get_sdepth_test_frame(depth);
@@ -24,7 +24,7 @@ fn test_sdepth_operation() {
 
 /// Returns the result of stack operation constraint evaluations on the provided frame.
 fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRAINTS] {
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+    let mut result = [ZERO; NUM_CONSTRAINTS];
 
     let op_flag = &OpFlags::new(&frame);
 

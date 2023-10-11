@@ -1,6 +1,7 @@
 use super::{
-    check_div_by_zero, parse_checked_param, parse_param,
+    check_div_by_zero, parse_checked_param, parse_error_code, parse_param,
     Instruction::*,
+    LocalConstMap,
     Node::{self, Instruction},
     ParsingError, Token,
 };
@@ -9,22 +10,71 @@ use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};
 // INSTRUCTION PARSERS
 // ================================================================================================
 
-/// Returns `U32Assert` instruction node if no immediate value is provided or the immediate value
-/// is 1. Returns instruction `U32Assert2` if immediate value is equal 2.
+/// Returns `U32Assert` instruction node if no error code value is provided, or
+/// `U32AssertWithError` instruction node otherwise.
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not 1 or 2.
-pub fn parse_u32assert(op: &Token) -> Result<Node, ParsingError> {
+/// provided parameter is not a u32 value.
+pub fn parse_u32assert(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "u32assert");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(U32Assert)),
-        2 => match op.parts()[1] {
-            "1" => Ok(Instruction(U32Assert)),
-            "2" => Ok(Instruction(U32Assert2)),
-            _ => Err(ParsingError::invalid_param(op, 1)),
-        },
+        2 => {
+            let err_code = parse_error_code(op, constants)?;
+            if err_code == 0 {
+                Ok(Instruction(U32Assert))
+            } else {
+                Ok(Instruction(U32AssertWithError(err_code)))
+            }
+        }
+        _ => Err(ParsingError::extra_param(op)),
+    }
+}
+
+/// Returns `U32Assert2` instruction node if no error code value is provided, or
+/// `U32Assert2WithError` instruction node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is not a u32 value.
+pub fn parse_u32assert2(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "u32assert2");
+    match op.num_parts() {
+        0 => unreachable!(),
+        1 => Ok(Instruction(U32Assert2)),
+        2 => {
+            let err_code = parse_error_code(op, constants)?;
+            if err_code == 0 {
+                Ok(Instruction(U32Assert2))
+            } else {
+                Ok(Instruction(U32Assert2WithError(err_code)))
+            }
+        }
+        _ => Err(ParsingError::extra_param(op)),
+    }
+}
+
+/// Returns `U32AssertW` instruction node if no error code value is provided, or
+/// `U32AssertWWithError` instruction node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is not a u32 value.
+pub fn parse_u32assertw(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "u32assertw");
+    match op.num_parts() {
+        0 => unreachable!(),
+        1 => Ok(Instruction(U32AssertW)),
+        2 => {
+            let err_code = parse_error_code(op, constants)?;
+            if err_code == 0 {
+                Ok(Instruction(U32AssertW))
+            } else {
+                Ok(Instruction(U32AssertWWithError(err_code)))
+            }
+        }
         _ => Err(ParsingError::extra_param(op)),
     }
 }

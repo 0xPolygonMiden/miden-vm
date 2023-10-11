@@ -232,11 +232,13 @@ end
 #! - state0 through state7 are the hash state (in terms of 8 SHA256 words)
 #! - msg0 through msg15 are the 64 -bytes input message (in terms of 16 SHA256 words)
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
-#! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
-proc.prepare_message_schedule_and_consume.2
+#! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution )
+proc.prepare_message_schedule_and_consume.4
     loc_storew.0
+    loc_storew.2
     dropw
     loc_storew.1
+    loc_storew.3
     dropw
 
     dup.15
@@ -1054,43 +1056,17 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[63]
 
-    push.0x6a09e667
-    u32wrapping_add
+    push.0.0.0.0
+    loc_loadw.3
 
-    swap
-    push.0xbb67ae85
-    u32wrapping_add
-    swap
+    push.0.0.0.0
+    loc_loadw.2
 
-    movup.2
-    push.0x3c6ef372
-    u32wrapping_add
-    movdn.2
-
-    movup.3
-    push.0xa54ff53a
-    u32wrapping_add
-    movdn.3
-
-    movup.4
-    push.0x510e527f
-    u32wrapping_add
-    movdn.4
-
-    movup.5
-    push.0x9b05688c
-    u32wrapping_add
-    movdn.5
-
-    movup.6
-    push.0x1f83d9ab
-    u32wrapping_add
-    movdn.6
-
-    movup.7
-    push.0x5be0cd19
-    u32wrapping_add
-    movdn.7
+    repeat.8
+        movup.8
+        u32wrapping_add
+        movdn.7
+    end
 end
 
 #! Consumes precomputed message schedule of padding bytes into hash state, returns final hash state.
@@ -1578,4 +1554,66 @@ export.hash_1to1
     push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667
 
     exec.prepare_message_schedule_and_consume
+end
+
+#! Given a memory address and a message length in bytes, compute its sha256 digest
+#!
+#! - There must be space for writing the padding after the message in memory
+#! - The padding space after the message must be all zeros before this procedure is called
+#!
+#! Input:  [addr, len, ...]
+#! Output: [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
+export.hash_memory.12
+    # loc.0 (input address)
+    loc_store.0
+
+    # loc.1 (input length)
+    loc_store.1
+
+    # loc.2 (padded length): input_length + (55 - input_length) % 64 + 9
+    push.55 loc_load.1 u32wrapping_sub push.63 u32checked_and
+    loc_load.1 u32checked_add u32checked_add.9 loc_store.2
+
+    # loc.3 (last memory address in padding): input_address + padded_length / 16 - 1
+    loc_load.2 u32checked_div.16 loc_load.0 u32wrapping_add u32wrapping_sub.1 loc_store.3
+
+    # loc.4 (u32 aligned padding byte): 0x80000000 >> ((input_length % 4) * 8)
+    loc_load.1 u32checked_mod.4 u32checked_mul.8 push.0x80000000 swap u32checked_shr loc_store.4
+
+    # loc.5 (memory offset of first padding byte): (input_length / 4) % 4
+    loc_load.1 u32checked_div.4 u32checked_mod.4 loc_store.5
+
+    # loc.6 (memory address of first padding byte): input_address + (len / 16)
+    loc_load.0 loc_load.1 u32checked_div.16 u32checked_add loc_store.6
+
+    # loc.7 (number of remaining 512-bit blocks to consume): padded_length / 64
+    loc_load.2 u32checked_div.64 loc_store.7
+
+    # Set the first byte after the message to 0x80
+    padw loc_load.6 mem_loadw loc_store.8 loc_store.9 loc_store.10 loc_store.11
+    locaddr.8 loc_load.5 u32wrapping_add dup mem_load loc_load.4 u32wrapping_add swap mem_store
+    loc_load.11 loc_load.10 loc_load.9 loc_load.8 loc_load.6 mem_storew dropw
+
+    # Set message length in bits at end of padding
+    padw loc_load.3 mem_loadw
+    movup.3 drop loc_load.1 u32checked_mul.8 movdn.3
+    loc_load.3 mem_storew dropw
+
+    # Sha256 init
+    push.0x5be0cd19.0x1f83d9ab.0x9b05688c.0x510e527f
+    push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667
+
+    # Consume sha256 blocks
+    loc_load.7 u32checked_neq.0
+    while.true
+        padw loc_load.0 u32checked_add.3 mem_loadw movdnw.2
+        padw loc_load.0 u32checked_add.2 mem_loadw movdnw.2
+        padw loc_load.0 u32checked_add.1 mem_loadw movdnw.2
+        padw loc_load.0 u32checked_add.0 mem_loadw movdnw.2
+        exec.prepare_message_schedule_and_consume
+
+        loc_load.0 u32checked_add.4 loc_store.0
+        loc_load.7 u32checked_sub.1 dup loc_store.7
+        u32checked_neq.0
+    end
 end

@@ -1,7 +1,7 @@
 use super::{
-    crypto::hash::Blake3_160, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable,
-    DeserializationError, LabelError, LibraryPath, Serializable, String, ToString,
-    PROCEDURE_LABEL_PARSER,
+    crypto::hash::{Blake3_160, RpoDigest},
+    BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
+    LibraryPath, Serializable, String, ToString, PROCEDURE_LABEL_PARSER,
 };
 use core::{
     fmt,
@@ -12,50 +12,85 @@ use core::{
 // PROCEDURE
 // ================================================================================================
 
-/// Contains metadata and MAST of a procedure.
+/// Miden assembly procedure consisting of procedure MAST and basic metadata.
+///
+/// Procedure metadata includes:
+/// - Number of procedure locals available to the procedure.
+/// - A set of MAST roots of procedures which are invoked from this procedure.
 #[derive(Clone, Debug)]
 pub struct Procedure {
-    id: ProcedureId,
-    label: ProcedureName,
-    is_export: bool,
     num_locals: u32,
-    code_root: CodeBlock,
+    code: CodeBlock,
     callset: CallSet,
 }
 
 impl Procedure {
+    /// Returns the number of memory locals reserved by the procedure.
+    pub fn num_locals(&self) -> u32 {
+        self.num_locals
+    }
+
+    /// Returns the root of this procedure's MAST.
+    pub fn mast_root(&self) -> RpoDigest {
+        self.code.hash()
+    }
+
+    /// Returns a reference to the MAST of this procedure.
+    pub fn code(&self) -> &CodeBlock {
+        &self.code
+    }
+
+    /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
+    /// be called during the execution of this procedure.
+    pub fn callset(&self) -> &CallSet {
+        &self.callset
+    }
+}
+
+// NAMED PROCEDURE
+// ================================================================================================
+
+/// A named Miden assembly procedure consisting of procedure MAST and procedure metadata.
+///
+/// Procedure metadata includes:
+/// - Procedure name.
+/// - A boolean flag indicating whether the procedure is exported from a module.
+/// - A set of MAST roots of procedures which are invoked from this procedure.
+#[derive(Clone, Debug)]
+pub struct NamedProcedure {
+    name: ProcedureName,
+    is_export: bool,
+    procedure: Procedure,
+}
+
+impl NamedProcedure {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Procedure] instantiated with the specified properties.
     pub fn new(
-        id: ProcedureId,
-        label: ProcedureName,
+        name: ProcedureName,
         is_export: bool,
         num_locals: u32,
-        code_root: CodeBlock,
+        code: CodeBlock,
         callset: CallSet,
     ) -> Self {
-        Procedure {
-            id,
-            label,
+        NamedProcedure {
+            name,
             is_export,
-            num_locals,
-            code_root,
-            callset,
+            procedure: Procedure {
+                num_locals,
+                code,
+                callset,
+            },
         }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns ID of this procedure.
-    pub fn id(&self) -> &ProcedureId {
-        &self.id
-    }
-
     /// Returns a label of this procedure.
-    pub fn label(&self) -> &ProcedureName {
-        &self.label
+    pub fn name(&self) -> &ProcedureName {
+        &self.name
     }
 
     /// Returns `true` if this is an exported procedure.
@@ -64,20 +99,36 @@ impl Procedure {
     }
 
     /// Returns the number of memory locals reserved by the procedure.
-    #[allow(dead_code)]
     pub fn num_locals(&self) -> u32 {
-        self.num_locals
+        self.procedure.num_locals
     }
 
-    /// Returns a root of this procedure's MAST.
-    pub fn code_root(&self) -> &CodeBlock {
-        &self.code_root
+    /// Returns the root of this procedure's MAST.
+    pub fn mast_root(&self) -> RpoDigest {
+        self.procedure.code.hash()
     }
 
-    /// Returns a reference to a set of all procedures (identified by their IDs) which may be
-    /// called during the execution of this procedure.
+    /// Returns a reference to the MAST of this procedure.
+    pub fn code(&self) -> &CodeBlock {
+        &self.procedure.code
+    }
+
+    /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
+    /// be called during the execution of this procedure.
     pub fn callset(&self) -> &CallSet {
-        &self.callset
+        &self.procedure.callset
+    }
+
+    /// Returns the inner procedure containing all procedure attributes except for procedure name
+    /// and ID.
+    pub fn inner(&self) -> &Procedure {
+        &self.procedure
+    }
+
+    /// Converts this procedure into its inner procedure containing all procedure attributes except
+    /// for procedure name and ID.
+    pub fn into_inner(self) -> Procedure {
+        self.procedure
     }
 }
 
@@ -106,7 +157,7 @@ impl ProcedureName {
     // --------------------------------------------------------------------------------------------
 
     /// Reserved name for a main procedure.
-    pub const MAIN_PROC_NAME: &str = "#main";
+    pub const MAIN_PROC_NAME: &'static str = "#main";
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -131,8 +182,16 @@ impl TryFrom<String> for ProcedureName {
     type Error = LabelError;
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
+        Self::try_from(name.as_ref())
+    }
+}
+
+impl TryFrom<&str> for ProcedureName {
+    type Error = LabelError;
+
+    fn try_from(name: &str) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: (PROCEDURE_LABEL_PARSER.parse_label(&name)?).to_string(),
+            name: (PROCEDURE_LABEL_PARSER.parse_label(name)?).to_string(),
         })
     }
 }
@@ -171,6 +230,12 @@ impl Deserializable for ProcedureName {
             from_utf8(&name).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         ProcedureName::try_from(name.to_string())
             .map_err(|e| DeserializationError::InvalidValue(e.to_string()))
+    }
+}
+
+impl fmt::Display for ProcedureName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
@@ -271,15 +336,15 @@ impl Deserializable for ProcedureId {
 /// Contains a list of all procedures which may be invoked from a procedure via call or syscall
 /// instructions.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct CallSet(BTreeSet<ProcedureId>);
+pub struct CallSet(BTreeSet<RpoDigest>);
 
 impl CallSet {
-    pub fn contains(&self, proc_id: &ProcedureId) -> bool {
-        self.0.contains(proc_id)
+    pub fn contains(&self, mast_root: &RpoDigest) -> bool {
+        self.0.contains(mast_root)
     }
 
-    pub fn insert(&mut self, proc_id: ProcedureId) {
-        self.0.insert(proc_id);
+    pub fn insert(&mut self, mast_root: RpoDigest) {
+        self.0.insert(mast_root);
     }
 
     pub fn append(&mut self, other: &CallSet) {
@@ -290,7 +355,7 @@ impl CallSet {
 }
 
 impl ops::Deref for CallSet {
-    type Target = BTreeSet<ProcedureId>;
+    type Target = BTreeSet<RpoDigest>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

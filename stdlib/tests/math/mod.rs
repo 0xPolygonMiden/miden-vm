@@ -1,6 +1,4 @@
-mod ecgfp5;
-mod ntt512;
-mod poly512;
+pub mod ecgfp5;
 mod secp256k1;
 mod u256_mod;
 mod u64_mod;

@@ -1,17 +1,22 @@
 use super::{
-    bound_into_included_u64, AdviceInjectorNode, BTreeMap, CodeBody, Deserializable, Felt,
-    Instruction, InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, Node,
-    ParsingError, ProcedureAst, ProcedureId, ReExportedProcMap, RpoDigest, SliceReader, StarkField,
-    String, ToString, Token, TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN, MAX_IMPORTS,
+    bound_into_included_u64, AdviceInjectorNode, CodeBody, Deserializable, Felt, Instruction,
+    InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node,
+    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap, RpoDigest,
+    SliceReader, StarkField, String, ToString, Token, TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN,
     MAX_LABEL_LEN, MAX_STACK_WORD_OFFSET,
 };
 use core::{fmt::Display, ops::RangeBounds};
 
-pub mod adv_ops;
-pub mod field_ops;
-pub mod io_ops;
-pub mod stack_ops;
-pub mod u32_ops;
+mod adv_ops;
+mod debug;
+mod field_ops;
+mod io_ops;
+mod stack_ops;
+mod sys_ops;
+mod u32_ops;
+
+mod constants;
+use constants::calculate_const_value;
 
 mod context;
 pub use context::ParserContext;
@@ -25,37 +30,6 @@ pub use labels::{
 // PARSERS FUNCTIONS
 // ================================================================================================
 
-/// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
-/// its fully-qualified path (e.g., "std::math::u64").
-pub fn parse_imports(
-    tokens: &mut TokenStream,
-) -> Result<BTreeMap<String, LibraryPath>, ParsingError> {
-    let mut imports = BTreeMap::<String, LibraryPath>::new();
-    // read tokens from the token stream until all `use` tokens are consumed
-    while let Some(token) = tokens.read() {
-        match token.parts()[0] {
-            Token::USE => {
-                let module_path = token.parse_use()?;
-                let module_name = module_path.last();
-                if imports.contains_key(module_name) {
-                    return Err(ParsingError::duplicate_module_import(token, &module_path));
-                }
-
-                imports.insert(module_name.to_string(), module_path);
-
-                // consume the `use` token
-                tokens.advance();
-            }
-            _ => break,
-        }
-    }
-
-    if imports.len() > MAX_IMPORTS {
-        return Err(ParsingError::too_many_imports(imports.len(), MAX_IMPORTS));
-    }
-    Ok(imports)
-}
-
 /// Parses all `const` statements into a map which maps a const name to a value
 pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, ParsingError> {
     // instantiate new constant map for this module
@@ -65,7 +39,7 @@ pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, Parsin
     while let Some(token) = tokens.read() {
         match token.parts()[0] {
             Token::CONST => {
-                let (name, value) = parse_constant(token)?;
+                let (name, value) = parse_constant(token, &constants)?;
 
                 if constants.contains_key(&name) {
                     return Err(ParsingError::duplicate_const_name(token, &name));
@@ -82,20 +56,20 @@ pub fn parse_constants(tokens: &mut TokenStream) -> Result<LocalConstMap, Parsin
 }
 
 /// Parses a constant token and returns a (constant_name, constant_value) tuple
-fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
+fn parse_constant(token: &Token, constants: &LocalConstMap) -> Result<(String, u64), ParsingError> {
     match token.num_parts() {
         0 => unreachable!(),
-        1 => Err(ParsingError::missing_param(token)),
+        1 => Err(ParsingError::missing_param(token, "const.<name>=<value>")),
         2 => {
             let const_declaration: Vec<&str> = token.parts()[1].split('=').collect();
             match const_declaration.len() {
                 0 => unreachable!(),
-                1 => Err(ParsingError::missing_param(token)),
+                1 => Err(ParsingError::missing_param(token, "const.<name>=<value>")),
                 2 => {
                     let name = CONSTANT_LABEL_PARSER
                         .parse_label(const_declaration[0])
                         .map_err(|err| ParsingError::invalid_const_name(token, err))?;
-                    let value = parse_const_value(token, const_declaration[1])?;
+                    let value = parse_const_value(token, const_declaration[1], constants)?;
                     Ok((name.to_string(), value))
                 }
                 _ => Err(ParsingError::extra_param(token)),
@@ -108,18 +82,41 @@ fn parse_constant(token: &Token) -> Result<(String, u64), ParsingError> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Parses a constant value and ensures it falls within bounds specified by the caller
-fn parse_const_value(op: &Token, const_value: &str) -> Result<u64, ParsingError> {
-    let result = const_value
-        .parse::<u64>()
-        .map_err(|err| ParsingError::invalid_const_value(op, const_value, &err.to_string()))?;
+/// If `constant_name` is a valid constant name, returns the value of this constant or an error if
+/// the constant does not exist in set of available constants.
+///
+/// If `constant_name` is not a valid constant name, returns None.
+fn try_get_constant_value(
+    op: &Token,
+    const_name: &str,
+    constants: &LocalConstMap,
+) -> Result<Option<u64>, ParsingError> {
+    match CONSTANT_LABEL_PARSER.parse_label(const_name) {
+        Ok(_) => constants
+            .get(const_name)
+            .ok_or_else(|| ParsingError::const_not_found(op))
+            .map(|v| Some(*v)),
+        Err(_) => Ok(None),
+    }
+}
 
-    let range = 0..Felt::MODULUS;
-    range.contains(&result).then_some(result).ok_or_else(|| ParsingError::invalid_const_value(op, const_value, format!(
-        "constant value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true),
-        upper_bound = bound_into_included_u64(range.end_bound(), false)
-    )
-    .as_str(),))
+/// Parses a constant value and ensures it falls within bounds specified by the caller.
+fn parse_const_value(
+    op: &Token,
+    const_value: &str,
+    constants: &LocalConstMap,
+) -> Result<u64, ParsingError> {
+    let result = match const_value.parse::<u64>() {
+        Ok(value) => value,
+        Err(_) => calculate_const_value(op, const_value, constants)?.as_int(),
+    };
+
+    if result >= Felt::MODULUS {
+        let reason = format!("constant value must be smaller than {}", Felt::MODULUS);
+        Err(ParsingError::invalid_const_value(op, const_value, &reason))
+    } else {
+        Ok(result)
+    }
 }
 
 /// Parses a param from the op token with the specified type and index. If the param is a constant
@@ -133,17 +130,11 @@ where
     R: TryFrom<u64> + core::str::FromStr,
 {
     let param_str = op.parts()[param_idx];
-    match CONSTANT_LABEL_PARSER.parse_label(param_str) {
-        Ok(_) => {
-            let constant = constants
-                .get(param_str)
-                .cloned()
-                .ok_or_else(|| ParsingError::const_not_found(op))?;
-            constant
-                .try_into()
-                .map_err(|_| ParsingError::const_conversion_failed(op, core::any::type_name::<R>()))
-        }
-        Err(_) => parse_param::<R>(op, param_idx),
+    match try_get_constant_value(op, param_str, constants)? {
+        Some(val) => val
+            .try_into()
+            .map_err(|_| ParsingError::const_conversion_failed(op, core::any::type_name::<R>())),
+        None => parse_param::<R>(op, param_idx),
     }
 }
 
@@ -196,5 +187,32 @@ fn check_div_by_zero(value: u64, op: &Token, param_idx: usize) -> Result<(), Par
         Err(ParsingError::invalid_param_with_reason(op, param_idx, "division by zero"))
     } else {
         Ok(())
+    }
+}
+
+/// Parses the error code declaration for an assertion instruction, and returns the value of the
+/// code.
+///
+/// The code is expected to be specified via the first instruction parameter and have the form
+/// `err=<code>`.
+fn parse_error_code(token: &Token, constants: &LocalConstMap) -> Result<u32, ParsingError> {
+    let inst = token.parts()[0];
+    let err_code_parts: Vec<&str> = token.parts()[1].split('=').collect();
+    match err_code_parts.len() {
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(token, format!("{inst}.err=<code>").as_str())),
+        2 => {
+            if err_code_parts[0] != "err" {
+                return Err(ParsingError::invalid_param(token, 1));
+            }
+
+            let err_code_str = err_code_parts[1];
+            let err_code = match try_get_constant_value(token, err_code_str, constants)? {
+                Some(val) => val.try_into().map_err(|_| ParsingError::invalid_param(token, 1))?,
+                None => err_code_str.parse().map_err(|_| ParsingError::invalid_param(token, 1))?,
+            };
+            Ok(err_code)
+        }
+        _ => Err(ParsingError::extra_param(token)),
     }
 }

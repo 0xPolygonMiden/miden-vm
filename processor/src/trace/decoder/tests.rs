@@ -11,7 +11,7 @@ use miden_air::trace::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
     AUX_TRACE_RAND_ELEMENTS,
 };
-use rand_utils::rand_array;
+use test_utils::rand::rand_array;
 use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, ONE, ZERO};
 
 // BLOCK STACK TABLE TESTS
@@ -620,7 +620,7 @@ fn decoder_p3_trace_one_batch() {
         OpGroupTableRow::new(ONE, Felt::new(3), ONE).to_value(&trace.main_trace, &alphas);
     let g2_value =
         OpGroupTableRow::new(ONE, Felt::new(2), Felt::new(2)).to_value(&trace.main_trace, &alphas);
-    let g3_value = OpGroupTableRow::new(ONE, Felt::new(1), build_op_group(&ops[9..]))
+    let g3_value = OpGroupTableRow::new(ONE, ONE, build_op_group(&ops[9..]))
         .to_value(&trace.main_trace, &alphas);
     let expected_value = g1_value * g2_value * g3_value;
     assert_eq!(expected_value, p3[1]);
@@ -703,8 +703,7 @@ fn decoder_p3_trace_two_batches() {
     let b1_values = [
         OpGroupTableRow::new(batch1_addr, Felt::new(3), iv[7]).to_value(&trace.main_trace, &alphas),
         OpGroupTableRow::new(batch1_addr, Felt::new(2), iv[8]).to_value(&trace.main_trace, &alphas),
-        OpGroupTableRow::new(batch1_addr, Felt::new(1), op_group3)
-            .to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(batch1_addr, ONE, op_group3).to_value(&trace.main_trace, &alphas),
     ];
     let mut expected_value: Felt = b1_values.iter().fold(ONE, |acc, &val| acc * val);
     assert_eq!(expected_value, p3[10]);

@@ -1,22 +1,25 @@
 use super::{
-    super::system::{FMP_MAX, FMP_MIN},
-    AdviceProvider, ExecutionError, Felt, FieldElement, Process, StarkField,
+    super::{
+        system::{FMP_MAX, FMP_MIN},
+        ONE,
+    },
+    ExecutionError, Felt, Host, Process, StarkField,
 };
 
 // SYSTEM OPERATIONS
 // ================================================================================================
 
-impl<A> Process<A>
+impl<H> Process<H>
 where
-    A: AdviceProvider,
+    H: Host,
 {
     /// Pops a value off the stack and asserts that it is equal to ONE.
     ///
     /// # Errors
     /// Returns an error if the popped value is not ONE.
-    pub(super) fn op_assert(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.get(0) != Felt::ONE {
-            return Err(ExecutionError::FailedAssertion(self.system.clk()));
+    pub(super) fn op_assert(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
+        if self.stack.get(0) != ONE {
+            return Err(ExecutionError::FailedAssertion(self.system.clk(), err_code));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -112,10 +115,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::Operation, super::STACK_TOP_SIZE, Felt, FieldElement, Process, FMP_MAX, FMP_MIN,
-    };
-    use crate::StackInputs;
+    use super::{super::Operation, super::STACK_TOP_SIZE, Felt, Process, FMP_MAX, FMP_MIN};
+    use crate::{StackInputs, ONE, ZERO};
 
     const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
 
@@ -123,11 +124,11 @@ mod tests {
     fn op_assert() {
         // calling assert with a minimum stack should be an ok, as long as the top value is ONE
         let mut process = Process::new_dummy_with_empty_stack();
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Swap).unwrap();
         process.execute_op(Operation::Drop).unwrap();
 
-        assert!(process.execute_op(Operation::Assert).is_ok());
+        assert!(process.execute_op(Operation::Assert(ZERO)).is_ok());
     }
 
     #[test]
@@ -189,7 +190,7 @@ mod tests {
         process.execute_op(Operation::FmpUpdate).unwrap();
 
         // compute address of the first local
-        process.execute_op(Operation::Push(-Felt::new(1))).unwrap();
+        process.execute_op(Operation::Push(-ONE)).unwrap();
         process.execute_op(Operation::FmpAdd).unwrap();
 
         let expected = build_expected_stack(&[FMP_MIN + 1]);
@@ -257,7 +258,7 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     fn build_expected_stack(values: &[u64]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value);
         }

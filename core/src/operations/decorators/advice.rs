@@ -1,3 +1,4 @@
+use super::SignatureKind;
 use crate::Felt;
 use core::fmt;
 
@@ -10,8 +11,8 @@ use core::fmt;
 /// These actions can affect all 3 components of the advice provider: Merkle store, advice stack,
 /// and advice map.
 ///
-/// All actions, except for `MerkleNodeMerge` and `Ext2Inv`, can be invoked directly from Miden
-/// assembly via dedicated instructions.
+/// All actions, except for `MerkleNodeMerge`, `Ext2Inv` and `UpdateMerkleNode` can be invoked
+/// directly from Miden assembly via dedicated instructions.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AdviceInjector {
     // MERKLE STORE INJECTORS
@@ -46,6 +47,21 @@ pub enum AdviceInjector {
     ///   Advice stack: [NODE, ...]
     ///   Merkle store: {TREE_ROOT<-NODE}
     MerkleNodeToStack,
+
+    /// Updates the node of a Merkle tree specified by the values at the top of the operand stack.
+    /// Returns the path from the updated node to the new root of the tree to the caller.
+    ///
+    /// Inputs:
+    ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
+    ///  Advice: [...]
+    ///  Merkle store: {...}
+    ///
+    /// Outputs:
+    ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
+    ///  Advice stack: [...]
+    ///  Merkle store: {path, ...}
+    ///  Return: [path]
+    UpdateMerkleNode,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
     /// map using the specified word from the operand stack as the key. If `include_len` is set to
@@ -151,6 +167,57 @@ pub enum AdviceInjector {
     /// - f2 is a boolean flag set to `1` if a remaining key is not zero.
     SmtGet,
 
+    /// Pushes values onto the advice stack which are required for successful insertion of a
+    /// key-value pair into a Sparse Merkle Tree data structure.
+    ///
+    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
+    ///
+    /// Inputs:
+    ///   Operand stack: [VALUE, KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
+    ///   Advice stack depends on the type of insert operation as follows:
+    ///   - Update of an existing leaf: [ZERO (padding), d0, d1, ONE (is_update), OLD_VALUE]
+    ///   - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
+    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
+    ///   - Complex insert: [f0, f1, ZERO (is_simple_insert), ZERO (is_update), E_KEY, E_VALUE]
+    ///   - Delete against an empty subtree: [d0, d1, ZERO (is_leaf), ONE (key_not_set)]
+    ///   - Delete against another leaf: [d0, d1, ONE (is_leaf), ONE (key_not_set), KEY, VALUE]
+    ///   - Delete against own leaf: [ZERO, ZERO, ZERO, ZERO (key_not_set), NEW_ROOT, OLD_VALUE]
+    ///
+    /// Where:
+    /// - ROOT and NEW_ROOT are the roots of the TSMT before and after the insert respectively.
+    /// - VALUE is the value to be inserted.
+    /// - OLD_VALUE is the value previously associated with the specified KEY.
+    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
+    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
+    /// - P_NODE is an internal node located at the tier above the insert tier.
+    /// - f0 and f1 are boolean flags a combination of which determines the source and the target
+    ///   tiers as follows:
+    ///   - (0, 0): depth 16 -> 32
+    ///   - (0, 1): depth 16 -> 48
+    ///   - (1, 0): depth 32 -> 48
+    ///   - (1, 1): depth 16, 32, or 48 -> 64
+    /// - E_KEY and E_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
+    SmtSet,
+
+    /// Pushes onto the advice stack the value associated with the specified key in a Sparse
+    /// Merkle Tree defined by the specified root.
+    ///
+    /// If no value was previously associated with the specified key, [ZERO; 4] is pushed onto
+    /// the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [KEY, ROOT, ...]
+    ///   Advice stack: [VALUE, ...]
+    SmtPeek,
+
     // ADVICE MAP INJECTORS
     // --------------------------------------------------------------------------------------------
     /// Reads words from memory at the specified range and inserts them into the advice map under
@@ -181,6 +248,36 @@ pub enum AdviceInjector {
     /// Where KEY is computed as hash(A || B, domain), where domain is provided via the immediate
     /// value.
     HdwordToMap { domain: Felt },
+
+    /// Reads three words from the operand stack and inserts the top two words into the advice map
+    /// under the key defined by applying an RPO permutation to all three words.
+    ///
+    /// Inputs:
+    ///   Operand stack: [B, A, C, ...]
+    ///   Advice map: {...}
+    ///
+    /// Outputs:
+    ///   Operand stack: [B, A, C, ...]
+    ///   Advice map: {KEY: [a0, a1, a2, a3, b0, b1, b2, b3]}
+    ///
+    /// Where KEY is computed by extracting the digest elements from hperm([C, A, B]). For example,
+    /// if C is [0, d, 0, 0], KEY will be set as hash(A || B, d).
+    HpermToMap,
+
+    /// Reads two words from the stack and pushes values onto the advice stack which are required
+    /// for verification of a DSA in Miden VM.
+    ///
+    /// Inputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [SIG_DATA]
+    ///
+    /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
+    /// is the signature data.
+    SigToStack { kind: SignatureKind },
 }
 
 impl fmt::Display for AdviceInjector {
@@ -188,6 +285,9 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNodeMerge => write!(f, "merkle_node_merge"),
             Self::MerkleNodeToStack => write!(f, "merkle_node_to_stack"),
+            Self::UpdateMerkleNode => {
+                write!(f, "update_merkle_node")
+            }
             Self::MapValueToStack {
                 include_len,
                 key_offset,
@@ -202,8 +302,12 @@ impl fmt::Display for AdviceInjector {
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
+            Self::SmtSet => write!(f, "smt_set"),
+            Self::SmtPeek => write!(f, "smt_peek"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
+            Self::HpermToMap => write!(f, "hperm_to_map"),
+            Self::SigToStack { kind } => write!(f, "sig_to_stack.{kind}"),
         }
     }
 }
