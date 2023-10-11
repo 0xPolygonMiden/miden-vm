@@ -20,6 +20,7 @@
     - [Debugging](./user_docs/assembly/debugging.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
     - [std::collections](./user_docs/stdlib/collections.md)
+    - [std::crypto::dsa](./user_docs/stdlib/crypto/dsa.md)
     - [std::crypto::fri](./user_docs/stdlib/crypto/fri.md)
     - [std::crypto::hashes](./user_docs/stdlib/crypto/hashes.md)
     - [std::math::u64](./user_docs/stdlib/math/u64.md)

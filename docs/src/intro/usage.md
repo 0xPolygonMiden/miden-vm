@@ -33,14 +33,23 @@ In this case, the `miden` executable will be placed in the `./target/release` di
 Internally, Miden VM uses [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
 
 ### GPU acceleration
-Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via Metal). To compile Miden VM with Metal acceleration enabled, you can run the following command:
+Miden VM proof generation can be accelerated via GPUs. Currently, GPU acceleration is enabled only on Apple silicon hardware (via [Metal](https://en.wikipedia.org/wiki/Metal_(API))). To compile Miden VM with Metal acceleration enabled, you can run the following command:
 ```
 make exec-metal
 ```
 
-Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized directory`.
+Similar to `make exec` command, this will place the resulting `miden` executable into the `./target/optimized` directory.
 
-Currently, GPU acceleration is applicable only to recursive proofs which can be generated using `-r` flag.
+Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the `-r` flag.
+
+### SIMD acceleration
+Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled only on platforms supporting [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)) instructions (e.g., Graviton 3). To compile Miden VM with SVE acceleration enabled, you can run the following command:
+```
+make exec-graviton
+```
+This will place the resulting `miden` executable into the `./target/optimized` directory.
+
+Similar to Metal acceleration, SVE acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
 
 ### Running Miden VM
 Once the executable has been compiled, you can run Miden VM like so:

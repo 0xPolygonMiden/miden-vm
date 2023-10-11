@@ -25,6 +25,6 @@ processor = { package = "miden-processor", path = "../processor", version = "0.7
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
-ministark-gpu = { version = "0.1", features = [ "winterfell" ], optional = true }
 elsa = { version = "1.9", optional = true }
+ministark-gpu = { version = "0.1", features = [ "winterfell" ], optional = true }
 pollster = { version = "0.3", optional = true }

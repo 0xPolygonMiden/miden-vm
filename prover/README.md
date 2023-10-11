@@ -6,7 +6,7 @@ This crate exposes a `prove()` function which can be used to execute Miden VM pr
 
 * `program: &Program` - a reference to a Miden program to be executed.
 * `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
-* `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
+* `host: Host` - an instance of a `Host` which can be used to supply non-deterministic inputs to the VM and receive messages from the VM.
 * `options: &ProvingOptions` - config parameters for proof generation. The default options target 96-bit security level.
 
 If the program is executed successfully, the function returns a tuple with 2 elements:
@@ -30,8 +30,8 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any stack inputs
-    DefaultHost::default(), // we won't provide any advice values
-    &ProvingOptions::default(),     // we'll be using default options
+    DefaultHost::default(),       // we'll be using a default host
+    &ProvingOptions::default(),   // we'll be using default options
 )
 .unwrap();
 
@@ -44,6 +44,8 @@ Miden prover can be compiled with the following features:
 
 * `std` - enabled by default and relies on the Rust standard library.
 * `concurrent` - implies `std` and also enables multi-threaded proof generation.
+* `sve` - enables [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE))-based acceleration of the RPO hash function on supported platforms (e.g., Graviton 3).
+* `metal` - enables [Metal](https://en.wikipedia.org/wiki/Metal_(API))-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 * `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
