@@ -40,6 +40,7 @@ path = "tests/integration/main.rs"
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
 executable = ["dep:env_logger", "dep:hex", "hex?/std", "std", "dep:serde", "serde?/std", "dep:serde_derive", "dep:serde_json", "serde_json?/std", "dep:clap", "dep:rustyline"]
+metal = ["prover/metal", "std"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
 sve = ["processor/sve", "prover/sve", "std"]
 
@@ -65,5 +66,5 @@ escargot = "0.5"
 num-bigint = "0.4"
 predicates = "3.0"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
-winter-fri = { package = "winter-fri", version = "0.6" }
 vm-core = { package = "miden-core", path = "../core", version = "0.7" }
+winter-fri = { package = "winter-fri", version = "0.6" }

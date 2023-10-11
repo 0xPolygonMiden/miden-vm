@@ -31,7 +31,7 @@ Miden VM is a fully-featured virtual machine. Despite being optimized for zero-k
 * **Cryptographic operations.** Miden assembly provides built-in instructions for computing hashes and verifying Merkle paths. These instructions use the Rescue Prime Optimized hash function (which is the native hash function of the VM).
 * **External libraries.** Miden VM supports compiling programs against pre-defined libraries. The VM ships with one such library: Miden `stdlib` which adds support for such things as 64-bit unsigned integers. Developers can build other similar libraries to extend the VM's functionality in ways which fit their use cases.
 * **Nondeterminism**. Unlike traditional virtual machines, Miden VM supports nondeterministic programming. This means a prover may do additional work outside of the VM and then provide execution *hints* to the VM. These hints can be used to dramatically speed up certain types of computations, as well as to supply secret inputs to the VM.
-* **Custom advice providers.** Miden VM can be instantiated with user-defined advice providers. These advice providers are used to supply external data to the VM during execution/proof generation (via nondeterministic inputs) and can connect the VM to arbitrary data sources (e.g., a database or RPC calls).
+* **Customizable hosts.** Miden VM can be instantiated with user-defined hosts. These hosts are used to supply external data to the VM during execution/proof generation (via nondeterministic inputs) and can connect the VM to arbitrary data sources (e.g., a database or RPC calls).
 
 #### Planned features
 In the coming months we plan to finalize the design of the VM and implement support for the following features:
@@ -78,16 +78,16 @@ A few general notes on performance:
 * Both proof generation and proof verification times are greatly influenced by the hash function used in the STARK protocol. In the benchmarks below, we use BLAKE3, which is a really fast hash function.
 
 ### Single-core prover performance
-When executed on a single CPU core, the current version of Miden VM operates at around 10 - 15 KHz. In the benchmarks below, the VM executes a [Fibonacci calculator](miden/README.md#fibonacci-calculator) program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.
+When executed on a single CPU core, the current version of Miden VM operates at around 20 - 25 KHz. In the benchmarks below, the VM executes a [Fibonacci calculator](miden/README.md#fibonacci-calculator) program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
 | :-------------: | :------------: | :----------: | :-----------: | :--------: |
-| 2<sup>10</sup>  |  1 ms          | 80 ms        | 20 MB         | 47 KB      |
-| 2<sup>12</sup>  |  2 ms          | 260 ms       | 52 MB         | 57 KB      |
-| 2<sup>14</sup>  |  8 ms          | 0.9 sec      | 240 MB        | 66 KB      |
-| 2<sup>16</sup>  |  28 ms         | 4.6 sec      | 950 MB        | 77 KB      |
-| 2<sup>18</sup>  |  85 ms         | 15.5 sec     | 3.7 GB        | 89 KB      |
-| 2<sup>20</sup>  |  310 ms        | 67 sec       | 14 GB         | 100 KB     |
+| 2<sup>10</sup>  |  1 ms          | 60 ms        | 20 MB         | 46 KB      |
+| 2<sup>12</sup>  |  2 ms          | 180 ms       | 52 MB         | 56 KB      |
+| 2<sup>14</sup>  |  8 ms          | 680 ms       | 240 MB        | 65 KB      |
+| 2<sup>16</sup>  |  28 ms         | 2.7 sec      | 950 MB        | 75 KB      |
+| 2<sup>18</sup>  |  81 ms         | 11.4 sec     | 3.7 GB        | 87 KB      |
+| 2<sup>20</sup>  |  310 ms        | 47.5 sec     | 14 GB         | 100 KB     |
 
 As can be seen from the above, proving time roughly doubles with every doubling in the number of cycles, but proof size grows much slower.
 
@@ -95,24 +95,41 @@ We can also generate proofs at a higher security level. The cost of doing so is 
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
 | :-------------: | :------------: | :----------: | :-----------: | :--------: |
-| 2<sup>10</sup>  | 1 ms           | 300 ms       | 30 MB         | 61 KB      |
-| 2<sup>12</sup>  | 2 ms           | 590 ms       | 106 MB        | 78 KB      |
-| 2<sup>14</sup>  | 8 ms           | 1.7 sec      | 500 MB        | 91 KB      |
-| 2<sup>16</sup>  | 28 ms          | 6.7 sec      | 2.0 GB        | 106 KB     |
-| 2<sup>18</sup>  | 85 ms          | 27.5 sec     | 8.0 GB        | 122 KB     |
-| 2<sup>20</sup>  | 310 ms         | 126 sec      | 24.0 GB       | 138 KB     |
+| 2<sup>10</sup>  | 1 ms           | 120 ms       | 30 MB         | 61 KB      |
+| 2<sup>12</sup>  | 2 ms           | 460 ms       | 106 MB        | 77 KB      |
+| 2<sup>14</sup>  | 8 ms           | 1.4 sec      | 500 MB        | 90 KB      |
+| 2<sup>16</sup>  | 27 ms          | 4.9 sec      | 2.0 GB        | 103 KB     |
+| 2<sup>18</sup>  | 81 ms          | 20.1 sec     | 8.0 GB        | 121 KB     |
+| 2<sup>20</sup>  | 310 ms         | 90.3 sec     | 20.0 GB       | 138 KB     |
 
 ### Multi-core prover performance
-STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on an 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 100 KHz. And when executed on a 64-core CPU (Amazon Graviton 3), the VM operates at around 250 KHz.
+STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on an 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 140 KHz. And when executed on a 64-core CPU (Amazon Graviton 3), the VM operates at around 250 KHz.
 
 In the benchmarks below, the VM executes the same Fibonacci calculator program for 2<sup>20</sup> cycles at 96-bit target security level:
 
-| Machine                        | Execution time | Proving time | Execution % |
-| ------------------------------ | :------------: | :----------: | :---------: |
-| Apple M1 Pro (8 threads)       | 310 ms         | 9.8 sec      | 3.1%        |
-| Apple M2 Max (16 threads)      | 290 ms         | 7.7 sec      | 3.6%        |
-| AMD Ryzen 9 5950X (16 threads) | 270 ms         | 10.7 sec     | 2.6%        |
-| Amazon Graviton 3 (64 threads) | 330 ms         | 3.7 sec      | 9.0%        |
+| Machine                        | Execution time | Proving time | Execution % | Implied Frequency |
+| ------------------------------ | :------------: | :----------: | :---------: | :---------------: |
+| Apple M1 Pro (16 threads)      | 310 ms         | 7.0 sec      | 4.2%        | 140 KHz           |
+| Apple M2 Max (16 threads)      | 280 ms         | 5.8 sec      | 4.5%        | 170 KHz           |
+| AMD Ryzen 9 5950X (16 threads) | 270 ms         | 10.0 sec     | 2.6%        | 100 KHz           |
+| Amazon Graviton 3 (64 threads) | 330 ms         | 3.6 sec      | 8.5%        | 265 KHz           |
+
+### Recursive proofs
+Proofs in the above benchmarks are generated using BLAKE3 hash function. While this hash function is very fast, it is not very efficient to execute in Miden VM. Thus, proofs generated using BLAKE3 are not well-suited for recursive proof verification. To support efficient recursive proofs, we need to use an arithmetization-friendly hash function. Miden VM natively supports Rescue Prime Optimized (RPO), which is one such hash function. One of the downsides of arithmetization-friendly hash functions is that they are considerably slower than regular hash functions.
+
+In the benchmarks below we execute the same Fibonacci calculator program for 2<sup>20</sup> cycles at 96-bit target security level using RPO hash function instead of BLAKE3:
+
+| Machine                        | Execution time | Proving time | Proving time (HW) |
+| ------------------------------ | :------------: | :----------: | :---------------: |
+| Apple M1 Pro (16 threads)      | 310 ms         | 94.3 sec     | 42.0 sec          |
+| Apple M2 Max (16 threads)      | 280 ms         | 75.1 sec     | 20.9 sec          |
+| AMD Ryzen 9 5950X (16 threads) | 270 ms         | 59.3 sec     |                   |
+| Amazon Graviton 3 (64 threads) | 330 ms         | 21.7 sec     | 14.9 sec          |
+
+In the above, proof generation on some platforms can be hardware-accelerated. Specifically:
+
+* On Apple M1/M2 platforms the built-in GPU is used for a part of proof generation process.
+* On the Graviton platform, SVE vector extension is used to accelerate RPO computations.
 
 ## References
 Proofs of execution generated by Miden VM are based on STARKs. A STARK is a novel proof-of-computation scheme that allows you to create an efficiently verifiable proof that a computation was executed correctly. The scheme was developed by Eli Ben-Sasson, Michael Riabzev et al. at Technion - Israel Institute of Technology. STARKs do not require an initial trusted setup, and rely on very few cryptographic assumptions.
