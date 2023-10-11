@@ -130,9 +130,19 @@ impl Assembler {
         let source = source.as_ref();
         let program = ProgramAst::parse(source)?;
 
+        // compile the program and return
+        self.compile_ast(&program)
+    }
+
+    /// Compiles the provided abstract syntax tree into a [Program]. The resulting program can be
+    /// executed on Miden VM.
+    ///
+    /// # Errors
+    /// Returns an error if the compilation of the specified program fails.
+    pub fn compile_ast(&self, program: &ProgramAst) -> Result<Program, AssemblyError> {
         // compile the program
-        let mut context = AssemblyContext::for_program(Some(&program));
-        let program_root = self.compile_in_context(&program, &mut context)?;
+        let mut context = AssemblyContext::for_program(Some(program));
+        let program_root = self.compile_in_context(program, &mut context)?;
 
         // convert the context into a call block table for the program
         let cb_table = context.into_cb_table(&self.proc_cache.borrow())?;

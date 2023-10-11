@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0 (TBD)
+## 0.7.0 (2023-10-11)
 
 #### Assembly
 - Added ability to attach doc comments to re-exported procedures (#994).
@@ -11,6 +11,9 @@
 - Added `adv.push_smtpeek` decorator (#1056).
 - Added `debug` decorator (#1069).
 - Refactored `push` instruction so now it parses long hex string in little-endian (#1076).
+
+#### CLI
+- Implemented ability to output compiled `.masb` files to disk (#1102).
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
@@ -23,9 +26,11 @@
 - Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
 - Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049). 
 - Supported `PartialMerkleTree` as a secret input in `.input` file (#1072).
+- [BREAKING] Refactored `AdviceProvider` interface into [Host] interface (#1082).
 
 #### Stdlib
 - Completed `std::collections::smt` module by implementing `insert` and `set` procedures (#1036, #1038, #1046).
+- Added new module `std::crypto::dsa::rpo_falcon512` to support Falcon signature verification (#1000, #1094)
 
 ## 0.6.1 (2023-06-29)
 

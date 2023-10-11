@@ -45,7 +45,8 @@ impl RunCmd {
         let libraries = Libraries::new(&self.library_paths)?;
 
         // load program from file and compile
-        let program = ProgramFile::read(&self.assembly_file, &Debug::Off, libraries.libraries)?;
+        let program =
+            ProgramFile::read(&self.assembly_file)?.compile(&Debug::Off, libraries.libraries)?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;

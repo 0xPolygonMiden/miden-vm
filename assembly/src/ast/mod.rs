@@ -341,14 +341,17 @@ impl ProgramAst {
 
     // WRITE TO FILE
     // --------------------------------------------------------------------------------------------
-    #[cfg(feature = "std")]
+
     /// Writes ProgramAst to provided file path
-    pub fn write_to_file<P>(&self, dir_path: P) -> io::Result<()>
+    #[cfg(feature = "std")]
+    pub fn write_to_file<P>(&self, file_path: P) -> io::Result<()>
     where
         P: AsRef<Path>,
     {
-        fs::create_dir_all(&dir_path)?;
-        let path = dir_path;
+        let path = file_path.as_ref();
+        if let Some(dir) = path.parent() {
+            fs::create_dir_all(dir)?;
+        }
 
         let bytes = self.to_bytes(AstSerdeOptions {
             serialize_imports: true,
