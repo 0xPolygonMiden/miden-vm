@@ -1,5 +1,5 @@
 # Usage
-Before you can use Miden VM, you'll need to make sure you have Rust [installed](https://www.rust-lang.org/tools/install). Miden VM v0.7 requires Rust version **1.67** or later.
+Before you can use Miden VM, you'll need to make sure you have Rust [installed](https://www.rust-lang.org/tools/install). Miden VM v0.8 requires Rust version **1.73** or later.
 
 Miden VM consists of several crates, each of which exposes a small set of functionality. The most notable of these crates are:
 * [miden-processor](https://crates.io/crates/miden-processor), which can be used to execute Miden VM programs.

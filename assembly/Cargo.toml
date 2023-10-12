@@ -1,11 +1,12 @@
 [package]
 name = "miden-assembly"
-version = "0.7.0"
+version = "0.8.0"
 description = "Miden VM assembly language"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/0xPolygonMiden/miden-vm"
+documentation = "https://docs.rs/miden-assembly/0.8.0"
 categories = ["compilers", "no-std"]
 keywords = ["assembler", "assembly", "language", "miden"]
 edition = "2021"
@@ -21,4 +22,4 @@ std = ["vm-core/std"]
 
 [dependencies]
 num_enum = "0.7"
-vm-core = { package = "miden-core", path = "../core", version = "0.7", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }

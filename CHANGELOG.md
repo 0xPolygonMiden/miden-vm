@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.8.0 (TBD)
+
 ## 0.7.0 (2023-10-11)
 
 #### Assembly
@@ -26,7 +28,7 @@
 - Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
 - Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049). 
 - Supported `PartialMerkleTree` as a secret input in `.input` file (#1072).
-- [BREAKING] Refactored `AdviceProvider` interface into [Host] interface (#1082).
+- [BREAKING] Refactored `AdviceProvider` interface into `Host` interface (#1082).
 
 #### Stdlib
 - Completed `std::collections::smt` module by implementing `insert` and `set` procedures (#1036, #1038, #1046).
