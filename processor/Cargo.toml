@@ -1,11 +1,12 @@
 [package]
 name = "miden-processor"
-version = "0.7.0"
+version = "0.8.0"
 description = "Miden VM processor"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/0xPolygonMiden/miden-vm"
+documentation = "https://docs.rs/miden-processor/0.8.0"
 categories = ["emulators", "no-std"]
 keywords = ["miden", "virtual-machine"]
 edition = "2021"
@@ -24,13 +25,13 @@ sve = ["std", "vm-core/sve"]
 
 [dependencies]
 log = { version = "0.4", default-features = false, optional = true }
-vm-core = { package = "miden-core", path = "../core", version = "0.7", default-features = false }
-miden-air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
+miden-air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
 
 [dev-dependencies]
 logtest = { version = "2.0", default-features = false  }
-miden-assembly = { package = "miden-assembly", path = "../assembly", version = "0.7", default-features = false }
+miden-assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-fri = { package = "winter-fri", version = "0.6" }
 winter-utils = { package = "winter-utils", version = "0.6" }

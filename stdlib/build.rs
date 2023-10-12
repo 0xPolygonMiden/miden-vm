@@ -23,7 +23,7 @@ type ModuleMap = BTreeMap<String, ModuleAst>;
 /// `assets` folder under `std` namespace.
 #[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
-    // re-build the `./assets/std.masl` file iff something in the `./asm` directory
+    // re-build the `[OUT_DIR]/assets/std.masl` file iff something in the `./asm` directory
     // or its builder changed:
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");

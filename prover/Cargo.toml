@@ -1,11 +1,12 @@
 [package]
 name = "miden-prover"
-version = "0.7.0"
+version = "0.8.0"
 description = "Miden VM prover"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/0xPolygonMiden/miden-vm"
+documentation = "https://docs.rs/miden-prover/0.8.0"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
 edition = "2021"
@@ -19,9 +20,9 @@ std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
 sve = ["processor/sve", "std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
 log = { version = "0.4", default-features = false, optional = true }
-processor = { package = "miden-processor", path = "../processor", version = "0.7", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
