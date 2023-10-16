@@ -2,6 +2,10 @@
 
 ## 0.8.0 (TBD)
 
+#### Stdlib
+- Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt` 
+  and `std::collections::smt64` to use the procedure (#1107).
+
 ## 0.7.0 (2023-10-11)
 
 #### Assembly
