@@ -73,7 +73,7 @@ impl MaslLibrary {
     /// # Errors
     /// Returns an error if the provided `modules` vector is empty or contains more than
     /// [u16::MAX] elements.
-    pub(super) fn new(
+    pub fn new(
         namespace: LibraryNamespace,
         version: Version,
         has_source_locations: bool,
