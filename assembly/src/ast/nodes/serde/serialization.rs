@@ -521,6 +521,14 @@ impl Serializable for Instruction {
             }
             Self::DynExec => OpCode::DynExec.write_into(target),
             Self::DynCall => OpCode::DynCall.write_into(target),
+            Self::ProcRefLocal(v) => {
+                OpCode::ProcRefLocal.write_into(target);
+                target.write_u16(*v)
+            }
+            Self::ProcRefImported(imported) => {
+                OpCode::ProcRefImported.write_into(target);
+                imported.write_into(target)
+            }
 
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => {

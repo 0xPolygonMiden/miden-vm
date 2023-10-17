@@ -88,6 +88,16 @@ impl AssemblyContext {
         }
     }
 
+    /// Returns the [Procedure] by its index from the vector of compiled procedures.
+    pub fn get_compiled_procedure(&self, idx: u16) -> Result<&Procedure, AssemblyError> {
+        let module_context = self.module_stack.last().expect("no modules");
+        module_context
+            .compiled_procs
+            .get(idx as usize)
+            .map(|named_proc| named_proc.inner())
+            .ok_or_else(|| AssemblyError::local_proc_not_found(idx, &module_context.path))
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 

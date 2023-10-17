@@ -1,4 +1,7 @@
-use super::{Assembler, AssemblyContext, AssemblyError, CodeBlock, ProcedureId, RpoDigest};
+use super::{
+    super::Vec, Assembler, AssemblyContext, AssemblyError, CodeBlock, Operation, ProcedureId,
+    RpoDigest, SpanBuilder,
+};
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -132,5 +135,38 @@ impl Assembler {
     pub(super) fn dyncall(&self) -> Result<Option<CodeBlock>, AssemblyError> {
         // create a new CALL block whose target is DYN
         Ok(Some(CodeBlock::new_dyncall()))
+    }
+
+    pub(super) fn procref_local(
+        &self,
+        proc_idx: u16,
+        context: &mut AssemblyContext,
+        span: &mut SpanBuilder,
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        // get root of the compiled local procedure
+        let proc_root = context.get_compiled_procedure(proc_idx)?.mast_root();
+        // create an array with `Push` operations containing root elements
+        let ops: Vec<Operation> = proc_root.iter().map(|elem| Operation::Push(*elem)).collect();
+        span.add_ops(ops)
+    }
+
+    pub(super) fn procref_imported(
+        &self,
+        proc_id: &ProcedureId,
+        context: &mut AssemblyContext,
+        span: &mut SpanBuilder,
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        // make sure the procedure is in procedure cache
+        self.ensure_procedure_is_in_cache(proc_id, context)?;
+
+        // get the procedure from the assembler
+        let proc_cache = self.proc_cache.borrow();
+        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
+
+        // get root of the cimported procedure
+        let proc_root = proc.mast_root();
+        // create an array with `Push` operations containing root elements
+        let ops: Vec<Operation> = proc_root.iter().map(|elem| Operation::Push(*elem)).collect();
+        span.add_ops(ops)
     }
 }
