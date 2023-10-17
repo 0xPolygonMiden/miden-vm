@@ -327,6 +327,8 @@ impl Assembler {
             Instruction::SysCall(id) => self.syscall(id, ctx),
             Instruction::DynExec => self.dynexec(),
             Instruction::DynCall => self.dyncall(),
+            Instruction::ProcRefLocal(idx) => self.procref_local(*idx, ctx, span),
+            Instruction::ProcRefImported(id) => self.procref_imported(id, ctx, span),
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {

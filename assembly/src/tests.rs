@@ -216,6 +216,82 @@ fn call_without_path() {
         .unwrap();
 }
 
+// PROGRAM WITH PROCREF
+// ================================================================================================
+
+#[test]
+fn test() {
+    // instantiate assembler
+    let assembler = Assembler::default();
+
+    // compile first module
+    let module_path1 = LibraryPath::new("module::path::one").unwrap();
+    let module_source1 = ModuleAst::parse(
+        "
+        export.aaa
+            push.7.8
+        end
+
+        export.foo
+            push.1.2
+        end",
+    )
+    .unwrap();
+
+    let _roots1 = assembler
+        .compile_module(
+            &module_source1,
+            Some(&module_path1),
+            &mut AssemblyContext::for_module(false),
+        )
+        .unwrap();
+
+    // compile second module
+    let module_path2 = LibraryPath::new("module::path::two").unwrap();
+    let module_source2 = ModuleAst::parse(
+        "
+        use.module::path::one
+        export.one::foo
+
+        export.bar
+            procref.one::aaa
+        end",
+    )
+    .unwrap();
+
+    let _roots2 = assembler
+        .compile_module(
+            &module_source2,
+            Some(&module_path2),
+            &mut AssemblyContext::for_module(false),
+        )
+        .unwrap();
+
+    // compile program with procref calls
+    let program_source = ProgramAst::parse(
+        "
+        use.module::path::two
+            
+        proc.baz.4
+            push.3.4
+        end
+
+        begin 
+            procref.two::bar
+            procref.two::foo
+            procref.baz
+        end",
+    )
+    .unwrap();
+
+    let _compiled_program = assembler
+        .compile_in_context(
+            &program_source,
+            &mut AssemblyContext::for_program(Some(&program_source)),
+        )
+        .unwrap();
+}
+
 // CONSTANTS
 // ================================================================================================
 

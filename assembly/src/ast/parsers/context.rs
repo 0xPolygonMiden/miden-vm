@@ -214,6 +214,30 @@ impl ParserContext<'_> {
         }
     }
 
+    // PROCREF PARSERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Parse a `procref` token into an instruction node.
+    pub fn parse_procref(&self, token: &Token) -> Result<Node, ParsingError> {
+        match token.parse_invocation(token.parts()[0])? {
+            InvocationTarget::ProcedureName(proc_name) => {
+                let index = self.get_local_proc_index(proc_name, token)?;
+                let inner = Instruction::ProcRefLocal(index);
+                Ok(Node::Instruction(inner))
+            }
+            InvocationTarget::ProcedurePath { name, module } => {
+                let module_path = self
+                    .import_info
+                    .get_module_path(module)
+                    .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module))?;
+                let proc_id = ProcedureId::from_name(name.as_ref(), module_path);
+                let inner = Instruction::ProcRefImported(proc_id);
+                Ok(Node::Instruction(inner))
+            }
+            _ => Err(ParsingError::invalid_param(token, 1)),
+        }
+    }
+
     // PROCEDURE PARSERS
     // --------------------------------------------------------------------------------------------
 
@@ -622,6 +646,7 @@ impl ParserContext<'_> {
             "syscall" => self.parse_syscall(op),
             "dynexec" => simple_instruction(op, DynExec),
             "dyncall" => simple_instruction(op, DynCall),
+            "procref" => self.parse_procref(op),
 
             // ----- constant statements ----------------------------------------------------------
             "const" => Err(ParsingError::const_invalid_scope(op)),
