@@ -92,6 +92,24 @@ impl ModuleImports {
         self.imports.get(&module_name.to_string())
     }
 
+    /// Look up the actual procedure name and module path associated with the given [ProcedureId],
+    /// if that procedure was imported and invoked in the current module.
+    pub fn get_procedure_info(&self, id: &ProcedureId) -> Option<(&ProcedureName, &LibraryPath)> {
+        self.invoked_procs.get(id).map(|(name, path)| (name, path))
+    }
+
+    /// Look up the procedure name associated with the given [ProcedureId],
+    /// if that procedure was imported and invoked in the current module.
+    pub fn get_procedure_name(&self, id: &ProcedureId) -> Option<&ProcedureName> {
+        self.invoked_procs.get(id).map(|(name, _)| name)
+    }
+
+    /// Look up the [LibraryPath] associated with the given [ProcedureId],
+    /// if that procedure was imported and invoked in the current module.
+    pub fn get_procedure_path(&self, id: &ProcedureId) -> Option<&LibraryPath> {
+        self.invoked_procs.get(id).map(|(_, path)| path)
+    }
+
     /// Return the paths of all imported module
     pub fn import_paths(&self) -> Vec<&LibraryPath> {
         self.imports.values().collect()
