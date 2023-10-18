@@ -86,7 +86,7 @@ type InvokedProcsMap = BTreeMap<ProcedureId, (ProcedureName, LibraryPath)>;
 pub struct ProgramAst {
     body: CodeBody,
     local_procs: Vec<ProcedureAst>,
-    import_info: Option<ModuleImports>,
+    import_info: ModuleImports,
     start: SourceLocation,
 }
 
@@ -105,7 +105,7 @@ impl ProgramAst {
         Ok(Self {
             body,
             local_procs,
-            import_info: None,
+            import_info: Default::default(),
             start,
         })
     }
@@ -115,8 +115,8 @@ impl ProgramAst {
     /// # Panics
     /// Panics if import information has already been added.
     pub fn with_import_info(mut self, import_info: ModuleImports) -> Self {
-        assert!(self.import_info.is_none(), "module imports have already been added");
-        self.import_info = Some(import_info);
+        assert!(self.import_info.is_empty(), "module imports have already been added");
+        self.import_info = import_info;
         self
     }
 
@@ -154,13 +154,9 @@ impl ProgramAst {
         &self.body
     }
 
-    /// Returns a map containing IDs and names of imported procedures.
-    pub fn get_imported_procedures_map(&self) -> BTreeMap<ProcedureId, ProcedureName> {
-        if let Some(info) = &self.import_info {
-            info.invoked_procs().iter().map(|(&id, (name, _))| (id, name.clone())).collect()
-        } else {
-            BTreeMap::new()
-        }
+    /// Returns a reference to the import info for this program
+    pub fn import_info(&self) -> &ModuleImports {
+        &self.import_info
     }
 
     // PARSER
@@ -249,10 +245,7 @@ impl ProgramAst {
 
         // serialize imports if required
         if options.serialize_imports {
-            match &self.import_info {
-                Some(imports) => imports.write_into(&mut target),
-                None => panic!("imports not initialized"),
-            }
+            self.import_info.write_into(&mut target);
         }
 
         // serialize procedures
@@ -279,10 +272,11 @@ impl ProgramAst {
         let options = AstSerdeOptions::read_from(&mut source)?;
 
         // deserialize imports if required
-        let mut import_info = None;
-        if options.serialize_imports {
-            import_info = Some(ModuleImports::read_from(&mut source)?);
-        }
+        let import_info = if options.serialize_imports {
+            ModuleImports::read_from(&mut source)?
+        } else {
+            ModuleImports::default()
+        };
 
         // deserialize local procs
         let num_local_procs = source.read_u16()?;
@@ -294,10 +288,7 @@ impl ProgramAst {
 
         match Self::new(nodes, local_procs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => match import_info {
-                Some(info) => Ok(res.with_import_info(info)),
-                None => Ok(res),
-            },
+            Ok(res) => Ok(res.with_import_info(import_info)),
         }
     }
 
@@ -336,7 +327,7 @@ impl ProgramAst {
 
     /// Clear import info from the program
     pub fn clear_imports(&mut self) {
-        self.import_info = None;
+        self.import_info.clear();
     }
 
     // WRITE TO FILE
@@ -369,23 +360,16 @@ impl fmt::Display for ProgramAst {
     /// # Panics
     /// Panics if import info is not associated with this program.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        assert!(self.import_info.is_some(), "Program imports not instantiated");
-
         // Imports
-        if let Some(ref info) = self.import_info {
-            let paths = info.import_paths();
-            for path in paths.iter() {
-                writeln!(f, "use.{path}")?;
-            }
-            if !paths.is_empty() {
-                writeln!(f)?;
-            }
+        let paths = self.import_info.import_paths();
+        for path in paths.iter() {
+            writeln!(f, "use.{path}")?;
+        }
+        if !paths.is_empty() {
+            writeln!(f)?;
         }
 
-        let tmp_procs = InvokedProcsMap::new();
-        let invoked_procs =
-            self.import_info.as_ref().map(|info| info.invoked_procs()).unwrap_or(&tmp_procs);
-
+        let invoked_procs = self.import_info.invoked_procs();
         let context = AstFormatterContext::new(&self.local_procs, invoked_procs);
 
         // Local procedures
@@ -411,7 +395,7 @@ impl fmt::Display for ProgramAst {
 pub struct ModuleAst {
     local_procs: Vec<ProcedureAst>,
     reexported_procs: Vec<ProcReExport>,
-    import_info: Option<ModuleImports>,
+    import_info: ModuleImports,
     docs: Option<String>,
 }
 
@@ -443,7 +427,7 @@ impl ModuleAst {
         Ok(Self {
             local_procs,
             reexported_procs,
-            import_info: None,
+            import_info: Default::default(),
             docs,
         })
     }
@@ -453,8 +437,8 @@ impl ModuleAst {
     /// # Panics
     /// Panics if import information has already been added.
     pub fn with_import_info(mut self, import_info: ModuleImports) -> Self {
-        assert!(self.import_info.is_none(), "module imports have already been added");
-        self.import_info = Some(import_info);
+        assert!(self.import_info.is_empty(), "module imports have already been added");
+        self.import_info = import_info;
         self
     }
 
@@ -514,21 +498,9 @@ impl ModuleAst {
         self.docs.as_ref()
     }
 
-    /// Returns a map of imported modules in this module.
-    pub fn import_paths(&self) -> Vec<&LibraryPath> {
-        match &self.import_info {
-            Some(info) => info.import_paths(),
-            None => Vec::<&LibraryPath>::new(),
-        }
-    }
-
-    /// Returns a map containing IDs and names of imported procedures.
-    pub fn get_imported_procedures_map(&self) -> BTreeMap<ProcedureId, ProcedureName> {
-        if let Some(info) = &self.import_info {
-            info.invoked_procs().iter().map(|(&id, (name, _))| (id, name.clone())).collect()
-        } else {
-            BTreeMap::new()
-        }
+    /// Returns a reference to the import information for this module
+    pub fn import_info(&self) -> &ModuleImports {
+        &self.import_info
     }
 
     // STATE MUTATORS
@@ -564,10 +536,7 @@ impl ModuleAst {
 
         // serialize imports if required
         if options.serialize_imports {
-            match &self.import_info {
-                Some(imports) => imports.write_into(target),
-                None => panic!("imports not initialized"),
-            }
+            self.import_info.write_into(target);
         }
 
         // serialize procedures
@@ -601,10 +570,11 @@ impl ModuleAst {
         };
 
         // deserialize imports if required
-        let mut import_info = None;
-        if options.serialize_imports {
-            import_info = Some(ModuleImports::read_from(source)?);
-        }
+        let import_info = if options.serialize_imports {
+            ModuleImports::read_from(source)?
+        } else {
+            ModuleImports::default()
+        };
 
         // deserialize re-exports
         let num_reexported_procs = source.read_u16()? as usize;
@@ -616,10 +586,7 @@ impl ModuleAst {
 
         match Self::new(local_procs, reexported_procs, docs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => match import_info {
-                Some(info) => Ok(res.with_import_info(info)),
-                None => Ok(res),
-            },
+            Ok(res) => Ok(res.with_import_info(import_info)),
         }
     }
 
@@ -673,7 +640,7 @@ impl ModuleAst {
 
     /// Clear import info from the module
     pub fn clear_imports(&mut self) {
-        self.import_info = None;
+        self.import_info.clear();
     }
 }
 
@@ -686,8 +653,6 @@ impl fmt::Display for ModuleAst {
     /// # Panics
     /// Panics if import info is not associated with this module.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        assert!(self.import_info.is_some(), "Program imports not instantiated");
-
         // Docs
         if let Some(ref doc) = self.docs {
             writeln!(f, "#! {doc}")?;
@@ -695,14 +660,12 @@ impl fmt::Display for ModuleAst {
         }
 
         // Imports
-        if let Some(ref info) = self.import_info {
-            let paths = info.import_paths();
-            for path in paths.iter() {
-                writeln!(f, "use.{path}")?;
-            }
-            if !paths.is_empty() {
-                writeln!(f)?;
-            }
+        let paths = self.import_info.import_paths();
+        for path in paths.iter() {
+            writeln!(f, "use.{path}")?;
+        }
+        if !paths.is_empty() {
+            writeln!(f)?;
         }
 
         // Re-exports
@@ -712,10 +675,7 @@ impl fmt::Display for ModuleAst {
         }
 
         // Local procedures
-        let tmp_procs = InvokedProcsMap::new();
-        let invoked_procs =
-            self.import_info.as_ref().map(|info| info.invoked_procs()).unwrap_or(&tmp_procs);
-
+        let invoked_procs = self.import_info.invoked_procs();
         let context = AstFormatterContext::new(&self.local_procs, invoked_procs);
 
         for proc in self.local_procs.iter() {

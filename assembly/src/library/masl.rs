@@ -272,7 +272,7 @@ mod use_std {
                     let ast = ModuleAst::parse(&contents)?;
 
                     // add dependencies of this module to the dependencies of this library
-                    for path in ast.import_paths() {
+                    for path in ast.import_info().import_paths() {
                         let ns = LibraryNamespace::new(path.first())?;
                         deps.insert(ns);
                     }
