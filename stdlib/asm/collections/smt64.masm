@@ -3,6 +3,8 @@
 #! Current implementation is a thin wrapper over a simple Sparse Merkle Tree of depth 64. In the
 #! future, this will be replaced with a compact Sparse Merkle Tree implementation.
 
+use.std::utils
+
 #! Returns the value located under the specified key in the Sparse Merkle Tree defined by the
 #! specified root.
 #!
@@ -38,10 +40,7 @@ end
 #! - The provided value is an empty word.
 export.insert
     # make sure the value is not [ZERO; 4] (17 cycles)
-    repeat.4
-        dup.3 eq.0
-    end
-    and and and assertz
+    exec.utils::is_empty_word assertz
 
     # prepare the stack for mtree_set operation
     movup.4 movdn.8 swapw movup.8 push.64

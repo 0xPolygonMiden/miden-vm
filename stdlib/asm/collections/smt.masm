@@ -1,3 +1,5 @@
+use.std::utils
+
 # Constant value for empty sub-tree root at depth 16
 const.EMPTY_16_0=17483286922353768131
 const.EMPTY_16_1=353378057542380712
@@ -1142,10 +1144,7 @@ end
 #!   - Depth 32 -> 48: 255
 export.insert
     # make sure the value is not [ZERO; 4] (17 cycles)
-    repeat.4
-        dup.3 eq.0
-    end
-    and and and assertz
+    exec.utils::is_empty_word assertz
     # => [V, K, R, ...]
 
     # arrange the data needed for the insert procedure on the advice stack and move the
