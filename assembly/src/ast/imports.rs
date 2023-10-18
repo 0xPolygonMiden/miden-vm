@@ -77,6 +77,16 @@ impl ModuleImports {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns true if there are no imports in the containing module
+    pub fn is_empty(&self) -> bool {
+        self.imports.is_empty()
+    }
+
+    /// Returns the number of imports contained in this table
+    pub fn len(&self) -> usize {
+        self.imports.len()
+    }
+
     /// Look up the path of the imported module with the given name.
     pub fn get_module_path(&self, module_name: &str) -> Option<&LibraryPath> {
         self.imports.get(&module_name.to_string())
@@ -87,8 +97,13 @@ impl ModuleImports {
         self.imports.values().collect()
     }
 
-    /// Returns a reference to the invoked procedure map which maps procedure IDs to their names.
-    pub fn invoked_procs(&self) -> &InvokedProcsMap {
+    /// Returns a map containing IDs and names of imported procedures.
+    pub fn get_imported_procedures(&self) -> BTreeMap<ProcedureId, ProcedureName> {
+        self.invoked_procs.iter().map(|(id, (name, _))| (*id, name.clone())).collect()
+    }
+
+    /// Returns a reference to the internal invoked procedure map which maps procedure IDs to their names and paths.
+    pub(super) fn invoked_procs(&self) -> &InvokedProcsMap {
         &self.invoked_procs
     }
 
@@ -122,6 +137,12 @@ impl ModuleImports {
             ));
         }
         Ok(proc_id)
+    }
+
+    /// Clears all stored information about imported modules and invoked procedures
+    pub fn clear(&mut self) {
+        self.imports.clear();
+        self.invoked_procs.clear();
     }
 }
 

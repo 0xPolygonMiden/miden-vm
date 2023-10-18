@@ -43,7 +43,8 @@ impl AssemblyContext {
     /// by the program, and thus, will be able to determine names of imported procedures for error
     /// reporting purposes.
     pub fn for_program(program: Option<&ProgramAst>) -> Self {
-        let program_imports = program.map(|p| p.get_imported_procedures_map()).unwrap_or_default();
+        let program_imports =
+            program.map(|p| p.import_info().get_imported_procedures()).unwrap_or_default();
         Self {
             module_stack: vec![ModuleContext::for_program(program_imports)],
             is_kernel: false,
@@ -118,7 +119,7 @@ impl AssemblyContext {
         }
 
         // get the imported procedures map
-        let proc_map = module_ast.get_imported_procedures_map();
+        let proc_map = module_ast.import_info().get_imported_procedures();
 
         // push a new module context onto the module stack and return
         self.module_stack.push(ModuleContext::for_module(module_path, proc_map));
