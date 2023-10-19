@@ -174,6 +174,7 @@ impl ProgramAst {
             local_procs: LocalProcMap::default(),
             reexported_procs: ReExportedProcMap::default(),
             local_constants,
+            num_proc_locals: 0,
         };
 
         context.parse_procedures(&mut tokens, false)?;
@@ -456,6 +457,7 @@ impl ModuleAst {
             local_procs: LocalProcMap::default(),
             reexported_procs: ReExportedProcMap::default(),
             local_constants,
+            num_proc_locals: 0,
         };
         context.parse_procedures(&mut tokens, true)?;
 
