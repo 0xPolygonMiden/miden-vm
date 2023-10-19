@@ -22,7 +22,7 @@ To perform this operation we will use a table with 12 columns, and computing a s
 
 In the above, the columns have the following meanings:
 
-- Periodic columns $k_0$ and $k_1$. These columns contain values needed to switch various constraint on or off. $k_0$ contains a repeating sequence of a single one, followed by seven zeros. $k_1$ contains a repeating sequence of seven ones, followed by a single zero.
+- Periodic columns $k_0$ and $k_1$. These columns contain values needed to switch various constraints on or off. $k_0$ contains a single one, followed by a repeating sequence of seven zeros. $k_1$ contains a repeating sequence of seven ones, followed by a single zero.
 - Input columns $a$ and $b$. On the first row of each 8-row cycle, the prover will set values in these columns to the upper 4 bits of the values to which a bitwise operation is to be applied. For all subsequent rows, we will append the next-most-significant 4-bit limb to each value. Thus, by the final row columns $a$ and $b$ will contain the full input values for the bitwise operation.
 - Columns $a_0$, $a_1$, $a_2$, $a_3$, $b_0$, $b_1$, $b_2$, $b_3$ will contain lower 4 bits of their corresponding values.
 - Output column $z_p$. This column represents the value of column $z$ for the prior row. For the first row, it is set to $0$.
@@ -32,7 +32,7 @@ In the above, the columns have the following meanings:
 
 Let's illustrate the above table on a concrete example. For simplicity, we'll use 16-bit values, and thus, we'll only need 4 rows to complete the operation (rather than 8 for 32-bit values). Let's say $a = 41851$ (`b1010_0011_0111_1011`) and $b = 40426$ (`b1001_1101_1110_1010`), then $and(a, b) = 33130$ (`b1000_0001_0110_1010`). The table for this computation looks like so:
 
-|   a   |   b   | x0  | x1  | x2  | x3  | y0  | y1  | y2  | y3  |   zp   |   z   |
+|   a   |   b   | a0  | a1  | a2  | a3  | b0  | b1  | b2  | b3  |   zp   |   z   |
 | :---: | :---: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :----: | :---: |
 |  10   |   9   |  0  |  1  |  0  |  1  |  1  |  0  |  0  |  1  |   0    |   8   |
 |  163  |  157  |  1  |  1  |  0  |  0  |  1  |  0  |  1  |  1  |   8    |  129  |
