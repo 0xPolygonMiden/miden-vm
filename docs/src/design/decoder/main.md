@@ -501,9 +501,9 @@ We also need to make sure that at most $9$ operations are executed as a part of 
 
 #### Operation batch flags
 
-Operation batch flags are used to specify how many operation groups comprise in a given operation batch. For most batches, the number of groups will be equal to $8$. However, for the last batch in a block (or for the first batch, if the block consists of only a single batch), the number of groups may be less than $8$. Since processing of new batches starts only on `SPAN` and `RESPAN` operations, only for these operations the flags can be set to non-zero values.
+Operation batch flags are used to specify how many operation groups comprise a given operation batch. For most batches, the number of groups will be equal to $8$. However, for the last batch in a block (or for the first batch, if the block consists of only a single batch), the number of groups may be less than $8$. Since processing of new batches starts only on `SPAN` and `RESPAN` operations, only for these operations the flags can be set to non-zero values.
 
-To simplify the constraint system, number of groups in a batch can be only one of the following values: $1$, $2$, $4$, and $8$. If number of groups in a batch does not match one of these values, the batch is simply padded with `NOOP`'s (one `NOOP` per added group). Consider the diagram below.
+To simplify the constraint system, the number of groups in a batch can be only one of the following values: $1$, $2$, $4$, and $8$. If the number of groups in a batch does not match one of these values, the batch is simply padded with `NOOP`'s (one `NOOP` per added group). Consider the diagram below.
 
 ![decoder_OPERATION_batch_flags](../../assets/design/decoder/decoder_OPERATION_batch_flags.png)
 
@@ -523,7 +523,7 @@ The simplest example of a *span* block is a block with a single batch. This batc
 
 ![decoder_single_batch_span](../../assets/design/decoder/decoder_single_batch_span.png)
 
-Before the VM starts processing this *span* block, the prover populates registers $h_0, ..., h_7$ with operation groups $g_0, ..., g_7$. The prover also puts the total number of groups into the `group count` register $gc$. In this case, the total number of groups is $8$.
+Before the VM starts processing this *span* block, the prover populates registers $h_0, ..., h_7$ with operation groups $g_0, ..., g_7$. The prover also puts the total number of groups into the `group_count` register $gc$. In this case, the total number of groups is $8$.
 
 When the VM executes a `SPAN` operation, it does the following:
 
@@ -537,7 +537,7 @@ When the VM executes a `SPAN` operation, it does the following:
 
 ![decoder_op_group_table_after_span_op](../../assets/design/decoder/decoder_op_group_table_after_span_op.png)
 
-Then, with every step the next operation is removed from $g_0$, and by step $9$, value of $g_0$ is $0$. Once this happens, the VM does the following:
+Then, with every step the next operation is removed from $g_0$, and by step $9$, the value of $g_0$ is $0$. Once this happens, the VM does the following:
 
 1. Decrements `group_count` register by $1$.
 2. Sets `op bits` registers at the next step to the first operation of $g_1$.
@@ -548,7 +548,7 @@ Note that we rely on the `group_count` column to construct the row to be removed
 
 Decoding of $g_1$ is performed in the same manner as decoding of $g_0$: with every subsequent step the next operation is removed from $g_1$ until its value reaches $0$, at which point, decoding of group $g_2$ begins.
 
-The above steps are executed until value of `group_count` reaches $0$. Once `group_count` reaches $0$ and the last operation group $g_7$ is executed, the VM executed the `END` operation. Semantics of the `END` operation are described [here](#end-operation).
+The above steps are executed until value of `group_count` reaches $0$. Once `group_count` reaches $0$ and the last operation group $g_7$ is executed, the VM executes the `END` operation. Semantics of the `END` operation are described [here](#end-operation).
 
 Notice that by the time we get to the `END` operation, all rows are removed from the op group table.
 
@@ -574,7 +574,7 @@ Executing a `RESPAN` operation also adds groups $g_9, g_{10}, g_{11}$ to the op 
 
 ![decoder_op_group_table_post_respan](../../assets/design/decoder/decoder_op_group_table_post_respan.png)
 
-Then, the execution of the second batch proceeds in the manner similar to the first batch: we remove operations from the current op group, execute them, and when the value of the op group reaches $0$, we start executing the next group in the batch. Thus, by the time we get to the `END` operation, the op group table should be empty.
+Then, the execution of the second batch proceeds in a manner similar to the first batch: we remove operations from the current op group, execute them, and when the value of the op group reaches $0$, we start executing the next group in the batch. Thus, by the time we get to the `END` operation, the op group table should be empty.
 
 When executing the `END` operation, the hash of the *span* block will be read from hasher row at address `addr + 7`, which, in our example, will be equal to `blk + 15`.
 
