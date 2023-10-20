@@ -36,8 +36,8 @@ impl AuxTraceBuilder {
     // AUX COLUMN BUILDERS
     // --------------------------------------------------------------------------------------------
 
-    /// Builds and returns range checker auxiliary trace columns. Currently this consists of two
-    /// columns:
+    /// Builds and returns range checker auxiliary trace columns. Currently this consists of one 
+    /// column:
     /// - `b_range`: ensures that the range checks performed by the Range Checker match those
     ///   requested by the Stack and Memory processors.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
@@ -49,8 +49,8 @@ impl AuxTraceBuilder {
         vec![b_range]
     }
 
-    /// Builds the execution trace of the range check `b_range` and `q` columns which ensure that the
-    /// range check lookups performed by user operations match those executed by the Range Checker.
+    /// Builds the execution trace of the range check `b_range` column which ensure that the range
+    /// check lookups performed by user operations match those executed by the Range Checker.
     fn build_aux_col_b_range<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &ColMatrix<Felt>,
@@ -138,7 +138,7 @@ impl AuxTraceBuilder {
     }
 }
 
-/// Runs batch inversion on all range check lookup values and returns a map which maps of each value
+/// Runs batch inversion on all range check lookup values and returns a map which maps each value
 /// to the divisor used for including it in the LogUp lookup. In other words, the map contains
 /// mappings of x to 1/(alpha - x).
 fn get_divisors<E: FieldElement<BaseField = Felt>>(

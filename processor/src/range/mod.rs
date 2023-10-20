@@ -99,7 +99,7 @@ impl RangeChecker {
     /// Converts this [RangeChecker] into an execution trace with 2 columns and the number of rows
     /// specified by the `target_len` parameter.
     ///
-    /// If the number of rows need to represent execution trace of this range checker is smaller
+    /// If the number of rows needed to represent execution trace of this range checker is smaller
     /// than `target_len` parameter, the trace is padded with extra rows.
     ///
     /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
