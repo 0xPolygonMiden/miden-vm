@@ -215,7 +215,6 @@ where
         .with_library(&StdLibrary::default())
         .map_err(ProgramError::AssemblyError)?
         .compile(program)
-        .map_err(ProgramError::AssemblyError)?;
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);
