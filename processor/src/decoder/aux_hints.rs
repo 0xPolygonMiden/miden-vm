@@ -1,3 +1,5 @@
+use crate::chiplets::MemoryContextId;
+
 use super::{
     super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, ColMatrix, Felt,
     FieldElement, StarkField, Vec, Word, EMPTY_WORD, ONE, ZERO,
@@ -276,7 +278,7 @@ pub struct BlockStackTableRow {
     block_id: Felt,
     parent_id: Felt,
     is_loop: bool,
-    parent_ctx: u32,
+    parent_ctx: MemoryContextId,
     parent_fn_hash: Word,
     parent_fmp: Felt,
     parent_stack_depth: u32,

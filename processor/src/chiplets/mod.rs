@@ -18,7 +18,9 @@ pub use hasher::init_state_from_words;
 use hasher::Hasher;
 
 mod memory;
-use memory::{Memory, MemoryLookup};
+use memory::{ContextId, Memory, MemoryLookup};
+
+pub type MemoryContextId = memory::ContextId;
 
 mod kernel_rom;
 use kernel_rom::{KernelProcLookup, KernelRom};
@@ -349,7 +351,7 @@ impl Chiplets {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, ctx: u32, addr: u32) -> Word {
+    pub fn read_mem(&mut self, ctx: ContextId, addr: u32) -> Word {
         // read the word from memory
         let value = self.memory.read(ctx, addr, self.clk);
 
@@ -365,7 +367,7 @@ impl Chiplets {
     ///
     /// If either of the accessed addresses hasn't been previously written to, ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem_double(&mut self, ctx: u32, addr: u32) -> [Word; 2] {
+    pub fn read_mem_double(&mut self, ctx: ContextId, addr: u32) -> [Word; 2] {
         // read two words from memory: from addr and from addr + 1
         let addr2 = addr + 1;
         let words = [self.memory.read(ctx, addr, self.clk), self.memory.read(ctx, addr2, self.clk)];
@@ -384,7 +386,7 @@ impl Chiplets {
     /// Writes the provided word at the specified context/address.
     ///
     /// This also modifies the memory access trace and sends a memory lookup request to the bus.
-    pub fn write_mem(&mut self, ctx: u32, addr: u32, word: Word) {
+    pub fn write_mem(&mut self, ctx: ContextId, addr: u32, word: Word) {
         self.memory.write(ctx, addr, self.clk, word);
 
         // send the memory write request to the bus
@@ -396,7 +398,7 @@ impl Chiplets {
     /// elements of the word previously stored at that address unchanged.
     ///
     /// This also modifies the memory access trace and sends a memory lookup request to the bus.
-    pub fn write_mem_element(&mut self, ctx: u32, addr: u32, value: Felt) -> Word {
+    pub fn write_mem_element(&mut self, ctx: ContextId, addr: u32, value: Felt) -> Word {
         let old_word = self.memory.get_old_value(ctx, addr);
         let new_word = [value, old_word[1], old_word[2], old_word[3]];
 
@@ -413,7 +415,7 @@ impl Chiplets {
     /// context, starting at the specified address.
     ///
     /// This also modifies the memory access trace and sends two memory lookup requests to the bus.
-    pub fn write_mem_double(&mut self, ctx: u32, addr: u32, words: [Word; 2]) {
+    pub fn write_mem_double(&mut self, ctx: ContextId, addr: u32, words: [Word; 2]) {
         let addr2 = addr + 1;
         // write two words to memory at addr and addr + 1
         self.memory.write(ctx, addr, self.clk, words[0]);
@@ -434,14 +436,14 @@ impl Chiplets {
     ///
     /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
     /// the specified address (if one exists) without altering the memory access trace.
-    pub fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word> {
+    pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
         self.memory.get_value(ctx, addr)
     }
 
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_mem_state_at(&self, ctx: u32, clk: u32) -> Vec<(u64, Word)> {
+    pub fn get_mem_state_at(&self, ctx: ContextId, clk: u32) -> Vec<(u64, Word)> {
         self.memory.get_state_at(ctx, clk)
     }
 

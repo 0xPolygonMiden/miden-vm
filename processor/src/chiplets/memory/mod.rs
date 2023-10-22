@@ -4,6 +4,7 @@ use super::{
     BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
     Vec, Word, EMPTY_WORD, ONE,
 };
+use derive_more::{Add, AddAssign, Display, From, Into, Sub, SubAssign};
 use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
 };
@@ -23,18 +24,46 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 // RANDOM ACCESS MEMORY
 // ================================================================================================
 
-#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Add,
+    AddAssign,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Display,
+    Eq,
+    From,
+    Into,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Sub,
+    SubAssign,
+)]
 pub struct ContextId(u32);
 
-impl From<u32> for ContextId {
-    fn from(num: u32) -> Self {
-        Self(num)
+impl ContextId {
+    /// Returns the root context ID
+    pub fn root() -> Self {
+        Self(0)
+    }
+
+    /// Returns true if the context ID represents the root context
+    pub fn is_root(&self) -> bool {
+        self.0 == 0
     }
 }
 
-impl From<ContextId> for u32 {
+impl From<ContextId> for u64 {
     fn from(context_id: ContextId) -> Self {
-        context_id.0
+        context_id.0.into()
+    }
+}
+
+impl From<ContextId> for Felt {
+    fn from(context_id: ContextId) -> Self {
+        u64::from(context_id).into()
     }
 }
 
@@ -89,7 +118,7 @@ impl From<ContextId> for u32 {
 #[derive(Default)]
 pub struct Memory {
     /// Memory segment traces sorted by their execution context ID.
-    trace: BTreeMap<u32, MemorySegmentTrace>,
+    trace: BTreeMap<ContextId, MemorySegmentTrace>,
 
     /// Total number of entries in the trace (across all contexts); tracked separately so that we
     /// don't have to sum up lengths of all address trace vectors for all contexts all the time.
@@ -111,7 +140,7 @@ impl Memory {
     ///
     /// Unlike read() which modifies the memory access trace, this method returns the value at the
     /// specified address (if one exists) without altering the memory access trace.
-    pub fn get_value(&self, ctx: u32, addr: u32) -> Option<Word> {
+    pub fn get_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
         match self.trace.get(&ctx) {
             Some(segment) => segment.get_value(addr),
             None => None,
@@ -120,7 +149,7 @@ impl Memory {
 
     /// Returns the word at the specified context/address which should be used as the "old value" for a
     /// write request. It will be the previously stored value, if one exists, or initialized memory.
-    pub fn get_old_value(&self, ctx: u32, addr: u32) -> Word {
+    pub fn get_old_value(&self, ctx: ContextId, addr: u32) -> Word {
         // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
         self.get_value(ctx, addr).unwrap_or(INIT_MEM_VALUE)
     }
@@ -128,7 +157,7 @@ impl Memory {
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_state_at(&self, ctx: u32, clk: u32) -> Vec<(u64, Word)> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: u32) -> Vec<(u64, Word)> {
         if clk == 0 {
             return vec![];
         }
@@ -146,13 +175,13 @@ impl Memory {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, ctx: u32, addr: u32, clk: u32) -> Word {
+    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: u32) -> Word {
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
     }
 
     /// Writes the provided word at the specified context/address.
-    pub fn write(&mut self, ctx: u32, addr: u32, clk: u32, value: Word) {
+    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: u32, value: Word) {
         self.num_trace_rows += 1;
         self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
     }
@@ -183,7 +212,7 @@ impl Memory {
 
                     // compute delta as difference between context IDs, addresses, or clock cycles
                     let delta = if prev_ctx != ctx {
-                        (ctx - prev_ctx) as u64
+                        (ctx - prev_ctx).into()
                     } else if prev_addr != addr {
                         (addr - prev_addr) as u64
                     } else {
@@ -285,7 +314,7 @@ impl Memory {
 
     /// Returns the context, address, and clock cycle of the first trace row, or None if the trace
     /// is empty.
-    fn get_first_row_info(&self) -> Option<(u32, u32, Felt)> {
+    fn get_first_row_info(&self) -> Option<(ContextId, u32, Felt)> {
         let (ctx, segment) = match self.trace.iter().next() {
             Some((&ctx, segment)) => (ctx, segment),
             None => return None,
@@ -331,7 +360,7 @@ impl MemoryLookup {
         }
     }
 
-    pub fn from_ints(label: u8, ctx: u32, addr: u32, clk: u32, word: Word) -> Self {
+    pub fn from_ints(label: u8, ctx: ContextId, addr: u32, clk: u32, word: Word) -> Self {
         Self {
             label,
             ctx: Felt::from(ctx),

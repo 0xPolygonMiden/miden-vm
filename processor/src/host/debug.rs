@@ -1,5 +1,5 @@
 use super::ProcessState;
-use crate::Vec;
+use crate::{chiplets::MemoryContextId, Vec};
 use vm_core::{DebugOptions, StarkField, Word};
 
 // DEBUG HANDLER
@@ -32,12 +32,12 @@ pub fn print_debug_info<S: ProcessState>(process: &S, options: &DebugOptions) {
 
 struct Printer {
     clk: u32,
-    ctx: u32,
+    ctx: MemoryContextId,
     fmp: u32,
 }
 
 impl Printer {
-    fn new(clk: u32, ctx: u32, fmp: u64) -> Self {
+    fn new(clk: u32, ctx: MemoryContextId, fmp: u64) -> Self {
         Self {
             clk,
             ctx,

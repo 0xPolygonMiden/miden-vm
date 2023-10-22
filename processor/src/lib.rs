@@ -49,6 +49,7 @@ pub use host::{
 
 mod chiplets;
 use chiplets::Chiplets;
+pub use chiplets::MemoryContextId;
 
 mod trace;
 use trace::TraceFragment;
@@ -527,7 +528,7 @@ pub trait ProcessState {
     fn clk(&self) -> u32;
 
     /// Returns the current execution context ID.
-    fn ctx(&self) -> u32;
+    fn ctx(&self) -> MemoryContextId;
 
     /// Returns the current value of the free memory pointer.
     fn fmp(&self) -> u64;
@@ -553,14 +554,14 @@ pub trait ProcessState {
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
-    fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word>;
+    fn get_mem_value(&self, ctx: MemoryContextId, addr: u32) -> Option<Word>;
 
     /// Returns the entire memory state for the specified execution context at the current clock
     /// cycle.
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    fn get_mem_state(&self, ctx: u32) -> Vec<(u64, Word)>;
+    fn get_mem_state(&self, ctx: MemoryContextId) -> Vec<(u64, Word)>;
 }
 
 impl<H: Host> ProcessState for Process<H> {
@@ -568,7 +569,7 @@ impl<H: Host> ProcessState for Process<H> {
         self.system.clk()
     }
 
-    fn ctx(&self) -> u32 {
+    fn ctx(&self) -> MemoryContextId {
         self.system.ctx()
     }
 
@@ -588,11 +589,11 @@ impl<H: Host> ProcessState for Process<H> {
         self.stack.get_state_at(self.system.clk())
     }
 
-    fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word> {
+    fn get_mem_value(&self, ctx: MemoryContextId, addr: u32) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)
     }
 
-    fn get_mem_state(&self, ctx: u32) -> Vec<(u64, Word)> {
+    fn get_mem_state(&self, ctx: MemoryContextId) -> Vec<(u64, Word)> {
         self.chiplets.get_mem_state_at(ctx, self.system.clk())
     }
 }

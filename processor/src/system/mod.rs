@@ -1,3 +1,5 @@
+use crate::chiplets::MemoryContextId;
+
 use super::{
     ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
 };
@@ -39,7 +41,7 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 ///   initiated from the root context, this will be set to ZEROs.
 pub struct System {
     clk: u32,
-    ctx: u32,
+    ctx: MemoryContextId,
     fmp: Felt,
     in_syscall: bool,
     fn_hash: Word,
@@ -64,7 +66,7 @@ impl System {
 
         Self {
             clk: 0,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             fmp,
             in_syscall: false,
             fn_hash: EMPTY_WORD,
@@ -92,7 +94,7 @@ impl System {
 
     /// Returns the current execution context ID.
     #[inline(always)]
-    pub fn ctx(&self) -> u32 {
+    pub fn ctx(&self) -> MemoryContextId {
         self.ctx
     }
 
@@ -123,8 +125,8 @@ impl System {
 
     /// Returns execution context ID at the specified clock cycle.
     #[inline(always)]
-    pub fn get_ctx_at(&self, clk: u32) -> u32 {
-        self.ctx_trace[clk as usize].as_int() as u32
+    pub fn get_ctx_at(&self, clk: u32) -> MemoryContextId {
+        (self.ctx_trace[clk as usize].as_int() as u32).into()
     }
 
     /// Returns free memory pointer at the specified clock cycle.
@@ -178,7 +180,7 @@ impl System {
     /// A CALL cannot be started when the VM is executing a SYSCALL.
     pub fn start_call(&mut self, fn_hash: Word) {
         debug_assert!(!self.in_syscall, "call in syscall");
-        self.ctx = self.clk + 1;
+        self.ctx = (self.clk + 1).into();
         self.fmp = Felt::from(FMP_MIN);
         self.fn_hash = fn_hash;
     }
@@ -198,7 +200,7 @@ impl System {
     /// for SYSCALLs this remains set to the hash of the last invoked function.
     pub fn start_syscall(&mut self) {
         debug_assert!(!self.in_syscall, "already in syscall");
-        self.ctx = 0;
+        self.ctx = 0.into();
         self.fmp = Felt::from(SYSCALL_FMP_MIN);
         self.in_syscall = true;
     }
@@ -208,7 +210,7 @@ impl System {
     ///
     /// Note that we set in_syscall flag to true regardless of whether we return from a CALL or a
     /// SYSCALL.
-    pub fn restore_context(&mut self, ctx: u32, fmp: Felt, fn_hash: Word) {
+    pub fn restore_context(&mut self, ctx: MemoryContextId, fmp: Felt, fn_hash: Word) {
         self.ctx = ctx;
         self.fmp = fmp;
         self.in_syscall = false;
@@ -249,7 +251,7 @@ impl System {
 
         // complete the ctx column by filling all values after the last clock cycle with ZEROs as
         // the last context must be zero context.
-        debug_assert_eq!(0, self.ctx);
+        debug_assert!(self.ctx.is_root());
         self.ctx_trace.resize(trace_len, ZERO);
 
         // complete the fmp column by filling in all values after the last clock cycle with the
