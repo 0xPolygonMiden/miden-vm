@@ -4,6 +4,7 @@ use miden::{
     DefaultHost, StackInputs, Word,
 };
 use rustyline::{error::ReadlineError, DefaultEditor};
+use stdlib::StdLibrary;
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
@@ -126,6 +127,7 @@ use rustyline::{error::ReadlineError, DefaultEditor};
 /// Initiates the Miden Repl tool.
 pub fn start_repl() {
     let mut program_lines: Vec<String> = Vec::new();
+    let mut library_name: &str = "";
 
     println!("========================== Miden REPL ============================");
     println!();
@@ -143,7 +145,8 @@ pub fn start_repl() {
     let mut rl = DefaultEditor::new().expect("Readline couldn't be initialized");
     loop {
         let program = format!(
-            "begin\n{}\nend",
+            "{}\n\nbegin\n{}\nend",
+            library_name,
             program_lines
                 .iter()
                 .map(|l| format!("    {}", l))
@@ -173,7 +176,16 @@ pub fn start_repl() {
         }
         match rl.readline(">> ") {
             Ok(line) => {
-                if line == "!program" {
+                 if line == "!use" {
+                    // prints out the available modules from the Miden standard library.
+                    use_module();
+                } else if line == "!use std::math::256" {
+                    library_name = "use.std::math::256";
+                } else if line == "!use std::math::u64" {
+                    library_name = "use.std::math::u64";
+                } else if line == "!use std::math::secp256k1" {
+                    library_name = "use.std::math::secp256k1";
+                } else if line == "!program" {
                     println!("{}", program);
                     should_print_stack = false;
                 } else if line == "!help" {
@@ -263,6 +275,8 @@ pub fn start_repl() {
 /// Processor to be executed.
 fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramError> {
     let program = assembly::Assembler::default()
+        .with_library(&StdLibrary::default())
+        .unwrap()
         .compile(&program)
         .map_err(ProgramError::AssemblyError)?;
 
@@ -330,3 +344,15 @@ fn print_mem_address(addr: u64, mem: &Word) {
     let mem_int = mem.iter().map(|&x| x.as_int()).collect::<Vec<_>>();
     println!("{} {:?}", addr, mem_int)
 }
+
+fn use_module() {
+    println!("Modules available for importing:");
+    println!("");
+    println!("std::math::u256");
+    println!("std::math::u64");
+    println!("std::math::secp256k1");
+    println!();
+    println!("How it works:");
+    println!("!use std::math::u64");
+}
+
