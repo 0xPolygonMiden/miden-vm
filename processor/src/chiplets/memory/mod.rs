@@ -23,6 +23,21 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 // RANDOM ACCESS MEMORY
 // ================================================================================================
 
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ContextId(u32);
+
+impl From<u32> for ContextId {
+    fn from(num: u32) -> Self {
+        Self(num)
+    }
+}
+
+impl From<ContextId> for u32 {
+    fn from(context_id: ContextId) -> Self {
+        context_id.0
+    }
+}
+
 /// Memory controller for the VM.
 ///
 /// This component is responsible for tracking current memory state of the VM, as well as for
