@@ -6,7 +6,7 @@ use super::{
     build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
     ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
 };
-use crate::DefaultHost;
+use crate::{DefaultHost, MemoryContextId};
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -1098,7 +1098,7 @@ fn call_block() {
 
     // --- check block stack table rows -----------------------------------------------------------
     let call_ctx =
-        ExecutionContextInfo::new(0, EMPTY_WORD, FMP_MIN + TWO, 17, overflow_addr_after_pad);
+        ExecutionContextInfo::new(MemoryContextId::root(), EMPTY_WORD, FMP_MIN + TWO, 17, overflow_addr_after_pad);
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
         BlockStackTableRow::new_test(join1_addr, INIT_ADDR, false),
@@ -1435,8 +1435,8 @@ fn syscall_block() {
 
     // --- check block stack table rows -----------------------------------------------------------
     let call_ctx =
-        ExecutionContextInfo::new(0, EMPTY_WORD, FMP_MIN + ONE, 17, overflow_addr_after_pad);
-    let syscall_ctx = ExecutionContextInfo::new(8, bar_root_hash, FMP_MIN + TWO, 16, ZERO);
+        ExecutionContextInfo::new(MemoryContextId::root(), EMPTY_WORD, FMP_MIN + ONE, 17, overflow_addr_after_pad);
+    let syscall_ctx = ExecutionContextInfo::new(8.into(), bar_root_hash, FMP_MIN + TWO, 16, ZERO);
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
         BlockStackTableRow::new_test(inner_join_addr, INIT_ADDR, false),

@@ -1,4 +1,4 @@
-use processor::{DefaultHost, ProcessState};
+use processor::{DefaultHost, MemoryContextId, ProcessState};
 use test_utils::{
     build_expected_hash, build_expected_perm, stack_to_ints, ExecutionOptions, Process,
     StackInputs, ONE, ZERO,
@@ -36,17 +36,57 @@ fn test_memcopy() {
     );
     process.execute(&program).unwrap();
 
-    assert_eq!(process.get_mem_value(0, 1000), Some([ZERO, ZERO, ZERO, ONE]), "Address 1000");
-    assert_eq!(process.get_mem_value(0, 1001), Some([ZERO, ZERO, ONE, ZERO]), "Address 1001");
-    assert_eq!(process.get_mem_value(0, 1002), Some([ZERO, ZERO, ONE, ONE]), "Address 1002");
-    assert_eq!(process.get_mem_value(0, 1003), Some([ZERO, ONE, ZERO, ZERO]), "Address 1003");
-    assert_eq!(process.get_mem_value(0, 1004), Some([ZERO, ONE, ZERO, ONE]), "Address 1004");
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 1000),
+        Some([ZERO, ZERO, ZERO, ONE]),
+        "Address 1000"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 1001),
+        Some([ZERO, ZERO, ONE, ZERO]),
+        "Address 1001"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 1002),
+        Some([ZERO, ZERO, ONE, ONE]),
+        "Address 1002"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 1003),
+        Some([ZERO, ONE, ZERO, ZERO]),
+        "Address 1003"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 1004),
+        Some([ZERO, ONE, ZERO, ONE]),
+        "Address 1004"
+    );
 
-    assert_eq!(process.get_mem_value(0, 2000), Some([ZERO, ZERO, ZERO, ONE]), "Address 2000");
-    assert_eq!(process.get_mem_value(0, 2001), Some([ZERO, ZERO, ONE, ZERO]), "Address 2001");
-    assert_eq!(process.get_mem_value(0, 2002), Some([ZERO, ZERO, ONE, ONE]), "Address 2002");
-    assert_eq!(process.get_mem_value(0, 2003), Some([ZERO, ONE, ZERO, ZERO]), "Address 2003");
-    assert_eq!(process.get_mem_value(0, 2004), Some([ZERO, ONE, ZERO, ONE]), "Address 2004");
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 2000),
+        Some([ZERO, ZERO, ZERO, ONE]),
+        "Address 2000"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 2001),
+        Some([ZERO, ZERO, ONE, ZERO]),
+        "Address 2001"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 2002),
+        Some([ZERO, ZERO, ONE, ONE]),
+        "Address 2002"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 2003),
+        Some([ZERO, ONE, ZERO, ZERO]),
+        "Address 2003"
+    );
+    assert_eq!(
+        process.get_mem_value(MemoryContextId::root(), 2004),
+        Some([ZERO, ONE, ZERO, ONE]),
+        "Address 2004"
+    );
 }
 
 #[test]

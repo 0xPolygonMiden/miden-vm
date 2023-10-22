@@ -1,4 +1,4 @@
-use processor::{AsmOpInfo, VmState};
+use processor::{AsmOpInfo, VmState, MemoryContextId};
 use test_utils::{build_debug_test, Felt, ToElements, ONE};
 use vm_core::{AssemblyOp, Operation};
 
@@ -19,7 +19,7 @@ fn test_exec_iter() {
     let expected_states = vec![
         VmState {
             clk: 0,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: None,
             asmop: None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
@@ -28,7 +28,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 1,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Span),
             asmop: None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1].to_elements(),
@@ -37,7 +37,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 2,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Pad),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 3, "mem_storew.1".to_string(), false),
@@ -49,7 +49,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 3,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Incr),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 3, "mem_storew.1".to_string(), false),
@@ -61,7 +61,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 4,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::MStoreW),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 3, "mem_storew.1".to_string(), false),
@@ -73,7 +73,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 5,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
@@ -85,7 +85,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 6,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
@@ -97,7 +97,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 7,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
@@ -109,7 +109,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 8,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 4, "dropw".to_string(), false),
@@ -121,7 +121,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 9,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Push(Felt::new(17))),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("#main".to_string(), 1, "push.17".to_string(), false),
@@ -133,7 +133,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 10,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Noop),
             asmop: None,
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
@@ -142,7 +142,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 11,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Push(ONE)),
             asmop: None,
             stack: [1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
@@ -151,7 +151,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 12,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::FmpUpdate),
             asmop: None,
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
@@ -160,7 +160,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 13,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Pad),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
@@ -172,7 +172,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 14,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::FmpAdd),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
@@ -185,7 +185,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 15,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::MStore),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),
@@ -200,7 +200,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 16,
-            ctx: 0,
+            ctx: MemoryContextId::root(),
             op: Some(Operation::Drop),
             asmop: Some(AsmOpInfo::new(
                 AssemblyOp::new("foo".to_string(), 4, "loc_store.0".to_string(), false),

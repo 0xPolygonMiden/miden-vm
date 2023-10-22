@@ -309,7 +309,7 @@ impl BlockStackTableRow {
             block_id,
             parent_id,
             is_loop,
-            parent_ctx: 0,
+            parent_ctx: MemoryContextId::root(),
             parent_fn_hash: EMPTY_WORD,
             parent_fmp: ZERO,
             parent_stack_depth: 0,
