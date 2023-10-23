@@ -4,10 +4,14 @@
 
 #### Assembly
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations.
+- Introduced the `emit.<event_id>` assembly instruction (#1119).
 
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt` 
   and `std::collections::smt64` to use the procedure (#1107).
+
+#### VM Internals
+- Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
 
 ## 0.7.0 (2023-10-11)
 

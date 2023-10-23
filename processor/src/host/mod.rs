@@ -55,6 +55,22 @@ pub trait Host {
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
 
+    /// Handles the event emitted from the VM.
+    fn on_event<S: ProcessState>(
+        &mut self,
+        process: &S,
+        event_id: u32,
+    ) -> Result<HostResponse, ExecutionError> {
+        #[cfg(feature = "std")]
+        println!(
+            "Event with id {} emitted at step {} in context {}",
+            event_id,
+            process.clk(),
+            process.ctx()
+        );
+        Ok(HostResponse::None)
+    }
+
     /// Handles the debug request from the VM.
     fn on_debug<S: ProcessState>(
         &mut self,
@@ -140,6 +156,22 @@ where
     ) -> Result<HostResponse, ExecutionError> {
         H::set_advice(self, process, injector)
     }
+
+    fn on_debug<S: ProcessState>(
+        &mut self,
+        process: &S,
+        options: &DebugOptions,
+    ) -> Result<HostResponse, ExecutionError> {
+        H::on_debug(self, process, options)
+    }
+
+    fn on_event<S: ProcessState>(
+        &mut self,
+        process: &S,
+        event_id: u32,
+    ) -> Result<HostResponse, ExecutionError> {
+        H::on_event(self, process, event_id)
+    }
 }
 
 // HOST RESPONSE
@@ -194,7 +226,7 @@ impl From<HostResponse> for Felt {
 // DEFAULT HOST IMPLEMENTATION
 // ================================================================================================
 
-/// TODO: add comments
+/// A default [Host] implementation that provides the essential functionality required by the VM.
 pub struct DefaultHost<A> {
     adv_provider: A,
 }

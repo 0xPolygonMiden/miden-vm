@@ -313,6 +313,9 @@ pub enum Instruction {
     // ----- debug decorators ---------------------------------------------------------------------
     Breakpoint,
     Debug(DebugOptions),
+
+    // ----- emit instruction ---------------------------------------------------------------------
+    Emit(u32),
 }
 
 impl Instruction {
@@ -599,6 +602,9 @@ impl fmt::Display for Instruction {
             // ----- debug decorators -------------------------------------------------------------
             Self::Breakpoint => write!(f, "breakpoint"),
             Self::Debug(options) => write!(f, "debug.{options}"),
+
+            // ----- emit instruction -------------------------------------------------------------
+            Self::Emit(value) => write!(f, "emit.{value}"),
         }
     }
 }

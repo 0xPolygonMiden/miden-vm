@@ -531,6 +531,12 @@ impl Serializable for Instruction {
                 OpCode::Debug.write_into(target);
                 debug::write_options_into(target, options);
             }
+
+            // ----- emit instruction -------------------------------------------------------------
+            Self::Emit(event_id) => {
+                OpCode::Emit.write_into(target);
+                target.write_u32(*event_id);
+            }
         }
     }
 }
