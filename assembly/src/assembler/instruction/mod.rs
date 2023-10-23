@@ -343,6 +343,12 @@ impl Assembler {
                 }
                 Ok(None)
             }
+
+            // ----- emit instruction -------------------------------------------------------------
+            Instruction::Emit(event_id) => {
+                span.push_decorator(Decorator::Event(*event_id));
+                Ok(None)
+            }
         };
 
         // compute and update the cycle count of the instruction which just finished executing

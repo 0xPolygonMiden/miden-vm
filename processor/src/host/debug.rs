@@ -45,6 +45,8 @@ impl Printer {
         }
     }
 
+    /// Prints the number of stack items specified by `n` if it is provided, otherwise prints
+    /// the whole stack.
     fn print_vm_stack<S: ProcessState>(&self, process: &S, n: Option<usize>) {
         let stack = process.get_stack_state();
 

@@ -1,8 +1,8 @@
 use super::{
-    super::ProcReExport, adv_ops, debug, field_ops, io_ops, stack_ops, sys_ops, u32_ops, CodeBody,
-    Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node,
-    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap, Token, TokenStream,
-    MAX_BODY_LEN, MAX_DOCS_LEN,
+    super::ProcReExport, adv_ops, debug, emit, field_ops, io_ops, stack_ops, sys_ops, u32_ops,
+    CodeBody, Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap,
+    ModuleImports, Node, ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap,
+    Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
 use vm_core::utils::{collections::Vec, string::ToString};
 
@@ -629,6 +629,9 @@ impl ParserContext<'_> {
             // ----- debug decorators -------------------------------------------------------------
             "breakpoint" => simple_instruction(op, Breakpoint),
             "debug" => debug::parse_debug(op, self.num_proc_locals),
+
+            // ----- emit instruction -------------------------------------------------------------
+            "emit" => emit::parse_emit(op, &self.local_constants),
 
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),
