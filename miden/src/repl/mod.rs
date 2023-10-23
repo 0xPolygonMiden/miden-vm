@@ -328,9 +328,7 @@ fn print_instructions() {
     println!("!mem[i]: displays the state of the memory at address i");
     println!("!undo: remove the last instruction");
     println!("!program: display the program");
-    println!(
-        "!use: displays a list of modules/imports a specified module from Miden Standard Library"
-    );
+    println!("!use: displays a list of modules/imports a specified module from Miden Standard Library");
     println!("!help: prints out all the available commands");
     println!();
 }
@@ -354,7 +352,7 @@ fn use_module() {
     println!("std::math::u256");
     println!("std::math::u64");
     println!("std::math::secp256k1");
-    println!();
+    println!("");
     println!("How it works:");
     println!("!use std::math::u64");
 }
