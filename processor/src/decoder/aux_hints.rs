@@ -1,4 +1,4 @@
-use crate::chiplets::ContextId;
+use crate::system::ContextId;
 
 use super::{
     super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, ColMatrix, Felt,

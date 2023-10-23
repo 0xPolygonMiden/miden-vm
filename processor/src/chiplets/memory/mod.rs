@@ -1,10 +1,11 @@
+use crate::system::ContextId;
+
 use super::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
     Vec, Word, EMPTY_WORD, ONE,
 };
-use derive_more::{Add, AddAssign, Display, From, Into, Sub, SubAssign};
 use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
 };
@@ -23,49 +24,6 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================
-
-#[derive(
-    Add,
-    AddAssign,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Display,
-    Eq,
-    From,
-    Into,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Sub,
-    SubAssign,
-)]
-pub struct ContextId(u32);
-
-impl ContextId {
-    /// Returns the root context ID
-    pub fn root() -> Self {
-        Self(0)
-    }
-
-    /// Returns true if the context ID represents the root context
-    pub fn is_root(&self) -> bool {
-        self.0 == 0
-    }
-}
-
-impl From<ContextId> for u64 {
-    fn from(context_id: ContextId) -> Self {
-        context_id.0.into()
-    }
-}
-
-impl From<ContextId> for Felt {
-    fn from(context_id: ContextId) -> Self {
-        u64::from(context_id).into()
-    }
-}
 
 /// Memory controller for the VM.
 ///

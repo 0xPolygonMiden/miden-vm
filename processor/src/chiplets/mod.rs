@@ -1,3 +1,5 @@
+use crate::system::ContextId;
+
 use super::{
     crypto::MerklePath, trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt,
     FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD,
@@ -19,8 +21,6 @@ use hasher::Hasher;
 
 mod memory;
 use memory::{Memory, MemoryLookup};
-
-pub use memory::ContextId;
 
 mod kernel_rom;
 use kernel_rom::{KernelProcLookup, KernelRom};

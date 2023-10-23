@@ -1,6 +1,6 @@
 use crate::{
-    chiplets::ContextId, range::RangeChecker, Chiplets, ChipletsLengths, Decoder,
-    ExecutionError, Felt, Host, Process, Stack, StarkField, System, TraceLenSummary, Vec,
+    range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
+    Felt, Host, Process, Stack, StarkField, System, TraceLenSummary, Vec,
 };
 use core::fmt;
 use vm_core::{

@@ -1,4 +1,4 @@
-use crate::chiplets::ContextId;
+use crate::system::ContextId;
 
 use super::{Felt, Vec, Word, ONE, ZERO};
 

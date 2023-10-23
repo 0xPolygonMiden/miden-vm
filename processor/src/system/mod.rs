@@ -1,8 +1,8 @@
-use crate::chiplets::ContextId;
-
 use super::{
     ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
 };
+
+use derive_more::{Add, AddAssign, Display, From, Into, Sub, SubAssign};
 
 #[cfg(test)]
 mod tests;
@@ -296,5 +296,51 @@ impl System {
                 column.resize(new_length, ZERO);
             }
         }
+    }
+}
+
+// MEMORY CONTEXT
+// ================================================================================================
+
+#[derive(
+    Add,
+    AddAssign,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Display,
+    Eq,
+    From,
+    Into,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Sub,
+    SubAssign,
+)]
+pub struct ContextId(u32);
+
+impl ContextId {
+    /// Returns the root context ID
+    pub fn root() -> Self {
+        Self(0)
+    }
+
+    /// Returns true if the context ID represents the root context
+    pub fn is_root(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl From<ContextId> for u64 {
+    fn from(context_id: ContextId) -> Self {
+        context_id.0.into()
+    }
+}
+
+impl From<ContextId> for Felt {
+    fn from(context_id: ContextId) -> Self {
+        u64::from(context_id).into()
     }
 }

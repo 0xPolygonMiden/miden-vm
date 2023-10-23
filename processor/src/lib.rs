@@ -30,7 +30,7 @@ mod operations;
 
 mod system;
 use system::System;
-pub use system::{FMP_MIN, SYSCALL_FMP_MIN};
+pub use system::{ContextId, FMP_MIN, SYSCALL_FMP_MIN};
 
 mod decoder;
 use decoder::Decoder;
@@ -49,7 +49,6 @@ pub use host::{
 
 mod chiplets;
 use chiplets::Chiplets;
-pub use chiplets::ContextId;
 
 mod trace;
 use trace::TraceFragment;
