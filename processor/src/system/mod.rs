@@ -2,7 +2,10 @@ use super::{
     ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
 };
 
-use derive_more::{Add, AddAssign, Display, From, Into, Sub, SubAssign};
+use core::{
+    fmt::{self, Display},
+    ops::Sub,
+};
 
 #[cfg(test)]
 mod tests;
@@ -302,23 +305,7 @@ impl System {
 // MEMORY CONTEXT
 // ================================================================================================
 
-#[derive(
-    Add,
-    AddAssign,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Display,
-    Eq,
-    From,
-    Into,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Sub,
-    SubAssign,
-)]
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ContextId(u32);
 
 impl ContextId {
@@ -333,6 +320,18 @@ impl ContextId {
     }
 }
 
+impl From<u32> for ContextId {
+    fn from(value: u32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<ContextId> for u32 {
+    fn from(value: ContextId) -> Self {
+        value.0
+    }
+}
+
 impl From<ContextId> for u64 {
     fn from(context_id: ContextId) -> Self {
         context_id.0.into()
@@ -342,5 +341,19 @@ impl From<ContextId> for u64 {
 impl From<ContextId> for Felt {
     fn from(context_id: ContextId) -> Self {
         u64::from(context_id).into()
+    }
+}
+
+impl Sub for ContextId {
+    type Output = u32;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.0 - rhs.0
+    }
+}
+
+impl Display for ContextId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
