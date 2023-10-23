@@ -18,9 +18,9 @@ pub use hasher::init_state_from_words;
 use hasher::Hasher;
 
 mod memory;
-use memory::{ContextId, Memory, MemoryLookup};
+use memory::{Memory, MemoryLookup};
 
-pub type MemoryContextId = memory::ContextId;
+pub use memory::ContextId;
 
 mod kernel_rom;
 use kernel_rom::{KernelProcLookup, KernelRom};

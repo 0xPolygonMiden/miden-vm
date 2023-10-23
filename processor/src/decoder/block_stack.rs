@@ -1,4 +1,4 @@
-use crate::chiplets::MemoryContextId;
+use crate::chiplets::ContextId;
 
 use super::{Felt, Vec, Word, ONE, ZERO};
 
@@ -164,7 +164,7 @@ impl BlockInfo {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ExecutionContextInfo {
     /// Context ID of the block's parent.
-    pub parent_ctx: MemoryContextId,
+    pub parent_ctx: ContextId,
     /// Hash of the function which initiated execution of the block's parent. If the parent is a
     /// root context, this will be set to [ZERO; 4].
     pub parent_fn_hash: Word,
@@ -179,7 +179,7 @@ pub struct ExecutionContextInfo {
 impl ExecutionContextInfo {
     /// Returns an new [ExecutionContextInfo] instantiated with the specified parameters.
     pub fn new(
-        parent_ctx: MemoryContextId,
+        parent_ctx: ContextId,
         parent_fn_hash: Word,
         parent_fmp: Felt,
         parent_stack_depth: u32,

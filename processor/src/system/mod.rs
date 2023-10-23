@@ -1,4 +1,4 @@
-use crate::chiplets::MemoryContextId;
+use crate::chiplets::ContextId;
 
 use super::{
     ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
@@ -41,7 +41,7 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 ///   initiated from the root context, this will be set to ZEROs.
 pub struct System {
     clk: u32,
-    ctx: MemoryContextId,
+    ctx: ContextId,
     fmp: Felt,
     in_syscall: bool,
     fn_hash: Word,
@@ -66,7 +66,7 @@ impl System {
 
         Self {
             clk: 0,
-            ctx: MemoryContextId::root(),
+            ctx: ContextId::root(),
             fmp,
             in_syscall: false,
             fn_hash: EMPTY_WORD,
@@ -94,7 +94,7 @@ impl System {
 
     /// Returns the current execution context ID.
     #[inline(always)]
-    pub fn ctx(&self) -> MemoryContextId {
+    pub fn ctx(&self) -> ContextId {
         self.ctx
     }
 
@@ -125,7 +125,7 @@ impl System {
 
     /// Returns execution context ID at the specified clock cycle.
     #[inline(always)]
-    pub fn get_ctx_at(&self, clk: u32) -> MemoryContextId {
+    pub fn get_ctx_at(&self, clk: u32) -> ContextId {
         (self.ctx_trace[clk as usize].as_int() as u32).into()
     }
 
@@ -210,7 +210,7 @@ impl System {
     ///
     /// Note that we set in_syscall flag to true regardless of whether we return from a CALL or a
     /// SYSCALL.
-    pub fn restore_context(&mut self, ctx: MemoryContextId, fmp: Felt, fn_hash: Word) {
+    pub fn restore_context(&mut self, ctx: ContextId, fmp: Felt, fn_hash: Word) {
         self.ctx = ctx;
         self.fmp = fmp;
         self.in_syscall = false;

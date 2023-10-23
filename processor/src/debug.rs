@@ -1,5 +1,5 @@
 use crate::{
-    chiplets::MemoryContextId, range::RangeChecker, Chiplets, ChipletsLengths, Decoder,
+    chiplets::ContextId, range::RangeChecker, Chiplets, ChipletsLengths, Decoder,
     ExecutionError, Felt, Host, Process, Stack, StarkField, System, TraceLenSummary, Vec,
 };
 use core::fmt;
@@ -12,7 +12,7 @@ use vm_core::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: u32,
-    pub ctx: MemoryContextId,
+    pub ctx: ContextId,
     pub op: Option<Operation>,
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
