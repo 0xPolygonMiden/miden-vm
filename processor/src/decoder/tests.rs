@@ -6,7 +6,7 @@ use super::{
     build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
     ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
 };
-use crate::{DefaultHost, ContextId};
+use crate::{ContextId, DefaultHost};
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,

@@ -1,4 +1,4 @@
-use processor::{AsmOpInfo, VmState, ContextId};
+use processor::{AsmOpInfo, ContextId, VmState};
 use test_utils::{build_debug_test, Felt, ToElements, ONE};
 use vm_core::{AssemblyOp, Operation};
 

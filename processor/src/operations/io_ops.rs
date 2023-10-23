@@ -386,14 +386,8 @@ mod tests {
 
         // check memory state
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(
-            word1_felts,
-            process.chiplets.get_mem_value(ContextId::root(), 1).unwrap()
-        );
-        assert_eq!(
-            word2_felts,
-            process.chiplets.get_mem_value(ContextId::root(), 2).unwrap()
-        );
+        assert_eq!(word1_felts, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // clear the stack
         for _ in 0..8 {
@@ -544,14 +538,8 @@ mod tests {
 
         // check memory state contains the words from the advice stack
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(
-            word1_felts,
-            process.chiplets.get_mem_value(ContextId::root(), 1).unwrap()
-        );
-        assert_eq!(
-            word2_felts,
-            process.chiplets.get_mem_value(ContextId::root(), 2).unwrap()
-        );
+        assert_eq!(word1_felts, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // the first 8 values should be the values from the advice stack. the next 4 values should
         // remain unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).

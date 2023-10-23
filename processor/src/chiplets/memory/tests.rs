@@ -277,8 +277,7 @@ fn mem_multi_context() {
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), 0, 9, value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), 0, 9, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 

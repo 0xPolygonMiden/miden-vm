@@ -1,4 +1,4 @@
-use processor::{DefaultHost, ContextId, ProcessState};
+use processor::{ContextId, DefaultHost, ProcessState};
 use test_utils::{
     build_expected_hash, build_expected_perm, stack_to_ints, ExecutionOptions, Process,
     StackInputs, ONE, ZERO,
