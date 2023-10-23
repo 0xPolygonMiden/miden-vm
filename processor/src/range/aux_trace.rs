@@ -36,7 +36,7 @@ impl AuxTraceBuilder {
     // AUX COLUMN BUILDERS
     // --------------------------------------------------------------------------------------------
 
-    /// Builds and returns range checker auxiliary trace columns. Currently this consists of one 
+    /// Builds and returns range checker auxiliary trace columns. Currently this consists of one
     /// column:
     /// - `b_range`: ensures that the range checks performed by the Range Checker match those
     ///   requested by the Stack and Memory processors.
