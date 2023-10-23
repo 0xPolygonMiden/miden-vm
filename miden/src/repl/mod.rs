@@ -3,6 +3,7 @@ use miden::{
     math::{Felt, StarkField},
     DefaultHost, StackInputs, Word,
 };
+use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
 
 /// This work is in continuation to the amazing work done by team `Scribe`
@@ -276,7 +277,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     }
 
     // loads the memory at the latest clock cycle.
-    let mem_state = chiplets.get_mem_state_at(0, system.clk());
+    let mem_state = chiplets.get_mem_state_at(ContextId::root(), system.clk());
     // loads the stack along with the overflow values at the latest clock cycle.
     let stack_state = stack.get_state_at(system.clk());
 
