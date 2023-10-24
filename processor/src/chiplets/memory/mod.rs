@@ -1,5 +1,4 @@
 use crate::system::ContextId;
-
 use super::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
