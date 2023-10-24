@@ -1,10 +1,10 @@
-use crate::system::ContextId;
 use super::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
     Vec, Word, EMPTY_WORD, ONE,
 };
+use crate::system::ContextId;
 use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
 };
@@ -169,7 +169,7 @@ impl Memory {
 
                     // compute delta as difference between context IDs, addresses, or clock cycles
                     let delta = if prev_ctx != ctx {
-                        (ctx - prev_ctx).into()
+                        (u32::from(ctx) - u32::from(prev_ctx)).into()
                     } else if prev_addr != addr {
                         (addr - prev_addr) as u64
                     } else {

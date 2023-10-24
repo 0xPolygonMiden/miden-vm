@@ -2,10 +2,7 @@ use super::{
     ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
 };
 
-use core::{
-    fmt::{self, Display},
-    ops::Sub,
-};
+use core::fmt::{self, Display};
 
 #[cfg(test)]
 mod tests;
@@ -342,14 +339,6 @@ impl From<ContextId> for u64 {
 impl From<ContextId> for Felt {
     fn from(context_id: ContextId) -> Self {
         u64::from(context_id).into()
-    }
-}
-
-impl Sub for ContextId {
-    type Output = u32;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        self.0 - rhs.0
     }
 }
 
