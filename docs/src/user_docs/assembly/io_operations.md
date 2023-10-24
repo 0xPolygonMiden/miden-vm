@@ -25,10 +25,11 @@ In both case the values must still encode valid field elements.
 
 | Instruction                     | Stack_input  | Stack_output | Notes                                                                                                                                                                                                             |
 | ------------------------------- | ------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| clk <br> - *(1 cycle)*          | [ ... ]      | [t, ... ]    | $t \leftarrow clock\_value()$ <br> Pushes the current value of the clock cycle counter onto the stack.                                                                                                            |
-| sdepth <br> - *(1 cycle)*       | [ ... ]      | [d, ... ]    | $d \leftarrow stack.depth()$ <br> Pushes the current depth of the stack onto the stack.                                                                                                                           |
-| caller <br> - *(1 cycle)*       | [A, b, ... ] | [H, b, ... ] | $H \leftarrow context.fn\_hash()$ <br> Overwrites the top four stack items with the hash of a function which initiated the current SYSCALL. <br> Executing this instruction outside of SYSCALL context will fail. |
-| locaddr.*i* <br> - *(2 cycles)* | [ ... ]      | [a, ... ]    | $a \leftarrow address\_of(i)$ <br> Pushes the absolute memory address of local memory at index $i$ onto the stack.                                                                                                |
+| clk <br> - *(1 cycle)*             | [ ... ]      | [t, ... ]    | $t \leftarrow clock\_value()$ <br> Pushes the current value of the clock cycle counter onto the stack.                                                                                                       |
+| sdepth <br> - *(1 cycle)*          | [ ... ]      | [d, ... ]    | $d \leftarrow stack.depth()$ <br> Pushes the current depth of the stack onto the stack.                                                                                                                        |
+| caller <br> - *(1 cycle)*          | [A, b, ... ] | [H, b, ... ] | $H \leftarrow context.fn\_hash()$ <br> Overwrites the top four stack items with the hash of a function which initiated the current SYSCALL. <br> Executing this instruction outside of SYSCALL context will fail. |
+| locaddr.*i* <br> - *(2 cycles)*    | [ ... ]      | [a, ... ]    | $a \leftarrow address\_of(i)$ <br> Pushes the absolute memory address of local memory at index $i$ onto the stack.                                                                                           |
+| procref.*name* <br> - *(4 cycles)* | [ ... ]      | [A, ... ]    | $A \leftarrow mast\_root()$ <br> Pushes MAST root of the procedure with name $name$ onto the stack.                                                                                                               | 
 
 ### Nondeterministic inputs
 

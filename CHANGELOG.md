@@ -5,6 +5,7 @@
 #### Assembly
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations.
 - Introduced the `emit.<event_id>` assembly instruction (#1119).
+- Introduced the `procref.<proc_name>` assembly instruction (#1113).
 
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
