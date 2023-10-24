@@ -299,7 +299,7 @@ impl System {
     }
 }
 
-// MEMORY CONTEXT
+// EXECUTION CONTEXT
 // ================================================================================================
 
 /// Represents the ID of a memory context
