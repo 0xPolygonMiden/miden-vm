@@ -55,6 +55,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
     let lde_blowup = 1 << 3;
     let max_remainder_size = 1 << max_remainder_size_e;
     let folding_factor = 1 << folding_factor_e;
+    let nonce = 0_u64;
 
     let options = FriOptions::new(lde_blowup, folding_factor, max_remainder_size);
     let mut channel = build_prover_channel(trace_length, &options);
@@ -63,7 +64,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
     // instantiate the prover and generate the proof
     let mut prover = FriProver::new(options.clone());
     prover.build_layers(&mut channel, evaluations.clone());
-    let positions = channel.draw_query_positions();
+    let positions = channel.draw_query_positions(nonce);
     let proof = prover.build_proof(&positions);
 
     // make sure the proof can be verified

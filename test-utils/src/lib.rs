@@ -24,7 +24,7 @@ pub use processor::{
 };
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
-pub use verifier::{ProgramInfo, VerifierError};
+pub use verifier::{AcceptableOptions, ProgramInfo, VerifierError};
 pub use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},

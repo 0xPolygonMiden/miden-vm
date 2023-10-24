@@ -16,6 +16,7 @@ fn range_check_once() {
 fn range_check_multi() {
     let source = "begin u32checked_add u32checked_add end";
     let stack = vec![5, 5, 5];
+
     build_test!(source, &stack).prove_and_verify(stack, false);
 }
 

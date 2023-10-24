@@ -18,7 +18,7 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
 
     cmd.arg("run")
         .arg("-a")
-        .arg("examples/fib/fib.masm")
+        .arg("./examples/fib/fib.masm")
         .arg("-n")
         .arg("1")
         .arg("-m")

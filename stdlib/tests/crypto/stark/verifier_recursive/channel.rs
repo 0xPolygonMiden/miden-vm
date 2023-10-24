@@ -54,6 +54,7 @@ impl VerifierChannel {
             ood_frame,
             fri_proof,
             pow_nonce,
+            num_unique_queries,
         } = proof;
 
         // make AIR and proof base fields are the same
@@ -73,8 +74,9 @@ impl VerifierChannel {
             .parse::<Rpo256>(num_trace_segments, fri_options.num_fri_layers(lde_domain_size))
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
         // --- parse trace and constraint queries -------------------------------------------------
-        let trace_queries = TraceQueries::new(trace_queries, air)?;
-        let constraint_queries = ConstraintQueries::new(constraint_queries, air)?;
+        let trace_queries = TraceQueries::new(trace_queries, air, num_unique_queries as usize)?;
+        let constraint_queries =
+            ConstraintQueries::new(constraint_queries, air, num_unique_queries as usize)?;
 
         // --- parse FRI proofs -------------------------------------------------------------------
         let fri_num_partitions = fri_proof.num_partitions();
@@ -330,7 +332,11 @@ struct TraceQueries {
 impl TraceQueries {
     /// Parses the provided trace queries into trace states in the specified field and
     /// corresponding Merkle authentication paths.
-    pub fn new(mut queries: Vec<Queries>, air: &ProcessorAir) -> Result<Self, VerifierError> {
+    pub fn new(
+        mut queries: Vec<Queries>,
+        air: &ProcessorAir,
+        num_queries: usize,
+    ) -> Result<Self, VerifierError> {
         assert_eq!(
             queries.len(),
             air.trace_layout().num_segments(),
@@ -338,8 +344,6 @@ impl TraceQueries {
             air.trace_layout().num_segments(),
             queries.len()
         );
-
-        let num_queries = air.options().num_queries();
 
         // parse main trace segment queries; parsing also validates that hashes of each table row
         // form the leaves of Merkle authentication paths in the proofs
@@ -403,8 +407,11 @@ struct ConstraintQueries {
 impl ConstraintQueries {
     /// Parses the provided constraint queries into evaluations in the specified field and
     /// corresponding Merkle authentication paths.
-    pub fn new(queries: Queries, air: &ProcessorAir) -> Result<Self, VerifierError> {
-        let num_queries = air.options().num_queries();
+    pub fn new(
+        queries: Queries,
+        air: &ProcessorAir,
+        num_queries: usize,
+    ) -> Result<Self, VerifierError> {
         let (query_proofs, evaluations) = queries
             .parse::<Rpo256, QuadExt>(air.lde_domain_size(), num_queries, air.ce_blowup_factor())
             .map_err(|err| {
