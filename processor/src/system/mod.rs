@@ -199,7 +199,7 @@ impl System {
     /// for SYSCALLs this remains set to the hash of the last invoked function.
     pub fn start_syscall(&mut self) {
         debug_assert!(!self.in_syscall, "already in syscall");
-        self.ctx = 0.into();
+        self.ctx = ContextId::root();
         self.fmp = Felt::from(SYSCALL_FMP_MIN);
         self.in_syscall = true;
     }
