@@ -10,7 +10,7 @@ begin
     assert_eqw
 
     dropw
-    
+
     # push the root of the Sparse Merkle Tree on the stack
     push.0x444693b04b509c6b69d9ed981e67243342505f3b64aa3d45746211c180d11902
 
@@ -22,7 +22,7 @@ begin
     assert_eqw
 
     dropw
-    
+
     # push the root of the Merkle Tree on the stack
     push.0x0463f7d47758ad94b11dbf9675ffb7b331baa9c150d7fac6d784055c313eab0e
 

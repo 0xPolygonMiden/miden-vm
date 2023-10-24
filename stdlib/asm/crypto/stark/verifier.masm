@@ -205,7 +205,7 @@ export.verify
     #   6) Compute evaluations of DEEP composition
     #   polynomial at randomly chosen query positions
     #============================================
-    
+
     # Compute the pointer to the first query using the pointer to
     # the first layer commitment and total number of queries.
     exec.constants::fri_com_ptr

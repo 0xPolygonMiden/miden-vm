@@ -18,7 +18,7 @@ fn sha256_hash_memory() {
         # mem.1 - length in bytes
         mem_store.1
 
-        # mem.2 - length in felts                                 
+        # mem.2 - length in felts
         mem_load.1 u32checked_add.3 u32checked_div.4 mem_store.2
 
         # Load input data into memory address 10000, 10001, ...

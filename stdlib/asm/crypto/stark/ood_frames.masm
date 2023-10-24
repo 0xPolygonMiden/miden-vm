@@ -3,7 +3,7 @@ use.std::crypto::stark::constants
 
 #! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
 #! the hash of the OOD for reseeding the random coin.
-#! 
+#!
 #! Input: [...]
 #! Output: [OOD_FRAME_HASH, ...]
 #! Cycles: 106
@@ -14,16 +14,16 @@ export.load_evaluation_frame
     # 324 = 40 * 8 + 4
     # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
     # current row and a1 from the next row.
-    
+
     exec.constants::ood_trace_ptr
 
     push.1.0.0.0
-    padw padw 
+    padw padw
     repeat.40
         adv_pipe
         hperm
     end
-    
+
     # Load the last remaining word and pad with 1 followed by three 0
     adv_loadw
     dup.12 mem_storew
@@ -50,7 +50,7 @@ export.load_constraint_evaluations
     # is the execution trace length.
     # In order to facilitate the computation of the DEEP composition polynomial queries, we lay out
     # the values in memory as [v0, v1, 0, 0] where v := (v0, v1) ranges over the 8 values `value_i`.
-    
+
     # Load value_0 and value_1
     padw
     padw

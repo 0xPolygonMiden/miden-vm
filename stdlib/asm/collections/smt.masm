@@ -628,7 +628,7 @@ end
 #!
 #! Input:  [V, K, R, ...]
 #! Output: [0, 0, 0, 0, R_new, ...]
-#! 
+#!
 #! This procedure is nearly identical to the insert_32 procedure above, adjusted for the use of
 #! constants and idx_hi/idx_lo computation. It may be possible to combine the two at the expense
 #! of extra 10 - 20 cycles.
@@ -999,7 +999,7 @@ proc.insert_internal
     # call the inner procedure depending on the type of insert and depth
     if.true # --- update leaf ---------------------------------------------------------------------
         # => [is_16_or_32, is_16_or_48, ZERO, V, K, R, ...]
-        if.true 
+        if.true
             if.true # --- update a leaf node at depth 16 ---
                 drop
                 # => [V, K, R, ...]
@@ -1197,7 +1197,7 @@ end
 #! Where Z is [ZERO; 4].
 #!
 #! Cycles: 23
-proc.verify_empty_node_32 
+proc.verify_empty_node_32
     # (6 cycles)
     swapw.2 dup.4 exec.get_top_32_bits push.32
     # => [32, idx, R, K, Z, ...]

@@ -21,7 +21,7 @@ proc.bar.4
     debug.local.2
 end
 
-begin 
+begin
     push.13.2
     mem_store
     debug.mem.2

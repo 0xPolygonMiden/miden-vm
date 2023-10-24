@@ -20,7 +20,7 @@ export.generate_fri_parameters
     # TODO: move to somewhere else
     # ---------------------------------------------------------------------------------------------
 
-    # load z from memory 
+    # load z from memory
     padw
     exec.constants::z_ptr mem_loadw
     #=> [(z1, z0)^n, z1, z0, lde_size, log2(lde_size), lde_g, 0, ...] (6 cycles)

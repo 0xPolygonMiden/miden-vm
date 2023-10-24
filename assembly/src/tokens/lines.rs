@@ -197,7 +197,7 @@ impl<'a> LineInfo<'a> {
     ///
     /// ```masm
     /// #!      doc comments
-    /// #! for foo procedure          
+    /// #! for foo procedure
     /// #! with examples
     /// export.foo
     ///   add
@@ -350,7 +350,7 @@ mod tests {
             #! bar
 
             mul
-    #!                    end doc comment with trailing spaces    
+    #!                    end doc comment with trailing spaces
         #! and multiple lines
       end
 

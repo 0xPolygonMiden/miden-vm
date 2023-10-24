@@ -1,6 +1,6 @@
 # LogUp: multivariate lookups with logarithmic derivatives
 
-The description of LogUp can be found [here](https://eprint.iacr.org/2022/1530.pdf). In MidenVM, LogUp is used to implement efficient [communication buses](./main.md#communication-buses-in-miden-vm). 
+The description of LogUp can be found [here](https://eprint.iacr.org/2022/1530.pdf). In MidenVM, LogUp is used to implement efficient [communication buses](./main.md#communication-buses-in-miden-vm).
 
 Using the LogUp construction instead of a simple [multiset check](./multiset.md) with running products reduces the computational effort for the prover and the verifier. Given two columns $a$ and $b$ in the main trace where $a$ contains duplicates and $b$ does not (i.e. $b$ is part of the lookup table), LogUp allows us to compute two logarithmic derivatives and check their equality.
 
@@ -26,7 +26,7 @@ The generalized trace columns and constraints for this construction are as follo
 
 ### Constraints
 
-The diagrams above show running sum columns for computing the logarithmic derivatives for both $X$ and $T$. As an optimization, we can combine these values into a single auxiliary column in the extension field that contains the running sum of values from both logarithmic derivatives. We'll refer to this column as a _communication bus_ $b$, since it communicates the lookup request from the component $X$ to the lookup table $T$. 
+The diagrams above show running sum columns for computing the logarithmic derivatives for both $X$ and $T$. As an optimization, we can combine these values into a single auxiliary column in the extension field that contains the running sum of values from both logarithmic derivatives. We'll refer to this column as a _communication bus_ $b$, since it communicates the lookup request from the component $X$ to the lookup table $T$.
 
 This can be expressed as follows:
 

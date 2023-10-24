@@ -7,7 +7,7 @@ const.J=77321994752
 const.M=12289
 const.SQUARE_NORM_BOUND=34034726
 
-# MODULAR REDUCTION FALCON PRIME  
+# MODULAR REDUCTION FALCON PRIME
 # =============================================================================================
 
 #! Given dividend ( i.e. field element a ) on stack top, this routine computes c = a % 12289
@@ -61,15 +61,15 @@ export.mod_12289
     drop
 end
 
-# HASH-TO-POINT  
+# HASH-TO-POINT
 # =============================================================================================
 
 #! Takes as input a message digest, a nonce of size 40 bytes represented as 8 field elements
 #! and a pointer. The procedure absorbs MSG and NONCE into a fresh RPO state and squeezes the
 #! coefficients of a polynomial c representing the hash-to-point of (MSG || NONCE). The coefficients
 #! are then saved in the memory region [c_ptr, c_ptr + 128).
-#! This implementation of the `hash_to_point` procedure avoids the rejection-sampling step 
-#! required in the per-the-spec algorithm by using the observation on page 31 in 
+#! This implementation of the `hash_to_point` procedure avoids the rejection-sampling step
+#! required in the per-the-spec algorithm by using the observation on page 31 in
 #! https://falcon-sign.info/falcon.pdf
 #!
 #! Input: [c_ptr, MSG, NONCE1, NONCE0, ...]
@@ -108,7 +108,7 @@ export.hash_to_point.2
 end
 
 
-# PROBABILISTIC POLYNOMIAL MULTIPLICATION IN Z_Q[x] 
+# PROBABILISTIC POLYNOMIAL MULTIPLICATION IN Z_Q[x]
 # =============================================================================================
 
 #! For an element `tau := (tau0, tau1)` in the quadratic extension field, computes all its powers
@@ -120,7 +120,7 @@ end
 #!
 #! Cycles: 8323
 export.powers_of_tau
-        
+
     # 1) Save tau^0 i.e. (0, 1)
     push.1 push.0.0.0
     dup.6 add.1 swap.7
@@ -133,9 +133,9 @@ export.powers_of_tau
         dupw ext2mul
 
         movup.3 movup.3
-            
+
         dup.6 add.1 swap.7 mem_storew
-            
+
         drop drop
     end
 
@@ -164,7 +164,7 @@ end
 #! public key, and a pointer to the memory location where the coefficients of the polynomial `h`
 #! will be stored.
 #! The procedure loads `h` from the advice stack and compares its hash with the provided hash `PK`.
-#! It then loads the polynomial `s2` representing the signature from the advice stack and lays it 
+#! It then loads the polynomial `s2` representing the signature from the advice stack and lays it
 #! in memory right after `h`.
 #! It then loads the claimed polynomial `h * s2` in Z_Q[x] where Q is the Miden VM prime from
 #! the advice stack and lays it right after `s2`.
@@ -183,7 +183,7 @@ export.load_h_s2_and_product.1
     loc_storew.0
 
     # 2) Prepare stack and load h polynomial. We also range check the coefficients of h.
-    padw swapw 
+    padw swapw
     padw
     repeat.64
         adv_pipe
@@ -206,14 +206,14 @@ export.load_h_s2_and_product.1
 
         hperm
     end
-        
+
     # 3) Load saved claimed hash of h and compare
     loc_loadw.0
     movup.4 assert_eq
     movup.3 assert_eq
     movup.2 assert_eq
     assert_eq
-        
+
     # 4) Load s2 (Due to the final norm test we do not need to range check the s2 coefficents)
     padw padw
     repeat.64
@@ -227,13 +227,13 @@ export.load_h_s2_and_product.1
 
     # 6) Return the challenge point and the incremented pointer
     dropw swapw dropw
-    drop drop 
+    drop drop
     #=> [tau1, tau0, ptr + 512]
 end
 
 #! Checks that pi == h * s2 in Z_Q[x] by evaluating both sides at a random point.
 #! The procedure takes as input a pointer h_ptr to h. The other two polynomials
-#! are located at h_ptr + 128, for s2, and h_ptr + 256, for pi. The procedure takes 
+#! are located at h_ptr + 128, for s2, and h_ptr + 256, for pi. The procedure takes
 #! also a pointer zeros_ptr to a region of memory [zeros_ptr, zeros_ptr + 1024)
 #! and a pointer tau_ptr to powers of the random point we are evaluating at stored
 #! as [a_i, b_i, x, x] where (a_i, b_i) := tau^i for i in [0, 1023].
@@ -257,7 +257,7 @@ export.probablistic_product.4
     # For mem_stream
     padw padw
 
-    # Compute h(tau) 
+    # Compute h(tau)
     repeat.64
         mem_stream
         repeat.8
@@ -318,7 +318,7 @@ export.probablistic_product.4
     end
     #=> [X, X, ev1, ev0, ev1, ev0, pi_ptr, zeros_ptr, tau_ptr, 0, ...]
     # where (ev0, ev1) := pi1(tau)
-    
+
     # Save pi_1(tau)
     swapw.2 loc_storew.3
 
@@ -369,7 +369,7 @@ export.probablistic_product.4
     ext2mul
 
     ## d) assert equality
-    movup.2 
+    movup.2
     assert_eq
     assert_eq
 
@@ -379,7 +379,7 @@ export.probablistic_product.4
 end
 
 
-# SQUARE NORM OF Z_q[x]/(phi) POLYNOMIALS 
+# SQUARE NORM OF Z_q[x]/(phi) POLYNOMIALS
 # =============================================================================================
 
 #! Normalizes an `e` in [0, q) to be in [-(q-1) << 1, (q-1) << 1) and returns its square norm.
@@ -392,7 +392,7 @@ end
 #! if e > (q-1)/2:
 #!   return (q - e)^2
 #! else:
-#!   return e^2 
+#!   return e^2
 #!
 #! The use of the formula avoids using the if-else block.
 #!
@@ -401,7 +401,7 @@ end
 #!
 #! Cycles: 21
 export.norm_sq
-    
+
     dup
     dup mul
     swap
@@ -413,7 +413,7 @@ export.norm_sq
     #=> [phi, e, e^2, ...]
 
     swap
-    mul.24578       # 2*q 
+    mul.24578       # 2*q
     push.151019521  # q^2
     sub
     #=> [2*q*e - q^2, phi, e^2, ...]
@@ -424,8 +424,8 @@ end
 
 #! On input a tuple (u, w, v), the following computes (v - (u + (- w % q) % q) % q).
 #! We can avoid doing three modular reductions by using the following facts:
-#! 
-#! 1. q is much smaller than the Miden prime. Precisely, q * 2^50 < Q 
+#!
+#! 1. q is much smaller than the Miden prime. Precisely, q * 2^50 < Q
 #! 2. The coefficients of the product polynomial, u and w, are less than J := 512 * q^2
 #! 3. The coefficients of c are less than q.
 #!
@@ -440,7 +440,7 @@ end
 #! Cycles: 44
 export.diff_mod_q
 
-    # 1) v + w + J 
+    # 1) v + w + J
     add push.J add
     #=> [v + w + J, u]
 
@@ -467,16 +467,16 @@ end
 #! We can compute s1 in a single pass by delaying the q-modular reduction til the end. This can
 #! be achieved through a careful analysis of the computation of the difference between pi and c.
 #!
-#! The i-th coefficient s1_i of s1 is equal to c_i - (pi_i - pi_{512 + i}) which is equal to 
+#! The i-th coefficient s1_i of s1 is equal to c_i - (pi_i - pi_{512 + i}) which is equal to
 #! c_i  + pi_{512 + i} - pi_i. Now, we know that the size of the pi_i coefficients is bounded by
-#! J := 512 * q^2 and this means that J + pi_{512 + i} - pi_i does not Q-underflow and since 
-#! J = 0 modulo q, the addition of J does not affect the final result. It is also important to 
+#! J := 512 * q^2 and this means that J + pi_{512 + i} - pi_i does not Q-underflow and since
+#! J = 0 modulo q, the addition of J does not affect the final result. It is also important to
 #! note that adding J does not Q-overflow by virtue of q * 2^50 < Q.
 #! All of the above implies that we can compute s1_i with only one modular reduction at the end,
 #! in addition to one modular reduction applied to c_i.
 #! Moreover, since we are only interested in the square norm of s1_i, we do not have to store
 #! s1_i and then load it at a later point, and instead we can immediatly follow the computation
-#! of s1_i with computing its square norm. 
+#! of s1_i with computing its square norm.
 #! After computing the square norm of s1_i, we can accumulate into an accumulator to compute the
 #! sum of the square norms of all the coefficients of polynomial c. Using the overflow stack, this
 #! can be delayed til the end.
@@ -485,7 +485,7 @@ end
 #! Output: [norm_sq(s1), ...]
 #!
 #! Cycles: 58888
-export.compute_s1_norm_sq 
+export.compute_s1_norm_sq
     repeat.128
         # 1) Load the next 4 * 3 coefficients
         # load c_i
@@ -500,7 +500,7 @@ export.compute_s1_norm_sq
 
         # load pi_i
         padw
-        dup.12 
+        dup.12
         mem_loadw
         #=> [PI, PI_{i+512}, C, pi_ptr, ...]
 
@@ -519,7 +519,7 @@ export.compute_s1_norm_sq
 
         # Move the result out of the way so that we can process the remaining coefficents
         movdn.10
-   
+
         # 3) Compute the squared norm of (i + 1)-th coefficient of s1
         movup.6
         exec.mod_12289
@@ -527,7 +527,7 @@ export.compute_s1_norm_sq
         exec.diff_mod_q
         exec.norm_sq
         movdn.7
-    
+
         # 4) Compute the squared norm of (i + 2)-th coefficient of s1
         movup.4
         exec.mod_12289
@@ -584,7 +584,7 @@ end
 # FALCON SIGNATURE VERIFICATION ALGORITHM
 # =============================================================================================
 
-#! Verifies a signature against a public key and a message. The procedure gets as inputs the hash 
+#! Verifies a signature against a public key and a message. The procedure gets as inputs the hash
 #! of the public key and the hash of the message via the operand stack. The signature is provided
 #! via the advice stack.
 #! The signature is valid if and only if the procedure returns.
@@ -638,19 +638,19 @@ export.verify.1665
     #=> [...]                                       (Cycles: 2504)
 
     # 6) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
-    
+
     locaddr.256
     #=> [pi_ptr, ...]
 
     exec.compute_s1_norm_sq
-    #=> [norm_sq(s1), ...]                          (Cycles: 58888)  
+    #=> [norm_sq(s1), ...]                          (Cycles: 58888)
 
     # 7) Compute the squared norm of s2
 
     locaddr.128
-    #=> [s2_ptr, norm_sq(s1), ...]                  
+    #=> [s2_ptr, norm_sq(s1), ...]
 
-    exec.compute_s2_norm_sq                         
+    exec.compute_s2_norm_sq
     #=> [norm_sq(s2), norm_sq(s1), ...]             (Cycles: 13322)
 
     # 8) Check that ||(s1, s2)||^2 < K
