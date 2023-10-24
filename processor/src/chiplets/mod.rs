@@ -14,7 +14,8 @@ mod bitwise;
 use bitwise::{Bitwise, BitwiseLookup};
 
 mod hasher;
-pub use hasher::init_state_from_words;
+#[cfg(test)]
+pub(crate) use hasher::init_state_from_words;
 use hasher::Hasher;
 
 mod memory;

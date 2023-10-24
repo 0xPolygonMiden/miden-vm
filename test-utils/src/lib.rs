@@ -49,7 +49,6 @@ pub mod crypto;
 pub mod rand;
 
 mod test_builders;
-pub use test_builders::*;
 
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
