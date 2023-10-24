@@ -43,8 +43,11 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
-    DefaultHost, Host,
+    advice::{
+        AdviceExtractor, AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider,
+        RecAdviceProvider,
+    },
+    DefaultHost, Host, HostResponse,
 };
 
 mod chiplets;
@@ -494,6 +497,9 @@ where
                 if self.decoder.in_debug_mode() {
                     self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
+            }
+            Decorator::Event(id) => {
+                self.host.borrow_mut().on_event(self, *id)?;
             }
         }
         Ok(())
