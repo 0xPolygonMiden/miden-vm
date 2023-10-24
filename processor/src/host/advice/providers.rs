@@ -275,7 +275,7 @@ impl MemAdviceProvider {
 }
 
 /// Pass-through implementations of [AdviceProvider] methods.
-/// 
+///
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for MemAdviceProvider {
@@ -400,7 +400,7 @@ impl RecAdviceProvider {
 }
 
 /// Pass-through implementations of [AdviceProvider] methods.
-/// 
+///
 /// TODO: potentially do this via a macro.
 #[rustfmt::skip]
 impl AdviceProvider for RecAdviceProvider {
@@ -423,7 +423,7 @@ impl AdviceProvider for RecAdviceProvider {
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         self.provider.insert_into_map(key, values)
     }
-    
+
     fn get_signature(&self, kind: SignatureKind, pub_key: Word, msg: Word) -> Result<Vec<Felt>, ExecutionError> {
         self.provider.get_signature(kind, pub_key, msg)
     }

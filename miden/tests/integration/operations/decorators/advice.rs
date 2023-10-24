@@ -179,7 +179,7 @@ fn advice_push_mapval() {
     // --- test simple adv.mapval ---------------------------------------------
     let source: &str = "begin
     # stack: [4, 3, 2, 1, ...]
-    
+
     # load the advice stack with values from the advice map and drop the key
     adv.push_mapval
     dropw
@@ -201,7 +201,7 @@ fn advice_push_mapval() {
     // --- test adv.mapval with offset ----------------------------------------
     let source: &str = "begin
     # stack: [4, 3, 2, 1, ...]
-    
+
     # shift the key on the stack by 2 slots
     push.0 push.0
 
@@ -226,7 +226,7 @@ fn advice_push_mapval() {
     // --- test simple adv.mapvaln --------------------------------------------
     let source: &str = "begin
     # stack: [4, 3, 2, 1, ...]
-    
+
     # load the advice stack with values from the advice map (including the number
     # of elements) and drop the key
     adv.push_mapvaln
@@ -249,7 +249,7 @@ fn advice_push_mapval() {
     // --- test adv.mapval with offset ----------------------------------------
     let source: &str = "begin
     # stack: [4, 3, 2, 1, ...]
-    
+
     # shift the key on the stack by 2 slots
     push.0 push.0
 
@@ -281,7 +281,7 @@ fn advice_insert_hdword() {
 
     # hash and insert top two words into the advice map
     adv.insert_hdword
-    
+
     # manually compute the hash of the two words
     hmerge
     # => [KEY, ...]
@@ -304,7 +304,7 @@ fn advice_insert_hdword() {
 
     # hash and insert top two words into the advice map
     adv.insert_hdword.3
-    
+
     # manually compute the hash of the two words
     push.0.3.0.0
     swapw.2 swapw

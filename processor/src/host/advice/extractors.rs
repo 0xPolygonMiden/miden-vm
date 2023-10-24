@@ -39,7 +39,7 @@ pub enum AdviceExtractor {
     ///  Advice stack: [d, c, b, a, ...]
     ///  Advice map: {...}
     ///  Merkle store: {...}
-    ///  
+    ///
     /// Outputs:
     ///  Operand stack: [...]
     ///  Advice stack: [...]
