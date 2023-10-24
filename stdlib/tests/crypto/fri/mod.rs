@@ -2,7 +2,6 @@ use crate::build_test;
 use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
 
 mod channel;
-pub use channel::*;
 
 pub(crate) mod verifier_fri_e2f4;
 pub use verifier_fri_e2f4::*;

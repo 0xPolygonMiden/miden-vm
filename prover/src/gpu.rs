@@ -367,7 +367,7 @@ mod tests {
         let num_rows = 1 << 8;
         let ce_blowup_factor = 2;
         let coeffs = gen_random_coeffs::<CubeExtension<Felt>>(num_rows * ce_blowup_factor);
-        let composition_poly = CompositionPoly::new(coeffs, num_rows);
+        let composition_poly = CompositionPoly::new(coeffs, num_rows, 2);
         let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
         let commitment_cpu = cpu_prover.build_constraint_commitment(&composition_poly, &domain);
 
@@ -384,7 +384,7 @@ mod tests {
         let num_rows = 1 << 8;
         let ce_blowup_factor = 8;
         let coeffs = gen_random_coeffs::<Felt>(num_rows * ce_blowup_factor);
-        let composition_poly = CompositionPoly::new(coeffs, num_rows);
+        let composition_poly = CompositionPoly::new(coeffs, num_rows, 8);
         let domain = StarkDomain::from_twiddles(fft::get_twiddles(num_rows), 8, Felt::GENERATOR);
         let commitment_cpu = cpu_prover.build_constraint_commitment(&composition_poly, &domain);
 
