@@ -24,8 +24,6 @@ const HALF_RATE_WIDTH: usize = (Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.star
 ///  This is possible because in our case we never reseed with more than 4 field elements.
 /// 2. As a result of the previous point, we dont make use of an input buffer to accumulate seed
 ///  material.
-/// It is important to note that the current implementation of `RPORandomCoin` assumes that
-/// `draw_integers()` is called immediately after `reseed_with_int()`.
 pub struct RpoRandomCoin {
     state: [Felt; STATE_WIDTH],
     current: usize,
@@ -82,20 +80,6 @@ impl RandomCoin for RpoRandomCoin {
         Rpo256::apply_permutation(&mut self.state);
     }
 
-    fn reseed_with_int(&mut self, value: u64) {
-        // Reset buffer
-        self.current = RATE_START;
-
-        let value = Felt::new(value);
-        self.state[RATE_START] += value;
-        Rpo256::apply_permutation(&mut self.state);
-    }
-
-    fn leading_zeros(&self) -> u32 {
-        let first_rate_element = self.state[RATE_START].as_int();
-        first_rate_element.trailing_zeros()
-    }
-
     fn check_leading_zeros(&self, value: u64) -> u32 {
         let value = Felt::new(value);
         let mut state_tmp = self.state;
@@ -123,13 +107,18 @@ impl RandomCoin for RpoRandomCoin {
         &mut self,
         num_values: usize,
         domain_size: usize,
+        nonce: u64,
     ) -> Result<Vec<usize>, RandomCoinError> {
         assert!(domain_size.is_power_of_two(), "domain size must be a power of two");
         assert!(num_values < domain_size, "number of values must be smaller than domain size");
 
-        // Since the first element of the rate portion is used for proof-of-work and thus is not
-        // random, we need to make sure that it is not used for generating a random index.
-        self.current += 1;
+        // absorb the nonce
+        let nonce = Felt::new(nonce);
+        self.state[RATE_START] += nonce;
+        Rpo256::apply_permutation(&mut self.state);
+
+        // reset the buffer
+        self.current = RATE_START;
 
         // determine how many bits are needed to represent valid values in the domain
         let v_mask = (domain_size - 1) as u64;
@@ -143,9 +132,6 @@ impl RandomCoin for RpoRandomCoin {
             // use the mask to get a value within the range
             let value = (value & v_mask) as usize;
 
-            if values.contains(&value) {
-                continue;
-            }
             values.push(value);
             if values.len() == num_values {
                 break;

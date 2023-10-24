@@ -6,10 +6,14 @@ use processor::{
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, WinterRandomCoin,
     },
-    math::Felt,
+    math::{Felt, FieldElement},
     ExecutionTrace,
 };
-use winter_prover::{ProofOptions as WinterProofOptions, Prover};
+use winter_prover::{
+    matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
+    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
+    StarkDomain, TraceInfo, TracePolyTable,
+};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -95,7 +99,7 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::GpuRpoExecutionProver(prover);
+            let prover = gpu::MetalRpoExecutionProver(prover);
             prover.prove(trace)
         }
     }
@@ -164,11 +168,14 @@ where
     H: ElementHasher<BaseField = Felt>,
     R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
-    type Air = ProcessorAir;
     type BaseField = Felt;
+    type Air = ProcessorAir;
     type Trace = ExecutionTrace;
     type HashFn = H;
     type RandomCoin = R;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H>;
+    type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
+        DefaultConstraintEvaluator<'a, ProcessorAir, E>;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options
@@ -187,5 +194,23 @@ where
 
         let program_info = trace.program_info().clone();
         PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
+    }
+
+    fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
+        &self,
+        trace_info: &TraceInfo,
+        main_trace: &ColMatrix<Felt>,
+        domain: &StarkDomain<Felt>,
+    ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
+        DefaultTraceLde::new(trace_info, main_trace, domain)
+    }
+
+    fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
+        &self,
+        air: &'a ProcessorAir,
+        aux_rand_elements: AuxTraceRandElements<E>,
+        composition_coefficients: ConstraintCompositionCoefficients<E>,
+    ) -> Self::ConstraintEvaluator<'a, E> {
+        DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
     }
 }

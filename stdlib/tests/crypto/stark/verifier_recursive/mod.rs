@@ -112,20 +112,13 @@ pub fn generate_advice_inputs(
     }
 
     // 5 ----- trace and constraint queries -------------------------------------------------------
-    // read proof-of-work nonce sent by the prover and update the public coin with it
+
+    // read proof-of-work nonce sent by the prover and draw pseudo-random query positions for
+    // the LDE domain from the public coin.
+    // This is needed in order to construct Partial Merkle Trees
     let pow_nonce = channel.read_pow_nonce();
-    tape.extend_from_slice(&[pow_nonce]);
-    public_coin.reseed_with_int(pow_nonce);
-
-    // make sure the proof-of-work specified by the grinding factor is satisfied
-    if public_coin.leading_zeros() < air.options().grinding_factor() {
-        return Err(VerifierError::QuerySeedProofOfWorkVerificationFailed);
-    }
-
-    // draw pseudo-random query positions for the LDE domain from the public coin.
-    // this is needed in order to construct Partial Merkle Trees
     let query_positions = public_coin
-        .draw_integers(air.options().num_queries(), air.lde_domain_size())
+        .draw_integers(air.options().num_queries(), air.lde_domain_size(), pow_nonce)
         .map_err(|_| VerifierError::RandomCoinError)?;
 
     // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
