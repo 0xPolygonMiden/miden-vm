@@ -218,7 +218,7 @@ impl ParserContext<'_> {
     // --------------------------------------------------------------------------------------------
 
     /// Parse a `procref` token into an instruction node.
-    pub fn parse_procref(&self, token: &Token) -> Result<Node, ParsingError> {
+    pub fn parse_procref(&mut self, token: &Token) -> Result<Node, ParsingError> {
         match token.parse_invocation(token.parts()[0])? {
             InvocationTarget::ProcedureName(proc_name) => {
                 let index = self.get_local_proc_index(proc_name, token)?;
@@ -226,11 +226,7 @@ impl ParserContext<'_> {
                 Ok(Node::Instruction(inner))
             }
             InvocationTarget::ProcedurePath { name, module } => {
-                let module_path = self
-                    .import_info
-                    .get_module_path(module)
-                    .ok_or_else(|| ParsingError::procedure_module_not_imported(token, module))?;
-                let proc_id = ProcedureId::from_name(name.as_ref(), module_path);
+                let proc_id = self.import_info.add_invoked_proc(&name, module, token)?;
                 let inner = Instruction::ProcRefImported(proc_id);
                 Ok(Node::Instruction(inner))
             }

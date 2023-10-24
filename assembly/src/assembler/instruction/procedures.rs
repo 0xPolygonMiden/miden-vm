@@ -144,7 +144,7 @@ impl Assembler {
         span: &mut SpanBuilder,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         // get root of the compiled local procedure
-        let proc_root = context.get_compiled_procedure(proc_idx)?.mast_root();
+        let proc_root = context.get_local_procedure(proc_idx)?.mast_root();
         // create an array with `Push` operations containing root elements
         let ops: Vec<Operation> = proc_root.iter().map(|elem| Operation::Push(*elem)).collect();
         span.add_ops(ops)
