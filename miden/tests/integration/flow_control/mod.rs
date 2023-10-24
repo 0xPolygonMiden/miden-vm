@@ -1,3 +1,4 @@
+use assembly::{ast::ModuleAst, LibraryNamespace, LibraryPath, MaslLibrary, Module};
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
 
 // SIMPLE FLOW CONTROL TESTS
@@ -351,4 +352,56 @@ fn simple_dyncall() {
         ],
         false,
     );
+}
+
+// PROCREF INSTRUCTION
+// ================================================================================================
+
+#[test]
+fn fmpadd() {
+    let module_source = "
+    export.foo
+        push.1.2
+    end";
+    let module_ast = ModuleAst::parse(module_source).unwrap();
+    let library_path = LibraryPath::new("module::path::one").unwrap();
+    let module = Module::new(library_path, module_ast);
+    let masl_lib = MaslLibrary::new(
+        LibraryNamespace::new("module").unwrap(),
+        assembly::Version::default(),
+        false,
+        vec![module],
+        vec![],
+    )
+    .unwrap();
+
+    let source = "
+    use.module::path::one
+
+    proc.baz.4
+        push.3.4
+    end
+
+    begin
+        procref.one::foo
+        push.0
+        procref.baz
+    end";
+
+    let mut test = build_test!(source, &[]);
+    test.libraries = vec![masl_lib];
+
+    test.expect_stack(&[
+        14955017261620687123,
+        7483764806157722537,
+        3983040829500348437,
+        17415803850183235164,
+        0,
+        10769795280686168241,
+        18286248910168089036,
+        9534016474345631087,
+        17844857521614540683,
+    ]);
+
+    test.prove_and_verify(vec![], false);
 }

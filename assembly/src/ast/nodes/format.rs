@@ -120,6 +120,14 @@ impl fmt::Display for FormattableInstruction<'_> {
                 write!(f, "call.")?;
                 display_hex_bytes(f, &root.as_bytes())?;
             }
+            Instruction::ProcRefLocal(index) => {
+                let proc_name = self.context.local_proc(*index as usize);
+                write!(f, "procref.{proc_name}")?;
+            }
+            Instruction::ProcRefImported(proc_id) => {
+                let (_, path) = self.context.imported_proc(proc_id);
+                write!(f, "procref.{path}")?;
+            }
             _ => {
                 // Not a procedure call. Use the normal formatting
                 write!(f, "{}", self.instruction)?;
