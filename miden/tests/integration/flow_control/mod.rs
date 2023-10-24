@@ -285,7 +285,7 @@ fn simple_dyncall() {
         proc.foo
             # drop the top 4 values, since that will be the code hash when we call this dynamically
             dropw
-            
+
             # test that the execution context has changed
             mem_load.0 assertz
 

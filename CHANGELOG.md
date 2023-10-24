@@ -7,7 +7,7 @@
 - Introduced the `emit.<event_id>` assembly instruction (#1119).
 
 #### Stdlib
-- Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt` 
+- Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
 
 #### VM Internals
@@ -30,14 +30,14 @@
 
 #### VM Internals
 - Simplified range checker and removed 1 main and 1 auxiliary trace column (#949).
-- Migrated range checker lookups to use LogUp and reduced the number of trace columns to 2 main and 
+- Migrated range checker lookups to use LogUp and reduced the number of trace columns to 2 main and
   1 auxiliary (#1027).
 - Added `get_mapped_values()` and `get_store_subset()` methods to the `AdviceProvider` trait (#987).
 - [BREAKING] Added options to specify maximum number of cycles and expected number of cycles for a program (#998).
 - Improved handling of invalid/incomplete parameters in `StackOutputs` constructors (#1010).
 - Allowed the assembler to produce programs with "phantom" calls (#1019).
 - Added `TraceLenSummary` struct which holds information about traces lengths to the `ExecutionTrace` (#1029).
-- Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049). 
+- Imposed the 2^32 limit for the memory addresses used in the memory chiplet (#1049).
 - Supported `PartialMerkleTree` as a secret input in `.input` file (#1072).
 - [BREAKING] Refactored `AdviceProvider` interface into `Host` interface (#1082).
 

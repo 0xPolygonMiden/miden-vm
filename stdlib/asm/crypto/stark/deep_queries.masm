@@ -4,7 +4,7 @@ use.std::crypto::stark::constants
 #! Computes a single step of the random linear combination defining the DEEP composition polynomial
 #! that is the input to the FRI protocol. More precisely, the sum in question is:
 #! $$
-#! \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} + 
+#! \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
 #!            \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g} \right)}
 #! $$
 #!
@@ -18,15 +18,15 @@ use.std::crypto::stark::constants
 #! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
 #! |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  T0  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr| - |
 #! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
-#! 
+#!
 #!                                                       ||
 #!                                                       \/
-#!                                                    
+#!
 #! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
 #! |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+1| - |
 #! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
-#! 
-#! 
+#!
+#!
 #! Here:
 #! 1- Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current query i.e. T_i(x).
 #! 2- (p0, p1) stands for an extension field element accumulating the values for the quotients with common denominator (x - gz).
@@ -34,15 +34,15 @@ use.std::crypto::stark::constants
 #! 4- x_addr is the memory address from which we are loading the Ti's using the MSTREAM instruction.
 #! 5- z_addr is the memory address to the i-th OOD evaluation frame at z and gz i.e. T_i(z):= (T_i(z)0, T_i(z)1)
 #!  and T_i(gz):= (T_i(gz)0, T_i(gz)1)
-#! 6- a_addr is the memory address of the i-th random element used in batching the trace polynomial quotients. 
+#! 6- a_addr is the memory address of the i-th random element used in batching the trace polynomial quotients.
 #!  The random elements a := (a0, a1) are stored in memory as [0, 0, a0, a1].
-#! 
+#!
 #! Input: [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
 #! Output: [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr+1, a_addr+1, 0]
 export.combine_main
 
     # 1) Shift trace columns values left
-    movup.7   
+    movup.7
     #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
 
     # 2) Get a_addr and update it. This is done here before the element becomes inaccessible.
@@ -108,13 +108,13 @@ export.combine_main
     movupw.3
 
     # a) Accumulate into (r0, r1)
-    movup.7 movup.7 
+    movup.7 movup.7
     #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
     movup.5 movup.5 ext2add
     #=> [r1', r0', p1, p0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
 
     # b) Accumulate into (p0, p1)
-    movdn.5 movdn.5 ext2add    
+    movdn.5 movdn.5 ext2add
     #=> [p1', p0', r1', r0', T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
 
     # c) Prepare for next iteration.
@@ -125,7 +125,7 @@ end
 #! Computes a single step of the random linear combination defining the DEEP composition polynomial
 #! that is the input to the FRI protocol. More precisely, the sum in question is:
 #! $$
-#! \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} + 
+#! \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
 #!            \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g} \right)}
 #! $$
 #!
@@ -139,15 +139,15 @@ end
 #! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+---+
 #! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr| - |
 #! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+------+------+---+
-#! 
+#!
 #!                                                       ||
 #!                                                       \/
-#!                                                         
+#!
 #! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------+-----+
 #! |  T31  |  T30  |  T21  |  T20  |  T11  |  T10  |  T01  |  T00  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+b|  -  |
 #! +-------+-------+-------+-------+-------+-------+-------+-------+------+------+------+------+------+--------+--------------+
-#! 
-#! 
+#!
+#!
 #! Here:
 #! 1- Tij for i in 0..=3 and j=0,1 stands for the the value of the j-th coordinate in the quadratic extension field
 #! of the i-th auxiliary trace polynomial for the current query i.e. $T_i(x)$.
@@ -163,7 +163,7 @@ end
 export.combine_aux
 
     # 1) Shift trace columns values (as quadratic extension field element) left
-    movup.7 movup.7   
+    movup.7 movup.7
     #=> [T01, T00, T31, T30, T21, T20, T11, T10, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
 
     # 2) Get a_addr and update it. This is done here before it becomes inaccessible.
@@ -232,13 +232,13 @@ export.combine_aux
     movupw.3
 
     # a) Accumulate into (r0, r1)
-    movup.7 movup.7 
+    movup.7 movup.7
     #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
     movup.5 movup.5 ext2add
     #=> [r1', r0', p1, p0, prodg1, prodg0, T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
 
     # b) Accumulate into (p0, p1)
-    movdn.5 movdn.5 ext2add    
+    movdn.5 movdn.5 ext2add
     #=> [p1', p0', r1', r0', T01, T00, T31, T30, T21, T20, T11, T10, x_addr, z_addr', a_addr', 0]
 
     # c) Prepare for next iteration
@@ -248,7 +248,7 @@ end
 
 #! Loads the next query rows in the main, auxiliary and constraint composition polynomials traces.
 #! It takes a pointer to the current random query index and returns that index.
-#! 
+#!
 #! Input: [query_ptr, ...]
 #! Output: [index, query_ptr, ...]
 #!
@@ -268,7 +268,7 @@ proc.load_query_row
     push.0.0
     exec.constants::main_trace_com_ptr mem_loadw
     #=>[R, depth, index, query_ptr, ...]
-        
+
     ## Get the leaf in the main trace commitment and save it
     dup.5 dup.5
     mtree_get
@@ -323,9 +323,9 @@ proc.load_query_row
     adv_push.1
     push.1
     push.0
-        
+
     ## Store the 9-th auxiliary column
-    dup.12 mem_storew 
+    dup.12 mem_storew
 
     ## Since combine_aux follows a mem_stream we need to store (i.e. pad with) the all zero word in
     ## order to avoid over-stepping into the constraint polynomial columns.
@@ -380,7 +380,7 @@ proc.load_query_row
     assert_eq
     assert_eq
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
-        
+
     dropw dropw drop
     #=> [index, query_ptr, ...]
 end
@@ -488,7 +488,7 @@ proc.combine_aux_trace_columns
             exec.combine_aux
         end
     end
-        
+
     # and the 9th aux column
     mem_stream
     exec.combine_aux
@@ -503,9 +503,9 @@ end
 #! 2. [Y, Y] is a "garbage" double-word used to mem_stream data referenced by CURRENT_TRACE_ROW_PTR.
 #! 3. Acc =: [Acc3, Acc2, Acc1, Acc0] is the accumulator holding the current numerator values.
 #!
-#! The procedure then outputs the final accumulator value including main and auxiliary trace columns 
+#! The procedure then outputs the final accumulator value including main and auxiliary trace columns
 #! as well as constraint composition polynomial columns.
-#! The procedure uses the `combine_aux` by discarding its effect on the second half of the 
+#! The procedure uses the `combine_aux` by discarding its effect on the second half of the
 #! accumulator (i.e. the "gz" part). To do this, we save the value of the accumulator before calling
 #! `combine_aux` and then restore the second half of the accumulator after the call.
 #!
@@ -578,7 +578,7 @@ export.compute_deep_composition_polynomial_queries
 
     push.1
     while.true
-        # I) 
+        # I)
         #
         # Load the (main, aux, constraint)-traces rows associated with the current query and get
         # the index of the query.
@@ -589,10 +589,10 @@ export.compute_deep_composition_polynomial_queries
 
 
         # II)
-        # 
+        #
         # Compute x := offset * domain_gen^index and denominators (x - z) and (x - gz)
         #
-        # Cycles: 68 
+        # Cycles: 68
         exec.compute_denominators
         #=> [Z, x, index, query_ptr, query_end_ptr, ...] where Z := [-gz1, x - gz0, -z1, x - z0]
 
@@ -611,7 +611,7 @@ export.compute_deep_composition_polynomial_queries
         exec.constants::deep_rand_coef_ptr
         exec.constants::ood_trace_ptr
         exec.constants::current_trace_row_ptr
-        #=> [P, Z, x, index, query_ptr, query_end_ptr, ...] 
+        #=> [P, Z, x, index, query_ptr, query_end_ptr, ...]
         # where P := [CURRENT_TRACE_ROW_PTR, OOD_TRACE_PTR, DEEP_RAND_CC_PTR, 0]
 
         ## b) Push the accumulators
@@ -620,7 +620,7 @@ export.compute_deep_composition_polynomial_queries
         padw
         #=> [Acc, P, Z, x, index, query_ptr, query_end_ptr, ...]
         #=> where Acc =: [Acc3, Acc2, Acc1, Acc0]
-        
+
         ## c) This will be used to mstream the elements T_i(x)
         ##
         ## Cycles: 8
@@ -634,11 +634,11 @@ export.compute_deep_composition_polynomial_queries
         exec.combine_aux_trace_columns
         exec.combine_constraint_poly_columns
         #=> [Acc, Z, x, index, query_ptr, query_end_ptr, ...]
-        
+
         ## e) Divide by denominators and sum to get final result
         ##
         ## Cycles: 38
-        exec.divide_by_denominators_and_sum       
+        exec.divide_by_denominators_and_sum
         #=> [eval1, eval0, x, index, query_ptr, query_end_ptr, ...]
 
 
@@ -646,7 +646,7 @@ export.compute_deep_composition_polynomial_queries
         #
         # Store [poe, index, eval_1, eval_0] where poe := g^index = x / offset and prepare stack
         # for next iteration.
-        
+
         ## a) Compute poe
         ##
         ## Cycles: 4

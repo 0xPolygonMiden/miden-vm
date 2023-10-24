@@ -564,7 +564,7 @@ proc.compute_alpha_64
     ext2add
     #=> [acc1, acc0, τ1, τ0, p_ptr-1, ...]
 
-    movup.4 dup sub.1 movdn.5 
+    movup.4 dup sub.1 movdn.5
     padw movup.4
     mem_loadw
     #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, p_ptr-1, ...]
@@ -580,7 +580,7 @@ proc.compute_alpha_64
     ext2add
     #=> [acc1, acc0, τ1, τ0, p_ptr-1, ...]
 
-    movup.4 dup sub.1 movdn.5 
+    movup.4 dup sub.1 movdn.5
     padw movup.4
     mem_loadw
     #=> [a11, a10, a01, a00, acc1, acc0, τ1, τ0, p_ptr-1, ...]
@@ -627,10 +627,10 @@ proc.compute_alpha_32
     padw dup.6 sub.1 swap.7
     mem_loadw
     dup.5 dup.5
-    ext2mul 
+    ext2mul
     ext2add
 
-    padw movup.8 
+    padw movup.8
     mem_loadw
     movup.5 movup.5 dup.7 dup.7
     ext2mul
@@ -667,11 +667,11 @@ export.verify_remainder_64
     #=> [β1, β0, τ1, τ0, q_ptr, ...]
 
     # Pointer to the last word of the remainder polynomial for Horner evaluation.
-    movup.4 add.4 
+    movup.4 add.4
     #=> [p_ptr, β1, β0, τ1, τ0, ...]
 
     # We need to multiply τ by the domain offset before evaluation.
-    movup.4 mul.7 
+    movup.4 mul.7
     movup.4 mul.7
     exec.compute_alpha_64
 
@@ -714,11 +714,11 @@ export.verify_remainder_32
     #=> [β1, β0, τ1, τ0, q_ptr, ...]
 
     # Pointer to the last word of the remainder polynomial for Horner evaluation.
-    movup.4 add.2 
+    movup.4 add.2
     #=> [p_ptr, β1, β0, τ1, τ0, ...]
 
     # We need to multiply τ by the domain offset before evaluation.
-    movup.4 mul.7 
+    movup.4 mul.7
     movup.4 mul.7
     exec.compute_alpha_32
 

@@ -91,7 +91,7 @@ export.init_seed
     #
     # Cycles: 22
     padw
-    exec.constants::zero_word mem_storew    
+    exec.constants::zero_word mem_storew
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
@@ -223,7 +223,7 @@ export.reseed
     dropw
     exec.constants::r1_ptr mem_storew
     dropw
-    exec.constants::c_ptr mem_storew        
+    exec.constants::c_ptr mem_storew
     dropw
     # => [...] (18 cycles)
 end
@@ -298,7 +298,7 @@ proc.generate_random_coefficients
     dropw
     exec.constants::r1_ptr mem_storew
     dropw
-    exec.constants::c_ptr mem_storew        
+    exec.constants::c_ptr mem_storew
     dropw
     exec.constants::r2_ptr mem_storew
     dropw
@@ -410,7 +410,7 @@ proc.generate_random_coefficients_pad
     dropw
     exec.constants::r1_ptr mem_storew
     dropw
-    exec.constants::c_ptr mem_storew        
+    exec.constants::c_ptr mem_storew
     dropw
     exec.constants::r2_ptr mem_storew
     dropw
@@ -623,7 +623,7 @@ end
 
 #! Generate a list of `num_queries` number of random indices in the range
 #! [0, lde_size] and store it in memory starting from `query_ptr`.
-#! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`. 
+#! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`.
 #!`depth` is needed when computing the deep queries.
 #! TODO: the case of duplicate queries
 #!
@@ -668,10 +668,10 @@ export.generate_list_indices
     dropw swapw dropw
     #=> [R1, query_ptr, mask, depth, num_queries, ...]
 
-    
+
     # Use `num_queries` to iterate.
 
-    ## Subtract the 7 elements we have already generated above. 
+    ## Subtract the 7 elements we have already generated above.
     movup.7
     push.7 sub
 
@@ -706,9 +706,9 @@ export.generate_list_indices
 
 
     ## Use remainder
-    
+
     ### Put the remaining number of queries to generate in the appropriate stack position
-    movup.8 movdn.7  
+    movup.8 movdn.7
 
     ### Load the second half of the rate portion of the state of the random coin.
     padw exec.constants::r2_ptr mem_loadw
@@ -718,7 +718,7 @@ export.generate_list_indices
     dup.11 sub.1 swap.12
     neq.0
     while.true
-        movup.7  
+        movup.7
         u32split swap       # [r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         dup.10              # [mask, r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         u32checked_and      # [r, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
