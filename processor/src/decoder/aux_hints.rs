@@ -1,3 +1,5 @@
+use crate::system::ContextId;
+
 use super::{
     super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, ColMatrix, Felt,
     FieldElement, StarkField, Vec, Word, EMPTY_WORD, ONE, ZERO,
@@ -276,7 +278,7 @@ pub struct BlockStackTableRow {
     block_id: Felt,
     parent_id: Felt,
     is_loop: bool,
-    parent_ctx: u32,
+    parent_ctx: ContextId,
     parent_fn_hash: Word,
     parent_fmp: Felt,
     parent_stack_depth: u32,
@@ -307,7 +309,7 @@ impl BlockStackTableRow {
             block_id,
             parent_id,
             is_loop,
-            parent_ctx: 0,
+            parent_ctx: ContextId::root(),
             parent_fn_hash: EMPTY_WORD,
             parent_fmp: ZERO,
             parent_stack_depth: 0,

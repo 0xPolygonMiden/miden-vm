@@ -275,7 +275,7 @@ mod tests {
         super::{super::AdviceProvider, Operation, STACK_TOP_SIZE},
         Felt, Host, Process,
     };
-    use crate::AdviceSource;
+    use crate::{AdviceSource, ContextId};
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
     #[test]
@@ -332,7 +332,7 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word, process.chiplets.get_mem_value(0, 1).unwrap());
+        assert_eq!(word, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
 
         // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
@@ -361,7 +361,7 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word, process.chiplets.get_mem_value(0, 2).unwrap());
+        assert_eq!(word, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
         process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
@@ -386,8 +386,8 @@ mod tests {
 
         // check memory state
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1_felts, process.chiplets.get_mem_value(0, 1).unwrap());
-        assert_eq!(word2_felts, process.chiplets.get_mem_value(0, 2).unwrap());
+        assert_eq!(word1_felts, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // clear the stack
         for _ in 0..8 {
@@ -433,7 +433,7 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
+        assert_eq!(word1, process.chiplets.get_mem_value(ContextId::root(), 0).unwrap());
 
         // push the second word onto the stack and save it at address 3
         let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
@@ -445,8 +445,8 @@ mod tests {
 
         // check memory state
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
-        assert_eq!(word2, process.chiplets.get_mem_value(0, 3).unwrap());
+        assert_eq!(word1, process.chiplets.get_mem_value(ContextId::root(), 0).unwrap());
+        assert_eq!(word2, process.chiplets.get_mem_value(ContextId::root(), 3).unwrap());
 
         // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
@@ -474,7 +474,7 @@ mod tests {
         // check memory state
         let mem_0 = [element, ZERO, ZERO, ZERO];
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(mem_0, process.chiplets.get_mem_value(0, 0).unwrap());
+        assert_eq!(mem_0, process.chiplets.get_mem_value(ContextId::root(), 0).unwrap());
 
         // push the word onto the stack and save it at address 2
         let word_2 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -491,7 +491,7 @@ mod tests {
         // check memory state to make sure the other 3 elements were not affected
         let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(mem_2, process.chiplets.get_mem_value(0, 2).unwrap());
+        assert_eq!(mem_2, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // --- calling MSTORE with address greater than u32::MAX leads to an error ----------------
         process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
@@ -538,8 +538,8 @@ mod tests {
 
         // check memory state contains the words from the advice stack
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1_felts, process.chiplets.get_mem_value(0, 1).unwrap());
-        assert_eq!(word2_felts, process.chiplets.get_mem_value(0, 2).unwrap());
+        assert_eq!(word1_felts, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // the first 8 values should be the values from the advice stack. the next 4 values should
         // remain unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
