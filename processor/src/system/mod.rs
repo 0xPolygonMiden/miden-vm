@@ -301,7 +301,7 @@ impl System {
 // EXECUTION CONTEXT
 // ================================================================================================
 
-/// Represents the ID of a memory context
+/// Represents the ID of an execution context
 #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ContextId(u32);
 
