@@ -30,7 +30,7 @@ mod operations;
 
 mod system;
 use system::System;
-pub use system::{FMP_MIN, SYSCALL_FMP_MIN};
+pub use system::{ContextId, FMP_MIN, SYSCALL_FMP_MIN};
 
 mod decoder;
 use decoder::Decoder;
@@ -533,7 +533,7 @@ pub trait ProcessState {
     fn clk(&self) -> u32;
 
     /// Returns the current execution context ID.
-    fn ctx(&self) -> u32;
+    fn ctx(&self) -> ContextId;
 
     /// Returns the current value of the free memory pointer.
     fn fmp(&self) -> u64;
@@ -559,14 +559,14 @@ pub trait ProcessState {
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
-    fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word>;
+    fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word>;
 
     /// Returns the entire memory state for the specified execution context at the current clock
     /// cycle.
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    fn get_mem_state(&self, ctx: u32) -> Vec<(u64, Word)>;
+    fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)>;
 }
 
 impl<H: Host> ProcessState for Process<H> {
@@ -574,7 +574,7 @@ impl<H: Host> ProcessState for Process<H> {
         self.system.clk()
     }
 
-    fn ctx(&self) -> u32 {
+    fn ctx(&self) -> ContextId {
         self.system.ctx()
     }
 
@@ -594,11 +594,11 @@ impl<H: Host> ProcessState for Process<H> {
         self.stack.get_state_at(self.system.clk())
     }
 
-    fn get_mem_value(&self, ctx: u32, addr: u32) -> Option<Word> {
+    fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)
     }
 
-    fn get_mem_state(&self, ctx: u32) -> Vec<(u64, Word)> {
+    fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
         self.chiplets.get_mem_state_at(ctx, self.system.clk())
     }
 }

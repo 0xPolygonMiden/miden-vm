@@ -1,3 +1,5 @@
+use crate::ContextId;
+
 use super::{
     super::aux_trace::{ChipletLookup, ChipletsBusRow},
     super::ZERO,
@@ -22,27 +24,27 @@ fn mem_read() {
 
     // read a value from address 0; clk = 1
     let addr0 = 0;
-    let value = mem.read(0, addr0, 1);
+    let value = mem.read(ContextId::root(), addr0, 1);
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // read a value from address 3; clk = 2
     let addr3 = 3;
-    let value = mem.read(0, addr3, 2);
+    let value = mem.read(ContextId::root(), addr3, 2);
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from address 0 again; clk = 3
-    let value = mem.read(0, addr0, 3);
+    let value = mem.read(ContextId::root(), addr0, 3);
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // read a value from address 2; clk = 4
     let addr2 = 2;
-    let value = mem.read(0, addr2, 4);
+    let value = mem.read(ContextId::root(), addr2, 4);
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
@@ -53,21 +55,25 @@ fn mem_read() {
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 1, EMPTY_WORD);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr0, 1, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_INIT_READ, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 3, EMPTY_WORD);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr0, 3, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 2
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 4, EMPTY_WORD);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr2, 4, EMPTY_WORD);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_INIT_READ, &memory_access, prev_row);
 
     // address 3
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr3, 2, EMPTY_WORD);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr3, 2, EMPTY_WORD);
     verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_INIT_READ, &memory_access, prev_row);
 }
 
@@ -78,31 +84,31 @@ fn mem_write() {
     // write a value into address 0; clk = 1
     let addr0 = 0;
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, addr0, 1, value1);
-    assert_eq!(value1, mem.get_value(0, addr0).unwrap());
+    mem.write(ContextId::root(), addr0, 1, value1);
+    assert_eq!(value1, mem.get_value(ContextId::root(), addr0).unwrap());
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // write a value into address 2; clk = 2
     let addr2 = 2;
     let value5 = [Felt::new(5), ZERO, ZERO, ZERO];
-    mem.write(0, addr2, 2, value5);
-    assert_eq!(value5, mem.get_value(0, addr2).unwrap());
+    mem.write(ContextId::root(), addr2, 2, value5);
+    assert_eq!(value5, mem.get_value(ContextId::root(), addr2).unwrap());
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // write a value into address 1; clk = 3
     let addr1 = 1;
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(0, addr1, 3, value7);
-    assert_eq!(value7, mem.get_value(0, addr1).unwrap());
+    mem.write(ContextId::root(), addr1, 3, value7);
+    assert_eq!(value7, mem.get_value(ContextId::root(), addr1).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // write a value into address 0; clk = 4
     let value9 = [Felt::new(9), ZERO, ZERO, ZERO];
-    mem.write(0, addr0, 4, value9);
-    assert_eq!(value7, mem.get_value(0, addr1).unwrap());
+    mem.write(ContextId::root(), addr0, 4, value9);
+    assert_eq!(value7, mem.get_value(ContextId::root(), addr1).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
@@ -112,21 +118,25 @@ fn mem_write() {
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr0, 1, value1);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr0, 1, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr0, 4, value9);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr0, 4, value9);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_WRITE, &memory_access, prev_row);
 
     // address 1
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr1, 3, value7);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr1, 3, value7);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
 
     // address 2
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr2, 2, value5);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 2, value5);
     verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_WRITE, &memory_access, prev_row);
 }
 
@@ -137,35 +147,35 @@ fn mem_write_read() {
     // write 1 into address 5; clk = 1
     let addr5 = 5;
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, addr5, 1, value1);
+    mem.write(ContextId::root(), addr5, 1, value1);
 
     // write 4 into address 2; clk = 2
     let addr2 = 2;
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
-    mem.write(0, addr2, 2, value4);
+    mem.write(ContextId::root(), addr2, 2, value4);
 
     // read a value from address 5; clk = 3
-    mem.read(0, addr5, 3);
+    mem.read(ContextId::root(), addr5, 3);
 
     // write 2 into address 5; clk = 4
     let value2 = [Felt::new(2), ZERO, ZERO, ZERO];
-    mem.write(0, addr5, 4, value2);
+    mem.write(ContextId::root(), addr5, 4, value2);
 
     // read a value from address 2; clk = 5
-    mem.read(0, addr2, 5);
+    mem.read(ContextId::root(), addr2, 5);
 
     // write 7 into address 2; clk = 6
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(0, addr2, 6, value7);
+    mem.write(ContextId::root(), addr2, 6, value7);
 
     // read a value from address 5; clk = 7
-    mem.read(0, addr5, 7);
+    mem.read(ContextId::root(), addr5, 7);
 
     // read a value from address 2; clk = 8
-    mem.read(0, addr2, 8);
+    mem.read(ContextId::root(), addr2, 8);
 
     // read a value from address 5; clk = 9
-    mem.read(0, addr5, 9);
+    mem.read(ContextId::root(), addr5, 9);
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
@@ -173,40 +183,49 @@ fn mem_write_read() {
 
     // address 2
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr2, 2, value4);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 2, value4);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 5, value4);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr2, 5, value4);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr2, 6, value7);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 6, value7);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 8, value7);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr2, 8, value7);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 5
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr5, 1, value1);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr5, 1, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 4, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr5, 3, value1);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr5, 3, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 5, MEMORY_COPY_READ, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr5, 4, value2);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr5, 4, value2);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 6, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr5, 7, value2);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr5, 7, value2);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 7, MEMORY_COPY_READ, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr5, 9, value2);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr5, 9, value2);
     verify_memory_access(&trace, &chiplets_bus, 8, MEMORY_COPY_READ, &memory_access, prev_row);
 }
 
@@ -214,35 +233,35 @@ fn mem_write_read() {
 fn mem_multi_context() {
     let mut mem = Memory::default();
 
-    // write a value into ctx = 0, addr = 0; clk = 1
+    // write a value into ctx = ContextId::root(), addr = 0; clk = 1
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, 0, 1, value1);
-    assert_eq!(value1, mem.get_value(0, 0).unwrap());
+    mem.write(ContextId::root(), 0, 1, value1);
+    assert_eq!(value1, mem.get_value(ContextId::root(), 0).unwrap());
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // write a value into ctx = 3, addr = 1; clk = 4
     let value2 = [ZERO, ONE, ZERO, ZERO];
-    mem.write(3, 1, 4, value2);
-    assert_eq!(value2, mem.get_value(3, 1).unwrap());
+    mem.write(3.into(), 1, 4, value2);
+    assert_eq!(value2, mem.get_value(3.into(), 1).unwrap());
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from ctx = 3, addr = 1; clk = 6
-    let value = mem.read(3, 1, 6);
+    let value = mem.read(3.into(), 1, 6);
     assert_eq!(value2, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // write a value into ctx = 3, addr = 0; clk = 7
     let value3 = [ZERO, ZERO, ONE, ZERO];
-    mem.write(3, 0, 7, value3);
-    assert_eq!(value3, mem.get_value(3, 0).unwrap());
+    mem.write(3.into(), 0, 7, value3);
+    assert_eq!(value3, mem.get_value(3.into(), 0).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
     // read a value from ctx = 0, addr = 0; clk = 9
-    let value = mem.read(0, 0, 9);
+    let value = mem.read(ContextId::root(), 0, 9);
     assert_eq!(value1, value);
     assert_eq!(3, mem.size());
     assert_eq!(5, mem.trace_len());
@@ -253,25 +272,26 @@ fn mem_multi_context() {
 
     // ctx = 0, addr = 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, 0, 1, value1);
+    let memory_access =
+        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), 0, 1, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, 0, 9, value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), 0, 9, value1);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // ctx = 3, addr = 0
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, 0, 7, value3);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3.into(), 0, 7, value3);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
 
     // ctx = 3, addr = 1
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, 1, 4, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3.into(), 1, 4, value2);
     prev_row =
         verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 3, 1, 6, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 3.into(), 1, 6, value2);
     verify_memory_access(&trace, &chiplets_bus, 4, MEMORY_COPY_READ, &memory_access, prev_row);
 }
 
@@ -282,33 +302,33 @@ fn mem_get_state_at() {
     // Write 1 into (ctx = 0, addr = 5) at clk = 1.
     // This means that mem[5] = 1 at the beginning of clk = 2
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, 5, 1, value1);
+    mem.write(ContextId::root(), 5, 1, value1);
 
     // Write 4 into (ctx = 0, addr = 2) at clk = 2.
     // This means that mem[2] = 4 at the beginning of clk = 3
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
-    mem.write(0, 2, 2, value4);
+    mem.write(ContextId::root(), 2, 2, value4);
 
     // write 7 into (ctx = 3, addr = 3) at clk = 4
     // This means that mem[3] = 7 at the beginning of clk = 4
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(3, 3, 4, value7);
+    mem.write(3.into(), 3, 4, value7);
 
     // Check memory state at clk = 2
-    assert_eq!(mem.get_state_at(0, 2), vec![(5, value1)]);
-    assert_eq!(mem.get_state_at(3, 2), vec![]);
+    assert_eq!(mem.get_state_at(ContextId::root(), 2), vec![(5, value1)]);
+    assert_eq!(mem.get_state_at(3.into(), 2), vec![]);
 
     // Check memory state at clk = 3
-    assert_eq!(mem.get_state_at(0, 3), vec![(2, value4), (5, value1)]);
-    assert_eq!(mem.get_state_at(3, 3), vec![]);
+    assert_eq!(mem.get_state_at(ContextId::root(), 3), vec![(2, value4), (5, value1)]);
+    assert_eq!(mem.get_state_at(3.into(), 3), vec![]);
 
     // Check memory state at clk = 4
-    assert_eq!(mem.get_state_at(0, 4), vec![(2, value4), (5, value1)]);
-    assert_eq!(mem.get_state_at(3, 4), vec![]);
+    assert_eq!(mem.get_state_at(ContextId::root(), 4), vec![(2, value4), (5, value1)]);
+    assert_eq!(mem.get_state_at(3.into(), 4), vec![]);
 
     // Check memory state at clk = 5
-    assert_eq!(mem.get_state_at(0, 5), vec![(2, value4), (5, value1)]);
-    assert_eq!(mem.get_state_at(3, 5), vec![(3, value7)]);
+    assert_eq!(mem.get_state_at(ContextId::root(), 5), vec![(2, value4), (5, value1)]);
+    assert_eq!(mem.get_state_at(3.into(), 5), vec![(3, value7)]);
 }
 
 // HELPER STRUCT & FUNCTIONS
