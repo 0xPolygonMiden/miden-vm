@@ -1,7 +1,7 @@
-use assembly::{ast::ProgramAst, Assembler, AssemblyContext};
+use assembly::{ast::ProgramAst, Assembler, AssemblyContext, LibraryPath, ProcedureId};
 use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
-use vm_core::{code_blocks::CodeBlock, StarkField};
+use vm_core::StarkField;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -374,44 +374,35 @@ fn procref() {
         procref.foo
     end";
 
-    let assembler = Assembler::default();
+    let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
     let program_ast = ProgramAst::parse(source).unwrap();
+    let mut context = AssemblyContext::for_program(Some(&program_ast));
 
-    // compile program to get mast roots from the CodeBlock
-    let compiled_program = assembler
-        .with_library(&StdLibrary::default())
-        .unwrap()
-        .compile_in_context(&program_ast, &mut AssemblyContext::for_program(Some(&program_ast)))
-        .unwrap();
+    // compile program to fill procedure cache and assembly context
+    let _compiled_program = assembler.compile_in_context(&program_ast, &mut context).unwrap();
 
-    let mut mast_roots = Vec::new();
-    let span = match compiled_program {
-        CodeBlock::Span(span) => span.clone(),
-        _ => unreachable!(),
-    };
-    for batch in span.op_batches() {
-        for op in batch.ops() {
-            match op {
-                // procref uses only `Push` operations
-                vm_core::Operation::Push(v) => mast_roots.push(v.as_int()),
-                _ => {}
-            }
-        }
-    }
+    // get MAST root of the export procedure from the assembler's procedure cache
+    let export_proc_id =
+        ProcedureId::from_name("overflowing_add", &LibraryPath::new("std::math::u64").unwrap());
+    let export_proc_root = assembler.proc_cache().get_proc_root_by_id(&export_proc_id).unwrap();
+
+    // get MAST root of the local procedure from assembly context
+    let local_proc_idx = 0;
+    let local_proc_root = context.get_local_procedure(local_proc_idx).unwrap().mast_root();
 
     let mut test = build_test!(source, &[]);
     test.libraries = vec![StdLibrary::default().into()];
 
     test.expect_stack(&[
-        mast_roots[7],
-        mast_roots[6],
-        mast_roots[5],
-        mast_roots[4],
+        local_proc_root[3].as_int(),
+        local_proc_root[2].as_int(),
+        local_proc_root[1].as_int(),
+        local_proc_root[0].as_int(),
         0,
-        mast_roots[3],
-        mast_roots[2],
-        mast_roots[1],
-        mast_roots[0],
+        export_proc_root[3].as_int(),
+        export_proc_root[2].as_int(),
+        export_proc_root[1].as_int(),
+        export_proc_root[0].as_int(),
     ]);
 
     test.prove_and_verify(vec![], false);
