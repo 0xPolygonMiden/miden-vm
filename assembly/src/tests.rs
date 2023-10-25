@@ -1614,4 +1614,11 @@ impl Library for DummyLibrary {
     fn dependencies(&self) -> &[LibraryNamespace] {
         &self.dependencies
     }
+
+    fn get_module_ast(&self, path: &LibraryPath) -> Option<ModuleAst> {
+        self.modules
+            .iter()
+            .find(|&module| module.path == *path)
+            .map(|module| module.ast.clone())
+    }
 }
