@@ -88,7 +88,7 @@ impl AssemblyContext {
         }
     }
 
-    /// Returns the [Procedure] by its index from the vector of compiled procedures.
+    /// Returns the [Procedure] by its index from the vector of local procedures.
     pub fn get_local_procedure(&self, idx: u16) -> Result<&Procedure, AssemblyError> {
         let module_context = self.module_stack.last().expect("no modules");
         module_context

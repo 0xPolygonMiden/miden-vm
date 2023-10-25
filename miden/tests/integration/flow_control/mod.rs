@@ -1,5 +1,7 @@
-use assembly::{ast::ModuleAst, LibraryNamespace, LibraryPath, MaslLibrary, Module};
+use assembly::{ast::ProgramAst, Assembler, AssemblyContext};
+use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
+use vm_core::{code_blocks::CodeBlock, StarkField};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -358,49 +360,58 @@ fn simple_dyncall() {
 // ================================================================================================
 
 #[test]
-fn fmpadd() {
-    let module_source = "
-    export.foo
-        push.1.2
-    end";
-    let module_ast = ModuleAst::parse(module_source).unwrap();
-    let library_path = LibraryPath::new("module::path::one").unwrap();
-    let module = Module::new(library_path, module_ast);
-    let masl_lib = MaslLibrary::new(
-        LibraryNamespace::new("module").unwrap(),
-        assembly::Version::default(),
-        false,
-        vec![module],
-        vec![],
-    )
-    .unwrap();
-
+fn procref() {
     let source = "
-    use.module::path::one
+    use.std::math::u64
 
-    proc.baz.4
+    proc.foo.4
         push.3.4
     end
 
     begin
-        procref.one::foo
+        procref.u64::overflowing_add
         push.0
-        procref.baz
+        procref.foo
     end";
 
+    let assembler = Assembler::default();
+    let program_ast = ProgramAst::parse(source).unwrap();
+
+    // compile program to get mast roots from the CodeBlock
+    let compiled_program = assembler
+        .with_library(&StdLibrary::default())
+        .unwrap()
+        .compile_in_context(&program_ast, &mut AssemblyContext::for_program(Some(&program_ast)))
+        .unwrap();
+
+    let mut mast_roots = Vec::new();
+    let span = match compiled_program {
+        CodeBlock::Span(span) => span.clone(),
+        _ => unreachable!(),
+    };
+    for batch in span.op_batches() {
+        for op in batch.ops() {
+            match op {
+                // procref uses only `Push` operations
+                vm_core::Operation::Push(v) => mast_roots.push(v.as_int()),
+                _ => {}
+            }
+        }
+    }
+
     let mut test = build_test!(source, &[]);
-    test.libraries = vec![masl_lib];
+    test.libraries = vec![StdLibrary::default().into()];
 
     test.expect_stack(&[
-        14955017261620687123,
-        7483764806157722537,
-        3983040829500348437,
-        17415803850183235164,
+        mast_roots[7],
+        mast_roots[6],
+        mast_roots[5],
+        mast_roots[4],
         0,
-        10769795280686168241,
-        18286248910168089036,
-        9534016474345631087,
-        17844857521614540683,
+        mast_roots[3],
+        mast_roots[2],
+        mast_roots[1],
+        mast_roots[0],
     ]);
 
     test.prove_and_verify(vec![], false);
