@@ -44,7 +44,7 @@ impl Library for StdLibrary {
         self.0.dependencies()
     }
 
-    fn get_module_ast(&self, path: &LibraryPath) -> Option<ModuleAst> {
+    fn get_module_ast(&self, path: &LibraryPath) -> Option<&ModuleAst> {
         self.0.get_module_ast(path)
     }
 }

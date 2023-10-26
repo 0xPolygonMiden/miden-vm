@@ -43,7 +43,9 @@ pub trait Library {
     fn dependencies(&self) -> &[LibraryNamespace];
 
     /// Returns the AST of the module stored at the provided path.
-    fn get_module_ast(&self, path: &LibraryPath) -> Option<ModuleAst>;
+    fn get_module_ast(&self, path: &LibraryPath) -> Option<&ModuleAst> {
+        self.modules().find(|&module| module.path == *path).map(|module| &module.ast)
+    }
 }
 
 impl<T> Library for &T
@@ -70,7 +72,7 @@ where
         T::dependencies(self)
     }
 
-    fn get_module_ast(&self, path: &LibraryPath) -> Option<ModuleAst> {
+    fn get_module_ast(&self, path: &LibraryPath) -> Option<&ModuleAst> {
         T::get_module_ast(self, path)
     }
 }
