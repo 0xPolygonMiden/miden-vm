@@ -1,4 +1,8 @@
+use assembly::{Assembler, AssemblyContext, LibraryPath};
+use miden::ModuleAst;
+use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
+use vm_core::StarkField;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -351,4 +355,58 @@ fn simple_dyncall() {
         ],
         false,
     );
+}
+
+// PROCREF INSTRUCTION
+// ================================================================================================
+
+#[test]
+fn procref() {
+    let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
+
+    let module_source = "
+    use.std::math::u64
+    export.u64::overflowing_add
+
+    export.foo.4
+        push.3.4
+    end
+    ";
+
+    // obtain procedures' MAST roots by compiling them as module
+    let module_ast = ModuleAst::parse(module_source).unwrap();
+    let module_path = LibraryPath::new("test::foo").unwrap();
+    let mast_roots = assembler
+        .compile_module(&module_ast, Some(&module_path), &mut AssemblyContext::for_module(false))
+        .unwrap();
+
+    let source = "
+    use.std::math::u64
+
+    proc.foo.4
+        push.3.4
+    end
+
+    begin
+        procref.u64::overflowing_add
+        push.0
+        procref.foo
+    end";
+
+    let mut test = build_test!(source, &[]);
+    test.libraries = vec![StdLibrary::default().into()];
+
+    test.expect_stack(&[
+        mast_roots[1][3].as_int(),
+        mast_roots[1][2].as_int(),
+        mast_roots[1][1].as_int(),
+        mast_roots[1][0].as_int(),
+        0,
+        mast_roots[0][3].as_int(),
+        mast_roots[0][2].as_int(),
+        mast_roots[0][1].as_int(),
+        mast_roots[0][0].as_int(),
+    ]);
+
+    test.prove_and_verify(vec![], false);
 }

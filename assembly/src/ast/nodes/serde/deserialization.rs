@@ -363,6 +363,10 @@ impl Deserializable for Instruction {
             OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(source)?)),
             OpCode::DynExec => Ok(Instruction::DynExec),
             OpCode::DynCall => Ok(Instruction::DynCall),
+            OpCode::ProcRefLocal => Ok(Instruction::ProcRefLocal(source.read_u16()?)),
+            OpCode::ProcRefImported => {
+                Ok(Instruction::ProcRefImported(ProcedureId::read_from(source)?))
+            }
 
             // ----- debugging --------------------------------------------------------------------
             OpCode::Debug => {

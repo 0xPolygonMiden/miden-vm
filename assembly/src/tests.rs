@@ -1,6 +1,7 @@
 use crate::{
     ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyContext, Library, LibraryNamespace, LibraryPath, Module, Version,
+    Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath, MaslLibrary,
+    Module, ProcedureName, Version,
 };
 use core::slice::Iter;
 
@@ -214,6 +215,138 @@ fn call_without_path() {
     assembler
         .compile_in_context(&source, &mut AssemblyContext::for_program(Some(&source)))
         .unwrap();
+}
+
+// PROGRAM WITH PROCREF
+// ================================================================================================
+
+#[test]
+fn procref_call() {
+    // instantiate assembler
+    let assembler = Assembler::default();
+
+    // compile first module
+    let module_path1 = LibraryPath::new("module::path::one").unwrap();
+    let module_source1 = ModuleAst::parse(
+        "
+        export.aaa
+            push.7.8
+        end
+
+        export.foo
+            push.1.2
+        end",
+    )
+    .unwrap();
+
+    let _roots1 = assembler
+        .compile_module(
+            &module_source1,
+            Some(&module_path1),
+            &mut AssemblyContext::for_module(false),
+        )
+        .unwrap();
+
+    // compile second module
+    let module_path2 = LibraryPath::new("module::path::two").unwrap();
+    let module_source2 = ModuleAst::parse(
+        "
+        use.module::path::one
+        export.one::foo
+
+        export.bar
+            procref.one::aaa
+        end",
+    )
+    .unwrap();
+
+    let _roots2 = assembler
+        .compile_module(
+            &module_source2,
+            Some(&module_path2),
+            &mut AssemblyContext::for_module(false),
+        )
+        .unwrap();
+
+    // compile program with procref calls
+    let program_source = ProgramAst::parse(
+        "
+        use.module::path::two
+            
+        proc.baz.4
+            push.3.4
+        end
+        
+        begin 
+            procref.two::bar
+            procref.two::foo
+            procref.baz
+        end",
+    )
+    .unwrap();
+
+    let _compiled_program = assembler
+        .compile_in_context(
+            &program_source,
+            &mut AssemblyContext::for_program(Some(&program_source)),
+        )
+        .unwrap();
+}
+
+#[test]
+fn get_proc_name_of_unknown_module() {
+    // Module `two` is unknown. This program should return
+    // `AssemblyError::imported_proc_module_not_found` error with `bar` procedure name.
+    let module_source1 = "
+    use.module::path::two
+
+    export.foo
+        procref.two::bar
+    end";
+    let module_ast1 = ModuleAst::parse(module_source1).unwrap();
+    let module_path1 = LibraryPath::new("module::path::one").unwrap();
+    let module1 = Module::new(module_path1, module_ast1);
+
+    let masl_lib = MaslLibrary::new(
+        LibraryNamespace::new("module").unwrap(),
+        Version::default(),
+        false,
+        vec![module1],
+        vec![],
+    )
+    .unwrap();
+
+    // instantiate assembler
+    let assembler = Assembler::default().with_library(&masl_lib).unwrap();
+
+    // compile program with procref calls
+    let program_source = ProgramAst::parse(
+        "
+        use.module::path::one
+
+        begin 
+            procref.one::foo
+        end",
+    )
+    .unwrap();
+
+    let compilation_error = assembler
+        .compile_in_context(
+            &program_source,
+            &mut AssemblyContext::for_program(Some(&program_source)),
+        )
+        .err()
+        .unwrap();
+
+    let expected_error = AssemblyError::imported_proc_module_not_found(
+        &crate::ProcedureId([
+            17, 137, 148, 17, 42, 108, 60, 23, 205, 115, 62, 70, 16, 121, 221, 142, 51, 247, 250,
+            43,
+        ]),
+        ProcedureName::try_from("bar").ok(),
+    );
+
+    assert_eq!(compilation_error, expected_error);
 }
 
 // CONSTANTS

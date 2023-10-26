@@ -3,8 +3,9 @@
 ## 0.8.0 (TBD)
 
 #### Assembly
-- Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations.
+- Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations (#1103).
 - Introduced the `emit.<event_id>` assembly instruction (#1119).
+- Introduced the `procref.<proc_name>` assembly instruction (#1113).
 
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
