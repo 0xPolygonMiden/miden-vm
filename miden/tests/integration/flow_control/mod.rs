@@ -1,4 +1,5 @@
-use assembly::{ast::ProgramAst, Assembler, AssemblyContext, LibraryPath, ProcedureId};
+use assembly::{Assembler, AssemblyContext, LibraryPath};
+use miden::ModuleAst;
 use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
 use vm_core::StarkField;
@@ -361,6 +362,24 @@ fn simple_dyncall() {
 
 #[test]
 fn procref() {
+    let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
+
+    let module_source = "
+    use.std::math::u64
+    export.u64::overflowing_add
+
+    export.foo.4
+        push.3.4
+    end
+    ";
+
+    // obtain procedures' MAST roots by compiling them as module
+    let module_ast = ModuleAst::parse(module_source).unwrap();
+    let module_path = LibraryPath::new("test::foo").unwrap();
+    let mast_roots = assembler
+        .compile_module(&module_ast, Some(&module_path), &mut AssemblyContext::for_module(false))
+        .unwrap();
+
     let source = "
     use.std::math::u64
 
@@ -374,35 +393,19 @@ fn procref() {
         procref.foo
     end";
 
-    let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
-    let program_ast = ProgramAst::parse(source).unwrap();
-    let mut context = AssemblyContext::for_program(Some(&program_ast));
-
-    // compile program to fill procedure cache and assembly context
-    let _compiled_program = assembler.compile_in_context(&program_ast, &mut context).unwrap();
-
-    // get MAST root of the export procedure from the assembler's procedure cache
-    let export_proc_id =
-        ProcedureId::from_name("overflowing_add", &LibraryPath::new("std::math::u64").unwrap());
-    let export_proc_root = assembler.proc_cache().get_proc_root_by_id(&export_proc_id).unwrap();
-
-    // get MAST root of the local procedure from assembly context
-    let local_proc_idx = 0;
-    let local_proc_root = context.get_local_procedure(local_proc_idx).unwrap().mast_root();
-
     let mut test = build_test!(source, &[]);
     test.libraries = vec![StdLibrary::default().into()];
 
     test.expect_stack(&[
-        local_proc_root[3].as_int(),
-        local_proc_root[2].as_int(),
-        local_proc_root[1].as_int(),
-        local_proc_root[0].as_int(),
+        mast_roots[1][3].as_int(),
+        mast_roots[1][2].as_int(),
+        mast_roots[1][1].as_int(),
+        mast_roots[1][0].as_int(),
         0,
-        export_proc_root[3].as_int(),
-        export_proc_root[2].as_int(),
-        export_proc_root[1].as_int(),
-        export_proc_root[0].as_int(),
+        mast_roots[0][3].as_int(),
+        mast_roots[0][2].as_int(),
+        mast_roots[0][1].as_int(),
+        mast_roots[0][0].as_int(),
     ]);
 
     test.prove_and_verify(vec![], false);
