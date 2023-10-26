@@ -6,7 +6,7 @@ use super::{
     LibraryError, LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId,
     ProcedureName, Program, ToString, Vec, ONE, ZERO,
 };
-use core::{borrow::Borrow, cell::Ref, cell::RefCell};
+use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
@@ -112,11 +112,6 @@ impl Assembler {
     /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
     pub fn kernel(&self) -> &Kernel {
         &self.kernel
-    }
-
-    /// Returns an immutable reference to the procedure cache.
-    pub fn proc_cache(&self) -> Ref<'_, ProcedureCache> {
-        self.proc_cache.borrow()
     }
 
     // PROGRAM COMPILER
