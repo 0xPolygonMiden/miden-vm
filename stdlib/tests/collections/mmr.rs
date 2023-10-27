@@ -560,15 +560,10 @@ fn test_mmr_pack_roundtrip() {
     let advice_stack = &[];
     let store = MerkleStore::new();
 
-    let mut hash_data = accumulator.peaks.clone();
+    let mut hash_data = accumulator.peaks().to_vec();
     hash_data.resize(16, RpoDigest::default());
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.extend_from_slice(&[
-        Felt::new(accumulator.num_leaves.try_into().unwrap()),
-        ZERO,
-        ZERO,
-        ZERO,
-    ]);
+    map_data.extend_from_slice(&[Felt::new(accumulator.num_leaves() as u64), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(digests_to_elements(&hash_data).as_ref());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
@@ -589,9 +584,9 @@ fn test_mmr_pack_roundtrip() {
     let mut expect_memory: Vec<u64> = Vec::new();
 
     // first the number of leaves
-    expect_memory.extend_from_slice(&[accumulator.num_leaves as u64, 0, 0, 0]);
+    expect_memory.extend_from_slice(&[accumulator.num_leaves() as u64, 0, 0, 0]);
     // followed by the peaks
-    expect_memory.extend(digests_to_ints(&accumulator.peaks));
+    expect_memory.extend(digests_to_ints(&accumulator.peaks()));
     // followed by padding data
     let size = 4 + 16 * 4;
     expect_memory.resize(size, 0);
@@ -685,9 +680,9 @@ fn test_mmr_two() {
     mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into());
 
     let accumulator = mmr.accumulator();
-    let peak = accumulator.peaks[0];
+    let peak = accumulator.peaks()[0];
 
-    let num_leaves = accumulator.num_leaves.try_into().unwrap();
+    let num_leaves = accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
     expected_memory.extend(peak.iter().map(|v| v.as_int()));
 
@@ -726,9 +721,9 @@ fn test_mmr_large() {
 
     let accumulator = mmr.accumulator();
 
-    let num_leaves = accumulator.num_leaves.try_into().unwrap();
+    let num_leaves = accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
-    expected_memory.extend(digests_to_ints(&accumulator.peaks));
+    expected_memory.extend(digests_to_ints(&accumulator.peaks()));
 
     let expect_stack: Vec<u64> =
         accumulator.hash_peaks().iter().rev().map(|v| v.as_int()).collect();
@@ -761,11 +756,11 @@ fn test_mmr_large_add_roundtrip() {
     let advice_stack = &[];
     let store = MerkleStore::new();
 
-    let mut hash_data = old_accumulator.peaks.clone();
+    let mut hash_data = old_accumulator.peaks().to_vec();
     hash_data.resize(16, RpoDigest::default());
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    let num_leaves: u64 = old_accumulator.num_leaves as u64;
+    let num_leaves = old_accumulator.num_leaves() as u64;
     map_data.extend_from_slice(&[Felt::from(num_leaves), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&digests_to_elements(&hash_data));
 
@@ -789,9 +784,9 @@ fn test_mmr_large_add_roundtrip() {
     mmr.add([ZERO, ZERO, ZERO, Felt::new(8)].into());
 
     let new_accumulator = mmr.accumulator();
-    let num_leaves = new_accumulator.num_leaves.try_into().unwrap();
+    let num_leaves = new_accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
-    let mut new_peaks = new_accumulator.peaks.clone();
+    let mut new_peaks = new_accumulator.peaks().to_vec();
     // make sure the old peaks are zeroed
     new_peaks.resize(16, RpoDigest::default());
     expected_memory.extend(digests_to_ints(&new_peaks));

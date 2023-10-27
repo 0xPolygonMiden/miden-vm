@@ -23,10 +23,10 @@ sve = ["miden-crypto/sve", "std"]
 
 [dependencies]
 math = { package = "winter-math", version = "0.6", default-features = false }
-miden-crypto = { package = "miden-crypto", version = "0.7", default-features = false }
+miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 winter-crypto = { package = "winter-crypto", version = "0.6", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.6", default-features = false }
 
 [dev-dependencies]
-proptest = "1.1"
+proptest = "1.3"
 rand_utils = { version = "0.6", package = "winter-rand-utils" }
