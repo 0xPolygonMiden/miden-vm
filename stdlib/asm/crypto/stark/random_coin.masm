@@ -247,7 +247,7 @@ proc.generate_random_coefficients
     # If we use field division and num_tuples is not a multiple of 4 then we will enter into
     # a very large loop with high probability.
     push.0 dup movup.2 movup.3
-    u32checked_divmod.4
+    u32assert u32divmod.4
     assertz
     neg
     #=> [loop_ctr, dest_ptr, x, x, ...]
@@ -320,7 +320,7 @@ proc.generate_random_coefficients_pad
     # If we use field division and num_tuples is not a multiple of 4 then we will enter into
     # a very large loop with high probability.
     push.0 dup movup.2 movup.3
-    u32checked_divmod.4
+    u32assert u32divmod.4
     assertz
     neg
     #=> [loop_ctr, dest_ptr, x, x, ...]
@@ -520,7 +520,7 @@ proc.generate_four_integers
     dup.3               # [r0, R1, ptr, mask, depth, ...]
     u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    u32and      # [r, r0_hi, R1, ptr, mask, depth, ...]
+    u32and              # [r, r0_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r0_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r0_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -533,7 +533,7 @@ proc.generate_four_integers
     dup.2               # [r1, R1, ptr, mask, depth, ...]
     u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    u32and      # [r, r1_hi, R1, ptr, mask, depth, ...]
+    u32and              # [r, r1_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r1_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r1_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -585,7 +585,7 @@ proc.generate_three_integers
     dup.2               # [r0, R1, ptr, mask, depth, ...]
     u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    u32and      # [r, r0_hi, R1, ptr, mask, depth, ...]
+    u32and              # [r, r0_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r0_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r0_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -598,7 +598,7 @@ proc.generate_three_integers
     dup.1               # [r1, R1, ptr, mask, depth, ...]
     u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    u32and      # [r, r1_hi, R1, ptr, mask, depth, ...]
+    u32and              # [r, r1_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r1_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r1_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -676,7 +676,7 @@ export.generate_list_indices
     push.7 sub
 
     ## Divide by 8 to get the number of iterations
-    u32checked_divmod.8
+    u32assert u32divmod.8
     #=> [remainder, quotient, X, query_ptr, mask, depth, ...]
 
     ## Save remainder for later use
@@ -721,7 +721,7 @@ export.generate_list_indices
         movup.7
         u32split swap       # [r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         dup.10              # [mask, r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
-        u32and      # [r, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
+        u32and              # [r, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         dup.11 swap         # [r, depth, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         push.0 movdn.3      # [r, depth, r0_hi, 0, R2, r3, r2, r1, ptr, mask, depth, ...]
 
@@ -750,7 +750,7 @@ export.check_pow
 
     # Compute the mask.
     pow2
-    u32checked_sub.1
+    u32assert u32overflowing_sub.1 assertz
     #=> [mask, ...]
 
     # Load Capacity portion

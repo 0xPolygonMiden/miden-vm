@@ -145,7 +145,7 @@ export.get
   # stack: [relative_pos, peaks_before, depth, mmr_ptr, ...]
 
   # compute `popcount(peaks_before)`, the count peaks before the target to be skipped when loading from mem (2 cycles)
-  swap u32checked_popcnt
+  swap u32assert u32popcnt
   # stack: [peak_count, relative_pos, depth, mmr_ptr, ...]
 
   # compute `mmr_ptr + peak_count + 1` the target tree index (3 cycles)

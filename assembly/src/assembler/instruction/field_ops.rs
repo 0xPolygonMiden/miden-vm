@@ -275,7 +275,7 @@ pub fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     ])
 }
 
-/// Appends a sequence of operations to to pop the top 2 elements off the stack and do a "less
+/// Appends a sequence of operations to pop the top 2 elements off the stack and do a "less
 /// than" comparison. The stack is expected to be arranged as [b, a, ...] (from the top). A value
 /// of 1 is pushed onto the stack if a < b. Otherwise, 0 is pushed.
 ///

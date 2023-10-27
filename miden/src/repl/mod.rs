@@ -54,7 +54,7 @@ use rustyline::{error::ReadlineError, DefaultEditor};
 /// if all of them are zeros).
 /// >> push.1 push.2 push.3 push.4 push.5
 /// >> exp
-/// >> u32checked_mul
+/// >> u32wrapping_mul
 /// >> swap
 /// >> eq.2
 /// >> assert

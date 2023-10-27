@@ -46,7 +46,7 @@ end
 #! odd words: 60 cycles + 3 * words
 export.hash_memory
   # enforce `start_addr < end_addr`
-  dup.1 dup.1 u32checked_gt assert
+  dup.1 dup.1 u32assert2 u32gt assert
 
   # figure out if the range is for an odd number of words (9 cycles)
   dup.1 dup.1 sub is_odd

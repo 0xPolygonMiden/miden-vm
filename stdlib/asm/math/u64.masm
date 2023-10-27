@@ -306,10 +306,10 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.unchecked_eq
     movup.2
-    u32checked_eq
+    u32assert2 eq
     swap
     movup.2
-    u32checked_eq
+    u32assert2 eq
     and
 end
 
@@ -319,10 +319,10 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_eq
     movup.2
-    u32checked_eq
+    u32assert2 eq
     swap
     movup.2
-    u32checked_eq
+    u32assert2 eq
     and
 end
 
@@ -332,10 +332,10 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise.
 export.unchecked_neq
     movup.2
-    u32checked_neq
+    u32assert2 neq
     swap
     movup.2
-    u32checked_neq
+    u32assert2 neq
     or
 end
 

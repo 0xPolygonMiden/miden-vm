@@ -659,6 +659,6 @@ export.verify.1665
     #=> [norm_sq(s1) + norm_sq(s2), ...]
 
     push.SQUARE_NORM_BOUND
-    u32checked_lt assert
+    u32assert2 u32lt assert
     #=> [...]                                       (Cycles: 8)
 end
