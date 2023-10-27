@@ -208,8 +208,8 @@ impl Serializable for Instruction {
                 OpCode::U32CheckedDivImm.write_into(target);
                 target.write_u32(*v);
             }
-            Self::U32UncheckedDiv => OpCode::U32UncheckedDiv.write_into(target),
-            Self::U32UncheckedDivImm(v) => {
+            Self::U32Div => OpCode::U32UncheckedDiv.write_into(target),
+            Self::U32DivImm(v) => {
                 OpCode::U32UncheckedDivImm.write_into(target);
                 target.write_u32(*v);
             }
@@ -218,8 +218,8 @@ impl Serializable for Instruction {
                 OpCode::U32CheckedModImm.write_into(target);
                 target.write_u32(*v);
             }
-            Self::U32UncheckedMod => OpCode::U32UncheckedMod.write_into(target),
-            Self::U32UncheckedModImm(v) => {
+            Self::U32Mod => OpCode::U32UncheckedMod.write_into(target),
+            Self::U32ModImm(v) => {
                 OpCode::U32UncheckedModImm.write_into(target);
                 target.write_u32(*v);
             }
@@ -228,22 +228,22 @@ impl Serializable for Instruction {
                 OpCode::U32CheckedDivModImm.write_into(target);
                 target.write_u32(*v);
             }
-            Self::U32UncheckedDivMod => OpCode::U32UncheckedDivMod.write_into(target),
-            Self::U32UncheckedDivModImm(v) => {
+            Self::U32DivMod => OpCode::U32UncheckedDivMod.write_into(target),
+            Self::U32DivModImm(v) => {
                 OpCode::U32UncheckedDivModImm.write_into(target);
                 target.write_u32(*v);
             }
-            Self::U32CheckedAnd => OpCode::U32CheckedAnd.write_into(target),
-            Self::U32CheckedOr => OpCode::U32CheckedOr.write_into(target),
-            Self::U32CheckedXor => OpCode::U32CheckedXor.write_into(target),
-            Self::U32CheckedNot => OpCode::U32CheckedNot.write_into(target),
+            Self::U32And => OpCode::U32CheckedAnd.write_into(target),
+            Self::U32Or => OpCode::U32CheckedOr.write_into(target),
+            Self::U32Xor => OpCode::U32CheckedXor.write_into(target),
+            Self::U32Not => OpCode::U32CheckedNot.write_into(target),
             Self::U32CheckedShr => OpCode::U32CheckedShr.write_into(target),
             Self::U32CheckedShrImm(v) => {
                 OpCode::U32CheckedShrImm.write_into(target);
                 target.write_u8(*v);
             }
-            Self::U32UncheckedShr => OpCode::U32UncheckedShr.write_into(target),
-            Self::U32UncheckedShrImm(v) => {
+            Self::U32Shr => OpCode::U32UncheckedShr.write_into(target),
+            Self::U32ShrImm(v) => {
                 OpCode::U32UncheckedShrImm.write_into(target);
                 target.write_u8(*v);
             }
@@ -252,8 +252,8 @@ impl Serializable for Instruction {
                 OpCode::U32CheckedShlImm.write_into(target);
                 target.write_u8(*v);
             }
-            Self::U32UncheckedShl => OpCode::U32UncheckedShl.write_into(target),
-            Self::U32UncheckedShlImm(v) => {
+            Self::U32Shl => OpCode::U32UncheckedShl.write_into(target),
+            Self::U32ShlImm(v) => {
                 OpCode::U32UncheckedShlImm.write_into(target);
                 target.write_u8(*v);
             }
@@ -262,8 +262,8 @@ impl Serializable for Instruction {
                 OpCode::U32CheckedRotrImm.write_into(target);
                 target.write_u8(*v);
             }
-            Self::U32UncheckedRotr => OpCode::U32UncheckedRotr.write_into(target),
-            Self::U32UncheckedRotrImm(v) => {
+            Self::U32Rotr => OpCode::U32UncheckedRotr.write_into(target),
+            Self::U32RotrImm(v) => {
                 OpCode::U32UncheckedRotrImm.write_into(target);
                 target.write_u8(*v);
             }
@@ -272,13 +272,13 @@ impl Serializable for Instruction {
                 OpCode::U32CheckedRotlImm.write_into(target);
                 target.write_u8(*v);
             }
-            Self::U32UncheckedRotl => OpCode::U32UncheckedRotl.write_into(target),
-            Self::U32UncheckedRotlImm(v) => {
+            Self::U32Rotl => OpCode::U32UncheckedRotl.write_into(target),
+            Self::U32RotlImm(v) => {
                 OpCode::U32UncheckedRotlImm.write_into(target);
                 target.write_u8(*v);
             }
             Self::U32CheckedPopcnt => OpCode::U32CheckedPopcnt.write_into(target),
-            Self::U32UncheckedPopcnt => OpCode::U32UncheckedPopcnt.write_into(target),
+            Self::U32Popcnt => OpCode::U32UncheckedPopcnt.write_into(target),
             Self::U32CheckedEq => OpCode::U32CheckedEq.write_into(target),
             Self::U32CheckedEqImm(v) => {
                 OpCode::U32CheckedEqImm.write_into(target);
@@ -290,17 +290,17 @@ impl Serializable for Instruction {
                 target.write_u32(*v);
             }
             Self::U32CheckedLt => OpCode::U32CheckedLt.write_into(target),
-            Self::U32UncheckedLt => OpCode::U32UncheckedLt.write_into(target),
+            Self::U32Lt => OpCode::U32UncheckedLt.write_into(target),
             Self::U32CheckedLte => OpCode::U32CheckedLte.write_into(target),
-            Self::U32UncheckedLte => OpCode::U32UncheckedLte.write_into(target),
+            Self::U32Lte => OpCode::U32UncheckedLte.write_into(target),
             Self::U32CheckedGt => OpCode::U32CheckedGt.write_into(target),
-            Self::U32UncheckedGt => OpCode::U32UncheckedGt.write_into(target),
+            Self::U32Gt => OpCode::U32UncheckedGt.write_into(target),
             Self::U32CheckedGte => OpCode::U32CheckedGte.write_into(target),
-            Self::U32UncheckedGte => OpCode::U32UncheckedGte.write_into(target),
+            Self::U32Gte => OpCode::U32UncheckedGte.write_into(target),
             Self::U32CheckedMin => OpCode::U32CheckedMin.write_into(target),
-            Self::U32UncheckedMin => OpCode::U32UncheckedMin.write_into(target),
+            Self::U32Min => OpCode::U32UncheckedMin.write_into(target),
             Self::U32CheckedMax => OpCode::U32CheckedMax.write_into(target),
-            Self::U32UncheckedMax => OpCode::U32UncheckedMax.write_into(target),
+            Self::U32Max => OpCode::U32UncheckedMax.write_into(target),
 
             // ----- stack manipulation ---------------------------------------------------------------
             Self::Drop => OpCode::Drop.write_into(target),

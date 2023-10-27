@@ -1029,7 +1029,7 @@ export.mul.18
     repeat.32
       dup
       push.1
-      u32checked_and
+      u32and
 
       if.true
         # res = base + res
@@ -1135,7 +1135,7 @@ export.mul.18
 
       dropw
 
-      u32unchecked_shr.1
+      u32shr.1
     end
 
     drop
@@ -3289,9 +3289,9 @@ export.gen_mul.20
         loc_loadw.18
         dup
         push.1
-        u32checked_and
+        u32and
         movdn.4
-        u32unchecked_shr.1
+        u32shr.1
         loc_storew.18
         dropw
 

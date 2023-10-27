@@ -120,41 +120,41 @@ end
 #! that's because it doesn't dictate what output of 2-to-1 hash will be.
 proc.finalize
     movup.8
-    u32checked_xor
+    u32xor
 
     swap
     movup.8
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.8
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.8
-    u32checked_xor
+    u32xor
     movdn.3
 
     movup.4
     movup.8
-    u32checked_xor
+    u32xor
     movdn.4
 
     movup.5
     movup.8
-    u32checked_xor
+    u32xor
     movdn.5
 
     movup.6
     movup.8
-    u32checked_xor
+    u32xor
     movdn.6
 
     movup.7
     movup.8
-    u32checked_xor
+    u32xor
     movdn.7
 end
 
@@ -227,25 +227,25 @@ proc.columnar_mixing.1
     mem_loadw
 
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
 
     swap
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
     swap
 
     movup.2
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
     movdn.2
 
     movup.3
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
     movdn.3
 
     movup.12
@@ -274,25 +274,25 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
 
     swap
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
     swap
 
     movup.2
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
     movdn.2
 
     movup.3
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
     movdn.3
 
     movupw.3
@@ -329,25 +329,25 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
 
     swap
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
     swap
 
     movup.2
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
     movdn.2
 
     movup.3
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
     movdn.3
 
     movupw.3
@@ -373,25 +373,25 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
 
     swap
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
     swap
 
     movup.2
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
     movdn.2
 
     movup.3
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
     movdn.3
 
     movupw.3
@@ -467,24 +467,24 @@ proc.diagonal_mixing.1
 
     movup.3
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
     movdn.3
 
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
 
     swap
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
     swap
 
     movup.2
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.16
+    u32xor
+    u32rotr.16
     movdn.2
 
     movup.12
@@ -514,25 +514,25 @@ proc.diagonal_mixing.1
 
     swap
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
     swap
 
     movup.2
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
     movdn.2
 
     movup.3
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
     movdn.3
 
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.12
+    u32xor
+    u32rotr.12
 
     movupw.3
     push.0.0.0.0
@@ -569,24 +569,24 @@ proc.diagonal_mixing.1
 
     movup.3
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
     movdn.3
 
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
 
     swap
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
     swap
 
     movup.2
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.8
+    u32xor
+    u32rotr.8
     movdn.2
 
     movupw.3
@@ -613,25 +613,25 @@ proc.diagonal_mixing.1
 
     swap
     dup.6
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
     swap
 
     movup.2
     dup.7
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
     movdn.2
 
     movup.3
     dup.4
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
     movdn.3
 
     dup.5
-    u32checked_xor
-    u32unchecked_rotr.7
+    u32xor
+    u32rotr.7
 
     movupw.3
 end

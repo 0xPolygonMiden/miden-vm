@@ -30,7 +30,7 @@ const.EMPTY_48_3=1437907447409278328
 proc.get_top_16_bits
     u32split
     swap drop
-    u32unchecked_shr.16
+    u32shr.16
 end
 
 #! Extracts 32 most significant bits from the passed-in value.
@@ -52,7 +52,7 @@ end
 proc.get_top_48_bits
     u32split
     swap
-    u32unchecked_shr.16
+    u32shr.16
     swap
     mul.65536
     add
@@ -69,11 +69,11 @@ end
 #! Cycles: 20
 proc.extract_index_16_16
     # extract the top 16 and the next 16 bits from the most significant element of V (6 cycles)
-    dup.4 u32split swap drop u32unchecked_divmod.65536
+    dup.4 u32split swap drop u32divmod.65536
     # => [v3_hi_lo, v3_hi_hi, U, V, ...]
 
     # extract the top 16 and the next 16 bits from the most significant element of U (4 cycles)
-    dup.2 u32split u32unchecked_divmod.65536
+    dup.2 u32split u32divmod.65536
     # => [u3_hi_lo, u3_hi_hi, u3_lo, v3_hi_lo, v3_hi_hi, U, V, ...]
 
     # make sure the lower 16 bits are different (5 cycles)
@@ -100,16 +100,16 @@ proc.extract_index_16_32
     dup.4 u32split dup.2 u32split dup movup.3 assert_eq
     # => [u3_hi, u3_lo, v3_lo, U, V, ...]
 
-    u32unchecked_divmod.65536 mul.65536
+    u32divmod.65536 mul.65536
     # => [idx_mid, idx_hi, u3_lo, v3_lo, U, V, ...]
 
-    movup.3 u32unchecked_shr.16
+    movup.3 u32shr.16
     # => [v3_lo_hi, idx_mid, idx_hi, u3_lo, U, V, ...]
 
     dup dup.2 add
     # => [idx_lo_v, v3_lo_hi, idx_mid, idx_hi, u3_lo, U, V, ...]
 
-    movup.4 u32unchecked_shr.16
+    movup.4 u32shr.16
     # => [u3_lo_hi, idx_lo_v, v3_lo_hi, idx_mid, idx_hi, U, V, ...]
 
     dup movup.3 neq assert
@@ -138,7 +138,7 @@ proc.extract_index_32_16
     # => [u3_lo, idx_hi, v3_lo, U, V, ...]
 
     # drop the least significant 16 bits from the lower 32-bit chunks (8 cycles)
-    u32unchecked_shr.16 movup.2 u32unchecked_shr.16 swap
+    u32shr.16 movup.2 u32shr.16 swap
     # => [idx_lo_u, idx_lo_v, idx_hi, U, V, ...]
 
     # make sure the lower 16-bit chunks are different (5 cycles)
@@ -583,7 +583,7 @@ proc.insert_32.2
 
     # load k3 from memory, extract upper 32 bits from it and split them into two 16-bit values
     # such that the top 16-bits are in idx_hi and the next 16 bits are in idx_lo (9 cycles)
-    loc_load.0 exec.get_top_32_bits u32unchecked_divmod.65536
+    loc_load.0 exec.get_top_32_bits u32divmod.65536
     # => [idx_lo, idx_hi, P, N, X, X, R, ...]
 
     # save idx_hi into loc[0][0] to be used later (5 cycles)
@@ -666,7 +666,7 @@ proc.insert_48.2
 
     # load k3 from memory, extract upper 48 bits from it and split them into two values such that
     # the top 32-bits are in idx_hi and the next 16 bits are in idx_lo (9 cycles)
-    loc_load.0 u32split swap u32unchecked_divmod.65536 drop
+    loc_load.0 u32split swap u32divmod.65536 drop
     # => [idx_lo, idx_hi, P, N, X, X, R, ...]
 
     # save idx_hi into loc[0][0] to be used later (5 cycles)

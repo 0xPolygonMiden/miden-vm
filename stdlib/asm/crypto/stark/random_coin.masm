@@ -520,7 +520,7 @@ proc.generate_four_integers
     dup.3               # [r0, R1, ptr, mask, depth, ...]
     u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    u32checked_and      # [r, r0_hi, R1, ptr, mask, depth, ...]
+    u32and      # [r, r0_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r0_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r0_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -533,7 +533,7 @@ proc.generate_four_integers
     dup.2               # [r1, R1, ptr, mask, depth, ...]
     u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    u32checked_and      # [r, r1_hi, R1, ptr, mask, depth, ...]
+    u32and      # [r, r1_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r1_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r1_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -546,7 +546,7 @@ proc.generate_four_integers
     dup.1
     u32split swap
     dup.7
-    u32checked_and
+    u32and
     dup.8 swap
     push.0 movdn.3
 
@@ -559,7 +559,7 @@ proc.generate_four_integers
     dup
     u32split swap
     dup.7
-    u32checked_and
+    u32and
     dup.8 swap
     push.0 movdn.3
 
@@ -585,7 +585,7 @@ proc.generate_three_integers
     dup.2               # [r0, R1, ptr, mask, depth, ...]
     u32split swap       # [r0_lo, r0_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r0_lo, r0_hi, R1, ptr, mask, depth, ...]
-    u32checked_and      # [r, r0_hi, R1, ptr, mask, depth, ...]
+    u32and      # [r, r0_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r0_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r0_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -598,7 +598,7 @@ proc.generate_three_integers
     dup.1               # [r1, R1, ptr, mask, depth, ...]
     u32split swap       # [r1_lo, r1_hi, R1, ptr, mask, depth, ...]
     dup.7               # [mask, r1_lo, r1_hi, R1, ptr, mask, depth, ...]
-    u32checked_and      # [r, r1_hi, R1, ptr, mask, depth, ...]
+    u32and      # [r, r1_hi, R1, ptr, mask, depth, ...]
     dup.8 swap          # [r, depth, r1_hi, R1, ptr, mask, depth, ...]
     push.0 movdn.3      # [r, depth, r1_hi, 0, R1, ptr, mask, depth, ...]
 
@@ -611,7 +611,7 @@ proc.generate_three_integers
     dup.0
     u32split swap
     dup.7
-    u32checked_and
+    u32and
     dup.8 swap
     push.0 movdn.3
 
@@ -721,7 +721,7 @@ export.generate_list_indices
         movup.7
         u32split swap       # [r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         dup.10              # [mask, r0_lo, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
-        u32checked_and      # [r, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
+        u32and      # [r, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         dup.11 swap         # [r, depth, r0_hi, R2, r3, r2, r1, ptr, mask, depth, ...]
         push.0 movdn.3      # [r, depth, r0_hi, 0, R2, r3, r2, r1, ptr, mask, depth, ...]
 
@@ -783,7 +783,7 @@ export.check_pow
     # Make sure the PoW is valid
     u32split
     drop
-    u32checked_and
+    u32and
     assertz
     drop
     #=> [...]

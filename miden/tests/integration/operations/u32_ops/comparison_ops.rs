@@ -188,8 +188,8 @@ fn u32checked_lt_fail() {
 }
 
 #[test]
-fn u32unchecked_lt() {
-    let asm_op = "u32unchecked_lt";
+fn u32lt() {
+    let asm_op = "u32lt";
 
     // should push 1 to the stack when a < b and 0 otherwise
     test_comparison_op(asm_op, 1, 0, 0);
@@ -215,8 +215,8 @@ fn u32checked_lte_fail() {
 }
 
 #[test]
-fn u32unchecked_lte() {
-    let asm_op = "u32unchecked_lte";
+fn u32lte() {
+    let asm_op = "u32lte";
 
     // should push 1 to the stack when a <= b and 0 otherwise
     test_comparison_op(asm_op, 1, 1, 0);
@@ -242,8 +242,8 @@ fn u32checked_gt_fail() {
 }
 
 #[test]
-fn u32unchecked_gt() {
-    let asm_op = "u32unchecked_gt";
+fn u32gt() {
+    let asm_op = "u32gt";
 
     // should push 1 to the stack when a > b and 0 otherwise
     test_comparison_op(asm_op, 0, 0, 1);
@@ -269,8 +269,8 @@ fn u32checked_gte_fail() {
 }
 
 #[test]
-fn u32unchecked_gte() {
-    let asm_op = "u32unchecked_gte";
+fn u32gte() {
+    let asm_op = "u32gte";
 
     // should push 1 to the stack when a >= b and 0 otherwise
     test_comparison_op(asm_op, 0, 1, 1);
@@ -296,8 +296,8 @@ fn u32checked_min_fail() {
 }
 
 #[test]
-fn u32unchecked_min() {
-    let asm_op = "u32unchecked_min";
+fn u32min() {
+    let asm_op = "u32min";
 
     // should put the minimum of the 2 inputs on the stack
     test_min(asm_op);
@@ -323,8 +323,8 @@ fn u32checked_max_fail() {
 }
 
 #[test]
-fn u32unchecked_max() {
-    let asm_op = "u32unchecked_max";
+fn u32max() {
+    let asm_op = "u32max";
 
     // should put the maximum of the 2 inputs on the stack
     test_max(asm_op);
@@ -384,7 +384,7 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = "u32unchecked_lt";
+        let asm_op = "u32lt";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -402,7 +402,7 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = "u32unchecked_lte";
+        let asm_op = "u32lte";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -420,7 +420,7 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = "u32unchecked_gt";
+        let asm_op = "u32gt";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -438,7 +438,7 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = "u32unchecked_gte";
+        let asm_op = "u32gte";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -452,7 +452,7 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
-        let asm_op = "u32unchecked_min";
+        let asm_op = "u32min";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -466,7 +466,7 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
-        let asm_op = "u32unchecked_max";
+        let asm_op = "u32max";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -510,7 +510,7 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
     test.expect_stack(&[expected, c]);
 }
 
-/// Tests a u32min assembly operation (u32checked_min or u32unchecked_min) against a number of
+/// Tests a u32min assembly operation (u32checked_min or u32min) against a number of
 /// cases to ensure that the operation puts the minimum of 2 input values on the stack.
 fn test_min(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
@@ -545,7 +545,7 @@ fn test_min(asm_op: &str) {
     test.expect_stack(&[expected as u64, c]);
 }
 
-/// Tests a u32max assembly operation (u32checked_max or u32unchecked_max) against a number of
+/// Tests a u32max assembly operation (u32checked_max or u32max) against a number of
 /// cases to ensure that the operation puts the maximum of 2 input values on the stack.
 fn test_max(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------

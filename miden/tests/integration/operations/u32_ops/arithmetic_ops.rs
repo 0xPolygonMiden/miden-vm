@@ -777,8 +777,8 @@ fn u32checked_div_b_fail() {
 }
 
 #[test]
-fn u32unchecked_div() {
-    let asm_op = "u32unchecked_div";
+fn u32div() {
+    let asm_op = "u32div";
 
     // should push d = (a * b) / 2^32 onto the stack.
     test_div(asm_op);
@@ -788,8 +788,8 @@ fn u32unchecked_div() {
 }
 
 #[test]
-fn u32unchecked_div_fail() {
-    let asm_op = "u32unchecked_div";
+fn u32div_fail() {
+    let asm_op = "u32div";
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
@@ -870,8 +870,8 @@ fn u32checked_mod_b_fail() {
 }
 
 #[test]
-fn u32unchecked_mod() {
-    let asm_op = "u32unchecked_mod";
+fn u32mod() {
+    let asm_op = "u32mod";
 
     test_mod(asm_op);
 
@@ -880,8 +880,8 @@ fn u32unchecked_mod() {
 }
 
 #[test]
-fn u32unchecked_mod_fail() {
-    let asm_op = "u32unchecked_mod";
+fn u32mod_fail() {
+    let asm_op = "u32mod";
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
@@ -965,8 +965,8 @@ fn u32checked_divmod_b_fail() {
 }
 
 #[test]
-fn u32unchecked_divmod() {
-    let asm_op = "u32unchecked_divmod";
+fn u32divmod() {
+    let asm_op = "u32divmod";
 
     test_divmod(asm_op);
 
@@ -975,8 +975,8 @@ fn u32unchecked_divmod() {
 }
 
 #[test]
-fn u32unchecked_divmod_fail() {
-    let asm_op = "u32unchecked_divmod";
+fn u32divmod_fail() {
+    let asm_op = "u32divmod";
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
@@ -1131,7 +1131,7 @@ proptest! {
         test.prop_expect_stack(&[expected])?;
 
         // unchecked version should produce the same result for valid values.
-        let asm_op = "u32unchecked_div";
+        let asm_op = "u32div";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
@@ -1156,7 +1156,7 @@ proptest! {
         test.prop_expect_stack(&[expected as u64])?;
 
         // unchecked version should produce the same result for valid values.
-        let asm_op = "u32unchecked_mod";
+        let asm_op = "u32mod";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
@@ -1182,7 +1182,7 @@ proptest! {
         test.prop_expect_stack(&[rem, quot])?;
 
         // unchecked version should produce the same result for valid values.
-        let asm_op = "u32unchecked_divmod";
+        let asm_op = "u32divmod";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[rem, quot])?;
 

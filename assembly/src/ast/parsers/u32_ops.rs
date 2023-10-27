@@ -266,7 +266,7 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedDiv))
             } else {
-                Ok(Instruction(U32UncheckedDiv))
+                Ok(Instruction(U32Div))
             }
         }
         2 => {
@@ -275,7 +275,7 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedDivImm(value)))
             } else {
-                Ok(Instruction(U32UncheckedDivImm(value)))
+                Ok(Instruction(U32DivImm(value)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -298,7 +298,7 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedMod))
             } else {
-                Ok(Instruction(U32UncheckedMod))
+                Ok(Instruction(U32Mod))
             }
         }
         2 => {
@@ -307,7 +307,7 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedModImm(value)))
             } else {
-                Ok(Instruction(U32UncheckedModImm(value)))
+                Ok(Instruction(U32ModImm(value)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -330,7 +330,7 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, ParsingError>
             if checked {
                 Ok(Instruction(U32CheckedDivMod))
             } else {
-                Ok(Instruction(U32UncheckedDivMod))
+                Ok(Instruction(U32DivMod))
             }
         }
         2 => {
@@ -339,7 +339,7 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, ParsingError>
             if checked {
                 Ok(Instruction(U32CheckedDivModImm(value)))
             } else {
-                Ok(Instruction(U32UncheckedDivModImm(value)))
+                Ok(Instruction(U32DivModImm(value)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -362,7 +362,7 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedShr))
             } else {
-                Ok(Instruction(U32UncheckedShr))
+                Ok(Instruction(U32Shr))
             }
         }
         2 => {
@@ -370,7 +370,7 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedShrImm(n)))
             } else {
-                Ok(Instruction(U32UncheckedShrImm(n)))
+                Ok(Instruction(U32ShrImm(n)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -393,7 +393,7 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedShl))
             } else {
-                Ok(Instruction(U32UncheckedShl))
+                Ok(Instruction(U32Shl))
             }
         }
         2 => {
@@ -401,7 +401,7 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedShlImm(n)))
             } else {
-                Ok(Instruction(U32UncheckedShlImm(n)))
+                Ok(Instruction(U32ShlImm(n)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -424,7 +424,7 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedRotr))
             } else {
-                Ok(Instruction(U32UncheckedRotr))
+                Ok(Instruction(U32Rotr))
             }
         }
         2 => {
@@ -432,7 +432,7 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedRotrImm(n)))
             } else {
-                Ok(Instruction(U32UncheckedRotrImm(n)))
+                Ok(Instruction(U32RotrImm(n)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -455,7 +455,7 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedRotl))
             } else {
-                Ok(Instruction(U32UncheckedRotl))
+                Ok(Instruction(U32Rotl))
             }
         }
         2 => {
@@ -463,7 +463,7 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
             if checked {
                 Ok(Instruction(U32CheckedRotlImm(n)))
             } else {
-                Ok(Instruction(U32UncheckedRotlImm(n)))
+                Ok(Instruction(U32RotlImm(n)))
             }
         }
         _ => Err(ParsingError::extra_param(op)),
