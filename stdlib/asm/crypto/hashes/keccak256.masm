@@ -46,12 +46,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -70,12 +70,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -92,12 +92,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -115,12 +115,12 @@ proc.theta.3
     drop
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -154,12 +154,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -176,12 +176,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -200,12 +200,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -221,12 +221,12 @@ proc.theta.3
     drop
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -269,12 +269,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -293,12 +293,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -315,12 +315,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -338,12 +338,12 @@ proc.theta.3
     drop
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -378,12 +378,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -400,12 +400,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -424,12 +424,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -445,12 +445,12 @@ proc.theta.3
     drop
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -493,12 +493,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -517,12 +517,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -539,12 +539,12 @@ proc.theta.3
     drop
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.3
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -562,12 +562,12 @@ proc.theta.3
     drop
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.2
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -586,48 +586,48 @@ proc.theta.3
 
     dup.8
     dup.4
-    u32unchecked_rotl.1
-    u32checked_xor
+    u32rotl.1
+    u32xor
 
     dup.10
     dup.4
-    u32checked_xor
+    u32xor
 
     dup.2
     dup.8
-    u32unchecked_rotl.1
-    u32checked_xor
+    u32rotl.1
+    u32xor
 
     dup.4
     dup.8
-    u32checked_xor
+    u32xor
 
     movup.6
     dup.11
-    u32unchecked_rotl.1
-    u32checked_xor
+    u32rotl.1
+    u32xor
 
     movup.7
     dup.10
-    u32checked_xor
+    u32xor
 
     movup.8
     movup.13
-    u32unchecked_rotl.1
-    u32checked_xor
+    u32rotl.1
+    u32xor
 
     movup.9
     movup.12
-    u32checked_xor
+    u32xor
 
     movup.10
     movup.10
-    u32unchecked_rotl.1
-    u32checked_xor
+    u32rotl.1
+    u32xor
 
     movup.10
     movup.10
-    u32checked_xor
+    u32xor
 
     # stack = [d9, d8, d7, d6, d5, d4, d3, d2, d1, d0]
 
@@ -654,21 +654,21 @@ proc.theta.3
     mem_loadw
 
     dup.5
-    u32checked_xor
+    u32xor
 
     swap
     dup.6
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.7
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.8
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -685,21 +685,21 @@ proc.theta.3
     mem_loadw
 
     dup.9
-    u32checked_xor
+    u32xor
 
     swap
     dup.10
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.11
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.12
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -716,21 +716,21 @@ proc.theta.3
     mem_loadw
 
     dup.13
-    u32checked_xor
+    u32xor
 
     swap
     dup.14
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.5
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.6
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -747,21 +747,21 @@ proc.theta.3
     mem_loadw
 
     dup.7
-    u32checked_xor
+    u32xor
 
     swap
     dup.8
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.9
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.10
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -778,21 +778,21 @@ proc.theta.3
     mem_loadw
 
     dup.11
-    u32checked_xor
+    u32xor
 
     swap
     dup.12
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.13
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.14
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -809,21 +809,21 @@ proc.theta.3
     mem_loadw
 
     dup.5
-    u32checked_xor
+    u32xor
 
     swap
     dup.6
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.7
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.8
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -840,21 +840,21 @@ proc.theta.3
     mem_loadw
 
     dup.9
-    u32checked_xor
+    u32xor
 
     swap
     dup.10
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.11
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.12
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -871,21 +871,21 @@ proc.theta.3
     mem_loadw
 
     dup.13
-    u32checked_xor
+    u32xor
 
     swap
     dup.14
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.5
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.6
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -902,21 +902,21 @@ proc.theta.3
     mem_loadw
 
     dup.7
-    u32checked_xor
+    u32xor
 
     swap
     dup.8
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.9
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.10
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -933,21 +933,21 @@ proc.theta.3
     mem_loadw
 
     dup.11
-    u32checked_xor
+    u32xor
 
     swap
     dup.12
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     dup.13
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     dup.14
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -964,21 +964,21 @@ proc.theta.3
     mem_loadw
 
     movup.5
-    u32checked_xor
+    u32xor
 
     swap
     movup.5
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.5
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.5
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -995,21 +995,21 @@ proc.theta.3
     mem_loadw
 
     movup.5
-    u32checked_xor
+    u32xor
 
     swap
     movup.5
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.5
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.5
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -1026,11 +1026,11 @@ proc.theta.3
     mem_loadw
 
     movup.5
-    u32checked_xor
+    u32xor
 
     swap
     movup.5
-    u32checked_xor
+    u32xor
     swap
 
     movup.4
@@ -1066,7 +1066,7 @@ proc.rho.1
     mem_loadw
 
     movup.3
-    u32unchecked_rotl.1
+    u32rotl.1
     movdn.2
 
     movup.4
@@ -1079,16 +1079,16 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.31
+    u32rotl.31
     swap
-    u32unchecked_rotl.31
+    u32rotl.31
     swap
 
     movup.2
-    u32unchecked_rotl.14
+    u32rotl.14
     movdn.2
     movup.3
-    u32unchecked_rotl.14
+    u32rotl.14
     movdn.3
 
     movup.4
@@ -1101,15 +1101,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.13
+    u32rotl.13
     swap
-    u32unchecked_rotl.14
+    u32rotl.14
 
     movup.2
-    u32unchecked_rotl.18
+    u32rotl.18
     movdn.2
     movup.3
-    u32unchecked_rotl.18
+    u32rotl.18
     movdn.3
 
     movup.4
@@ -1122,16 +1122,16 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.22
+    u32rotl.22
     swap
-    u32unchecked_rotl.22
+    u32rotl.22
     swap
 
     movup.2
-    u32unchecked_rotl.3
+    u32rotl.3
     movdn.2
     movup.3
-    u32unchecked_rotl.3
+    u32rotl.3
     movdn.3
 
     movup.4
@@ -1144,15 +1144,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.27
+    u32rotl.27
     swap
-    u32unchecked_rotl.28
+    u32rotl.28
 
     movup.2
-    u32unchecked_rotl.10
+    u32rotl.10
     movdn.2
     movup.3
-    u32unchecked_rotl.10
+    u32rotl.10
     movdn.3
 
     movup.4
@@ -1165,15 +1165,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.1
+    u32rotl.1
     swap
-    u32unchecked_rotl.2
+    u32rotl.2
 
     movup.2
-    u32unchecked_rotl.5
+    u32rotl.5
     movdn.2
     movup.3
-    u32unchecked_rotl.5
+    u32rotl.5
     movdn.3
 
     movup.4
@@ -1186,15 +1186,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.21
+    u32rotl.21
     swap
-    u32unchecked_rotl.22
+    u32rotl.22
 
     movup.2
-    u32unchecked_rotl.12
+    u32rotl.12
     movdn.3
     movup.2
-    u32unchecked_rotl.13
+    u32rotl.13
     movdn.2
 
     movup.4
@@ -1207,15 +1207,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.19
+    u32rotl.19
     swap
-    u32unchecked_rotl.20
+    u32rotl.20
 
     movup.2
-    u32unchecked_rotl.20
+    u32rotl.20
     movdn.3
     movup.2
-    u32unchecked_rotl.21
+    u32rotl.21
     movdn.2
 
     movup.4
@@ -1228,15 +1228,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.22
+    u32rotl.22
     swap
-    u32unchecked_rotl.23
+    u32rotl.23
 
     movup.2
-    u32unchecked_rotl.7
+    u32rotl.7
     movdn.3
     movup.2
-    u32unchecked_rotl.8
+    u32rotl.8
     movdn.2
 
     movup.4
@@ -1249,15 +1249,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.10
+    u32rotl.10
     swap
-    u32unchecked_rotl.11
+    u32rotl.11
 
     movup.2
-    u32unchecked_rotl.4
+    u32rotl.4
     movdn.2
     movup.3
-    u32unchecked_rotl.4
+    u32rotl.4
     movdn.3
 
     movup.4
@@ -1270,16 +1270,16 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.9
+    u32rotl.9
     swap
-    u32unchecked_rotl.9
+    u32rotl.9
     swap
 
     movup.2
-    u32unchecked_rotl.1
+    u32rotl.1
     movdn.2
     movup.3
-    u32unchecked_rotl.1
+    u32rotl.1
     movdn.3
 
     movup.4
@@ -1292,15 +1292,15 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.30
+    u32rotl.30
     swap
-    u32unchecked_rotl.31
+    u32rotl.31
 
     movup.2
-    u32unchecked_rotl.28
+    u32rotl.28
     movdn.2
     movup.3
-    u32unchecked_rotl.28
+    u32rotl.28
     movdn.3
 
     movup.4
@@ -1313,9 +1313,9 @@ proc.rho.1
     dup.4
     mem_loadw
 
-    u32unchecked_rotl.7
+    u32rotl.7
     swap
-    u32unchecked_rotl.7
+    u32rotl.7
     swap
 
     movup.4
@@ -1773,9 +1773,9 @@ proc.chi.4
     drop
     drop
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
@@ -1791,25 +1791,25 @@ proc.chi.4
     dup.1
 
     movup.6
-    u32checked_and
+    u32and
 
     swap
 
     movup.6
-    u32checked_and
+    u32and
 
     swap
 
     movup.3
-    u32checked_not
+    u32not
     movup.3
-    u32checked_not
+    u32not
 
     movup.4
-    u32checked_and
+    u32and
     swap
     movup.4
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -1824,9 +1824,9 @@ proc.chi.4
     drop
     drop
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
@@ -1847,10 +1847,10 @@ proc.chi.4
     dup.1
 
     movup.4
-    u32checked_and
+    u32and
     swap
     movup.4
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -1863,15 +1863,15 @@ proc.chi.4
     mem_loadw
 
     movup.5
-    u32checked_not
+    u32not
     movup.5
-    u32checked_not
+    u32not
 
     dup.2
-    u32checked_and
+    u32and
     swap
     dup.3
-    u32checked_and
+    u32and
     swap
 
     movup.7
@@ -1881,16 +1881,16 @@ proc.chi.4
     mem_storew
     dropw
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     locaddr.0
@@ -1907,21 +1907,21 @@ proc.chi.4
     mem_loadw
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -1940,21 +1940,21 @@ proc.chi.4
     mem_loadw
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -1968,10 +1968,10 @@ proc.chi.4
     mem_loadw
 
     movup.5
-    u32checked_xor
+    u32xor
     swap
     movup.5
-    u32checked_xor
+    u32xor
     swap
 
     dup.4
@@ -1985,19 +1985,19 @@ proc.chi.4
     dup.4
     mem_loadw
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     push.0.0
@@ -2014,31 +2014,31 @@ proc.chi.4
     movup.5
     movup.5
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.2
-    u32checked_and
+    u32and
     swap
     dup.3
-    u32checked_and
+    u32and
     swap
 
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.4
-    u32checked_and
+    u32and
     swap
     dup.5
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2061,16 +2061,16 @@ proc.chi.4
     dup.1
 
     movup.4
-    u32checked_not
+    u32not
     movup.5
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2090,16 +2090,16 @@ proc.chi.4
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2120,21 +2120,21 @@ proc.chi.4
     loc_loadw.1
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2151,21 +2151,21 @@ proc.chi.4
     loc_loadw.2
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2182,21 +2182,21 @@ proc.chi.4
     loc_loadw.3
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2213,9 +2213,9 @@ proc.chi.4
     drop
     drop
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
@@ -2231,25 +2231,25 @@ proc.chi.4
     dup.1
 
     movup.6
-    u32checked_and
+    u32and
     swap
     movup.6
-    u32checked_and
+    u32and
     swap
 
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.4
-    u32checked_and
+    u32and
     swap
     dup.5
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2275,16 +2275,16 @@ proc.chi.4
     movup.5
     movup.5
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.4
@@ -2299,19 +2299,19 @@ proc.chi.4
     movup.7
     movup.7
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.7
@@ -2320,16 +2320,16 @@ proc.chi.4
     loc_storew.2
     dropw
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     push.0.0
@@ -2345,21 +2345,21 @@ proc.chi.4
     loc_loadw.1
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2376,21 +2376,21 @@ proc.chi.4
     loc_loadw.2
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2407,21 +2407,21 @@ proc.chi.4
     loc_loadw.3
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2435,19 +2435,19 @@ proc.chi.4
     dup.4
     mem_loadw
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     push.0.0
@@ -2463,37 +2463,37 @@ proc.chi.4
     movup.5
     movup.5
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.5
     dup.5
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2514,19 +2514,19 @@ proc.chi.4
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.4
@@ -2546,16 +2546,16 @@ proc.chi.4
     movup.5
     movup.5
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2574,21 +2574,21 @@ proc.chi.4
     loc_loadw.1
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2605,21 +2605,21 @@ proc.chi.4
     loc_loadw.2
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2636,21 +2636,21 @@ proc.chi.4
     loc_loadw.3
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2679,37 +2679,37 @@ proc.chi.4
     movup.5
     movup.5
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.5
     dup.5
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.3
@@ -2732,19 +2732,19 @@ proc.chi.4
     movup.3
     movup.3
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.4
@@ -2759,19 +2759,19 @@ proc.chi.4
     movup.7
     movup.7
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     dup.3
     dup.3
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     movup.7
@@ -2780,16 +2780,16 @@ proc.chi.4
     loc_storew.2
     dropw
 
-    u32checked_not
+    u32not
     swap
-    u32checked_not
+    u32not
     swap
 
     movup.2
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
     swap
 
     push.0.0
@@ -2805,21 +2805,21 @@ proc.chi.4
     loc_loadw.1
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2836,21 +2836,21 @@ proc.chi.4
     loc_loadw.2
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2867,21 +2867,21 @@ proc.chi.4
     loc_loadw.3
 
     movup.4
-    u32checked_xor
+    u32xor
 
     swap
     movup.4
-    u32checked_xor
+    u32xor
     swap
 
     movup.2
     movup.4
-    u32checked_xor
+    u32xor
     movdn.2
 
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     movdn.3
 
     dup.4
@@ -2915,12 +2915,12 @@ proc.iota
     mem_loadw
 
     movup.5
-    u32checked_xor
+    u32xor
 
     swap
 
     movup.5
-    u32checked_xor
+    u32xor
 
     swap
 
@@ -3197,9 +3197,9 @@ export.to_bit_interleaved
     push.0.0
 
     repeat.16
-        u32unchecked_shr.1
+        u32shr.1
         swap
-        u32unchecked_shr.1
+        u32shr.1
         swap
 
         # ---
@@ -3208,19 +3208,19 @@ export.to_bit_interleaved
         dup.3
 
         push.1
-        u32checked_and
+        u32and
         swap
         push.1
-        u32checked_and
+        u32and
         swap
 
-        u32unchecked_shl.31
+        u32shl.31
         swap
-        u32unchecked_shl.15
+        u32shl.15
         swap
 
-        u32checked_xor
-        u32checked_xor
+        u32xor
+        u32xor
 
         # ---
 
@@ -3228,30 +3228,30 @@ export.to_bit_interleaved
         dup.3
 
         push.2
-        u32checked_and
+        u32and
         swap
         push.2
-        u32checked_and
+        u32and
         swap
 
-        u32unchecked_shl.30
+        u32shl.30
         swap
-        u32unchecked_shl.14
+        u32shl.14
         swap
 
         movup.3
-        u32checked_xor
-        u32checked_xor
+        u32xor
+        u32xor
         swap
 
         # ---
 
         movup.2
-        u32unchecked_shr.2
+        u32shr.2
         movdn.2
 
         movup.3
-        u32unchecked_shr.2
+        u32shr.2
         movdn.3
     end
 
@@ -3285,9 +3285,9 @@ export.from_bit_interleaved
     push.0.0
 
     repeat.16
-        u32unchecked_shr.2
+        u32shr.2
         swap
-        u32unchecked_shr.2
+        u32shr.2
         swap
 
         # ---
@@ -3296,18 +3296,18 @@ export.from_bit_interleaved
         dup.3
 
         push.1
-        u32checked_and
+        u32and
         swap
         push.1
-        u32checked_and
+        u32and
 
-        u32unchecked_shl.31
+        u32shl.31
         swap
-        u32unchecked_shl.30
-        u32checked_xor
+        u32shl.30
+        u32xor
 
         movup.2
-        u32checked_xor
+        u32xor
         swap
 
         # ---
@@ -3316,26 +3316,26 @@ export.from_bit_interleaved
         dup.3
 
         push.65536
-        u32checked_and
+        u32and
         swap
         push.65536
-        u32checked_and
+        u32and
 
-        u32unchecked_shl.15
+        u32shl.15
         swap
-        u32unchecked_shl.14
-        u32checked_xor
+        u32shl.14
+        u32xor
 
-        u32checked_xor
+        u32xor
 
         # ---
 
         movup.2
-        u32unchecked_shr.1
+        u32shr.1
         movdn.2
 
         movup.3
-        u32unchecked_shr.1
+        u32shr.1
         movdn.3
     end
 

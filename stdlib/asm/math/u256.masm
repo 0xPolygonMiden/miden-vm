@@ -93,87 +93,87 @@ export.and
     swapw.3
     movup.3
     movup.7
-    u32checked_and
+    u32and
     movup.3
     movup.6
-    u32checked_and
+    u32and
     movup.3
     movup.5
-    u32checked_and
+    u32and
     movup.3
     movup.4
-    u32checked_and
+    u32and
     swapw.2
     movup.3
     movup.7
-    u32checked_and
+    u32and
     movup.3
     movup.6
-    u32checked_and
+    u32and
     movup.3
     movup.5
-    u32checked_and
+    u32and
     movup.3
     movup.4
-    u32checked_and
+    u32and
 end
 
 export.or
     swapw.3
     movup.3
     movup.7
-    u32checked_or
+    u32or
     movup.3
     movup.6
-    u32checked_or
+    u32or
     movup.3
     movup.5
-    u32checked_or
+    u32or
     movup.3
     movup.4
-    u32checked_or
+    u32or
     swapw.2
     movup.3
     movup.7
-    u32checked_or
+    u32or
     movup.3
     movup.6
-    u32checked_or
+    u32or
     movup.3
     movup.5
-    u32checked_or
+    u32or
     movup.3
     movup.4
-    u32checked_or
+    u32or
 end
 
 export.xor
     swapw.3
     movup.3
     movup.7
-    u32checked_xor
+    u32xor
     movup.3
     movup.6
-    u32checked_xor
+    u32xor
     movup.3
     movup.5
-    u32checked_xor
+    u32xor
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
     swapw.2
     movup.3
     movup.7
-    u32checked_xor
+    u32xor
     movup.3
     movup.6
-    u32checked_xor
+    u32xor
     movup.3
     movup.5
-    u32checked_xor
+    u32xor
     movup.3
     movup.4
-    u32checked_xor
+    u32xor
 end
 
 export.iszero_unsafe

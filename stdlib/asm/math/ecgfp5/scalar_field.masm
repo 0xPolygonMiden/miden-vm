@@ -149,82 +149,82 @@ proc.select
     dup
     movup.12
     dup.3
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.2
-    u32checked_xor
+    u32xor
 
     dup.1
     movup.12
     dup.4
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.3
-    u32checked_xor
+    u32xor
 
     dup.2
     movup.12
     dup.5
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.4
-    u32checked_xor
+    u32xor
 
     dup.3
     movup.12
     dup.6
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.5
-    u32checked_xor
+    u32xor
 
     dup.4
     movup.12
     dup.7
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.6
-    u32checked_xor
+    u32xor
 
     dup.5
     movup.12
     dup.8
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.7
-    u32checked_xor
+    u32xor
 
     dup.6
     movup.12
     dup.9
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.8
-    u32checked_xor
+    u32xor
 
     dup.7
     movup.12
     dup.10
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.9
-    u32checked_xor
+    u32xor
 
     dup.8
     movup.12
     dup.11
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.10
-    u32checked_xor
+    u32xor
 
     movup.9
     movup.11
     dup.11
-    u32checked_xor
-    u32checked_and
+    u32xor
+    u32and
     movup.10
-    u32checked_xor
+    u32xor
 
     swap
     movup.2
@@ -3857,7 +3857,7 @@ export.inv.6
             dropw
 
             dup
-            u32unchecked_shr.31
+            u32shr.31
             if.true
                 # bring base back to stack
                 push.0.0.0.0.0.0.0.0.0.0.0.0
@@ -3897,7 +3897,7 @@ export.inv.6
                 dropw
             end
 
-            u32unchecked_shl.1
+            u32shl.1
         end
 
         drop

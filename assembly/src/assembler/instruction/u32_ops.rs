@@ -144,8 +144,8 @@ pub fn u32mul(
 /// - u32checked_div.b:
 ///    - 5 cycles if b is 1
 ///    - 4 cycles if b is not 1
-/// - u32unchecked_div: 2 cycles
-/// - u32unchecked_div.b:
+/// - u32div: 2 cycles
+/// - u32div.b:
 ///    - 4 cycles if b is 1
 ///    - 3 cycles if b is not 1
 pub fn u32div(
@@ -164,8 +164,8 @@ pub fn u32div(
 /// - u32checked_mod.b:
 ///    - 6 cycles if b is 1
 ///    - 5 cycles if b is not 1
-/// - u32unchecked_mod: 3 cycle
-/// - u32unchecked_mod.b:
+/// - u32mod: 3 cycle
+/// - u32mod.b:
 ///    - 5 cycles if b is 1
 ///    - 4 cycles if b is not 1
 pub fn u32mod(
@@ -184,8 +184,8 @@ pub fn u32mod(
 /// - u32checked_divmod.b:
 ///    - 4 cycles if b is 1
 ///    - 3 cycles if b is not 1
-/// - u32unchecked_divmod: 1 cycle
-/// - u32unchecked_divmod.b:
+/// - u32divmod: 1 cycle
+/// - u32divmod.b:
 ///    - 3 cycles if b is 1
 ///    - 2 cycles if b is not 1
 pub fn u32divmod(
@@ -199,7 +199,7 @@ pub fn u32divmod(
 // BITWISE OPERATIONS
 // ================================================================================================
 
-/// Translates u32checked_not assembly instruction to VM operations.
+/// Translates u32not assembly instruction to VM operations.
 ///
 /// The reason this method works is because 2^32 -1 provides a bit mask of ones, which after
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
@@ -229,8 +229,8 @@ pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// VM cycles per mode:
 /// - u32checked_shl: 19 cycles
 /// - u32checked_shl.b: 4 cycles
-/// - u32unchecked_shl: 18 cycles
-/// - u32unchecked_shl.b: 3 cycles
+/// - u32shl: 18 cycles
+/// - u32shl.b: 3 cycles
 pub fn u32shl(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -248,8 +248,8 @@ pub fn u32shl(
 /// VM cycles per mode:
 /// - u32checked_shr: 19 cycles
 /// - u32checked_shr.b: 4 cycles
-/// - u32unchecked_shr: 18 cycles
-/// - u32unchecked_shr.b: 3 cycles
+/// - u32shr: 18 cycles
+/// - u32shr.b: 3 cycles
 pub fn u32shr(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -268,8 +268,8 @@ pub fn u32shr(
 /// VM cycles per mode:
 /// - u32checked_rotl: 19 cycles
 /// - u32checked_rotl.b: 4 cycles
-/// - u32unchecked_rotl: 18 cycles
-/// - u32unchecked_rotl.b: 3 cycles
+/// - u32rotl: 18 cycles
+/// - u32rotl.b: 3 cycles
 pub fn u32rotl(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -288,8 +288,8 @@ pub fn u32rotl(
 /// VM cycles per mode:
 /// - u32checked_rotr: 31 cycles
 /// - u32checked_rotr.b: 6 cycles
-/// - u32unchecked_rotr: 22 cycles
-/// - u32unchecked_rotr.b: 3 cycles
+/// - u32rotr: 22 cycles
+/// - u32rotr.b: 3 cycles
 pub fn u32rotr(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -342,7 +342,7 @@ pub fn u32rotr(
 ///
 /// VM cycles per mode:
 /// - u32checked_popcnt: 36 cycles
-/// - u32unchecked_popcnt: 33 cycles
+/// - u32popcnt: 33 cycles
 pub fn u32popcnt(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -545,7 +545,7 @@ pub fn u32neq(
 ///
 /// VM cycles per mode:
 /// - u32checked_lt: 6 cycles
-/// - u32unchecked_lt 5 cycles
+/// - u32lt 5 cycles
 pub fn u32lt(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -563,7 +563,7 @@ pub fn u32lt(
 ///
 /// VM cycles per mode:
 /// - u32checked_lte: 8 cycles
-/// - u32unchecked_lte: 7 cycles
+/// - u32lte: 7 cycles
 pub fn u32lte(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -585,7 +585,7 @@ pub fn u32lte(
 ///
 /// VM cycles per mode:
 /// - u32checked_gt: 7 cycles
-/// - u32unchecked_gt: 6 cycles
+/// - u32gt: 6 cycles
 pub fn u32gt(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -607,7 +607,7 @@ pub fn u32gt(
 ///
 /// VM cycles per mode:
 /// - u32checked_gte: 7 cycles
-/// - u32unchecked_gte: 6 cycles
+/// - u32gte: 6 cycles
 pub fn u32gte(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
@@ -629,7 +629,7 @@ pub fn u32gte(
 ///
 /// VM cycles per mode:
 /// - u32checked_min: 9 cycles
-/// - u32unchecked_min: 8 cycles
+/// - u32min: 8 cycles
 pub fn u32min(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
