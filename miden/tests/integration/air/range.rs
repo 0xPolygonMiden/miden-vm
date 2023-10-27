@@ -14,7 +14,7 @@ fn range_check_once() {
 /// 5 is checked 3 times, 10 is checked twice, and 15 is checked once.
 #[test]
 fn range_check_multi() {
-    let source = "begin u32checked_add u32checked_add end";
+    let source = "begin u32wrapping_add u32wrapping_add end";
     let stack = vec![5, 5, 5];
 
     build_test!(source, &stack).prove_and_verify(stack, false);

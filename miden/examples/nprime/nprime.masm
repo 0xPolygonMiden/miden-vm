@@ -74,7 +74,7 @@ proc.is_not_prime_should_continue
         # [remainder, continue loop?, is prime?, prime, j, candidate, i, n, primes..]
         dup.4
         dup.3
-        u32checked_mod
+        u32assert2 u32mod
 
         # if remainder is zero, then the number is divisible by prime; hence isn't prime
         # [continue loop?, is prime?, prime, j, candidate, i, n, primes..]
