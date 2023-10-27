@@ -1,6 +1,9 @@
 #![no_std]
 
-use assembly::{utils::Deserializable, Library, LibraryNamespace, MaslLibrary, Version};
+use assembly::{
+    ast::ModuleAst, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
+    Version,
+};
 
 // STANDARD LIBRARY
 // ================================================================================================
@@ -39,6 +42,10 @@ impl Library for StdLibrary {
 
     fn dependencies(&self) -> &[assembly::LibraryNamespace] {
         self.0.dependencies()
+    }
+
+    fn get_module_ast(&self, path: &LibraryPath) -> Option<&ModuleAst> {
+        self.0.get_module_ast(path)
     }
 }
 
