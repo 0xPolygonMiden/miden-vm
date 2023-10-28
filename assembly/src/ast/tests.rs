@@ -951,6 +951,25 @@ fn test_ast_module_serde_imports_not_serialized() {
     assert_correct_module_serialization(source, false);
 }
 
+#[test]
+fn test_repeat_with_constant_count() {
+    let source = "\
+    const.A=3
+    const.B=A*3+5
+
+    begin
+        repeat.A
+            push.1
+            push.0.1
+        end
+
+        repeat.B
+            push.0
+        end
+    end";
+    assert_correct_program_serialization(source, false);
+}
+
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {
     let program = ProgramAst::parse(source).unwrap();
     assert_eq!(program.body.nodes(), body);

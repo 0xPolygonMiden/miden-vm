@@ -133,7 +133,7 @@ impl ParserContext<'_> {
         // record start of the repeat block and consume the 'repeat' token
         let repeat_start = tokens.pos();
         let repeat_token = tokens.read().expect("no repeat token");
-        let times = repeat_token.parse_repeat()?;
+        let times = repeat_token.parse_repeat(&self.local_constants)?;
         tokens.advance();
 
         // read the loop body
