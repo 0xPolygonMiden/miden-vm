@@ -238,12 +238,30 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_repeat(&self) -> Result<u32, ParsingError> {
+    pub fn parse_repeat(&self, constants: &BTreeMap<String, u64>) -> Result<u32, ParsingError> {
         assert_eq!(Self::REPEAT, self.parts[0], "not a repeat");
         match self.num_parts() {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self, "repeat.<num_repetitions>")),
-            2 => self.parts[1].parse::<u32>().map_err(|_| ParsingError::invalid_param(self, 1)),
+            2 => {
+                let count = self.parts[1];
+
+                let parsed_number_u64 = if let Ok(number) = count.parse::<u64>() {
+                    number
+                } else {
+                    *constants.get(count).ok_or_else(|| {
+                        ParsingError::invalid_const_value(
+                            self,
+                            count,
+                            &format!("constant with name {} was not initialized", count),
+                        )
+                    })?
+                };
+                let parsed_number: u32 = parsed_number_u64
+                    .try_into()
+                    .map_err(|_| ParsingError::invalid_param(self, 1))?;
+                Ok(parsed_number)
+            }
             _ => Err(ParsingError::extra_param(self)),
         }
     }
