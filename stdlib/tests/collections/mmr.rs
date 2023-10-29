@@ -1,4 +1,5 @@
 use test_utils::{
+    collections::Vec,
     crypto::{
         init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
         RpoDigest,

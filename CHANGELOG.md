@@ -13,6 +13,7 @@
 
 #### VM Internals
 - Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
+- Updated Winterfell dependency to v0.7 (#1121).
 
 ## 0.7.0 (2023-10-11)
 

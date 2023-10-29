@@ -1,10 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use air::{HashFunction, ProcessorAir, PublicInputs};
+use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use core::fmt;
-use vm_core::crypto::{
-    hash::{Blake3_192, Blake3_256, Rpo256},
-    random::{RpoRandomCoin, WinterRandomCoin},
+use vm_core::{
+    crypto::{
+        hash::{Blake3_192, Blake3_256, Rpo256},
+        random::{RpoRandomCoin, WinterRandomCoin},
+    },
+    utils::vec,
 };
 use winter_verifier::verify as verify_proof;
 
@@ -12,7 +15,7 @@ use winter_verifier::verify as verify_proof;
 // ================================================================================================
 
 pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
-pub use winter_verifier::VerifierError;
+pub use winter_verifier::{AcceptableOptions, VerifierError};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }
@@ -36,8 +39,18 @@ pub use air::ExecutionProof;
 /// `stack_outputs` slice, and the order of the rest of the output elements will also match the
 /// order on the stack. This is the reverse of the order of the `stack_inputs` slice.
 ///
+/// The verifier accepts proofs generated using a parameter set defined in [ProvingOptions].
+/// Specifically, parameter sets targeting the following are accepted:
+/// - 96-bit security level, non-recursive context (BLAKE3 hash function).
+/// - 96-bit security level, recursive context (BLAKE3 hash function).
+/// - 128-bit security level, non-recursive context (RPO hash function).
+/// - 128-bit security level, recursive context (RPO hash function).
+///
 /// # Errors
-/// Returns an error if the provided proof does not prove a correct execution of the program.
+/// Returns an error if:
+/// - The provided proof does not prove a correct execution of the program.
+/// - The the protocol parameters used to generate the proof is not in the set of acceptable
+///   parameters.
 pub fn verify(
     program_info: ProgramInfo,
     stack_inputs: StackInputs,
@@ -52,13 +65,19 @@ pub fn verify(
     let (hash_fn, proof) = proof.into_parts();
     match hash_fn {
         HashFunction::Blake3_192 => {
-            verify_proof::<ProcessorAir, Blake3_192, WinterRandomCoin<_>>(proof, pub_inputs)
+            let opts = AcceptableOptions::OptionSet(vec![ProvingOptions::REGULAR_96_BITS]);
+            verify_proof::<ProcessorAir, Blake3_192, WinterRandomCoin<_>>(proof, pub_inputs, &opts)
         }
         HashFunction::Blake3_256 => {
-            verify_proof::<ProcessorAir, Blake3_256, WinterRandomCoin<_>>(proof, pub_inputs)
+            let opts = AcceptableOptions::OptionSet(vec![ProvingOptions::REGULAR_128_BITS]);
+            verify_proof::<ProcessorAir, Blake3_256, WinterRandomCoin<_>>(proof, pub_inputs, &opts)
         }
         HashFunction::Rpo256 => {
-            verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin>(proof, pub_inputs)
+            let opts = AcceptableOptions::OptionSet(vec![
+                ProvingOptions::RECURSIVE_96_BITS,
+                ProvingOptions::RECURSIVE_128_BITS,
+            ]);
+            verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin>(proof, pub_inputs, &opts)
         }
     }
     .map_err(VerificationError::VerifierError)?;

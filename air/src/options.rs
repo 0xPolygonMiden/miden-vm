@@ -1,6 +1,6 @@
-use super::{ExecutionOptionsError, HashFunction};
-use crate::trace::MIN_TRACE_LEN;
-use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
+use super::{
+    trace::MIN_TRACE_LEN, ExecutionOptionsError, FieldExtension, HashFunction, WinterProofOptions,
+};
 
 // PROVING OPTIONS
 // ================================================================================================
@@ -8,13 +8,32 @@ use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
 /// A set of parameters specifying how Miden VM execution proofs are to be generated.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProvingOptions {
-    pub exec_options: ExecutionOptions,
-    pub proof_options: WinterProofOptions,
-    pub hash_fn: HashFunction,
+    exec_options: ExecutionOptions,
+    proof_options: WinterProofOptions,
+    hash_fn: HashFunction,
 }
 
 impl ProvingOptions {
-    // CONSTRUCTOR
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Standard proof parameters for 96-bit conjectured security in non-recursive context.
+    pub const REGULAR_96_BITS: WinterProofOptions =
+        WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
+
+    /// Standard proof parameters for 128-bit conjectured security in non-recursive context.
+    pub const REGULAR_128_BITS: WinterProofOptions =
+        WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
+
+    /// Standard proof parameters for 96-bit conjectured security in recursive context.
+    pub const RECURSIVE_96_BITS: WinterProofOptions =
+        WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
+
+    /// Standard proof parameters for 128-bit conjectured security in recursive context.
+    pub const RECURSIVE_128_BITS: WinterProofOptions =
+        WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
+
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new instance of [ProvingOptions] from the specified parameters.
@@ -50,18 +69,15 @@ impl ProvingOptions {
     /// but may take significantly longer to generate.
     pub fn with_96_bit_security(recursive: bool) -> Self {
         if recursive {
-            let proof_options = WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
             Self {
                 exec_options: ExecutionOptions::default(),
-                proof_options,
+                proof_options: Self::RECURSIVE_96_BITS,
                 hash_fn: HashFunction::Rpo256,
             }
         } else {
-            let proof_options =
-                WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
             Self {
                 exec_options: ExecutionOptions::default(),
-                proof_options,
+                proof_options: Self::REGULAR_96_BITS,
                 hash_fn: HashFunction::Blake3_192,
             }
         }
@@ -74,17 +90,15 @@ impl ProvingOptions {
     /// but may take significantly longer to generate.
     pub fn with_128_bit_security(recursive: bool) -> Self {
         if recursive {
-            let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
             Self {
                 exec_options: ExecutionOptions::default(),
-                proof_options,
+                proof_options: Self::RECURSIVE_128_BITS,
                 hash_fn: HashFunction::Rpo256,
             }
         } else {
-            let proof_options = WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
             Self {
                 exec_options: ExecutionOptions::default(),
-                proof_options,
+                proof_options: Self::REGULAR_128_BITS,
                 hash_fn: HashFunction::Blake3_256,
             }
         }

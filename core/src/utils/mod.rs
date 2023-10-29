@@ -14,7 +14,7 @@ pub use winter_utils::{
     ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
-pub use miden_crypto::utils::collections;
+pub use miden_crypto::utils::{collections, vec};
 
 pub mod math {
     pub use math::{batch_inversion, log2};

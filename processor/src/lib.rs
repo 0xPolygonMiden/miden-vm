@@ -24,7 +24,7 @@ use vm_core::{
     CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
 };
 
-use winter_prover::ColMatrix;
+use winter_prover::matrix::ColMatrix;
 
 mod operations;
 
