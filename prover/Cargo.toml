@@ -22,7 +22,7 @@ sve = ["processor/sve", "std"]
 air = { package = "miden-air", path = "../air", version = "0.7", default-features = false }
 log = { version = "0.4", default-features = false, optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.7", default-features = false }
-winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.7", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
