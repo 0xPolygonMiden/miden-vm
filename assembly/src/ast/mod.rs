@@ -35,7 +35,9 @@ pub use invocation_target::InvocationTarget;
 mod parsers;
 use parsers::{parse_constants, ParserContext};
 
-pub(crate) use parsers::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+pub(crate) use parsers::{
+    parse_param_with_constant_lookup, NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER,
+};
 
 mod serde;
 pub use serde::AstSerdeOptions;

@@ -960,14 +960,27 @@ fn test_repeat_with_constant_count() {
     begin
         repeat.A
             push.1
-            push.0.1
         end
 
         repeat.B
             push.0
         end
     end";
+
     assert_correct_program_serialization(source, false);
+
+    let nodes: Vec<Node> = vec![
+        Node::Repeat {
+            times: 3,
+            body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(1))]),
+        },
+        Node::Repeat {
+            times: 14,
+            body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(0))]),
+        },
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
 }
 
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {

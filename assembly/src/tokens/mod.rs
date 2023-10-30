@@ -1,6 +1,7 @@
 use super::{
-    ast::InvocationTarget, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    LibraryPath, ParsingError, ProcedureName, Serializable, String, ToString, Vec,
+    ast::{parse_param_with_constant_lookup, InvocationTarget},
+    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath,
+    ParsingError, ProcedureName, Serializable, String, ToString, Vec,
 };
 use core::fmt;
 
@@ -243,25 +244,7 @@ impl<'a> Token<'a> {
         match self.num_parts() {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self, "repeat.<num_repetitions>")),
-            2 => {
-                let count = self.parts[1];
-
-                let parsed_number_u64 = if let Ok(number) = count.parse::<u64>() {
-                    number
-                } else {
-                    *constants.get(count).ok_or_else(|| {
-                        ParsingError::invalid_const_value(
-                            self,
-                            count,
-                            &format!("constant with name {} was not initialized", count),
-                        )
-                    })?
-                };
-                let parsed_number: u32 = parsed_number_u64
-                    .try_into()
-                    .map_err(|_| ParsingError::invalid_param(self, 1))?;
-                Ok(parsed_number)
-            }
+            2 => parse_param_with_constant_lookup::<u32>(self, 1, constants),
             _ => Err(ParsingError::extra_param(self)),
         }
     }
