@@ -1673,7 +1673,7 @@ fn invalid_repeat() {
     if let Err(error) = program {
         assert_eq!(
             error.to_string(),
-            "malformed constant `repeat.23x3` - invalid value: `23x3` - reason: constant with name 23x3 was not initialized"
+            "malformed instruction `repeat.23x3`: parameter '23x3' is invalid"
         );
     }
 }
