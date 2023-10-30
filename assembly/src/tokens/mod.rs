@@ -1,6 +1,7 @@
 use super::{
-    ast::InvocationTarget, BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    LibraryPath, ParsingError, ProcedureName, Serializable, String, ToString, Vec,
+    ast::{parse_param_with_constant_lookup, InvocationTarget},
+    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath,
+    ParsingError, ProcedureName, Serializable, String, ToString, Vec,
 };
 use core::fmt;
 
@@ -238,12 +239,12 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_repeat(&self) -> Result<u32, ParsingError> {
+    pub fn parse_repeat(&self, constants: &BTreeMap<String, u64>) -> Result<u32, ParsingError> {
         assert_eq!(Self::REPEAT, self.parts[0], "not a repeat");
         match self.num_parts() {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self, "repeat.<num_repetitions>")),
-            2 => self.parts[1].parse::<u32>().map_err(|_| ParsingError::invalid_param(self, 1)),
+            2 => parse_param_with_constant_lookup::<u32>(self, 1, constants),
             _ => Err(ParsingError::extra_param(self)),
         }
     }

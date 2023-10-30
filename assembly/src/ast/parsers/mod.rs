@@ -122,7 +122,7 @@ fn parse_const_value(
 
 /// Parses a param from the op token with the specified type and index. If the param is a constant
 /// label, it will be looked up in the provided constant map.
-fn parse_param_with_constant_lookup<R>(
+pub(crate) fn parse_param_with_constant_lookup<R>(
     op: &Token,
     param_idx: usize,
     constants: &LocalConstMap,

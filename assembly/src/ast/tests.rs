@@ -951,6 +951,38 @@ fn test_ast_module_serde_imports_not_serialized() {
     assert_correct_module_serialization(source, false);
 }
 
+#[test]
+fn test_repeat_with_constant_count() {
+    let source = "\
+    const.A=3
+    const.B=A*3+5
+
+    begin
+        repeat.A
+            push.1
+        end
+
+        repeat.B
+            push.0
+        end
+    end";
+
+    assert_correct_program_serialization(source, false);
+
+    let nodes: Vec<Node> = vec![
+        Node::Repeat {
+            times: 3,
+            body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(1))]),
+        },
+        Node::Repeat {
+            times: 14,
+            body: CodeBody::new(vec![Node::Instruction(Instruction::PushU8(0))]),
+        },
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {
     let program = ProgramAst::parse(source).unwrap();
     assert_eq!(program.body.nodes(), body);
