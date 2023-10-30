@@ -4,7 +4,10 @@ use super::{
     CodeBlock, Digest, Felt, QuadFelt, Word,
 };
 use core::fmt::{Display, Formatter};
-use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
+use vm_core::{
+    stack::STACK_TOP_SIZE,
+    utils::{string::String, to_hex},
+};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]
@@ -23,6 +26,7 @@ pub enum ExecutionError {
     DynamicCodeBlockNotFound(Digest),
     CycleLimitExceeded(u32),
     DivideByZero(u32),
+    EventError(String),
     Ext2InttError(Ext2InttError),
     FailedAssertion(u32, Felt),
     InvalidFmpValue(Felt, Felt),
@@ -84,6 +88,7 @@ impl Display for ExecutionError {
                 write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
             }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
+            EventError(error) => write!(f, "Failed to process event - {error}"),
             Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),
             FailedAssertion(clk, err_code) => {
                 write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
