@@ -200,7 +200,8 @@ pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// - u32shl: 18 cycles
 /// - u32shl.b: 3 cycles
 pub fn u32shl(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBlock>, AssemblyError> {
-    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm, [U32mul, Drop])
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm)?;
+    add_final_ops(span, imm, [U32mul, Drop])
 }
 
 /// Translates u32shr assembly instructions to VM operations.
@@ -212,7 +213,8 @@ pub fn u32shl(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBloc
 /// - u32shr: 18 cycles
 /// - u32shr.b: 3 cycles
 pub fn u32shr(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBlock>, AssemblyError> {
-    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm, [U32div, Drop])
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm)?;
+    add_final_ops(span, imm, [U32div, Drop])
 }
 
 /// Translates u32rotl assembly instructions to VM operations.
@@ -227,7 +229,8 @@ pub fn u32rotl(
     span: &mut SpanBuilder,
     imm: Option<u8>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span, imm, [U32mul, Add])
+    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span, imm)?;
+    add_final_ops(span, imm, [U32mul, Add])
 }
 
 /// Translates u32rotr assembly instructions to VM operations.
@@ -309,22 +312,14 @@ fn handle_arithmetic_operation(
     op_mode: U32OpMode,
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    let mut drop_high_bits = false;
-
     if let Some(imm) = imm {
         push_u32_value(span, imm);
     }
 
-    match op_mode {
-        U32OpMode::Wrapping => {
-            drop_high_bits = true;
-        }
-        U32OpMode::Overflowing => {}
-    }
-
     span.push_op(op);
 
-    if drop_high_bits {
+    // in the wrapping mode, drop high 32 bits
+    if matches!(op_mode, U32OpMode::Wrapping) {
         span.add_op(Drop)
     } else {
         Ok(None)
@@ -357,21 +352,35 @@ fn handle_division(
 fn prepare_bitwise<const MAX_VALUE: u8>(
     span: &mut SpanBuilder,
     imm: Option<u8>,
-    final_ops: [Operation; 2],
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     match imm {
         Some(0) => {
             // if shift/rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
-            return Ok(None);
+            span.add_op(Noop)
         }
         Some(imm) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
-            span.push_op(Push(Felt::new(1 << imm)));
+            span.add_op(Push(Felt::new(1 << imm)))
         }
-        None => append_pow2_op(span),
+        None => {
+            append_pow2_op(span);
+            Ok(None)
+        }
     }
-    span.add_ops(final_ops)
+}
+
+/// Adds the provided pair of final operations to the span if needed, i.e. when immediate value is
+/// not 0.
+fn add_final_ops(
+    span: &mut SpanBuilder,
+    imm: Option<u8>,
+    final_ops: [Operation; 2],
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    if imm != Some(0) {
+        span.add_ops(final_ops)
+    } else {
+        Ok(None)
+    }
 }
 
 // COMPARISON OPERATIONS

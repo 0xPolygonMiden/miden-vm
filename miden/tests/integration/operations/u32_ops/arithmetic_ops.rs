@@ -428,13 +428,37 @@ fn u32overflowing_madd() {
 
 #[test]
 fn u32div() {
-    let asm_op = "u32div";
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!("u32div", &[0, 1]);
+    test.expect_stack(&[0]);
 
-    // should push d = (a * b) / 2^32 onto the stack.
-    test_div(asm_op);
+    let test = build_op_test!("u32div", &[2, 1]);
+    test.expect_stack(&[2]);
+
+    let test = build_op_test!("u32div", &[1, 2]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!("u32div", &[3, 2]);
+    test.expect_stack(&[1]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+    let mut b = rand_value::<u32>();
+    if b == 0 {
+        // ensure we're not using a failure case.
+        b += 1;
+    }
+    let quot = (a / b) as u64;
+    let test = build_op_test!("u32div", &[a as u64, b as u64]);
+    test.expect_stack(&[quot]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let e = rand_value::<u64>();
+    let test = build_op_test!("u32div", &[e, a as u64, b as u64]);
+    test.expect_stack(&[quot, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 2);
+    test_unchecked_execution("u32div", 2);
 }
 
 #[test]
@@ -448,12 +472,34 @@ fn u32div_fail() {
 
 #[test]
 fn u32mod() {
-    let asm_op = "u32mod";
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!("u32mod", &[10, 5]);
+    test.expect_stack(&[0]);
 
-    test_mod(asm_op);
+    let test = build_op_test!("u32mod", &[11, 5]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!("u32mod", &[5, 11]);
+    test.expect_stack(&[5]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+    let mut b = rand_value::<u32>();
+    if b == 0 {
+        // ensure we're not using a failure case.
+        b += 1;
+    }
+    let expected = a % b;
+    let test = build_op_test!("u32mod", &[a as u64, b as u64]);
+    test.expect_stack(&[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!("u32mod", &[c, a as u64, b as u64]);
+    test.expect_stack(&[expected as u64, c]);
 
     // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 2);
+    test_unchecked_execution("u32mod", 2);
 }
 
 #[test]
@@ -467,12 +513,39 @@ fn u32mod_fail() {
 
 #[test]
 fn u32divmod() {
-    let asm_op = "u32divmod";
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!("u32divmod", &[0, 1]);
+    test.expect_stack(&[0, 0]);
 
-    test_divmod(asm_op);
+    // division with no remainder
+    let test = build_op_test!("u32divmod", &[2, 1]);
+    test.expect_stack(&[0, 2]);
+
+    // division with remainder
+    let test = build_op_test!("u32divmod", &[1, 2]);
+    test.expect_stack(&[1, 0]);
+    let test = build_op_test!("u32divmod", &[3, 2]);
+    test.expect_stack(&[1, 1]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+    let mut b = rand_value::<u32>();
+    if b == 0 {
+        // ensure we're not using a failure case.
+        b += 1;
+    }
+    let quot = (a / b) as u64;
+    let rem = (a % b) as u64;
+    let test = build_op_test!("u32divmod", &[a as u64, b as u64]);
+    test.expect_stack(&[rem, quot]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let e = rand_value::<u64>();
+    let test = build_op_test!("u32divmod", &[e, a as u64, b as u64]);
+    test.expect_stack(&[rem, quot, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unchecked_execution(asm_op, 2);
+    test_unchecked_execution("u32divmod", 2);
 }
 
 #[test]
@@ -550,6 +623,53 @@ proptest! {
     }
 
     #[test]
+    fn u32div_proptest(a in any::<u32>(), b in 1..u32::MAX) {
+        let asm_op = "u32div";
+        let expected = (a / b) as u64;
+
+        // b provided via the stack.
+        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        test.prop_expect_stack(&[expected])?;
+
+        // b provided as a parameter.
+        let asm_op = format!("{asm_op}.{b}");
+        let test = build_op_test!(&asm_op, &[a as u64]);
+        test.prop_expect_stack(&[expected])?;
+    }
+
+    #[test]
+    fn u32mod_proptest(a in any::<u32>(), b in 1..u32::MAX) {
+        let asm_op = "u32mod";
+        let expected = (a % b) as u64;
+
+        // b provided via the stack.
+        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        test.prop_expect_stack(&[expected])?;
+
+        // b provided as a parameter.
+        let asm_op = format!("{asm_op}.{b}");
+        let test = build_op_test!(&asm_op, &[a as u64]);
+        test.prop_expect_stack(&[expected])?;
+    }
+
+    #[test]
+    fn u32divmod_proptest(a in any::<u32>(), b in 1..u32::MAX) {
+        let asm_op = "u32divmod";
+
+        let quot = (a / b) as u64;
+        let rem = (a % b) as u64;
+
+        // b provided via the stack.
+        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        test.prop_expect_stack(&[rem, quot])?;
+
+        // b provided as a parameter.
+        let asm_op = format!("{asm_op}.{b}");
+        let test = build_op_test!(&asm_op, &[a as u64]);
+        test.prop_expect_stack(&[rem, quot])?;
+    }
+
+    #[test]
     fn u32overflowing_madd_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
         let asm_op = "u32overflowing_madd";
 
@@ -560,109 +680,4 @@ proptest! {
         let test = build_op_test!(asm_op, &[c as u64, a as u64, b as u64]);
         test.prop_expect_stack(&[e, d])?;
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// This helper function tests division without remainder for two u32 inputs for a number of simple
-/// cases as well as for random values. It checks that the floor of a / b is pushed to the
-/// stack. Finally, it ensures that the rest of the stack was unaffected.
-fn test_div(asm_op: &str) {
-    // --- simple cases ---------------------------------------------------------------------------
-    let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0]);
-
-    let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_stack(&[2]);
-
-    let test = build_op_test!(asm_op, &[1, 2]);
-    test.expect_stack(&[0]);
-
-    let test = build_op_test!(asm_op, &[3, 2]);
-    test.expect_stack(&[1]);
-
-    // --- random u32 values ----------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let mut b = rand_value::<u32>();
-    if b == 0 {
-        // ensure we're not using a failure case.
-        b += 1;
-    }
-    let quot = (a / b) as u64;
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[quot]);
-
-    // --- test that the rest of the stack isn't affected -----------------------------------------
-    let e = rand_value::<u64>();
-    let test = build_op_test!(asm_op, &[e, a as u64, b as u64]);
-    test.expect_stack(&[quot, e]);
-}
-
-/// This helper function tests the modulus operation for two u32 inputs for a number of simple
-/// cases as well as for random values. It checks that a % b is pushed to the stack. Finally, it
-/// ensures that the rest of the stack was unaffected.
-fn test_mod(asm_op: &str) {
-    // --- simple cases ---------------------------------------------------------------------------
-    let test = build_op_test!(asm_op, &[10, 5]);
-    test.expect_stack(&[0]);
-
-    let test = build_op_test!(asm_op, &[11, 5]);
-    test.expect_stack(&[1]);
-
-    let test = build_op_test!(asm_op, &[5, 11]);
-    test.expect_stack(&[5]);
-
-    // --- random u32 values ----------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let mut b = rand_value::<u32>();
-    if b == 0 {
-        // ensure we're not using a failure case.
-        b += 1;
-    }
-    let expected = a % b;
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected as u64]);
-
-    // --- test that the rest of the stack isn't affected -----------------------------------------
-    let c = rand_value::<u64>();
-    let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected as u64, c]);
-}
-
-/// This helper function tests division with remainder for two u32 inputs for a number of simple
-/// cases as well as for random values. It checks that the floor of a / b is pushed to the
-/// stack, along with the remainder a % b. Finally, it ensures that the rest of the stack was
-/// unaffected.
-fn test_divmod(asm_op: &str) {
-    // --- simple cases ---------------------------------------------------------------------------
-    let test = build_op_test!(asm_op, &[0, 1]);
-    test.expect_stack(&[0, 0]);
-
-    // division with no remainder
-    let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_stack(&[0, 2]);
-
-    // division with remainder
-    let test = build_op_test!(asm_op, &[1, 2]);
-    test.expect_stack(&[1, 0]);
-    let test = build_op_test!(asm_op, &[3, 2]);
-    test.expect_stack(&[1, 1]);
-
-    // --- random u32 values ----------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let mut b = rand_value::<u32>();
-    if b == 0 {
-        // ensure we're not using a failure case.
-        b += 1;
-    }
-    let quot = (a / b) as u64;
-    let rem = (a % b) as u64;
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[rem, quot]);
-
-    // --- test that the rest of the stack isn't affected -----------------------------------------
-    let e = rand_value::<u64>();
-    let test = build_op_test!(asm_op, &[e, a as u64, b as u64]);
-    test.expect_stack(&[rem, quot, e]);
 }
