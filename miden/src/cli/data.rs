@@ -12,9 +12,9 @@ use std::{
     fs,
     io::Write,
     path::{Path, PathBuf},
-    time::Instant,
 };
 use stdlib::StdLibrary;
+pub use tracing::{event, info_span, instrument, trace_span, Level};
 
 // HELPERS
 // ================================================================================================
@@ -81,6 +81,7 @@ pub struct InputFile {
 
 /// Helper methods to interact with the input file
 impl InputFile {
+    #[instrument(name = "Reading input file", skip_all)]
     pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // if file not specified explicitly and corresponding file with same name as program_path
         // with '.inputs' extension does't exist, set operand_stack to empty vector
@@ -99,8 +100,6 @@ impl InputFile {
             Some(path) => path.clone(),
             None => program_path.with_extension("inputs"),
         };
-
-        println!("Reading input file `{}`", path.display());
 
         // read input file to string
         let inputs_file = fs::read_to_string(&path)
@@ -199,14 +198,19 @@ impl InputFile {
                     let tree = MerkleTree::new(leaves)
                         .map_err(|e| format!("failed to parse a Merkle tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
-                    println!("Added Merkle tree with root {} to the Merkle store", tree.root());
+                    event!(
+                        Level::TRACE,
+                        "Added Merkle tree with root {} to the Merkle store",
+                        tree.root()
+                    );
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
                     let tree = SimpleSmt::with_leaves(u64::BITS as u8, entries)
                         .map_err(|e| format!("failed to parse a Sparse Merkle Tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
-                    println!(
+                    event!(
+                        Level::TRACE,
                         "Added Sparse Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
@@ -216,7 +220,8 @@ impl InputFile {
                     let tree = PartialMerkleTree::with_leaves(entries)
                         .map_err(|e| format!("failed to parse a Partial Merkle Tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
-                    println!(
+                    event!(
+                        Level::TRACE,
                         "Added Partial Merkle tree with root {} to the Merkle store",
                         tree.root()
                     );
@@ -316,6 +321,8 @@ impl OutputFile {
     }
 
     /// Read the output file
+    #[instrument(name = "Reading output file", 
+        fields(path = %outputs_path.clone().unwrap_or(program_path.with_extension("outputs")).display()), skip_all)]
     pub fn read(outputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // If outputs_path has been provided then use this as path.  Alternatively we will
         // replace the program_path extension with `.outputs` and use this as a default.
@@ -323,8 +330,6 @@ impl OutputFile {
             Some(path) => path.clone(),
             None => program_path.with_extension("outputs"),
         };
-
-        println!("Reading output file `{}`", path.display());
 
         // read outputs file to string
         let outputs_file = fs::read_to_string(&path)
@@ -338,15 +343,12 @@ impl OutputFile {
     }
 
     /// Write the output file
+    #[instrument(name = "Writing data to output file", fields(path = %path.display()), skip_all)]
     pub fn write(stack_outputs: &StackOutputs, path: &PathBuf) -> Result<(), String> {
         // if path provided, create output file
-        println!("Creating output file `{}`", path.display());
-
         let file = fs::File::create(&path).map_err(|err| {
             format!("Failed to create output file `{}` - {}", path.display(), err)
         })?;
-
-        println!("Writing data to output file");
 
         // write outputs to output file
         serde_json::to_writer_pretty(file, &Self::new(stack_outputs))
@@ -379,19 +381,17 @@ pub struct ProgramFile {
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
     /// Reads the masm file at the specified path and parses it into a [ProgramAst].
+    #[instrument(name = "Reading program file", fields(path = %path.display()))]
     pub fn read(path: &PathBuf) -> Result<Self, String> {
         // read program file to string
-        println!("Reading program file `{}`", path.display());
-        let source = fs::read_to_string(&path)
-            .map_err(|err| format!("Failed to open program file `{}` - {}", path.display(), err))?;
+        let source = fs::read_to_string(&path).map_err(|err| {
+            format!("Failed to open program file `{}` - {}\n", path.display(), err)
+        })?;
 
         // parse the program into an AST
-        print!("Parsing program... ");
-        let now = Instant::now();
         let ast = ProgramAst::parse(&source).map_err(|err| {
-            format!("Failed to parse program file `{}` - {}", path.display(), err)
+            format!("Failed to parse program file `{}` - {}\n", path.display(), err)
         })?;
-        println!("done ({} ms)", now.elapsed().as_millis());
 
         Ok(Self {
             ast,
@@ -400,14 +400,12 @@ impl ProgramFile {
     }
 
     /// Compiles this program file into a [Program].
+    #[instrument(name = "Compiling program", skip_all)]
     pub fn compile<I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, String>
     where
         I: IntoIterator<Item = L>,
         L: Library,
     {
-        print!("Compiling program... ");
-        let now = Instant::now();
-
         // compile program
         let mut assembler = Assembler::default()
             .with_debug_mode(debug.is_on())
@@ -421,8 +419,6 @@ impl ProgramFile {
         let program = assembler
             .compile_ast(&self.ast)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
-
-        println!("done ({} ms)", now.elapsed().as_millis());
 
         Ok(program)
     }
@@ -450,6 +446,8 @@ pub struct ProofFile;
 /// Helper methods to interact with proof file
 impl ProofFile {
     /// Read stark proof from file
+    #[instrument(name = "Reading proof file", 
+        fields(path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display()), skip_all)]
     pub fn read(
         proof_path: &Option<PathBuf>,
         program_path: &Path,
@@ -461,8 +459,6 @@ impl ProofFile {
             None => program_path.with_extension("proof"),
         };
 
-        println!("Reading proof file `{}`", path.display());
-
         // read the file to bytes
         let file = fs::read(&path)
             .map_err(|err| format!("Failed to open proof file `{}` - {}", path.display(), err))?;
@@ -473,6 +469,10 @@ impl ProofFile {
     }
 
     /// Write stark proof to file
+    #[instrument(name = "Writing data to proof file", 
+                 fields(
+                    path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display(), 
+                    size = format!("{} KB", proof.to_bytes().len() / 1024)), skip_all)]
     pub fn write(
         proof: ExecutionProof,
         proof_path: &Option<PathBuf>,
@@ -485,15 +485,11 @@ impl ProofFile {
             None => program_path.with_extension("proof"),
         };
 
-        println!("Creating proof file `{}`", path.display());
-
         // create output fille
         let mut file = fs::File::create(&path)
             .map_err(|err| format!("Failed to create proof file `{}` - {}", path.display(), err))?;
 
         let proof_bytes = proof.to_bytes();
-
-        println!("Writing data to proof file - size {} KB", proof_bytes.len() / 1024);
 
         // write proof bytes to file
         file.write_all(&proof_bytes).unwrap();
@@ -509,6 +505,7 @@ pub struct ProgramHash;
 
 /// Helper method to parse program hash from hex
 impl ProgramHash {
+    #[instrument(name = "Reading program hash", skip_all)]
     pub fn read(hash_hex_string: &String) -> Result<Digest, String> {
         // decode hex to bytes
         let program_hash_bytes = hex::decode(hash_hex_string)
@@ -533,6 +530,7 @@ pub struct Libraries {
 
 impl Libraries {
     /// Creates a new instance of [Libraries] from a list of library paths.
+    #[instrument(name = "Reading library files", skip_all)]
     pub fn new<P, I>(paths: I) -> Result<Self, String>
     where
         P: AsRef<Path>,
@@ -541,8 +539,6 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            println!("Reading library file `{}`", path.as_ref().display());
-
             let library = MaslLibrary::read_from_file(path)
                 .map_err(|e| format!("Failed to read library: {e}"))?;
             libraries.push(library);

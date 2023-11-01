@@ -1,6 +1,8 @@
 use clap::Parser;
 use core::fmt;
 use miden::{AssemblyError, ExecutionError};
+use tracing_forest::ForestLayer;
+use tracing_subscriber::{prelude::*, EnvFilter};
 
 mod cli;
 mod examples;
@@ -52,6 +54,17 @@ impl Cli {
 pub fn main() {
     // read command-line args
     let cli = Cli::parse();
+
+    // configure logging
+    // if logging level is not specified, set level to "warn"
+    if std::env::var("MIDEN_LOG").is_err() {
+        std::env::set_var("MIDEN_LOG", "warn");
+    }
+
+    tracing_subscriber::registry::Registry::default()
+        .with(EnvFilter::from_env("MIDEN_LOG"))
+        .with(ForestLayer::default())
+        .init();
 
     // execute cli action
     if let Err(error) = cli.execute() {

@@ -18,6 +18,7 @@
 - Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
 - Updated Winterfell dependency to v0.7 (#1121).
 - Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
+- Added [Tracing](https://crates.io/crates/tracing) logger to the VM (#1139).
 
 #### CLI
 - Introduced the `!use` command for the Miden REPL (#1162).

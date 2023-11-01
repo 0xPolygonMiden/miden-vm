@@ -1,7 +1,7 @@
 use clap::Parser;
 use miden::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, ONE, ZERO};
-use std::io::Write;
+
 use std::time::Instant;
 
 pub mod blake3;
@@ -78,12 +78,6 @@ impl ExampleOptions {
 
     pub fn execute(&self) -> Result<(), String> {
         println!("============================================================");
-
-        // configure logging
-        env_logger::Builder::new()
-            .format(|buf, record| writeln!(buf, "{}", record.args()))
-            .filter_level(log::LevelFilter::Debug)
-            .init();
 
         let proof_options = self.get_proof_options().map_err(|err| format!("{err}"))?;
 

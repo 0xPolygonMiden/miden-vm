@@ -9,14 +9,14 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
+#[cfg(feature = "std")]
+use tracing::{event, instrument, Level};
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
     StarkDomain, TraceInfo, TracePolyTable,
 };
 
-#[cfg(feature = "std")]
-use log::debug;
 #[cfg(feature = "std")]
 use std::time::Instant;
 #[cfg(feature = "std")]
@@ -47,6 +47,7 @@ pub use winter_prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
+#[cfg_attr(feature = "std", instrument("Proving program", skip_all))]
 pub fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,
@@ -67,7 +68,8 @@ where
         * 100
         / trace.trace_len_summary().padded_trace_len();
     #[cfg(feature = "std")]
-    debug!(
+    event!(
+        Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
         trace.layout().main_trace_width(),
         trace.trace_len_summary().padded_trace_len(),

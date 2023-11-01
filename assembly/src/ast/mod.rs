@@ -2,7 +2,6 @@
 //!
 //! Structs in this module (specifically [ProgramAst] and [ModuleAst]) can be used to parse source
 //! code into relevant ASTs. This can be done via their `parse()` methods.
-
 use super::{
     crypto::hash::RpoDigest, BTreeMap, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Felt, LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName,
@@ -10,6 +9,9 @@ use super::{
     MAX_LABEL_LEN,
 };
 use vm_core::utils::bound_into_included_u64;
+
+#[cfg(feature = "std")]
+pub use tracing::{event, info_span, instrument, Level};
 
 pub use super::tokens::SourceLocation;
 
@@ -90,4 +92,18 @@ fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
     procedures.sort_by_key(|(idx, _proc)| *idx);
 
     procedures.into_iter().map(|(_idx, proc)| proc).collect()
+}
+
+/// Logging a warning message for every imported but unused module.
+#[cfg(feature = "std")]
+fn check_unused_imports(import_info: &ModuleImports) {
+    let import_lib_paths = import_info.import_paths();
+    let invoked_procs_paths: Vec<&LibraryPath> =
+        import_info.invoked_procs().iter().map(|(_id, (_name, path))| path).collect();
+
+    for lib in import_lib_paths {
+        if !invoked_procs_paths.contains(&lib) {
+            event!(Level::WARN, "unused import: \"{}\"", lib);
+        }
+    }
 }

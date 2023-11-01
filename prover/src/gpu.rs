@@ -3,9 +3,9 @@
 
 use super::{
     crypto::{RandomCoin, Rpo256, RpoDigest},
-    debug,
+    event,
     math::fft,
-    ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
+    ExecutionProver, ExecutionTrace, Felt, FieldElement, Level, ProcessorAir, PublicInputs,
     WinterProofOptions,
 };
 use elsa::FrozenVec;
@@ -115,7 +115,8 @@ where
         let offsets =
             get_evaluation_offsets::<E>(composition_poly.column_len(), blowup, domain.offset());
         let segments = build_segments(composition_poly.data(), domain.trace_twiddles(), &offsets);
-        debug!(
+        event!(
+            Level::INFO,
             "Evaluated {} composition polynomial columns over LDE domain (2^{} elements) in {} ms",
             composition_poly.num_columns(),
             offsets.len().ilog2(),
@@ -155,7 +156,8 @@ where
         let leaves = row_hashes.into_iter().map(RpoDigest::new).collect();
         let commitment = MerkleTree::<Rpo256>::from_raw_parts(nodes, leaves).unwrap();
         let constraint_commitment = ConstraintCommitment::new(composed_evaluations, commitment);
-        debug!(
+        event!(
+            Level::INFO,
             "Computed constraint evaluation commitment on the GPU (Merkle tree of depth {}) in {} ms",
             constraint_commitment.tree_depth(),
             now.elapsed().as_millis()
@@ -425,7 +427,8 @@ fn build_trace_commitment<E: FieldElement<BaseField = Felt>>(
     let nodes = block_on(tree_nodes).into_iter().map(RpoDigest::new).collect();
     let leaves = row_hashes.into_iter().map(RpoDigest::new).collect();
     let trace_tree = MerkleTree::from_raw_parts(nodes, leaves).unwrap();
-    debug!(
+    event!(
+            Level::INFO,
             "Extended (on CPU) and committed (on GPU) to an execution trace of {} columns from 2^{} to 2^{} steps in {} ms",
             trace_polys.num_cols(),
             trace_polys.num_rows().ilog2(),

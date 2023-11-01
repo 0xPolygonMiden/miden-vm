@@ -16,10 +16,13 @@ use super::{
         SliceReader, Token, TokenStream, Vec,
     },
 };
+
 use core::{fmt, iter};
 #[cfg(feature = "std")]
-use std::{fs, io, path::Path};
-
+use {
+    super::{check_unused_imports, instrument},
+    std::{fs, io, path::Path},
+};
 // PROGRAM AST
 // ================================================================================================
 
@@ -120,6 +123,7 @@ impl ProgramAst {
     /// Parses the provided source into a [ProgramAst].
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
+    #[cfg_attr(feature = "std", instrument(name = "Parsing program", skip_all))]
     pub fn parse(source: &str) -> Result<ProgramAst, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
         let mut import_info = ModuleImports::parse(&mut tokens)?;
@@ -177,6 +181,9 @@ impl ProgramAst {
         if let Some(token) = tokens.read() {
             return Err(ParsingError::dangling_ops_after_program(token));
         }
+
+        #[cfg(feature = "std")]
+        check_unused_imports(context.import_info);
 
         let local_procs = sort_procs_into_vec(context.local_procs);
         let (nodes, locations) = body.into_parts();
