@@ -1,6 +1,6 @@
-use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
+use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile};
 use clap::Parser;
-use processor::{DefaultHost, ExecutionOptions};
+use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
 use std::{path::PathBuf, time::Instant};
 
 #[derive(Debug, Clone, Parser)]
@@ -37,37 +37,19 @@ pub struct RunCmd {
 
 impl RunCmd {
     pub fn execute(&self) -> Result<(), String> {
-        println!("============================================================");
-        println!("Run program");
-        println!("============================================================");
+        println!("===============================================================================");
+        println!("Run program: {}", self.assembly_file.display());
+        println!("-------------------------------------------------------------------------------");
 
-        // load libraries from files
-        let libraries = Libraries::new(&self.library_paths)?;
-
-        // load program from file and compile
-        let program =
-            ProgramFile::read(&self.assembly_file)?.compile(&Debug::Off, libraries.libraries)?;
-
-        // load input data from file
-        let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
-
-        // get execution options
-        let execution_options = ExecutionOptions::new(Some(self.max_cycles), self.expected_cycles)
-            .map_err(|err| format!("{err}"))?;
-
-        // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.parse_stack_inputs()?;
-        let host = DefaultHost::new(input_data.parse_advice_provider()?);
-
-        let program_hash: [u8; 32] = program.hash().into();
-        print!("Executing program with hash {}... ", hex::encode(program_hash));
         let now = Instant::now();
 
-        // execute program and generate outputs
-        let trace = processor::execute(&program, stack_inputs, host, execution_options)
-            .map_err(|err| format!("Failed to generate execution trace = {:?}", err))?;
+        let (trace, program_hash) = run_program(&self)?;
 
-        println!("done ({} ms)", now.elapsed().as_millis());
+        println!(
+            "Executed the program with hash {} in {} ms",
+            hex::encode(program_hash),
+            now.elapsed().as_millis()
+        );
 
         if let Some(output_path) = &self.output_file {
             // write outputs to file if one was specified
@@ -106,4 +88,36 @@ impl RunCmd {
 
         Ok(())
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+#[instrument(name = "Running program", skip_all)]
+fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), String> {
+    // load libraries from files
+    let libraries = Libraries::new(&params.library_paths)?;
+
+    // load program from file and compile
+    let program =
+        ProgramFile::read(&params.assembly_file)?.compile(&Debug::Off, libraries.libraries)?;
+
+    // load input data from file
+    let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
+
+    // get execution options
+    let execution_options = ExecutionOptions::new(Some(params.max_cycles), params.expected_cycles)
+        .map_err(|err| format!("{err}"))?;
+
+    // fetch the stack and program inputs from the arguments
+    let stack_inputs = input_data.parse_stack_inputs()?;
+    let host = DefaultHost::new(input_data.parse_advice_provider()?);
+
+    let program_hash: [u8; 32] = program.hash().into();
+
+    // execute program and generate outputs
+    let trace = processor::execute(&program, stack_inputs, host, execution_options)
+        .map_err(|err| format!("Failed to generate execution trace = {:?}", err))?;
+
+    Ok((trace, program_hash))
 }

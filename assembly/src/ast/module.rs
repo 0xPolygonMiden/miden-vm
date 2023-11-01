@@ -1,3 +1,5 @@
+#[cfg(feature = "std")]
+use super::check_unused_imports;
 use super::{
     format::*,
     imports::ModuleImports,
@@ -10,6 +12,7 @@ use super::{
         String, ToString, Token, TokenStream, Vec,
     },
 };
+
 use core::{fmt, str::from_utf8};
 use vm_core::utils::Serializable;
 
@@ -106,6 +109,9 @@ impl ModuleAst {
 
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
+
+        #[cfg(feature = "std")]
+        check_unused_imports(context.import_info);
 
         Ok(Self::new(local_procs, reexported_procs, docs)?.with_import_info(import_info))
     }

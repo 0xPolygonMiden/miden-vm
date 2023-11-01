@@ -22,9 +22,9 @@ pub struct VerifyCmd {
 
 impl VerifyCmd {
     pub fn execute(&self) -> Result<(), String> {
-        println!("============================================================");
-        println!("Verify program");
-        println!("============================================================");
+        println!("===============================================================================");
+        println!("Verifying proof: {}", self.proof_file.display());
+        println!("-------------------------------------------------------------------------------");
 
         // read program hash from input
         let program_hash = ProgramHash::read(&self.program_hash)?;
@@ -41,7 +41,6 @@ impl VerifyCmd {
         // load proof from file
         let proof = ProofFile::read(&Some(self.proof_file.clone()), &self.proof_file)?;
 
-        println!("verifying program...");
         let now = Instant::now();
 
         // TODO accept kernel as CLI argument
