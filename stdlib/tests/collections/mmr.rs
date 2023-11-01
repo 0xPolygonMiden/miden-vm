@@ -547,7 +547,7 @@ fn test_mmr_pack_roundtrip() {
     mmr.add(init_merkle_leaf(2).into());
     mmr.add(init_merkle_leaf(3).into());
 
-    let accumulator = mmr.accumulator();
+    let accumulator = mmr.peaks(mmr.forest()).unwrap();
     let hash = accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
@@ -680,7 +680,7 @@ fn test_mmr_two() {
     mmr.add([ONE, Felt::new(2), Felt::new(3), Felt::new(4)].into());
     mmr.add([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into());
 
-    let accumulator = mmr.accumulator();
+    let accumulator = mmr.peaks(mmr.forest()).unwrap();
     let peak = accumulator.peaks()[0];
 
     let num_leaves = accumulator.num_leaves() as u64;
@@ -720,7 +720,7 @@ fn test_mmr_large() {
     mmr.add([ZERO, ZERO, ZERO, Felt::new(6)].into());
     mmr.add([ZERO, ZERO, ZERO, Felt::new(7)].into());
 
-    let accumulator = mmr.accumulator();
+    let accumulator = mmr.peaks(mmr.forest()).unwrap();
 
     let num_leaves = accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
@@ -745,7 +745,7 @@ fn test_mmr_large_add_roundtrip() {
         [ZERO, ZERO, ZERO, Felt::new(7)].into(),
     ]);
 
-    let old_accumulator = mmr.accumulator();
+    let old_accumulator = mmr.peaks(mmr.forest()).unwrap();
     let hash = old_accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
@@ -784,7 +784,7 @@ fn test_mmr_large_add_roundtrip() {
 
     mmr.add([ZERO, ZERO, ZERO, Felt::new(8)].into());
 
-    let new_accumulator = mmr.accumulator();
+    let new_accumulator = mmr.peaks(mmr.forest()).unwrap();
     let num_leaves = new_accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
     let mut new_peaks = new_accumulator.peaks().to_vec();
