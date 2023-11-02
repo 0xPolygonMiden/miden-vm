@@ -203,20 +203,20 @@ end
 <p>The <code>!program</code> command prints out the entire Miden program being executed. E.g., in the below scenario:</p>
 <pre><code>&gt;&gt; push.1.2.3.4
 &gt;&gt; repeat.16 pow2 end
-&gt;&gt; u32checked_add
+&gt;&gt; u32wrapping_add
 
 &gt;&gt; !program
 begin
     push.1.2.3.4
     repeat.16 pow2 end
-    u32checked_add
+    u32wrapping_add
 end
 </code></pre>
 <h3 id="stack"><a class="header" href="#stack">!stack</a></h3>
 <p>The <code>!stack</code> command prints out the state of the stack at the last executed instruction. Since the stack always contains at least 16 elements, 16 or more elements will be printed out (even if all of them are zeros).</p>
 <pre><code>&gt;&gt; push.1 push.2 push.3 push.4 push.5
 &gt;&gt; exp
-&gt;&gt; u32checked_mul
+&gt;&gt; u32wrapping_mul
 &gt;&gt; swap
 &gt;&gt; eq.2
 &gt;&gt; assert
