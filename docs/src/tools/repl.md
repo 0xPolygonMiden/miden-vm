@@ -47,13 +47,13 @@ The `!program` command prints out the entire Miden program being executed. E.g.,
 ```
 >> push.1.2.3.4
 >> repeat.16 pow2 end
->> u32checked_add
+>> u32wrapping_add
 
 >> !program
 begin
     push.1.2.3.4
     repeat.16 pow2 end
-    u32checked_add
+    u32wrapping_add
 end
 ```
 
@@ -64,7 +64,7 @@ The `!stack` command prints out the state of the stack at the last executed inst
 ```
 >> push.1 push.2 push.3 push.4 push.5
 >> exp
->> u32checked_mul
+>> u32wrapping_mul
 >> swap
 >> eq.2
 >> assert

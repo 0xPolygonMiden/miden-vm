@@ -7,19 +7,19 @@
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
-    u32unchecked_rotr.7
+    u32rotr.7
 
     swap
 
     dup
-    u32unchecked_rotr.18
+    u32rotr.18
 
     swap
 
-    u32unchecked_shr.3
+    u32shr.3
 
-    u32checked_xor
-    u32checked_xor
+    u32xor
+    u32xor
 end
 
 #! Computes SHA2 small sigma 1.
@@ -31,19 +31,19 @@ end
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
-    u32unchecked_rotr.17
+    u32rotr.17
 
     swap
 
     dup
-    u32unchecked_rotr.19
+    u32rotr.19
 
     swap
 
-    u32unchecked_shr.10
+    u32shr.10
 
-    u32checked_xor
-    u32checked_xor
+    u32xor
+    u32xor
 end
 
 #! Computes SHA2 big sigma 0.
@@ -55,19 +55,19 @@ end
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
-    u32unchecked_rotr.2
+    u32rotr.2
 
     swap
 
     dup
-    u32unchecked_rotr.13
+    u32rotr.13
 
     swap
 
-    u32unchecked_rotr.22
+    u32rotr.22
 
-    u32checked_xor
-    u32checked_xor
+    u32xor
+    u32xor
 end
 
 #! Computes SHA2 big sigma 1.
@@ -79,19 +79,19 @@ end
 #! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
-    u32unchecked_rotr.6
+    u32rotr.6
 
     swap
 
     dup
-    u32unchecked_rotr.11
+    u32rotr.11
 
     swap
 
-    u32unchecked_rotr.25
+    u32rotr.25
 
-    u32checked_xor
-    u32checked_xor
+    u32xor
+    u32xor
 end
 
 #! Computes SHA2 ch.
@@ -104,15 +104,15 @@ end
 proc.ch
     swap
     dup.1
-    u32checked_and
+    u32and
 
     swap
-    u32checked_not
+    u32not
 
     movup.2
-    u32checked_and
+    u32and
 
-    u32checked_xor
+    u32xor
 end
 
 #! Computes SHA2 maj.
@@ -125,18 +125,18 @@ end
 proc.maj
     dup.1
     dup.1
-    u32checked_and
+    u32and
 
     swap
     dup.3
-    u32checked_and
+    u32and
 
     movup.2
     movup.3
-    u32checked_and
+    u32and
 
-    u32checked_xor
-    u32checked_xor
+    u32xor
+    u32xor
 end
 
 #! Reverses order of first four elements on stack
@@ -1571,23 +1571,23 @@ export.hash_memory.12
     loc_store.1
 
     # loc.2 (padded length): input_length + (55 - input_length) % 64 + 9
-    push.55 loc_load.1 u32wrapping_sub push.63 u32checked_and
-    loc_load.1 u32checked_add u32checked_add.9 loc_store.2
+    push.55 loc_load.1 u32wrapping_sub push.63 u32and
+    loc_load.1 u32assert2 u32overflowing_add assertz u32assert u32overflowing_add.9 assertz loc_store.2
 
     # loc.3 (last memory address in padding): input_address + padded_length / 16 - 1
-    loc_load.2 u32checked_div.16 loc_load.0 u32wrapping_add u32wrapping_sub.1 loc_store.3
+    loc_load.2 u32assert u32div.16 loc_load.0 u32wrapping_add u32wrapping_sub.1 loc_store.3
 
     # loc.4 (u32 aligned padding byte): 0x80000000 >> ((input_length % 4) * 8)
-    loc_load.1 u32checked_mod.4 u32checked_mul.8 push.0x80000000 swap u32checked_shr loc_store.4
+    loc_load.1 u32assert u32mod.4 u32assert u32overflowing_mul.8 assertz push.0x80000000 swap u32shr loc_store.4
 
     # loc.5 (memory offset of first padding byte): (input_length / 4) % 4
-    loc_load.1 u32checked_div.4 u32checked_mod.4 loc_store.5
+    loc_load.1 u32assert u32div.4 u32mod.4 loc_store.5
 
     # loc.6 (memory address of first padding byte): input_address + (len / 16)
-    loc_load.0 loc_load.1 u32checked_div.16 u32checked_add loc_store.6
+    loc_load.0 loc_load.1 u32assert u32div.16 u32assert2 u32overflowing_add assertz loc_store.6
 
     # loc.7 (number of remaining 512-bit blocks to consume): padded_length / 64
-    loc_load.2 u32checked_div.64 loc_store.7
+    loc_load.2 u32assert u32div.64 loc_store.7
 
     # Set the first byte after the message to 0x80
     padw loc_load.6 mem_loadw loc_store.8 loc_store.9 loc_store.10 loc_store.11
@@ -1596,7 +1596,7 @@ export.hash_memory.12
 
     # Set message length in bits at end of padding
     padw loc_load.3 mem_loadw
-    movup.3 drop loc_load.1 u32checked_mul.8 movdn.3
+    movup.3 drop loc_load.1 u32assert u32overflowing_mul.8 assertz movdn.3
     loc_load.3 mem_storew dropw
 
     # Sha256 init
@@ -1604,16 +1604,16 @@ export.hash_memory.12
     push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667
 
     # Consume sha256 blocks
-    loc_load.7 u32checked_neq.0
+    loc_load.7 u32assert neq.0
     while.true
-        padw loc_load.0 u32checked_add.3 mem_loadw movdnw.2
-        padw loc_load.0 u32checked_add.2 mem_loadw movdnw.2
-        padw loc_load.0 u32checked_add.1 mem_loadw movdnw.2
-        padw loc_load.0 u32checked_add.0 mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.3 assertz mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.2 assertz mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.1 assertz mem_loadw movdnw.2
+        padw loc_load.0 u32assert u32overflowing_add.0 assertz mem_loadw movdnw.2
         exec.prepare_message_schedule_and_consume
 
-        loc_load.0 u32checked_add.4 loc_store.0
-        loc_load.7 u32checked_sub.1 dup loc_store.7
-        u32checked_neq.0
+        loc_load.0 u32assert u32overflowing_add.4 assertz loc_store.0
+        loc_load.7 u32assert u32overflowing_sub.1 assertz dup loc_store.7
+        u32assert neq.0
     end
 end

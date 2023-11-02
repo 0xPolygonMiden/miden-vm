@@ -79,25 +79,6 @@ pub fn parse_u32assertw(op: &Token, constants: &LocalConstMap) -> Result<Node, P
     }
 }
 
-/// Returns `U32CheckedAdd` instruction node if no immediate value is provided or
-/// `U32CheckedAddImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_add(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_add");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedAdd)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedAddImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
 /// Returns `U32WrappingAdd` instruction node if no immediate value is provided or
 /// `U32WrappingAddImm` instruction node otherwise.
 ///
@@ -131,24 +112,6 @@ pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, ParsingError> {
         2 => {
             let value = parse_param::<u32>(op, 1)?;
             Ok(Instruction(U32OverflowingAddImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
-/// Returns `U32CheckedSub` instruction node if no immediate value is provided or
-/// `U32CheckedSubImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_sub(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_sub");
-    match op.num_parts() {
-        1 => Ok(Instruction(U32CheckedSub)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedSubImm(value)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
@@ -192,25 +155,6 @@ pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns `U32CheckedMul` instruction node if no immediate value is provided or
-/// `U32CheckedMulImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_mul(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_mul");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedMul)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedMulImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
 /// Returns `U32WrappingMul` instruction node if no immediate value is provided or
 /// `U32WrappingMulImm` instruction node otherwise.
 ///
@@ -249,260 +193,137 @@ pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedDiv`
-/// - unchecked without parameter: `U32UncheckedDiv`
-/// - checked with parameter: `U32CheckedDivImm`
-/// - unchecked with parameter: `U32UncheckedDivImm`
+/// Returns one of two possible instructions:
+/// - division without parameter: `U32Div`
+/// - division with parameter: `U32DivImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
-pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, ParsingError> {
-    //debug_assert_eq!("u32checked_div", op.parts()[0], "not a u32checked_div");
+pub fn parse_u32_div(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedDiv))
-            } else {
-                Ok(Instruction(U32UncheckedDiv))
-            }
-        }
+        1 => Ok(Instruction(U32Div)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
             check_div_by_zero(value.into(), op, 1)?;
-            if checked {
-                Ok(Instruction(U32CheckedDivImm(value)))
-            } else {
-                Ok(Instruction(U32UncheckedDivImm(value)))
-            }
+            Ok(Instruction(U32DivImm(value)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedMod`
-/// - unchecked without parameter: `U32UncheckedMod`
-/// - checked with parameter: `U32CheckedModImm`
-/// - unchecked with parameter: `U32UncheckedModImm`
+/// Returns one of two possible instructions:
+/// - module without parameter: `U32Mod`
+/// - module with parameter: `U32ModImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
-pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, ParsingError> {
+pub fn parse_u32_mod(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedMod))
-            } else {
-                Ok(Instruction(U32UncheckedMod))
-            }
-        }
+        1 => Ok(Instruction(U32Mod)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
             check_div_by_zero(value.into(), op, 1)?;
-            if checked {
-                Ok(Instruction(U32CheckedModImm(value)))
-            } else {
-                Ok(Instruction(U32UncheckedModImm(value)))
-            }
+            Ok(Instruction(U32ModImm(value)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedDivMod`
-/// - unchecked without parameter: `U32UncheckedDivMod`
-/// - checked with parameter: `U32CheckedDivModImm`
-/// - unchecked with parameter: `U32UncheckedDivModImm`
+/// Returns one of two possible instructions:
+/// - DivMod without parameter: `U32DivMod`
+/// - DivMod with parameter: `U32DivModImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
-pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, ParsingError> {
+pub fn parse_u32_divmod(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedDivMod))
-            } else {
-                Ok(Instruction(U32UncheckedDivMod))
-            }
-        }
+        1 => Ok(Instruction(U32DivMod)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
             check_div_by_zero(value.into(), op, 1)?;
-            if checked {
-                Ok(Instruction(U32CheckedDivModImm(value)))
-            } else {
-                Ok(Instruction(U32UncheckedDivModImm(value)))
-            }
+            Ok(Instruction(U32DivModImm(value)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedShr`
-/// - unchecked without parameter: `U32UncheckedShr`
-/// - checked with parameter: `U32CheckedShrImm`
-/// - unchecked with parameter: `U32UncheckedShrImm`
+/// Returns one of two possible instructions:
+/// - shift right without parameter: `U32Shr`
+/// - shift right with parameter: `U32ShrImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is greater than 31.
-pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
+pub fn parse_u32_shr(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedShr))
-            } else {
-                Ok(Instruction(U32UncheckedShr))
-            }
-        }
+        1 => Ok(Instruction(U32Shr)),
         2 => {
             let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_SHIFT_VALUE)?;
-            if checked {
-                Ok(Instruction(U32CheckedShrImm(n)))
-            } else {
-                Ok(Instruction(U32UncheckedShrImm(n)))
-            }
+            Ok(Instruction(U32ShrImm(n)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedShl`
-/// - unchecked without parameter: `U32UncheckedShl`
-/// - checked with parameter: `U32CheckedShlImm`
-/// - unchecked with parameter: `U32UncheckedShlImm`
+/// Returns one of two possible instructions:
+/// - shift left without parameter: `U32Shl`
+/// - shift left with parameter: `U32ShlImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is greater than 31.
-pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
+pub fn parse_u32_shl(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedShl))
-            } else {
-                Ok(Instruction(U32UncheckedShl))
-            }
-        }
+        1 => Ok(Instruction(U32Shl)),
         2 => {
             let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_SHIFT_VALUE)?;
-            if checked {
-                Ok(Instruction(U32CheckedShlImm(n)))
-            } else {
-                Ok(Instruction(U32UncheckedShlImm(n)))
-            }
+            Ok(Instruction(U32ShlImm(n)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedRotr`
-/// - unchecked without parameter: `U32UncheckedRotr`
-/// - checked with parameter: `U32CheckedRotrImm`
-/// - unchecked with parameter: `U32UncheckedRotrImm`
+/// Returns one of two possible instructions:
+/// - rotation right without parameter: `U32Rotr`
+/// - rotation right with parameter: `U32RotrImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is greater than 31.
-pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, ParsingError> {
+pub fn parse_u32_rotr(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedRotr))
-            } else {
-                Ok(Instruction(U32UncheckedRotr))
-            }
-        }
+        1 => Ok(Instruction(U32Rotr)),
         2 => {
             let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_ROTATE_VALUE)?;
-            if checked {
-                Ok(Instruction(U32CheckedRotrImm(n)))
-            } else {
-                Ok(Instruction(U32UncheckedRotrImm(n)))
-            }
+            Ok(Instruction(U32RotrImm(n)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
 }
 
-/// Returns one of four possible instructions:
-/// - checked without parameter: `U32CheckedRotl`
-/// - unchecked without parameter: `U32UncheckedRotl`
-/// - checked with parameter: `U32CheckedRotlImm`
-/// - unchecked with parameter: `U32UncheckedRotlImm`
+/// Returns one of two possible instructions:
+/// - rotation left without parameter: `U32Rotl`
+/// - rotation left with parameter: `U32RotlImm`
 ///
 /// # Errors
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is greater than 31.
-pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, ParsingError> {
+pub fn parse_u32_rotl(op: &Token) -> Result<Node, ParsingError> {
     match op.num_parts() {
         0 => unreachable!(),
-        1 => {
-            if checked {
-                Ok(Instruction(U32CheckedRotl))
-            } else {
-                Ok(Instruction(U32UncheckedRotl))
-            }
-        }
+        1 => Ok(Instruction(U32Rotl)),
         2 => {
             let n = parse_checked_param::<u8, _>(op, 1, 0..=MAX_U32_ROTATE_VALUE)?;
-            if checked {
-                Ok(Instruction(U32CheckedRotlImm(n)))
-            } else {
-                Ok(Instruction(U32UncheckedRotlImm(n)))
-            }
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
-/// Returns `U32CheckedEq` instruction node if no immediate value is provided or
-/// `U32CheckedEqImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_eq(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_eq");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedEq)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedEqImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
-/// Returns `U32CheckedNeq` instruction node if no immediate value is provided or
-/// `U32CheckedNeqImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_neq(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_neq");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedNeq)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedNeqImm(value)))
+            Ok(Instruction(U32RotlImm(n)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }

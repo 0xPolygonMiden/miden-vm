@@ -64,26 +64,26 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting X3 ---
 
@@ -92,26 +92,26 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Y3 ---
 
@@ -120,26 +120,26 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Z3 ---
     end
@@ -291,26 +291,26 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting X3 ---
 
@@ -319,26 +319,26 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Y3 ---
 
@@ -347,26 +347,26 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Z3 ---
     end
@@ -517,26 +517,26 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting X ---
 
@@ -545,26 +545,26 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Y ---
 
@@ -573,26 +573,26 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Z ---
     end
@@ -693,26 +693,26 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting X ---
 
@@ -721,26 +721,26 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Y ---
 
@@ -749,26 +749,26 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
-        u32checked_eq.{}
+        u32assert eq.{}
         assert
         # --- end asserting Z ---
     end

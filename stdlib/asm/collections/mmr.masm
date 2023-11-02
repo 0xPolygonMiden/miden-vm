@@ -17,11 +17,11 @@ export.u32unchecked_trailing_ones
 
   while.true
     # update the flag (2 cycles)
-    dup.2 u32checked_and
+    dup.2 u32and
     # => [flag, count, number, ...]
 
     # update the number (4 cycles)
-    movup.2 u32unchecked_div.2
+    movup.2 u32div.2
     # => [number/2, flag, count, ...]
 
     # update the counter (3 cycles)
@@ -85,12 +85,12 @@ export.ilog2_checked
   push.0          # bit_pos from the most-signficant, `31-bit_pos` equals to ilog2
   # stack: [bit_pos, power_of_two, number, ...]
 
-  dup.1 dup.3 u32checked_and eq.0 # (4 cycles)
+  dup.1 dup.3 u32and eq.0 # (4 cycles)
 
   # find the first most-significant true bit (9 * leading_zeros cycles)
   while.true
     add.1 swap div.2 swap  # (5 cycles)
-    dup.1 dup.3 u32checked_and eq.0 # (4 cycles)
+    dup.1 dup.3 u32and eq.0 # (4 cycles)
   end
 
   # compute ilog2 (4 cycles)
@@ -117,7 +117,7 @@ export.get
   # stack: [num_leaves, pos, mmr_ptr, ...]
 
   # compute `num_leaves & pos`, this contains all peaks before `pos` (and maybe some after the owning peak) (3 cycles)
-  dup.1 dup.1 u32checked_and
+  dup.1 dup.1 u32and
   # stack: [before_candidates, num_leaves, pos, mmr_ptr, ...]
 
   # compute `num_leaves - before_candidates`, this removes every peak before the owner (result may include peaks after owner) (4 cycles)
@@ -133,7 +133,7 @@ export.get
   # stack: [after_mask, owner_peak, depth, num_leaves, pos, mmr_ptr, ...]
 
   # compute `num_leaves & after_mask`, uses the mask to compute the actual after peaks (2 cycles)
-  dup.3 u32checked_and
+  dup.3 u32and
   # stack: [after_peaks, owner_peak, depth, num_leaves, pos, mmr_ptr, ...]
 
   # compute `num_leaves - (after_peaks + owner_peak)`, this computes the before peaks (5 cycles)
@@ -145,7 +145,7 @@ export.get
   # stack: [relative_pos, peaks_before, depth, mmr_ptr, ...]
 
   # compute `popcount(peaks_before)`, the count peaks before the target to be skipped when loading from mem (2 cycles)
-  swap u32checked_popcnt
+  swap u32assert u32popcnt
   # stack: [peak_count, relative_pos, depth, mmr_ptr, ...]
 
   # compute `mmr_ptr + peak_count + 1` the target tree index (3 cycles)
@@ -184,7 +184,7 @@ end
 #! Cycles: 69
 export.num_leaves_to_num_peaks
   # count number of peaks (69 cycles)
-  u32split u32unchecked_popcnt swap u32unchecked_popcnt add
+  u32split u32popcnt swap u32popcnt add
   # => [count, ...]
 end
 
@@ -196,7 +196,7 @@ end
 #! Cycles: 17
 export.num_peaks_to_message_size
   # the peaks are padded to a minimum length of 16 (10 cycles)
-  push.16 u32unchecked_max
+  push.16 u32max
   # => [count_min, ...]
 
   # when the number of peaks is greater than 16, then they are padded to an even number (7 cycles)

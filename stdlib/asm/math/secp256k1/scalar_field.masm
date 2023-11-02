@@ -468,7 +468,7 @@ export.inv.4
       dropw
 
       dup
-      u32unchecked_shr.31
+      u32shr.31
       if.true
         push.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0
 
@@ -490,7 +490,7 @@ export.inv.4
         dropw
       end
 
-      u32unchecked_shl.1
+      u32shl.1
     end
 
     drop

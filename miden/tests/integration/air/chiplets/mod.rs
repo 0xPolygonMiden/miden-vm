@@ -8,9 +8,9 @@ mod memory;
 fn chiplets() {
     // Test a program that uses all of the chiplets.
     let source = "begin
-        hperm                          # hasher operation
-        push.5 push.10 u32checked_or    # bitwise operation
-        mem_load                        # memory operation
+        hperm                   # hasher operation
+        push.5 push.10 u32or    # bitwise operation
+        mem_load                # memory operation
     end";
     let pub_inputs = rand_vector::<u64>(8);
 

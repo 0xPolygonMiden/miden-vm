@@ -109,7 +109,7 @@ export.verify_query_layer.3
     swapw.2             # [poe, p, e1, e0, d_size, t_depth, a1, a0, C, layer_ptr, rem_ptr, ...]
     swap                # [p, poe, e1, e0, d_size, t_depth, a1, a0, C, layer_ptr, rem_ptr, ...]
     movup.4             # [d_size, p, poe, e1, e0, t_depth, a1, a0, C, layer_ptr, rem_ptr, ...]
-    u32unchecked_divmod # p and d_size must be u32 values
+    u32divmod           # p and d_size must be u32 values
     movup.5
     movupw.2
     dup.5
@@ -205,7 +205,7 @@ export.verify_query
     # of the two elements we should compare against. (7 cycles)
     movup.3
     push.2
-    u32unchecked_divmod     # f_pos must be a u32 value
+    u32divmod     # f_pos must be a u32 value
     movdn.4
     dup.1
     dup.1

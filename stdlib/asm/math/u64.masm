@@ -306,10 +306,10 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.unchecked_eq
     movup.2
-    u32checked_eq
+    eq
     swap
     movup.2
-    u32checked_eq
+    eq
     and
 end
 
@@ -319,10 +319,10 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_eq
     movup.2
-    u32checked_eq
+    u32assert2 eq
     swap
     movup.2
-    u32checked_eq
+    u32assert2 eq
     and
 end
 
@@ -332,10 +332,10 @@ end
 #! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise.
 export.unchecked_neq
     movup.2
-    u32checked_neq
+    neq
     swap
     movup.2
-    u32checked_neq
+    neq
     or
 end
 
@@ -624,10 +624,10 @@ end
 export.checked_and
     swap
     movup.3
-    u32checked_and
+    u32and
     swap
     movup.2
-    u32checked_and
+    u32and
 end
 
 #! Performs bitwise OR of two unsigned 64 bit integers.
@@ -637,10 +637,10 @@ end
 export.checked_or
     swap
     movup.3
-    u32checked_or
+    u32or
     swap
     movup.2
-    u32checked_or
+    u32or
 end
 
 #! Performs bitwise XOR of two unsigned 64 bit integers.
@@ -650,10 +650,10 @@ end
 export.checked_xor
     swap
     movup.3
-    u32checked_xor
+    u32xor
     swap
     movup.2
-    u32checked_xor
+    u32xor
 end
 
 #! Performs left shift of one unsigned 64-bit integer using the pow2 operation.
@@ -685,7 +685,7 @@ export.unchecked_shr
     add
     movup.2
     swap
-    u32unchecked_divmod
+    u32divmod
     movup.3
     movup.3
     dup
@@ -695,7 +695,7 @@ export.unchecked_shr
     movdn.4
     dup
     movdn.4
-    u32unchecked_divmod
+    u32divmod
     drop
     push.4294967296
     dup.5
@@ -774,7 +774,7 @@ export.unchecked_rotl
 
     # Shift the low limb.
     push.31
-    u32checked_and
+    u32and
     pow2
     dup
     movup.3
@@ -812,7 +812,7 @@ export.unchecked_rotr
 
     # Shift the low limb left by 32-b.
     push.31
-    u32checked_and
+    u32and
     push.32
     swap
     u32overflowing_sub

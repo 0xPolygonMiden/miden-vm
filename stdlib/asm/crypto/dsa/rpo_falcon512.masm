@@ -190,19 +190,19 @@ export.load_h_s2_and_product.1
 
         dupw.1
         u32assert2
-        push.M u32unchecked_lt assert
-        push.M u32unchecked_lt assert
+        push.M u32lt assert
+        push.M u32lt assert
         u32assert2
-        push.M u32unchecked_lt assert
-        push.M u32unchecked_lt assert
+        push.M u32lt assert
+        push.M u32lt assert
 
         dupw
         u32assert2
-        push.M u32unchecked_lt assert
-        push.M u32unchecked_lt assert
+        push.M u32lt assert
+        push.M u32lt assert
         u32assert2
-        push.M u32unchecked_lt assert
-        push.M u32unchecked_lt assert
+        push.M u32lt assert
+        push.M u32lt assert
 
         hperm
     end
@@ -409,7 +409,7 @@ export.norm_sq
 
     dup
     push.6144
-    u32unchecked_gt
+    u32gt
     #=> [phi, e, e^2, ...]
 
     swap
@@ -659,6 +659,6 @@ export.verify.1665
     #=> [norm_sq(s1) + norm_sq(s2), ...]
 
     push.SQUARE_NORM_BOUND
-    u32checked_lt assert
+    u32assert2 u32lt assert
     #=> [...]                                       (Cycles: 8)
 end

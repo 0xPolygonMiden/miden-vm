@@ -86,28 +86,22 @@ fn test_ast_parsing_program_u32() {
     begin
         push.3
 
-        u32checked_add.5
         u32wrapping_add.5
         u32overflowing_add.5
 
-        u32checked_sub.1
         u32wrapping_sub.1
         u32overflowing_sub.1
 
-        u32checked_mul.2
         u32wrapping_mul.2
         u32overflowing_mul.2
 
     end";
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::PushU8(3)),
-        Node::Instruction(Instruction::U32CheckedAddImm(5)),
         Node::Instruction(Instruction::U32WrappingAddImm(5)),
         Node::Instruction(Instruction::U32OverflowingAddImm(5)),
-        Node::Instruction(Instruction::U32CheckedSubImm(1)),
         Node::Instruction(Instruction::U32WrappingSubImm(1)),
         Node::Instruction(Instruction::U32OverflowingSubImm(1)),
-        Node::Instruction(Instruction::U32CheckedMulImm(2)),
         Node::Instruction(Instruction::U32WrappingMulImm(2)),
         Node::Instruction(Instruction::U32OverflowingMulImm(2)),
     ];
@@ -810,7 +804,7 @@ fn test_ast_program_serde_control_flow() {
 
         while.true
             push.5.7
-            u32checked_add
+            u32wrapping_add
             loc_store.1
             push.0
         end
@@ -863,7 +857,7 @@ fn assert_parsing_line_invalid_op() {
 
         while.true
             push.5.7
-            u32checked_add
+            u32wrapping_add
             loc_store.1
             push.0
         end

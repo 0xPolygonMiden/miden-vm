@@ -509,73 +509,48 @@ impl ParserContext<'_> {
             "u32cast" => simple_instruction(op, U32Cast),
             "u32split" => simple_instruction(op, U32Split),
 
-            "u32checked_add" => u32_ops::parse_u32checked_add(op),
             "u32wrapping_add" => u32_ops::parse_u32wrapping_add(op),
             "u32overflowing_add" => u32_ops::parse_u32overflowing_add(op),
 
             "u32overflowing_add3" => simple_instruction(op, U32OverflowingAdd3),
             "u32wrapping_add3" => simple_instruction(op, U32WrappingAdd3),
 
-            "u32checked_sub" => u32_ops::parse_u32checked_sub(op),
             "u32wrapping_sub" => u32_ops::parse_u32wrapping_sub(op),
             "u32overflowing_sub" => u32_ops::parse_u32overflowing_sub(op),
 
-            "u32checked_mul" => u32_ops::parse_u32checked_mul(op),
             "u32wrapping_mul" => u32_ops::parse_u32wrapping_mul(op),
             "u32overflowing_mul" => u32_ops::parse_u32overflowing_mul(op),
 
             "u32overflowing_madd" => simple_instruction(op, U32OverflowingMadd),
             "u32wrapping_madd" => simple_instruction(op, U32WrappingMadd),
 
-            "u32checked_div" => u32_ops::parse_u32_div(op, true),
-            "u32unchecked_div" => u32_ops::parse_u32_div(op, false),
+            "u32div" => u32_ops::parse_u32_div(op),
 
-            "u32checked_mod" => u32_ops::parse_u32_mod(op, true),
-            "u32unchecked_mod" => u32_ops::parse_u32_mod(op, false),
+            "u32mod" => u32_ops::parse_u32_mod(op),
 
-            "u32checked_divmod" => u32_ops::parse_u32_divmod(op, true),
-            "u32unchecked_divmod" => u32_ops::parse_u32_divmod(op, false),
+            "u32divmod" => u32_ops::parse_u32_divmod(op),
 
-            "u32checked_and" => simple_instruction(op, U32CheckedAnd),
-            "u32checked_or" => simple_instruction(op, U32CheckedOr),
-            "u32checked_xor" => simple_instruction(op, U32CheckedXor),
-            "u32checked_not" => simple_instruction(op, U32CheckedNot),
+            "u32and" => simple_instruction(op, U32And),
+            "u32or" => simple_instruction(op, U32Or),
+            "u32xor" => simple_instruction(op, U32Xor),
+            "u32not" => simple_instruction(op, U32Not),
 
-            "u32checked_shr" => u32_ops::parse_u32_shr(op, true),
-            "u32unchecked_shr" => u32_ops::parse_u32_shr(op, false),
+            "u32shr" => u32_ops::parse_u32_shr(op),
+            "u32shl" => u32_ops::parse_u32_shl(op),
 
-            "u32checked_shl" => u32_ops::parse_u32_shl(op, true),
-            "u32unchecked_shl" => u32_ops::parse_u32_shl(op, false),
+            "u32rotr" => u32_ops::parse_u32_rotr(op),
+            "u32rotl" => u32_ops::parse_u32_rotl(op),
 
-            "u32checked_rotr" => u32_ops::parse_u32_rotr(op, true),
-            "u32unchecked_rotr" => u32_ops::parse_u32_rotr(op, false),
+            "u32popcnt" => simple_instruction(op, U32Popcnt),
 
-            "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true),
-            "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false),
+            "u32lt" => simple_instruction(op, U32Lt),
+            "u32lte" => simple_instruction(op, U32Lte),
 
-            "u32checked_popcnt" => simple_instruction(op, U32CheckedPopcnt),
-            "u32unchecked_popcnt" => simple_instruction(op, U32UncheckedPopcnt),
+            "u32gt" => simple_instruction(op, U32Gt),
+            "u32gte" => simple_instruction(op, U32Gte),
 
-            "u32checked_eq" => u32_ops::parse_u32checked_eq(op),
-            "u32checked_neq" => u32_ops::parse_u32checked_neq(op),
-
-            "u32checked_lt" => simple_instruction(op, U32CheckedLt),
-            "u32unchecked_lt" => simple_instruction(op, U32UncheckedLt),
-
-            "u32checked_lte" => simple_instruction(op, U32CheckedLte),
-            "u32unchecked_lte" => simple_instruction(op, U32UncheckedLte),
-
-            "u32checked_gt" => simple_instruction(op, U32CheckedGt),
-            "u32unchecked_gt" => simple_instruction(op, U32UncheckedGt),
-
-            "u32checked_gte" => simple_instruction(op, U32CheckedGte),
-            "u32unchecked_gte" => simple_instruction(op, U32UncheckedGte),
-
-            "u32checked_min" => simple_instruction(op, U32CheckedMin),
-            "u32unchecked_min" => simple_instruction(op, U32UncheckedMin),
-
-            "u32checked_max" => simple_instruction(op, U32CheckedMax),
-            "u32unchecked_max" => simple_instruction(op, U32UncheckedMax),
+            "u32min" => simple_instruction(op, U32Min),
+            "u32max" => simple_instruction(op, U32Max),
 
             // ----- stack manipulation -----------------------------------------------------------
             "drop" => simple_instruction(op, Drop),
