@@ -50,10 +50,10 @@ If the error code is omitted, the default value of $0$ is assumed.
 | u32or <br> - *(6 cycle)s*                                                     | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `OR` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$                   |
 | u32xor <br> - *(1 cycle)*                                                     | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `XOR` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$                  |
 | u32not <br> - *(5 cycles)*                                                    | [a, ...]       | [b, ...]      | Computes $b$ as a bitwise `NOT` of binary representation of $a$. <br> Fails if $a \ge 2^{32}$                                  |
-| u32shl <br> - *(40 cycles)* <br> u32shl.*b* <br> - *(3 cycles)*   | [b, a, ...]    | [c, ...]      | $c \leftarrow (a \cdot 2^b) \mod 2^{32}$ <br> Undefined if $a \ge 2^{32}$ or $b > 31$                                          |
-| u32shr <br> - *(40 cycles)* <br> u32shr.*b* <br> - *(3 cycles)*   | [b, a, ...]    | [c, ...]      | $c \leftarrow \lfloor a/2^b \rfloor$ <br> Undefined if $a \ge 2^{32}$ or $b > 31$                                              |
-| u32rotl <br> - *(40 cycles)* <br> u32rotl.*b* <br> - *(3 cycles)* | [b, a, ...]    | [c, ...]      | Computes $c$ by rotating a 32-bit representation of $a$ to the left by $b$ bits. <br> Undefined if $a \ge 2^{32}$ or $b > 31$  |
-| u32rotr <br> - *(44 cycles)* <br> u32rotr.*b* <br> - *(3 cycles)* | [b, a, ...]    | [c, ...]      | Computes $c$ by rotating a 32-bit representation of $a$ to the right by $b$ bits. <br> Undefined if $a \ge 2^{32}$ or $b > 31$ |
+| u32shl <br> - *(47 cycles)* <br> u32shl.*b* <br> - *(4 cycles)*   | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot 2^b) \mod 2^{32}$ <br> Fails if $a \ge 2^{32}$ or $b > 31$                                          |
+| u32shr <br> - *(47 cycles)*<br> u32shr.*b* <br> - *(4 cycles)* | [b, a, ...] | [c, ...] | $c \leftarrow \lfloor a/2^b \rfloor$ <br> Fails if $a \ge 2^{32}$ or $b > 31$ |
+| u32rotl <br> - *(47 cycles)* <br> u32rotl.*b* <br> - *(4 cycles)* | [b, a, ...] | [c, ...] | Computes $c$ by rotating a 32-bit representation of $a$ to the left by $b$ bits. <br> Fails if $a \ge 2^{32}$ or $b > 31$ |
+| u32rotr <br> - *(59 cycles)* <br> u32rotr.*b* <br> - *(6 cycles)* | [b, a, ...] | [c, ...] | Computes $c$ by rotating a 32-bit representation of $a$ to the right by $b$ bits. <br> Fails if $a \ge 2^{32}$ or $b > 31$ |
 | u32popcnt <br> - *(33 cycles)*                                              | [a, ...]       | [b, ...]      | Computes $b$ by counting the number of set bits in $a$ (hamming weight of $a$). <br> Undefined if $a \ge 2^{32}$               |
 
 ### Comparison operations

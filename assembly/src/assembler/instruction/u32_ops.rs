@@ -260,16 +260,33 @@ pub fn u32rotr(
     match imm {
         Some(0) => {
             // if rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
+            span.push_ops([Pad, U32assert2(ZERO), Drop]);
             return Ok(None);
         }
         Some(imm) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
-            span.push_op(Push(Felt::new(1 << (32 - imm))));
+            span.push_ops([Push(Felt::new(1 << (32 - imm))), U32assert2(ZERO)]);
         }
         None => {
-            span.push_ops([Push(Felt::new(32)), Swap, U32sub, Drop]);
+            span.push_ops([
+                // Verify both b and a are u32.
+                U32assert2(ZERO),
+                // Calculate 32 - b and assert that the shift value b <= 31.
+                Push(Felt::from(MAX_U32_ROTATE_VALUE)),
+                Dup1,
+                U32sub,
+                Not,
+                Assert(ZERO),
+                Incr,
+                Dup1,
+                // If 32-b = 32, replace it with 0.
+                Eqz,
+                Not,
+                CSwap,
+                Drop,
+            ]);
             append_pow2_op(span);
+            span.push_op(Swap);
         }
     }
     span.add_ops([U32mul, Add])
@@ -366,14 +383,15 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
     match imm {
         Some(0) => {
             // if shift/rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
+            span.push_ops([Pad, U32assert2(ZERO), Drop]);
         }
         Some(imm) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
-            span.push_op(Push(Felt::new(1 << imm)));
+            span.push_ops([Push(Felt::new(1 << imm)), U32assert2(ZERO)]);
         }
         None => {
             append_pow2_op(span);
+            span.push_op(U32assert2(ZERO));
         }
     }
     Ok(())
