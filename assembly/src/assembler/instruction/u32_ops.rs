@@ -197,8 +197,8 @@ pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// the value to be shifted and splitting the result.
 ///
 /// VM cycles per mode:
-/// - u32shl: 18 cycles
-/// - u32shl.b: 3 cycles
+/// - u32shl: 19 cycles
+/// - u32shl.b: 4 cycles
 pub fn u32shl(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBlock>, AssemblyError> {
     prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm)?;
     if imm != Some(0) {
@@ -214,8 +214,8 @@ pub fn u32shl(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBloc
 /// be shifted by it and returning the quotient.
 ///
 /// VM cycles per mode:
-/// - u32shr: 18 cycles
-/// - u32shr.b: 3 cycles
+/// - u32shr: 19 cycles
+/// - u32shr.b: 4 cycles
 pub fn u32shr(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBlock>, AssemblyError> {
     prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm)?;
     if imm != Some(0) {
@@ -231,8 +231,8 @@ pub fn u32shr(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBloc
 /// value to be shifted by it and adding the overflow limb to the shifted limb.
 ///
 /// VM cycles per mode:
-/// - u32rotl: 18 cycles
-/// - u32rotl.b: 3 cycles
+/// - u32rotl: 19 cycles
+/// - u32rotl.b: 4 cycles
 pub fn u32rotl(
     span: &mut SpanBuilder,
     imm: Option<u8>,
@@ -251,8 +251,8 @@ pub fn u32rotl(
 /// b is the shift amount, then adding the overflow limb to the shifted limb.
 ///
 /// VM cycles per mode:
-/// - u32rotr: 22 cycles
-/// - u32rotr.b: 3 cycles
+/// - u32rotr: 31 cycles
+/// - u32rotr.b: 4 cycles
 pub fn u32rotr(
     span: &mut SpanBuilder,
     imm: Option<u8>,
