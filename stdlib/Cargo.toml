@@ -36,7 +36,7 @@ sha2 = "0.10"
 sha3 = "0.10"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-air = { package = "winter-air", version = "0.6" }
-winter-fri = { package = "winter-fri", version = "0.6" }
+winter-fri = { package = "winter-fri", version = "0.7" }
 
 [build-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.7" }
