@@ -538,6 +538,219 @@ fn b_chip_mpverify() {
     }
 }
 
+/// Tests the generation of the `b_chip` bus column when the hasher performs a Merkle root update
+/// requested by the `MrUpdate` user operation.
+#[test]
+#[allow(clippy::needless_range_loop)]
+fn b_chip_mrupdate() {
+    let index = 5usize;
+    let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let mut tree = MerkleTree::new(leaves.to_vec()).unwrap();
+
+    let old_root = tree.root();
+    let old_leaf_value = leaves[index];
+
+    let new_leaf_value = leaves[0];
+
+    let stack_inputs = [
+        new_leaf_value[0].as_int(),
+        new_leaf_value[1].as_int(),
+        new_leaf_value[2].as_int(),
+        new_leaf_value[3].as_int(),
+        old_root[0].as_int(),
+        old_root[1].as_int(),
+        old_root[2].as_int(),
+        old_root[3].as_int(),
+        index as u64,
+        tree.depth() as u64,
+        old_leaf_value[0].as_int(),
+        old_leaf_value[1].as_int(),
+        old_leaf_value[2].as_int(),
+        old_leaf_value[3].as_int(),
+    ];
+    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let store = MerkleStore::from(&tree);
+    let advice_inputs = AdviceInputs::default().with_merkle_store(store);
+
+    let mut trace =
+        build_trace_from_ops_with_inputs(vec![Operation::MrUpdate], stack_inputs, advice_inputs);
+    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
+
+    assert_eq!(trace.length(), b_chip.len());
+    assert_eq!(ONE, b_chip[0]);
+
+    // at cycle 0 the following are added for inclusion in the next row:
+    // - the initialization of the span hash is requested by the decoder
+    // - the initialization of the span hash is provided by the hasher
+
+    // initialize the request state.
+    let mut span_state = [ZERO; STATE_WIDTH];
+    fill_state_from_decoder_with_domain(&trace, &mut span_state, 0);
+    // request the initialization of the span hash
+    let span_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
+    let mut expected = span_init.inv();
+    // provide the initialization of the span hash
+    expected *= build_expected_from_trace(&trace, &alphas, 0);
+    assert_eq!(expected, b_chip[1]);
+
+    // at cycle 1 a merkle path verification is executed and the initialization and result of the
+    // hash are both requested by the stack.
+    let path = tree
+        .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
+        .expect("failed to get Merkle tree path");
+    let mp_state = init_state_from_words(
+        &[path[0][0], path[0][1], path[0][2], path[0][3]],
+        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]],
+    );
+    let mp_init_old = build_expected(
+        &alphas,
+        MR_UPDATE_OLD_LABEL,
+        mp_state,
+        [ZERO; STATE_WIDTH],
+        Felt::new(9),
+        Felt::new(index as u64),
+    );
+    // request the initialization of the (first) Merkle path verification
+    expected *= mp_init_old.inv();
+
+    let mp_old_verify_complete = HASH_CYCLE_LEN + (tree.depth() as usize) * HASH_CYCLE_LEN;
+    let mp_result_old = build_expected(
+        &alphas,
+        RETURN_HASH_LABEL,
+        // for the return hash, only the state digest matters, and it should match the root
+        [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            tree.root()[0],
+            tree.root()[1],
+            tree.root()[2],
+            tree.root()[3],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
+        [ZERO; STATE_WIDTH],
+        Felt::new(mp_old_verify_complete as u64),
+        Felt::new(index as u64 >> tree.depth()),
+    );
+
+    // request the result of the first Merkle path verification
+    expected *= mp_result_old.inv();
+
+    let new_leaf_value = leaves[0];
+    tree.update_leaf(index as u64, new_leaf_value).unwrap();
+    let new_root = tree.root();
+
+    // a second merkle path verification is executed and the initialization and result of the
+    // hash are both requested by the stack.
+    let path = tree
+        .get_path(NodeIndex::new(tree.depth(), index as u64).unwrap())
+        .expect("failed to get Merkle tree path");
+    let mp_state = init_state_from_words(
+        &[path[0][0], path[0][1], path[0][2], path[0][3]],
+        &[new_leaf_value[0], new_leaf_value[1], new_leaf_value[2], new_leaf_value[3]],
+    );
+
+    let mp_new_verify_complete = mp_old_verify_complete + (tree.depth() as usize) * HASH_CYCLE_LEN;
+    let mp_init_new = build_expected(
+        &alphas,
+        MR_UPDATE_NEW_LABEL,
+        mp_state,
+        [ZERO; STATE_WIDTH],
+        Felt::from(mp_old_verify_complete as u64 + 1),
+        Felt::new(index as u64),
+    );
+
+    // request the initialization of the second Merkle path verification
+    expected *= mp_init_new.inv();
+
+    let mp_result_new = build_expected(
+        &alphas,
+        RETURN_HASH_LABEL,
+        // for the return hash, only the state digest matters, and it should match the root
+        [
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+            new_root[0],
+            new_root[1],
+            new_root[2],
+            new_root[3],
+            ZERO,
+            ZERO,
+            ZERO,
+            ZERO,
+        ],
+        [ZERO; STATE_WIDTH],
+        Felt::new(mp_new_verify_complete as u64),
+        Felt::new(index as u64 >> tree.depth()),
+    );
+
+    // request the result of the second Merkle path verification
+    expected *= mp_result_new.inv();
+    assert_eq!(expected, b_chip[2]);
+
+    // at cycle 2 the result of the span hash is requested by the decoder
+    apply_permutation(&mut span_state);
+    let span_result = build_expected(
+        &alphas,
+        RETURN_HASH_LABEL,
+        span_state,
+        [ZERO; STATE_WIDTH],
+        Felt::new(8),
+        ZERO,
+    );
+    expected *= span_result.inv();
+    assert_eq!(expected, b_chip[3]);
+
+    // Nothing changes when there is no communication with the hash chiplet.
+    for row in 3..8 {
+        assert_eq!(expected, b_chip[row]);
+    }
+
+    // at cycle 7 the result of the span hash is provided by the hasher
+    expected *= build_expected_from_trace(&trace, &alphas, 7);
+    assert_eq!(expected, b_chip[8]);
+
+    // at cycle 8 the initialization of the first merkle path is provided by the hasher
+    expected *= build_expected_from_trace(&trace, &alphas, 8);
+    assert_eq!(expected, b_chip[9]);
+
+    // Nothing changes when there is no communication with the hash chiplet.
+    for row in 10..(mp_old_verify_complete) {
+        assert_eq!(expected, b_chip[row]);
+    }
+
+    // when the first merkle path verification has been completed the hasher provides the result
+    expected *= build_expected_from_trace(&trace, &alphas, mp_old_verify_complete - 1);
+    assert_eq!(expected, b_chip[mp_old_verify_complete]);
+
+    // at cycle 32 the initialization of the second merkle path is provided by the hasher
+    expected *= build_expected_from_trace(&trace, &alphas, mp_old_verify_complete);
+    assert_eq!(expected, b_chip[mp_old_verify_complete + 1]);
+
+    // Nothing changes when there is no communication with the hash chiplet.
+    for row in (mp_old_verify_complete + 1)..(mp_new_verify_complete) {
+        assert_eq!(expected, b_chip[row]);
+    }
+
+    // when the merkle path verification has been completed the hasher provides the result
+    expected *= build_expected_from_trace(&trace, &alphas, mp_new_verify_complete - 1);
+    assert_eq!(expected, b_chip[mp_new_verify_complete]);
+
+    // The value in b_chip should be ONE now and for the rest of the trace.
+    for row in (mp_new_verify_complete)..trace.length() - NUM_RAND_ROWS {
+        assert_eq!(ONE, b_chip[row]);
+    }
+}
+
 // TEST HELPERS
 // ================================================================================================
 
@@ -572,7 +785,7 @@ fn build_expected(
                 || label == MR_UPDATE_NEW_LABEL
                 || label == MR_UPDATE_OLD_LABEL
         );
-        let bit = (index.as_int() >> 1) & 1;
+        let bit = (index.as_int() >> 0) & 1;
         let left_word = build_value(&alphas[8..12], &state[DIGEST_RANGE]);
         let right_word = build_value(&alphas[8..12], &state[DIGEST_RANGE.end..]);
 
