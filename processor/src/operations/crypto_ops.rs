@@ -33,8 +33,8 @@ where
             self.stack.get(0),
         ];
 
-        let (_addr, output_state) = self.chiplets.permute(input_state);
-
+        let (addr, output_state) = self.chiplets.permute(input_state);
+        self.decoder.set_user_op_helpers(Operation::HPerm, &[addr]);
         for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
@@ -196,7 +196,7 @@ mod tests {
             1, 0, 0, 0, 0, 0 // padding: ONE followed by the necessary ZEROs
         ];
         let stack = StackInputs::try_from_values(inputs).unwrap();
-        let mut process = Process::new_dummy(stack);
+        let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
         process.execute_op(Operation::HPerm).unwrap();
@@ -207,7 +207,7 @@ mod tests {
         let mut inputs: Vec<u64> = vec![values.len() as u64, 0, 0, 0];
         inputs.extend_from_slice(&values);
         let stack = StackInputs::try_from_values(inputs.clone()).unwrap();
-        let mut process = Process::new_dummy(stack);
+        let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         // add the capacity to prepare the input vector
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
@@ -221,7 +221,7 @@ mod tests {
         inputs.extend_from_slice(&values);
 
         let stack = StackInputs::try_from_values(inputs).unwrap();
-        let mut process = Process::new_dummy(stack);
+        let mut process = Process::new_dummy_with_decoder_helpers(stack);
         process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }
