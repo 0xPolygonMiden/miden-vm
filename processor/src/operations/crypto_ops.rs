@@ -1,6 +1,7 @@
 use super::{ExecutionError, Host, Operation, Process};
 use crate::crypto::MerklePath;
-use vm_core::{AdviceInjector, StarkField};
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
+use vm_core::{AdviceInjector, StarkField, ZERO};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -33,8 +34,10 @@ where
             self.stack.get(0),
         ];
 
-        let (_addr, output_state) = self.chiplets.permute(input_state);
-
+        let (addr, output_state) = self.chiplets.permute(input_state);
+        let mut helpers = [ZERO; NUM_USER_OP_HELPERS];
+        helpers[0] = addr;
+        self.decoder.set_user_op_helpers(Operation::HPerm, &helpers);
         for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
