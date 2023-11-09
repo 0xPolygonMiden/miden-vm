@@ -43,7 +43,7 @@ use.std::math::u64
 begin
     push.1.0
     push.2.0
-    exec.u64::checked_add
+    exec.u64::wrapping_add
 end
 ```
 
