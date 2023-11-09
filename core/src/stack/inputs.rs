@@ -29,14 +29,8 @@ impl StackInputs {
     where
         I: IntoIterator<Item = u64>,
     {
-        iter.into_iter()
-            .map(|v| {
-                Felt::try_from(v).map_err(|_| {
-                    InputError::NotFieldElement(v, "the provided value isn't a valid field element")
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(Self::new)
+        let values: Vec<Felt> = iter.into_iter().map(Felt::from).collect();
+        Ok(Self::new(values))
     }
 
     // PUBLIC ACCESSORS
