@@ -369,7 +369,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
             span.push_op(Noop);
         }
         Some(imm) => {
-            validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
+            validate_param(imm, 1..=MAX_VALUE)?;
             span.push_op(Push(Felt::new(1 << imm)));
         }
         None => {
