@@ -18,18 +18,22 @@ use miden_air::trace::{
             DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
             MR_UPDATE_OLD_LABEL, RETURN_HASH_LABEL, RETURN_STATE_LABEL, STATE_WIDTH,
         },
+        kernel_rom::KERNEL_PROC_LABEL,
+        memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
-        HASHER_RATE_COL_RANGE, HASHER_STATE_COL_RANGE, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX,
-        MEMORY_CTX_COL_IDX, MEMORY_V_COL_RANGE,
+        HASHER_STATE_COL_RANGE, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+        MEMORY_V_COL_RANGE,
     },
     decoder::{HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS, USER_OP_HELPERS_OFFSET},
-    stack::STACK_TOP_OFFSET,
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET,
-    TRACE_WIDTH,
 };
 pub(crate) use virtual_table::{ChipletsVTableRow, ChipletsVTableUpdate};
-use vm_core::utils::{range, uninit_vector};
+use vm_core::{
+    utils::{range, uninit_vector},
+    Operation,
+};
 use vm_core::{ONE, ZERO};
+use winter_prover::math::batch_inversion;
 
 /// Contains all relevant information and describes how to construct the execution trace for
 /// chiplets-related auxiliary columns (used in multiset checks).
@@ -152,14 +156,23 @@ impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for BusTraceBuilder {
     where
         E: FieldElement<BaseField = Felt>,
     {
+        let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+        let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         let mut result: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+        result_1[0] = E::ONE;
+        result_2[0] = E::ONE;
         result[0] = E::ONE;
+        let main_tr = MainTrace::new(main_trace);
 
         for i in 0..main_trace.num_rows() - 1 {
-            let multiplicand1 = chiplets_requests(main_trace, alphas, i);
-            let multiplicand2 = chiplets_responses(main_trace, alphas, i);
+            result_1[i] = chiplets_requests(&main_tr, alphas, i);
+            result_2[i] = chiplets_responses(&main_tr, alphas, i);
+        }
 
-            result[i + 1] = result[i] * multiplicand2 / multiplicand1;
+        let result_1 = batch_inversion(&result_1);
+
+        for i in 0..main_trace.num_rows() - 1 {
+            result[i + 1] = result[i] * result_2[i] * result_1[i];
         }
 
         result
@@ -286,531 +299,580 @@ impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for Chiplets
     }
 }
 
-fn chiplets_requests<E>(main_trace: &ColMatrix<Felt>, alphas: &[E], i: usize) -> E
+// CHIPLETS REQUESTS
+// ================================================================================================
+
+fn chiplets_requests<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    // get the address column and the op_bits columns
-    let col_addr = main_trace.get_column(DECODER_TRACE_OFFSET);
-    let col_b0 = main_trace.get_column(DECODER_TRACE_OFFSET + 1);
-    let col_b1 = main_trace.get_column(DECODER_TRACE_OFFSET + 2);
-    let col_b2 = main_trace.get_column(DECODER_TRACE_OFFSET + 3);
-    let col_b3 = main_trace.get_column(DECODER_TRACE_OFFSET + 4);
-    let col_b4 = main_trace.get_column(DECODER_TRACE_OFFSET + 5);
-    let col_b5 = main_trace.get_column(DECODER_TRACE_OFFSET + 6);
-    let col_b6 = main_trace.get_column(DECODER_TRACE_OFFSET + 7);
+    let op_code_felt = main_trace.get_op_code(i);
+    let op_code = op_code_felt.as_int() as u8;
 
-    let mut multiplicand = E::ONE;
-
-    pub const DECODER_HASHER_RANGE: Range<usize> =
-        range(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
-    let [b0, b1, b2, b3, b4, b5, b6] =
-        [col_b0[i], col_b1[i], col_b2[i], col_b3[i], col_b4[i], col_b5[i], col_b6[i]];
-
-    if [b0, b1, b2, b3, b4, b5, b6] == [ONE, ONE, ONE, ZERO, ONE, ZERO, ONE]            // JOIN
-                || [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ONE, ZERO, ONE, ZERO, ONE]      // SPLIT
-                || [b0, b1, b2, b3, b4, b5, b6] == [ONE, ZERO, ONE, ZERO, ONE, ZERO, ONE]       // LOOP
-                || [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ONE, ONE, ZERO, ONE]      // DYN
-                || [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ONE, ONE, ZERO, ONE, ONE]       // CALL
-                || [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ONE, ZERO, ONE, ONE]  // SYSCALL
-                || [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ONE, ONE, ZERO, ONE, ZERO, ONE]
-    // SPAN
-    {
-        let mut d = b0
-            + b1.mul_small(2)
-            + b2.mul_small(4)
-            + b3.mul_small(8)
-            + b4.mul_small(16)
-            + b5.mul_small(32)
-            + b6.mul_small(64);
-
-        if [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ONE, ONE, ZERO, ONE, ZERO, ONE] {
-            d = ZERO;
+    match op_code {
+        JOIN | SPLIT | LOOP | DYN | CALL => {
+            build_control_block_request(main_trace, op_code_felt, alphas, i)
         }
 
-        let op_label = LINEAR_HASH_LABEL;
+        SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, i),
 
-        let first_cycle_row = addr_to_row_index(col_addr[i + 1]) % 8 == 0;
-        let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+        SPAN => build_span_block_request(main_trace, alphas, i),
 
-        let header = alphas[0]
-            + alphas[1].mul_base(Felt::from(transition_label))
-            + alphas[2].mul_base(col_addr[i + 1])
-            + alphas[3].mul_base(ZERO);
+        RESPAN => build_respan_block_request(main_trace, alphas, i),
 
-        // TODO: access only relevant portion of trace
-        let mut row = vec![ZERO; TRACE_WIDTH];
-        main_trace.read_row_into(i, &mut row);
+        END => build_end_block_request(main_trace, alphas, i),
 
-        let state = &row[DECODER_HASHER_RANGE];
-        let factor = header + build_value(&alphas[8..16], state) + alphas[5].mul_base(d);
-        if [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ONE, ZERO, ONE, ONE] {
-            let [s0, s1, s2, s3] = [ONE, ONE, ONE, ZERO];
-            let op_label = get_op_label(s0, s1, s2, s3);
+        AND => build_bitwise_request(main_trace, ZERO, alphas, i),
 
-            let factor = alphas[0]
-                + alphas[1].mul_base(op_label)
-                + alphas[2].mul_base(row[DECODER_HASHER_RANGE.start])
-                + alphas[3].mul_base(row[DECODER_HASHER_RANGE.start + 1])
-                + alphas[4].mul_base(row[DECODER_HASHER_RANGE.start + 2])
-                + alphas[5].mul_base(row[DECODER_HASHER_RANGE.start + 3]);
-            multiplicand *= factor;
-        }
-        multiplicand *= factor;
+        XOR => build_bitwise_request(main_trace, ONE, alphas, i),
+
+        MLOADW => build_mloadw_request(main_trace, alphas, i),
+
+        MSTOREW => build_mstorew_request(main_trace, alphas, i),
+
+        MLOAD => build_mload_request(main_trace, alphas, i),
+
+        MSTORE => build_mstore_request(main_trace, alphas, i),
+
+        MSTREAM => build_mstream_request(main_trace, alphas, i),
+
+        HPERM => build_hperm_request(main_trace, alphas, i),
+
+        MPVERIFY => build_mpverify_request(main_trace, alphas, i),
+
+        MRUPDATE => build_mrupdate_request(main_trace, alphas, i),
+
+        _ => E::ONE,
     }
-
-    // RESPAN block
-    if [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE] {
-        let op_label = LINEAR_HASH_LABEL;
-
-        let first_cycle_row = addr_to_row_index(col_addr[i + 1] - ONE) % 8 == 0;
-        let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
-
-        let header = alphas[0]
-            + alphas[1].mul_base(Felt::from(transition_label))
-            + alphas[2].mul_base(col_addr[i + 1] - ONE)
-            + alphas[3].mul_base(ZERO);
-
-        // TODO: access only relevant portion of trace
-        let mut row = vec![ZERO; TRACE_WIDTH];
-        main_trace.read_row_into(i - 2, &mut row);
-
-        let mut row_next = vec![ZERO; TRACE_WIDTH];
-        main_trace.read_row_into(i - 1, &mut row_next);
-
-        let state = &row[HASHER_RATE_COL_RANGE];
-        let state_nxt = &row_next[HASHER_RATE_COL_RANGE];
-
-        let factor =
-            header + build_value(&alphas[8..16], state_nxt) - build_value(&alphas[8..16], state);
-
-        multiplicand *= factor;
-    }
-
-    // END of block
-    if [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ZERO, ONE, ONE, ONE] {
-        let op_label = RETURN_HASH_LABEL;
-        let first_cycle_row = addr_to_row_index(col_addr[i] + Felt::from(7_u64)) % 8 == 0;
-        let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
-
-        let header = alphas[0]
-            + alphas[1].mul_base(Felt::from(transition_label))
-            + alphas[2].mul_base(col_addr[i] + Felt::from(7_u64))
-            + alphas[3].mul_base(ZERO);
-
-        // TODO: access only relevant portion of trace
-        let mut row = vec![ZERO; TRACE_WIDTH];
-        main_trace.read_row_into(i, &mut row);
-
-        let state = &row[DECODER_HASHER_RANGE.start..DECODER_HASHER_RANGE.start + 4];
-
-        let factor = header + build_value(&alphas[8..12], state);
-        multiplicand *= factor;
-    }
-
-    // U32AND or U32XOR
-    if [b1, b2, b3, b4, b5, b6] == [ONE, ONE, ZERO, ZERO, ONE, ZERO] {
-        let s0_col = main_trace.get_column(STACK_TRACE_OFFSET);
-        let s1_col = main_trace.get_column(STACK_TRACE_OFFSET + 1);
-
-        let [s0, s1, s2, s3] = [ONE, ZERO, b0, ZERO];
-        let op_label = get_op_label(s0, s1, s2, s3);
-
-        let factor = alphas[0]
-            + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(s1_col[i])
-            + alphas[3].mul_base(s0_col[i])
-            + alphas[4].mul_base(s0_col[i + 1]);
-        multiplicand *= factor;
-    }
-
-    // MLOADW or MSTOREW
-    if [b0, b2, b3, b4, b5, b6] == [ZERO, ONE, ONE, ZERO, ONE, ZERO] {
-        let ctx = main_trace.get_column(CTX_COL_IDX)[i];
-        let clk = main_trace.get_column(CLK_COL_IDX)[i];
-
-        let s0_col = main_trace.get_column(STACK_TRACE_OFFSET);
-        let s1_col = main_trace.get_column(STACK_TRACE_OFFSET + 1);
-        let s2_col = main_trace.get_column(STACK_TRACE_OFFSET + 2);
-        let s3_col = main_trace.get_column(STACK_TRACE_OFFSET + 3);
-
-        let s0_cur = s0_col[i];
-        let s0_nxt = s0_col[i + 1];
-        let s1_nxt = s1_col[i + 1];
-        let s2_nxt = s2_col[i + 1];
-        let s3_nxt = s3_col[i + 1];
-
-        let op_label = get_op_label(ONE, ONE, ZERO, ONE - b1);
-
-        let factor = alphas[0]
-            + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(ctx)
-            + alphas[3].mul_base(s0_cur)
-            + alphas[4].mul_base(clk)
-            + alphas[5].mul_base(s3_nxt)
-            + alphas[6].mul_base(s2_nxt)
-            + alphas[7].mul_base(s1_nxt)
-            + alphas[8].mul_base(s0_nxt);
-        multiplicand *= factor;
-    }
-
-    // MLOAD
-    if [b0, b1, b2, b3, b4, b5, b6] == [ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO] {
-        let ctx = main_trace.get_column(CTX_COL_IDX)[i];
-        let clk = main_trace.get_column(CLK_COL_IDX)[i];
-
-        let s0_col = main_trace.get_column(STACK_TRACE_OFFSET);
-        let helper_0 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i];
-        let helper_1 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1)[i];
-        let helper_2 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i];
-
-        let s0_cur = s0_col[i];
-        let s0_nxt = s0_col[i + 1];
-
-        let op_label = get_op_label(ONE, ONE, ZERO, ONE);
-
-        let factor = alphas[0]
-            + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(ctx)
-            + alphas[3].mul_base(s0_cur)
-            + alphas[4].mul_base(clk)
-            + alphas[5].mul_base(s0_nxt)
-            + alphas[6].mul_base(helper_2)
-            + alphas[7].mul_base(helper_1)
-            + alphas[8].mul_base(helper_0);
-        multiplicand *= factor;
-    }
-
-    //  MSTORE
-    if [b0, b1, b2, b3, b4, b5, b6] == [ONE, ZERO, ONE, ONE, ZERO, ONE, ZERO] {
-        let ctx = main_trace.get_column(CTX_COL_IDX)[i];
-        let clk = main_trace.get_column(CLK_COL_IDX)[i];
-
-        let s0_col = main_trace.get_column(STACK_TRACE_OFFSET);
-        let helper_0 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i];
-        let helper_1 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1)[i];
-        let helper_2 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i];
-
-        let s0_cur = s0_col[i];
-        let s0_nxt = s0_col[i + 1];
-
-        let op_label = get_op_label(ONE, ONE, ZERO, ZERO);
-
-        let factor = alphas[0]
-            + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(ctx)
-            + alphas[3].mul_base(s0_cur)
-            + alphas[4].mul_base(clk)
-            + alphas[5].mul_base(s0_nxt)
-            + alphas[6].mul_base(helper_2)
-            + alphas[7].mul_base(helper_1)
-            + alphas[8].mul_base(helper_0);
-
-        multiplicand *= factor;
-    }
-
-    // MSTREAM
-    if [b0, b1, b2, b3, b4, b5, b6] == [ONE, ONE, ZERO, ZERO, ONE, ZERO, ONE] {
-        let ctx = main_trace.get_column(CTX_COL_IDX)[i];
-        let clk = main_trace.get_column(CLK_COL_IDX)[i];
-
-        let s0_nxt = main_trace.get_column(STACK_TRACE_OFFSET)[i + 1];
-        let s1_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 1)[i + 1];
-        let s2_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 2)[i + 1];
-        let s3_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 3)[i + 1];
-        let s4_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 4)[i + 1];
-        let s5_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 5)[i + 1];
-        let s6_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 6)[i + 1];
-        let s7_nxt = main_trace.get_column(STACK_TRACE_OFFSET + 7)[i + 1];
-
-        let s12_cur = main_trace.get_column(STACK_TRACE_OFFSET + 12)[i];
-
-        let op_label = get_op_label(ONE, ONE, ZERO, ONE);
-
-        let factor1 = alphas[0]
-            + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(ctx)
-            + alphas[3].mul_base(s12_cur)
-            + alphas[4].mul_base(clk)
-            + alphas[5].mul_base(s7_nxt)
-            + alphas[6].mul_base(s6_nxt)
-            + alphas[7].mul_base(s5_nxt)
-            + alphas[8].mul_base(s4_nxt);
-        multiplicand *= factor1;
-
-        let factor2 = alphas[0]
-            + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(ctx)
-            + alphas[3].mul_base(s12_cur + ONE)
-            + alphas[4].mul_base(clk)
-            + alphas[5].mul_base(s3_nxt)
-            + alphas[6].mul_base(s2_nxt)
-            + alphas[7].mul_base(s1_nxt)
-            + alphas[8].mul_base(s0_nxt);
-        multiplicand *= factor2;
-    }
-
-    // HPERM
-    if [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ZERO, ONE, ZERO, ONE] {
-        let helper_0 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i];
-
-        let s0_s12_cur = [
-            main_trace.get_column(STACK_TRACE_OFFSET)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 1)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 2)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 3)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 4)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 5)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 6)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 7)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 8)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 9)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 10)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 11)[i],
-        ];
-
-        let s0_s12_nxt = [
-            main_trace.get_column(STACK_TRACE_OFFSET)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 1)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 2)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 3)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 4)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 5)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 6)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 7)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 8)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 9)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 10)[i + 1],
-            main_trace.get_column(STACK_TRACE_OFFSET + 11)[i + 1],
-        ];
-
-        let op_label = LINEAR_HASH_LABEL;
-
-        let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-            op_label + 16
-        } else {
-            op_label + 32
-        };
-
-        let sum_input = alphas[4..16]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_cur[i]));
-        let v_input = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0)
-            + sum_input;
-
-        let op_label = RETURN_STATE_LABEL;
-        let op_label = if addr_to_hash_cycle(helper_0 + Felt::new(7)) == 0 {
-            op_label + 16
-        } else {
-            op_label + 32
-        };
-
-        let sum_output = alphas[4..16]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_nxt[i]));
-
-        let v_output = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0 + Felt::new(7))
-            + sum_output;
-
-        multiplicand *= v_input * v_output;
-    }
-
-    // MPVERIFY
-    if [b0, b1, b2, b3, b4, b5, b6] == [ONE, ZERO, ZERO, ZERO, ONE, ZERO, ONE] {
-        let helper_0 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i];
-
-        let s0_s3 = [
-            main_trace.get_column(STACK_TRACE_OFFSET)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 1)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 2)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 3)[i],
-        ];
-        let s4 = main_trace.get_column(STACK_TRACE_OFFSET + 4)[i];
-        let s5 = main_trace.get_column(STACK_TRACE_OFFSET + 5)[i];
-        let s6_s9 = [
-            main_trace.get_column(STACK_TRACE_OFFSET + 6)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 7)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 8)[i],
-            main_trace.get_column(STACK_TRACE_OFFSET + 9)[i],
-        ];
-        let op_label = MP_VERIFY_LABEL;
-        let op_label = if addr_to_hash_cycle(helper_0) == 0 {
-            op_label + 16
-        } else {
-            op_label + 32
-        };
-        let sum_input = alphas[8..12]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
-
-        let v_input = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0)
-            + alphas[3].mul_base(s5)
-            + sum_input;
-
-        let op_label = RETURN_HASH_LABEL;
-        let op_label = if (helper_0).as_int() % 8 == 0 {
-            op_label + 16
-        } else {
-            op_label + 32
-        };
-        let sum_output = alphas[8..12]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s6_s9[i]));
-
-        let v_output = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
-            + sum_output;
-
-        multiplicand *= v_input * v_output;
-    }
-
-    // MRUPDATE
-    if [b0, b1, b2, b3, b4, b5, b6] == [ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE] {
-        let helper_0 = main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i];
-
-        let s0_s3 = [
-            main_trace.get_column(STACK_TOP_OFFSET)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 1)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 2)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 3)[i],
-        ];
-        let s0_s3_nxt = [
-            main_trace.get_column(STACK_TOP_OFFSET)[i + 1],
-            main_trace.get_column(STACK_TOP_OFFSET + 1)[i + 1],
-            main_trace.get_column(STACK_TOP_OFFSET + 2)[i + 1],
-            main_trace.get_column(STACK_TOP_OFFSET + 3)[i + 1],
-        ];
-        let s4 = main_trace.get_column(STACK_TOP_OFFSET + 4)[i];
-        let s5 = main_trace.get_column(STACK_TOP_OFFSET + 5)[i];
-        let s6_s9 = [
-            main_trace.get_column(STACK_TOP_OFFSET + 6)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 7)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 8)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 9)[i],
-        ];
-        let s10_s13 = [
-            main_trace.get_column(STACK_TOP_OFFSET + 10)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 11)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 12)[i],
-            main_trace.get_column(STACK_TOP_OFFSET + 13)[i],
-        ];
-        let op_label = MR_UPDATE_OLD_LABEL;
-        let sum_input = alphas[8..12]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
-        let v_input_old = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0)
-            + alphas[3].mul_base(s5)
-            + sum_input;
-
-        let op_label = RETURN_HASH_LABEL;
-
-        let sum_output = alphas[8..12]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s6_s9[i]));
-        let v_output_old = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
-            + sum_output;
-
-        let op_label = MR_UPDATE_NEW_LABEL;
-        let sum_input = alphas[8..12]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s10_s13[i]));
-        let v_input_new = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0 + s4.mul_small(8))
-            + alphas[3].mul_base(s5)
-            + sum_input;
-
-        let op_label = RETURN_HASH_LABEL;
-        let sum_output = alphas[8..12]
-            .iter()
-            .rev()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3_nxt[i]));
-        let v_output_new = alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(helper_0 + s4.mul_small(16) - ONE)
-            + sum_output;
-
-        multiplicand *= v_input_new * v_input_old * v_output_new * v_output_old;
-    }
-    multiplicand
 }
 
-fn chiplets_responses<E>(main_trace: &ColMatrix<Felt>, alphas: &[E], i: usize) -> E
+fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    op_code_felt: Felt,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let op_label = LINEAR_HASH_LABEL;
+    let addr_nxt = main_trace.addr(i + 1);
+    let first_cycle_row = addr_to_row_index(addr_nxt) % 8 == 0;
+    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+
+    let header =
+        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
+
+    let state = main_trace.decoder_hasher_state(i);
+
+    header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt)
+}
+
+fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    op_code_felt: Felt,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let op_label = LINEAR_HASH_LABEL;
+    let addr_nxt = main_trace.addr(i + 1);
+    let first_cycle_row = addr_to_row_index(addr_nxt) % 8 == 0;
+    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+
+    let header =
+        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
+
+    let state = main_trace.decoder_hasher_state(i);
+    let factor1 = header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt);
+
+    let op_label = KERNEL_PROC_LABEL;
+    let factor2 = alphas[0]
+        + alphas[1].mul_base(op_label)
+        + alphas[2].mul_base(state[0])
+        + alphas[3].mul_base(state[1])
+        + alphas[4].mul_base(state[2])
+        + alphas[5].mul_base(state[3]);
+
+    factor1 * factor2
+}
+
+fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let op_label = LINEAR_HASH_LABEL;
+    let addr_nxt = main_trace.addr(i + 1);
+    let first_cycle_row = addr_to_row_index(addr_nxt) % 8 == 0;
+    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+
+    let header =
+        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
+
+    let state = main_trace.decoder_hasher_state(i);
+
+    header + build_value(&alphas[8..16], &state)
+}
+
+fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let op_label = LINEAR_HASH_LABEL;
+    let addr_nxt = main_trace.addr(i + 1);
+
+    let first_cycle_row = addr_to_row_index(addr_nxt - ONE) % 8 == 0;
+    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+
+    let header = alphas[0]
+        + alphas[1].mul_base(Felt::from(transition_label))
+        + alphas[2].mul_base(addr_nxt - ONE)
+        + alphas[3].mul_base(ZERO);
+
+    let state = &main_trace.chiplet_hasher_state(i - 2)[4..];
+    let state_nxt = &main_trace.chiplet_hasher_state(i - 1)[4..];
+
+    header + build_value(&alphas[8..16], state_nxt) - build_value(&alphas[8..16], state)
+}
+
+fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let op_label = RETURN_HASH_LABEL;
+    let addr = main_trace.addr(i) + Felt::from(7_u64);
+
+    let first_cycle_row = addr_to_row_index(addr) % 8 == 0;
+    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
+
+    let header =
+        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
+
+    let state = main_trace.decoder_hasher_state(i);
+    let digest = &state[..4];
+
+    header + build_value(&alphas[8..12], digest)
+}
+
+fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    is_xor: Felt,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
+    let a = main_trace.s0(i);
+    let b = main_trace.s1(i);
+    let z = main_trace.s0(i + 1);
+
+    alphas[0]
+        + alphas[1].mul_base(op_label)
+        + alphas[2].mul_base(b)
+        + alphas[3].mul_base(a)
+        + alphas[4].mul_base(z)
+}
+
+fn build_mloadw_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let ctx = main_trace.ctx(i);
+    let clk = main_trace.clk(i);
+
+    let s0_cur = main_trace.s0(i);
+    let s0_nxt = main_trace.s0(i + 1);
+    let s1_nxt = main_trace.s1(i + 1);
+    let s2_nxt = main_trace.s2(i + 1);
+    let s3_nxt = main_trace.s3(i + 1);
+
+    let op_label = MEMORY_READ_LABEL;
+
+    alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(s0_cur)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(s3_nxt)
+        + alphas[6].mul_base(s2_nxt)
+        + alphas[7].mul_base(s1_nxt)
+        + alphas[8].mul_base(s0_nxt)
+}
+
+fn build_mstorew_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let ctx = main_trace.ctx(i);
+    let clk = main_trace.clk(i);
+
+    let s0_cur = main_trace.s0(i);
+    let s0_nxt = main_trace.s0(i + 1);
+    let s1_nxt = main_trace.s1(i + 1);
+    let s2_nxt = main_trace.s2(i + 1);
+    let s3_nxt = main_trace.s3(i + 1);
+
+    let op_label = MEMORY_WRITE_LABEL;
+
+    alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(s0_cur)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(s3_nxt)
+        + alphas[6].mul_base(s2_nxt)
+        + alphas[7].mul_base(s1_nxt)
+        + alphas[8].mul_base(s0_nxt)
+}
+
+fn build_mload_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let ctx = main_trace.ctx(i);
+    let clk = main_trace.clk(i);
+
+    let helper_0 = main_trace.helper_0(i);
+    let helper_1 = main_trace.helper_1(i);
+    let helper_2 = main_trace.helper_2(i);
+
+    let s0_cur = main_trace.s0(i);
+    let s0_nxt = main_trace.s0(i + 1);
+
+    let op_label = MEMORY_READ_LABEL;
+
+    alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(s0_cur)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(s0_nxt)
+        + alphas[6].mul_base(helper_2)
+        + alphas[7].mul_base(helper_1)
+        + alphas[8].mul_base(helper_0)
+}
+
+fn build_mstore_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let ctx = main_trace.ctx(i);
+    let clk = main_trace.clk(i);
+
+    let helper_0 = main_trace.helper_0(i);
+    let helper_1 = main_trace.helper_1(i);
+    let helper_2 = main_trace.helper_2(i);
+
+    let s0_cur = main_trace.s0(i);
+    let s0_nxt = main_trace.s0(i + 1);
+
+    let op_label = MEMORY_WRITE_LABEL;
+
+    alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(s0_cur)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(s0_nxt)
+        + alphas[6].mul_base(helper_2)
+        + alphas[7].mul_base(helper_1)
+        + alphas[8].mul_base(helper_0)
+}
+
+fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let ctx = main_trace.ctx(i);
+    let clk = main_trace.clk(i);
+
+    let s0_nxt = main_trace.s0(i + 1);
+    let s1_nxt = main_trace.s1(i + 1);
+    let s2_nxt = main_trace.s2(i + 1);
+    let s3_nxt = main_trace.s3(i + 1);
+    let s4_nxt = main_trace.s4(i + 1);
+    let s5_nxt = main_trace.s5(i + 1);
+    let s6_nxt = main_trace.s6(i + 1);
+    let s7_nxt = main_trace.s7(i + 1);
+
+    let s12_cur = main_trace.s12(i);
+
+    let op_label = MEMORY_READ_LABEL;
+
+    let factor1 = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(s12_cur)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(s7_nxt)
+        + alphas[6].mul_base(s6_nxt)
+        + alphas[7].mul_base(s5_nxt)
+        + alphas[8].mul_base(s4_nxt);
+
+    let factor2 = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(s12_cur + ONE)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(s3_nxt)
+        + alphas[6].mul_base(s2_nxt)
+        + alphas[7].mul_base(s1_nxt)
+        + alphas[8].mul_base(s0_nxt);
+    factor1 * factor2
+}
+
+fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let helper_0 = main_trace.helper_0(i);
+
+    let s0_s12_cur = [
+        main_trace.s0(i),
+        main_trace.s1(i),
+        main_trace.s2(i),
+        main_trace.s3(i),
+        main_trace.s4(i),
+        main_trace.s5(i),
+        main_trace.s6(i),
+        main_trace.s7(i),
+        main_trace.s8(i),
+        main_trace.s9(i),
+        main_trace.s10(i),
+        main_trace.s11(i),
+    ];
+
+    let s0_s12_nxt = [
+        main_trace.s0(i + 1),
+        main_trace.s1(i + 1),
+        main_trace.s2(i + 1),
+        main_trace.s3(i + 1),
+        main_trace.s4(i + 1),
+        main_trace.s5(i + 1),
+        main_trace.s6(i + 1),
+        main_trace.s7(i + 1),
+        main_trace.s8(i + 1),
+        main_trace.s9(i + 1),
+        main_trace.s10(i + 1),
+        main_trace.s11(i + 1),
+    ];
+
+    let op_label = LINEAR_HASH_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
+    let sum_input = alphas[4..16]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_cur[i]));
+    let v_input = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0)
+        + sum_input;
+
+    let op_label = RETURN_STATE_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0 + Felt::new(7)) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
+    let sum_output = alphas[4..16]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_nxt[i]));
+    let v_output = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0 + Felt::new(7))
+        + sum_output;
+
+    v_input * v_output
+}
+
+fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let helper_0 = main_trace.helper_0(i);
+
+    let s0_s3 = [main_trace.s0(i), main_trace.s1(i), main_trace.s2(i), main_trace.s3(i)];
+    let s4 = main_trace.s4(i);
+    let s5 = main_trace.s5(i);
+    let s6_s9 = [main_trace.s6(i), main_trace.s7(i), main_trace.s8(i), main_trace.s9(i)];
+
+    let op_label = MP_VERIFY_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
+    let sum_input = alphas[8..12]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
+    let v_input = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0)
+        + alphas[3].mul_base(s5)
+        + sum_input;
+
+    let op_label = RETURN_HASH_LABEL;
+    let op_label = if (helper_0).as_int() % 8 == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
+    let sum_output = alphas[8..12]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s6_s9[i]));
+    let v_output = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
+        + sum_output;
+
+    v_input * v_output
+}
+
+fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let helper_0 = main_trace.helper_0(i);
+
+    let s0_s3 = [main_trace.s0(i), main_trace.s1(i), main_trace.s2(i), main_trace.s3(i)];
+    let s0_s3_nxt = [
+        main_trace.s0(i + 1),
+        main_trace.s1(i + 1),
+        main_trace.s2(i + 1),
+        main_trace.s3(i + 1),
+    ];
+    let s4 = main_trace.s4(i);
+    let s5 = main_trace.s5(i);
+    let s6_s9 = [main_trace.s6(i), main_trace.s7(i), main_trace.s8(i), main_trace.s9(i)];
+    let s10_s13 = [main_trace.s10(i), main_trace.s11(i), main_trace.s12(i), main_trace.s13(i)];
+
+    let op_label = MR_UPDATE_OLD_LABEL;
+    let sum_input = alphas[8..12]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
+    let v_input_old = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0)
+        + alphas[3].mul_base(s5)
+        + sum_input;
+
+    let op_label = RETURN_HASH_LABEL;
+    let sum_output = alphas[8..12]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s6_s9[i]));
+    let v_output_old = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0 + s4.mul_small(8) - ONE)
+        + sum_output;
+
+    let op_label = MR_UPDATE_NEW_LABEL;
+    let sum_input = alphas[8..12]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s10_s13[i]));
+    let v_input_new = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0 + s4.mul_small(8))
+        + alphas[3].mul_base(s5)
+        + sum_input;
+
+    let op_label = RETURN_HASH_LABEL;
+    let sum_output = alphas[8..12]
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3_nxt[i]));
+    let v_output_new = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(helper_0 + s4.mul_small(16) - ONE)
+        + sum_output;
+
+    v_input_new * v_input_old * v_output_new * v_output_old
+}
+
+// CHIPLETS RESPONSES
+// ================================================================================================
+
+fn chiplets_responses<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let col0 = main_trace.get_column(CHIPLETS_OFFSET);
-    let col1 = main_trace.get_column(CHIPLETS_OFFSET + 1);
-    let col2 = main_trace.get_column(CHIPLETS_OFFSET + 2);
-    let col3 = main_trace.get_column(CHIPLETS_OFFSET + 3);
-    let col4 = main_trace.get_column(CHIPLETS_OFFSET + 4);
+    let selector0 = main_trace.chiplet_selector_0(i);
+    let selector1 = main_trace.chiplet_selector_1(i);
+    let selector2 = main_trace.chiplet_selector_2(i);
+    let selector3 = main_trace.chiplet_selector_3(i);
+    let selector4 = main_trace.chiplet_selector_4(i);
 
-    if col0[i] == ZERO {
-        return build_hasher_chiplet(main_trace, &i, alphas, col1, col2, col3);
+    if selector0 == ZERO {
+        return build_hasher_chiplet(main_trace, i, alphas, selector1, selector2, selector3);
     }
 
-    if col0[i] == ONE && col1[i] == ZERO {
-        return build_bitwise_chiplet(main_trace, &i, alphas, col2);
+    if selector0 == ONE && selector1 == ZERO {
+        return build_bitwise_chiplet(main_trace, i, selector2, alphas);
     }
 
-    if col0[i] == ONE && col1[i] == ONE && col2[i] == ZERO {
-        return build_memory_chiplet(main_trace, &i, alphas, col3);
+    if selector0 == ONE && selector1 == ONE && selector2 == ZERO {
+        return build_memory_chiplet(main_trace, i, selector3, alphas);
     }
 
-    if col0[i] == ONE && col1[i] == ONE && col2[i] == ONE && col3[i] == ZERO && col4[i] == ONE {
-        build_kernel_chiplet(main_trace, &i, alphas)
+    if selector0 == ONE
+        && selector1 == ONE
+        && selector2 == ONE
+        && selector3 == ZERO
+        && selector4 == ONE
+    {
+        build_kernel_chiplet(main_trace, i, alphas)
     } else {
         E::ONE
     }
 }
 
 fn build_hasher_chiplet<E>(
-    main_trace: &ColMatrix<Felt>,
-    i: &usize,
+    main_trace: &MainTrace,
+    i: usize,
     alphas: &[E],
-    col1: &[Felt],
-    col2: &[Felt],
-    col3: &[Felt],
+    col1: Felt,
+    col2: Felt,
+    col3: Felt,
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
     let mut multiplicand = E::ONE;
 
-    // only f_bp, f_mp, f_mv or f_mu
-    if *i % 8 == 0 {
+    // f_bp, f_mp, f_mv or f_mu == 1
+    if i % 8 == 0 {
+        let [s0, s1, s2] = [col1, col2, col3];
+
+        let state = main_trace.chiplet_hasher_state(i);
         let alphas_state = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
-
-        let mut row = vec![ZERO; TRACE_WIDTH];
-
-        main_trace.read_row_into(*i, &mut row);
-        let [s0, s1, s2] = [col1[*i], col2[*i], col3[*i]];
+        let node_index = main_trace.chiplet_node_index(i);
 
         // f_bp == 1
         // v_all = v_h + v_a + v_b + v_c
@@ -820,11 +882,10 @@ where
 
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((*i + 1) as u64))
-                + alphas[3].mul_base(row[HASHER_NODE_INDEX_COL_IDX]);
+                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[3].mul_base(node_index);
 
-            let state = &row[HASHER_STATE_COL_RANGE];
-            multiplicand = header + build_value(alphas_state, state);
+            multiplicand = header + build_value(alphas_state, &state);
         }
 
         // f_mp or f_mv or f_mu == 1
@@ -835,27 +896,24 @@ where
 
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((*i + 1) as u64))
-                + alphas[3].mul_base(row[HASHER_NODE_INDEX_COL_IDX]);
+                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[3].mul_base(node_index);
 
-            let bit = (row[HASHER_NODE_INDEX_COL_IDX].as_int() >> 1) & 1;
-            let rate = &row[HASHER_RATE_COL_RANGE];
-            let left_word = build_value(&alphas[8..12], &rate[..4]);
-            let right_word = build_value(&alphas[8..12], &rate[4..]);
+            let bit = (node_index.as_int() >> 1) & 1;
+            let left_word = build_value(&alphas[8..12], &state[4..8]);
+            let right_word = build_value(&alphas[8..12], &state[8..]);
 
             multiplicand = header + E::from(1 - bit).mul(left_word) + E::from(bit).mul(right_word);
         }
     }
 
-    // only f_hout, f_sout, f_abp, f_mpa, f_mva or f_mua
-    if *i % 8 == 7 {
+    // f_hout, f_sout, f_abp, f_mpa, f_mva or f_mua == 1
+    if i % 8 == 7 {
+        let [s0, s1, s2] = [col1, col2, col3];
+
+        let state = main_trace.chiplet_hasher_state(i);
         let alphas_state = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
-
-        let mut row = vec![ZERO; TRACE_WIDTH];
-        let mut row_next = vec![ZERO; TRACE_WIDTH];
-
-        main_trace.read_row_into(*i, &mut row);
-        let [s0, s1, s2] = [col1[*i], col2[*i], col3[*i]];
+        let node_index = main_trace.chiplet_node_index(i);
 
         // f_hout == 1
         // v_res = v_h + v_b;
@@ -865,10 +923,8 @@ where
 
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((*i + 1) as u64))
-                + alphas[3].mul_base(row[HASHER_NODE_INDEX_COL_IDX]);
-
-            let state = &row[HASHER_STATE_COL_RANGE];
+                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(&alphas_state[4..8], &state[DIGEST_RANGE]);
         }
@@ -881,11 +937,10 @@ where
 
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((*i + 1) as u64))
-                + alphas[3].mul_base(row[HASHER_NODE_INDEX_COL_IDX]);
+                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[3].mul_base(node_index);
 
-            let state = &row[HASHER_STATE_COL_RANGE];
-            multiplicand = header + build_value(alphas_state, state);
+            multiplicand = header + build_value(alphas_state, &state);
         }
 
         // f_abp == 1
@@ -896,17 +951,15 @@ where
 
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((*i + 1) as u64))
-                + alphas[3].mul_base(row[HASHER_NODE_INDEX_COL_IDX]);
+                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[3].mul_base(node_index);
 
-            main_trace.read_row_into(*i + 1, &mut row_next);
-            let curr_hasher_rate = &row[HASHER_RATE_COL_RANGE];
-            let next_hasher_rate = &row_next[HASHER_RATE_COL_RANGE];
+            let state_nxt = main_trace.chiplet_hasher_state(i + 1);
 
-            // build the value from the difference of the hasher state's just before and  right
+            // build the value from the difference of the hasher state's just before and right
             // after the absorption of new elements.
-            let next_state_value = build_value(&alphas_state[4..12], next_hasher_rate);
-            let state_value = build_value(&alphas_state[4..12], curr_hasher_rate);
+            let next_state_value = build_value(&alphas_state[4..12], &state_nxt[4..]);
+            let state_value = build_value(&alphas_state[4..12], &state[4..]);
 
             multiplicand = header + next_state_value - state_value;
         }
@@ -914,69 +967,310 @@ where
     multiplicand
 }
 
-fn build_bitwise_chiplet<E>(
-    main_trace: &ColMatrix<Felt>,
-    i: &usize,
-    alphas: &[E],
-    col: &[Felt],
-) -> E
+fn build_bitwise_chiplet<E>(main_trace: &MainTrace, i: usize, is_xor: Felt, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
     let mut multiplicand = E::ONE;
-    if *i % 8 == 7 {
-        let [s0, s1, s2, s3] = [ONE, ZERO, col[*i], ZERO];
-        let op_label = get_op_label(s0, s1, s2, s3);
+    if i % 8 == 7 {
+        let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
 
-        let mut row = vec![ZERO; TRACE_WIDTH];
-        main_trace.read_row_into(*i, &mut row);
+        let a = main_trace.chiplet_bitwise_a(i);
+        let b = main_trace.chiplet_bitwise_b(i);
+        let z = main_trace.chiplet_bitwise_z(i);
 
         multiplicand = alphas[0]
             + alphas[1].mul_base(op_label)
-            + alphas[2].mul_base(row[BITWISE_A_COL_IDX])
-            + alphas[3].mul_base(row[BITWISE_B_COL_IDX])
-            + alphas[4].mul_base(row[BITWISE_OUTPUT_COL_IDX]);
+            + alphas[2].mul_base(a)
+            + alphas[3].mul_base(b)
+            + alphas[4].mul_base(z);
     }
     multiplicand
 }
 
-fn build_memory_chiplet<E>(main_trace: &ColMatrix<Felt>, i: &usize, alphas: &[E], col: &[Felt]) -> E
+fn build_memory_chiplet<E>(main_trace: &MainTrace, i: usize, is_read: Felt, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let [s0, s1, s2, s3] = [ONE, ONE, ZERO, col[*i]];
-    let op_label = get_op_label(s0, s1, s2, s3);
+    let op_label = get_op_label(ONE, ONE, ZERO, is_read);
 
-    let mut row = vec![ZERO; TRACE_WIDTH];
-    main_trace.read_row_into(*i, &mut row);
+    let ctx = main_trace.chiplet_memory_ctx(i);
+    let clk = main_trace.chiplet_memory_clk(i);
+    let addr = main_trace.chiplet_memory_addr(i);
+    let value0 = main_trace.chiplet_memory_value_0(i);
+    let value1 = main_trace.chiplet_memory_value_1(i);
+    let value2 = main_trace.chiplet_memory_value_2(i);
+    let value3 = main_trace.chiplet_memory_value_3(i);
 
     alphas[0]
         + alphas[1].mul_base(op_label)
-        + alphas[2].mul_base(row[MEMORY_CTX_COL_IDX])
-        + alphas[3].mul_base(row[MEMORY_ADDR_COL_IDX])
-        + alphas[4].mul_base(row[MEMORY_CLK_COL_IDX])
-        + alphas[5].mul_base(row[MEMORY_V_COL_RANGE.start])
-        + alphas[6].mul_base(row[MEMORY_V_COL_RANGE.start + 1])
-        + alphas[7].mul_base(row[MEMORY_V_COL_RANGE.start + 2])
-        + alphas[8].mul_base(row[MEMORY_V_COL_RANGE.start + 3])
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(addr)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(value0)
+        + alphas[6].mul_base(value1)
+        + alphas[7].mul_base(value2)
+        + alphas[8].mul_base(value3)
 }
 
-fn build_kernel_chiplet<E>(main_trace: &ColMatrix<Felt>, i: &usize, alphas: &[E]) -> E
+fn build_kernel_chiplet<E>(main_trace: &MainTrace, i: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let [s0, s1, s2, s3] = [ONE, ONE, ONE, ZERO];
-    let op_label = get_op_label(s0, s1, s2, s3);
+    let op_label = KERNEL_PROC_LABEL;
 
-    let mut row = vec![ZERO; TRACE_WIDTH];
-    main_trace.read_row_into(*i, &mut row);
+    let root0 = main_trace.chiplet_kernel_root_0(i);
+    let root1 = main_trace.chiplet_kernel_root_1(i);
+    let root2 = main_trace.chiplet_kernel_root_2(i);
+    let root3 = main_trace.chiplet_kernel_root_3(i);
 
     alphas[0]
         + alphas[1].mul_base(op_label)
-        + alphas[2].mul_base(row[CHIPLETS_OFFSET + 6])
-        + alphas[3].mul_base(row[CHIPLETS_OFFSET + 7])
-        + alphas[4].mul_base(row[CHIPLETS_OFFSET + 8])
-        + alphas[5].mul_base(row[CHIPLETS_OFFSET + 9])
+        + alphas[2].mul_base(root0)
+        + alphas[3].mul_base(root1)
+        + alphas[4].mul_base(root2)
+        + alphas[5].mul_base(root3)
+}
+
+// HELPER CONSTANTS, STRUCTS AND FUNCTIONS
+// ================================================================================================
+
+const JOIN: u8 = Operation::Join.op_code();
+const SPLIT: u8 = Operation::Split.op_code();
+const LOOP: u8 = Operation::Loop.op_code();
+const DYN: u8 = Operation::Dyn.op_code();
+const CALL: u8 = Operation::Call.op_code();
+const SYSCALL: u8 = Operation::SysCall.op_code();
+const SPAN: u8 = Operation::Span.op_code();
+const RESPAN: u8 = Operation::Respan.op_code();
+const END: u8 = Operation::End.op_code();
+const AND: u8 = Operation::U32and.op_code();
+const XOR: u8 = Operation::U32xor.op_code();
+const MLOADW: u8 = Operation::MLoadW.op_code();
+const MSTOREW: u8 = Operation::MStoreW.op_code();
+const MLOAD: u8 = Operation::MLoad.op_code();
+const MSTORE: u8 = Operation::MStore.op_code();
+const MSTREAM: u8 = Operation::MStream.op_code();
+const HPERM: u8 = Operation::HPerm.op_code();
+const MPVERIFY: u8 = Operation::MpVerify.op_code();
+const MRUPDATE: u8 = Operation::MrUpdate.op_code();
+const DECODER_HASHER_RANGE: Range<usize> =
+    range(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
+
+struct MainTrace<'a> {
+    columns: &'a ColMatrix<Felt>,
+}
+
+impl<'a> MainTrace<'a> {
+    pub fn new(main_trace: &'a ColMatrix<Felt>) -> Self {
+        Self {
+            columns: main_trace,
+        }
+    }
+
+    // System columns
+
+    pub fn clk(&self, i: usize) -> Felt {
+        self.columns.get_column(CLK_COL_IDX)[i]
+    }
+
+    pub fn ctx(&self, i: usize) -> Felt {
+        self.columns.get_column(CTX_COL_IDX)[i]
+    }
+
+    // Decoder columns
+
+    pub fn addr(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET)[i]
+    }
+
+    pub fn helper_0(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i]
+    }
+
+    pub fn helper_1(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1)[i]
+    }
+
+    pub fn helper_2(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i]
+    }
+
+    pub fn decoder_hasher_state(&self, i: usize) -> [Felt; NUM_HASHER_COLUMNS] {
+        let mut state = [ZERO; NUM_HASHER_COLUMNS];
+        for (idx, col_idx) in DECODER_HASHER_RANGE.enumerate() {
+            let column = self.columns.get_column(col_idx);
+            state[idx] = column[i];
+        }
+        state
+    }
+
+    pub fn get_op_code(&self, i: usize) -> Felt {
+        let col_b0 = self.columns.get_column(DECODER_TRACE_OFFSET + 1);
+        let col_b1 = self.columns.get_column(DECODER_TRACE_OFFSET + 2);
+        let col_b2 = self.columns.get_column(DECODER_TRACE_OFFSET + 3);
+        let col_b3 = self.columns.get_column(DECODER_TRACE_OFFSET + 4);
+        let col_b4 = self.columns.get_column(DECODER_TRACE_OFFSET + 5);
+        let col_b5 = self.columns.get_column(DECODER_TRACE_OFFSET + 6);
+        let col_b6 = self.columns.get_column(DECODER_TRACE_OFFSET + 7);
+        let [b0, b1, b2, b3, b4, b5, b6] =
+            [col_b0[i], col_b1[i], col_b2[i], col_b3[i], col_b4[i], col_b5[i], col_b6[i]];
+        b0 + b1.mul_small(2)
+            + b2.mul_small(4)
+            + b3.mul_small(8)
+            + b4.mul_small(16)
+            + b5.mul_small(32)
+            + b6.mul_small(64)
+    }
+
+    // Stack columns
+
+    pub fn s0(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET)[i]
+    }
+
+    pub fn s1(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 1)[i]
+    }
+
+    pub fn s2(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 2)[i]
+    }
+
+    pub fn s3(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 3)[i]
+    }
+
+    pub fn s4(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 4)[i]
+    }
+
+    pub fn s5(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 5)[i]
+    }
+
+    pub fn s6(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 6)[i]
+    }
+
+    pub fn s7(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 7)[i]
+    }
+
+    pub fn s8(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 8)[i]
+    }
+
+    pub fn s9(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 9)[i]
+    }
+
+    pub fn s10(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 10)[i]
+    }
+
+    pub fn s11(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 11)[i]
+    }
+
+    pub fn s12(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 12)[i]
+    }
+
+    pub fn s13(&self, i: usize) -> Felt {
+        self.columns.get_column(STACK_TRACE_OFFSET + 13)[i]
+    }
+
+    // Chiplets columns
+
+    pub fn chiplet_selector_0(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET)[i]
+    }
+
+    pub fn chiplet_selector_1(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 1)[i]
+    }
+
+    pub fn chiplet_selector_2(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 2)[i]
+    }
+
+    pub fn chiplet_selector_3(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 3)[i]
+    }
+
+    pub fn chiplet_selector_4(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
+    }
+
+    pub fn chiplet_hasher_state(&self, i: usize) -> [Felt; STATE_WIDTH] {
+        let mut state = [ZERO; STATE_WIDTH];
+        for (idx, col_idx) in HASHER_STATE_COL_RANGE.enumerate() {
+            let column = self.columns.get_column(col_idx);
+            state[idx] = column[i];
+        }
+        state
+    }
+
+    pub fn chiplet_node_index(&self, i: usize) -> Felt {
+        self.columns.get(HASHER_NODE_INDEX_COL_IDX, i)
+    }
+
+    pub fn chiplet_bitwise_a(&self, i: usize) -> Felt {
+        self.columns.get_column(BITWISE_A_COL_IDX)[i]
+    }
+
+    pub fn chiplet_bitwise_b(&self, i: usize) -> Felt {
+        self.columns.get_column(BITWISE_B_COL_IDX)[i]
+    }
+
+    pub fn chiplet_bitwise_z(&self, i: usize) -> Felt {
+        self.columns.get_column(BITWISE_OUTPUT_COL_IDX)[i]
+    }
+
+    pub fn chiplet_memory_ctx(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_CTX_COL_IDX)[i]
+    }
+
+    pub fn chiplet_memory_addr(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_ADDR_COL_IDX)[i]
+    }
+
+    pub fn chiplet_memory_clk(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_CLK_COL_IDX)[i]
+    }
+
+    pub fn chiplet_memory_value_0(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_V_COL_RANGE.start)[i]
+    }
+
+    pub fn chiplet_memory_value_1(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_V_COL_RANGE.start + 1)[i]
+    }
+
+    pub fn chiplet_memory_value_2(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_V_COL_RANGE.start + 2)[i]
+    }
+
+    pub fn chiplet_memory_value_3(&self, i: usize) -> Felt {
+        self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
+    }
+
+    fn chiplet_kernel_root_0(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
+    }
+
+    fn chiplet_kernel_root_1(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
+    }
+
+    fn chiplet_kernel_root_2(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
+    }
+
+    fn chiplet_kernel_root_3(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
+    }
 }
 
 /// Reduces a slice of elements to a single field element in the field specified by E using a slice
