@@ -95,7 +95,9 @@ impl ModuleImports {
     /// Look up the actual procedure name and module path associated with the given [ProcedureId],
     /// if that procedure was imported and invoked in the current module.
     pub fn get_procedure_info(&self, id: &ProcedureId) -> Option<(&ProcedureName, &LibraryPath)> {
-        self.invoked_procs.get(id).map(|(name, path)| (name, path))
+        self.invoked_procs
+            .get(id)
+            .map(|invoked_proc| (&invoked_proc.0, &invoked_proc.1))
     }
 
     /// Look up the procedure name associated with the given [ProcedureId],

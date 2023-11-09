@@ -24,7 +24,7 @@ const DYN_CONSTANT: Digest = Digest::new([
 /// affect the representation of the Dyn block. Therefore all Dyn blocks are represented by the same
 /// constant (rather than by unique hashes), which is computed as an RPO hash of two empty words
 /// ([ZERO, ZERO, ZERO, ZERO]) with a domain value of `DYN_DOMAIN`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Dyn {}
 
 impl Dyn {

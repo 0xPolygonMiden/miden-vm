@@ -45,7 +45,7 @@ const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
 ///
 /// Where `batches` is the concatenation of each `batch` in the span, and each batch is 8 field
 /// elements (512 bits).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Span {
     op_batches: Vec<OpBatch>,
     hash: Digest,
@@ -170,7 +170,7 @@ impl fmt::Display for Span {
 ///
 /// An operation batch consists of up to 8 operation groups, with each group containing up to 9
 /// operations or a single immediate value.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OpBatch {
     ops: Vec<Operation>,
     groups: [Felt; BATCH_SIZE],

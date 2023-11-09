@@ -14,7 +14,7 @@ use crate::utils::to_hex;
 /// > hash(fn_hash || padding, domain=SYSCALL_DOMAIN)  # when a syscall is used
 ///
 /// Where `fn_hash` is 4 field elements (256 bits), and `padding` is 4 ZERO elements (256 bits).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Call {
     hash: Digest,
     fn_hash: Digest,
