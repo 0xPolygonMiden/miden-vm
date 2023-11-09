@@ -11,7 +11,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 /// > hash(left_block_hash || right_block_hash, domain=JOIN_DOMAIN)
 ///
 /// Where `left_block_hash` and `right_block_hash` are 4 field elements (256 bits) each.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Join {
     body: Box<[CodeBlock; 2]>,
     hash: Digest,

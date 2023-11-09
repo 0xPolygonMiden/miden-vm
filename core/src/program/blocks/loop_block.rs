@@ -12,7 +12,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 /// > hash(body_hash || padding, domain=LOOP_DOMAIN)
 ///
 /// Where `body_hash` is 4 field elements (256 bits), and `padding` is 4 ZERO elements (256 bits).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Loop {
     body: Box<CodeBlock>,
     hash: Digest,

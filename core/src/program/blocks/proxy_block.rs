@@ -8,7 +8,7 @@ use super::{fmt, Digest};
 /// of the program secret. Fails if executed.
 ///
 /// Hash of a proxy block is not computed but is rather defined at instantiation time.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Proxy {
     hash: Digest,
 }

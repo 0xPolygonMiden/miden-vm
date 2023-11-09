@@ -24,7 +24,7 @@ pub use split_block::Split;
 // PROGRAM BLOCK
 // ================================================================================================
 /// TODO: add comments
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CodeBlock {
     Span(Span),
     Join(Join),

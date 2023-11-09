@@ -16,7 +16,7 @@ use std::error::Error;
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
     AdviceMapValueInvalidLength(Word, usize, usize),
@@ -169,7 +169,7 @@ impl From<Ext2InttError> for ExecutionError {
 // EXT2INTT ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Ext2InttError {
     DomainSizeNotPowerOf2(u64),
     DomainSizeTooSmall(u64),

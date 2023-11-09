@@ -12,7 +12,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 /// > hash(true_branch_hash || false_branch_hash, domain=SPLIT_DOMAIN)
 ///
 /// Where `true_branch_hash` and `false_branch_hash` are 4 field elements (256 bits) each.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Split {
     branches: Box<[CodeBlock; 2]>,
     hash: Digest,
