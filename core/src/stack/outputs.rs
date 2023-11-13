@@ -3,6 +3,8 @@ use super::{
     STACK_TOP_SIZE,
 };
 
+use miden_crypto::hash::rpo::RpoDigest;
+
 // STACK OUTPUTS
 // ================================================================================================
 
@@ -193,5 +195,35 @@ impl ToElements<Felt> for StackOutputs {
             .cloned()
             .map(Felt::new)
             .collect()
+    }
+}
+
+// STACK OUTPUTS POP
+// ================================================================================================
+
+pub trait StackOutputsPop<T> {
+    fn pop(&mut self) -> Option<T>;
+}
+
+impl StackOutputsPop<Felt> for StackOutputs {
+    fn pop(&mut self) -> Option<Felt> {
+        self.stack.pop().map(Into::into)
+    }
+}
+
+impl StackOutputsPop<RpoDigest> for StackOutputs {
+    fn pop(&mut self) -> Option<RpoDigest> {
+        let digest_elements: [Felt; 4] = {
+            let digest_elements: Vec<Felt> = (0..4)
+                .map(|_| <Self as StackOutputsPop<Felt>>::pop(self))
+                // Elements need to be reversed, since a word `[a, b, c, d]` will be stored on the
+                // stack as `[d, c, b, a]`
+                .rev()
+                .collect::<Option<_>>()?;
+
+            digest_elements.try_into().expect("digest_elements contains 4 elements")
+        };
+
+        Some(digest_elements.into())
     }
 }
