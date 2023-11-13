@@ -117,6 +117,10 @@ impl ExecutionTrace {
         &self.stack_outputs
     }
 
+    pub fn stack_outputs_mut(&mut self) -> &mut StackOutputs {
+        &mut self.stack_outputs
+    }
+
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackTopState {
         let mut result = [ZERO; STACK_TOP_SIZE];
