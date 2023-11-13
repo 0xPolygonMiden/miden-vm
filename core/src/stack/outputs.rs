@@ -151,6 +151,27 @@ impl StackOutputs {
     pub fn stack_mut(&mut self) -> &mut [u64] {
         &mut self.stack
     }
+
+    /// Pops a field element off the stack. Returns `None` if the stack is empty.
+    pub fn pop_felt(&mut self) -> Option<Felt> {
+        self.stack.pop().map(Into::into)
+    }
+
+    /// Pops a RPO digest off the stack. Returns `None` if not enough elements are on the stack.
+    pub fn pop_digest(&mut self) -> Option<RpoDigest> {
+        let digest_elements: [Felt; 4] = {
+            let digest_elements: Vec<Felt> = (0..4)
+                .map(|_| self.pop_felt())
+                // Elements need to be reversed, since a word `[a, b, c, d]` will be stored on the
+                // stack as `[d, c, b, a]`
+                .rev()
+                .collect::<Option<_>>()?;
+
+            digest_elements.try_into().expect("digest_elements contains 4 elements")
+        };
+
+        Some(digest_elements.into())
+    }
 }
 
 // HELPER FUNCTIONS
@@ -195,35 +216,5 @@ impl ToElements<Felt> for StackOutputs {
             .cloned()
             .map(Felt::new)
             .collect()
-    }
-}
-
-// STACK OUTPUTS POP
-// ================================================================================================
-
-pub trait StackOutputsPop<T> {
-    fn pop(&mut self) -> Option<T>;
-}
-
-impl StackOutputsPop<Felt> for StackOutputs {
-    fn pop(&mut self) -> Option<Felt> {
-        self.stack.pop().map(Into::into)
-    }
-}
-
-impl StackOutputsPop<RpoDigest> for StackOutputs {
-    fn pop(&mut self) -> Option<RpoDigest> {
-        let digest_elements: [Felt; 4] = {
-            let digest_elements: Vec<Felt> = (0..4)
-                .map(|_| <Self as StackOutputsPop<Felt>>::pop(self))
-                // Elements need to be reversed, since a word `[a, b, c, d]` will be stored on the
-                // stack as `[d, c, b, a]`
-                .rev()
-                .collect::<Option<_>>()?;
-
-            digest_elements.try_into().expect("digest_elements contains 4 elements")
-        };
-
-        Some(digest_elements.into())
     }
 }
