@@ -19,7 +19,7 @@ where
     /// Returns an error if the popped value is not ONE.
     pub(super) fn op_assert(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
         if self.stack.get(0) != ONE {
-            return Err(ExecutionError::FailedAssertion(self.system.clk(), err_code));
+            return Err(ExecutionError::FailedAssertion(self.system.clk(), err_code.as_int()));
         }
         self.stack.shift_left(1);
         Ok(())

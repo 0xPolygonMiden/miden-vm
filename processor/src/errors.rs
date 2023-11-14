@@ -28,7 +28,7 @@ pub enum ExecutionError {
     DivideByZero(u32),
     EventError(String),
     Ext2InttError(Ext2InttError),
-    FailedAssertion(u32, Felt),
+    FailedAssertion(u32, u64),
     InvalidFmpValue(Felt, Felt),
     InvalidFriDomainSegment(u64),
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
