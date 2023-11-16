@@ -142,6 +142,10 @@ impl StackOutputs {
         overflow
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = Felt> + '_ {
+        self.stack.iter().cloned().map(Felt::from)
+    }
+
     // PUBLIC MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -162,6 +166,32 @@ impl StackOutputs {
         let digest_elements: [Felt; 4] = {
             let digest_elements: Vec<Felt> = (0..4)
                 .map(|_| self.pop_felt())
+                // Elements need to be reversed, since a word `[a, b, c, d]` will be stored on the
+                // stack as `[d, c, b, a]`
+                .rev()
+                .collect::<Option<_>>()?;
+
+            digest_elements.try_into().expect("digest_elements contains 4 elements")
+        };
+
+        Some(digest_elements.into())
+    }
+}
+
+// ITERATOR
+// ================================================================================================
+pub trait StackOutputsIteratorExt {
+    fn next_digest(&mut self) -> Option<RpoDigest>;
+}
+
+impl<I> StackOutputsIteratorExt for I
+where
+    I: Iterator<Item = Felt>,
+{
+    fn next_digest(&mut self) -> Option<RpoDigest> {
+        let digest_elements: [Felt; 4] = {
+            let digest_elements: Vec<Felt> = (0..4)
+                .map(|_| self.next())
                 // Elements need to be reversed, since a word `[a, b, c, d]` will be stored on the
                 // stack as `[d, c, b, a]`
                 .rev()
