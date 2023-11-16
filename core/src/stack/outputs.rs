@@ -180,11 +180,11 @@ impl StackOutputs {
 
 // ITERATOR
 // ================================================================================================
-pub trait StackOutputsIteratorExt: Iterator<Item = Felt> {
+pub trait StackOutputsIteratorDigest: Iterator<Item = Felt> {
     fn next_digest(&mut self) -> Option<RpoDigest>;
 }
 
-impl<I> StackOutputsIteratorExt for I
+impl<I> StackOutputsIteratorDigest for I
 where
     I: Iterator<Item = Felt>,
 {
