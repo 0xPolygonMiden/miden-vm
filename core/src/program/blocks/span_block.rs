@@ -397,38 +397,40 @@ impl From<NewOpBatchAccumulator> for OpBatch {
             acc.finalized_op_groups
         };
 
-        let op_counts: [usize; BATCH_SIZE] = {
-            let mut op_counts: Vec<_> =
-                op_groups.iter().map(|op_group| op_group.operations.len()).collect();
-
-            // TODO: don't copy with groups
-            op_counts.extend((op_counts.len()..BATCH_SIZE).map(|_| 0));
-
-            op_counts.try_into().expect(
-                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to",
-            )
-        };
         let ops: Vec<Operation> =
             op_groups.clone().into_iter().flat_map(|op_group| op_group.operations).collect();
 
-        let (groups, num_groups): ([Felt; BATCH_SIZE], usize) = {
+        let (groups, op_counts, num_groups): ([Felt; BATCH_SIZE],[usize; BATCH_SIZE], usize) = {
             let mut groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
+            let mut op_counts: Vec<usize> = Vec::with_capacity(BATCH_SIZE);
+
             for op_group in op_groups {
                 let immediate_values =
                     op_group.operations.clone().into_iter().filter_map(|op| op.imm_value());
+                
+                let op_count = op_group.operations.len();
+
 
                 groups.push(op_group.into());
-                groups.extend(immediate_values);
+                groups.extend(immediate_values.clone());
+
+                op_counts.push(op_count);
+                // All immediate values form a new group which contain no operations
+                op_counts.extend(immediate_values.map(|_| 0));
             }
 
             let num_groups = groups.len();
 
-            // pad groups
+            // padding
+            op_counts.extend((groups.len()..BATCH_SIZE).map(|_| 0));
             groups.extend((groups.len()..BATCH_SIZE).map(|_| ZERO));
 
             (groups.try_into().expect(
-                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to",
-            ), num_groups)
+                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
+                op_counts.try_into().expect(
+                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
+            
+            num_groups)
         };
 
         OpBatch {
