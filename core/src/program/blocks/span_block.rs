@@ -458,8 +458,7 @@ impl OpGroup {
     }
 
     fn num_immediate_values(&self) -> usize {
-        // TODO: Cache this value
-        self.operations.iter().map(|op| op.imm_value().is_some()).count()
+        self.operations.iter().filter_map(|op| op.imm_value()).count()
     }
 
     fn can_accept_op(&self, op: Operation) -> bool {
