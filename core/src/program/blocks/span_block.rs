@@ -332,6 +332,171 @@ impl OpBatchAccumulator {
     }
 }
 
+#[derive(Clone, Debug)]
+struct NewOpBatchAccumulator {
+    finalized_op_groups: Vec<OpGroup>,
+    current_op_group: OpGroup,
+}
+
+impl NewOpBatchAccumulator {
+    pub fn new() -> Self {
+        Self {
+            finalized_op_groups: Vec::with_capacity(BATCH_SIZE),
+            current_op_group: OpGroup::new(),
+        }
+    }
+
+    /// Returns true if this accumulator does not contain any operations.
+    pub fn is_empty(&self) -> bool {
+        self.finalized_op_groups.is_empty() && self.current_op_group.is_empty()
+    }
+
+    pub fn can_accept_op(&self, op: Operation) -> bool {
+        let total_groups_after_accepting_op = {
+            // number of finalized op groups after accepting op
+            let new_finalized_op_groups_len = if self.current_op_group.can_accept_op(op) {
+                self.finalized_op_groups.len()
+            } else {
+                self.finalized_op_groups.len() + 1
+            };
+
+            // current number of immediate values
+            let current_num_imm_values: usize =
+                self.finalized_op_groups.iter().map(OpGroup::num_immediate_values).sum();
+
+            // number of immediate values added (0 or 1)
+            let num_new_imm_values: usize = op.imm_value().is_some().into();
+
+            new_finalized_op_groups_len + current_num_imm_values + num_new_imm_values
+        };
+
+        total_groups_after_accepting_op < BATCH_SIZE
+    }
+
+    pub fn add_op(&mut self, op: Operation) {
+        if self.current_op_group.can_accept_op(op) {
+            self.current_op_group.add_op(op);
+        } else {
+            self.finalize_current_op_group();
+        }
+    }
+
+    fn finalize_current_op_group(&mut self) {
+        if !self.current_op_group.is_empty() {
+            let new_finalized_op_group = std::mem::take(&mut self.current_op_group);
+            self.finalized_op_groups.push(new_finalized_op_group);
+        }
+    }
+}
+
+impl From<NewOpBatchAccumulator> for OpBatch {
+    fn from(mut acc: NewOpBatchAccumulator) -> Self {
+        // All groups that contain operations
+        let op_groups = {
+            acc.finalize_current_op_group();
+            acc.finalized_op_groups
+        };
+
+        let op_counts: [usize; BATCH_SIZE] = {
+            let mut op_counts: Vec<_> =
+                op_groups.iter().map(|op_group| op_group.operations.len()).collect();
+
+            // TODO: don't copy with groups
+            op_counts.extend((op_counts.len()..BATCH_SIZE).map(|_| 0));
+
+            op_counts.try_into().expect(
+                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to",
+            )
+        };
+        let ops: Vec<Operation> =
+            op_groups.clone().into_iter().flat_map(|op_group| op_group.operations).collect();
+
+        let (groups, num_groups): ([Felt; BATCH_SIZE], usize) = {
+            let mut groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
+            for op_group in op_groups {
+                let immediate_values =
+                    op_group.operations.clone().into_iter().filter_map(|op| op.imm_value());
+
+                groups.push(op_group.into());
+                groups.extend(immediate_values);
+            }
+
+            let num_groups = groups.len();
+
+            // pad groups
+            groups.extend((groups.len()..BATCH_SIZE).map(|_| ZERO));
+
+            (groups.try_into().expect(
+                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to",
+            ), num_groups)
+        };
+
+        OpBatch {
+            ops,
+            groups,
+            op_counts,
+            num_groups,
+        }
+    }
+}
+
+/// A group that contains operations (i.e. no immediate values)
+#[derive(Clone, Debug)]
+struct OpGroup {
+    operations: Vec<Operation>,
+}
+
+impl OpGroup {
+    fn new() -> Self {
+        Self {
+            operations: Vec::with_capacity(GROUP_SIZE),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.operations.is_empty()
+    }
+
+    fn num_immediate_values(&self) -> usize {
+        // TODO: Cache this value
+        self.operations.iter().map(|op| op.imm_value().is_some()).count()
+    }
+
+    fn can_accept_op(&self, op: Operation) -> bool {
+        let op_has_imm_value = op.imm_value().is_some();
+
+        if op_has_imm_value {
+            // an operation carrying an immediate value cannot be the last one in a group
+            self.operations.len() < GROUP_SIZE - 1
+        } else {
+            self.operations.len() < GROUP_SIZE
+        }
+    }
+
+    fn add_op(&mut self, op: Operation) {
+        self.operations.push(op)
+    }
+}
+
+impl Default for OpGroup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<OpGroup> for Felt {
+    fn from(op_group: OpGroup) -> Self {
+        let mut group: u64 = 0;
+
+        for (op_idx, op) in op_group.operations.into_iter().enumerate() {
+            let opcode = op.op_code() as u64;
+            group |= opcode << (Operation::OP_BITS * op_idx);
+        }
+
+        group.into()
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
