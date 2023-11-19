@@ -374,11 +374,11 @@ impl NewOpBatchAccumulator {
     }
 
     pub fn add_op(&mut self, op: Operation) {
-        if self.current_op_group.can_accept_op(op) {
-            self.current_op_group.add_op(op);
-        } else {
+        if !self.current_op_group.can_accept_op(op) {
             self.finalize_current_op_group();
         }
+
+        self.current_op_group.add_op(op);
     }
 
     fn finalize_current_op_group(&mut self) {
