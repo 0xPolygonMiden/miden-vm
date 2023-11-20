@@ -228,13 +228,16 @@ impl OpBatchAccumulator {
     pub fn can_accept_op(&self, op: Operation) -> bool {
         let total_groups_after_accepting_op = {
             // number of finalized op groups after accepting op
-            let new_finalized_op_groups_len = if self.current_op_group.can_accept_op(op) {
-                // 1 for adding current_group
-                self.finalized_op_groups.len() + 1
-            } else {
-                // 1 for adding current_group
-                // 1 for adding the next current group
-                self.finalized_op_groups.len() + 1 + 1
+            let new_finalized_op_groups_len = {
+                let new_op_groups_finalized = if self.current_op_group.can_accept_op(op) {
+                    // 1 for adding current_group
+                    1
+                } else {
+                    // current_group is full, so we'll need another group for the new opcode
+                    2
+                };
+
+                self.finalized_op_groups.len() + new_op_groups_finalized
             };
 
             // current number of immediate values
