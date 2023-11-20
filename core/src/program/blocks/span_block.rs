@@ -238,13 +238,17 @@ impl OpBatchAccumulator {
             };
 
             // current number of immediate values
-            let current_num_imm_values: usize =
-                self.finalized_op_groups.iter().map(OpGroup::num_immediate_values).sum::<usize>() + self.current_op_group.num_immediate_values();
+            let current_num_imm_values: usize = self
+                .finalized_op_groups
+                .iter()
+                .map(OpGroup::num_immediate_values)
+                .sum::<usize>()
+                + self.current_op_group.num_immediate_values();
 
             // number of immediate values added (0 or 1)
             let num_new_imm_values: usize = op.imm_value().is_some().into();
 
-            new_finalized_op_groups_len + current_num_imm_values + num_new_imm_values 
+            new_finalized_op_groups_len + current_num_imm_values + num_new_imm_values
         };
 
         total_groups_after_accepting_op <= BATCH_SIZE
@@ -277,16 +281,15 @@ impl From<OpBatchAccumulator> for OpBatch {
         let ops: Vec<Operation> =
             op_groups.clone().into_iter().flat_map(|op_group| op_group.operations).collect();
 
-        let (groups, op_counts, num_groups): ([Felt; BATCH_SIZE],[usize; BATCH_SIZE], usize) = {
+        let (groups, op_counts, num_groups): ([Felt; BATCH_SIZE], [usize; BATCH_SIZE], usize) = {
             let mut batch_groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
             let mut op_counts: Vec<usize> = Vec::with_capacity(BATCH_SIZE);
 
             for op_group in op_groups {
                 let immediate_values =
                     op_group.operations.clone().into_iter().filter_map(|op| op.imm_value());
-                
-                let op_count = op_group.operations.len();
 
+                let op_count = op_group.operations.len();
 
                 batch_groups.push(op_group.into());
                 batch_groups.extend(immediate_values.clone());
@@ -302,11 +305,13 @@ impl From<OpBatchAccumulator> for OpBatch {
             op_counts.extend((batch_groups.len()..BATCH_SIZE).map(|_| 0));
             batch_groups.extend((batch_groups.len()..BATCH_SIZE).map(|_| ZERO));
 
-            (batch_groups.try_into().expect(
+            (
+                batch_groups.try_into().expect(
                 "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
                 op_counts.try_into().expect(
                 "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
-            num_groups)
+                num_groups
+            )
         };
 
         OpBatch {
