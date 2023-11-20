@@ -351,26 +351,30 @@ impl NewOpBatchAccumulator {
         self.finalized_op_groups.is_empty() && self.current_op_group.is_empty()
     }
 
+    /// A batch can accept a new operation if the batch doesn't exceed capacity as a result
     pub fn can_accept_op(&self, op: Operation) -> bool {
         let total_groups_after_accepting_op = {
             // number of finalized op groups after accepting op
             let new_finalized_op_groups_len = if self.current_op_group.can_accept_op(op) {
-                self.finalized_op_groups.len()
-            } else {
+                // 1 for adding current_group
                 self.finalized_op_groups.len() + 1
+            } else {
+                // 1 for adding current_group
+                // 1 for adding the next current group
+                self.finalized_op_groups.len() + 1 + 1
             };
 
             // current number of immediate values
             let current_num_imm_values: usize =
-                self.finalized_op_groups.iter().map(OpGroup::num_immediate_values).sum();
+                self.finalized_op_groups.iter().map(OpGroup::num_immediate_values).sum::<usize>() + self.current_op_group.num_immediate_values();
 
             // number of immediate values added (0 or 1)
             let num_new_imm_values: usize = op.imm_value().is_some().into();
 
-            new_finalized_op_groups_len + current_num_imm_values + num_new_imm_values
+            new_finalized_op_groups_len + current_num_imm_values + num_new_imm_values 
         };
 
-        total_groups_after_accepting_op < BATCH_SIZE
+        total_groups_after_accepting_op <= BATCH_SIZE
     }
 
     pub fn add_op(&mut self, op: Operation) {
@@ -401,7 +405,7 @@ impl From<NewOpBatchAccumulator> for OpBatch {
             op_groups.clone().into_iter().flat_map(|op_group| op_group.operations).collect();
 
         let (groups, op_counts, num_groups): ([Felt; BATCH_SIZE],[usize; BATCH_SIZE], usize) = {
-            let mut groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
+            let mut batch_groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
             let mut op_counts: Vec<usize> = Vec::with_capacity(BATCH_SIZE);
 
             for op_group in op_groups {
@@ -411,21 +415,21 @@ impl From<NewOpBatchAccumulator> for OpBatch {
                 let op_count = op_group.operations.len();
 
 
-                groups.push(op_group.into());
-                groups.extend(immediate_values.clone());
+                batch_groups.push(op_group.into());
+                batch_groups.extend(immediate_values.clone());
 
                 op_counts.push(op_count);
                 // All immediate values form a new group which contain no operations
                 op_counts.extend(immediate_values.map(|_| 0));
             }
 
-            let num_groups = groups.len();
+            let num_groups = batch_groups.len();
 
             // padding
-            op_counts.extend((groups.len()..BATCH_SIZE).map(|_| 0));
-            groups.extend((groups.len()..BATCH_SIZE).map(|_| ZERO));
+            op_counts.extend((batch_groups.len()..BATCH_SIZE).map(|_| 0));
+            batch_groups.extend((batch_groups.len()..BATCH_SIZE).map(|_| ZERO));
 
-            (groups.try_into().expect(
+            (batch_groups.try_into().expect(
                 "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
                 op_counts.try_into().expect(
                 "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
@@ -514,7 +518,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
         // if the operation cannot be accepted into the current accumulator, add the contents of
         // the accumulator to the list of batches and start a new accumulator
         if !batch_acc.can_accept_op(op) {
-            let batch = batch_acc.into_batch();
+            let batch: OpBatch = batch_acc.into_batch();
             batch_acc = OpBatchAccumulator::new();
 
             batch_groups.push(*batch.groups());
@@ -527,7 +531,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 
     // make sure we finished processing the last batch
     if !batch_acc.is_empty() {
-        let batch = batch_acc.into_batch();
+        let batch: OpBatch = batch_acc.into_batch();
         batch_groups.push(*batch.groups());
         batches.push(batch);
     }
