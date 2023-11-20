@@ -221,7 +221,7 @@ impl OpBatchAccumulator {
 
     /// Returns true if this accumulator does not contain any operations.
     pub fn is_empty(&self) -> bool {
-        self.op_groups.is_empty()
+        self.op_groups.len() == 1 && self.op_groups[0].is_empty()
     }
 
     /// A batch can accept a new operation if the batch doesn't exceed capacity as a result
