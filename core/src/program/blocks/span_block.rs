@@ -356,12 +356,6 @@ impl OpGroup {
     }
 }
 
-impl Default for OpGroup {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl From<OpGroup> for Felt {
     fn from(op_group: OpGroup) -> Self {
         let mut group: u64 = 0;
