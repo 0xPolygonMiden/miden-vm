@@ -207,21 +207,21 @@ impl OpBatch {
 /// An accumulator used in construction of operation batches.
 #[derive(Clone, Debug)]
 struct OpBatchAccumulator {
-    finalized_op_groups: Vec<OpGroup>,
-    current_op_group: OpGroup,
+    /// All groups that contain operations. New operations are appended to the last group.
+    op_groups: Vec<OpGroup>,
 }
 
 impl OpBatchAccumulator {
     pub fn new() -> Self {
-        Self {
-            finalized_op_groups: Vec::with_capacity(BATCH_SIZE),
-            current_op_group: OpGroup::new(),
-        }
+        let mut op_groups = Vec::with_capacity(BATCH_SIZE);
+        op_groups.push(OpGroup::new());
+
+        Self { op_groups }
     }
 
     /// Returns true if this accumulator does not contain any operations.
     pub fn is_empty(&self) -> bool {
-        self.finalized_op_groups.is_empty() && self.current_op_group.is_empty()
+        self.op_groups.is_empty()
     }
 
     /// A batch can accept a new operation if the batch doesn't exceed capacity as a result
@@ -229,24 +229,19 @@ impl OpBatchAccumulator {
         let total_groups_after_accepting_op = {
             // number of finalized op groups after accepting op
             let new_finalized_op_groups_len = {
-                let new_op_groups_finalized = if self.current_op_group.can_accept_op(op) {
-                    // 1 for adding current_group
-                    1
+                let new_op_groups_finalized = if self.current_op_group().can_accept_op(op) {
+                    0
                 } else {
                     // current_group is full, so we'll need another group for the new opcode
-                    2
+                    1
                 };
 
-                self.finalized_op_groups.len() + new_op_groups_finalized
+                self.op_groups.len() + new_op_groups_finalized
             };
 
             // current number of immediate values
-            let current_num_imm_values: usize = self
-                .finalized_op_groups
-                .iter()
-                .map(OpGroup::num_immediate_values)
-                .sum::<usize>()
-                + self.current_op_group.num_immediate_values();
+            let current_num_imm_values: usize =
+                self.op_groups.iter().map(OpGroup::num_immediate_values).sum::<usize>();
 
             // number of immediate values added (0 or 1)
             let num_new_imm_values: usize = op.imm_value().is_some().into();
@@ -258,37 +253,44 @@ impl OpBatchAccumulator {
     }
 
     pub fn add_op(&mut self, op: Operation) {
-        if !self.current_op_group.can_accept_op(op) {
+        if !self.current_op_group().can_accept_op(op) {
             self.finalize_current_op_group();
         }
 
-        self.current_op_group.add_op(op);
+        self.current_op_group_mut().add_op(op);
+    }
+
+    // HELPERS
+    // ---------------------------------------------------------------------------------------------
+    fn current_op_group(&self) -> &OpGroup {
+        self.op_groups.last().expect("op_groups is never empty")
+    }
+
+    fn current_op_group_mut(&mut self) -> &mut OpGroup {
+        self.op_groups.last_mut().expect("op_groups is never empty")
     }
 
     fn finalize_current_op_group(&mut self) {
-        if !self.current_op_group.is_empty() {
-            let new_finalized_op_group = std::mem::take(&mut self.current_op_group);
-            self.finalized_op_groups.push(new_finalized_op_group);
+        if !self.current_op_group().is_empty() {
+            self.op_groups.push(OpGroup::new());
         }
     }
 }
 
 impl From<OpBatchAccumulator> for OpBatch {
-    fn from(mut acc: OpBatchAccumulator) -> Self {
-        // All groups that contain operations
-        let op_groups = {
-            acc.finalize_current_op_group();
-            acc.finalized_op_groups
-        };
-
-        let ops: Vec<Operation> =
-            op_groups.clone().into_iter().flat_map(|op_group| op_group.operations).collect();
+    fn from(acc: OpBatchAccumulator) -> Self {
+        let ops: Vec<Operation> = acc
+            .op_groups
+            .clone()
+            .into_iter()
+            .flat_map(|op_group| op_group.operations)
+            .collect();
 
         let (groups, op_counts, num_groups): ([Felt; BATCH_SIZE], [usize; BATCH_SIZE], usize) = {
             let mut batch_groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
             let mut op_counts: Vec<usize> = Vec::with_capacity(BATCH_SIZE);
 
-            for op_group in op_groups {
+            for op_group in acc.op_groups {
                 let immediate_values =
                     op_group.operations.clone().into_iter().filter_map(|op| op.imm_value());
 
@@ -463,9 +465,17 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
 mod tests {
     use super::{hasher, Felt, Operation, BATCH_SIZE, ZERO};
     use crate::ONE;
+    use miden_crypto::hash::rpo::RpoDigest;
 
     #[test]
     fn batch_ops() {
+        // --- zero operations ----------------------------------------------------------------------
+        let ops = Vec::new();
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(0, batches.len());
+
+        assert_eq!(RpoDigest::from([ZERO, ZERO, ZERO, ZERO]), hash);
+
         // --- one operation ----------------------------------------------------------------------
         let ops = vec![Operation::Add];
         let (batches, hash) = super::batch_ops(ops.clone());
