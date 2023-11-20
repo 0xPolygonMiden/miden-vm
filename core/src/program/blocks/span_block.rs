@@ -453,15 +453,16 @@ mod tests {
     use miden_crypto::hash::rpo::RpoDigest;
 
     #[test]
-    fn batch_ops() {
-        // --- zero operations ----------------------------------------------------------------------
+    fn batch_ops_zero_operations() {
         let ops = Vec::new();
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(0, batches.len());
 
         assert_eq!(RpoDigest::from([ZERO, ZERO, ZERO, ZERO]), hash);
+    }
 
-        // --- one operation ----------------------------------------------------------------------
+    #[test]
+    fn batch_ops_one_operation() {
         let ops = vec![Operation::Add];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
@@ -476,8 +477,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- two operations ---------------------------------------------------------------------
+    #[test]
+    fn batch_ops_two_operations() {
         let ops = vec![Operation::Add, Operation::Mul];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
@@ -492,8 +495,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- one group with one immediate value -------------------------------------------------
+    #[test]
+    fn batch_ops_one_group_with_imm_value() {
         let ops = vec![Operation::Add, Operation::Push(Felt::new(12345678))];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
@@ -509,8 +514,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- one group with 7 immediate values --------------------------------------------------
+    #[test]
+    fn batch_ops_one_group_with_7_imm_values() {
         let ops = vec![
             Operation::Push(ONE),
             Operation::Push(Felt::new(2)),
@@ -542,9 +549,11 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- two groups with 7 immediate values; the last push overflows to the second batch;
-        // first group full before push ----
+    #[test]
+    fn batch_ops_two_groups_with_7_imm_values_v1() {
+        // --- the last push overflows to the second batch. first group full before push ----
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -591,9 +600,11 @@ mod tests {
 
         let all_groups = [batch0_groups, batch1_groups].concat();
         assert_eq!(hasher::hash_elements(&all_groups), hash);
+    }
 
-        // --- two groups with 7 immediate values; the last push overflows to the second batch;
-        // first group NOT full before push ----
+    #[test]
+    fn batch_ops_two_groups_with_7_imm_values_v2() {
+        // --- the last push overflows to the second batch; first group NOT full before push ----
         let ops = vec![
             // batch 1
             Operation::Add,
@@ -641,8 +652,10 @@ mod tests {
 
         let all_groups = [batch0_groups, batch1_groups].concat();
         assert_eq!(hasher::hash_elements(&all_groups), hash);
+    }
 
-        // --- immediate values in-between groups -------------------------------------------------
+    #[test]
+    fn batch_ops_imm_values_in_between_groups() {
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -677,7 +690,10 @@ mod tests {
         assert_eq!([9_usize, 0, 0, 1, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(batch_groups, batch.groups);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
+    #[test]
+    fn batch_ops_push_end_of_group_v1() {
         // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
             Operation::Add,
@@ -711,7 +727,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 1, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
+    #[test]
+    fn batch_ops_push_end_of_group_v2() {
         // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
             Operation::Add,
@@ -745,7 +764,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 0, 1, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
+    #[test]
+    fn batch_ops_push_end_of_7th_group() {
         // --- push at the end of the 7th group overflows to the next batch -----------------------
         let ops = vec![
             Operation::Add,
