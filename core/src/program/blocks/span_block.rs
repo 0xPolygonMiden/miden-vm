@@ -543,7 +543,8 @@ mod tests {
         assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
-        // --- two groups with 7 immediate values; the last push overflows to the second batch ----
+        // --- two groups with 7 immediate values; the last push overflows to the second batch;
+        // first group full before push ----
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -583,6 +584,56 @@ mod tests {
 
         let mut batch1_groups = [ZERO; BATCH_SIZE];
         batch1_groups[0] = build_group(&[ops[9]]);
+        batch1_groups[1] = Felt::new(7);
+
+        assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
+        assert_eq!(batch1_groups, batch1.groups);
+
+        let all_groups = [batch0_groups, batch1_groups].concat();
+        assert_eq!(hasher::hash_elements(&all_groups), hash);
+
+        // --- two groups with 7 immediate values; the last push overflows to the second batch;
+        // first group NOT full before push ----
+        let ops = vec![
+            // batch 1
+            Operation::Add,
+            Operation::Mul,
+            Operation::Push(ONE),
+            Operation::Push(Felt::new(2)),
+            Operation::Push(Felt::new(3)),
+            Operation::Push(Felt::new(4)),
+            Operation::Push(Felt::new(5)),
+            Operation::Push(Felt::new(6)),
+            // batch 2
+            Operation::Push(Felt::new(7)),
+        ];
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(2, batches.len());
+
+        let batch0 = &batches[0];
+        assert_eq!(ops[..8], batch0.ops);
+        assert_eq!(7, batch0.num_groups());
+
+        let batch0_groups = [
+            build_group(&ops[..8]),
+            ONE,
+            Felt::new(2),
+            Felt::new(3),
+            Felt::new(4),
+            Felt::new(5),
+            Felt::new(6),
+            ZERO,
+        ];
+
+        assert_eq!(batch0_groups, batch0.groups);
+        assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch0.op_counts);
+
+        let batch1 = &batches[1];
+        assert_eq!(vec![ops[8]], batch1.ops);
+        assert_eq!(2, batch1.num_groups());
+
+        let mut batch1_groups = [ZERO; BATCH_SIZE];
+        batch1_groups[0] = build_group(&[ops[8]]);
         batch1_groups[1] = Felt::new(7);
 
         assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
