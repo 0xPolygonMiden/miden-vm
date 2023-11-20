@@ -227,16 +227,16 @@ impl OpBatchAccumulator {
     /// A batch can accept a new operation if the batch doesn't exceed capacity as a result
     pub fn can_accept_op(&self, op: Operation) -> bool {
         let total_groups_after_accepting_op = {
-            // number of finalized op groups after accepting op
-            let new_finalized_op_groups_len = {
-                let new_op_groups_finalized = if self.current_op_group().can_accept_op(op) {
+            // number of op groups after accepting op
+            let new_op_groups_len = {
+                let new_op_groups_count = if self.current_op_group().can_accept_op(op) {
                     0
                 } else {
                     // current_group is full, so we'll need another group for the new opcode
                     1
                 };
 
-                self.op_groups.len() + new_op_groups_finalized
+                self.op_groups.len() + new_op_groups_count
             };
 
             // current number of immediate values
@@ -246,7 +246,7 @@ impl OpBatchAccumulator {
             // number of immediate values added (0 or 1)
             let num_new_imm_values: usize = op.imm_value().is_some().into();
 
-            new_finalized_op_groups_len + current_num_imm_values + num_new_imm_values
+            new_op_groups_len + current_num_imm_values + num_new_imm_values
         };
 
         total_groups_after_accepting_op <= BATCH_SIZE
@@ -254,7 +254,7 @@ impl OpBatchAccumulator {
 
     pub fn add_op(&mut self, op: Operation) {
         if !self.current_op_group().can_accept_op(op) {
-            self.finalize_current_op_group();
+            self.op_groups.push(OpGroup::new());
         }
 
         self.current_op_group_mut().add_op(op);
@@ -268,12 +268,6 @@ impl OpBatchAccumulator {
 
     fn current_op_group_mut(&mut self) -> &mut OpGroup {
         self.op_groups.last_mut().expect("op_groups is never empty")
-    }
-
-    fn finalize_current_op_group(&mut self) {
-        if !self.current_op_group().is_empty() {
-            self.op_groups.push(OpGroup::new());
-        }
     }
 }
 
