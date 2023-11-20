@@ -229,12 +229,9 @@ impl OpBatchAccumulator {
         let total_groups_after_accepting_op = {
             // number of op groups after accepting op
             let new_op_groups_len = {
-                let new_op_groups_count = if self.current_op_group().can_accept_op(op) {
-                    0
-                } else {
-                    // current_group is full, so we'll need another group for the new opcode
-                    1
-                };
+                // if current_group is full, so we'll need another group for the new opcode
+                // (0 or 1)
+                let new_op_groups_count: usize = self.current_op_group().can_accept_op(op).into();
 
                 self.op_groups.len() + new_op_groups_count
             };
