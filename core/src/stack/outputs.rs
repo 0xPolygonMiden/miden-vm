@@ -84,6 +84,11 @@ impl StackOutputs {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the value located at the specified position on the stack
+    pub fn get_stack_item(&self, idx: usize) -> Option<Felt> {
+        self.stack.get(idx).map(|&felt| felt.into())
+    }
+
     /// Returns the stack outputs, which is state of the stack at the end of execution converted to
     /// integers.
     pub fn stack(&self) -> &[u64] {
