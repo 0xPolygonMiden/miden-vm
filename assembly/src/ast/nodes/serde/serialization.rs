@@ -152,6 +152,11 @@ impl Serializable for Instruction {
                 OpCode::U32AssertWWithError.write_into(target);
                 target.write_u32(*err_code);
             }
+            Self::U32AssertLt => OpCode::U32AssertLt.write_into(target),
+            Self::U32AssertLtImm(v) => {
+                OpCode::U32AssertLtImm.write_into(target);
+                target.write_u32(*v);
+            }
             Self::U32Split => OpCode::U32Split.write_into(target),
             Self::U32Cast => OpCode::U32Cast.write_into(target),
             Self::U32WrappingAdd => OpCode::U32WrappingAdd.write_into(target),

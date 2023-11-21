@@ -66,6 +66,22 @@ pub fn u32assertw(
     span.add_ops(ops)
 }
 
+/// Translates u32assert_lt assembly instructions to VM operations.
+///
+/// This takes 8 VM cycles.
+pub fn u32assert_lt(
+    span: &mut SpanBuilder,
+    imm: Option<u32>,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    if let Some(imm) = imm {
+        span.push_ops([Dup0, Push(Felt::from(imm))]);
+    } else {
+        span.push_ops([Dup1, Dup1]);
+    }
+    u32lt(span)?;
+    span.add_op(Assert(ZERO))
+}
+
 // ARITHMETIC OPERATIONS
 // ================================================================================================
 

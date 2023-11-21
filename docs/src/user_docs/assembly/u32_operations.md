@@ -12,8 +12,9 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | u32test <br> - *(5 cycles)*                    | [a, ...]    | [b, a, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ a < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$                                  |
 | u32testw <br> - *(23 cycles)*                  | [A, ...]    | [b, A, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ \forall\ i \in \{0, 1, 2, 3\}\ a_i < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
 | u32assert <br> - *(3 cycles)* | [a, ...]    | [a, ...]      | Fails if $a \ge 2^{32}$                                                                                                        |
-| u32assert2 <br> - *(1 cycle)*                 | [b, a,...]  | [b, a,...]    | Fails if $a \ge 2^{32}$ or $b \ge 2^{32}$                                                                                      |
+| u32assert2 <br> - *(1 cycle)*                 | [b, a, ...]  | [b, a, ...]    | Fails if $a \ge 2^{32}$ or $b \ge 2^{32}$                                                                                      |
 | u32assertw <br> - *(6 cycles)*                 | [A, ...]    | [A, ...]      | Fails if $\exists\ i \in \{0, 1, 2, 3\} : a_i \ge 2^{32}$                                                                    |
+| u32assert_lt <br> - *(8 cycles)* <br> u32assert_lt.*b* <br> - *(8 cycles)*   | [b, a, ...]    | [b, a, ...]      | Fails if $a \ge b$                                                                    |
 | u32cast <br> - *(2 cycles)*                    | [a, ...]    | [b, ...]      | $b \leftarrow a \mod 2^{32}$                                                                                                   |
 | u32split <br> - *(1 cycle)*                    | [a, ...]    | [c, b, ...]   | $b \leftarrow a \mod 2^{32}$, $c \leftarrow \lfloor{a / 2^{32}}\rfloor$                                                        |
 

@@ -113,6 +113,8 @@ impl Deserializable for Instruction {
             OpCode::U32Assert2WithError => Ok(Instruction::U32Assert2WithError(source.read_u32()?)),
             OpCode::U32AssertW => Ok(Instruction::U32AssertW),
             OpCode::U32AssertWWithError => Ok(Instruction::U32AssertWWithError(source.read_u32()?)),
+            OpCode::U32AssertLt => Ok(Instruction::U32AssertLt),
+            OpCode::U32AssertLtImm => Ok(Instruction::U32AssertLtImm(source.read_u32()?)),
             OpCode::U32Split => Ok(Instruction::U32Split),
             OpCode::U32Cast => Ok(Instruction::U32Cast),
             OpCode::U32WrappingAdd => Ok(Instruction::U32WrappingAdd),

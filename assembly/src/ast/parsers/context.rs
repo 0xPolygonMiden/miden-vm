@@ -506,6 +506,7 @@ impl ParserContext<'_> {
             "u32assert" => u32_ops::parse_u32assert(op, &self.local_constants),
             "u32assert2" => u32_ops::parse_u32assert2(op, &self.local_constants),
             "u32assertw" => u32_ops::parse_u32assertw(op, &self.local_constants),
+            "u32assert_lt" => u32_ops::parse_assert_lt(op),
             "u32cast" => simple_instruction(op, U32Cast),
             "u32split" => simple_instruction(op, U32Split),
 

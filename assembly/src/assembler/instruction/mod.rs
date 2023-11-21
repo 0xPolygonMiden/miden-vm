@@ -108,6 +108,8 @@ impl Assembler {
             Instruction::U32AssertWWithError(err_code) => {
                 u32_ops::u32assertw(span, Felt::from(*err_code))
             }
+            Instruction::U32AssertLt => u32_ops::u32assert_lt(span, None),
+            Instruction::U32AssertLtImm(v) => u32_ops::u32assert_lt(span, Some(*v)),
 
             Instruction::U32Cast => span.add_ops([U32split, Drop]),
             Instruction::U32Split => span.add_op(U32split),

@@ -79,6 +79,25 @@ pub fn parse_u32assertw(op: &Token, constants: &LocalConstMap) -> Result<Node, P
     }
 }
 
+/// Returns `U32AssertLt` instruction node if no immediate value is provided, or `U32AssertLtImm`
+/// instruction node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token contains a wrong number of parameters, or if
+/// the provided parameter is not a u32 value.
+pub fn parse_assert_lt(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "u32assert_lt");
+    match op.num_parts() {
+        0 => unreachable!(),
+        1 => Ok(Instruction(U32AssertLt)),
+        2 => {
+            let value = parse_param::<u32>(op, 1)?;
+            Ok(Instruction(U32AssertLtImm(value)))
+        }
+        _ => Err(ParsingError::extra_param(op)),
+    }
+}
+
 /// Returns `U32WrappingAdd` instruction node if no immediate value is provided or
 /// `U32WrappingAddImm` instruction node otherwise.
 ///

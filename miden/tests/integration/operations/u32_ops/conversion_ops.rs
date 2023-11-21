@@ -170,6 +170,31 @@ fn u32assertw_fail() {
 }
 
 #[test]
+fn u32assert_lt() {
+    let asm_op = "u32assert_lt";
+
+    let test = build_op_test!(asm_op, &[15, 32]);
+    test.expect_stack(&[32, 15]);
+
+    let asm_op = "u32assert_lt.32";
+    let test = build_op_test!(asm_op, &[31]);
+    test.expect_stack(&[31]);
+}
+
+#[test]
+fn u32assert_lt_fail() {
+    let asm_op = "u32assert_lt";
+    let err = "FailedAssertion";
+
+    let test = build_op_test!(asm_op, &[40, 32]);
+    test.expect_error(TestError::ExecutionError(err));
+
+    let asm_op = "u32assert_lt.32";
+    let test = build_op_test!(asm_op, &[40]);
+    test.expect_error(TestError::ExecutionError(err));
+}
+
+#[test]
 fn u32cast() {
     let asm_op = "u32cast";
 
@@ -266,7 +291,28 @@ proptest! {
 
         let test = build_op_test!(asm_op, &values);
         test.prop_expect_stack(&expected)?;
-}
+    }
+
+    #[test]
+    fn u32assert_lt_proptest(val1 in any::<u32>(), val2 in any::<u32>()) {
+        let asm_op = "u32assert_lt";
+
+        // assign the larger value to b and the smaller value to a so all parameters are valid.
+        let (a, b) = if val1 < val2 {
+            (val1, val2)
+        } else if val1 > val2 {
+            (val2, val1)
+        } else {
+            (val1 / 2, val2)
+        };
+
+        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+        test.prop_expect_stack(&[b as u64, a as u64])?;
+
+        let asm_op = format!("u32assert_lt.{}", b);
+        let test = build_op_test!(asm_op, &[a as u64]);
+        test.prop_expect_stack(&[a as u64])?;
+    }
 
     #[test]
     fn u32cast_proptest(value in any::<u64>()) {
