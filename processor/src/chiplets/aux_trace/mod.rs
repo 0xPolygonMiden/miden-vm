@@ -717,11 +717,16 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
         op_label + 32
     };
 
+    let hash_row = main_trace.chiplet_hasher_state(helper_0.as_int() as usize - 1);
+
+    let sibling = &hash_row[4..8];
+
     let sum_input = alphas[8..12]
         .iter()
-        .rev()
+        //.rev()
         .enumerate()
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
+        //.fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(sibling[i]));
     let v_input = alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
         + alphas[2].mul_base(helper_0)
