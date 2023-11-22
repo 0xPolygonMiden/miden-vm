@@ -1,6 +1,7 @@
+use vm_core::{DebugOptions, StarkField, Word};
+
 use super::ProcessState;
 use crate::{system::ContextId, Vec};
-use vm_core::{DebugOptions, StarkField, Word};
 
 // DEBUG HANDLER
 // ================================================================================================

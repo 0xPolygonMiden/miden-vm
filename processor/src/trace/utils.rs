@@ -1,7 +1,9 @@
+use core::slice;
+
+use vm_core::utils::uninit_vector;
+
 use super::{ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
 use crate::chiplets::Chiplets;
-use core::slice;
-use vm_core::utils::uninit_vector;
 
 // TRACE FRAGMENT
 // ================================================================================================

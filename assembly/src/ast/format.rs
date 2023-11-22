@@ -1,8 +1,9 @@
+use core::fmt;
+
 use super::{
     CodeBody, FormattableNode, InvokedProcsMap, LibraryPath, ProcedureAst, ProcedureId,
     ProcedureName, Vec,
 };
-use core::fmt;
 
 const INDENT_STRING: &str = "    ";
 

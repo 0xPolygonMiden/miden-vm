@@ -1,5 +1,6 @@
-use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, ModuleAst, Version};
 use vm_core::utils::{Deserializable, Serializable, SliceReader};
+
+use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, ModuleAst, Version};
 
 #[test]
 fn masl_locations_serialization() {

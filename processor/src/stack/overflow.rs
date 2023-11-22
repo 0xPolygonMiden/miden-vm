@@ -1,8 +1,9 @@
+use vm_core::{utils::uninit_vector, StarkField};
+
 use super::{
     super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, ColMatrix, Felt, FieldElement, Vec,
     ZERO,
 };
-use vm_core::{utils::uninit_vector, StarkField};
 
 // OVERFLOW TABLE
 // ================================================================================================

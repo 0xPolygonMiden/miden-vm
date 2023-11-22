@@ -1,7 +1,9 @@
-use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
+use std::{path::PathBuf, time::Instant};
+
 use clap::Parser;
 use miden::{Kernel, ProgramInfo};
-use std::{path::PathBuf, time::Instant};
+
+use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Verify a miden program")]

@@ -1,8 +1,9 @@
-use crate::build_test;
 use test_utils::{
     crypto::{MerkleStore, Rpo256, RpoDigest, TieredSmt},
     stack_to_ints, stack_top_to_ints, Felt, StarkField, Word, ONE, ZERO,
 };
+
+use crate::build_test;
 
 type AdvMapEntry = ([u8; 32], Vec<Felt>);
 

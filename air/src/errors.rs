@@ -1,6 +1,7 @@
+use core::fmt::{Display, Formatter};
+
 use super::String;
 use crate::trace::MIN_TRACE_LEN;
-use core::fmt::{Display, Formatter};
 
 // EXECUTION ERROR
 // ================================================================================================

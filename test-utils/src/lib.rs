@@ -6,25 +6,23 @@ extern crate alloc;
 
 // IMPORTS
 // ================================================================================================
-#[cfg(not(target_family = "wasm"))]
-use proptest::prelude::{Arbitrary, Strategy};
-
-use vm_core::chiplets::hasher::apply_permutation;
-use vm_core::utils::{collections::Vec, string::String};
-
-// EXPORTS
-// ================================================================================================
-
-pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
-
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
+#[cfg(not(target_family = "wasm"))]
+use proptest::prelude::{Arbitrary, Strategy};
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{AcceptableOptions, ProgramInfo, VerifierError};
+// EXPORTS
+// ================================================================================================
+pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
+use vm_core::{
+    chiplets::hasher::apply_permutation,
+    utils::{collections::Vec, string::String},
+};
 pub use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},

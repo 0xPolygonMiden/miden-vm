@@ -1,8 +1,10 @@
+use core::fmt;
+
+use vm_core::DebugOptions;
+
 use super::{
     AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest, ToString, Vec,
 };
-use core::fmt;
-use vm_core::DebugOptions;
 
 mod advice;
 pub use advice::AdviceInjectorNode;

@@ -1,3 +1,5 @@
+use vm_core::utils::collections::Vec;
+
 use super::{
     ChipletsBus, Felt, Kernel, KernelProcLookup, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH,
     ZERO,
@@ -6,7 +8,6 @@ use crate::chiplets::{
     aux_trace::{ChipletLookup, ChipletsBusRow},
     ChipletsVTableTraceBuilder,
 };
-use vm_core::utils::collections::Vec;
 
 // CONSTANTS
 // ================================================================================================

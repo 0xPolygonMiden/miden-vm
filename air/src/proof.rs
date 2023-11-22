@@ -1,9 +1,10 @@
-use super::DeserializationError;
 use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
     utils::collections::Vec,
 };
 use winter_air::proof::StarkProof;
+
+use super::DeserializationError;
 
 // EXECUTION PROOF
 // ================================================================================================

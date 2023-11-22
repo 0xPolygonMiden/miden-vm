@@ -1,9 +1,10 @@
+use vm_core::utils::SliceReader;
+
 use super::{
     AstSerdeOptions, BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node,
     ParsingError, ProcedureAst, ProcedureId, ProcedureName, ProgramAst, SourceLocation, String,
     ToString, Token,
 };
-use vm_core::utils::SliceReader;
 
 // UNIT TESTS
 // ================================================================================================
@@ -221,8 +222,9 @@ fn test_ast_parsing_adv_ops() {
 
 #[test]
 fn test_ast_parsing_adv_injection() {
-    use super::AdviceInjectorNode::*;
     use Instruction::AdvInject;
+
+    use super::AdviceInjectorNode::*;
 
     let source = "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end";
     let nodes: Vec<Node> = vec![

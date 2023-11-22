@@ -1,3 +1,5 @@
+use winter_air::TransitionConstraintDegree;
+
 use super::{EvaluationFrame, Felt, FieldElement, Vec};
 use crate::{
     trace::chiplets::{
@@ -8,7 +10,6 @@ use crate::{
     utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult},
     ONE, ZERO,
 };
-use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
 pub mod tests;

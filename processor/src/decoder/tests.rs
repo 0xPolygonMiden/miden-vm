@@ -1,12 +1,3 @@
-use super::{
-    super::{
-        utils::get_trace_len, ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process,
-        StackInputs, Word,
-    },
-    build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
-    ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
-};
-use crate::{ContextId, DefaultHost};
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -23,6 +14,16 @@ use vm_core::{
     utils::collections::Vec,
     CodeBlockTable, StarkField, EMPTY_WORD, ONE, ZERO,
 };
+
+use super::{
+    super::{
+        utils::get_trace_len, ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process,
+        StackInputs, Word,
+    },
+    build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
+    ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
+};
+use crate::{ContextId, DefaultHost};
 
 // CONSTANTS
 // ================================================================================================

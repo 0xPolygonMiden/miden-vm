@@ -1,10 +1,11 @@
-use super::{
-    errors::{InputError, OutputError},
-    Felt, StackTopState, StarkField, ToElements,
-};
 use winter_utils::{
     collections::{vec, Vec},
     ByteWriter, Serializable,
+};
+
+use super::{
+    errors::{InputError, OutputError},
+    Felt, StackTopState, StarkField, ToElements,
 };
 
 mod inputs;

@@ -1,7 +1,8 @@
+use core::fmt;
+
 use super::{
     BTreeMap, LineTokenizer, LinesStream, ParsingError, SourceLocation, String, Token, Vec,
 };
-use core::fmt;
 
 // TOKEN STREAM
 // ================================================================================================

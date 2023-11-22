@@ -1,10 +1,12 @@
-use super::{cli::InputFile, ProgramError};
-use clap::Parser;
 use core::fmt;
+use std::{fs, path::PathBuf};
+
+use clap::Parser;
 use miden::{utils::collections::Vec, Assembler, DefaultHost, Host, Operation, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
-use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
+
+use super::{cli::InputFile, ProgramError};
 
 // CLI
 // ================================================================================================
@@ -290,8 +292,9 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
-    use super::{AsmOpStats, ExecutionDetails, StackInputs};
     use processor::{ChipletsLengths, DefaultHost, TraceLenSummary};
+
+    use super::{AsmOpStats, ExecutionDetails, StackInputs};
 
     #[test]
     fn analyze_test() {

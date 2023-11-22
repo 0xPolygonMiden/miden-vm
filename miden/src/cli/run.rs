@@ -1,7 +1,9 @@
-use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
+use std::{path::PathBuf, time::Instant};
+
 use clap::Parser;
 use processor::{DefaultHost, ExecutionOptions};
-use std::{path::PathBuf, time::Instant};
+
+use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Run a miden program")]

@@ -1,7 +1,3 @@
-use crate::{
-    utils::get_trace_len, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
-    Operation, Process, StackInputs, Vec,
-};
 use miden_air::trace::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -13,6 +9,11 @@ use miden_air::trace::{
     CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
 use vm_core::{CodeBlockTable, Felt, ONE, ZERO};
+
+use crate::{
+    utils::get_trace_len, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
+    Operation, Process, StackInputs, Vec,
+};
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 

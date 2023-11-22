@@ -1,7 +1,8 @@
-use crate::build_test;
 use test_utils::{
     math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField, ONE,
 };
+
+use crate::build_test;
 
 #[test_case(8, 1; "poly_8 |> evaluated_8 |> interpolated_8")]
 #[test_case(8, 2; "poly_8 |> evaluated_16 |> interpolated_8")]

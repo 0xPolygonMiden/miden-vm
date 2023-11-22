@@ -1,8 +1,9 @@
+use core::{iter, slice};
+
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Node, Serializable,
     SourceLocation, Vec,
 };
-use core::{iter, slice};
 
 // CODE BODY
 // ================================================================================================

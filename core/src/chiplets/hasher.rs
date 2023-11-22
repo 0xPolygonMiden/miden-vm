@@ -1,6 +1,5 @@
 //! TODO: add docs
 use super::Felt;
-
 pub use crate::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
 
 /// Number of field element needed to represent the sponge state for the hash function.

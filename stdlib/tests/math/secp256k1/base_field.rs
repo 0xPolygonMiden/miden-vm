@@ -1,7 +1,11 @@
-use crate::build_test;
-use core::cmp::PartialEq;
-use core::ops::{Add, Mul, Neg, Sub};
+use core::{
+    cmp::PartialEq,
+    ops::{Add, Mul, Neg, Sub},
+};
+
 use test_utils::rand::rand_array;
+
+use crate::build_test;
 
 /// Secp256k1 base field element, kept in Montgomery form
 #[derive(Copy, Clone, Debug)]

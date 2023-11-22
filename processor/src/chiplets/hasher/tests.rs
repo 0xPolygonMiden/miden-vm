@@ -1,11 +1,3 @@
-use super::{
-    init_state_from_words, lookups::HasherLookupContext, Digest, Felt, Hasher, HasherLookup,
-    HasherState, MerklePath, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
-    MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
-};
-use crate::chiplets::aux_trace::{
-    ChipletsVTableRow, ChipletsVTableTraceBuilder, ChipletsVTableUpdate,
-};
 use miden_air::trace::chiplets::hasher::{
     DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
     MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
@@ -17,6 +9,15 @@ use vm_core::{
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
     Operation, StarkField, ONE, ZERO,
+};
+
+use super::{
+    init_state_from_words, lookups::HasherLookupContext, Digest, Felt, Hasher, HasherLookup,
+    HasherState, MerklePath, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
+    MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+};
+use crate::chiplets::aux_trace::{
+    ChipletsVTableRow, ChipletsVTableTraceBuilder, ChipletsVTableUpdate,
 };
 
 // LINEAR HASH TESTS

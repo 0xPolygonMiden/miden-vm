@@ -1,10 +1,11 @@
+use rand_utils::rand_value;
+use vm_core::{Felt, Operation, ZERO};
+
 use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
 use crate::stack::{
     op_flags::{generate_evaluation_frame, OpFlags},
     B0_COL_IDX, STACK_TRACE_OFFSET,
 };
-use rand_utils::rand_value;
-use vm_core::{Felt, Operation, ZERO};
 
 // UNIT TESTS
 // ================================================================================================

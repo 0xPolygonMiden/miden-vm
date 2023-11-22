@@ -1,8 +1,9 @@
+use miden_air::trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE};
+use vm_core::utils::math::batch_inversion;
+
 use super::{
     super::utils::get_trace_len, Felt, FieldElement, Vec, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO,
 };
-use miden_air::trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE};
-use vm_core::utils::math::batch_inversion;
 
 // STACK TRACE
 // ================================================================================================

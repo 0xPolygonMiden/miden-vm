@@ -1,5 +1,6 @@
-use super::Felt;
 use core::fmt;
+
+use super::Felt;
 mod decorators;
 pub use decorators::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,

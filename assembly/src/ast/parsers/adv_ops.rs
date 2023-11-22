@@ -1,3 +1,5 @@
+use vm_core::SignatureKind;
+
 use super::{
     parse_checked_param,
     AdviceInjectorNode::*,
@@ -5,7 +7,6 @@ use super::{
     Node::{self, Instruction},
     ParsingError, Token, MAX_STACK_WORD_OFFSET,
 };
-use vm_core::SignatureKind;
 
 // INSTRUCTION PARSERS
 // ================================================================================================

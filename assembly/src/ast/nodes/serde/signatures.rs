@@ -1,5 +1,6 @@
-use super::{ByteReader, ByteWriter, DeserializationError, ToString};
 use vm_core::SignatureKind;
+
+use super::{ByteReader, ByteWriter, DeserializationError, ToString};
 
 const RPOFALCON512: u8 = 0;
 

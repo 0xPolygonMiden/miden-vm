@@ -1,7 +1,8 @@
-use super::{blocks::Dyn, Deserializable, Digest, Felt, Kernel, ProgramInfo, Serializable};
-use crate::{chiplets::hasher, Word};
 use proptest::prelude::*;
 use rand_utils::prng_array;
+
+use super::{blocks::Dyn, Deserializable, Digest, Felt, Kernel, ProgramInfo, Serializable};
+use crate::{chiplets::hasher, Word};
 
 #[test]
 fn dyn_hash_is_correct() {

@@ -1,11 +1,14 @@
-use super::{EvaluationFrame, FieldElement, Vec};
-use crate::trace::chiplets::{
-    memory::NUM_ELEMENTS, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
-    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_TRACE_OFFSET,
-    MEMORY_V_COL_RANGE,
-};
-use crate::utils::{binary_not, is_binary, EvaluationResult};
 use winter_air::TransitionConstraintDegree;
+
+use super::{EvaluationFrame, FieldElement, Vec};
+use crate::{
+    trace::chiplets::{
+        memory::NUM_ELEMENTS, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+        MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_TRACE_OFFSET,
+        MEMORY_V_COL_RANGE,
+    },
+    utils::{binary_not, is_binary, EvaluationResult},
+};
 
 #[cfg(test)]
 mod tests;

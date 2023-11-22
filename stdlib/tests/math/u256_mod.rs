@@ -1,6 +1,7 @@
-use crate::build_test;
 use num_bigint::BigUint;
 use test_utils::rand::rand_vector;
+
+use crate::build_test;
 
 // MULTIPLICATION
 // ================================================================================================

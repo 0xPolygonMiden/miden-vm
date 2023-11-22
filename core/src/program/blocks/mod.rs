@@ -1,6 +1,7 @@
+use core::fmt;
+
 use super::{hasher, Box, Digest, Felt, Operation, Vec};
 use crate::DecoratorList;
-use core::fmt;
 
 mod call_block;
 mod dyn_block;

@@ -1,5 +1,6 @@
-use crate::build_test;
 use test_utils::test_case;
+
+use crate::build_test;
 
 // Wrapper types for ease of writing parameterized test cases
 struct FieldElement([u32; 8]);

@@ -1,5 +1,6 @@
-use clap::Parser;
 use core::fmt;
+
+use clap::Parser;
 use miden::{AssemblyError, ExecutionError};
 
 mod cli;

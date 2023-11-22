@@ -1,3 +1,7 @@
+use core::{convert::TryFrom, ops::RangeBounds};
+
+use vm_core::WORD_SIZE;
+
 use super::{
     parse_checked_param, parse_param_with_constant_lookup, Felt,
     Instruction::*,
@@ -6,8 +10,6 @@ use super::{
     ParsingError, Token, Vec, CONSTANT_LABEL_PARSER,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
-use core::{convert::TryFrom, ops::RangeBounds};
-use vm_core::WORD_SIZE;
 
 /// Helper enum for endianness determination in the parsing functions.
 #[derive(Debug)]

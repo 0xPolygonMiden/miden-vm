@@ -1,6 +1,7 @@
+use winter_utils::flatten_slice_elements;
+
 use super::{fmt, hasher, Digest, Felt, Operation, Vec};
 use crate::{DecoratorIterator, DecoratorList, ZERO};
-use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
 // ================================================================================================

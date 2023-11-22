@@ -1,7 +1,8 @@
-use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest, ToString};
-use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+
+use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest, ToString};
+use crate::MAX_PUSH_INPUTS;
 
 mod debug;
 mod deserialization;

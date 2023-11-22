@@ -1,20 +1,18 @@
-use super::{Felt, StarkField};
-use core::fmt::{self, Write};
 use core::{
-    fmt::Debug,
+    fmt::{self, Debug, Write},
     ops::{Bound, Range},
 };
-use winter_utils::{collections::Vec, string::String};
 
+pub use miden_crypto::utils::{collections, vec};
+use winter_utils::{collections::Vec, string::String};
 // RE-EXPORTS
 // ================================================================================================
-
 pub use winter_utils::{
     group_slice_elements, group_vector_elements, string, uninit_vector, Box, ByteReader,
     ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
-pub use miden_crypto::utils::{collections, vec};
+use super::{Felt, StarkField};
 
 pub mod math {
     pub use math::{batch_inversion, log2};

@@ -1,13 +1,15 @@
-use crate::{ModuleMap, Renderer};
-use assembly::{
-    ast::{ModuleAst, ProcReExport, ProcedureAst},
-    LibraryPath,
-};
 use std::{
     fs::{self, File},
     io::Write,
     path::PathBuf,
 };
+
+use assembly::{
+    ast::{ModuleAst, ProcReExport, ProcedureAst},
+    LibraryPath,
+};
+
+use crate::{ModuleMap, Renderer};
 
 // MARKDOWN RENDERER
 // ================================================================================================

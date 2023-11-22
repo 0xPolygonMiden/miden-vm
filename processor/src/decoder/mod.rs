@@ -1,8 +1,3 @@
-use super::{
-    Call, ColMatrix, Dyn, ExecutionError, Felt, FieldElement, Host, Join, Loop, OpBatch, Operation,
-    Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
-    ZERO,
-};
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
     decoder::{
@@ -12,11 +7,16 @@ use miden_air::trace::{
 };
 use vm_core::{code_blocks::get_span_op_group_count, stack::STACK_TOP_SIZE, AssemblyOp};
 
-mod trace;
-use trace::DecoderTrace;
+use super::{
+    Call, ColMatrix, Dyn, ExecutionError, Felt, FieldElement, Host, Join, Loop, OpBatch, Operation,
+    Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
+    ZERO,
+};
 
+mod trace;
 #[cfg(test)]
 use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
+use trace::DecoderTrace;
 
 mod block_stack;
 use block_stack::{BlockInfo, BlockStack, BlockType, ExecutionContextInfo};

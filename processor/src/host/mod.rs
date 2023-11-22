@@ -1,6 +1,7 @@
+use vm_core::{crypto::merkle::MerklePath, AdviceInjector, DebugOptions, Word};
+
 use super::{ExecutionError, Felt, ProcessState};
 use crate::MemAdviceProvider;
-use vm_core::{crypto::merkle::MerklePath, AdviceInjector, DebugOptions, Word};
 
 pub(super) mod advice;
 use advice::{AdviceExtractor, AdviceProvider};

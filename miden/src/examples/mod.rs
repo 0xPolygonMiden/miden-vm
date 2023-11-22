@@ -1,8 +1,8 @@
+use std::{io::Write, time::Instant};
+
 use clap::Parser;
 use miden::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, ONE, ZERO};
-use std::io::Write;
-use std::time::Instant;
 
 pub mod fibonacci;
 

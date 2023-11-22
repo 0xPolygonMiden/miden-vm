@@ -1,5 +1,6 @@
-use crate::utils::string::String;
 use core::fmt;
+
+use crate::utils::string::String;
 
 // ASSEMBLY OP
 // ================================================================================================

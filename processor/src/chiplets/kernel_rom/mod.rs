@@ -1,8 +1,9 @@
+use miden_air::trace::chiplets::kernel_rom::{KERNEL_PROC_LABEL, TRACE_WIDTH};
+
 use super::{
     trace::LookupTableRow, BTreeMap, ChipletsBus, ChipletsVTableTraceBuilder, ColMatrix, Digest,
     ExecutionError, Felt, FieldElement, Kernel, TraceFragment, Word, ONE, ZERO,
 };
-use miden_air::trace::chiplets::kernel_rom::{KERNEL_PROC_LABEL, TRACE_WIDTH};
 
 #[cfg(test)]
 mod tests;

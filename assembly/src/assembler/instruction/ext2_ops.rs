@@ -1,5 +1,6 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder, ZERO};
 use vm_core::AdviceInjector::Ext2Inv;
+
+use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder, ZERO};
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of

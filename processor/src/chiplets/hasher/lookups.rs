@@ -1,5 +1,5 @@
-use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec, ZERO};
 use core::ops::Range;
+
 use miden_air::trace::chiplets::{
     hasher::{
         CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH_LABEL, MP_VERIFY_LABEL,
@@ -8,6 +8,8 @@ use miden_air::trace::chiplets::{
     },
     HASHER_RATE_COL_RANGE, HASHER_STATE_COL_RANGE,
 };
+
+use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec, ZERO};
 
 // CONSTANTS
 // ================================================================================================

@@ -1,9 +1,10 @@
+use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};
+
 use super::{
     ast::{AstSerdeOptions, ModuleAst},
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, PathError,
     Serializable, String, ToString, Vec, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
 };
-use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};
 
 mod masl;
 pub use masl::MaslLibrary;

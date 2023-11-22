@@ -1,7 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use core::fmt;
+
+use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
+// EXPORTS
+// ================================================================================================
+pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
 use vm_core::{
     crypto::{
         hash::{Blake3_192, Blake3_256, Rpo256},
@@ -10,11 +14,6 @@ use vm_core::{
     utils::vec,
 };
 use winter_verifier::verify as verify_proof;
-
-// EXPORTS
-// ================================================================================================
-
-pub use vm_core::{chiplets::hasher::Digest, Kernel, ProgramInfo, StackInputs, StackOutputs, Word};
 pub use winter_verifier::{AcceptableOptions, VerifierError};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};

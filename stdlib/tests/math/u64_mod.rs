@@ -1,6 +1,8 @@
-use crate::build_test;
 use core::cmp;
+
 use test_utils::{proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
+
+use crate::build_test;
 
 // ADDITION
 // ------------------------------------------------------------------------------------------------

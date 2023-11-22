@@ -1,8 +1,9 @@
-use super::super::{ExecutionError, Felt, StarkField, Vec, Word};
 use vm_core::{
     crypto::dsa::rpo_falcon512::{KeyPair, Polynomial},
     utils::Deserializable,
 };
+
+use super::super::{ExecutionError, Felt, StarkField, Vec, Word};
 
 /// Gets as input a vector containing an expanded public key and its associated secret key, and a
 /// word representing a message and outputs a vector of values to be pushed onto the advice stack.

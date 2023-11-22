@@ -1,5 +1,6 @@
-use super::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use core::fmt;
+
+use super::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 // SOURCE LOCATION
 // ================================================================================================

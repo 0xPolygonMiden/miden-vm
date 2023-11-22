@@ -1,6 +1,7 @@
+use vm_core::{AdviceInjector, StarkField};
+
 use super::{ExecutionError, Host, Operation, Process};
 use crate::crypto::MerklePath;
-use vm_core::{AdviceInjector, StarkField};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -174,17 +175,18 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{Felt, Operation, StarkField},
-        Process,
-    };
-    use crate::{AdviceInputs, StackInputs, Word, ZERO};
     use test_utils::rand::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
         utils::collections::Vec,
     };
+
+    use super::{
+        super::{Felt, Operation, StarkField},
+        Process,
+    };
+    use crate::{AdviceInputs, StackInputs, Word, ZERO};
 
     #[test]
     fn op_hperm() {

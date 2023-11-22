@@ -1,14 +1,15 @@
+use core::ops::Range;
+
+#[cfg(test)]
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
+use vm_core::utils::new_array_vec;
+
 use super::{
     super::utils::get_trace_len, get_num_groups_in_next_batch, Felt, Operation, StarkField, Vec,
     Word, DIGEST_LEN, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS,
     NUM_OP_BITS_EXTRA_COLS, ONE, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
     OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
 };
-use core::ops::Range;
-use vm_core::utils::new_array_vec;
-
-#[cfg(test)]
-use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
 // CONSTANTS
 // ================================================================================================

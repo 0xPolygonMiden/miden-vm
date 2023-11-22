@@ -1,3 +1,6 @@
+use proptest::prelude::*;
+use rand_utils::rand_value;
+
 use super::{
     enforce_constraints, get_periodic_values, EvaluationFrame, BITWISE_A_COL_IDX,
     BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE, BITWISE_OUTPUT_COL_IDX,
@@ -14,9 +17,6 @@ use crate::{
     },
     Felt,
 };
-use rand_utils::rand_value;
-
-use proptest::prelude::*;
 
 // UNIT TESTS
 // ================================================================================================

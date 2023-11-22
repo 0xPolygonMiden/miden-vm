@@ -1,5 +1,6 @@
-use crate::build_test;
 use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
+
+use crate::build_test;
 
 mod channel;
 

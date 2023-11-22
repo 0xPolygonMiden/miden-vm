@@ -1,6 +1,5 @@
-use super::HostResponse;
-use crate::{ExecutionError, Felt, InputError, ProcessState, StarkField, Word};
 use core::borrow::Borrow;
+
 use vm_core::{
     crypto::{
         hash::RpoDigest,
@@ -12,6 +11,9 @@ use vm_core::{
     },
     AdviceInjector, SignatureKind,
 };
+
+use super::HostResponse;
+use crate::{ExecutionError, Felt, InputError, ProcessState, StarkField, Word};
 
 mod extractors;
 pub use extractors::AdviceExtractor;

@@ -1,5 +1,6 @@
-use super::{SourceLocation, Token, Vec};
 use core::{iter, str::Lines};
+
+use super::{SourceLocation, Token, Vec};
 
 // LINES STREAM
 // ================================================================================================

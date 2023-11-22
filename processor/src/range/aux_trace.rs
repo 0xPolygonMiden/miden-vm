@@ -1,6 +1,7 @@
-use super::{uninit_vector, BTreeMap, ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use vm_core::StarkField;
+
+use super::{uninit_vector, BTreeMap, ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================

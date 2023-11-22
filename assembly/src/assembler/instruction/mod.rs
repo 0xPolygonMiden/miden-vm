@@ -1,10 +1,12 @@
+use core::ops::RangeBounds;
+
+use vm_core::{Decorator, FieldElement, StarkField};
+
 use super::{
     Assembler, AssemblyContext, AssemblyError, CodeBlock, Felt, Instruction, Operation,
     ProcedureId, RpoDigest, SpanBuilder, ONE, ZERO,
 };
 use crate::utils::bound_into_included_u64;
-use core::ops::RangeBounds;
-use vm_core::{Decorator, FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;

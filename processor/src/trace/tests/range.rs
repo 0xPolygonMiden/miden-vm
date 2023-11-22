@@ -1,9 +1,10 @@
-use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
 use miden_air::trace::{
     chiplets::hasher::HASH_CYCLE_LEN, range::B_RANGE_COL_IDX, AUX_TRACE_RAND_ELEMENTS,
 };
 use test_utils::rand::rand_array;
 use vm_core::{ExtensionOf, Operation};
+
+use super::{build_trace_from_ops, Felt, FieldElement, Trace, NUM_RAND_ROWS, ONE, ZERO};
 
 /// This test checks that range check lookups from stack operations are balanced by the range checks
 /// processed in the Range Checker.

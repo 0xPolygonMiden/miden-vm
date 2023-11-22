@@ -1,5 +1,6 @@
-use crate::build_test;
 use test_utils::{group_slice_elements, rand::rand_array, Felt, IntoBytes};
+
+use crate::build_test;
 
 #[test]
 fn blake3_hash_64_bytes() {
