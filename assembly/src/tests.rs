@@ -890,6 +890,28 @@ fn u32assertw_with_code() {
     assert_eq!(expected, format!("{program}"));
 }
 
+#[test]
+fn assert_lt_with_constant() {
+    let source = "\
+    const.MAX_SHIFT_VALUE=32
+
+    begin
+        u32assert_lt.MAX_SHIFT_VALUE
+    end
+    "
+    .to_string();
+    let assembler = Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+    begin \
+        span \
+            dup0 push(32) u32sub swap drop eqz not assert(0) \
+        end \
+    end";
+    assert_eq!(expected, format!("{program}"));
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 

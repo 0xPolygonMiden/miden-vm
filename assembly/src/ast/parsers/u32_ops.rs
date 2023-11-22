@@ -1,5 +1,6 @@
 use super::{
     check_div_by_zero, parse_checked_param, parse_error_code, parse_param,
+    parse_param_with_constant_lookup,
     Instruction::*,
     LocalConstMap,
     Node::{self, Instruction},
@@ -85,13 +86,13 @@ pub fn parse_u32assertw(op: &Token, constants: &LocalConstMap) -> Result<Node, P
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_assert_lt(op: &Token) -> Result<Node, ParsingError> {
+pub fn parse_assert_lt(op: &Token, constants: &LocalConstMap) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "u32assert_lt");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(U32AssertLt)),
         2 => {
-            let value = parse_param::<u32>(op, 1)?;
+            let value = parse_param_with_constant_lookup(op, 1, constants)?;
             Ok(Instruction(U32AssertLtImm(value)))
         }
         _ => Err(ParsingError::extra_param(op)),
