@@ -93,7 +93,7 @@ impl StackOutputs {
         self.stack.get(idx).map(|&felt| felt.into())
     }
 
-    /// Returns the word located at the specified position on the stack
+    /// Returns the word located at the specified Felt position on the stack.
     pub fn get_stack_word(&self, idx: usize) -> Option<Word> {
         let word_elements: Word = {
             let word_elements: Vec<Felt> = range(idx, 4)
