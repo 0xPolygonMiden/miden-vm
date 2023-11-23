@@ -151,7 +151,13 @@ impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for BusTraceBuilder {
         (row_values, inv_row_values)
     }
 
-    /// TODO
+    /// Builds the chiplets bus auxiliary trace column.
+    ///
+    /// The bus is constructed in two stages. In the first stage, the requests sent to the chiplets
+    /// are computed, batch inverted and stored in a vector of length equal to the trace length.
+    /// The responses are also computed at this stage and stored in another vector of the same size
+    /// separately. In the second stage, the bus column is constructed by computing the component-wise
+    /// cumulative product of the two vectors.
     fn build_aux_column<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E>
     where
         E: FieldElement<BaseField = Felt>,
@@ -302,6 +308,7 @@ impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for Chiplets
 // CHIPLETS REQUESTS
 // ================================================================================================
 
+/// Constructs the requests made by the VM-components to the chiplets at row i.
 fn chiplets_requests<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -346,6 +353,7 @@ where
     }
 }
 
+/// Builds requests made to the hasher chiplet at the start of a control block.
 fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
@@ -365,6 +373,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt)
 }
 
+/// Builds requests made to kernel rom chiplet when initializing a syscall block.
 fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
@@ -393,6 +402,7 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     factor1 * factor2
 }
 
+/// Builds requests made to the hasher chiplet at the start of a span block.
 fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -411,6 +421,7 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
     header + build_value(&alphas[8..16], &state)
 }
 
+/// Builds requests made to the hasher chiplet at the start of a respan block.
 fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -433,6 +444,7 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
     header + build_value(&alphas[8..16], state_nxt) - build_value(&alphas[8..16], state)
 }
 
+/// Builds requests made to the hasher chiplet at the end of a block.
 fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -453,6 +465,8 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     header + build_value(&alphas[8..12], digest)
 }
 
+/// Builds requests made to the bitwise chiplet. This can be either a request for the computation
+/// of a `XOR` or an `AND` operation.
 fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     is_xor: Felt,
@@ -471,6 +485,7 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
         + alphas[4].mul_base(z)
 }
 
+/// Builds `MLOADW` requests made to the memory chiplet.
 fn build_mloadw_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -498,6 +513,7 @@ fn build_mloadw_request<E: FieldElement<BaseField = Felt>>(
         + alphas[8].mul_base(s0_nxt)
 }
 
+/// Builds `MSTOREW` requests made to the memory chiplet.
 fn build_mstorew_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -525,6 +541,7 @@ fn build_mstorew_request<E: FieldElement<BaseField = Felt>>(
         + alphas[8].mul_base(s0_nxt)
 }
 
+/// Builds `MLOAD` requests made to the memory chiplet.
 fn build_mload_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -553,6 +570,7 @@ fn build_mload_request<E: FieldElement<BaseField = Felt>>(
         + alphas[8].mul_base(helper_0)
 }
 
+/// Builds `MSTORE` requests made to the memory chiplet.
 fn build_mstore_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -581,6 +599,7 @@ fn build_mstore_request<E: FieldElement<BaseField = Felt>>(
         + alphas[8].mul_base(helper_0)
 }
 
+/// Builds `MSTREAM` requests made to the memory chiplet.
 fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -624,6 +643,7 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     factor1 * factor2
 }
 
+/// Builds `HPERM` requests made to the hash chiplet.
 fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -698,6 +718,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     v_input * v_output
 }
 
+/// Builds `MPVERIFY` requests made to the hash chiplet.
 fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -717,16 +738,12 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
         op_label + 32
     };
 
-    let hash_row = main_trace.chiplet_hasher_state(helper_0.as_int() as usize - 1);
-
-    let sibling = &hash_row[4..8];
-
     let sum_input = alphas[8..12]
         .iter()
-        //.rev()
+        .rev()
         .enumerate()
-        //.fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
-        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(sibling[i]));
+        .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s3[i]));
+
     let v_input = alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
         + alphas[2].mul_base(helper_0)
@@ -753,6 +770,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     v_input * v_output
 }
 
+/// Builds `MRUPDATE` requests made to the hash chiplet.
 fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
@@ -773,6 +791,12 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     let s10_s13 = [main_trace.s10(i), main_trace.s11(i), main_trace.s12(i), main_trace.s13(i)];
 
     let op_label = MR_UPDATE_OLD_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
     let sum_input = alphas[8..12]
         .iter()
         .rev()
@@ -785,6 +809,12 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + sum_input;
 
     let op_label = RETURN_HASH_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(8) - ONE) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
     let sum_output = alphas[8..12]
         .iter()
         .rev()
@@ -796,6 +826,11 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + sum_output;
 
     let op_label = MR_UPDATE_NEW_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(8)) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
     let sum_input = alphas[8..12]
         .iter()
         .rev()
@@ -808,6 +843,12 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
         + sum_input;
 
     let op_label = RETURN_HASH_LABEL;
+    let op_label = if addr_to_hash_cycle(helper_0 + s4.mul_small(16) - ONE) == 0 {
+        op_label + 16
+    } else {
+        op_label + 32
+    };
+
     let sum_output = alphas[8..12]
         .iter()
         .rev()
@@ -824,6 +865,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 // CHIPLETS RESPONSES
 // ================================================================================================
 
+/// Constructs the responses from the chiplets to the other VM-components at row i.
 fn chiplets_responses<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -835,15 +877,17 @@ where
     let selector4 = main_trace.chiplet_selector_4(i);
 
     if selector0 == ZERO {
-        return build_hasher_chiplet(main_trace, i, alphas, selector1, selector2, selector3);
+        return build_hasher_chiplet_responses(
+            main_trace, i, alphas, selector1, selector2, selector3,
+        );
     }
 
     if selector0 == ONE && selector1 == ZERO {
-        return build_bitwise_chiplet(main_trace, i, selector2, alphas);
+        return build_bitwise_chiplet_responses(main_trace, i, selector2, alphas);
     }
 
     if selector0 == ONE && selector1 == ONE && selector2 == ZERO {
-        return build_memory_chiplet(main_trace, i, selector3, alphas);
+        return build_memory_chiplet_responses(main_trace, i, selector3, alphas);
     }
 
     if selector0 == ONE
@@ -852,13 +896,14 @@ where
         && selector3 == ZERO
         && selector4 == ONE
     {
-        build_kernel_chiplet(main_trace, i, alphas)
+        build_kernel_chiplet_responses(main_trace, i, alphas)
     } else {
         E::ONE
     }
 }
 
-fn build_hasher_chiplet<E>(
+/// Builds the response from the hasher chiplet at row `i`.
+fn build_hasher_chiplet_responses<E>(
     main_trace: &MainTrace,
     i: usize,
     alphas: &[E],
@@ -904,7 +949,7 @@ where
                 + alphas[2].mul_base(Felt::from((i + 1) as u64))
                 + alphas[3].mul_base(node_index);
 
-            let bit = (node_index.as_int() >> 1) & 1;
+            let bit = node_index.as_int() & 1;
             let left_word = build_value(&alphas[8..12], &state[4..8]);
             let right_word = build_value(&alphas[8..12], &state[8..]);
 
@@ -972,7 +1017,13 @@ where
     multiplicand
 }
 
-fn build_bitwise_chiplet<E>(main_trace: &MainTrace, i: usize, is_xor: Felt, alphas: &[E]) -> E
+/// Builds the response from the bitwise chiplet at row `i`.
+fn build_bitwise_chiplet_responses<E>(
+    main_trace: &MainTrace,
+    i: usize,
+    is_xor: Felt,
+    alphas: &[E],
+) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -993,7 +1044,13 @@ where
     multiplicand
 }
 
-fn build_memory_chiplet<E>(main_trace: &MainTrace, i: usize, is_read: Felt, alphas: &[E]) -> E
+/// Builds the response from the memory chiplet at row `i`.
+fn build_memory_chiplet_responses<E>(
+    main_trace: &MainTrace,
+    i: usize,
+    is_read: Felt,
+    alphas: &[E],
+) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -1018,7 +1075,8 @@ where
         + alphas[8].mul_base(value3)
 }
 
-fn build_kernel_chiplet<E>(main_trace: &MainTrace, i: usize, alphas: &[E]) -> E
+/// Builds the response from the kernel chiplet at row `i`.
+fn build_kernel_chiplet_responses<E>(main_trace: &MainTrace, i: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -1306,6 +1364,7 @@ fn addr_to_hash_cycle(addr: Felt) -> usize {
     cycle_row
 }
 
+/// Convenience method to convert from addresses to rows.
 fn addr_to_row_index(addr: Felt) -> usize {
     (addr.as_int() - 1) as usize
 }
