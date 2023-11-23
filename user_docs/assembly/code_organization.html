@@ -260,7 +260,7 @@ end
 begin
     push.1.0
     push.2.0
-    exec.u64::checked_add
+    exec.u64::wrapping_add
 end
 </code></pre>
 <p>In the above example we import <code>std::math::u64</code> module from the <a href="../stdlib/main.html">standard library</a>. We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.</p>
@@ -298,7 +298,7 @@ const.ADDR_1=3
 
 begin
     push.CONSTANT_1.CONSTANT_2
-    exec.u64::checked_add
+    exec.u64::wrapping_add
     mem_store.ADDR_1
 end
 
