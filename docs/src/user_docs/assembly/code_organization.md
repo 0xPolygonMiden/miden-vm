@@ -54,7 +54,7 @@ dynexec
 This causes the VM to do the following:
 
 1. Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).
-2. Execute the code block which hashes to the specified target. The VM must know the specified code block and hash (they must be in the CodeBlockTable of the executing Program).
+2. Execute the code block which hashes to the specified target. The VM must know the specified code block and hash: they must be in the CodeBlockTable of the executing Program. Hashes can be put into the CodeBlockTable manually, or by executing `call`, `syscall`, or `procref` instructions. 
 
 Dynamic code execution in a new context can be achieved similarly by setting the top $4$ elements of the stack to the hash of the dynamic code block and then executing the following instruction:
 

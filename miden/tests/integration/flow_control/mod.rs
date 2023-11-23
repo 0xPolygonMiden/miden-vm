@@ -284,6 +284,38 @@ fn simple_dyn_exec() {
 }
 
 #[test]
+fn dynexec_with_procref() {
+    let program_source = "
+    use.std::math::u64
+
+    proc.foo
+        push.1.2
+        u32wrapping_add
+    end
+
+    begin
+        procref.foo
+        dynexec 
+
+        procref.u64::wrapping_add
+        dynexec
+    end";
+
+    let mut test = build_test!(program_source, &[]);
+    test.libraries = vec![StdLibrary::default().into()];
+
+    test.expect_stack(&[
+        1719755471,
+        1057995821,
+        3,
+        12973202366681443424,
+        7933716460165146367,
+        14382661273226268231,
+        15818904913409383971,
+    ]);
+}
+
+#[test]
 fn simple_dyncall() {
     let program_source = "
         proc.foo
