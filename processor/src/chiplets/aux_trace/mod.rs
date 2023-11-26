@@ -320,35 +320,20 @@ where
         JOIN | SPLIT | LOOP | DYN | CALL => {
             build_control_block_request(main_trace, op_code_felt, alphas, i)
         }
-
         SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, i),
-
         SPAN => build_span_block_request(main_trace, alphas, i),
-
         RESPAN => build_respan_block_request(main_trace, alphas, i),
-
         END => build_end_block_request(main_trace, alphas, i),
-
         AND => build_bitwise_request(main_trace, ZERO, alphas, i),
-
         XOR => build_bitwise_request(main_trace, ONE, alphas, i),
-
-        MLOADW => build_mloadw_request(main_trace, alphas, i),
-
-        MSTOREW => build_mstorew_request(main_trace, alphas, i),
-
-        MLOAD => build_mload_request(main_trace, alphas, i),
-
-        MSTORE => build_mstore_request(main_trace, alphas, i),
-
+        MLOADW => build_mloadw_mstorew_request(main_trace, false, alphas, i),
+        MSTOREW => build_mloadw_mstorew_request(main_trace, true, alphas, i),
+        MLOAD => build_mload_mstore_request(main_trace, false, alphas, i),
+        MSTORE => build_mload_mstore_request(main_trace, true, alphas, i),
         MSTREAM => build_mstream_request(main_trace, alphas, i),
-
         HPERM => build_hperm_request(main_trace, alphas, i),
-
         MPVERIFY => build_mpverify_request(main_trace, alphas, i),
-
         MRUPDATE => build_mrupdate_request(main_trace, alphas, i),
-
         _ => E::ONE,
     }
 }
@@ -380,18 +365,10 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(i + 1);
-    let first_cycle_row = addr_to_row_index(addr_nxt) % 8 == 0;
-    let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
-
-    let header =
-        alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
-
-    let state = main_trace.decoder_hasher_state(i);
-    let factor1 = header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt);
+    let factor1 = build_control_block_request(main_trace, op_code_felt, alphas, i);
 
     let op_label = KERNEL_PROC_LABEL;
+    let state = main_trace.decoder_hasher_state(i);
     let factor2 = alphas[0]
         + alphas[1].mul_base(op_label)
         + alphas[2].mul_base(state[0])
@@ -485,9 +462,10 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
         + alphas[4].mul_base(z)
 }
 
-/// Builds `MLOADW` requests made to the memory chiplet.
-fn build_mloadw_request<E: FieldElement<BaseField = Felt>>(
+/// Builds `MLOADW` and `MSTOREW` requests made to the memory chiplet.
+fn build_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
+    is_mstorew: bool,
     alphas: &[E],
     i: usize,
 ) -> E {
@@ -500,7 +478,11 @@ fn build_mloadw_request<E: FieldElement<BaseField = Felt>>(
     let s2_nxt = main_trace.s2(i + 1);
     let s3_nxt = main_trace.s3(i + 1);
 
-    let op_label = MEMORY_READ_LABEL;
+    let op_label = if is_mstorew {
+        MEMORY_WRITE_LABEL
+    } else {
+        MEMORY_READ_LABEL
+    };
 
     alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
@@ -513,37 +495,10 @@ fn build_mloadw_request<E: FieldElement<BaseField = Felt>>(
         + alphas[8].mul_base(s0_nxt)
 }
 
-/// Builds `MSTOREW` requests made to the memory chiplet.
-fn build_mstorew_request<E: FieldElement<BaseField = Felt>>(
+/// Builds `MLOAD` and `MSTORE` requests made to the memory chiplet.
+fn build_mload_mstore_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
-    alphas: &[E],
-    i: usize,
-) -> E {
-    let ctx = main_trace.ctx(i);
-    let clk = main_trace.clk(i);
-
-    let s0_cur = main_trace.s0(i);
-    let s0_nxt = main_trace.s0(i + 1);
-    let s1_nxt = main_trace.s1(i + 1);
-    let s2_nxt = main_trace.s2(i + 1);
-    let s3_nxt = main_trace.s3(i + 1);
-
-    let op_label = MEMORY_WRITE_LABEL;
-
-    alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(s0_cur)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(s3_nxt)
-        + alphas[6].mul_base(s2_nxt)
-        + alphas[7].mul_base(s1_nxt)
-        + alphas[8].mul_base(s0_nxt)
-}
-
-/// Builds `MLOAD` requests made to the memory chiplet.
-fn build_mload_request<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
+    is_mstore: bool,
     alphas: &[E],
     i: usize,
 ) -> E {
@@ -557,36 +512,11 @@ fn build_mload_request<E: FieldElement<BaseField = Felt>>(
     let s0_cur = main_trace.s0(i);
     let s0_nxt = main_trace.s0(i + 1);
 
-    let op_label = MEMORY_READ_LABEL;
-
-    alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(s0_cur)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(s0_nxt)
-        + alphas[6].mul_base(helper_2)
-        + alphas[7].mul_base(helper_1)
-        + alphas[8].mul_base(helper_0)
-}
-
-/// Builds `MSTORE` requests made to the memory chiplet.
-fn build_mstore_request<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    alphas: &[E],
-    i: usize,
-) -> E {
-    let ctx = main_trace.ctx(i);
-    let clk = main_trace.clk(i);
-
-    let helper_0 = main_trace.helper_0(i);
-    let helper_1 = main_trace.helper_1(i);
-    let helper_2 = main_trace.helper_2(i);
-
-    let s0_cur = main_trace.s0(i);
-    let s0_nxt = main_trace.s0(i + 1);
-
-    let op_label = MEMORY_WRITE_LABEL;
+    let op_label = if is_mstore {
+        MEMORY_WRITE_LABEL
+    } else {
+        MEMORY_READ_LABEL
+    };
 
     alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
@@ -877,27 +807,24 @@ where
     let selector4 = main_trace.chiplet_selector_4(i);
 
     if selector0 == ZERO {
-        return build_hasher_chiplet_responses(
-            main_trace, i, alphas, selector1, selector2, selector3,
-        );
-    }
-
-    if selector0 == ONE && selector1 == ZERO {
-        return build_bitwise_chiplet_responses(main_trace, i, selector2, alphas);
-    }
-
-    if selector0 == ONE && selector1 == ONE && selector2 == ZERO {
-        return build_memory_chiplet_responses(main_trace, i, selector3, alphas);
-    }
-
-    if selector0 == ONE
-        && selector1 == ONE
-        && selector2 == ONE
-        && selector3 == ZERO
-        && selector4 == ONE
-    {
+        build_hasher_chiplet_responses(main_trace, i, alphas, selector1, selector2, selector3)
+    } else if selector1 == ZERO {
+        debug_assert_eq!(selector0, ONE);
+        build_bitwise_chiplet_responses(main_trace, i, selector2, alphas)
+    } else if selector2 == ZERO {
+        debug_assert_eq!(selector0, ONE);
+        debug_assert_eq!(selector1, ONE);
+        build_memory_chiplet_responses(main_trace, i, selector3, alphas)
+    } else if selector3 == ZERO && selector4 == ONE {
+        debug_assert_eq!(selector0, ONE);
+        debug_assert_eq!(selector1, ONE);
+        debug_assert_eq!(selector2, ONE);
         build_kernel_chiplet_responses(main_trace, i, alphas)
     } else {
+        debug_assert_eq!(selector0, ONE);
+        debug_assert_eq!(selector1, ONE);
+        debug_assert_eq!(selector2, ONE);
+        debug_assert_eq!(selector3, ONE);
         E::ONE
     }
 }
@@ -957,7 +884,7 @@ where
         }
     }
 
-    // f_hout, f_sout, f_abp, f_mpa, f_mva or f_mua == 1
+    // f_hout, f_sout, f_abp == 1
     if i % 8 == 7 {
         let [s0, s1, s2] = [col1, col2, col3];
 
@@ -1348,6 +1275,7 @@ fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt
     value
 }
 
+/// Returns the operation unique label.
 fn get_op_label(s0: Felt, s1: Felt, s2: Felt, s3: Felt) -> Felt {
     s3.mul_small(8) + s2.mul_small(4) + s1.mul_small(2) + s0 + ONE
 }
