@@ -88,7 +88,7 @@ impl StackOutputs {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the value located at the specified position on the stack or `None` if out of bounds.
+    /// Returns the element located at the specified position on the stack or `None` if out of bounds.
     pub fn get_stack_item(&self, idx: usize) -> Option<Felt> {
         self.stack.get(idx).map(|&felt| felt.into())
     }
