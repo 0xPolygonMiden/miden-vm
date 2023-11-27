@@ -898,7 +898,7 @@ fn test_ast_program_serde_imports_serialized() {
     begin
         push.0
         push.1
-        exec.u64::checked_add
+        exec.u64::wrapping_add
     end";
     assert_correct_program_serialization(source, true);
 }
@@ -912,7 +912,7 @@ fn test_ast_program_serde_imports_not_serialized() {
     begin
         push.0
         push.1
-        exec.u64::checked_add
+        exec.u64::wrapping_add
     end";
     assert_correct_program_serialization(source, false);
 }
@@ -926,7 +926,7 @@ fn test_ast_module_serde_imports_serialized() {
     proc.foo.2
         push.0
         push.1
-        exec.u64::checked_add
+        exec.u64::wrapping_add
     end";
     assert_correct_module_serialization(source, true);
 }
@@ -940,7 +940,7 @@ fn test_ast_module_serde_imports_not_serialized() {
     proc.foo.2
         push.0
         push.1
-        exec.u64::checked_add
+        exec.u64::wrapping_add
     end";
     assert_correct_module_serialization(source, false);
 }

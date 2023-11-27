@@ -12,10 +12,12 @@
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
+- Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
 
 #### VM Internals
 - Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
 - Updated Winterfell dependency to v0.7 (#1121).
+- Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
 
 ## 0.7.0 (2023-10-11)
 

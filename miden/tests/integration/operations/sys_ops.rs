@@ -1,4 +1,4 @@
-use test_utils::{build_op_test, Felt, TestError};
+use test_utils::{build_op_test, TestError};
 
 // SYSTEM OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================
@@ -19,7 +19,7 @@ fn assert_with_code() {
     test.expect_stack(&[]);
 
     // triggered assertion captures both the VM cycle and error code
-    let expected_err = format!("FailedAssertion(1, BaseElement({}))", Felt::new(123).inner());
+    let expected_err = "FailedAssertion(1, 123)";
     let test = build_op_test!(asm_op, &[0]);
     test.expect_error(TestError::ExecutionError(&expected_err));
 }
