@@ -88,12 +88,15 @@ impl StackOutputs {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the element located at the specified position on the stack or `None` if out of bounds.
+    /// Returns the element located at the specified position on the stack or `None` if out of
+    /// bounds.
     pub fn get_stack_item(&self, idx: usize) -> Option<Felt> {
         self.stack.get(idx).map(|&felt| felt.into())
     }
 
-    /// Returns the word located at the specified Felt position on the stack or `None` if out of bounds.
+    /// Returns the word located starting at the specified Felt position on the stack or `None` if
+    /// out of bounds. For example, passing in `0` returns the word at the top of the stack, and
+    /// passing in `4` returns the word starting at element index `4`.
     pub fn get_stack_word(&self, idx: usize) -> Option<Word> {
         let word_elements: Word = {
             let word_elements: Vec<Felt> = range(idx, 4)
