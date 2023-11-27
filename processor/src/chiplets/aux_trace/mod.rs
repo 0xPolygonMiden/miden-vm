@@ -1374,6 +1374,8 @@ impl<'a> MainTrace<'a> {
         self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
     }
 
+    // Merkle path hashing selectors
+
     fn f_mv(&self, i: usize) -> bool {
         (i % 8 == 0)
             && self.chiplet_selector_0(i) == ZERO
@@ -1413,6 +1415,7 @@ impl<'a> MainTrace<'a> {
             && self.chiplet_selector_3(i) == ZERO
     }
 
+    // Helper method to detect change of address in the kernel ROM chiplet.
     fn is_addr_change(&self, i: usize) -> bool {
         self.addr(i) != self.addr(i + 1)
     }
