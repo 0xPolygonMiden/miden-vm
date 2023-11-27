@@ -12,7 +12,7 @@ use miden_air::trace::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET,
 };
 
-use vm_core::{utils::range, ZERO};
+use vm_core::{utils::range, ONE, ZERO};
 const DECODER_HASHER_RANGE: Range<usize> =
     range(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
 
@@ -229,5 +229,51 @@ impl<'a> MainTrace<'a> {
 
     pub fn chiplet_kernel_root_3(&self, i: usize) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
+    }
+    // Merkle path hashing selectors
+
+    pub fn f_mv(&self, i: usize) -> bool {
+        (i % 8 == 0)
+            && self.chiplet_selector_0(i) == ZERO
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ZERO
+    }
+
+    pub fn f_mva(&self, i: usize) -> bool {
+        (i % 8 == 7)
+            && self.chiplet_selector_0(i) == ZERO
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ZERO
+    }
+
+    pub fn f_mu(&self, i: usize) -> bool {
+        (i % 8 == 0)
+            && self.chiplet_selector_0(i) == ZERO
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ONE
+    }
+
+    pub fn f_mua(&self, i: usize) -> bool {
+        (i % 8 == 7)
+            && self.chiplet_selector_0(i) == ZERO
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ONE
+    }
+
+    // Detects if a row is part of the kernel chiplet.
+    pub fn is_kernel_row(&self, i: usize) -> bool {
+        self.chiplet_selector_0(i) == ONE
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ZERO
+    }
+
+    // Helper method to detect change of address in the kernel ROM chiplet.
+    pub fn is_addr_change(&self, i: usize) -> bool {
+        self.addr(i) != self.addr(i + 1)
     }
 }
