@@ -226,6 +226,7 @@ impl Trace for ExecutionTrace {
             &self.main_trace,
             &self.aux_trace_hints.decoder,
             rand_elements,
+            self.program_hash(),
         );
 
         // add stack's running product columns
