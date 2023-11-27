@@ -333,8 +333,8 @@ impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for Chiplets
         let main_tr = MainTrace::new(main_trace);
 
         for i in 0..main_trace.num_rows() - 1 {
-            result_1[i] = chiplets_vtable_remove(&main_tr, alphas, i);
-            result_2[i] = chiplets_vtable_include(&main_tr, alphas, i)
+            result_1[i] = chiplets_vtable_remove_sibling(&main_tr, alphas, i);
+            result_2[i] = chiplets_vtable_add_sibling(&main_tr, alphas, i)
                 * chiplets_kernel_table_include(&main_tr, alphas, i);
         }
 
@@ -351,8 +351,9 @@ impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for Chiplets
 // CHIPLETS VIRTUAL TABLE REQUESTS
 // ================================================================================================
 
-/// Constructs the inclusions to the table
-fn chiplets_vtable_include<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+/// Constructs the inclusions to the table when the hasher absorbs a new sibling node while
+/// computing the old Merkle root.
+fn chiplets_vtable_add_sibling<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -384,12 +385,13 @@ where
                 + alphas[11].mul_base(sibling[3])
         }
     } else {
-        return E::ONE;
+        E::ONE
     }
 }
 
-/// Constructs the removals from the table
-fn chiplets_vtable_remove<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+/// Constructs the removals from the table when the hasher absorbs a new sibling node while
+/// computing the new Merkle root.
+fn chiplets_vtable_remove_sibling<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -421,24 +423,24 @@ where
                 + alphas[11].mul_base(sibling[3])
         }
     } else {
-        return E::ONE;
+        E::ONE
     }
 }
 
-/// Constructs the inclusions to the kernel table
+/// Constructs the inclusions to the kernel table.
 fn chiplets_kernel_table_include<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
     if main_trace.is_kernel_row(i) && main_trace.is_addr_change(i) {
-        return alphas[0]
+        alphas[0]
             + alphas[1].mul_base(main_trace.addr(i))
             + alphas[2].mul_base(main_trace.chiplet_kernel_root_0(i))
             + alphas[3].mul_base(main_trace.chiplet_kernel_root_1(i))
             + alphas[4].mul_base(main_trace.chiplet_kernel_root_2(i))
-            + alphas[5].mul_base(main_trace.chiplet_kernel_root_3(i));
+            + alphas[5].mul_base(main_trace.chiplet_kernel_root_3(i))
     } else {
-        return E::ONE;
+        E::ONE
     }
 }
 
@@ -1373,35 +1375,35 @@ impl<'a> MainTrace<'a> {
     }
 
     fn f_mv(&self, i: usize) -> bool {
-        return (i % 8 == 0)
+        (i % 8 == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ZERO;
+            && self.chiplet_selector_3(i) == ZERO
     }
 
     fn f_mva(&self, i: usize) -> bool {
-        return (i % 8 == 7)
+        (i % 8 == 7)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ZERO;
+            && self.chiplet_selector_3(i) == ZERO
     }
 
     fn f_mu(&self, i: usize) -> bool {
-        return (i % 8 == 0)
+        (i % 8 == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ONE;
+            && self.chiplet_selector_3(i) == ONE
     }
 
     fn f_mua(&self, i: usize) -> bool {
-        return (i % 8 == 7)
+        (i % 8 == 7)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ONE;
+            && self.chiplet_selector_3(i) == ONE
     }
 
     fn is_kernel_row(&self, i: usize) -> bool {
