@@ -1,6 +1,8 @@
-use crate::build_test;
 use std::{cmp::PartialEq, ops::Mul};
+
 use test_utils::{rand::rand_value, StarkField};
+
+use crate::build_test;
 
 #[derive(Copy, Clone, Debug)]
 struct Scalar {

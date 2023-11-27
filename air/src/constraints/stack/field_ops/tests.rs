@@ -1,14 +1,17 @@
+use core::ops::Neg;
+
+use proptest::prelude::*;
+use rand_utils::rand_value;
+use vm_core::{Felt, FieldElement, Operation, StarkField, ONE, ZERO};
+
 use super::{
     super::{DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET},
     enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS,
 };
-use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
-use crate::trace::decoder::USER_OP_HELPERS_OFFSET;
-use core::ops::Neg;
-use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, Operation, StarkField, ONE, ZERO};
-
-use proptest::prelude::*;
+use crate::{
+    stack::op_flags::{generate_evaluation_frame, OpFlags},
+    trace::decoder::USER_OP_HELPERS_OFFSET,
+};
 
 // RANDOMIZED TESTS
 // ================================================================================================

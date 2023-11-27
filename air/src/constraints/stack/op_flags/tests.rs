@@ -1,12 +1,11 @@
-use crate::stack::op_flags::get_op_index;
+use vm_core::{Operation, ONE, ZERO};
 
 use super::{
     generate_evaluation_frame, OpFlags, DECODER_TRACE_OFFSET, DEGREE_4_OPCODE_ENDS,
     DEGREE_4_OPCODE_STARTS, DEGREE_6_OPCODE_ENDS, DEGREE_6_OPCODE_STARTS, DEGREE_7_OPCODE_ENDS,
     DEGREE_7_OPCODE_STARTS, NUM_DEGREE_4_OPS, NUM_DEGREE_5_OPS, NUM_DEGREE_6_OPS, NUM_DEGREE_7_OPS,
 };
-use crate::trace::decoder::IS_LOOP_FLAG_COL_IDX;
-use vm_core::{Operation, ONE, ZERO};
+use crate::{stack::op_flags::get_op_index, trace::decoder::IS_LOOP_FLAG_COL_IDX};
 
 /// Asserts the op flag to ONE for degree 7 operation which is being executed in the current
 /// frame; assert all the other operation flags to ZERO as they are not present in the current

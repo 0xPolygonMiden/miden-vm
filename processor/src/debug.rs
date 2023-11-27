@@ -1,11 +1,13 @@
-use crate::{
-    range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
-    Felt, Host, Process, Stack, StarkField, System, TraceLenSummary, Vec,
-};
 use core::fmt;
+
 use vm_core::{
     utils::string::{String, ToString},
     AssemblyOp, Operation, StackOutputs, Word,
+};
+
+use crate::{
+    range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
+    Felt, Host, Process, Stack, StarkField, System, TraceLenSummary, Vec,
 };
 
 /// VmState holds a current process state information at a specific clock cycle.

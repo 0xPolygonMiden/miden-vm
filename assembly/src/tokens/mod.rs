@@ -1,9 +1,10 @@
+use core::fmt;
+
 use super::{
     ast::{parse_param_with_constant_lookup, InvocationTarget},
     BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath,
     ParsingError, ProcedureName, Serializable, String, ToString, Vec,
 };
-use core::fmt;
 
 mod lines;
 pub use lines::{LineInfo, LinesStream};

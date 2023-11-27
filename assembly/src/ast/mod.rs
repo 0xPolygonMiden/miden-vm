@@ -3,18 +3,19 @@
 //! Structs in this module (specifically [ProgramAst] and [ModuleAst]) can be used to parse source
 //! code into relevant ASTs. This can be done via their `parse()` methods.
 
+use core::{fmt, iter, str::from_utf8};
+#[cfg(feature = "std")]
+use std::{fs, io, path::Path};
+
+use vm_core::utils::bound_into_included_u64;
+
+pub use super::tokens::SourceLocation;
 use super::{
     crypto::hash::RpoDigest, BTreeMap, ByteReader, ByteWriter, Deserializable,
     DeserializationError, Felt, LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName,
     Serializable, SliceReader, StarkField, String, ToString, Token, TokenStream, Vec,
     MAX_LABEL_LEN,
 };
-use core::{fmt, iter, str::from_utf8};
-#[cfg(feature = "std")]
-use std::{fs, io, path::Path};
-use vm_core::utils::bound_into_included_u64;
-
-pub use super::tokens::SourceLocation;
 
 mod nodes;
 use nodes::FormattableNode;
@@ -34,7 +35,6 @@ pub use invocation_target::InvocationTarget;
 
 mod parsers;
 use parsers::{parse_constants, ParserContext};
-
 pub(crate) use parsers::{
     parse_param_with_constant_lookup, NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER,
 };

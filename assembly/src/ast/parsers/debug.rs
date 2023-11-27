@@ -1,10 +1,11 @@
+use vm_core::DebugOptions;
+
 use super::{
     parse_checked_param,
     Instruction::*,
     Node::{self, Instruction},
     ParsingError, Token,
 };
-use vm_core::DebugOptions;
 
 // INSTRUCTION PARSERS
 // ================================================================================================

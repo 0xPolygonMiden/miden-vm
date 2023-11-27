@@ -1,7 +1,8 @@
+use core::fmt::{self, Display};
+
 use super::{
     ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
 };
-use core::fmt::{self, Display};
 
 #[cfg(test)]
 mod tests;

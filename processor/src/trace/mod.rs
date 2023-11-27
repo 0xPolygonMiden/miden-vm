@@ -1,3 +1,13 @@
+use miden_air::trace::{
+    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
+    STACK_TRACE_OFFSET, TRACE_WIDTH,
+};
+#[cfg(feature = "std")]
+use vm_core::StarkField;
+use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
+use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
+
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
@@ -5,16 +15,6 @@ use super::{
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState, Vec,
 };
-use miden_air::trace::{
-    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH,
-};
-use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
-use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
-
-#[cfg(feature = "std")]
-use vm_core::StarkField;
 
 mod utils;
 pub use utils::{

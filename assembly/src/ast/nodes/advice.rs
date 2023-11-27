@@ -1,3 +1,7 @@
+use core::fmt;
+
+use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
+
 use super::{
     super::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
@@ -5,8 +9,6 @@ use super::{
     },
     serde::signatures,
 };
-use core::fmt;
-use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
 
 // ADVICE INJECTORS
 // ================================================================================================

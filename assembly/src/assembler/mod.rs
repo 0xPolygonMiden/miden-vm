@@ -1,3 +1,7 @@
+use core::{borrow::Borrow, cell::RefCell};
+
+use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
+
 use super::{
     ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
     btree_map,
@@ -6,8 +10,6 @@ use super::{
     LibraryError, LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId,
     ProcedureName, Program, ToString, Vec, ONE, ZERO,
 };
-use core::{borrow::Borrow, cell::RefCell};
-use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
 

@@ -23,7 +23,6 @@ use vm_core::{
     utils::collections::{BTreeMap, Vec},
     CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
 };
-
 use winter_prover::matrix::ColMatrix;
 
 mod operations;

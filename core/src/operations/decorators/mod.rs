@@ -1,5 +1,6 @@
-use crate::utils::collections::Vec;
 use core::fmt;
+
+use crate::utils::collections::Vec;
 
 mod advice;
 pub use advice::AdviceInjector;

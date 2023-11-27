@@ -1,7 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use air::{ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::time::Instant;
+
+use air::{ProcessorAir, PublicInputs};
+#[cfg(feature = "std")]
+use log::debug;
 use processor::{
     crypto::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, WinterRandomCoin,
@@ -9,18 +14,13 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
+#[cfg(feature = "std")]
+use winter_prover::Trace;
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
     StarkDomain, TraceInfo, TracePolyTable,
 };
-
-#[cfg(feature = "std")]
-use log::debug;
-#[cfg(feature = "std")]
-use std::time::Instant;
-#[cfg(feature = "std")]
-use winter_prover::Trace;
 
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 mod gpu;

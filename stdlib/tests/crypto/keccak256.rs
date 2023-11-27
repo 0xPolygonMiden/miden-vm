@@ -1,9 +1,10 @@
-use crate::build_test;
 use sha3::{Digest, Keccak256};
 use test_utils::{
     rand::{rand_array, rand_value},
     Felt, IntoBytes, STACK_TOP_SIZE,
 };
+
+use crate::build_test;
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
 #[test]

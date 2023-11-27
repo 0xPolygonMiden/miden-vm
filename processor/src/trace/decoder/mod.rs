@@ -1,9 +1,10 @@
+use vm_core::utils::uninit_vector;
+
 use super::{
     super::decoder::{AuxTraceHints, BlockTableUpdate, OpGroupTableUpdate},
     utils::build_lookup_table_row_values,
     ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
 };
-use vm_core::utils::uninit_vector;
 
 #[cfg(test)]
 mod tests;

@@ -1,5 +1,6 @@
-use crate::build_test;
 use test_utils::{proptest::prelude::*, rand::rand_vector, STACK_TOP_SIZE};
+
+use crate::build_test;
 
 #[test]
 fn truncate_stack() {

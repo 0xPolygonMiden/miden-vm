@@ -1,6 +1,8 @@
-use super::test_unchecked_execution;
 use core::cmp::Ordering;
+
 use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value};
+
+use super::test_unchecked_execution;
 
 // U32 OPERATIONS TESTS - MANUAL - COMPARISON OPERATIONS
 // ================================================================================================

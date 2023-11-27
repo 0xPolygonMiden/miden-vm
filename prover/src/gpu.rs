@@ -1,13 +1,8 @@
 //! This module contains GPU acceleration logic for Apple Silicon devices. For now the
 //! logic is limited to GPU accelerating RPO 256 trace commitments.
 
-use super::{
-    crypto::{RandomCoin, Rpo256, RpoDigest},
-    debug,
-    math::fft,
-    ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
-    WinterProofOptions,
-};
+use std::time::Instant;
+
 use elsa::FrozenVec;
 use ministark_gpu::{
     plan::{gen_rpo_merkle_tree, GpuRpo256RowMajor},
@@ -15,7 +10,6 @@ use ministark_gpu::{
 };
 use pollster::block_on;
 use processor::ONE;
-use std::time::Instant;
 use winter_prover::{
     crypto::MerkleTree,
     matrix::{build_segments, get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
@@ -23,6 +17,14 @@ use winter_prover::{
     AuxTraceRandElements, CompositionPoly, CompositionPolyTrace, ConstraintCommitment,
     ConstraintCompositionCoefficients, DefaultConstraintEvaluator, EvaluationFrame, Prover,
     StarkDomain, TraceInfo, TraceLayout, TraceLde, TracePolyTable,
+};
+
+use super::{
+    crypto::{RandomCoin, Rpo256, RpoDigest},
+    debug,
+    math::fft,
+    ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
+    WinterProofOptions,
 };
 
 // CONSTANTS
@@ -556,10 +558,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use air::{ProvingOptions, StarkField};
     use processor::{crypto::RpoRandomCoin, StackInputs, StackOutputs};
     use winter_prover::math::fields::CubeExtension;
+
+    use super::*;
 
     type CubeFelt = CubeExtension<Felt>;
 

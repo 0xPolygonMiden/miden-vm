@@ -1,15 +1,17 @@
-use crate::ContextId;
-
-use super::{
-    super::aux_trace::{ChipletLookup, ChipletsBusRow},
-    super::ZERO,
-    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, TraceFragment, Vec, ADDR_COL_IDX,
-    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
-};
 use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
     MEMORY_WRITE_LABEL, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
 };
+
+use super::{
+    super::{
+        aux_trace::{ChipletLookup, ChipletsBusRow},
+        ZERO,
+    },
+    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, TraceFragment, Vec, ADDR_COL_IDX,
+    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
+};
+use crate::ContextId;
 
 #[test]
 fn mem_init() {

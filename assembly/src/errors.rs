@@ -1,8 +1,9 @@
+use core::fmt;
+
 use super::{
     ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace,
     ProcedureId, ProcedureName, String, ToString, Token, Vec,
 };
-use core::fmt;
 
 // ASSEMBLY ERROR
 // ================================================================================================

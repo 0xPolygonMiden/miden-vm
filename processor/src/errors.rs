@@ -1,17 +1,18 @@
-use super::{
-    crypto::MerkleError,
-    system::{FMP_MAX, FMP_MIN},
-    CodeBlock, Digest, Felt, QuadFelt, Word,
-};
 use core::fmt::{Display, Formatter};
+#[cfg(feature = "std")]
+use std::error::Error;
+
 use vm_core::{
     stack::STACK_TOP_SIZE,
     utils::{string::String, to_hex},
 };
 use winter_prover::{math::FieldElement, ProverError};
 
-#[cfg(feature = "std")]
-use std::error::Error;
+use super::{
+    crypto::MerkleError,
+    system::{FMP_MAX, FMP_MIN},
+    CodeBlock, Digest, Felt, QuadFelt, Word,
+};
 
 // EXECUTION ERROR
 // ================================================================================================

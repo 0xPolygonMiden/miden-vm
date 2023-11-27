@@ -1,10 +1,11 @@
+use vm_core::utils::{collections::Vec, string::ToString};
+
 use super::{
     super::ProcReExport, adv_ops, debug, emit, field_ops, io_ops, stack_ops, sys_ops, u32_ops,
     CodeBody, Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap,
     ModuleImports, Node, ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap,
     Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
-use vm_core::utils::{collections::Vec, string::ToString};
 
 // PARSER CONTEXT
 // ================================================================================================

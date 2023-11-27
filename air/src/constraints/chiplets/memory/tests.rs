@@ -1,17 +1,21 @@
+use rand_utils::rand_value;
+use vm_core::utils::collections::Vec;
+
 use super::{
     EvaluationFrame, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
     MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE, NUM_ELEMENTS,
 };
-use crate::trace::{
-    chiplets::{
-        memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
-        MEMORY_TRACE_OFFSET,
+use crate::{
+    chiplets::memory,
+    trace::{
+        chiplets::{
+            memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
+            MEMORY_TRACE_OFFSET,
+        },
+        TRACE_WIDTH,
     },
-    TRACE_WIDTH,
+    Felt, FieldElement, ONE, ZERO,
 };
-use crate::{chiplets::memory, Felt, FieldElement, ONE, ZERO};
-use rand_utils::rand_value;
-use vm_core::utils::collections::Vec;
 
 // UNIT TESTS
 // ================================================================================================

@@ -1,5 +1,6 @@
-use super::{vec, ByteWriter, Felt, InputError, Serializable, ToElements, Vec};
 use core::slice;
+
+use super::{vec, ByteWriter, Felt, InputError, Serializable, ToElements, Vec};
 
 // STACK INPUTS
 // ================================================================================================

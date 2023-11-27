@@ -1,16 +1,16 @@
-use crate::system::ContextId;
-
-use super::{
-    crypto::MerklePath, trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt,
-    FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD,
-    ONE, ZERO,
-};
 use miden_air::trace::chiplets::{
     bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
     hasher::{Digest, HasherState},
     memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
 };
 use vm_core::{code_blocks::OpBatch, Kernel};
+
+use super::{
+    crypto::MerklePath, trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt,
+    FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD,
+    ONE, ZERO,
+};
+use crate::system::ContextId;
 
 mod bitwise;
 use bitwise::{Bitwise, BitwiseLookup};

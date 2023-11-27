@@ -1,8 +1,10 @@
-use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
+use std::{io::Write, path::PathBuf, time::Instant};
+
 use clap::Parser;
 use miden::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError};
-use std::{io::Write, path::PathBuf, time::Instant};
+
+use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 
 // TODO check if clap is supporting automatic generation of list values of hash function
 #[derive(Debug, Clone, Parser)]

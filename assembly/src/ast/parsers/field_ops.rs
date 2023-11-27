@@ -1,10 +1,11 @@
+use vm_core::{Felt, StarkField, ONE};
+
 use super::{
     check_div_by_zero, parse_checked_param,
     Instruction::*,
     Node::{self, Instruction},
     ParsingError, Token,
 };
-use vm_core::{Felt, StarkField, ONE};
 
 // INSTRUCTION PARSERS
 // ================================================================================================

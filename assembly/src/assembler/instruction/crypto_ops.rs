@@ -1,5 +1,6 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
 use vm_core::AdviceInjector;
+
+use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
 
 // HASHING
 // ================================================================================================

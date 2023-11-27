@@ -1,10 +1,11 @@
-use super::ProgramError;
 use miden::{
     math::{Felt, StarkField},
     DefaultHost, StackInputs, Word,
 };
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
+
+use super::ProgramError;
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)

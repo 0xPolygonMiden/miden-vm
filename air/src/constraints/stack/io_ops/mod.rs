@@ -1,7 +1,8 @@
-use super::{op_flags::OpFlags, EvaluationFrame, Vec};
-use crate::{stack::EvaluationFrameExt, utils::are_equal};
 use vm_core::FieldElement;
 use winter_air::TransitionConstraintDegree;
+
+use super::{op_flags::OpFlags, EvaluationFrame, Vec};
+use crate::{stack::EvaluationFrameExt, utils::are_equal};
 
 #[cfg(test)]
 pub mod tests;

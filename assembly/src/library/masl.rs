@@ -1,9 +1,10 @@
+use core::slice::Iter;
+
 use super::{
     super::BTreeSet, AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Library, LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec,
     Version, MAX_DEPENDENCIES, MAX_MODULES,
 };
-use core::slice::Iter;
 
 // CONSTANT DEFINITIONS
 // ================================================================================================
@@ -118,9 +119,10 @@ impl MaslLibrary {
 
 #[cfg(feature = "std")]
 mod use_std {
+    use std::{fs, io, path::Path};
+
     use super::*;
     use crate::{ast::ModuleAst, BTreeMap};
-    use std::{fs, io, path::Path};
 
     impl MaslLibrary {
         /// Read a directory and recursively create modules from its `masm` files.

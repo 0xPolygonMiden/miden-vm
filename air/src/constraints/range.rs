@@ -1,3 +1,6 @@
+use vm_core::{utils::collections::Vec, ExtensionOf, ZERO};
+use winter_air::AuxTraceRandElements;
+
 use crate::{
     chiplets::ChipletsFrameExt,
     constraints::MainFrameExt,
@@ -5,8 +8,6 @@ use crate::{
     utils::are_equal,
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
-use vm_core::{utils::collections::Vec, ExtensionOf, ZERO};
-use winter_air::AuxTraceRandElements;
 
 // CONSTANTS
 // ================================================================================================

@@ -1,8 +1,9 @@
+use vm_core::{AdviceInjector, AssemblyOp};
+
 use super::{
     AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
     Instruction, Operation, ToString, Vec,
 };
-use vm_core::{AdviceInjector, AssemblyOp};
 
 // SPAN BUILDER
 // ================================================================================================

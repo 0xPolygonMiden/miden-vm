@@ -1,12 +1,13 @@
-use super::{
-    crypto::hash::{Blake3_160, RpoDigest},
-    BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
-    LibraryPath, Serializable, String, ToString, PROCEDURE_LABEL_PARSER,
-};
 use core::{
     fmt,
     ops::{self, Deref},
     str::from_utf8,
+};
+
+use super::{
+    crypto::hash::{Blake3_160, RpoDigest},
+    BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
+    LibraryPath, Serializable, String, ToString, PROCEDURE_LABEL_PARSER,
 };
 
 // PROCEDURE

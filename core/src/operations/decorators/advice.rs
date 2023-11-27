@@ -1,6 +1,7 @@
+use core::fmt;
+
 use super::SignatureKind;
 use crate::Felt;
-use core::fmt;
 
 // ADVICE INJECTORS
 // ================================================================================================

@@ -1,5 +1,5 @@
-use super::channel::{MidenFriVerifierChannel, UnBatch};
 use core::{marker::PhantomData, mem};
+
 use processor::{
     crypto::{Hasher, RandomCoin, RpoDigest, WinterRandomCoin},
     Digest as MidenDigest,
@@ -13,6 +13,8 @@ use test_utils::{
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
+
+use super::channel::{MidenFriVerifierChannel, UnBatch};
 
 pub struct FriResult {
     /// contains the Merkle authentication paths used to authenticate the queries.

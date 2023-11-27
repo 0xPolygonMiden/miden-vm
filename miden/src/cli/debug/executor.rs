@@ -1,8 +1,9 @@
-use super::DebugCommand;
 use miden::{
     math::{Felt, StarkField},
     DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
 };
+
+use super::DebugCommand;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {

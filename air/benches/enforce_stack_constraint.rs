@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_air::{
     stack::{
@@ -7,7 +9,6 @@ use miden_air::{
     trace::STACK_TRACE_OFFSET,
     Felt, FieldElement,
 };
-use std::time::Duration;
 use vm_core::{Operation, ZERO};
 
 fn enforce_stack_constraint(c: &mut Criterion) {

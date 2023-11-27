@@ -1,8 +1,9 @@
-use super::{prop_randw, test_inputs_out_of_bounds};
 use test_utils::{
     build_op_test, proptest::prelude::*, rand::rand_value, Felt, StarkField, TestError, U32_BOUND,
     WORD_SIZE,
 };
+
+use super::{prop_randw, test_inputs_out_of_bounds};
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
 // ================================================================================================

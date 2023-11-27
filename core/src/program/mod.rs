@@ -1,3 +1,7 @@
+use core::fmt;
+
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+
 use super::{
     chiplets::hasher::{self, Digest},
     utils::{
@@ -6,8 +10,6 @@ use super::{
     },
     Felt, Operation,
 };
-use core::fmt;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 pub mod blocks;
 use blocks::CodeBlock;

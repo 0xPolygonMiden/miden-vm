@@ -1,8 +1,8 @@
+use std::vec;
+
 use assembly::utils::Serializable;
 use miden_air::{Felt, StarkField};
 use processor::Digest;
-
-use std::vec;
 use test_utils::{
     crypto::{rpo_falcon512::KeyPair, MerkleStore},
     rand::rand_vector,

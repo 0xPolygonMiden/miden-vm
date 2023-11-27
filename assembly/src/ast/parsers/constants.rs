@@ -1,5 +1,6 @@
-use super::{Felt, LocalConstMap, ParsingError, StarkField, String, Token, Vec};
 use core::fmt::Display;
+
+use super::{Felt, LocalConstMap, ParsingError, StarkField, String, Token, Vec};
 
 // CONSTANT VALUE EXPRESSIONS
 // ================================================================================================
@@ -290,6 +291,8 @@ fn compute_statement(
 // ================================================================================================
 #[cfg(test)]
 mod tests {
+    use Operation::*;
+
     use super::{Felt, LocalConstMap, Token};
     use crate::{
         ast::parsers::constants::{
@@ -297,7 +300,6 @@ mod tests {
         },
         ONE,
     };
-    use Operation::*;
 
     #[test]
     fn test_build_postfix_expression() {

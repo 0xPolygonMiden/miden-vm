@@ -1,14 +1,15 @@
+use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
+use vm_core::{
+    crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
+    FieldElement, StarkField,
+};
+
 use super::{
     super::{Trace, NUM_RAND_ROWS},
     build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, LookupTableRow, Operation,
     Vec, Word, ONE, ZERO,
 };
 use crate::{chiplets::ChipletsVTableRow, StackInputs};
-use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
-use vm_core::{
-    crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    FieldElement, StarkField,
-};
 
 // SIBLING TABLE TESTS
 // ================================================================================================

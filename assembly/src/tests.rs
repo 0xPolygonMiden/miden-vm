@@ -1,9 +1,10 @@
+use core::slice::Iter;
+
 use crate::{
     ast::{ModuleAst, ProgramAst},
     Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath, MaslLibrary,
     Module, ProcedureName, Version,
 };
-use core::slice::Iter;
 
 // SIMPLE PROGRAMS
 // ================================================================================================

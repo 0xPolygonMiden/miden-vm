@@ -1,3 +1,11 @@
+use std::{
+    collections::HashMap,
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    time::Instant,
+};
+
 use assembly::{Library, MaslLibrary};
 use miden::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
@@ -7,13 +15,6 @@ use miden::{
     StackInputs, StackOutputs, Word,
 };
 use serde_derive::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-    time::Instant,
-};
 use stdlib::StdLibrary;
 
 // HELPERS

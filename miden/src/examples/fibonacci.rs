@@ -1,8 +1,9 @@
-use super::{Example, ONE, ZERO};
 use miden::{
     math::{Felt, StarkField},
     Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs,
 };
+
+use super::{Example, ONE, ZERO};
 
 // EXAMPLE BUILDER
 // ================================================================================================

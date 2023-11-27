@@ -1,5 +1,6 @@
-use super::{AstFormatterContext, FormattableCodeBody, Instruction, Node};
 use core::fmt;
+
+use super::{AstFormatterContext, FormattableCodeBody, Instruction, Node};
 
 // FORMATTING OF NODES
 // ================================================================================================

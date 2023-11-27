@@ -1,5 +1,3 @@
-use super::super::{AdviceSource, ExecutionError, Felt, HostResponse, StarkField, Word};
-use crate::{AdviceProvider, ProcessState};
 use vm_core::{
     crypto::{
         hash::{Rpo256, RpoDigest},
@@ -8,6 +6,9 @@ use vm_core::{
     utils::collections::{btree_map::Entry, BTreeMap, Vec},
     ONE, WORD_SIZE, ZERO,
 };
+
+use super::super::{AdviceSource, ExecutionError, Felt, HostResponse, StarkField, Word};
+use crate::{AdviceProvider, ProcessState};
 
 // CONSTANTS
 // ================================================================================================

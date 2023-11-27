@@ -1,13 +1,14 @@
-use super::{
-    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
-    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
-    ZERO,
-};
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,
     MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD,
     MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
     RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+};
+
+use super::{
+    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
+    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
+    ZERO,
 };
 
 mod lookups;

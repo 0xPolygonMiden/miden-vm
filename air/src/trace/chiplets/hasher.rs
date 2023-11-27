@@ -1,9 +1,10 @@
 //! TODO: add docs
 
-use super::{create_range, Felt, HASHER_AUX_TRACE_OFFSET, ONE, ZERO};
 use core::ops::Range;
 
 pub use vm_core::crypto::hash::{Rpo256 as Hasher, RpoDigest as Digest};
+
+use super::{create_range, Felt, HASHER_AUX_TRACE_OFFSET, ONE, ZERO};
 
 // TYPES ALIASES
 // ================================================================================================

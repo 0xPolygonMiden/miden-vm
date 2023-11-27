@@ -1,3 +1,5 @@
+use core::{fmt::Display, ops::RangeBounds};
+
 use super::{
     bound_into_included_u64, AdviceInjectorNode, CodeBody, Deserializable, Felt, Instruction,
     InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node,
@@ -5,7 +7,6 @@ use super::{
     SliceReader, StarkField, String, ToString, Token, TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN,
     MAX_LABEL_LEN, MAX_STACK_WORD_OFFSET,
 };
-use core::{fmt::Display, ops::RangeBounds};
 
 mod adv_ops;
 mod debug;

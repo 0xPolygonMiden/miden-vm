@@ -1,11 +1,10 @@
-use super::{crypto::hash::Rpo256, utils::collections::Vec, Felt, FieldElement};
 use math::StarkField;
 use miden_crypto::{hash::rpo::RpoDigest, Word, ZERO};
-
 // RE-EXPORTS
 // ================================================================================================
-
 pub use winter_crypto::{DefaultRandomCoin as WinterRandomCoin, RandomCoin, RandomCoinError};
+
+use super::{crypto::hash::Rpo256, utils::collections::Vec, Felt, FieldElement};
 
 // CONSTANTS
 // ================================================================================================

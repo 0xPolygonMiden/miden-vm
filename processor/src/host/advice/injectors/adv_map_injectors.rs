@@ -1,10 +1,11 @@
-use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse, StarkField};
-use crate::ProcessState;
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},
     utils::collections::Vec,
     EMPTY_WORD, WORD_SIZE,
 };
+
+use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse, StarkField};
+use crate::ProcessState;
 
 // ADVICE MAP INJECTORS
 // ================================================================================================

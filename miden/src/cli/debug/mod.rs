@@ -1,7 +1,9 @@
-use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use std::path::PathBuf;
+
 use clap::Parser;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
-use std::path::PathBuf;
+
+use super::data::{Debug, InputFile, Libraries, ProgramFile};
 
 mod command;
 use command::DebugCommand;

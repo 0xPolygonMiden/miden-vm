@@ -1,5 +1,6 @@
-use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField};
 use vm_core::stack::STACK_TOP_SIZE;
+
+use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField};
 
 mod crypto_ops;
 mod ext2_ops;

@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use assembly::{LibraryNamespace, MaslLibrary, Version};
 use clap::Parser;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(

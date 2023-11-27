@@ -1,6 +1,8 @@
-use super::FieldElement;
 use core::ops::Range;
-use vm_core::{utils::collections::Vec, utils::range as create_range};
+
+use vm_core::utils::{collections::Vec, range as create_range};
+
+use super::FieldElement;
 
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================
@@ -89,8 +91,9 @@ macro_rules! select_result_range {
 // ================================================================================================
 #[cfg(test)]
 mod tests {
-    use super::TransitionConstraintRange;
     use vm_core::utils::range as create_range;
+
+    use super::TransitionConstraintRange;
 
     #[test]
     fn transition_constraint_ranges() {

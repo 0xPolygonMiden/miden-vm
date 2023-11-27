@@ -25,14 +25,12 @@ mod options;
 mod proof;
 
 mod utils;
-use utils::TransitionConstraintRange;
-
 // EXPORTS
 // ================================================================================================
-
 pub use errors::ExecutionOptionsError;
 pub use options::{ExecutionOptions, ProvingOptions};
 pub use proof::{ExecutionProof, HashFunction};
+use utils::TransitionConstraintRange;
 pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,

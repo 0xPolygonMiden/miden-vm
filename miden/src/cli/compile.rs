@@ -1,7 +1,8 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use super::data::{Debug, Libraries, ProgramFile};
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Compile a miden program")]

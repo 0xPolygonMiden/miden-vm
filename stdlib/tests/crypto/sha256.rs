@@ -1,10 +1,11 @@
-use crate::build_test;
 use sha2::{Digest, Sha256};
 use test_utils::{
     group_slice_elements,
     rand::{rand_array, rand_value, rand_vector},
     Felt, IntoBytes,
 };
+
+use crate::build_test;
 
 #[test]
 fn sha256_hash_memory() {

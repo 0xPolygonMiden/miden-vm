@@ -1,9 +1,11 @@
 use super::{EvaluationFrame, ExtensionOf, Felt, FieldElement};
-use crate::trace::{
-    chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
-    decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
+use crate::{
+    trace::{
+        chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
+        decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
+    },
+    utils::binary_not,
 };
-use crate::utils::binary_not;
 
 pub mod chiplets;
 pub mod range;

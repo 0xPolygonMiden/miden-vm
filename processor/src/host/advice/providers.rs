@@ -1,10 +1,11 @@
+use vm_core::SignatureKind;
+
 use super::{
     injectors, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt,
     IntoBytes, KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField,
     StoreNode, Vec, Word,
 };
 use crate::ProcessState;
-use vm_core::SignatureKind;
 
 // TYPE ALIASES
 // ================================================================================================
