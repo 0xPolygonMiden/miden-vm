@@ -1,10 +1,12 @@
-use super::ProgramError;
+use assembly::{Assembler, Library, MaslLibrary};
 use miden::{
     math::{Felt, StarkField},
     DefaultHost, StackInputs, Word,
 };
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
+use std::{collections::BTreeSet, path::PathBuf};
+use stdlib::StdLibrary;
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
@@ -125,8 +127,23 @@ use rustyline::{error::ReadlineError, DefaultEditor};
 /// Memory at address 87 is empty
 
 /// Initiates the Miden Repl tool.
-pub fn start_repl() {
+pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
     let mut program_lines: Vec<String> = Vec::new();
+
+    // set of user imported modules
+    let mut imported_modules: BTreeSet<String> = BTreeSet::new();
+
+    // load libraries from files
+    let mut provided_libraries = Vec::new();
+    for path in library_paths {
+        let library = MaslLibrary::read_from_file(path)
+            .map_err(|e| format!("Failed to read library: {e}"))
+            .unwrap();
+        provided_libraries.push(library);
+    }
+    if use_stdlib {
+        provided_libraries.push(MaslLibrary::from(StdLibrary::default()));
+    }
 
     println!("========================== Miden REPL ============================");
     println!();
@@ -143,16 +160,21 @@ pub fn start_repl() {
     // initializing readline.
     let mut rl = DefaultEditor::new().expect("Readline couldn't be initialized");
     loop {
-        let program = format!(
-            "begin\n{}\nend",
+        let mut program = String::new();
+        for module in imported_modules.iter() {
+            program.push_str(module);
+            program.push('\n');
+        }
+        program.push_str(&format!(
+            "\nbegin\n{}\nend",
             program_lines
                 .iter()
                 .map(|l| format!("    {}", l))
                 .collect::<Vec<_>>()
                 .join("\n")
-        );
+        ));
 
-        let result = execute(program.clone());
+        let result = execute(program.clone(), &provided_libraries);
 
         if !program_lines.is_empty() {
             match result {
@@ -210,7 +232,7 @@ pub fn start_repl() {
                                     break;
                                 }
                             }
-                            // incase the flag has not been initialized.
+                            // in case the flag has not been initialized.
                             if !mem_at_addr_present {
                                 println!("Memory at address {} is empty", addr);
                             }
@@ -232,6 +254,8 @@ pub fn start_repl() {
                     };
                 } else if line == "!stack" {
                     should_print_stack = true;
+                } else if line.starts_with("!use") {
+                    handle_use_command(line, &provided_libraries, &mut imported_modules);
                 } else {
                     rl.add_history_entry(line.clone()).expect("Failed to add a history entry");
                     program_lines.push(line.clone());
@@ -262,10 +286,18 @@ pub fn start_repl() {
 /// Compiles and executes a compiled Miden program, returning the stack, memory and any Miden errors.
 /// The program is passed in as a String, passed to the Miden Assembler, and then passed into the Miden
 /// Processor to be executed.
-fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramError> {
-    let program = assembly::Assembler::default()
-        .compile(&program)
-        .map_err(ProgramError::AssemblyError)?;
+fn execute(
+    program: String,
+    provided_libraries: &Vec<MaslLibrary>,
+) -> Result<(Vec<(u64, Word)>, Vec<Felt>), String> {
+    // compile program
+    let mut assembler = Assembler::default();
+
+    assembler = assembler
+        .with_libraries(provided_libraries.clone().into_iter())
+        .map_err(|err| format!("{err}"))?;
+
+    let program = assembler.compile(&program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
     let host = DefaultHost::default();
@@ -273,7 +305,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     let state_iter = processor::execute_iter(&program, stack_inputs, host);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
-        return Err(ProgramError::ExecutionError(err));
+        return Err(format!("{err}"));
     }
 
     // loads the memory at the latest clock cycle.
@@ -306,16 +338,41 @@ fn read_mem_address(mem_str: &str) -> Result<u64, String> {
     Ok(*addr)
 }
 
+/// Parses `!use` command. Adds the provided module to the program imports, or prints the list of
+/// all available modules if no module name was provided.
+fn handle_use_command(
+    line: String,
+    provided_libraries: &Vec<MaslLibrary>,
+    imported_modules: &mut BTreeSet<String>,
+) {
+    let tokens: Vec<&str> = line.split_whitespace().collect();
+
+    match tokens.len() {
+        1 => {
+            println!("Modules available for importing:");
+            for lib in provided_libraries {
+                lib.modules().for_each(|module| println!("{}", module.path));
+            }
+        }
+        2 => {
+            imported_modules.insert(format!("use.{}", tokens[1]).to_string());
+        }
+        _ => println!("malformed instruction '!use': too many parameters provided"),
+    }
+}
+
 /// Prints out all the available command present in the Miden Repl tool.
 fn print_instructions() {
     println!("Available commands:");
     println!();
-    println!("!stack: displays the complete state of the stack");
-    println!("!mem: displays the state of the entire memory");
-    println!("!mem[i]: displays the state of the memory at address i");
+    println!("!stack: display the complete state of the stack");
+    println!("!mem: display the state of the entire memory");
+    println!("!mem[i]: display the state of the memory at address i");
     println!("!undo: remove the last instruction");
+    println!("!use: display a list of modules available for import");
+    println!("!use <full_module_name>: import the specified module");
     println!("!program: display the program");
-    println!("!help: prints out all the available commands");
+    println!("!help: print out all the available commands");
     println!();
 }
 
