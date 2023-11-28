@@ -551,7 +551,7 @@ fn test_mmr_pack_roundtrip() {
     let hash = accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&hash);
+    let mut stack = stack_to_ints(&hash.as_elements());
     let mmr_ptr = 1000;
     stack.insert(0, mmr_ptr); // first value is used by unpack, to load data to memory
     stack.insert(0, mmr_ptr); // second is used by pack, to load data from memory
@@ -569,7 +569,7 @@ fn test_mmr_pack_roundtrip() {
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (RpoDigest::new(hash).as_bytes(), map_data),
+        (hash.as_bytes(), map_data),
     ];
 
     let source = "
@@ -749,7 +749,7 @@ fn test_mmr_large_add_roundtrip() {
     let hash = old_accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&hash);
+    let mut stack = stack_to_ints(&hash.as_elements());
     stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in
@@ -767,7 +767,7 @@ fn test_mmr_large_add_roundtrip() {
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (RpoDigest::new(hash).as_bytes(), map_data),
+        (hash.as_bytes(), map_data),
     ];
 
     let source = format!(
