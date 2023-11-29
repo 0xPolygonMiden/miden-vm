@@ -19,6 +19,9 @@
 - Updated Winterfell dependency to v0.7 (#1121).
 - Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
 
+#### CLI
+- Introduced the `!use` command for the Miden REPL (#1162).
+
 ## 0.7.0 (2023-10-11)
 
 #### Assembly
