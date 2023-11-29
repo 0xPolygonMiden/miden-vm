@@ -3,7 +3,15 @@ use super::{
     utils::build_lookup_table_row_values,
     ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
 };
-use vm_core::utils::uninit_vector;
+
+use miden_air::trace::{
+    decoder::{HASHER_STATE_OFFSET, IS_LOOP_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET, IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, IS_LOOP_BODY_FLAG_COL_IDX},
+    stack::{B0_COL_IDX, B1_COL_IDX},
+    CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_RANGE, FMP_COL_IDX, FN_HASH_OFFSET, FN_HASH_RANGE,
+    STACK_TRACE_OFFSET, SYS_TRACE_OFFSET,
+};
+use vm_core::{utils::uninit_vector, Operation, StarkField, ONE, ZERO};
+use winter_prover::math::batch_inversion;
 
 #[cfg(test)]
 mod tests;
@@ -23,7 +31,7 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     aux_trace_hints: &AuxTraceHints,
     rand_elements: &[E],
 ) -> Vec<Vec<E>> {
-    let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
+    let p1 = build_aux_col_p1_new(main_trace, aux_trace_hints, rand_elements);
     let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements);
     let p3 = build_aux_col_p3(main_trace, main_trace.num_rows(), aux_trace_hints, rand_elements);
     vec![p1, p2, p3]
@@ -31,6 +39,181 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 
 // BLOCK STACK TABLE COLUMN
 // ================================================================================================
+
+/// Builds the execution trace of the decoder's `p1` column which describes the state of the block
+/// stack table via multiset checks.
+fn build_aux_col_p1_new<E: FieldElement<BaseField = Felt>>(
+    main_trace: &ColMatrix<Felt>,
+    _aux_trace_hints: &AuxTraceHints,
+    alphas: &[E],
+) -> Vec<E> {
+    let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+    let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+    let mut result: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+
+    result_1[0] = E::ONE;
+    result_2[0] = E::ONE;
+    result[0] = E::ONE;
+
+    let main_tr = MainTrace::new(main_trace);
+    for i in 0..main_trace.num_rows() - 1 {
+        result_1[i] = block_stack_table_inclusions(&main_tr, alphas, i);
+        result_2[i] = block_stack_table_removals(&main_tr, alphas, i);
+    }
+
+    let result_2 = batch_inversion(&result_2);
+
+    for i in 0..main_trace.num_rows() - 1 {
+        result[i + 1] = result[i] * result_1[i] * result_2[i];
+    }
+
+    result
+}
+
+fn block_stack_table_inclusions<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    let op_code_felt = main_trace.get_op_code(i);
+    let op_code = op_code_felt.as_int() as u8;
+
+    match op_code {
+        JOIN | SPLIT | SPAN | DYN => {
+            main_trace.get_block_stack_table_inclusion_multiplicand(i, false, false, alphas)
+        }
+        LOOP => main_trace.get_block_stack_table_inclusion_multiplicand(i, true, false, alphas),
+        RESPAN => main_trace.get_block_stack_table_inclusion_multiplicand(i, false, true, alphas),
+
+        _ => E::ONE,
+    }
+}
+
+fn block_stack_table_removals<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    let op_code_felt = main_trace.get_op_code(i);
+    let op_code = op_code_felt.as_int() as u8;
+
+    match op_code {
+        RESPAN => main_trace.get_block_stack_table_removal_multiplicand(i, true, alphas),
+        END => main_trace.get_block_stack_table_removal_multiplicand(i, false, alphas),
+
+        _ => E::ONE,
+    }
+}
+
+struct MainTrace<'a> {
+    columns: &'a ColMatrix<Felt>,
+}
+
+impl<'a> MainTrace<'a> {
+    pub fn new(main_trace: &'a ColMatrix<Felt>) -> Self {
+        Self {
+            columns: main_trace,
+        }
+    }
+
+    pub fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt>>(
+        &self,
+        i: usize,
+        is_loop: bool,
+        is_respan: bool,
+        alphas: &[E],
+    ) -> E {
+        let block_id = self.columns.get_column(ADDR_COL_IDX)[i + 1];
+        let parent_id = if is_respan {
+            self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 1)[i + 1]
+        } else {
+            self.columns.get_column(ADDR_COL_IDX)[i]
+        };
+        let is_loop = if is_loop {
+            self.columns.get_column(STACK_TRACE_OFFSET)[i]
+        } else {
+            ZERO
+        };
+
+        let elements = [ONE, block_id, parent_id, is_loop];
+
+        let mut value = E::ZERO;
+
+        for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
+            value += alpha.mul_base(element);
+        }
+        value
+    }
+
+    pub fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
+        &self,
+        i: usize,
+        is_respan: bool,
+        alphas: &[E],
+    ) -> E {
+        let elements = if is_respan {
+            let current_op_batch = self.columns.get_column(ADDR_COL_IDX)[i];
+            let parent_id =
+                self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + 1)[i + 1];
+
+            [ONE, current_op_batch, parent_id, ZERO]
+        } else {
+            let ending_id = self.columns.get_column(ADDR_COL_IDX)[i];
+            let parent_id = self.columns.get_column(ADDR_COL_IDX)[i + 1];
+            let is_loop =
+                self.is_loop_flag(i);
+
+            [ONE, ending_id, parent_id, is_loop]
+        };
+        let mut value = E::ZERO;
+
+        for (&alpha, &element) in alphas.iter().zip(elements.iter()) {
+            value += alpha.mul_base(element);
+        }
+        value
+    }
+
+    pub fn get_op_code(&self, i: usize) -> Felt {
+        let col_b0 = self.columns.get_column(DECODER_TRACE_OFFSET + 1);
+        let col_b1 = self.columns.get_column(DECODER_TRACE_OFFSET + 2);
+        let col_b2 = self.columns.get_column(DECODER_TRACE_OFFSET + 3);
+        let col_b3 = self.columns.get_column(DECODER_TRACE_OFFSET + 4);
+        let col_b4 = self.columns.get_column(DECODER_TRACE_OFFSET + 5);
+        let col_b5 = self.columns.get_column(DECODER_TRACE_OFFSET + 6);
+        let col_b6 = self.columns.get_column(DECODER_TRACE_OFFSET + 7);
+        let [b0, b1, b2, b3, b4, b5, b6] =
+            [col_b0[i], col_b1[i], col_b2[i], col_b3[i], col_b4[i], col_b5[i], col_b6[i]];
+        b0 + b1.mul_small(2)
+            + b2.mul_small(4)
+            + b3.mul_small(8)
+            + b4.mul_small(16)
+            + b5.mul_small(32)
+            + b6.mul_small(64)
+    }
+
+    pub fn is_loop_body_flag(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + IS_LOOP_BODY_FLAG_COL_IDX)[i]
+    }
+
+    pub fn is_loop_flag(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX)[i]
+    }
+
+    pub fn is_call_flag(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX)[i]
+    }
+
+    pub fn is_syscall_flag(&self, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + IS_SYSCALL_FLAG_COL_IDX)[i]
+    }
+}
+const JOIN: u8 = Operation::Join.op_code();
+const SPLIT: u8 = Operation::Split.op_code();
+const LOOP: u8 = Operation::Loop.op_code();
+const DYN: u8 = Operation::Dyn.op_code();
+const CALL: u8 = Operation::Call.op_code();
+const SYSCALL: u8 = Operation::SysCall.op_code();
+const SPAN: u8 = Operation::Span.op_code();
+const RESPAN: u8 = Operation::Respan.op_code();
+const END: u8 = Operation::End.op_code();
 
 /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
 /// stack table via multiset checks.
