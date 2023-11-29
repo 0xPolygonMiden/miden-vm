@@ -319,7 +319,6 @@ impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for Chiplets
     }
 
     /// Builds the chiplets virtual table auxiliary trace column.
-    ///
     fn build_aux_column<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E>
     where
         E: FieldElement<BaseField = Felt>,
@@ -330,15 +329,16 @@ impl AuxColumnBuilder<ChipletsVTableUpdate, ChipletsVTableRow, u32> for Chiplets
         result_1[0] = E::ONE;
         result_2[0] = E::ONE;
         result[0] = E::ONE;
+
         let main_tr = MainTrace::new(main_trace);
 
         for i in 0..main_trace.num_rows() - 1 {
-            result_1[i] = chiplets_vtable_remove_sibling(&main_tr, alphas, i);
-            result_2[i] = chiplets_vtable_add_sibling(&main_tr, alphas, i)
+            result_1[i] = chiplets_vtable_add_sibling(&main_tr, alphas, i)
                 * chiplets_kernel_table_include(&main_tr, alphas, i);
+            result_2[i] = chiplets_vtable_remove_sibling(&main_tr, alphas, i);
         }
 
-        let result_1 = batch_inversion(&result_1);
+        let result_2 = batch_inversion(&result_2);
 
         for i in 0..main_trace.num_rows() - 1 {
             result[i + 1] = result[i] * result_2[i] * result_1[i];
