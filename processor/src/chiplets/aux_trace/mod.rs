@@ -1,39 +1,53 @@
-use core::ops::Range;
-
 use super::{
     trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
     BTreeMap, ColMatrix, Felt, FieldElement, StarkField, Vec, Word,
 };
 
-mod bus;
-pub(crate) use bus::{ChipletLookup, ChipletsBus, ChipletsBusRow};
-
-mod virtual_table;
-
-const NUM_HEADER_ALPHAS: usize = 4;
-
-use miden_air::trace::{
-    chiplets::{
-        hasher::{
-            DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
-            MR_UPDATE_OLD_LABEL, RETURN_HASH_LABEL, RETURN_STATE_LABEL, STATE_WIDTH,
-        },
-        kernel_rom::KERNEL_PROC_LABEL,
-        memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
-        BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
-        HASHER_STATE_COL_RANGE, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
-        MEMORY_V_COL_RANGE,
+use miden_air::trace::chiplets::{
+    hasher::{
+        DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
+        MR_UPDATE_OLD_LABEL, RETURN_HASH_LABEL, RETURN_STATE_LABEL, STATE_WIDTH,
     },
-    decoder::{HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS, USER_OP_HELPERS_OFFSET},
-    CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, STACK_TRACE_OFFSET,
+    kernel_rom::KERNEL_PROC_LABEL,
+    memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
 };
 pub(crate) use virtual_table::{ChipletsVTableRow, ChipletsVTableUpdate};
-use vm_core::{
-    utils::{range, uninit_vector},
-    Operation,
-};
-use vm_core::{ONE, ZERO};
+use vm_core::{utils::uninit_vector, Operation, ONE, ZERO};
 use winter_prover::math::batch_inversion;
+
+mod bus;
+mod virtual_table;
+pub(crate) use bus::{ChipletLookup, ChipletsBus, ChipletsBusRow};
+
+mod main_trace;
+use main_trace::MainTrace;
+
+// CONSTANTS
+// ================================================================================================
+
+const JOIN: u8 = Operation::Join.op_code();
+const SPLIT: u8 = Operation::Split.op_code();
+const LOOP: u8 = Operation::Loop.op_code();
+const DYN: u8 = Operation::Dyn.op_code();
+const CALL: u8 = Operation::Call.op_code();
+const SYSCALL: u8 = Operation::SysCall.op_code();
+const SPAN: u8 = Operation::Span.op_code();
+const RESPAN: u8 = Operation::Respan.op_code();
+const END: u8 = Operation::End.op_code();
+const AND: u8 = Operation::U32and.op_code();
+const XOR: u8 = Operation::U32xor.op_code();
+const MLOADW: u8 = Operation::MLoadW.op_code();
+const MSTOREW: u8 = Operation::MStoreW.op_code();
+const MLOAD: u8 = Operation::MLoad.op_code();
+const MSTORE: u8 = Operation::MStore.op_code();
+const MSTREAM: u8 = Operation::MStream.op_code();
+const HPERM: u8 = Operation::HPerm.op_code();
+const MPVERIFY: u8 = Operation::MpVerify.op_code();
+const MRUPDATE: u8 = Operation::MrUpdate.op_code();
+const NUM_HEADER_ALPHAS: usize = 4;
+
+// CHIPLETS AUXILIARY TRACE BUILDER
+// ================================================================================================
 
 /// Contains all relevant information and describes how to construct the execution trace for
 /// chiplets-related auxiliary columns (used in multiset checks).
@@ -326,10 +340,10 @@ where
         END => build_end_block_request(main_trace, alphas, i),
         AND => build_bitwise_request(main_trace, ZERO, alphas, i),
         XOR => build_bitwise_request(main_trace, ONE, alphas, i),
-        MLOADW => build_mloadw_mstorew_request(main_trace, false, alphas, i),
-        MSTOREW => build_mloadw_mstorew_request(main_trace, true, alphas, i),
-        MLOAD => build_mload_mstore_request(main_trace, false, alphas, i),
-        MSTORE => build_mload_mstore_request(main_trace, true, alphas, i),
+        MLOADW => build_mem_request(main_trace, MEMORY_READ_LABEL, true, alphas, i),
+        MSTOREW => build_mem_request(main_trace, MEMORY_WRITE_LABEL, true, alphas, i),
+        MLOAD => build_mem_request(main_trace, MEMORY_READ_LABEL, false, alphas, i),
+        MSTORE => build_mem_request(main_trace, MEMORY_WRITE_LABEL, false, alphas, i),
         MSTREAM => build_mstream_request(main_trace, alphas, i),
         HPERM => build_hperm_request(main_trace, alphas, i),
         MPVERIFY => build_mpverify_request(main_trace, alphas, i),
@@ -358,7 +372,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt)
 }
 
-/// Builds requests made to kernel rom chiplet when initializing a syscall block.
+/// Builds requests made to kernel ROM chiplet when initializing a syscall block.
 fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
@@ -462,71 +476,44 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
         + alphas[4].mul_base(z)
 }
 
-/// Builds `MLOADW` and `MSTOREW` requests made to the memory chiplet.
-fn build_mloadw_mstorew_request<E: FieldElement<BaseField = Felt>>(
+/// Builds `MLOAD*` and `MSTORE*` requests made to the memory chiplet.
+fn build_mem_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
-    is_mstorew: bool,
+    op_label: u8,
+    word: bool,
     alphas: &[E],
     i: usize,
 ) -> E {
     let ctx = main_trace.ctx(i);
     let clk = main_trace.clk(i);
 
-    let s0_cur = main_trace.s0(i);
-    let s0_nxt = main_trace.s0(i + 1);
-    let s1_nxt = main_trace.s1(i + 1);
-    let s2_nxt = main_trace.s2(i + 1);
-    let s3_nxt = main_trace.s3(i + 1);
-
-    let op_label = if is_mstorew {
-        MEMORY_WRITE_LABEL
+    let (v0, v1, v2, v3) = if word {
+        (
+            main_trace.s0(i + 1),
+            main_trace.s1(i + 1),
+            main_trace.s2(i + 1),
+            main_trace.s3(i + 1),
+        )
     } else {
-        MEMORY_READ_LABEL
+        (
+            main_trace.helper_0(i),
+            main_trace.helper_1(i),
+            main_trace.helper_2(i),
+            main_trace.s0(i + 1),
+        )
     };
+
+    let s0_cur = main_trace.s0(i);
 
     alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
         + alphas[2].mul_base(ctx)
         + alphas[3].mul_base(s0_cur)
         + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(s3_nxt)
-        + alphas[6].mul_base(s2_nxt)
-        + alphas[7].mul_base(s1_nxt)
-        + alphas[8].mul_base(s0_nxt)
-}
-
-/// Builds `MLOAD` and `MSTORE` requests made to the memory chiplet.
-fn build_mload_mstore_request<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    is_mstore: bool,
-    alphas: &[E],
-    i: usize,
-) -> E {
-    let ctx = main_trace.ctx(i);
-    let clk = main_trace.clk(i);
-
-    let helper_0 = main_trace.helper_0(i);
-    let helper_1 = main_trace.helper_1(i);
-    let helper_2 = main_trace.helper_2(i);
-
-    let s0_cur = main_trace.s0(i);
-    let s0_nxt = main_trace.s0(i + 1);
-
-    let op_label = if is_mstore {
-        MEMORY_WRITE_LABEL
-    } else {
-        MEMORY_READ_LABEL
-    };
-
-    alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(s0_cur)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(s0_nxt)
-        + alphas[6].mul_base(helper_2)
-        + alphas[7].mul_base(helper_1)
-        + alphas[8].mul_base(helper_0)
+        + alphas[5].mul_base(v3)
+        + alphas[6].mul_base(v2)
+        + alphas[7].mul_base(v1)
+        + alphas[8].mul_base(v0)
 }
 
 /// Builds `MSTREAM` requests made to the memory chiplet.
@@ -1022,246 +1009,8 @@ where
         + alphas[5].mul_base(root3)
 }
 
-// HELPER CONSTANTS, STRUCTS AND FUNCTIONS
+// HELPER FUNCTIONS
 // ================================================================================================
-
-const JOIN: u8 = Operation::Join.op_code();
-const SPLIT: u8 = Operation::Split.op_code();
-const LOOP: u8 = Operation::Loop.op_code();
-const DYN: u8 = Operation::Dyn.op_code();
-const CALL: u8 = Operation::Call.op_code();
-const SYSCALL: u8 = Operation::SysCall.op_code();
-const SPAN: u8 = Operation::Span.op_code();
-const RESPAN: u8 = Operation::Respan.op_code();
-const END: u8 = Operation::End.op_code();
-const AND: u8 = Operation::U32and.op_code();
-const XOR: u8 = Operation::U32xor.op_code();
-const MLOADW: u8 = Operation::MLoadW.op_code();
-const MSTOREW: u8 = Operation::MStoreW.op_code();
-const MLOAD: u8 = Operation::MLoad.op_code();
-const MSTORE: u8 = Operation::MStore.op_code();
-const MSTREAM: u8 = Operation::MStream.op_code();
-const HPERM: u8 = Operation::HPerm.op_code();
-const MPVERIFY: u8 = Operation::MpVerify.op_code();
-const MRUPDATE: u8 = Operation::MrUpdate.op_code();
-const DECODER_HASHER_RANGE: Range<usize> =
-    range(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
-
-struct MainTrace<'a> {
-    columns: &'a ColMatrix<Felt>,
-}
-
-impl<'a> MainTrace<'a> {
-    pub fn new(main_trace: &'a ColMatrix<Felt>) -> Self {
-        Self {
-            columns: main_trace,
-        }
-    }
-
-    // System columns
-
-    pub fn clk(&self, i: usize) -> Felt {
-        self.columns.get_column(CLK_COL_IDX)[i]
-    }
-
-    pub fn ctx(&self, i: usize) -> Felt {
-        self.columns.get_column(CTX_COL_IDX)[i]
-    }
-
-    // Decoder columns
-
-    pub fn addr(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET)[i]
-    }
-
-    pub fn helper_0(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i]
-    }
-
-    pub fn helper_1(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1)[i]
-    }
-
-    pub fn helper_2(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i]
-    }
-
-    pub fn decoder_hasher_state(&self, i: usize) -> [Felt; NUM_HASHER_COLUMNS] {
-        let mut state = [ZERO; NUM_HASHER_COLUMNS];
-        for (idx, col_idx) in DECODER_HASHER_RANGE.enumerate() {
-            let column = self.columns.get_column(col_idx);
-            state[idx] = column[i];
-        }
-        state
-    }
-
-    pub fn get_op_code(&self, i: usize) -> Felt {
-        let col_b0 = self.columns.get_column(DECODER_TRACE_OFFSET + 1);
-        let col_b1 = self.columns.get_column(DECODER_TRACE_OFFSET + 2);
-        let col_b2 = self.columns.get_column(DECODER_TRACE_OFFSET + 3);
-        let col_b3 = self.columns.get_column(DECODER_TRACE_OFFSET + 4);
-        let col_b4 = self.columns.get_column(DECODER_TRACE_OFFSET + 5);
-        let col_b5 = self.columns.get_column(DECODER_TRACE_OFFSET + 6);
-        let col_b6 = self.columns.get_column(DECODER_TRACE_OFFSET + 7);
-        let [b0, b1, b2, b3, b4, b5, b6] =
-            [col_b0[i], col_b1[i], col_b2[i], col_b3[i], col_b4[i], col_b5[i], col_b6[i]];
-        b0 + b1.mul_small(2)
-            + b2.mul_small(4)
-            + b3.mul_small(8)
-            + b4.mul_small(16)
-            + b5.mul_small(32)
-            + b6.mul_small(64)
-    }
-
-    // Stack columns
-
-    pub fn s0(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET)[i]
-    }
-
-    pub fn s1(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 1)[i]
-    }
-
-    pub fn s2(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 2)[i]
-    }
-
-    pub fn s3(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 3)[i]
-    }
-
-    pub fn s4(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 4)[i]
-    }
-
-    pub fn s5(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 5)[i]
-    }
-
-    pub fn s6(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 6)[i]
-    }
-
-    pub fn s7(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 7)[i]
-    }
-
-    pub fn s8(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 8)[i]
-    }
-
-    pub fn s9(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 9)[i]
-    }
-
-    pub fn s10(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 10)[i]
-    }
-
-    pub fn s11(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 11)[i]
-    }
-
-    pub fn s12(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 12)[i]
-    }
-
-    pub fn s13(&self, i: usize) -> Felt {
-        self.columns.get_column(STACK_TRACE_OFFSET + 13)[i]
-    }
-
-    // Chiplets columns
-
-    pub fn chiplet_selector_0(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET)[i]
-    }
-
-    pub fn chiplet_selector_1(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 1)[i]
-    }
-
-    pub fn chiplet_selector_2(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 2)[i]
-    }
-
-    pub fn chiplet_selector_3(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 3)[i]
-    }
-
-    pub fn chiplet_selector_4(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
-    }
-
-    pub fn chiplet_hasher_state(&self, i: usize) -> [Felt; STATE_WIDTH] {
-        let mut state = [ZERO; STATE_WIDTH];
-        for (idx, col_idx) in HASHER_STATE_COL_RANGE.enumerate() {
-            let column = self.columns.get_column(col_idx);
-            state[idx] = column[i];
-        }
-        state
-    }
-
-    pub fn chiplet_node_index(&self, i: usize) -> Felt {
-        self.columns.get(HASHER_NODE_INDEX_COL_IDX, i)
-    }
-
-    pub fn chiplet_bitwise_a(&self, i: usize) -> Felt {
-        self.columns.get_column(BITWISE_A_COL_IDX)[i]
-    }
-
-    pub fn chiplet_bitwise_b(&self, i: usize) -> Felt {
-        self.columns.get_column(BITWISE_B_COL_IDX)[i]
-    }
-
-    pub fn chiplet_bitwise_z(&self, i: usize) -> Felt {
-        self.columns.get_column(BITWISE_OUTPUT_COL_IDX)[i]
-    }
-
-    pub fn chiplet_memory_ctx(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_CTX_COL_IDX)[i]
-    }
-
-    pub fn chiplet_memory_addr(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_ADDR_COL_IDX)[i]
-    }
-
-    pub fn chiplet_memory_clk(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_CLK_COL_IDX)[i]
-    }
-
-    pub fn chiplet_memory_value_0(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_V_COL_RANGE.start)[i]
-    }
-
-    pub fn chiplet_memory_value_1(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_V_COL_RANGE.start + 1)[i]
-    }
-
-    pub fn chiplet_memory_value_2(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_V_COL_RANGE.start + 2)[i]
-    }
-
-    pub fn chiplet_memory_value_3(&self, i: usize) -> Felt {
-        self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
-    }
-
-    fn chiplet_kernel_root_0(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 6)[i]
-    }
-
-    fn chiplet_kernel_root_1(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 7)[i]
-    }
-
-    fn chiplet_kernel_root_2(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 8)[i]
-    }
-
-    fn chiplet_kernel_root_3(&self, i: usize) -> Felt {
-        self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
-    }
-}
 
 /// Reduces a slice of elements to a single field element in the field specified by E using a slice
 /// of alphas of matching length. This can be used to build the value for a single word or for an
