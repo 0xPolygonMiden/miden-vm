@@ -143,8 +143,10 @@ impl Assembler {
         context: &mut AssemblyContext,
         span: &mut SpanBuilder,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // get root of the compiled local procedure
-        let proc_root = context.get_local_procedure(proc_idx)?.mast_root();
+        // get root of the compiled local procedure and add it to the callset to be able to use
+        // dynamic instructions with this procedure later
+        let proc_root = context.register_local_call(proc_idx, false)?.mast_root();
+
         // create an array with `Push` operations containing root elements
         let ops: Vec<Operation> = proc_root.iter().map(|elem| Operation::Push(*elem)).collect();
         span.add_ops(ops)
@@ -162,6 +164,10 @@ impl Assembler {
         // get the procedure from the assembler
         let proc_cache = self.proc_cache.borrow();
         let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
+
+        // add the root of the procedure to the callset to be able to use dynamic instructions with
+        // this procedure later
+        context.register_external_call(proc, false)?;
 
         // get root of the cimported procedure
         let proc_root = proc.mast_root();
