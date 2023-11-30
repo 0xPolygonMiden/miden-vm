@@ -10,7 +10,7 @@ use stdlib::StdLibrary;
 // ================================================================================================
 
 /// Defines cli interface
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser, PartialEq, Eq)]
 #[clap(about = "Analyze a miden program")]
 pub struct Analyze {
     /// Path to .masm assembly file

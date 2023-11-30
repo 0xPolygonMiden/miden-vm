@@ -13,6 +13,7 @@ use vm_core::{utils::uninit_vector, StarkField};
 ///
 /// When `trace_enabled` is set to true, we also record all changes to the table so that we can
 /// reconstruct the overflow table at any clock cycle. This can be used for debugging purposes.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OverflowTable {
     /// A list of all rows that were added to and then removed from the overflow table.
     all_rows: Vec<OverflowTableRow>,
@@ -249,7 +250,7 @@ impl OverflowTable {
 /// - The clock cycle at which the stack item was pushed into the overflow table.
 /// - The clock cycle of the value which was at the top of the overflow table when this value
 ///   was pushed onto it.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct OverflowTableRow {
     val: Felt,
     clk: Felt,

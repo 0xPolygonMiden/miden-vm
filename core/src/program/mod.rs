@@ -25,7 +25,7 @@ mod tests;
 /// A program is described by a Merkelized Abstract Syntax Tree (MAST), where each node is a
 /// [CodeBlock]. Internal nodes describe control flow semantics of the program, while leaf nodes
 /// contain linear sequences of instructions which contain no control flow.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     root: CodeBlock,
     kernel: Kernel,
@@ -87,7 +87,7 @@ impl fmt::Display for Program {
 /// This table is used to hold code blocks which are referenced from the program MAST but are
 /// actually not a part of the MAST itself. Thus, for example, multiple nodes in the MAST can
 /// reference the same code block in the table.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CodeBlockTable(BTreeMap<[u8; 32], CodeBlock>);
 
 impl CodeBlockTable {

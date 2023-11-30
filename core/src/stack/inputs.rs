@@ -8,7 +8,7 @@ use core::slice;
 ///
 /// The program execution expects the inputs to be a stack on the VM, and it will be stored in
 /// reversed order on this struct.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct StackInputs {
     values: Vec<Felt>,
 }

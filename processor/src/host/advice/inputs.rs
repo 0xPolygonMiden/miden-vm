@@ -15,7 +15,7 @@ use super::{BTreeMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
 /// 3. Merkle store, which is used to provide nondeterministic inputs for instructions that
 ///    operates with Merkle trees.
 #[cfg(not(feature = "internals"))]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdviceInputs {
     stack: Vec<Felt>,
     map: BTreeMap<[u8; 32], Vec<Felt>>,
@@ -128,7 +128,7 @@ impl AdviceInputs {
 // ================================================================================================
 
 #[cfg(feature = "internals")]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AdviceInputs {
     pub stack: Vec<Felt>,
     pub map: BTreeMap<[u8; 32], Vec<Felt>>,

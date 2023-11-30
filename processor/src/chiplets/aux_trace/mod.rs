@@ -11,6 +11,7 @@ pub(crate) use virtual_table::{ChipletsVTableRow, ChipletsVTableUpdate};
 
 /// Contains all relevant information and describes how to construct the execution trace for
 /// chiplets-related auxiliary columns (used in multiset checks).
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuxTraceBuilder {
     bus_builder: BusTraceBuilder,
     table_builder: ChipletsVTableTraceBuilder,
@@ -45,6 +46,7 @@ impl AuxTraceBuilder {
 // ================================================================================================
 
 /// Describes how to construct the execution trace of the chiplets bus auxiliary trace column.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BusTraceBuilder {
     pub(super) lookup_hints: Vec<(u32, ChipletsBusRow)>,
     pub(super) requests: Vec<ChipletLookup>,
@@ -137,7 +139,7 @@ impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for BusTraceBuilder {
 /// procedures contained in the kernel ROM. Thus, it is expected that the initial value is ONE, the
 /// value after all sibling table updates are completed is again ONE, and the value at the end of
 /// the trace is the product of the representations of the kernel ROM procedures.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ChipletsVTableTraceBuilder {
     pub(super) hints: Vec<(u32, ChipletsVTableUpdate)>,
     pub(super) rows: Vec<ChipletsVTableRow>,

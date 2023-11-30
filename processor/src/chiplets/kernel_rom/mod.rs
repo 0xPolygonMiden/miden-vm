@@ -38,6 +38,7 @@ type ProcHashBytes = [u8; 32];
 ///   `h3` can change.
 /// - `h0` - `h3` columns contain roots of procedures in a given kernel. Together with `idx`
 ///   column, these form tuples (index, procedure root) for all procedures in the kernel.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelRom {
     access_map: BTreeMap<ProcHashBytes, ProcAccessInfo>,
     kernel: Kernel,
@@ -146,6 +147,7 @@ impl KernelRom {
 // ================================================================================================
 
 /// Procedure access information for a given kernel procedure.
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ProcAccessInfo {
     proc_hash: Word,
     num_accesses: usize,

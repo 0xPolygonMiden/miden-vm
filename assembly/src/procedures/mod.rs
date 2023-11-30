@@ -17,7 +17,7 @@ use core::{
 /// Procedure metadata includes:
 /// - Number of procedure locals available to the procedure.
 /// - A set of MAST roots of procedures which are invoked from this procedure.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Procedure {
     num_locals: u32,
     code: CodeBlock,
@@ -56,7 +56,7 @@ impl Procedure {
 /// - Procedure name.
 /// - A boolean flag indicating whether the procedure is exported from a module.
 /// - A set of MAST roots of procedures which are invoked from this procedure.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NamedProcedure {
     name: ProcedureName,
     is_export: bool,

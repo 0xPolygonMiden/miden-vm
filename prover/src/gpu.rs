@@ -34,6 +34,7 @@ const RPO_RATE: usize = Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.start;
 // ================================================================================================
 
 /// Wraps an [ExecutionProver] and provides GPU acceleration for building Rpo256 trace commitments.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MetalRpoExecutionProver<R>(pub ExecutionProver<Rpo256, R>)
 where
     R: RandomCoin<BaseField = Felt, Hasher = Rpo256>;

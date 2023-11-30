@@ -1,5 +1,5 @@
 /// debug commands supported by the debugger
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DebugCommand {
     Continue,
     Next(usize),

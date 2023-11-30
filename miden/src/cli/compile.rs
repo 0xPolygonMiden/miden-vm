@@ -3,7 +3,7 @@ use clap::Parser;
 use super::data::{Debug, Libraries, ProgramFile};
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[clap(about = "Compile a miden program")]
 pub struct CompileCmd {
     /// Path to .masm assembly file

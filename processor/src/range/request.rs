@@ -5,7 +5,7 @@ use super::{ColMatrix, Felt, FieldElement, LookupTableRow};
 
 /// A struct containing all the range check lookups requested by user operations at a single clock
 /// cycle, grouped by the processor performing the lookup.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CycleRangeChecks {
     memory: Option<RangeCheckRequest>,
     stack: Option<RangeCheckRequest>,

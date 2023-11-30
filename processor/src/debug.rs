@@ -47,6 +47,7 @@ impl fmt::Display for VmState {
 /// at each clock cycle.
 /// If the execution returned an error, it returns that error on the clock cycle
 /// it stopped.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VmStateIterator {
     chiplets: Chiplets,
     decoder: Decoder,

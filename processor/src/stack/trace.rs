@@ -12,6 +12,7 @@ use vm_core::utils::math::batch_inversion;
 /// The trace consists of 19 columns grouped logically as follows:
 /// - 16 stack columns holding the top of the stack.
 /// - 3 columns for bookkeeping and helper values that manage left and right shifts.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackTrace {
     stack: [Vec<Felt>; STACK_TOP_SIZE],
     helpers: [Vec<Felt>; NUM_STACK_HELPER_COLS],

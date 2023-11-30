@@ -16,7 +16,7 @@ use super::{
 /// attributed to the correct chiplet and operation, a unique chiplet operation label must be
 /// included in the lookup row value when it is computed.
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ChipletsBus {
     lookup_hints: BTreeMap<u32, ChipletsBusRow>,
     requests: Vec<ChipletLookup>,

@@ -5,6 +5,7 @@ use miden::{
 };
 
 /// Holds debugger state and iterator used for debugging.
+#[derive(Debug, Clone)]
 pub struct DebugExecutor {
     vm_state_iter: VmStateIterator,
     vm_state: VmState,

@@ -5,7 +5,7 @@ use core::fmt;
 
 /// Defines a set of actions which can be initiated from the VM to extract data from the advice
 /// provider. These actions can only modify the advice stack.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub enum AdviceExtractor {
     /// Pops an element from the advice stack and returns it.
     ///

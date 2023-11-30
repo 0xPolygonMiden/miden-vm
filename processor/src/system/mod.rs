@@ -38,6 +38,7 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 /// - in_syscall flag which indicates whether the execution is currently in a SYSCALL block.
 /// - hash of the function which initiated the current execution context. if the context was
 ///   initiated from the root context, this will be set to ZEROs.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct System {
     clk: u32,
     ctx: ContextId,
@@ -302,7 +303,7 @@ impl System {
 // ================================================================================================
 
 /// Represents the ID of an execution context
-#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct ContextId(u32);
 
 impl ContextId {

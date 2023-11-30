@@ -19,7 +19,7 @@ const NUM_HEADER_ALPHAS: usize = 4;
 /// Specifies the context of the [HasherLookup], indicating whether it describes the beginning of a
 /// hash operation, the return of a specified result, or the absorption of additional elements,
 /// initiating a new hash cycle with the provided [HasherState].
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum HasherLookupContext {
     Start,
     Absorb,

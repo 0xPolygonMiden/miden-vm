@@ -16,7 +16,7 @@ pub struct Cli {
 }
 
 /// CLI actions
-#[derive(Debug, Parser)]
+#[derive(Debug, Parser, PartialEq, Eq)]
 pub enum Actions {
     Analyze(tools::Analyze),
     Compile(cli::CompileCmd),

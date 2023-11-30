@@ -62,7 +62,7 @@ mod tests;
 ///   the trace of a control or span block that can be copied to be used later for program blocks
 ///   encountered with the same digest instead of building it from scratch everytime. The hash of
 ///   the block is used as the key here after converting it to a bytes array.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Hasher {
     trace: HasherTrace,
     aux_trace: ChipletsVTableTraceBuilder,
@@ -544,7 +544,7 @@ impl Hasher {
 // ================================================================================================
 
 /// Specifies the context of a Merkle path computation.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum MerklePathContext {
     /// The computation is for verifying a Merkle path (MPVERIFY).
     MpVerify,

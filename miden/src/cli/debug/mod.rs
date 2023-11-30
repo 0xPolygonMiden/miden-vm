@@ -9,7 +9,7 @@ use command::DebugCommand;
 mod executor;
 use executor::DebugExecutor;
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser, PartialEq, Eq)]
 #[clap(about = "Debug a miden program")]
 pub struct DebugCmd {
     /// Path to .masm assembly file

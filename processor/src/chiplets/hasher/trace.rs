@@ -12,7 +12,7 @@ use vm_core::chiplets::hasher::apply_round;
 /// - 3 selector columns.
 /// - 12 columns describing hasher state.
 /// - 1 node index column used for Merkle path related computations.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct HasherTrace {
     selectors: [Vec<Felt>; 3],
     hasher_state: [Vec<Felt>; STATE_WIDTH],

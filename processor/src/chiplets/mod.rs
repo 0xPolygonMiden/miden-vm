@@ -102,6 +102,7 @@ impl MerkleRootUpdate {
 /// exactly enough rows remaining for the specified number of random rows.
 /// - columns 0-3: selector columns with values set to ONE
 /// - columns 3-17: unused columns padded with ZERO
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Chiplets {
     /// Current clock cycle of the VM.
     clk: u32,

@@ -13,7 +13,7 @@ use crate::trace::LookupTableRow;
 /// - The kernel procedure table contains all kernel procedures along with the address where they
 /// first appear in the kernel ROM trace. Each kernel procedure is expected to be included exactly
 /// once, regardless of whether it is ever called or not.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ChipletsVTableUpdate {
     SiblingAdded(u32),
     SiblingRemoved(u32),

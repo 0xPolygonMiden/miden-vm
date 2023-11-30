@@ -13,7 +13,7 @@ use super::{BTreeMap, Felt, StarkField, Vec, Word, INIT_MEM_VALUE};
 /// A memory segment is an isolated address space accessible from a specific execution context.
 /// Within each segment, the memory is word-addressable. That is, four field elements are located
 /// at each memory address, and we can read and write elements to/from memory in batches of four.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct MemorySegmentTrace(BTreeMap<u32, Vec<MemorySegmentAccess>>);
 
 impl MemorySegmentTrace {
@@ -129,7 +129,7 @@ impl MemorySegmentTrace {
 // MEMORY ACCESS
 // ================================================================================================
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MemoryOperation {
     InitRead,
     CopyRead,
@@ -138,7 +138,7 @@ pub enum MemoryOperation {
 
 /// A single memory access representing the specified memory operation with the specified value at
 /// the specified clock cycle.
-#[derive(Copy, Debug, Clone)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq)]
 pub struct MemorySegmentAccess {
     clk: Felt,
     op: MemoryOperation,

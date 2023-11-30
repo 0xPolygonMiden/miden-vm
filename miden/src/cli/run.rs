@@ -3,7 +3,7 @@ use clap::Parser;
 use processor::{DefaultHost, ExecutionOptions};
 use std::{path::PathBuf, time::Instant};
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Parser, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[clap(about = "Run a miden program")]
 pub struct RunCmd {
     /// Path to .masm assembly file

@@ -3,7 +3,7 @@ use core::fmt;
 // INPUT ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InputError {
     NotFieldElement(u64, &'static str),
     DuplicateAdviceRoot([u8; 32]),

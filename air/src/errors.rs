@@ -5,7 +5,7 @@ use core::fmt::{Display, Formatter};
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ExecutionOptionsError {
     ExpectedCyclesTooBig(u32, u32),
     MaxCycleNumTooSmall(u32),

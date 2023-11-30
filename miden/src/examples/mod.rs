@@ -23,7 +23,7 @@ where
 // EXAMPLE OPTIONS
 // ================================================================================================
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser, PartialEq, Eq)]
 #[clap(about = "Run an example miden program")]
 pub struct ExampleOptions {
     #[clap(subcommand)]
@@ -46,7 +46,7 @@ pub struct ExampleOptions {
     security: String,
 }
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser, PartialEq, Eq)]
 //#[clap(about = "available examples")]
 pub enum ExampleType {
     /// Compute a Fibonacci sequence of the specified length

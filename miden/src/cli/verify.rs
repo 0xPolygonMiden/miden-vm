@@ -3,7 +3,7 @@ use clap::Parser;
 use miden::{Kernel, ProgramInfo};
 use std::{path::PathBuf, time::Instant};
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Parser, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[clap(about = "Verify a miden program")]
 pub struct VerifyCmd {
     /// Path to input file

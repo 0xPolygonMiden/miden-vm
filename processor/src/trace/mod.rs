@@ -38,6 +38,7 @@ pub const NUM_RAND_ROWS: usize = 1;
 // VM EXECUTION TRACE
 // ================================================================================================
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
     pub(crate) stack: StackAuxTraceBuilder,

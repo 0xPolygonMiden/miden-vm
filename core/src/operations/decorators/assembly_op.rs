@@ -5,7 +5,7 @@ use core::fmt;
 // ================================================================================================
 
 /// Contains information corresponding to an assembly instruction (only applicable in debug mode).
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct AssemblyOp {
     context_name: String,
     num_cycles: u8,

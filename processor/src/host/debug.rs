@@ -30,6 +30,7 @@ pub fn print_debug_info<S: ProcessState>(process: &S, options: &DebugOptions) {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Printer {
     clk: u32,
     ctx: ContextId,

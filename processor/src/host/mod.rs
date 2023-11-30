@@ -178,7 +178,7 @@ where
 // ================================================================================================
 
 /// Response returned by the host upon successful execution of a [HostFunction].
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HostResponse {
     MerklePath(MerklePath),
     DoubleWord([Word; 2]),

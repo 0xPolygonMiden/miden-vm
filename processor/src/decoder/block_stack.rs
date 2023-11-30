@@ -5,7 +5,7 @@ use crate::system::ContextId;
 // ================================================================================================
 
 /// Keeps track of code blocks which are currently being executed by the VM.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct BlockStack {
     blocks: Vec<BlockInfo>,
 }
@@ -94,7 +94,7 @@ impl BlockStack {
 // ================================================================================================
 
 /// Contains basic information about a code block.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockInfo {
     pub addr: Felt,
     block_type: BlockType,
@@ -160,7 +160,7 @@ impl BlockInfo {
 
 /// Contains information about an execution context. Execution contexts are relevant only for CALL
 /// and SYSCALL blocks.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ExecutionContextInfo {
     /// Context ID of the block's parent.
     pub parent_ctx: ContextId,
@@ -198,7 +198,7 @@ impl ExecutionContextInfo {
 // ================================================================================================
 
 /// Specifies type of a code block with additional info for some block types.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BlockType {
     Join(bool), // internal value set to true when the first child is fully executed
     Split,

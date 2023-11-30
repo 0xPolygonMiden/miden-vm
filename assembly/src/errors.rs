@@ -172,7 +172,7 @@ impl std::error::Error for AssemblyError {}
 // ================================================================================================
 
 /// An error which can be generated while parsing a Miden assembly source code into an AST.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ParsingError {
     message: String,
     location: SourceLocation,
@@ -679,7 +679,7 @@ impl std::error::Error for ParsingError {}
 // NAME ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum LabelError {
     EmptyLabel,
     RpoDigestHexLabelIncorrectLength(usize),
@@ -943,7 +943,7 @@ impl From<PathError> for LibraryError {
 // PATH ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PathError {
     ComponentInvalidChar { component: String },
     ComponentInvalidFirstChar { component: String },

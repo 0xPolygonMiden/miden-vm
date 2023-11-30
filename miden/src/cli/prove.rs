@@ -5,7 +5,7 @@ use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError};
 use std::{io::Write, path::PathBuf, time::Instant};
 
 // TODO check if clap is supporting automatic generation of list values of hash function
-#[derive(Debug, Clone, Parser)]
+#[derive(Parser, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[clap(about = "Prove a miden program")]
 pub struct ProveCmd {
     /// Path to .masm assembly file

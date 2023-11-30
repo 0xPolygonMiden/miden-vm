@@ -359,6 +359,7 @@ where
 /// - An instance of [DebugInfo] which is only populated in debug mode. This debug_info instance
 ///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are populated
 ///   only when both the processor and assembler are in debug mode.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
@@ -805,7 +806,7 @@ impl Default for Decoder {
 ///   encoded as opcodes (7 bits) appended one after another into a single field element, with the
 ///   next operation to be executed located at the least significant position.
 /// - Number of operation groups left to be executed in the entire SPAN block.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct SpanContext {
     group_ops_left: Felt,
     num_groups_left: Felt,
@@ -851,6 +852,7 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
 // DEBUG INFO
 // ================================================================================================
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DebugInfo {
     in_debug_mode: bool,
     operations: Vec<Operation>,

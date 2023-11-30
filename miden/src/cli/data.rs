@@ -20,6 +20,7 @@ use stdlib::StdLibrary;
 // ================================================================================================
 
 /// Indicates whether debug mode is on or off.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Debug {
     On,
     Off,
@@ -37,7 +38,7 @@ impl Debug {
 
 /// Struct used to deserialize merkle data from input file. Merkle data can be represented as a
 /// merkle tree or a Sparse Merkle Tree.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MerkleData {
     /// String representation of a merkle tree. The merkle tree is represented as a vector of
     /// 32 byte hex strings where each string represents a leaf in the tree.
@@ -65,7 +66,7 @@ pub enum MerkleData {
 /// - advice_stack
 /// - advice_map
 /// - merkle_store
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct InputFile {
     /// String representation of the initial operand stack, composed of chained field elements.
     pub operand_stack: Vec<String>,
@@ -295,7 +296,7 @@ impl InputFile {
 // ================================================================================================
 
 /// Output file struct
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutputFile {
     pub stack: Vec<String>,
     pub overflow_addrs: Vec<String>,
@@ -371,6 +372,7 @@ impl OutputFile {
 // PROGRAM FILE
 // ================================================================================================
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramFile {
     ast: ProgramAst,
     path: PathBuf,
@@ -527,6 +529,7 @@ impl ProgramHash {
 
 // LIBRARY FILE
 // ================================================================================================
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Libraries {
     pub libraries: Vec<MaslLibrary>,
 }

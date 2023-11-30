@@ -37,6 +37,7 @@ mod tests;
 /// Thus, for example, if a value was range-checked just once, we'll need to add a single row to
 /// the table with (m, v) set to (1, v), where v is the value. If the value was range-checked 5
 /// times, we'll need to specify the row (5, v).
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,

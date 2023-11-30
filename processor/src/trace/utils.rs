@@ -7,6 +7,7 @@ use vm_core::utils::uninit_vector;
 // ================================================================================================
 
 /// TODO: add docs
+#[derive(Debug, PartialEq, Eq)]
 pub struct TraceFragment<'a> {
     data: Vec<&'a mut [Felt]>,
 }

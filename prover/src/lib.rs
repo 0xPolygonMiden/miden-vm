@@ -112,6 +112,7 @@ where
 // PROVER
 // ================================================================================================
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,

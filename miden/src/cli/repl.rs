@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::repl::start_repl;
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Parser, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[clap(about = "Initiates the Miden REPL tool")]
 pub struct ReplCmd {
     /// Paths to .masl library files

@@ -6,7 +6,7 @@ use super::{
 // ================================================================================================
 
 /// A set of parameters specifying how Miden VM execution proofs are to be generated.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvingOptions {
     exec_options: ExecutionOptions,
     proof_options: WinterProofOptions,
@@ -146,7 +146,7 @@ impl From<ProvingOptions> for WinterProofOptions {
 ///
 /// - `max_cycles` specifies the maximum number of cycles a program is allowed to execute.
 /// - `expected_cycles` specifies the number of cycles a program is expected to execute.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExecutionOptions {
     max_cycles: u32,
     expected_cycles: u32,

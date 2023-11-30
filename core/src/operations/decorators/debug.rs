@@ -7,7 +7,7 @@ use core::fmt;
 ///
 /// These options define the debug info which gets printed out when the Debug decorator is
 /// executed.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum DebugOptions {
     /// Print out the entire contents of the stack for the current execution context.
     StackAll,

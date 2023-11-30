@@ -24,6 +24,7 @@ const HALF_RATE_WIDTH: usize = (Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.star
 ///  This is possible because in our case we never reseed with more than 4 field elements.
 /// 2. As a result of the previous point, we dont make use of an input buffer to accumulate seed
 ///  material.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RpoRandomCoin {
     state: [Felt; STATE_WIDTH],
     current: usize,

@@ -53,6 +53,7 @@ const MAX_TOP_IDX: usize = STACK_TOP_SIZE - 1;
 /// - Helper column h0 is used to ensure that stack depth does not drop below 16. Values in this
 ///   column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
 ///   other value otherwise.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stack {
     clk: u32,
     trace: StackTrace,

@@ -49,7 +49,7 @@ impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
 
 /// Manages the starting index and length of transition constraints for individual processors so
 /// indices can be handled easily during transition evaluation.
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TransitionConstraintRange {
     pub(super) stack: Range<usize>,
     pub(super) range_checker: Range<usize>,

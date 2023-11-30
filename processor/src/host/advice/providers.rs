@@ -20,7 +20,7 @@ type RecordingAdviceMap = RecordingMap<[u8; 32], Vec<Felt>>;
 
 /// An in-memory [AdviceProvider] implementation which serves as the base for advice providers
 /// bundles with Miden VM.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BaseAdviceProvider<M, S>
 where
     M: KvMap<[u8; 32], Vec<Felt>>,
@@ -238,7 +238,7 @@ where
 // ================================================================================================
 
 /// An in-memory `[AdviceProvider]` implementation which uses [BTreeMap]s as its backing storage.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MemAdviceProvider {
     provider: BaseAdviceProvider<SimpleAdviceMap, SimpleMerkleMap>,
 }
@@ -358,7 +358,7 @@ impl MemAdviceProvider {
 ///
 /// The recorder can be converted into a proof which can be used to provide the non-deterministic
 /// inputs for program execution.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RecAdviceProvider {
     provider: BaseAdviceProvider<RecordingAdviceMap, RecordingMerkleMap>,
     init_stack: Vec<Felt>,

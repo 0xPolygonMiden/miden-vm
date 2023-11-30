@@ -37,6 +37,7 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 ///   group.
 /// - 3 columns for keeping track of operation batch flags.
 /// - 2 columns used for op flag degree reduction (to support degree 4 and 5 operations).
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DecoderTrace {
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],

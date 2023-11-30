@@ -10,6 +10,7 @@ use super::{
 
 /// Contains information which can be used to simplify construction of execution traces of
 /// decoder-related auxiliary trace segment columns (used in multiset checks).
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuxTraceHints {
     /// A list of updates made to the block stack and block hash tables. Each entry contains a
     /// clock cycle at which the update was made, as well as the description of the update.

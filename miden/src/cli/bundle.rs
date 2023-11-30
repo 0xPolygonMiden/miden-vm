@@ -2,7 +2,7 @@ use assembly::{LibraryNamespace, MaslLibrary, Version};
 use clap::Parser;
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[clap(
     name = "Compile Library",
     about = "Bundles .masm files into a single .masl library"

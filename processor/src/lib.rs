@@ -91,21 +91,25 @@ type QuadFelt = QuadExtension<Felt>;
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DecoderTrace {
     trace: [Vec<Felt>; DECODER_TRACE_WIDTH],
     aux_trace_hints: decoder::AuxTraceHints,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
     aux_builder: stack::AuxTraceBuilder,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
     aux_builder: range::AuxTraceBuilder,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChipletsTrace {
     trace: [Vec<Felt>; CHIPLETS_WIDTH],
     aux_builder: chiplets::AuxTraceBuilder,
@@ -607,6 +611,7 @@ impl<H: Host> ProcessState for Process<H> {
 // ================================================================================================
 
 #[cfg(any(test, feature = "internals"))]
+#[cfg_attr(any(test, feature = "internals"), derive(Debug, Clone, PartialEq, Eq))]
 pub struct Process<H>
 where
     H: Host,
