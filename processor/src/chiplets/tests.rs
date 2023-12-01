@@ -100,7 +100,7 @@ fn stacked_chiplet_trace() {
 fn build_kernel() -> Kernel {
     let proc_hash1: Digest = [ONE, ZERO, ONE, ZERO].into();
     let proc_hash2: Digest = [ONE, ONE, ONE, ONE].into();
-    Kernel::new(&[proc_hash1, proc_hash2])
+    Kernel::new(&[proc_hash1, proc_hash2]).unwrap()
 }
 
 /// Builds a sample trace by executing a span block containing the specified operations. This

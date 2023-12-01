@@ -134,7 +134,7 @@ fn kernel_rom_with_access() {
 
 /// Creates a kernel with two dummy procedures
 fn build_kernel() -> Kernel {
-    Kernel::new(&[PROC1_HASH.into(), PROC2_HASH.into()])
+    Kernel::new(&[PROC1_HASH.into(), PROC2_HASH.into()]).unwrap()
 }
 
 /// Builds a trace of the specified length and fills it with data from the provided KernelRom
