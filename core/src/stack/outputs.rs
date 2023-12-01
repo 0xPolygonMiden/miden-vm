@@ -1,4 +1,5 @@
 use miden_crypto::Word;
+use winter_utils::{ByteReader, Deserializable, DeserializationError};
 
 use crate::utils::range;
 
@@ -192,24 +193,6 @@ fn find_invalid_elements(outputs: &[u64]) -> Option<u64> {
     None
 }
 
-impl Serializable for StackOutputs {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
-        // we must define a common serialization format as we might diverge from the implementation
-        // here and the one provided by default from winterfell.
-
-        // stack
-        debug_assert!(self.stack.len() <= u32::MAX as usize);
-        target.write_u32(self.stack.len() as u32);
-        self.stack.iter().copied().for_each(|v| target.write_u64(v));
-
-        // overflow addrs
-        debug_assert!(self.overflow_addrs.len() <= u32::MAX as usize);
-        target.write_u32(self.overflow_addrs.len() as u32);
-        self.overflow_addrs.iter().copied().for_each(|v| target.write_u64(v));
-    }
-}
-
 impl ToElements<Felt> for StackOutputs {
     fn to_elements(&self) -> Vec<Felt> {
         // infallible conversion from u64 to Felt is OK here because we check validity of u64
@@ -221,5 +204,47 @@ impl ToElements<Felt> for StackOutputs {
             .cloned()
             .map(Felt::new)
             .collect()
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for StackOutputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
+        // we must define a common serialization format as we might diverge from the implementation
+        // here and the one provided by default from winterfell.
+
+        // stack
+        debug_assert!(self.stack.len() <= u32::MAX as usize);
+        target.write_u32(self.stack.len() as u32);
+        self.stack.write_into(target);
+
+        // overflow addrs
+        debug_assert!(self.overflow_addrs.len() <= u32::MAX as usize);
+        target.write_u32(self.overflow_addrs.len() as u32);
+        self.overflow_addrs.write_into(target);
+    }
+}
+
+impl Deserializable for StackOutputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let count = source.read_u32()?;
+        let mut stack = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            stack.push(source.read_u64()?);
+        }
+
+        let count = source.read_u32()?;
+        let mut overflow_addrs = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            overflow_addrs.push(source.read_u64()?);
+        }
+
+        Ok(Self {
+            stack,
+            overflow_addrs,
+        })
     }
 }
