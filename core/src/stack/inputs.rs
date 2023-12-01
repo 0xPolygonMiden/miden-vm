@@ -6,6 +6,8 @@ use core::slice;
 // STACK INPUTS
 // ================================================================================================
 
+const MAX_STACK_INPUTS_SIZE: usize = u32::MAX as usize;
+
 /// Initial state of the stack to support program execution.
 ///
 /// The program execution expects the inputs to be a stack on the VM, and it will be stored in
@@ -20,9 +22,13 @@ impl StackInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Returns `[StackInputs]` from a list of values, reversing them into a stack.
-    pub fn new(mut values: Vec<Felt>) -> Self {
-        values.reverse();
-        Self { values }
+    pub fn new(mut values: Vec<Felt>) -> Result<Self, InputError> {
+        if values.len() > MAX_STACK_INPUTS_SIZE {
+            Err(InputError::StackTooBig(values.len()))
+        } else {
+            values.reverse();
+            Ok(Self { values })
+        }
     }
 
     /// Attempts to create stack inputs from an iterator of numbers, failing if they do not
@@ -32,7 +38,7 @@ impl StackInputs {
         I: IntoIterator<Item = u64>,
     {
         let values: Vec<Felt> = iter.into_iter().map(Felt::from).collect();
-        Ok(Self::new(values))
+        Self::new(values)
     }
 
     // PUBLIC ACCESSORS
@@ -73,11 +79,7 @@ impl ToElements<Felt> for StackInputs {
 
 impl Serializable for StackInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
-        // we must define a common serialization format as we might diverge from the implementation
-        // here and the one provided by default from winterfell.
-
-        debug_assert!(self.values.len() <= u32::MAX as usize);
+        debug_assert!(self.values.len() <= MAX_STACK_INPUTS_SIZE);
         target.write_u32(self.values.len() as u32);
         self.values.write_into(target);
     }
@@ -85,12 +87,8 @@ impl Serializable for StackInputs {
 
 impl Deserializable for StackInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let count = source.read_u32()?;
-
-        let mut values = Vec::with_capacity(count as usize);
-        for _ in 0..count {
-            values.push(Felt::read_from(source)?);
-        }
-        Ok(StackInputs { values })
+        let count: usize = source.read_u32()?.try_into().expect("u32 must fit in a usize");
+        let values = Felt::read_batch_from(source, count)?;
+        Ok(Self { values })
     }
 }

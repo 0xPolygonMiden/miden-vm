@@ -321,7 +321,7 @@ mod tests {
         ];
 
         // --- execute FRIE2F4 operation --------------------------------------
-        let stack_inputs = StackInputs::new(inputs.to_vec());
+        let stack_inputs = StackInputs::new(inputs.to_vec()).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
         process.execute_op(Operation::FriE2F4).unwrap();
 

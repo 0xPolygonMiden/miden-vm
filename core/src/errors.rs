@@ -5,20 +5,22 @@ use core::fmt;
 
 #[derive(Clone, Debug)]
 pub enum InputError {
-    NotFieldElement(u64, &'static str),
     DuplicateAdviceRoot([u8; 32]),
+    NotFieldElement(u64, &'static str),
+    StackTooBig(usize),
 }
 
 impl fmt::Display for InputError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use InputError::*;
         match self {
-            NotFieldElement(num, description) => {
-                write!(f, "{num} is not a valid field element: {description}")
-            }
             DuplicateAdviceRoot(key) => {
                 write!(f, "{key:02x?} is a duplicate of the current merkle set")
             }
+            NotFieldElement(num, description) => {
+                write!(f, "{num} is not a valid field element: {description}")
+            }
+            StackTooBig(size) => write!(f, "Stack can not have {size} elements"),
         }
     }
 }
