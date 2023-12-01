@@ -33,6 +33,7 @@ pub enum OutputError {
     InvalidOverflowAddress(u64),
     InvalidOverflowAddressLength(usize, usize),
     InvalidStackElement(u64),
+    OutputSizeTooBig(usize),
 }
 
 impl fmt::Display for OutputError {
@@ -47,6 +48,9 @@ impl fmt::Display for OutputError {
             }
             InvalidStackElement(element) => {
                 write!(f, "stack contains {element} that is not a valid field element")
+            }
+            OutputSizeTooBig(size) => {
+                write!(f, "too many elements for output stack, {size} elements")
             }
         }
     }
