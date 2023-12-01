@@ -1,7 +1,7 @@
 use super::DeserializationError;
 use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
-    utils::collections::Vec,
+    utils::{collections::Vec, ByteReader, ByteWriter, Deserializable, Serializable},
 };
 use winter_air::proof::StarkProof;
 
@@ -125,5 +125,36 @@ impl TryFrom<u8> for HashFunction {
                 "the hash function representation {repr} is not valid!"
             ))),
         }
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for HashFunction {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u8(*self as u8);
+    }
+}
+
+impl Deserializable for HashFunction {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        source.read_u8()?.try_into()
+    }
+}
+
+impl Serializable for ExecutionProof {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.proof.write_into(target);
+        self.hash_fn.write_into(target);
+    }
+}
+
+impl Deserializable for ExecutionProof {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let proof = StarkProof::read_from(source)?;
+        let hash_fn = HashFunction::read_from(source)?;
+
+        Ok(ExecutionProof { proof, hash_fn })
     }
 }

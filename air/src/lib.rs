@@ -5,7 +5,9 @@
 extern crate alloc;
 
 use vm_core::{
-    utils::{collections::Vec, string::String, ByteWriter, Serializable},
+    utils::{
+        collections::Vec, string::String, ByteReader, ByteWriter, Deserializable, Serializable,
+    },
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
@@ -271,6 +273,18 @@ impl PublicInputs {
     }
 }
 
+impl vm_core::ToElements<Felt> for PublicInputs {
+    fn to_elements(&self) -> Vec<Felt> {
+        let mut result = self.program_info.to_elements();
+        result.append(&mut self.stack_inputs.to_elements());
+        result.append(&mut self.stack_outputs.to_elements());
+        result
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for PublicInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.program_info.write_into(target);
@@ -279,11 +293,16 @@ impl Serializable for PublicInputs {
     }
 }
 
-impl vm_core::ToElements<Felt> for PublicInputs {
-    fn to_elements(&self) -> Vec<Felt> {
-        let mut result = self.program_info.to_elements();
-        result.append(&mut self.stack_inputs.to_elements());
-        result.append(&mut self.stack_outputs.to_elements());
-        result
+impl Deserializable for PublicInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let program_info = ProgramInfo::read_from(source)?;
+        let stack_inputs = StackInputs::read_from(source)?;
+        let stack_outputs = StackOutputs::read_from(source)?;
+
+        Ok(PublicInputs {
+            program_info,
+            stack_inputs,
+            stack_outputs,
+        })
     }
 }

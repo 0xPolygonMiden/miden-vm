@@ -1,3 +1,5 @@
+use winter_utils::{ByteReader, Deserializable, DeserializationError};
+
 use super::{vec, ByteWriter, Felt, InputError, Serializable, ToElements, Vec};
 use core::slice;
 
@@ -60,6 +62,15 @@ impl IntoIterator for StackInputs {
     }
 }
 
+impl ToElements<Felt> for StackInputs {
+    fn to_elements(&self) -> Vec<Felt> {
+        self.values.to_vec()
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
 impl Serializable for StackInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
@@ -68,12 +79,18 @@ impl Serializable for StackInputs {
 
         debug_assert!(self.values.len() <= u32::MAX as usize);
         target.write_u32(self.values.len() as u32);
-        self.values.iter().copied().for_each(|v| target.write(v));
+        self.values.write_into(target);
     }
 }
 
-impl ToElements<Felt> for StackInputs {
-    fn to_elements(&self) -> Vec<Felt> {
-        self.values.to_vec()
+impl Deserializable for StackInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let count = source.read_u32()?;
+
+        let mut values = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            values.push(Felt::read_from(source)?);
+        }
+        Ok(StackInputs { values })
     }
 }
