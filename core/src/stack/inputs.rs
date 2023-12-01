@@ -6,7 +6,7 @@ use core::slice;
 // STACK INPUTS
 // ================================================================================================
 
-const MAX_STACK_INPUTS_SIZE: usize = u32::MAX as usize;
+const MAX_STACK_INPUTS_SIZE: usize = u16::MAX as usize;
 
 /// Initial state of the stack to support program execution.
 ///
@@ -22,7 +22,12 @@ impl StackInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Returns `[StackInputs]` from a list of values, reversing them into a stack.
-    pub fn new(mut values: Vec<Felt>) -> Result<Self, InputError> {
+    pub fn new<I>(values: I) -> Result<Self, InputError>
+    where
+        I: IntoIterator<Item = Felt>,
+    {
+        let mut values: Vec<Felt> = values.into_iter().collect();
+
         if values.len() > MAX_STACK_INPUTS_SIZE {
             Err(InputError::StackTooBig(values.len()))
         } else {
@@ -37,8 +42,7 @@ impl StackInputs {
     where
         I: IntoIterator<Item = u64>,
     {
-        let values: Vec<Felt> = iter.into_iter().map(Felt::from).collect();
-        Self::new(values)
+        Self::new(iter.into_iter().map(Felt::from))
     }
 
     // PUBLIC ACCESSORS
