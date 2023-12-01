@@ -23,7 +23,7 @@ proptest! {
                 Some(digest_from_seed(*seed))
             })
             .collect();
-        let kernel = Kernel::new(&kernel);
+        let kernel = Kernel::new(&kernel).unwrap();
         let program_info = ProgramInfo::new(program_hash, kernel);
         let bytes = program_info.to_bytes();
         let deser = ProgramInfo::read_from_bytes(&bytes).unwrap();

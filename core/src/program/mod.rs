@@ -1,5 +1,6 @@
 use super::{
     chiplets::hasher::{self, Digest},
+    errors,
     utils::{
         collections::{BTreeMap, Vec},
         Box,
@@ -126,15 +127,25 @@ impl CodeBlockTable {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Kernel(Vec<Digest>);
 
+pub const MAX_KERNEL_PROCEDURES: usize = u8::MAX as usize;
+
 impl Kernel {
     /// Returns a new [Kernel] instantiated with the specified procedure hashes.
-    pub fn new(proc_hashes: &[Digest]) -> Self {
-        // make sure procedure roots are ordered consistently
-        let mut hash_map: BTreeMap<[u8; 32], Digest> = BTreeMap::new();
-        proc_hashes.iter().cloned().for_each(|r| {
-            hash_map.insert(r.into(), r);
-        });
-        Self(hash_map.values().copied().collect())
+    pub fn new(proc_hashes: &[Digest]) -> Result<Self, errors::KernelError> {
+        if proc_hashes.len() > MAX_KERNEL_PROCEDURES {
+            Err(errors::KernelError::TooManyProcedures(MAX_KERNEL_PROCEDURES, proc_hashes.len()))
+        } else {
+            let mut hashes = proc_hashes.to_vec();
+            hashes.sort_by_key(|v| v.as_bytes()); // ensure consistent order
+
+            let duplicated = hashes.windows(2).any(|data| data[0] == data[1]);
+
+            if duplicated {
+                Err(errors::KernelError::DuplicatedProcedures)
+            } else {
+                Ok(Self(hashes))
+            }
+        }
     }
 
     /// Returns true if this kernel does not contain any procedures.
@@ -158,11 +169,7 @@ impl Kernel {
 // this is required by AIR as public inputs will be serialized with the proof
 impl Serializable for Kernel {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        // TODO the serialization of MAST will not support values greater than `u16::MAX`, so we
-        // reflect the same restriction here. however, this should be tweaked in the future. This
-        // value will likely be capped to `u8::MAX`.
-
-        debug_assert!(self.0.len() <= u16::MAX as usize);
+        debug_assert!(self.0.len() <= MAX_KERNEL_PROCEDURES);
         target.write_u16(self.0.len() as u16);
         Digest::write_batch_into(&self.0, target)
     }
@@ -171,7 +178,7 @@ impl Serializable for Kernel {
 impl Deserializable for Kernel {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let len = source.read_u16()?;
-        let kernel = (0..len).map(|_| source.read::<Digest>()).collect::<Result<_, _>>()?;
+        let kernel = Digest::read_batch_from(source, len.into())?;
         Ok(Self(kernel))
     }
 }

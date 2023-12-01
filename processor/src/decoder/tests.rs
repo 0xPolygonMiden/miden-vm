@@ -1713,7 +1713,7 @@ fn build_call_trace(
     kernel_proc: Option<CodeBlock>,
 ) -> (SystemTrace, DecoderTrace, AuxTraceHints, usize) {
     let kernel = match kernel_proc {
-        Some(ref proc) => Kernel::new(&[proc.hash()]),
+        Some(ref proc) => Kernel::new(&[proc.hash()]).unwrap(),
         None => Kernel::default(),
     };
     let host = DefaultHost::default();

@@ -7,6 +7,7 @@ extern crate alloc;
 use vm_core::{
     code_blocks::CodeBlock,
     crypto,
+    errors::KernelError,
     utils::{
         collections::{btree_map, BTreeMap, BTreeSet, Vec},
         string::{String, ToString},

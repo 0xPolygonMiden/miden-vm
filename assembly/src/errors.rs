@@ -1,6 +1,6 @@
 use super::{
-    ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, LibraryNamespace,
-    ProcedureId, ProcedureName, String, ToString, Token, Vec,
+    ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, KernelError,
+    LibraryNamespace, ProcedureId, ProcedureName, String, ToString, Token, Vec,
 };
 use core::fmt;
 
@@ -11,28 +11,29 @@ use core::fmt;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum AssemblyError {
     CallInKernel(String),
-    CallerOutOKernel,
     CallSetProcedureNotFound(RpoDigest),
+    CallerOutOKernel,
     CircularModuleDependency(Vec<String>),
     ConflictingNumLocals(String),
     DivisionByZero,
-    DuplicateProcName(String, String),
     DuplicateProcId(ProcedureId),
+    DuplicateProcName(String, String),
     ExportedProcInProgram(String),
     ImportedProcModuleNotFound(ProcedureId, String),
-    ReExportedProcModuleNotFound(ProcReExport),
     ImportedProcNotFoundInModule(ProcedureId, String),
-    InvalidProgramAssemblyContext,
     InvalidCacheLock,
+    InvalidProgramAssemblyContext,
+    Io(String),
+    KernelError(KernelError),
     KernelProcNotFound(ProcedureId),
+    LibraryError(String),
     LocalProcNotFound(u16, String),
-    ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
+    ParsingError(String),
     PhantomCallsNotAllowed(RpoDigest),
     ProcedureNameError(String),
+    ReExportedProcModuleNotFound(ProcReExport),
     SysCallInKernel(String),
-    LibraryError(String),
-    Io(String),
 }
 
 impl AssemblyError {
@@ -134,25 +135,26 @@ impl fmt::Display for AssemblyError {
         use AssemblyError::*;
         match self {
             CallInKernel(proc_name) => write!(f, "call instruction used kernel procedure '{proc_name}'"),
-            CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
             CallSetProcedureNotFound(mast_root) => write!(f, "callset procedure not found in assembler cache for procedure with MAST root {mast_root}"),
+            CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
             CircularModuleDependency(dep_chain) => write!(f, "circular module dependency in the following chain: {dep_chain:?}"),
             ConflictingNumLocals(proc_name) => write!(f, "procedure `{proc_name}` has the same MAST as another procedure but different number of locals"),
             DivisionByZero => write!(f, "division by zero"),
-            DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
+            DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
             ImportedProcModuleNotFound(proc_id, proc_name) => write!(f, "module for imported procedure `{proc_name}` with ID {proc_id} not found"),
-            ReExportedProcModuleNotFound(reexport) => write!(f, "re-exported proc {} with id {} not found", reexport.name(), reexport.proc_id()),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
-            InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
             InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
+            InvalidProgramAssemblyContext => write!(f, "assembly context improperly initialized for program compilation"),
             Io(description) => write!(f, "I/O error: {description}"),
+            KernelError(error) => write!(f, "{}", error),
             KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
             LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             PhantomCallsNotAllowed(mast_root) => write!(f, "cannot call phantom procedure with MAST root {mast_root}: phantom calls not allowed"),
+            ReExportedProcModuleNotFound(reexport) => write!(f, "re-exported proc {} with id {} not found", reexport.name(), reexport.proc_id()),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
         }
     }
