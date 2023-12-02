@@ -9,10 +9,10 @@ use super::{
 use crate::decoder::{build_op_group, BlockHashTableRow, BlockStackTableRow, OpGroupTableRow};
 use miden_air::trace::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
-    AUX_TRACE_RAND_ELEMENTS,
+    AUX_TRACE_RAND_ELEMENTS, STACK_TRACE_RANGE,
 };
 use test_utils::rand::rand_array;
-use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, ONE, ZERO};
+use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, StarkField, ONE, ZERO};
 
 // BLOCK STACK TABLE TESTS
 // ================================================================================================
