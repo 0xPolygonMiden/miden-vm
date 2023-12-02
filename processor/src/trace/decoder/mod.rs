@@ -1,4 +1,3 @@
-
 use super::{
     super::decoder::AuxTraceHints, ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
 };
