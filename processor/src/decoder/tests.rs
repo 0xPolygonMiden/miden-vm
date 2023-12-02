@@ -15,7 +15,7 @@ use miden_air::trace::{
         OP_INDEX_COL_IDX,
     },
     CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX, FN_HASH_RANGE,
-    IN_SYSCALL_COL_IDX, STACK_TRACE_RANGE, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
+    IN_SYSCALL_COL_IDX, SYS_TRACE_RANGE, SYS_TRACE_WIDTH,
 };
 use test_utils::rand::rand_value;
 use vm_core::{
@@ -916,7 +916,7 @@ fn call_block() {
     let join1 = CodeBlock::new_join([first_span.clone(), foo_call.clone()]);
     let program = CodeBlock::new_join([join1.clone(), last_span.clone()]);
 
-    let (_, sys_trace, dec_trace, aux_hints, trace_len) =
+    let (sys_trace, dec_trace, aux_hints, trace_len) =
         build_call_trace(&program, foo_root.clone(), None);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -1167,7 +1167,7 @@ fn syscall_block() {
     let inner_join = CodeBlock::new_join([first_span.clone(), bar_call.clone()]);
     let program = CodeBlock::new_join([inner_join.clone(), last_span.clone()]);
 
-    let (tra, sys_trace, dec_trace, aux_hints, trace_len) =
+    let (sys_trace, dec_trace, aux_hints, trace_len) =
         build_call_trace(&program, bar_root.clone(), Some(foo_root.clone()));
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -1712,7 +1712,7 @@ fn build_call_trace(
     program: &CodeBlock,
     fn_block: CodeBlock,
     kernel_proc: Option<CodeBlock>,
-) -> (Vec<Vec<i128>>, SystemTrace, DecoderTrace, AuxTraceHints, usize) {
+) -> (SystemTrace, DecoderTrace, AuxTraceHints, usize) {
     let kernel = match kernel_proc {
         Some(ref proc) => Kernel::new(&[proc.hash()]).unwrap(),
         None => Kernel::default(),
@@ -1743,17 +1743,7 @@ fn build_call_trace(
         .try_into()
         .expect("failed to convert vector to array");
 
-    let tra = trace[0..STACK_TRACE_RANGE.end]
-        .iter()
-        .map(|ve| ve.iter().map(|e| (e.as_int() ) as i128).collect::<Vec<i128>>())
-        .collect::<Vec<Vec<i128>>>();
-
-    let mut res = vec![];
-    for i in 0..trace_len {
-        let par_res = tra.iter().map(|z| z[i]).collect::<Vec<i128>>();
-        res.push(par_res);
-    }
-    (res, sys_trace, decoder_trace, aux_hints.decoder, trace_len)
+    (sys_trace, decoder_trace, aux_hints.decoder, trace_len)
 }
 
 // OPCODES

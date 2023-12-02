@@ -1,7 +1,5 @@
-
 use super::{
-    super::decoder::{AuxTraceHints,},
-    ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
+    super::decoder::AuxTraceHints, ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
 };
 
 use miden_air::trace::{
@@ -10,17 +8,15 @@ use miden_air::trace::{
         GROUP_COUNT_COL_IDX, HASHER_STATE_OFFSET, IN_SPAN_COL_IDX, IS_CALL_FLAG_COL_IDX,
         IS_LOOP_BODY_FLAG_COL_IDX, IS_LOOP_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX,
         NUM_OP_BATCH_FLAGS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
-        OP_BATCH_FLAGS_OFFSET, OP_INDEX_COL_IDX,
+        OP_BATCH_FLAGS_OFFSET,
     },
-    stack::{B0_COL_IDX, B1_COL_IDX}, CTX_COL_IDX, FMP_COL_IDX, FN_HASH_OFFSET,
-    STACK_TRACE_OFFSET,
+    stack::{B0_COL_IDX, B1_COL_IDX},
+    CTX_COL_IDX, FMP_COL_IDX, FN_HASH_OFFSET, STACK_TRACE_OFFSET,
 };
 
 use vm_core::{
-    chiplets::hasher::{self, RATE_LEN},
-    crypto::hash::RpoDigest,
-    utils::uninit_vector,
-    Operation, StarkField, Word, ONE, ZERO,
+    chiplets::hasher::RATE_LEN, crypto::hash::RpoDigest, utils::uninit_vector, Operation,
+    StarkField, ONE, ZERO,
 };
 use winter_prover::math::batch_inversion;
 
@@ -55,10 +51,9 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     rand_elements: &[E],
     program_hash: &RpoDigest,
 ) -> Vec<Vec<E>> {
-    let p1 = build_aux_col_p1_new(main_trace, aux_trace_hints, rand_elements);
-    let p2 = build_aux_col_p2_new(main_trace, aux_trace_hints, rand_elements, program_hash);
-    let p3 =
-        build_aux_col_p3_new(main_trace, rand_elements);
+    let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
+    let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements, program_hash);
+    let p3 = build_aux_col_p3(main_trace, rand_elements);
 
     vec![p1, p2, p3]
 }
@@ -68,7 +63,7 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 
 /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
 /// stack table via multiset checks.
-fn build_aux_col_p1_new<E: FieldElement<BaseField = Felt>>(
+fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
     _aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
@@ -132,7 +127,7 @@ where
 
 /// Builds the execution trace of the decoder's `p2` column which describes the state of the block
 /// hash table via multiset checks.
-fn build_aux_col_p2_new<E: FieldElement<BaseField = Felt>>(
+fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
     _aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
@@ -202,7 +197,7 @@ where
 
 /// Builds the execution trace of the decoder's `p3` column which describes the state of the op
 /// group table via multiset checks.
-fn build_aux_col_p3_new<E: FieldElement<BaseField = Felt>>(
+fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
     alphas: &[E],
 ) -> Vec<E> {
@@ -272,7 +267,7 @@ impl<'a> MainTrace<'a> {
         }
     }
 
-    /// Constructs the i-th op code value from its individual bits. 
+    /// Constructs the i-th op code value from its individual bits.
     pub fn get_op_code(&self, i: usize) -> Felt {
         let col_b0 = self.columns.get_column(DECODER_TRACE_OFFSET + 1);
         let col_b1 = self.columns.get_column(DECODER_TRACE_OFFSET + 2);
@@ -293,7 +288,7 @@ impl<'a> MainTrace<'a> {
 
     /// Returns the value in the block address column at the row i.
     fn get_block_addr(&self, i: usize) -> Felt {
-        self.columns.get(ADDR_COL_IDX, i as usize)
+        self.columns.get(ADDR_COL_IDX, i)
     }
 
     /// Returns the hasher state at row i.
@@ -374,22 +369,22 @@ impl<'a> MainTrace<'a> {
         self.get_group_count(i) - self.get_group_count(i + 1)
     }
 
-    /// Returns the value of the context column at row i. 
+    /// Returns the value of the context column at row i.
     pub fn get_ctx(&self, i: usize) -> Felt {
         self.columns.get_column(CTX_COL_IDX)[i]
     }
 
-    /// Returns the value of the fmp column at row i. 
+    /// Returns the value of the fmp column at row i.
     pub fn get_fmp(&self, i: usize) -> Felt {
         self.columns.get_column(FMP_COL_IDX)[i]
     }
 
-    /// Returns the value of the stack depth column at row i. 
+    /// Returns the value of the stack depth column at row i.
     pub fn get_stack_depth(&self, i: usize) -> Felt {
         self.columns.get_column(STACK_TRACE_OFFSET + B0_COL_IDX)[i]
     }
 
-    /// Returns the address of the top element in the stack overflow table at row i. 
+    /// Returns the address of the top element in the stack overflow table at row i.
     pub fn get_parent_next_overflow_address(&self, i: usize) -> Felt {
         self.columns.get_column(STACK_TRACE_OFFSET + B1_COL_IDX)[i]
     }
@@ -399,7 +394,7 @@ impl<'a> MainTrace<'a> {
         self.columns.get_column(STACK_TRACE_OFFSET + column)[i]
     }
 
-
+    /// Computes the multiplicand representing the inclusion of a new row to the block stack table.
     pub fn get_block_stack_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -454,6 +449,7 @@ impl<'a> MainTrace<'a> {
         value
     }
 
+    /// Computes the multiplicand representing the removal of a row from the block stack table.
     pub fn get_block_stack_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -506,6 +502,7 @@ impl<'a> MainTrace<'a> {
         value
     }
 
+    /// Computes the intitialization value for the block hash table.
     fn block_hash_table_initialize<E>(&self, program_hash: &RpoDigest, alphas: &[E]) -> E
     where
         E: FieldElement<BaseField = Felt>,
@@ -517,6 +514,8 @@ impl<'a> MainTrace<'a> {
             + alphas[5].mul_base(program_hash[3])
     }
 
+    /// Computes the multiplicand representing the inclusion of a new row representing a JOIN block
+    /// to the block hash table.
     fn get_block_hash_table_inclusion_multiplicand_join<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -540,6 +539,8 @@ impl<'a> MainTrace<'a> {
         (ch1 + alphas[6]) * ch2
     }
 
+    /// Computes the multiplicand representing the inclusion of a new row representing a SPLIT block
+    /// to the block hash table.
     fn get_block_hash_table_inclusion_multiplicand_split<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -566,6 +567,8 @@ impl<'a> MainTrace<'a> {
         }
     }
 
+    /// Computes the multiplicand representing the inclusion of a new row representing a LOOP block
+    /// to the block hash table.
     fn get_block_hash_table_inclusion_multiplicand_loop<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -588,6 +591,8 @@ impl<'a> MainTrace<'a> {
         }
     }
 
+    /// Computes the multiplicand representing the inclusion of a new row representing a REPEAT
+    /// to the block hash table.
     fn get_block_hash_table_inclusion_multiplicand_repeat<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -605,6 +610,8 @@ impl<'a> MainTrace<'a> {
             + alphas[7]
     }
 
+    /// Computes the multiplicand representing the inclusion of a new row representing a DYN block
+    /// to the block hash table.
     fn get_block_hash_table_inclusion_multiplicand_dyn<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -624,6 +631,7 @@ impl<'a> MainTrace<'a> {
             + alphas[5].mul_base(s0)
     }
 
+    /// Computes the multiplicand representing the removal of a row from the block hash table.
     fn get_block_hash_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -650,6 +658,7 @@ impl<'a> MainTrace<'a> {
             + next_end_or_repeat
     }
 
+    /// Computes the multiplicand representing the inclusion of a new row to the op group table.
     pub fn get_op_group_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
@@ -686,6 +695,7 @@ impl<'a> MainTrace<'a> {
         }
     }
 
+    /// Computes the multiplicand representing the removal of a row from the op group table.
     pub fn get_op_group_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
         &self,
         i: usize,
