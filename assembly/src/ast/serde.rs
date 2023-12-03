@@ -13,7 +13,7 @@ pub struct AstSerdeOptions {
 }
 
 impl AstSerdeOptions {
-    pub fn new(serialize_imports: bool) -> Self {
+    pub const fn new(serialize_imports: bool) -> Self {
         Self { serialize_imports }
     }
 }
