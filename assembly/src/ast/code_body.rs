@@ -26,8 +26,10 @@ impl CodeBody {
     where
         N: IntoIterator<Item = Node>,
     {
+        let nodes: Vec<_> = nodes.into_iter().collect();
+        assert!(nodes.len() <= u32::MAX.try_into().unwrap());
         Self {
-            nodes: nodes.into_iter().collect(),
+            nodes,
             locations: Vec::new(),
         }
     }
@@ -161,5 +163,37 @@ impl PartialEq for CodeBody {
         let left_empty = self.locations.is_empty();
         let right_empty = other.locations.is_empty();
         nodes && (locations || left_empty || right_empty)
+    }
+}
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for CodeBody {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        assert!(self.nodes.len() <= u32::MAX.try_into().unwrap());
+        target.write_u32(self.nodes.len() as u32);
+        self.nodes.write_into(target);
+
+        target.write_u64(self.locations.len() as u64);
+        self.locations.write_into(target);
+    }
+}
+
+impl Deserializable for CodeBody {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let count = source
+            .read_u32()?
+            .try_into()
+            .map_err(|v| DeserializationError::InvalidValue(format!("can't fit {v} into usize")))?;
+        let nodes = Node::read_batch_from(source, count)?;
+
+        let count = source
+            .read_u64()?
+            .try_into()
+            .map_err(|v| DeserializationError::InvalidValue(format!("can't fit {v} into usize")))?;
+        let locations = SourceLocation::read_batch_from(source, count)?;
+
+        Ok(Self { nodes, locations })
     }
 }

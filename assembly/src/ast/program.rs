@@ -327,3 +327,37 @@ impl fmt::Display for ProgramAst {
         writeln!(f, "end")
     }
 }
+
+// SERIALIZATION
+// ================================================================================================
+
+impl Serializable for ProgramAst {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.body.write_into(target);
+
+        debug_assert!(self.local_procs.len() <= MAX_LOCAL_PROCS);
+        target.write_u16(self.local_procs.len() as u16);
+
+        self.local_procs.write_into(target);
+        self.import_info.write_into(target);
+        self.start.write_into(target);
+    }
+}
+
+impl Deserializable for ProgramAst {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let body = CodeBody::read_from(source)?;
+
+        let num_local_procs = source.read_u16()?.into();
+        let local_procs = ProcedureAst::read_batch_from(source, num_local_procs)?;
+        let import_info = ModuleImports::read_from(source)?;
+        let start = SourceLocation::read_from(source)?;
+
+        Ok(Self {
+            body,
+            local_procs,
+            import_info,
+            start,
+        })
+    }
+}
