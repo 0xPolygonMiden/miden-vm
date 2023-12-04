@@ -140,7 +140,7 @@ impl AssemblyContext {
     ///
     /// This pops the module off the module stack and return all local procedures of the module
     /// (both exported and internal) together with the combined callset of module's procedures.
-    pub fn complete_module(&mut self) -> (Vec<NamedProcedure>, CallSet) {
+    pub fn complete_module(&mut self) -> Result<(Vec<NamedProcedure>, CallSet), AssemblyError> {
         let module_ctx = self.module_stack.pop().expect("no modules");
         if self.is_kernel && self.module_stack.is_empty() {
             // if we are compiling a kernel and this is the last module on the module stack, then
@@ -152,11 +152,11 @@ impl AssemblyContext {
                 .filter(|proc| proc.is_export())
                 .map(|proc| proc.mast_root())
                 .collect::<Vec<_>>();
-            self.kernel = Some(Kernel::new(&proc_roots));
+            self.kernel = Some(Kernel::new(&proc_roots).map_err(AssemblyError::KernelError)?);
         }
 
         // return compiled procedures and callset from the module
-        (module_ctx.compiled_procs, module_ctx.callset)
+        Ok((module_ctx.compiled_procs, module_ctx.callset))
     }
 
     // PROCEDURE PROCESSORS

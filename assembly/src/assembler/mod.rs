@@ -240,7 +240,7 @@ impl Assembler {
         for proc_ast in module.procs().iter() {
             self.compile_procedure(proc_ast, context)?;
         }
-        let (module_procs, module_callset) = context.complete_module();
+        let (module_procs, module_callset) = context.complete_module()?;
 
         // add the compiled procedures to the assembler's cache. the procedures are added to the
         // cache only if:

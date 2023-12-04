@@ -70,7 +70,7 @@ impl From<Program> for ProgramInfo {
 impl Serializable for ProgramInfo {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.program_hash.write_into(target);
-        <Kernel as Serializable>::write_into(&self.kernel, target);
+        self.kernel.write_into(target);
     }
 }
 
