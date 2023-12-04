@@ -1064,9 +1064,13 @@ fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
     program_deserialized
         .load_source_locations(&mut SliceReader::new(&locations))
         .unwrap();
-    if !serialize_imports {
-        program_deserialized.import_info = program.import_info.clone();
-    }
+
+    let program_deserialized = if !serialize_imports {
+        program_deserialized.with_import_info(program.import_info().clone())
+    } else {
+        program_deserialized
+    };
+
     assert_eq!(program, program_deserialized);
 }
 
@@ -1095,8 +1099,12 @@ fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
     module_deserialized
         .load_source_locations(&mut SliceReader::new(&locations))
         .unwrap();
-    if !serialize_imports {
-        module_deserialized.import_info = module.import_info.clone();
-    }
+
+    module_deserialized = if !serialize_imports {
+        module_deserialized.with_import_info(module.import_info().clone())
+    } else {
+        module_deserialized
+    };
+
     assert_eq!(module, module_deserialized);
 }
