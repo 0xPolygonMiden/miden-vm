@@ -28,8 +28,6 @@ log = { version = "0.4", default-features = false, optional = true }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 miden-air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.7", default-features = false }
-tabled = "0.14.0"
-prettytable = "0.10.0"
 
 [dev-dependencies]
 logtest = { version = "2.0", default-features = false }
