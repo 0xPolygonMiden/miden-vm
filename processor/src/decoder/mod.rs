@@ -1,7 +1,6 @@
 use super::{
-    Call, Dyn, ExecutionError, Felt, Host, Join, Loop, OpBatch, Operation,
-    Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
-    ZERO,
+    Call, Dyn, ExecutionError, Felt, Host, Join, Loop, OpBatch, Operation, Process, Span, Split,
+    StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
@@ -14,6 +13,9 @@ use vm_core::{code_blocks::get_span_op_group_count, stack::STACK_TOP_SIZE, Assem
 
 mod trace;
 use trace::DecoderTrace;
+
+mod auxiliary;
+pub use auxiliary::AuxTraceBuilder;
 
 #[cfg(test)]
 use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
@@ -424,12 +426,7 @@ impl Decoder {
     ///
     /// This pushes a block with ID=addr onto the block stack and appends execution of a SPLIT
     /// operation to the trace.
-    pub fn start_split(
-        &mut self,
-        child1_hash: Word,
-        child2_hash: Word,
-        addr: Felt,
-    ) {
+    pub fn start_split(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
         // append a SPLIT row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Split, None);
         self.trace
@@ -602,7 +599,7 @@ impl Decoder {
         // groups left to decode. this number will be inserted into the trace in the next row.
         // we also mark the current clock cycle as a cycle at which the immediate value was
         // removed from the op_group table.
-        if let Some(_) = op.imm_value() {
+        if op.imm_value().is_some() {
             ctx.num_groups_left -= ONE;
         }
 
@@ -637,16 +634,14 @@ impl Decoder {
     ///
     /// Trace columns are extended to match the specified trace length.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
-
         let trace = self
             .trace
             .into_vec(trace_len, num_rand_rows)
             .try_into()
             .expect("failed to convert vector to array");
+        let aux_builder = AuxTraceBuilder::default();
 
-        super::DecoderTrace {
-            trace,
-        }
+        super::DecoderTrace { trace, aux_builder }
     }
 
     // HELPERS

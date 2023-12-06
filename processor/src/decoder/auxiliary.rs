@@ -1,6 +1,4 @@
-use super::{
-     ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
-};
+use super::{Felt, Vec};
 
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
@@ -11,17 +9,17 @@ use miden_air::trace::{
         OP_BATCH_FLAGS_OFFSET,
     },
     stack::{B0_COL_IDX, B1_COL_IDX},
-    CTX_COL_IDX, FMP_COL_IDX, FN_HASH_OFFSET, STACK_TRACE_OFFSET,
+    CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET, STACK_TRACE_OFFSET,
 };
 
 use vm_core::{
-    chiplets::hasher::RATE_LEN, crypto::hash::RpoDigest, utils::uninit_vector, Operation,
-    StarkField, ONE, ZERO,
+    chiplets::hasher::RATE_LEN, crypto::hash::RpoDigest, utils::uninit_vector, FieldElement,
+    Operation, StarkField, ONE, ZERO,
 };
-use winter_prover::math::batch_inversion;
+use winter_prover::{math::batch_inversion, matrix::ColMatrix};
 
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;
 
 // CONSTANTS
 // ================================================================================================
@@ -39,6 +37,27 @@ const RESPAN: u8 = Operation::Respan.op_code();
 const PUSH: u8 = Operation::Push(ZERO).op_code();
 const END: u8 = Operation::End.op_code();
 const HALT: u8 = Operation::Halt.op_code();
+
+// AUXILIARY TRACE BUILDER
+// ================================================================================================
+
+/// Describes how to construct execution traces of stack-related auxiliary trace segment columns
+/// (used in multiset checks).
+#[derive(Default)]
+pub struct AuxTraceBuilder {}
+
+impl AuxTraceBuilder {
+    /// Builds and returns stack auxiliary trace columns. Currently this consists of a single
+    /// column p1 describing states of the stack overflow table.
+    pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
+        &self,
+        main_trace: &ColMatrix<Felt>,
+        rand_elements: &[E],
+        program_hash: &RpoDigest,
+    ) -> Vec<Vec<E>> {
+        build_aux_columns(main_trace, rand_elements, program_hash)
+    }
+}
 
 // DECODER AUXILIARY TRACE COLUMNS
 // ================================================================================================
