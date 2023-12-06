@@ -1,5 +1,5 @@
 use super::{
-    Call, ColMatrix, Dyn, ExecutionError, Felt, FieldElement, Host, Join, Loop, OpBatch, Operation,
+    Call, Dyn, ExecutionError, Felt, Host, Join, Loop, OpBatch, Operation,
     Process, Span, Split, StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE,
     ZERO,
 };
@@ -19,10 +19,10 @@ use trace::DecoderTrace;
 use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
 mod block_stack;
-use block_stack::{BlockInfo, BlockStack, BlockType, ExecutionContextInfo};
+use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
 
+#[cfg(test)]
 mod aux_hints;
-pub use aux_hints::{AuxTraceHints, BlockTableUpdate, OpGroupTableUpdate};
 #[cfg(test)]
 pub(crate) use aux_hints::{BlockHashTableRow, BlockStackTableRow, OpGroupTableRow};
 
@@ -92,7 +92,7 @@ where
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
-        self.decoder.start_split(child1_hash, child2_hash, addr, condition);
+        self.decoder.start_split(child1_hash, child2_hash, addr);
         self.execute_op(Operation::Drop)?;
         Ok(condition)
     }
@@ -355,7 +355,6 @@ where
 ///   - `be1` is set when the two most significant op bits are ONE.
 ///
 /// In addition to the execution trace, the decoder also contains the following:
-/// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
 /// - An instance of [DebugInfo] which is only populated in debug mode. This debug_info instance
 ///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are populated
 ///   only when both the processor and assembler are in debug mode.
@@ -363,7 +362,6 @@ pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
-    aux_hints: AuxTraceHints,
     debug_info: DebugInfo,
 }
 
@@ -376,7 +374,6 @@ impl Decoder {
             block_stack: BlockStack::default(),
             span_context: None,
             trace: DecoderTrace::new(),
-            aux_hints: AuxTraceHints::new(),
             debug_info: DebugInfo::new(in_debug_mode),
         }
     }
@@ -415,23 +412,10 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a JOIN
     /// operation to the trace.
     pub fn start_join(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // append a JOIN row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Join(false), None);
         self.trace
             .append_block_start(parent_addr, Operation::Join, child1_hash, child2_hash);
-
-        // mark this cycle as the cycle at which a new JOIN block began execution (this affects
-        // block stack and block hash tables). Both children of the JOIN block are expected to
-        // be executed, and thus we record both of their hashes.
-        self.aux_hints.block_started(
-            clk,
-            self.block_stack.peek(),
-            Some(child1_hash),
-            Some(child2_hash),
-        );
 
         self.debug_info.append_operation(Operation::Join);
     }
@@ -445,22 +429,11 @@ impl Decoder {
         child1_hash: Word,
         child2_hash: Word,
         addr: Felt,
-        stack_top: Felt,
     ) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // append a SPLIT row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Split, None);
         self.trace
             .append_block_start(parent_addr, Operation::Split, child1_hash, child2_hash);
-
-        // mark this cycle as the cycle at which a SPLIT block began execution (this affects block
-        // stack and block hash tables). Only one child of the SPLIT block is expected to be
-        // executed, and thus, we record the hash only for that child.
-        let taken_branch_hash = if stack_top == ONE { child1_hash } else { child2_hash };
-        self.aux_hints
-            .block_started(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
 
         self.debug_info.append_operation(Operation::Split);
     }
@@ -470,21 +443,11 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a LOOP
     /// operation to the trace. A block is marked as a loop block only if is_loop = ONE.
     pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, stack_top: Felt) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // append a LOOP row to the execution trace
         let enter_loop = stack_top == ONE;
         let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop), None);
         self.trace
             .append_block_start(parent_addr, Operation::Loop, loop_body_hash, EMPTY_WORD);
-
-        // mark this cycle as the cycle at which a new LOOP block has started (this may affect
-        // block hash table). A loop block has a single child only if the body of the loop is
-        // executed at least once.
-        let executed_loop_body = if enter_loop { Some(loop_body_hash) } else { None };
-        self.aux_hints
-            .block_started(clk, self.block_stack.peek(), executed_loop_body, None);
 
         self.debug_info.append_operation(Operation::Loop);
     }
@@ -493,17 +456,10 @@ impl Decoder {
     ///
     /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // append a REPEAT row to the execution trace
         let block_info = self.block_stack.peek();
         debug_assert_eq!(ONE, block_info.is_entered_loop());
         self.trace.append_loop_repeat(block_info.addr);
-
-        // mark this cycle as the cycle at which a new iteration of a loop started (this affects
-        // block hash table)
-        self.aux_hints.loop_repeat_started(clk);
 
         self.debug_info.append_operation(Operation::Repeat);
     }
@@ -513,16 +469,9 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a CALL
     /// operation to the trace.
     pub fn start_call(&mut self, fn_hash: Word, addr: Felt, ctx_info: ExecutionContextInfo) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // push CALL block info onto the block stack and append a CALL row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
         self.trace.append_block_start(parent_addr, Operation::Call, fn_hash, EMPTY_WORD);
-
-        // mark this cycle as the cycle at which a new CALL block began execution (this affects
-        // block stack and block hash tables). A CALL block has only a single child.
-        self.aux_hints.block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
 
         self.debug_info.append_operation(Operation::Call);
     }
@@ -532,18 +481,11 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a SYSCALL
     /// operation to the trace.
     pub fn start_syscall(&mut self, fn_hash: Word, addr: Felt, ctx_info: ExecutionContextInfo) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // push SYSCALL block info onto the block stack and append a SYSCALL row to the execution
         // trace
         let parent_addr = self.block_stack.push(addr, BlockType::SysCall, Some(ctx_info));
         self.trace
             .append_block_start(parent_addr, Operation::SysCall, fn_hash, EMPTY_WORD);
-
-        // mark this cycle as the cycle at which a new SYSCALL block began execution (this affects
-        // block stack and block hash tables). A SYSCALL block has only a single child.
-        self.aux_hints.block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
 
         self.debug_info.append_operation(Operation::SysCall);
     }
@@ -553,17 +495,9 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a DYN
     /// operation to the trace.
     pub fn start_dyn(&mut self, dyn_hash: Word, addr: Felt) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // push DYN block info onto the block stack and append a DYN row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Dyn, None);
         self.trace.append_block_start(parent_addr, Operation::Dyn, dyn_hash, [ZERO; 4]);
-
-        // mark this cycle as the cycle at which a new DYN block began execution (this affects
-        // block stack and block hash tables). A DYN block has no children but points to the hash
-        // provided on the stack.
-        self.aux_hints.block_started(clk, self.block_stack.peek(), Some(dyn_hash), None);
 
         self.debug_info.append_operation(Operation::Dyn);
     }
@@ -577,9 +511,6 @@ impl Decoder {
     /// execution context and free memory pointers were set before the CALL block started
     /// executing. For non-CALL blocks these values are set to zeros and should be ignored.
     pub fn end_control_block(&mut self, block_hash: Word) -> Option<ExecutionContextInfo> {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // remove the block from the top of the block stack and add an END row to the trace
         let block_info = self.block_stack.pop();
         self.trace.append_block_end(
@@ -590,9 +521,6 @@ impl Decoder {
             block_info.is_call(),
             block_info.is_syscall(),
         );
-
-        // mark this cycle as the cycle at which block execution has ended
-        self.aux_hints.block_ended(clk, block_info.is_first_child);
 
         self.debug_info.append_operation(Operation::End);
 
@@ -607,9 +535,6 @@ impl Decoder {
         debug_assert!(self.span_context.is_none(), "already in span");
         let parent_addr = self.block_stack.push(addr, BlockType::Span, None);
 
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // add a SPAN row to the trace
         self.trace
             .append_span_start(parent_addr, first_op_batch.groups(), num_op_groups);
@@ -621,22 +546,12 @@ impl Decoder {
             group_ops_left: first_op_batch.groups()[0],
         });
 
-        // mark the current cycle as a cycle at which an operation batch may have been inserted
-        // into the op_group table
-        self.aux_hints.insert_op_batch(clk, num_op_groups);
-
-        // mark the current cycle as the cycle at which a SPAN block has started; SPAN block has
-        // no children
-        self.aux_hints.block_started(clk, self.block_stack.peek(), None, None);
-
         self.debug_info.append_operation(Operation::Span);
     }
 
     /// Starts decoding of the next operation batch in the current SPAN.
     pub fn respan(&mut self, op_batch: &OpBatch) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // add RESPAN row to the trace
         self.trace.append_respan(op_batch.groups());
 
@@ -646,14 +561,6 @@ impl Decoder {
         block_info.addr += HASH_CYCLE_LEN;
 
         let ctx = self.span_context.as_mut().expect("not in span");
-
-        // mark the current cycle as a cycle at which an operation batch may have been inserted
-        // into the op_group table
-        self.aux_hints.insert_op_batch(clk, ctx.num_groups_left);
-
-        // mark the current cycle as a cycle at which the ID of the span block was changed (this
-        // causes an update in the block stack table)
-        self.aux_hints.span_extended(clk, block_info);
 
         // after RESPAN operation is executed, we decrement the number of remaining groups by ONE
         // because executing RESPAN consumes the first group of the batch
@@ -665,15 +572,7 @@ impl Decoder {
 
     /// Starts decoding a new operation group.
     pub fn start_op_group(&mut self, op_group: Felt) {
-        let clk = self.trace_len() as u32;
         let ctx = self.span_context.as_mut().expect("not in span");
-
-        // mark the cycle of the last operation as a cycle at which an operation group was
-        // removed from the op_group table. decoding of the removed operation will begin
-        // at the current cycle.
-        let group_pos = ctx.num_groups_left;
-        let batch_id = self.block_stack.peek().addr;
-        self.aux_hints.remove_op_group(clk - 1, batch_id, group_pos, op_group);
 
         // reset the current group value and decrement the number of left groups by ONE
         debug_assert_eq!(ZERO, ctx.group_ops_left, "not all ops executed in current group");
@@ -683,9 +582,6 @@ impl Decoder {
 
     /// Decodes a user operation (i.e., not a control flow operation).
     pub fn execute_user_op(&mut self, op: Operation, op_idx: usize) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         let block = self.block_stack.peek();
         let ctx = self.span_context.as_mut().expect("not in span");
 
@@ -706,10 +602,7 @@ impl Decoder {
         // groups left to decode. this number will be inserted into the trace in the next row.
         // we also mark the current clock cycle as a cycle at which the immediate value was
         // removed from the op_group table.
-        if let Some(imm_value) = op.imm_value() {
-            let group_pos = ctx.num_groups_left;
-            self.aux_hints.remove_op_group(clk, block.addr, group_pos, imm_value);
-
+        if let Some(_) = op.imm_value() {
             ctx.num_groups_left -= ONE;
         }
 
@@ -728,17 +621,11 @@ impl Decoder {
 
     /// Ends decoding of a SPAN block.
     pub fn end_span(&mut self, block_hash: Word) {
-        // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len() as u32;
-
         // remove the block from the stack of executing blocks and add an END row to the
         // execution trace
         let block_info = self.block_stack.pop();
         self.trace.append_span_end(block_hash, block_info.is_loop_body());
         self.span_context = None;
-
-        // mark this cycle as the cycle at which block execution has ended
-        self.aux_hints.block_ended(clk, block_info.is_first_child);
 
         self.debug_info.append_operation(Operation::End);
     }
@@ -746,14 +633,10 @@ impl Decoder {
     // TRACE GENERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an array of columns containing an execution trace of this decoder together with
-    /// hints to be used in construction of decoder-related auxiliary trace segment columns.
+    /// Returns an array of columns containing an execution trace of this decoder.
     ///
     /// Trace columns are extended to match the specified trace length.
-    pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
-        // once we know the hash of the program, we update the auxiliary trace hints so that the
-        // block hash table could be initialized properly
-        self.aux_hints.set_program_hash(self.program_hash());
+    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
 
         let trace = self
             .trace
@@ -763,7 +646,6 @@ impl Decoder {
 
         super::DecoderTrace {
             trace,
-            aux_trace_hints: self.aux_hints,
         }
     }
 
