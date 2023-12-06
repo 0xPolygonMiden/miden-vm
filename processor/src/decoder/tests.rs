@@ -1149,7 +1149,6 @@ fn syscall_block() {
     // build foo procedure body
     let foo_root = CodeBlock::new_span(vec![Operation::Push(THREE), Operation::FmpUpdate]);
 
-
     // build bar procedure body
     let bar_span = CodeBlock::new_span(vec![Operation::Push(TWO), Operation::FmpUpdate]);
     let foo_call = CodeBlock::new_syscall(foo_root.hash());
