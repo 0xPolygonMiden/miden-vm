@@ -3,10 +3,7 @@ use winter_prover::matrix::ColMatrix;
 
 use crate::system::ContextId;
 
-use super::{
-    super::trace::LookupTableRow, Felt,
-    Word, ONE, ZERO,
-};
+use super::{super::trace::LookupTableRow, Felt, Word, ONE, ZERO};
 
 // BLOCK STACK TABLE ROW
 // ================================================================================================
@@ -25,12 +22,10 @@ pub struct BlockStackTableRow {
 }
 
 impl BlockStackTableRow {
-
     /// Returns a new [BlockStackTableRow] instantiated with the specified parameters. This is
     /// used for test purpose only.
     #[cfg(test)]
     pub fn new_test(block_id: Felt, parent_id: Felt, is_loop: bool) -> Self {
-
         Self {
             block_id,
             parent_id,
@@ -84,7 +79,7 @@ pub struct BlockHashTableRow {
 impl BlockHashTableRow {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-   
+
     /// Returns a new [BlockHashTableRow] instantiated with the specified parameters. This is
     /// used for test purpose only.
     pub fn new_test(
