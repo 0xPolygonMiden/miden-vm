@@ -1,6 +1,5 @@
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
-    decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState, Vec,
@@ -39,7 +38,6 @@ pub const NUM_RAND_ROWS: usize = 1;
 // ================================================================================================
 
 pub struct AuxTraceHints {
-    pub(crate) decoder: DecoderAuxTraceHints,
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
@@ -224,7 +222,6 @@ impl Trace for ExecutionTrace {
         // add decoder's running product columns
         let decoder_aux_columns = decoder::build_aux_columns(
             &self.main_trace,
-            &self.aux_trace_hints.decoder,
             rand_elements,
             self.program_hash(),
         );
@@ -340,7 +337,6 @@ where
     }
 
     let aux_trace_hints = AuxTraceHints {
-        decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
