@@ -8,12 +8,11 @@ use super::{
 use miden_air::trace::chiplets::{
     bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
     hasher::{Digest, HasherState},
-    memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
 };
 use vm_core::{code_blocks::OpBatch, Kernel};
 
 mod bitwise;
-use bitwise::{Bitwise, BitwiseLookup};
+use bitwise::Bitwise;
 
 mod hasher;
 #[cfg(test)]
@@ -21,15 +20,16 @@ pub(crate) use hasher::init_state_from_words;
 use hasher::Hasher;
 
 mod memory;
-use memory::{Memory, MemoryLookup};
+use memory::Memory;
 
 mod kernel_rom;
-use kernel_rom::{KernelProcLookup, KernelRom};
+use kernel_rom::KernelRom;
 
 mod aux_trace;
 #[cfg(test)]
 pub(crate) use aux_trace::ChipletsVTableRow;
-pub(crate) use aux_trace::{AuxTraceBuilder, ChipletsBus, ChipletsVTableTraceBuilder};
+
+pub(crate) use aux_trace::{AuxTraceBuilder, ChipletsVTableTraceBuilder};
 
 #[cfg(test)]
 mod tests;
@@ -109,7 +109,6 @@ pub struct Chiplets {
     bitwise: Bitwise,
     memory: Memory,
     kernel_rom: KernelRom,
-    bus: ChipletsBus,
 }
 
 impl Chiplets {
@@ -123,7 +122,6 @@ impl Chiplets {
             bitwise: Bitwise::default(),
             memory: Memory::default(),
             kernel_rom: KernelRom::new(kernel),
-            bus: ChipletsBus::default(),
         }
     }
 
@@ -175,12 +173,7 @@ impl Chiplets {
     /// The returned tuple contains the hasher state after the permutation and the row address of
     /// the execution trace at which the permutation started.
     pub fn permute(&mut self, state: HasherState) -> (Felt, HasherState) {
-        let mut lookups = Vec::new();
-        let (addr, return_state) = self.hasher.permute(state, &mut lookups);
-        self.bus.request_hasher_operation(&lookups, self.clk);
-
-        // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
+        let (addr, return_state) = self.hasher.permute(state);
 
         (addr, return_state)
     }
@@ -201,13 +194,7 @@ impl Chiplets {
         path: &MerklePath,
         index: Felt,
     ) -> (Felt, Word) {
-        let mut lookups = Vec::new();
-        let (addr, root) = self.hasher.build_merkle_root(value, path, index, &mut lookups);
-
-        self.bus.request_hasher_operation(&lookups, self.clk);
-
-        // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
+        let (addr, root) = self.hasher.build_merkle_root(value, path, index);
 
         (addr, root)
     }
@@ -225,14 +212,7 @@ impl Chiplets {
         path: &MerklePath,
         index: Felt,
     ) -> MerkleRootUpdate {
-        let mut lookups = Vec::new();
-
-        let merkle_root_update =
-            self.hasher.update_merkle_root(old_value, new_value, path, index, &mut lookups);
-        self.bus.request_hasher_operation(&lookups, self.clk);
-
-        // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
+        let merkle_root_update = self.hasher.update_merkle_root(old_value, new_value, path, index);
 
         merkle_root_update
     }
@@ -251,21 +231,10 @@ impl Chiplets {
         domain: Felt,
         expected_hash: Digest,
     ) -> Felt {
-        let mut lookups = Vec::new();
-        let (addr, result) =
-            self.hasher.hash_control_block(h1, h2, domain, expected_hash, &mut lookups);
+        let (addr, result) = self.hasher.hash_control_block(h1, h2, domain, expected_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());
-
-        // send the request for the hash initialization
-        self.bus.request_hasher_lookup(lookups[0], self.clk);
-
-        // enqueue the request for the hash result
-        self.bus.enqueue_hasher_request(lookups[1]);
-
-        // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
 
         addr
     }
@@ -275,23 +244,10 @@ impl Chiplets {
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
     pub fn hash_span_block(&mut self, op_batches: &[OpBatch], expected_hash: Digest) -> Felt {
-        let mut lookups = Vec::new();
-        let (addr, result) = self.hasher.hash_span_block(op_batches, expected_hash, &mut lookups);
+        let (addr, result) = self.hasher.hash_span_block(op_batches, expected_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());
-
-        // send the request for the hash initialization
-        self.bus.request_hasher_lookup(lookups[0], self.clk);
-
-        // enqueue the rest of the requests in reverse order so that the next request is at
-        // the top of the queue.
-        for lookup in lookups.iter().skip(1).rev() {
-            self.bus.enqueue_hasher_request(*lookup);
-        }
-
-        // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
 
         addr
     }
@@ -302,9 +258,7 @@ impl Chiplets {
     /// It's processed by moving the corresponding lookup from the Chiplets bus' queued lookups to
     /// its requested lookups. Therefore, the next queued lookup is expected to be a precomputed
     /// lookup for absorbing new elements into the hasher state.
-    pub fn absorb_span_batch(&mut self) {
-        self.bus.send_queued_hasher_request(self.clk);
-    }
+    pub fn absorb_span_batch(&mut self) {}
 
     /// Sends a request for a control block hash result to the Chiplets Bus. It's expected to be
     /// called by the decoder to request the finalization (return hash) of a control block hash
@@ -313,9 +267,7 @@ impl Chiplets {
     /// It's processed by moving the corresponding lookup from the Chiplets bus' queued lookups to
     /// its requested lookups. Therefore, the next queued lookup is expected to be a precomputed
     /// lookup for returning a hash result.
-    pub fn read_hash_result(&mut self) {
-        self.bus.send_queued_hasher_request(self.clk);
-    }
+    pub fn read_hash_result(&mut self) {}
 
     // BITWISE CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
@@ -326,9 +278,6 @@ impl Chiplets {
     pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let result = self.bitwise.u32and(a, b)?;
 
-        let bitwise_lookup = BitwiseLookup::new(BITWISE_AND_LABEL, a, b, result);
-        self.bus.request_bitwise_operation(bitwise_lookup, self.clk);
-
         Ok(result)
     }
 
@@ -337,9 +286,6 @@ impl Chiplets {
     /// computation is undefined.
     pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let result = self.bitwise.u32xor(a, b)?;
-
-        let bitwise_lookup = BitwiseLookup::new(BITWISE_XOR_LABEL, a, b, result);
-        self.bus.request_bitwise_operation(bitwise_lookup, self.clk);
 
         Ok(result)
     }
@@ -356,10 +302,6 @@ impl Chiplets {
         // read the word from memory
         let value = self.memory.read(ctx, addr, self.clk);
 
-        // send the memory read request to the bus
-        let lookup = MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr, self.clk, value);
-        self.bus.request_memory_operation(&[lookup], self.clk);
-
         value
     }
 
@@ -373,14 +315,6 @@ impl Chiplets {
         let addr2 = addr + 1;
         let words = [self.memory.read(ctx, addr, self.clk), self.memory.read(ctx, addr2, self.clk)];
 
-        // create lookups for both memory reads
-        let lookups = [
-            MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr, self.clk, words[0]),
-            MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr2, self.clk, words[1]),
-        ];
-
-        // send lookups to the bus and return the result
-        self.bus.request_memory_operation(&lookups, self.clk);
         words
     }
 
@@ -389,10 +323,6 @@ impl Chiplets {
     /// This also modifies the memory access trace and sends a memory lookup request to the bus.
     pub fn write_mem(&mut self, ctx: ContextId, addr: u32, word: Word) {
         self.memory.write(ctx, addr, self.clk, word);
-
-        // send the memory write request to the bus
-        let lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, word);
-        self.bus.request_memory_operation(&[lookup], self.clk);
     }
 
     /// Writes the provided element into the specified context/address leaving the remaining 3
@@ -404,10 +334,6 @@ impl Chiplets {
         let new_word = [value, old_word[1], old_word[2], old_word[3]];
 
         self.memory.write(ctx, addr, self.clk, new_word);
-
-        // send the memory write request to the bus
-        let lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, new_word);
-        self.bus.request_memory_operation(&[lookup], self.clk);
 
         old_word
     }
@@ -421,15 +347,6 @@ impl Chiplets {
         // write two words to memory at addr and addr + 1
         self.memory.write(ctx, addr, self.clk, words[0]);
         self.memory.write(ctx, addr2, self.clk, words[1]);
-
-        // create lookups for both memory writes
-        let lookups = [
-            MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, words[0]),
-            MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr2, self.clk, words[1]),
-        ];
-
-        // send lookups to the bus
-        self.bus.request_memory_operation(&lookups, self.clk);
     }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
@@ -464,10 +381,6 @@ impl Chiplets {
     /// with which the kernel ROM was instantiated.
     pub fn access_kernel_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
         self.kernel_rom.access_proc(proc_hash)?;
-
-        // record the access in the chiplet bus
-        let kernel_proc_lookup = KernelProcLookup::new(proc_hash.into());
-        self.bus.request_kernel_proc_call(kernel_proc_lookup, self.clk);
 
         Ok(())
     }
@@ -504,10 +417,12 @@ impl Chiplets {
             .collect::<Vec<_>>()
             .try_into()
             .expect("failed to convert vector to array");
+        self.fill_trace(&mut trace);
 
-        let aux_builder = self.fill_trace(&mut trace);
-
-        ChipletsTrace { trace, aux_builder }
+        ChipletsTrace {
+            trace,
+            aux_builder: AuxTraceBuilder::default(),
+        }
     }
 
     // HELPER METHODS
@@ -519,7 +434,8 @@ impl Chiplets {
     ///
     /// It returns the auxiliary trace builders for generating auxiliary trace columns that depend
     /// on data from [Chiplets].
-    fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH]) -> AuxTraceBuilder {
+    fn fill_trace(self, trace: &mut [Vec<Felt>; CHIPLETS_WIDTH])
+    {
         // get the rows where chiplets begin.
         let bitwise_start = self.bitwise_start();
         let memory_start = self.memory_start();
@@ -532,7 +448,6 @@ impl Chiplets {
             bitwise,
             memory,
             kernel_rom,
-            mut bus,
         } = self;
 
         // populate external selector columns for all chiplets
@@ -579,16 +494,9 @@ impl Chiplets {
 
         // fill the fragments with the execution trace from each chiplet
         // TODO: this can be parallelized to fill the traces in multiple threads
-        let mut table_builder = hasher.fill_trace(&mut hasher_fragment);
-        bitwise.fill_trace(&mut bitwise_fragment, &mut bus, bitwise_start);
-        memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
-        kernel_rom.fill_trace(
-            &mut kernel_rom_fragment,
-            &mut bus,
-            &mut table_builder,
-            kernel_rom_start,
-        );
-
-        AuxTraceBuilder::new(bus.into_aux_builder(), table_builder)
+        hasher.fill_trace(&mut hasher_fragment);
+        bitwise.fill_trace(&mut bitwise_fragment);
+        memory.fill_trace(&mut memory_fragment);
+        kernel_rom.fill_trace(&mut kernel_rom_fragment);
     }
 }
