@@ -1,3 +1,7 @@
+use super::{
+    super::trace::{AuxColumnBuilder, LookupTableRow},
+    ColMatrix, Felt, FieldElement, OverflowTableRow, OverflowTableUpdate, Vec,
+};
 use miden_air::trace::{
     decoder::{IS_LOOP_FLAG_COL_IDX, OP_BITS_EXTRA_COLS_OFFSET},
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX},
@@ -5,11 +9,6 @@ use miden_air::trace::{
 };
 use vm_core::{utils::uninit_vector, ONE, ZERO};
 use winter_prover::math::batch_inversion;
-
-use super::{
-    super::trace::AuxColumnBuilder, ColMatrix, Felt, FieldElement, OverflowTableRow,
-    OverflowTableUpdate, Vec,
-};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -113,7 +112,7 @@ impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow, u64> for AuxTraceBu
 
         result_1[0] = E::ONE;
         result_2[0] = E::ONE;
-        result[0] = E::ONE;
+        result[0] = init_overflow_table(self, main_trace, alphas);
 
         let main_tr = MainTrace::new(main_trace);
         for i in 0..main_trace.num_rows() - 1 {
@@ -139,6 +138,23 @@ impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow, u64> for AuxTraceBu
 
         final_column_value
     }
+}
+
+/// Initializes the overflow stack auxiliary column.
+fn init_overflow_table<E>(
+    overflow_table: &AuxTraceBuilder,
+    main_trace: &ColMatrix<Felt>,
+    alphas: &[E],
+) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    let mut initial_column_value = E::ONE;
+    for row in overflow_table.overflow_table_rows.iter().take(overflow_table.num_init_rows) {
+        let value = (*row).to_value(main_trace, alphas);
+        initial_column_value *= value;
+    }
+    initial_column_value
 }
 
 /// Adds a row to the stack overflow table.
@@ -227,8 +243,8 @@ impl<'a> MainTrace<'a> {
         let b4 = self.columns.get(DECODER_TRACE_OFFSET + 5, i);
         let b5 = self.columns.get(DECODER_TRACE_OFFSET + 6, i);
         let b6 = self.columns.get(DECODER_TRACE_OFFSET + 7, i);
-        let e0 = self.columns.get(OP_BITS_EXTRA_COLS_OFFSET, i);
-        let h5 = self.columns.get(IS_LOOP_FLAG_COL_IDX, i);
+        let e0 = self.columns.get(DECODER_TRACE_OFFSET + OP_BITS_EXTRA_COLS_OFFSET, i);
+        let h5 = self.columns.get(DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX, i);
 
         // group with left shift effect grouped by a common prefix
         ([b6, b5, b4] == [ZERO, ONE, ZERO])||
