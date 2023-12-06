@@ -1,6 +1,5 @@
 use super::{
-    super::aux_trace::{ChipletLookup, ChipletsBusRow},
-    Bitwise, BitwiseLookup, ChipletsBus, Felt, StarkField, TraceFragment, Vec, A_COL_IDX,
+    Bitwise, Felt, StarkField, TraceFragment, Vec, A_COL_IDX,
     A_COL_RANGE, BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, B_COL_IDX,
     B_COL_RANGE, OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
@@ -24,7 +23,7 @@ fn bitwise_and() {
     assert_eq!(a.as_int() & b.as_int(), result.as_int());
 
     // --- check generated trace ----------------------------------------------
-    let (trace, chiplets_bus) = build_trace(bitwise, OP_CYCLE_LEN);
+    let trace = build_trace(bitwise, OP_CYCLE_LEN);
 
     // make sure the selector values specify bitwise AND at each step in the trace
     for row in 0..OP_CYCLE_LEN {
@@ -54,11 +53,6 @@ fn bitwise_and() {
 
         prev_result = result;
     }
-
-    // make sure the lookup was sent to the bus correctly
-    let bitwise_lookup =
-        BitwiseLookup::new(BITWISE_AND_LABEL, a, b, Felt::new(a.as_int() & b.as_int()));
-    verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
 }
 
 #[test]
@@ -72,7 +66,7 @@ fn bitwise_xor() {
     assert_eq!(a.as_int() ^ b.as_int(), result.as_int());
 
     // --- check generated trace ----------------------------------------------
-    let (trace, chiplets_bus) = build_trace(bitwise, OP_CYCLE_LEN);
+    let trace = build_trace(bitwise, OP_CYCLE_LEN);
 
     // make sure the selector values specify bitwise XOR at each step in the trace
     for row in 0..OP_CYCLE_LEN {
@@ -102,11 +96,6 @@ fn bitwise_xor() {
 
         prev_result = result;
     }
-
-    // make sure the lookup was sent to the bus correctly
-    let bitwise_lookup =
-        BitwiseLookup::new(BITWISE_XOR_LABEL, a, b, Felt::new(a.as_int() ^ b.as_int()));
-    verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
 }
 
 #[test]
@@ -129,7 +118,7 @@ fn bitwise_multiple() {
     assert_eq!(a[2].as_int() & b[2].as_int(), result2.as_int());
 
     // --- check generated trace ----------------------------------------------
-    let (trace, chiplets_bus) = build_trace(bitwise, 3 * OP_CYCLE_LEN);
+    let trace = build_trace(bitwise, 3 * OP_CYCLE_LEN);
 
     // make sure results and results from the trace are the same
     assert_eq!(result0, trace[OUTPUT_COL_IDX][OP_CYCLE_LEN - 1]);
@@ -189,32 +178,18 @@ fn bitwise_multiple() {
 
         prev_result = result;
     }
-
-    // make sure the lookups were sent to the bus correctly
-    let bitwise_lookup =
-        BitwiseLookup::new(BITWISE_AND_LABEL, a[0], b[0], Felt::new(a[0].as_int() & b[0].as_int()));
-    verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
-
-    let bitwise_lookup =
-        BitwiseLookup::new(BITWISE_XOR_LABEL, a[1], b[1], Felt::new(a[1].as_int() ^ b[1].as_int()));
-    verify_bus(&chiplets_bus, 1, (OP_CYCLE_LEN * 2 - 1) as u32, &bitwise_lookup);
-
-    let bitwise_lookup =
-        BitwiseLookup::new(BITWISE_AND_LABEL, a[2], b[2], Felt::new(a[2].as_int() & b[2].as_int()));
-    verify_bus(&chiplets_bus, 2, (OP_CYCLE_LEN * 3 - 1) as u32, &bitwise_lookup);
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
 /// Builds a trace of the specified length and fills it with data from the provided Bitwise instance.
-fn build_trace(bitwise: Bitwise, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
-    let mut chiplets_bus = ChipletsBus::default();
+fn build_trace(bitwise: Bitwise, num_rows: usize) ->  Vec<Vec<Felt>> {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    bitwise.fill_trace(&mut fragment, &mut chiplets_bus, 0);
+    bitwise.fill_trace(&mut fragment );
 
-    (trace, chiplets_bus)
+    trace
 }
 
 fn check_decomposition(trace: &[Vec<Felt>], start: usize, a: u64, b: u64) {
@@ -254,20 +229,3 @@ fn rand_u32() -> Felt {
     Felt::new(value)
 }
 
-/// Verifies that the chiplet bus received the specified BitwiseLookup response at `cycle` which was
-/// added to the list of responses at `index`.
-fn verify_bus(
-    chiplets_bus: &ChipletsBus,
-    index: usize,
-    cycle: u32,
-    bitwise_lookup: &BitwiseLookup,
-) {
-    let expected_lookup = ChipletLookup::Bitwise(*bitwise_lookup);
-    let expected_hint = ChipletsBusRow::new(&[], Some(index as u32));
-
-    let lookup = chiplets_bus.get_response_row(index);
-    let hint = chiplets_bus.get_lookup_hint(cycle).unwrap();
-
-    assert_eq!(expected_lookup, lookup);
-    assert_eq!(&expected_hint, hint);
-}
