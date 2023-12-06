@@ -139,20 +139,6 @@ impl BlockInfo {
             _ => ZERO,
         }
     }
-
-    /// Returns the number of children a block has. This is an integer between 0 and 2 (both
-    /// inclusive).
-    pub fn num_children(&self) -> u32 {
-        match self.block_type {
-            BlockType::Join(_) => 2,
-            BlockType::Split => 1,
-            BlockType::Loop(is_entered) => u32::from(is_entered),
-            BlockType::Call => 1,
-            BlockType::Dyn => 1,
-            BlockType::SysCall => 1,
-            BlockType::Span => 0,
-        }
-    }
 }
 
 // EXECUTION CONTEXT INFO

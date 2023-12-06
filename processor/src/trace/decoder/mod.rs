@@ -1,5 +1,5 @@
 use super::{
-    super::decoder::AuxTraceHints, ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
+     ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
 };
 
 use miden_air::trace::{
@@ -47,12 +47,11 @@ const HALT: u8 = Operation::Halt.op_code();
 /// stack, block hash, and op group tables respectively.
 pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
-    aux_trace_hints: &AuxTraceHints,
     rand_elements: &[E],
     program_hash: &RpoDigest,
 ) -> Vec<Vec<E>> {
-    let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
-    let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements, program_hash);
+    let p1 = build_aux_col_p1(main_trace, rand_elements);
+    let p2 = build_aux_col_p2(main_trace, rand_elements, program_hash);
     let p3 = build_aux_col_p3(main_trace, rand_elements);
 
     vec![p1, p2, p3]
@@ -65,7 +64,6 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 /// stack table via multiset checks.
 fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
-    _aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
 ) -> Vec<E> {
     let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
@@ -129,7 +127,6 @@ where
 /// hash table via multiset checks.
 fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
-    _aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
     program_hash: &RpoDigest,
 ) -> Vec<E> {
