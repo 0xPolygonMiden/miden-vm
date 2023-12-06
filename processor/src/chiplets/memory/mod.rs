@@ -1,8 +1,7 @@
 use super::{
-    trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
-    BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
-    Vec, Word, EMPTY_WORD, ONE,
+    BTreeMap, Felt, FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, EMPTY_WORD,
+    ONE,
 };
 use crate::system::ContextId;
 use miden_air::trace::chiplets::memory::{
@@ -190,12 +189,7 @@ impl Memory {
     }
 
     /// Fills the provided trace fragment with trace data from this memory instance.
-    pub fn fill_trace(
-        self,
-        trace: &mut TraceFragment,
-        chiplets_bus: &mut ChipletsBus,
-        memory_start_row: usize,
-    ) {
+    pub fn fill_trace(self, trace: &mut TraceFragment) {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 
         // set the pervious address and clock cycle to the first address and clock cycle of the
@@ -245,17 +239,6 @@ impl Memory {
                     // TODO: switch to batch inversion to improve efficiency.
                     trace.set(row, D_INV_COL_IDX, delta.inv());
 
-                    // provide the memory access data to the chiplets bus.
-                    let memory_lookup = MemoryLookup::new(
-                        memory_access.op_label(),
-                        ctx,
-                        Felt::from(addr),
-                        clk,
-                        value,
-                    );
-                    chiplets_bus
-                        .provide_memory_operation(memory_lookup, (memory_start_row + row) as u32);
-
                     // update values for the next iteration of the loop
                     prev_ctx = ctx;
                     prev_addr = felt_addr;
@@ -289,64 +272,5 @@ impl Memory {
     #[cfg(test)]
     pub fn size(&self) -> usize {
         self.trace.iter().fold(0, |acc, (_, s)| acc + s.size())
-    }
-}
-
-// MEMORY LOOKUPS
-// ================================================================================================
-
-/// Contains the data required to describe a memory read or write.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MemoryLookup {
-    // unique label identifying the memory operation
-    label: u8,
-    ctx: Felt,
-    addr: Felt,
-    clk: Felt,
-    word: Word,
-}
-
-impl MemoryLookup {
-    pub fn new(label: u8, ctx: Felt, addr: Felt, clk: Felt, word: Word) -> Self {
-        Self {
-            label,
-            ctx,
-            addr,
-            clk,
-            word,
-        }
-    }
-
-    pub fn from_ints(label: u8, ctx: ContextId, addr: u32, clk: u32, word: Word) -> Self {
-        Self {
-            label,
-            ctx: Felt::from(ctx),
-            addr: Felt::from(addr),
-            clk: Felt::from(clk),
-            word,
-        }
-    }
-}
-
-impl LookupTableRow for MemoryLookup {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 9 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(
-        &self,
-        _main_trace: &ColMatrix<Felt>,
-        alphas: &[E],
-    ) -> E {
-        let word_value = self
-            .word
-            .iter()
-            .enumerate()
-            .fold(E::ZERO, |acc, (j, element)| acc + alphas[j + 5].mul_base(*element));
-
-        alphas[0]
-            + alphas[1].mul_base(Felt::from(self.label))
-            + alphas[2].mul_base(self.ctx)
-            + alphas[3].mul_base(self.addr)
-            + alphas[4].mul_base(self.clk)
-            + word_value
     }
 }
