@@ -9,6 +9,7 @@ use vm_core::{
 };
 
 mod chiplets;
+mod decoder;
 mod hasher;
 mod range;
 mod stack;

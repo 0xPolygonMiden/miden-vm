@@ -1,15 +1,14 @@
 use crate::ContextId;
 
 use super::{
-    super::aux_trace::{ChipletLookup, ChipletsBusRow},
-    super::ZERO,
-    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, TraceFragment, Vec, ADDR_COL_IDX,
-    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
+    super::ZERO, Felt, FieldElement, Memory, TraceFragment, Vec, ADDR_COL_IDX, CLK_COL_IDX,
+    CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
 };
 use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
     MEMORY_WRITE_LABEL, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
 };
+use vm_core::Word;
 
 #[test]
 fn mem_init() {
@@ -51,30 +50,27 @@ fn mem_read() {
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, chiplets_bus) = build_trace(mem, 4);
+    let trace = build_trace(mem, 4);
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr0, 1, EMPTY_WORD);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_INIT_READ, &memory_access, prev_row);
+        MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr0, 1, EMPTY_WORD);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_INIT_READ, &memory_access, prev_row);
 
     let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr0, 3, EMPTY_WORD);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
+        MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr0, 3, EMPTY_WORD);
+    prev_row = verify_memory_access(&trace, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 2
     let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr2, 4, EMPTY_WORD);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_INIT_READ, &memory_access, prev_row);
+        MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr2, 4, EMPTY_WORD);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_INIT_READ, &memory_access, prev_row);
 
     // address 3
     let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr3, 2, EMPTY_WORD);
-    verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_INIT_READ, &memory_access, prev_row);
+        MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr3, 2, EMPTY_WORD);
+    verify_memory_access(&trace, 3, MEMORY_INIT_READ, &memory_access, prev_row);
 }
 
 #[test]
@@ -114,30 +110,23 @@ fn mem_write() {
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, chiplets_bus) = build_trace(mem, 4);
+    let trace = build_trace(mem, 4);
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr0, 1, value1);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr0, 1, value1);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr0, 4, value9);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr0, 4, value9);
+    prev_row = verify_memory_access(&trace, 1, MEMORY_WRITE, &memory_access, prev_row);
 
     // address 1
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr1, 3, value7);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr1, 3, value7);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE, &memory_access, prev_row);
 
     // address 2
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 2, value5);
-    verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 2, value5);
+    verify_memory_access(&trace, 3, MEMORY_WRITE, &memory_access, prev_row);
 }
 
 #[test]
@@ -179,54 +168,37 @@ fn mem_write_read() {
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, chiplets_bus) = build_trace(mem, 9);
+    let trace = build_trace(mem, 9);
 
     // address 2
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 2, value4);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 2, value4);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr2, 5, value4);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr2, 5, value4);
+    prev_row = verify_memory_access(&trace, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 6, value7);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr2, 6, value7);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr2, 8, value7);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr2, 8, value7);
+    prev_row = verify_memory_access(&trace, 3, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // address 5
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr5, 1, value1);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 4, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr5, 1, value1);
+    prev_row = verify_memory_access(&trace, 4, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr5, 3, value1);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 5, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr5, 3, value1);
+    prev_row = verify_memory_access(&trace, 5, MEMORY_COPY_READ, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), addr5, 4, value2);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 6, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), addr5, 4, value2);
+    prev_row = verify_memory_access(&trace, 6, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr5, 7, value2);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 7, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr5, 7, value2);
+    prev_row = verify_memory_access(&trace, 7, MEMORY_COPY_READ, &memory_access, prev_row);
 
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), addr5, 9, value2);
-    verify_memory_access(&trace, &chiplets_bus, 8, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), addr5, 9, value2);
+    verify_memory_access(&trace, 8, MEMORY_COPY_READ, &memory_access, prev_row);
 }
 
 #[test]
@@ -268,31 +240,26 @@ fn mem_multi_context() {
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, chiplets_bus) = build_trace(mem, 5);
+    let trace = build_trace(mem, 5);
 
     // ctx = 0, addr = 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access =
-        MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ContextId::root(), 0, 1, value1);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 0, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, ContextId::root(), 0, 1, value1);
+    prev_row = verify_memory_access(&trace, 0, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, ContextId::root(), 0, 9, value1);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 1, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, ContextId::root(), 0, 9, value1);
+    prev_row = verify_memory_access(&trace, 1, MEMORY_COPY_READ, &memory_access, prev_row);
 
     // ctx = 3, addr = 0
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3.into(), 0, 7, value3);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 2, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, 3.into(), 0, 7, value3);
+    prev_row = verify_memory_access(&trace, 2, MEMORY_WRITE, &memory_access, prev_row);
 
     // ctx = 3, addr = 1
-    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3.into(), 1, 4, value2);
-    prev_row =
-        verify_memory_access(&trace, &chiplets_bus, 3, MEMORY_WRITE, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_WRITE_LABEL, 3.into(), 1, 4, value2);
+    prev_row = verify_memory_access(&trace, 3, MEMORY_WRITE, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 3.into(), 1, 6, value2);
-    verify_memory_access(&trace, &chiplets_bus, 4, MEMORY_COPY_READ, &memory_access, prev_row);
+    let memory_access = MemoryAccess::new(MEMORY_READ_LABEL, 3.into(), 1, 6, value2);
+    verify_memory_access(&trace, 4, MEMORY_COPY_READ, &memory_access, prev_row);
 }
 
 #[test]
@@ -334,14 +301,34 @@ fn mem_get_state_at() {
 // HELPER STRUCT & FUNCTIONS
 // ================================================================================================
 
+/// Contains data representing a memory access.
+pub struct MemoryAccess {
+    label: u8,
+    ctx: ContextId,
+    addr: Felt,
+    clk: Felt,
+    word: [Felt; 4],
+}
+
+impl MemoryAccess {
+    pub fn new(label: u8, ctx: ContextId, addr: u32, clk: u32, word: Word) -> Self {
+        Self {
+            label,
+            ctx,
+            addr: Felt::from(addr),
+            clk: Felt::from(clk),
+            word,
+        }
+    }
+}
+
 /// Builds a trace of the specified length and fills it with data from the provided Memory instance.
-fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
-    let mut chiplets_bus = ChipletsBus::default();
+fn build_trace(mem: Memory, num_rows: usize) -> Vec<Vec<Felt>> {
     let mut trace = (0..MEMORY_TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    mem.fill_trace(&mut fragment, &mut chiplets_bus, 0);
+    mem.fill_trace(&mut fragment);
 
-    (trace, chiplets_bus)
+    trace
 }
 
 fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH] {
@@ -353,11 +340,11 @@ fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH
 }
 
 fn build_trace_row(
-    memory_access: &MemoryLookup,
+    memory_access: &MemoryAccess,
     op_selectors: Selectors,
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
-    let MemoryLookup {
+    let MemoryAccess {
         label: _,
         ctx,
         addr,
@@ -369,7 +356,7 @@ fn build_trace_row(
 
     row[0] = op_selectors[0];
     row[1] = op_selectors[1];
-    row[CTX_COL_IDX] = ctx;
+    row[CTX_COL_IDX] = ctx.into();
     row[ADDR_COL_IDX] = Felt::from(addr);
     row[CLK_COL_IDX] = clk;
     row[V_COL_RANGE.start] = new_val[0];
@@ -397,22 +384,13 @@ fn build_trace_row(
 
 fn verify_memory_access(
     trace: &[Vec<Felt>],
-    chiplets_bus: &ChipletsBus,
     row: u32,
     op_selectors: Selectors,
-    memory_access: &MemoryLookup,
+    memory_access: &MemoryAccess,
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
     let expected_row = build_trace_row(memory_access, op_selectors, prev_row);
-    let expected_lookup = ChipletLookup::Memory(*memory_access);
-    let expected_hint = ChipletsBusRow::new(&[], Some(row));
-
-    let lookup = chiplets_bus.get_response_row(row as usize);
-    let hint = chiplets_bus.get_lookup_hint(row).unwrap();
-
     assert_eq!(expected_row, read_trace_row(trace, row as usize));
-    assert_eq!(expected_lookup, lookup);
-    assert_eq!(&expected_hint, hint);
 
     expected_row
 }
