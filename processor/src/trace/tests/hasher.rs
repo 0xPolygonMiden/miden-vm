@@ -1,9 +1,10 @@
 use super::{
     super::{Trace, NUM_RAND_ROWS},
-    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, LookupTableRow, Operation,
-    Vec, Word, ONE, ZERO,
+    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Vec, Word, ONE,
+    ZERO,
 };
-use crate::{chiplets::ChipletsVTableRow, StackInputs};
+
+use crate::{ColMatrix, StackInputs};
 use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
@@ -72,11 +73,10 @@ fn hasher_p1_mr_update() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        ChipletsVTableRow::new_sibling(Felt::new(index), path[0].into())
+        SiblingTableRow::new(Felt::new(index), path[0].into()).to_value(&trace.main_trace, &alphas),
+        SiblingTableRow::new(Felt::new(index >> 1), path[1].into())
             .to_value(&trace.main_trace, &alphas),
-        ChipletsVTableRow::new_sibling(Felt::new(index >> 1), path[1].into())
-            .to_value(&trace.main_trace, &alphas),
-        ChipletsVTableRow::new_sibling(Felt::new(index >> 2), path[2].into())
+        SiblingTableRow::new(Felt::new(index >> 2), path[2].into())
             .to_value(&trace.main_trace, &alphas),
     ];
 
@@ -148,7 +148,7 @@ fn hasher_p1_mr_update() {
     }
 }
 
-// HELPER FUNCTIONS
+// HELPER STRUCTS, METHODS AND FUNCTIONS
 // ================================================================================================
 
 fn build_merkle_tree() -> (MerkleTree, Vec<Word>) {
@@ -167,4 +167,49 @@ fn init_leaf(value: u64) -> Word {
 
 fn append_word(target: &mut Vec<u64>, word: Word) {
     word.iter().rev().for_each(|v| target.push(v.as_int()));
+}
+
+/// Describes a single entry in the sibling table which consists of a tuple `(index, node)` where
+/// index is the index of the node at its depth. For example, assume a leaf has index n. For the
+/// leaf's parent the index will be n << 1. For the parent of the parent, the index will be
+/// n << 2 etc.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SiblingTableRow {
+    index: Felt,
+    sibling: Word,
+}
+
+impl SiblingTableRow {
+    pub fn new(index: Felt, sibling: Word) -> Self {
+        Self { index, sibling }
+    }
+
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 6 alpha values.
+    pub fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &ColMatrix<Felt>,
+        alphas: &[E],
+    ) -> E {
+        // when the least significant bit of the index is 0, the sibling will be in the 3rd word
+        // of the hasher state, and when the least significant bit is 1, it will be in the 2nd
+        // word. we compute the value in this way to make constraint evaluation a bit easier since
+        // we need to compute the 2nd and the 3rd word values for other purposes as well.
+        let lsb = self.index.as_int() & 1;
+        if lsb == 0 {
+            alphas[0]
+                + alphas[3].mul_base(self.index)
+                + alphas[12].mul_base(self.sibling[0])
+                + alphas[13].mul_base(self.sibling[1])
+                + alphas[14].mul_base(self.sibling[2])
+                + alphas[15].mul_base(self.sibling[3])
+        } else {
+            alphas[0]
+                + alphas[3].mul_base(self.index)
+                + alphas[8].mul_base(self.sibling[0])
+                + alphas[9].mul_base(self.sibling[1])
+                + alphas[10].mul_base(self.sibling[2])
+                + alphas[11].mul_base(self.sibling[3])
+        }
+    }
 }

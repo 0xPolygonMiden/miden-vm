@@ -1,7 +1,4 @@
-use super::{
-    super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, ColMatrix, Felt, FieldElement, Vec,
-    ZERO,
-};
+use super::{AuxTraceBuilder, BTreeMap, ColMatrix, Felt, FieldElement, Vec, ZERO};
 use vm_core::{utils::uninit_vector, StarkField};
 
 // OVERFLOW TABLE
@@ -264,10 +261,10 @@ impl OverflowTableRow {
     }
 }
 
-impl LookupTableRow for OverflowTableRow {
+impl OverflowTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 4 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(
+    pub fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
         _main_trace: &ColMatrix<Felt>,
         alphas: &[E],

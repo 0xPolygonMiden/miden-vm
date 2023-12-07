@@ -10,7 +10,7 @@ use trace::StackTrace;
 
 mod overflow;
 use overflow::OverflowTable;
-pub use overflow::{OverflowTableRow, OverflowTableUpdate};
+pub use overflow::OverflowTableRow;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
