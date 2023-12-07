@@ -1,13 +1,11 @@
 use super::{
-    init_state_from_words, Digest, Felt, Hasher,
-    HasherState, MerklePath, Selectors, TraceFragment, Vec, Word, LINEAR_HASH, MP_VERIFY,
-    MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+    init_state_from_words, Digest, Felt, Hasher, HasherState, MerklePath, Selectors, TraceFragment,
+    Vec, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
+    TRACE_WIDTH,
 };
 
 use miden_air::trace::chiplets::hasher::{
-    DIGEST_LEN, HASH_CYCLE_LEN, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
-    MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
-    STATE_COL_RANGE,
+    DIGEST_LEN, HASH_CYCLE_LEN, NUM_ROUNDS, NUM_SELECTORS, STATE_COL_RANGE,
 };
 use test_utils::rand::rand_array;
 use vm_core::{
@@ -27,7 +25,7 @@ fn hasher_permute() {
     // initialize the hasher and perform one permutation
     let mut hasher = Hasher::default();
     let init_state: HasherState = rand_array();
-    
+
     let (addr, final_state) = hasher.permute(init_state);
 
     // address of the permutation should be ONE (as hasher address starts at ONE)
@@ -50,12 +48,11 @@ fn hasher_permute() {
     // initialize the hasher and perform two permutations
     let mut hasher = Hasher::default();
     let init_state1: HasherState = rand_array();
- 
+
     let (addr1, final_state1) = hasher.permute(init_state1);
 
- 
     let init_state2: HasherState = rand_array();
-    let (addr2, final_state2) = hasher.permute(init_state2 );
+    let (addr2, final_state2) = hasher.permute(init_state2);
 
     // make sure the returned addresses are correct (they must be 8 rows apart)
     assert_eq!(ONE, addr1);
@@ -77,8 +74,6 @@ fn hasher_permute() {
     check_hasher_state_trace(&trace, 0, init_state1);
     check_hasher_state_trace(&trace, 8, init_state2);
     assert_eq!(trace.last().unwrap(), &[ZERO; 16]);
-
- 
 }
 
 // MERKLE TREE TESTS
@@ -95,12 +90,12 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
     let path0 = tree.get_path(NodeIndex::new(1, 0).unwrap()).unwrap();
- 
-    hasher.build_merkle_root(leaves[0], &path0, ZERO );
+
+    hasher.build_merkle_root(leaves[0], &path0, ZERO);
 
     let path1 = tree.get_path(NodeIndex::new(1, 1).unwrap()).unwrap();
-    
-    hasher.build_merkle_root(leaves[1], &path1, ONE );
+
+    hasher.build_merkle_root(leaves[1], &path1, ONE);
 
     // build the trace
     let trace = build_trace(hasher, 16);
@@ -114,7 +109,6 @@ fn hasher_build_merkle_root() {
     assert_eq!(&node_idx_column[..8], &[ZERO; 8]);
     assert_eq!(node_idx_column[8], ONE);
     assert_eq!(&node_idx_column[9..], &[ZERO; 7]);
- 
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -125,12 +119,11 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
     let path = tree.get_path(NodeIndex::new(3, 5).unwrap()).unwrap();
-     hasher.build_merkle_root(leaves[5], &path, Felt::new(5) );
- 
+    hasher.build_merkle_root(leaves[5], &path, Felt::new(5));
+
     // build and check the trace for validity
     let trace = build_trace(hasher, 24);
     check_merkle_path(&trace, 0, leaves[5], &path, 5, MP_VERIFY);
- 
 
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
@@ -138,28 +131,27 @@ fn hasher_build_merkle_root() {
     let mut hasher = Hasher::default();
 
     let path0 = tree.get_path(NodeIndex::new(3, 0).unwrap()).unwrap();
-    
-    hasher.build_merkle_root(leaves[0], &path0, ZERO );
- 
+
+    hasher.build_merkle_root(leaves[0], &path0, ZERO);
+
     let path3 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
-    
-    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3) );
- 
+
+    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3));
+
     let path7 = tree.get_path(NodeIndex::new(3, 7).unwrap()).unwrap();
-    
-    hasher.build_merkle_root(leaves[7], &path7, Felt::new(7) );
- 
+
+    hasher.build_merkle_root(leaves[7], &path7, Felt::new(7));
+
     // path3 again
-    
-    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3) );
- 
+
+    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3));
+
     // build and check the trace for validity
     let trace = build_trace(hasher, 96);
     check_merkle_path(&trace, 0, leaves[0], &path0, 0, MP_VERIFY);
     check_merkle_path(&trace, 24, leaves[3], &path3, 3, MP_VERIFY);
     check_merkle_path(&trace, 48, leaves[7], &path7, 7, MP_VERIFY);
     check_merkle_path(&trace, 72, leaves[3], &path3, 3, MP_VERIFY);
- 
 }
 
 #[test]
@@ -175,16 +167,15 @@ fn hasher_update_merkle_root() {
 
     let path0 = tree.get_path(NodeIndex::new(1, 0).unwrap()).unwrap();
     let new_leaf0 = init_leaf(3);
-    
+
     hasher.update_merkle_root(leaves[0], new_leaf0, &path0, ZERO);
     tree.update_leaf(0, new_leaf0).unwrap();
 
     let path1 = tree.get_path(NodeIndex::new(1, 1).unwrap()).unwrap();
     let new_leaf1 = init_leaf(4);
-    
+
     hasher.update_merkle_root(leaves[1], new_leaf1, &path1, ONE);
     tree.update_leaf(1, new_leaf1).unwrap();
- 
 
     // build the trace
     let trace = build_trace(hasher, 32);
@@ -204,7 +195,6 @@ fn hasher_update_merkle_root() {
     assert_eq!(&node_idx_column[17..24], &[ZERO; 7]);
     assert_eq!(node_idx_column[24], ONE);
     assert_eq!(&node_idx_column[25..], &[ZERO; 7]);
- 
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -217,23 +207,22 @@ fn hasher_update_merkle_root() {
 
     let path3 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
     let new_leaf3 = init_leaf(23);
-    
+
     hasher.update_merkle_root(leaves[3], new_leaf3, &path3, Felt::new(3));
     tree.update_leaf(3, new_leaf3).unwrap();
- 
+
     let path6 = tree.get_path(NodeIndex::new(3, 6).unwrap()).unwrap();
     let new_leaf6 = init_leaf(25);
-     hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6));
+    hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6));
     tree.update_leaf(6, new_leaf6).unwrap();
- 
 
     // update leaf 3 again
     let path3_2 = tree.get_path(NodeIndex::new(3, 3).unwrap()).unwrap();
     let new_leaf3_2 = init_leaf(27);
-     hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3));
+    hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3));
     tree.update_leaf(3, new_leaf3_2).unwrap();
     assert_ne!(path3, path3_2);
- 
+
     // build and check the trace for validity
     let trace = build_trace(hasher, 144);
     check_merkle_path(&trace, 0, leaves[3], &path3, 3, MR_UPDATE_OLD);
@@ -242,7 +231,6 @@ fn hasher_update_merkle_root() {
     check_merkle_path(&trace, 72, new_leaf6, &path6, 6, MR_UPDATE_NEW);
     check_merkle_path(&trace, 96, new_leaf3, &path3_2, 3, MR_UPDATE_OLD);
     check_merkle_path(&trace, 120, new_leaf3_2, &path3_2, 3, MR_UPDATE_NEW);
- 
 }
 
 // MEMOIZATION TESTS
@@ -277,10 +265,9 @@ fn hash_memoization_control_blocks() {
 
     let expected_hash = join_block.hash();
 
-     // builds the trace of the join block.
-    let (_, final_state) =
-        hasher.hash_control_block(h1, h2, join_block.domain(), expected_hash);
- 
+    // builds the trace of the join block.
+    let (_, final_state) = hasher.hash_control_block(h1, h2, join_block.domain(), expected_hash);
+
     // make sure the hash of the final state is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -297,10 +284,10 @@ fn hash_memoization_control_blocks() {
 
     let expected_hash = split1_block.hash();
 
-     // builds the hash execution trace of the first split block from scratch.
+    // builds the hash execution trace of the first split block from scratch.
     let (addr, final_state) =
         hasher.hash_control_block(h1, h2, split1_block.domain(), expected_hash);
- 
+
     let first_block_final_state = final_state;
 
     // make sure the hash of the final state of the first split block is the same as the expected
@@ -322,11 +309,11 @@ fn hash_memoization_control_blocks() {
         .expect("Could not convert slice to array");
     let expected_hash = split2_block.hash();
 
-     // builds the hash execution trace of the second split block by copying it from the trace of
+    // builds the hash execution trace of the second split block by copying it from the trace of
     // the first split block.
     let (addr, final_state) =
         hasher.hash_control_block(h1, h2, split2_block.domain(), expected_hash);
-    
+
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.
     assert_eq!(Digest::new(final_state), expected_hash);
@@ -432,11 +419,10 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         .try_into()
         .expect("Could not convert slice to array");
     let expected_hash = join1_block.hash();
- 
+
     // builds the trace of the Join1 block.
-    let (_, final_state) =
-        hasher.hash_control_block(h1, h2, join1_block.domain(), expected_hash);
- 
+    let (_, final_state) = hasher.hash_control_block(h1, h2, join1_block.domain(), expected_hash);
+
     // make sure the hash of the final state of Join1 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -451,10 +437,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         .try_into()
         .expect("Could not convert slice to array");
     let expected_hash = join2_block.hash();
- 
-    let (_, final_state) =
-        hasher.hash_control_block(h1, h2, join2_block.domain(), expected_hash);
- 
+
+    let (_, final_state) = hasher.hash_control_block(h1, h2, join2_block.domain(), expected_hash);
 
     // make sure the hash of the final state of Join2 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
@@ -466,11 +450,11 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     };
 
     // builds the hash execution trace of the first span block from scratch.
-     let (addr, final_state) =
+    let (addr, final_state) =
         hasher.hash_span_block(span1_block_val.op_batches(), span1_block.hash());
 
-    let num_batches = span1_block_val.op_batches().len();
-  
+    let _num_batches = span1_block_val.op_batches().len();
+
     let first_span_block_final_state = final_state;
 
     // make sure the hash of the final state of Span1 block is the same as the expected hash.
@@ -485,13 +469,13 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     } else {
         unreachable!()
     };
- 
+
     // builds the hash execution trace of the second span block by copying the sections of the
     // trace corresponding to the first span block with the same hash.
     let (addr, final_state) =
         hasher.hash_span_block(span2_block_val.op_batches(), span2_block.hash());
 
-    let num_batches = span2_block_val.op_batches().len();     
+    let _num_batches = span2_block_val.op_batches().len();
 
     let expected_hash = span2_block.hash();
     // make sure the hash of the final state of Span2 block is the same as the expected hash.
@@ -514,10 +498,10 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
-fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>>{
+fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>> {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    let aux_trace_builder = hasher.fill_trace(&mut fragment);
+    let _aux_trace_builder = hasher.fill_trace(&mut fragment);
     trace
 }
 
@@ -625,7 +609,6 @@ fn check_memoized_trace(
         assert_eq!(column[start_row..end_row], column[copied_start_row..copied_end_row])
     }
 }
- 
 
 /// Makes sure that a row in the provided trace is equal to the provided values at the specified
 /// row index.
