@@ -1,5 +1,3 @@
-use vm_core::utils::Serializable;
-
 use super::{
     format::*,
     imports::ModuleImports,
@@ -13,6 +11,10 @@ use super::{
     },
 };
 use core::{fmt, str::from_utf8};
+use vm_core::utils::Serializable;
+
+// MODULE AST
+// ================================================================================================
 
 /// An abstract syntax tree of a Miden module.
 ///

@@ -417,6 +417,16 @@ impl ParsingError {
         }
     }
 
+    pub fn too_many_body_nodes(num_nodes: usize, max_nodes: usize) -> Self {
+        ParsingError {
+            message: format!(
+                "a code body cannot contain more than {num_nodes} nodes, but had {max_nodes}"
+            ),
+            location: SourceLocation::default(),
+            op: "".to_string(),
+        }
+    }
+
     pub fn module_docs_too_long(doc_len: usize, max_len: usize) -> Self {
         ParsingError {
             message: format!(
