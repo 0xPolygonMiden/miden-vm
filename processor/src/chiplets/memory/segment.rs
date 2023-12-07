@@ -1,6 +1,5 @@
 use miden_air::trace::chiplets::memory::{
-    Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_READ_LABEL, MEMORY_WRITE,
-    MEMORY_WRITE_LABEL,
+    Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE,
 };
 
 use super::{BTreeMap, Felt, StarkField, Vec, Word, INIT_MEM_VALUE};
@@ -161,14 +160,6 @@ impl MemorySegmentAccess {
             MemoryOperation::InitRead => MEMORY_INIT_READ,
             MemoryOperation::CopyRead => MEMORY_COPY_READ,
             MemoryOperation::Write => MEMORY_WRITE,
-        }
-    }
-
-    /// Returns the operation label of the memory operation used in this memory access.
-    pub(super) fn op_label(&self) -> u8 {
-        match self.op {
-            MemoryOperation::InitRead | MemoryOperation::CopyRead => MEMORY_READ_LABEL,
-            MemoryOperation::Write => MEMORY_WRITE_LABEL,
         }
     }
 

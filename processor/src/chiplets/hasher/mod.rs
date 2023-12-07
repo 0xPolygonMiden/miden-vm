@@ -1,13 +1,10 @@
 use super::{
-   BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
-    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
-    ZERO,
+    BTreeMap, Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment,
+    Vec, Word, ONE, ZERO,
 };
 use miden_air::trace::chiplets::hasher::{
-    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,
-    MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD,
-    MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
-    RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
+    MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
 };
 
 mod trace;
@@ -51,9 +48,6 @@ mod tests;
 /// In addition to the execution trace, the hash chiplet also maintains:
 /// - an auxiliary trace builder, which can be used to construct a running product column describing
 ///   the state of the sibling table (used in Merkle root update operations).
-/// - a vector of [HasherLookup]s, each of which specifies the data for one of the lookup rows which
-///   are required for verification of the communication between the stack/decoder and the Hash
-///   Chiplet via the Chiplets Bus.
 /// - a map of memoized execution trace, which keeps track of start and end rows of the sections of
 ///   the trace of a control or span block that can be copied to be used later for program blocks
 ///   encountered with the same digest instead of building it from scratch everytime. The hash of
@@ -61,7 +55,6 @@ mod tests;
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
-    aux_trace: ChipletsVTableTraceBuilder,
     memoized_trace_map: BTreeMap<[u8; 32], (usize, usize)>,
 }
 
@@ -78,15 +71,11 @@ impl Hasher {
     // --------------------------------------------------------------------------------------------
 
     /// Applies a single permutation of the hash function to the provided state and records the
-    /// execution trace of this computation as well as the lookups required for verifying the
-    /// correctness of the permutation so that they can be provided to the Chiplets Bus.
+    /// execution trace of this computation.
     ///
     /// The returned tuple contains the hasher state after the permutation and the row address of
     /// the execution trace at which the permutation started.
-    pub(super) fn permute(
-        &mut self,
-        mut state: HasherState,
-    ) -> (Felt, HasherState) {
+    pub(super) fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
         let addr = self.trace.next_row_addr();
 
         // perform the hash.
@@ -96,8 +85,7 @@ impl Hasher {
     }
 
     /// Computes the hash of the control block by computing hash(h1, h2) and returns the result.
-    /// It also records the execution trace of this computation as well as the lookups required for
-    /// verifying its correctness so that they can be provided to the Chiplets Bus.
+    /// It also records the execution trace of this computation.
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
@@ -127,8 +115,7 @@ impl Hasher {
     }
 
     /// Computes a sequential hash of all operation batches in the list and returns the result. It
-    /// also records the execution trace of this computation, as well as the lookups required for
-    /// verifying its correctness so that they can be provided to the Chiplets Bus.
+    /// also records the execution trace of this computation.
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
@@ -138,14 +125,11 @@ impl Hasher {
         expected_hash: Digest,
     ) -> (Felt, Word) {
         const START: Selectors = LINEAR_HASH;
-        const START_LABEL: u8 = LINEAR_HASH_LABEL;
         const RETURN: Selectors = RETURN_HASH;
-        const RETURN_LABEL: u8 = RETURN_HASH_LABEL;
         // absorb selectors are the same as linear hash selectors, but absorb selectors are
         // applied on the last row of a permutation cycle, while linear hash selectors are
         // applied on the first row of a permutation cycle.
         const ABSORB: Selectors = LINEAR_HASH;
-        const ABSORB_LABEL: u8 = LINEAR_HASH_LABEL;
         // to continue linear hash we need retain the 2nd and 3rd selector flags and set the
         // 1st flag to ZERO.
         const CONTINUE: Selectors = [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]];
@@ -195,8 +179,6 @@ impl Hasher {
                 self.trace.append_permutation(&mut state, CONTINUE, RETURN);
             }
             self.insert_to_memoized_trace_map(addr, expected_hash);
-        } else if num_batches == 1 {
-            self.trace.copy_trace(&mut state, start_row..end_row);
         } else {
             self.trace.copy_trace(&mut state, start_row..end_row);
         }
@@ -206,9 +188,7 @@ impl Hasher {
         (addr, result)
     }
 
-    /// Performs Merkle path verification computation and records its execution trace, as well as
-    /// the lookups required for verifying its correctness so that they can be provided to the
-    /// Chiplets Bus.
+    /// Performs Merkle path verification computation and records its execution trace.
     ///
     /// The computation consists of computing a Merkle root of the specified path for a node with
     /// the specified value, located at the specified index.
@@ -228,19 +208,13 @@ impl Hasher {
     ) -> (Felt, Word) {
         let addr = self.trace.next_row_addr();
 
-        let root = self.verify_merkle_path(
-            value,
-            path,
-            index.as_int(),
-            MerklePathContext::MpVerify,
-        );
+        let root =
+            self.verify_merkle_path(value, path, index.as_int(), MerklePathContext::MpVerify);
 
         (addr, root)
     }
 
-    /// Performs Merkle root update computation and records its execution trace, as well as the
-    /// lookups required for verifying its correctness so that they can be provided to the Chiplets
-    /// Bus.
+    /// Performs Merkle root update computation and records its execution trace.
     ///
     /// The computation consists of two Merkle path verifications, one for the old value of the
     /// node (value before the update), and another for the new value (value after the update).
@@ -259,20 +233,10 @@ impl Hasher {
         let address = self.trace.next_row_addr();
         let index = index.as_int();
 
-        let old_root = self.verify_merkle_path(
-            old_value,
-            path,
-            index,
-            MerklePathContext::MrUpdateOld,
-
-        );
-        let new_root = self.verify_merkle_path(
-            new_value,
-            path,
-            index,
-            MerklePathContext::MrUpdateNew,
-
-        );
+        let old_root =
+            self.verify_merkle_path(old_value, path, index, MerklePathContext::MrUpdateOld);
+        let new_root =
+            self.verify_merkle_path(new_value, path, index, MerklePathContext::MrUpdateNew);
 
         MerkleRootUpdate {
             address,
@@ -296,8 +260,7 @@ impl Hasher {
     /// Computes a root of the provided Merkle path in the specified context. The path is assumed
     /// to be for a node with the specified value at the specified index.
     ///
-    /// This also records the execution trace of the Merkle path computation and all lookups
-    /// required for verifying its correctness.
+    /// This also records the execution trace of the Merkle path computation.
     ///
     /// # Panics
     /// Panics if:
@@ -316,7 +279,6 @@ impl Hasher {
             "invalid index for the path"
         );
         let mut root = value;
-        let mut depth = path.len() - 1;
 
         // determine selectors for the specified context
         let main_selectors = context.main_selectors();
@@ -330,25 +292,12 @@ impl Hasher {
             // process the first node of the path; for this node, init and final selectors are
             // the same
             let sibling = path[0];
-            root = self.verify_mp_leg(
-                root,
-                sibling,
-                &mut index,
-                main_selectors,
-                main_selectors,
-            );
-            depth -= 1;
+            root = self.verify_mp_leg(root, sibling, &mut index, main_selectors, main_selectors);
 
             // process all other nodes, except for the last one
             for &sibling in &path[1..path.len() - 1] {
-                root = self.verify_mp_leg(
-                    root,
-                    sibling,
-                    &mut index,
-                    part_selectors,
-                    main_selectors,
-                );
-                depth -= 1;
+                root =
+                    self.verify_mp_leg(root, sibling, &mut index, part_selectors, main_selectors);
             }
 
             // process the last node
@@ -361,8 +310,6 @@ impl Hasher {
     ///
     /// This function does the following:
     /// - Builds the initial hasher state based on the least significant bit of the index.
-    /// - Records the lookup required for verification of the hash initialization if the
-    ///   `init_selectors` indicate that it is the beginning of the Merkle path verification.
     /// - Applies a permutation to this state and records the resulting trace.
     /// - Returns the result of the permutation and updates the index by removing its least
     ///   significant bit.
@@ -372,7 +319,7 @@ impl Hasher {
         sibling: Digest,
         index: &mut u64,
         init_selectors: Selectors,
-        final_selectors: Selectors, 
+        final_selectors: Selectors,
     ) -> Word {
         // build the hasher state based on the value of the least significant bit of the index
         let index_bit = *index & 1;
