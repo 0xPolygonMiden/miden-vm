@@ -20,6 +20,9 @@ use core::{fmt, iter};
 #[cfg(feature = "std")]
 use std::{fs, io, path::Path};
 
+// PROGRAM AST
+// ================================================================================================
+
 /// An abstract syntax tree of an executable Miden program.
 ///
 /// A program AST consists of a body of the program, a list of internal procedure ASTs, a list of
@@ -39,7 +42,17 @@ impl ProgramAst {
     /// Returns a new [ProgramAst].
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The number of body nodes is greater than or equal to 2^16.
+    /// - The number of local procedures is greater than or equal to 2^16.
     pub fn new(body: Vec<Node>, local_procs: Vec<ProcedureAst>) -> Result<Self, ParsingError> {
+        // TODO: instead of ParsingError, this should probably return a different error type:
+        // e.g., AstError.
+        if body.len() > MAX_BODY_LEN {
+            return Err(ParsingError::too_many_body_nodes(body.len(), MAX_BODY_LEN));
+        }
         if local_procs.len() > MAX_LOCAL_PROCS {
             return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
         }
@@ -175,34 +188,69 @@ impl ProgramAst {
     // SERIALIZATION / DESERIALIZATION
     // --------------------------------------------------------------------------------------------
 
-    /// Returns byte representation of this [ProgramAst].
+    /// Writes byte representation of this [ProgramAst] into the specified target according with
+    /// the specified serde options.
     ///
     /// The serde options are serialized as header information for the purposes of deserialization.
-    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
-        let mut target = Vec::<u8>::default();
-
+    pub fn write_into<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         // serialize the options, so that deserialization knows what to do
-        options.write_into(&mut target);
+        options.write_into(target);
 
         // asserts below are OK because we enforce limits on the number of procedure and the
         // number of body instructions in relevant parsers
 
         // serialize imports if required
         if options.serialize_imports {
-            self.import_info.write_into(&mut target);
+            self.import_info.write_into(target);
         }
 
         // serialize procedures
         assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
-        self.local_procs.write_into(&mut target);
+        self.local_procs.write_into(target);
 
         // serialize program body
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
-        self.body.nodes().write_into(&mut target);
+        self.body.nodes().write_into(target);
+    }
 
+    /// Returns byte representation of this [ProgramAst].
+    ///
+    /// The serde options are serialized as header information for the purposes of deserialization.
+    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
+        let mut target = Vec::<u8>::default();
+        self.write_into(&mut target, options);
         target
+    }
+
+    /// Returns a [ProgramAst] struct deserialized from the specified reader.
+    ///
+    /// This function assumes that the byte array contains a serialized [AstSerdeOptions] struct as
+    /// a header.
+    pub fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        // Deserialize the serialization options used when serializing
+        let options = AstSerdeOptions::read_from(source)?;
+
+        // deserialize imports if required
+        let import_info = if options.serialize_imports {
+            ModuleImports::read_from(source)?
+        } else {
+            ModuleImports::default()
+        };
+
+        // deserialize local procs
+        let num_local_procs = source.read_u16()?;
+        let local_procs = Deserializable::read_batch_from(source, num_local_procs as usize)?;
+
+        // deserialize program body
+        let body_len = source.read_u16()? as usize;
+        let nodes = Deserializable::read_batch_from(source, body_len)?;
+
+        match Self::new(nodes, local_procs) {
+            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
+            Ok(res) => Ok(res.with_import_info(import_info)),
+        }
     }
 
     /// Returns a [ProgramAst] struct deserialized from the provided bytes.
@@ -211,29 +259,7 @@ impl ProgramAst {
     /// a header.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = SliceReader::new(bytes);
-
-        // Deserialize the serialization options used when serializing
-        let options = AstSerdeOptions::read_from(&mut source)?;
-
-        // deserialize imports if required
-        let import_info = if options.serialize_imports {
-            ModuleImports::read_from(&mut source)?
-        } else {
-            ModuleImports::default()
-        };
-
-        // deserialize local procs
-        let num_local_procs = source.read_u16()?;
-        let local_procs = Deserializable::read_batch_from(&mut source, num_local_procs as usize)?;
-
-        // deserialize program body
-        let body_len = source.read_u16()? as usize;
-        let nodes = Deserializable::read_batch_from(&mut source, body_len)?;
-
-        match Self::new(nodes, local_procs) {
-            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => Ok(res.with_import_info(import_info)),
-        }
+        Self::read_from(&mut source)
     }
 
     /// Loads the [SourceLocation] from the `source`.

@@ -1,6 +1,6 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Node, Serializable,
-    SourceLocation, Vec,
+    SourceLocation, Vec, MAX_BODY_LEN,
 };
 use core::{iter, slice};
 
@@ -22,12 +22,17 @@ impl CodeBody {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new instance of [CodeBody] populated with the provided `nodes`.
+    ///
+    /// # Panics
+    /// Assumes that the number of nodes is smaller than 2^16 and panics otherwise.
     pub fn new<N>(nodes: N) -> Self
     where
         N: IntoIterator<Item = Node>,
     {
+        let nodes: Vec<_> = nodes.into_iter().collect();
+        assert!(nodes.len() <= MAX_BODY_LEN, "too many nodes");
         Self {
-            nodes: nodes.into_iter().collect(),
+            nodes,
             locations: Vec::new(),
         }
     }

@@ -7,6 +7,9 @@ use super::{
 };
 use core::{iter, str::from_utf8};
 
+// PROCEDURE AST
+// ================================================================================================
+
 /// An abstract syntax tree of a Miden procedure.
 ///
 /// A procedure AST consists of a list of body nodes and additional metadata about the procedure
@@ -157,6 +160,9 @@ impl Deserializable for ProcedureAst {
         })
     }
 }
+
+// PROCEDURE RE-EXPORT
+// ================================================================================================
 
 /// Represents a re-exported procedure.
 ///
