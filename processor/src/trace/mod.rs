@@ -17,12 +17,7 @@ use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{
-    build_lookup_table_row_values, AuxColumnBuilder, ChipletsLengths, LookupTableRow,
-    TraceFragment, TraceLenSummary,
-};
-
-//mod decoder;
+pub use utils::{ChipletsLengths, TraceFragment, TraceLenSummary};
 
 #[cfg(test)]
 mod tests;
