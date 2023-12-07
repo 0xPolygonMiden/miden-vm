@@ -1,7 +1,4 @@
-use super::{
-    trace::{AuxColumnBuilder, LookupTableRow},
-    BTreeMap, ColMatrix, Felt, FieldElement, StarkField, Vec, Word,
-};
+use super::{ColMatrix, Felt, FieldElement, StarkField, Vec};
 
 use miden_air::trace::chiplets::{
     hasher::{
@@ -11,14 +8,9 @@ use miden_air::trace::chiplets::{
     kernel_rom::KERNEL_PROC_LABEL,
     memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
 };
-#[cfg(test)]
-pub(crate) use virtual_table::{ChipletsVTableRow, };
 
 use vm_core::{utils::uninit_vector, Operation, ONE, ZERO};
 use winter_prover::math::batch_inversion;
-
-#[cfg(test)]
-mod virtual_table;
 
 mod main_trace;
 use main_trace::MainTrace;
@@ -956,10 +948,7 @@ fn get_op_label(s0: Felt, s1: Felt, s2: Felt, s3: Felt) -> Felt {
 fn addr_to_hash_cycle(addr: Felt) -> usize {
     let row = (addr.as_int() - 1) as usize;
     let cycle_row = row % HASH_CYCLE_LEN;
-    debug_assert!(
-        cycle_row == 0 || cycle_row == HASH_CYCLE_LEN - 1,
-        "invalid address for hasher lookup"
-    );
+    debug_assert!(cycle_row == 0 || cycle_row == HASH_CYCLE_LEN - 1, "invalid address for hasher");
 
     cycle_row
 }

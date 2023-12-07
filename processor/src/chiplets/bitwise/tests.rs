@@ -1,7 +1,7 @@
-use super::{
-    Bitwise, Felt, StarkField, TraceFragment, Vec, A_COL_IDX,
-    A_COL_RANGE, BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, B_COL_IDX,
-    B_COL_RANGE, OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
+use super::{Bitwise, Felt, StarkField, TraceFragment, Vec};
+use miden_air::trace::chiplets::bitwise::{
+    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
+    OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
 use test_utils::rand::rand_value;
 use vm_core::ZERO;
@@ -184,10 +184,10 @@ fn bitwise_multiple() {
 // ================================================================================================
 
 /// Builds a trace of the specified length and fills it with data from the provided Bitwise instance.
-fn build_trace(bitwise: Bitwise, num_rows: usize) ->  Vec<Vec<Felt>> {
+fn build_trace(bitwise: Bitwise, num_rows: usize) -> Vec<Vec<Felt>> {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    bitwise.fill_trace(&mut fragment );
+    bitwise.fill_trace(&mut fragment);
 
     trace
 }
@@ -228,4 +228,3 @@ fn rand_u32() -> Felt {
     let value = rand_value::<u64>() as u32 as u64;
     Felt::new(value)
 }
-
