@@ -1,10 +1,7 @@
-use super::{
-    trace::LookupTableRow, utils::get_trace_len, ColMatrix, ExecutionError, Felt,
-    FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL, ZERO,
-};
+use super::{utils::get_trace_len, ExecutionError, Felt, StarkField, TraceFragment, Vec, ZERO};
 use miden_air::trace::chiplets::bitwise::{
-    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
-    OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
+    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OUTPUT_COL_IDX,
+    PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
 
 #[cfg(test)]
@@ -151,10 +148,7 @@ impl Bitwise {
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provided trace fragment with trace data from this bitwise helper instance.
-    pub fn fill_trace(
-        self,
-        trace: &mut TraceFragment,
-    ) {
+    pub fn fill_trace(self, trace: &mut TraceFragment) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
@@ -209,38 +203,5 @@ pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
         Err(ExecutionError::NotU32Value(value, ZERO))
     } else {
         Ok(value)
-    }
-}
-
-// BITWISE LOOKUPS
-// ================================================================================================
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct BitwiseLookup {
-    // unique label identifying the bitwise operation
-    label: Felt,
-    a: Felt,
-    b: Felt,
-    z: Felt,
-}
-
-impl BitwiseLookup {
-    pub fn new(label: Felt, a: Felt, b: Felt, z: Felt) -> Self {
-        Self { label, a, b, z }
-    }
-}
-
-impl LookupTableRow for BitwiseLookup {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 5 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(
-        &self,
-        _main_trace: &ColMatrix<Felt>,
-        alphas: &[E],
-    ) -> E {
-        alphas[0]
-            + alphas[1].mul_base(self.label)
-            + alphas[2].mul_base(self.a)
-            + alphas[3].mul_base(self.b)
-            + alphas[4].mul_base(self.z)
     }
 }

@@ -17,16 +17,11 @@ use trace::DecoderTrace;
 mod auxiliary;
 pub use auxiliary::AuxTraceBuilder;
 
-#[cfg(test)]
-use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
-
 mod block_stack;
 use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
 
 #[cfg(test)]
-mod aux_hints;
-#[cfg(test)]
-pub(crate) use aux_hints::{BlockHashTableRow, BlockStackTableRow, OpGroupTableRow};
+use miden_air::trace::decoder::NUM_USER_OP_HELPERS;
 
 #[cfg(test)]
 mod tests;
@@ -69,9 +64,6 @@ where
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
 
-        // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
-
         self.execute_op(Operation::Noop)
     }
 
@@ -104,9 +96,6 @@ where
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
-
-        // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
 
         self.execute_op(Operation::Noop)
     }
@@ -147,9 +136,6 @@ where
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
         self.decoder.end_control_block(block.hash().into());
-
-        // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
 
         // if we are exiting a loop, we also need to pop the top value off the stack (and this
         // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
@@ -223,9 +209,6 @@ where
             .end_control_block(block.hash().into())
             .expect("no execution context");
 
-        // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
-
         // when returning from a function call or a syscall, restore the context of the system
         // registers and the operand stack to what it was prior to the call.
         self.system.restore_context(
@@ -265,9 +248,6 @@ where
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
 
-        // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
-
         self.execute_op(Operation::Noop)
     }
 
@@ -294,9 +274,6 @@ where
     /// Continues decoding a SPAN block by absorbing the next batch of operations.
     pub(super) fn respan(&mut self, op_batch: &OpBatch) {
         self.decoder.respan(op_batch);
-
-        // send a request to the chiplets to continue the hash and absorb new elements.
-        self.chiplets.absorb_span_batch();
     }
 
     /// Ends decoding a SPAN block.
@@ -304,9 +281,6 @@ where
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_span(block.hash().into());
-
-        // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
 
         self.execute_op(Operation::Noop)
     }

@@ -1,4 +1,4 @@
-use super::{Felt, Vec};
+use super::{Felt, StarkField, Vec, ONE, ZERO};
 
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
@@ -14,12 +14,9 @@ use miden_air::trace::{
 
 use vm_core::{
     chiplets::hasher::RATE_LEN, crypto::hash::RpoDigest, utils::uninit_vector, FieldElement,
-    Operation, StarkField, ONE, ZERO,
+    Operation,
 };
 use winter_prover::{math::batch_inversion, matrix::ColMatrix};
-
-//#[cfg(test)]
-//mod tests;
 
 // CONSTANTS
 // ================================================================================================
@@ -41,7 +38,7 @@ const HALT: u8 = Operation::Halt.op_code();
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
 
-/// Describes how to construct execution traces of stack-related auxiliary trace segment columns
+/// Constructs the execution traces of stack-related auxiliary trace segment columns
 /// (used in multiset checks).
 #[derive(Default)]
 pub struct AuxTraceBuilder {}
