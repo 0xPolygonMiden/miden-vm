@@ -1,6 +1,4 @@
-use super::{
-    Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO,
-};
+use super::{Felt, Kernel, KernelRom, TraceFragment, Word, ONE, TRACE_WIDTH, ZERO};
 use vm_core::utils::collections::Vec;
 
 // CONSTANTS

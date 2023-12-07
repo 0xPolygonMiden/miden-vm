@@ -1,7 +1,4 @@
-use super::{
-    super::trace::{LookupTableRow},
-    ColMatrix, Felt, FieldElement, OverflowTableRow, Vec,
-};
+use super::{ColMatrix, Felt, FieldElement, OverflowTableRow, Vec};
 use miden_air::trace::{
     decoder::{IS_LOOP_FLAG_COL_IDX, OP_BITS_EXTRA_COLS_OFFSET},
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX},
@@ -35,7 +32,7 @@ impl AuxTraceBuilder {
     }
 }
 
-impl  AuxTraceBuilder {
+impl AuxTraceBuilder {
     /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
     /// stack table via multiset checks.
     fn build_aux_column<E: FieldElement<BaseField = Felt>>(
