@@ -803,6 +803,66 @@ fn unchecked_rotr() {
     build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
 }
 
+#[test]
+fn clz() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::clz
+    end";
+
+    build_test!(source, &[0, 0]).expect_stack(&[64]);
+    build_test!(source, &[492665065, 0]).expect_stack(&[35]);
+    build_test!(source, &[3941320520, 0]).expect_stack(&[32]);
+    build_test!(source, &[3941320520, 492665065]).expect_stack(&[3]);
+    build_test!(source, &[492665065, 492665065]).expect_stack(&[3]);
+}
+
+#[test]
+fn ctz() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::ctz
+    end";
+
+    build_test!(source, &[0, 0]).expect_stack(&[64]);
+    build_test!(source, &[0, 3668265216]).expect_stack(&[40]);
+    build_test!(source, &[0, 3668265217]).expect_stack(&[32]);
+    build_test!(source, &[3668265216, 3668265217]).expect_stack(&[8]);
+    build_test!(source, &[3668265216, 3668265216]).expect_stack(&[8]);
+}
+
+#[test]
+fn clo() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::clo
+    end";
+
+    build_test!(source, &[4294967295, 4294967295]).expect_stack(&[64]);
+    build_test!(source, &[4278190080, 4294967295]).expect_stack(&[40]);
+    build_test!(source, &[0, 4294967295]).expect_stack(&[32]);
+    build_test!(source, &[0, 4278190080]).expect_stack(&[8]);
+    build_test!(source, &[4278190080, 4278190080]).expect_stack(&[8]);
+}
+
+#[test]
+fn cto() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::cto
+    end";
+
+    build_test!(source, &[4294967295, 4294967295]).expect_stack(&[64]);
+    build_test!(source, &[4294967295, 255]).expect_stack(&[40]);
+    build_test!(source, &[4294967295, 0]).expect_stack(&[32]);
+    build_test!(source, &[255, 0]).expect_stack(&[8]);
+    build_test!(source, &[255, 255]).expect_stack(&[8]);
+}
+
 // RANDOMIZED TESTS
 // ================================================================================================
 
@@ -973,6 +1033,66 @@ proptest! {
         end";
 
         build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+    }
+
+    #[test]
+    fn clz_proptest(a in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let c = a.leading_zeros() as u64;
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::clz
+            end";
+
+        build_test!(source, &[a0, a1]).prop_expect_stack(&[c])?;
+    }
+
+    #[test]
+    fn ctz_proptest(a in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let c = a.trailing_zeros() as u64;
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::ctz
+            end";
+
+        build_test!(source, &[a0, a1]).prop_expect_stack(&[c])?;
+    }
+
+    #[test]
+    fn clo_proptest(a in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let c = a.leading_ones() as u64;
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::clo
+            end";
+
+        build_test!(source, &[a0, a1]).prop_expect_stack(&[c])?;
+    }
+
+    #[test]
+    fn cto_proptest(a in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let c = a.trailing_ones() as u64;
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::cto
+            end";
+
+        build_test!(source, &[a0, a1]).prop_expect_stack(&[c])?;
     }
 }
 
