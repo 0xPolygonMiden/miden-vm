@@ -296,6 +296,103 @@ pub(crate) fn push_signature<S: ProcessState, A: AdviceProvider>(
     Ok(HostResponse::None)
 }
 
+/// Pushes the number of the leading zeros of the top stack element onto the advice stack.
+///
+/// Inputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [leading_zeros, ...]
+pub(crate) fn push_leading_zeros<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
+) -> Result<HostResponse, ExecutionError> {
+    push_transformed_stack_top(advice_provider, process, |stack_top| {
+        Felt::new(stack_top.leading_zeros().into())
+    })
+}
+
+/// Pushes the number of the trailing zeros of the top stack element onto the advice stack.
+///
+/// Inputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [trailing_zeros, ...]
+pub(crate) fn push_trailing_zeros<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
+) -> Result<HostResponse, ExecutionError> {
+    push_transformed_stack_top(advice_provider, process, |stack_top| {
+        Felt::new(stack_top.trailing_zeros().into())
+    })
+}
+
+/// Pushes the number of the leading ones of the top stack element onto the advice stack.
+///
+/// Inputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [leading_ones, ...]
+pub(crate) fn push_leading_ones<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
+) -> Result<HostResponse, ExecutionError> {
+    push_transformed_stack_top(advice_provider, process, |stack_top| {
+        Felt::new(stack_top.leading_ones().into())
+    })
+}
+
+/// Pushes the number of the trailing ones of the top stack element onto the advice stack.
+///
+/// Inputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [trailing_ones, ...]
+pub(crate) fn push_trailing_ones<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
+) -> Result<HostResponse, ExecutionError> {
+    push_transformed_stack_top(advice_provider, process, |stack_top| {
+        Felt::new(stack_top.trailing_ones().into())
+    })
+}
+
+/// Pushes the base 2 logarithm of the top stack element, rounded down.
+/// Inputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [n, ...]
+///   Advice stack: [ilog2(n), ...]
+///
+/// # Errors
+/// Returns an error if the logarithm argument (top stack element) equals ZERO.
+pub(crate) fn push_ilog2<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
+) -> Result<HostResponse, ExecutionError> {
+    let n = process.get_stack_item(0).as_int();
+    if n == 0 {
+        return Err(ExecutionError::LogArgumentZero(process.clk()));
+    }
+    let log_val = n.ilog2();
+    let ilog2 = Felt::new(log_val.into());
+    advice_provider.push_stack(AdviceSource::Value(ilog2))?;
+    Ok(HostResponse::None)
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -303,4 +400,21 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
     let hi = Felt::new(value >> 32);
     let lo = Felt::new((value as u32) as u64);
     (hi, lo)
+}
+
+/// Gets the top stack element, applies a provided function to it and pushes it to the advice
+/// provider.
+fn push_transformed_stack_top<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
+    f: impl FnOnce(u32) -> Felt,
+) -> Result<HostResponse, ExecutionError> {
+    let stack_top = process.get_stack_item(0);
+    let stack_top: u32 = stack_top
+        .as_int()
+        .try_into()
+        .map_err(|_| ExecutionError::NotU32Value(stack_top, Felt::new(0)))?;
+    let transformed_stack_top = f(stack_top);
+    advice_provider.push_stack(AdviceSource::Value(transformed_stack_top))?;
+    Ok(HostResponse::None)
 }

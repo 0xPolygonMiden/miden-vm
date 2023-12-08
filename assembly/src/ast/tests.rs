@@ -226,11 +226,33 @@ fn test_ast_parsing_adv_injection() {
 
     let source = "begin adv.push_u64div adv.push_mapval adv.push_smtget adv.insert_mem end";
     let nodes: Vec<Node> = vec![
-        Node::Instruction(AdvInject(PushU64div)),
+        Node::Instruction(AdvInject(PushU64Div)),
         Node::Instruction(AdvInject(PushMapVal)),
         Node::Instruction(AdvInject(PushSmtGet)),
         Node::Instruction(AdvInject(InsertMem)),
     ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
+fn test_ast_parsing_bitwise_counters() {
+    let source = "begin u32clz u32ctz u32clo u32cto end";
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::U32Clz),
+        Node::Instruction(Instruction::U32Ctz),
+        Node::Instruction(Instruction::U32Clo),
+        Node::Instruction(Instruction::U32Cto),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
+fn test_ast_parsing_ilog2() {
+    let source = "begin push.8 ilog2 end";
+    let nodes: Vec<Node> =
+        vec![Node::Instruction(Instruction::PushU8(8)), Node::Instruction(Instruction::ILog2)];
 
     assert_program_output(source, BTreeMap::new(), nodes);
 }
