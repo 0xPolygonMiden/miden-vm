@@ -64,6 +64,7 @@ Currently, Miden VM can be executed with the following subcommands:
 * `debug` - this will instantiate a [Miden debugger](../tools/debugger.md) against the specified Miden assembly program and inputs.
 * `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
 * `repl` - this will initiate the [Miden REPL](../tools/repl.md) tool.
+* `example` - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently it is possible to run `blake3` and `fibonacci` examples.
 
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
 ```
