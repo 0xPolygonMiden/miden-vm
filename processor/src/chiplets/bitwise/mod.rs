@@ -1,10 +1,7 @@
-use super::{
-    trace::LookupTableRow, utils::get_trace_len, ChipletsBus, ColMatrix, ExecutionError, Felt,
-    FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL, ZERO,
-};
+use super::{utils::get_trace_len, ExecutionError, Felt, StarkField, TraceFragment, Vec, ZERO};
 use miden_air::trace::chiplets::bitwise::{
-    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
-    OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
+    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OUTPUT_COL_IDX,
+    PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
 
 #[cfg(test)]
@@ -150,42 +147,11 @@ impl Bitwise {
     // EXECUTION TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Fills the provided trace fragment with trace data from this bitwise helper instance. Each
-    /// bitwise operation lookup is also sent to the chiplets bus, along with the cycle at which it
-    /// was provided, which is calculated as an offset from the first row of the Bitwise chiplet.
-    /// Lookup values come from the last row of each bitwise operation cycle which contains both the
-    /// aggregated input values and the output result.
-    pub fn fill_trace(
-        self,
-        trace: &mut TraceFragment,
-        chiplets_bus: &mut ChipletsBus,
-        bitwise_start_row: usize,
-    ) {
+    /// Fills the provided trace fragment with trace data from this bitwise helper instance.
+    pub fn fill_trace(self, trace: &mut TraceFragment) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
-
-        // provide the lookup data from the last row in each bitwise cycle
-        for row in ((OP_CYCLE_LEN - 1)..self.trace_len()).step_by(OP_CYCLE_LEN) {
-            let a = self.trace[A_COL_IDX][row];
-            let b = self.trace[B_COL_IDX][row];
-            let z = self.trace[OUTPUT_COL_IDX][row];
-
-            // get the operation label.
-            let op_selector: Felt = self.trace[0][row];
-            let label = if op_selector == BITWISE_AND {
-                BITWISE_AND_LABEL
-            } else {
-                assert!(
-                    op_selector == BITWISE_XOR,
-                    "Unrecognized operation selectors in Bitwise chiplet"
-                );
-                BITWISE_XOR_LABEL
-            };
-
-            let lookup = BitwiseLookup::new(label, a, b, z);
-            chiplets_bus.provide_bitwise_operation(lookup, (bitwise_start_row + row) as u32);
-        }
 
         // copy trace into the fragment column-by-column
         // TODO: this can be parallelized to copy columns in multiple threads
@@ -237,38 +203,5 @@ pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
         Err(ExecutionError::NotU32Value(value, ZERO))
     } else {
         Ok(value)
-    }
-}
-
-// BITWISE LOOKUPS
-// ================================================================================================
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct BitwiseLookup {
-    // unique label identifying the bitwise operation
-    label: Felt,
-    a: Felt,
-    b: Felt,
-    z: Felt,
-}
-
-impl BitwiseLookup {
-    pub fn new(label: Felt, a: Felt, b: Felt, z: Felt) -> Self {
-        Self { label, a, b, z }
-    }
-}
-
-impl LookupTableRow for BitwiseLookup {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 5 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(
-        &self,
-        _main_trace: &ColMatrix<Felt>,
-        alphas: &[E],
-    ) -> E {
-        alphas[0]
-            + alphas[1].mul_base(self.label)
-            + alphas[2].mul_base(self.a)
-            + alphas[3].mul_base(self.b)
-            + alphas[4].mul_base(self.z)
     }
 }

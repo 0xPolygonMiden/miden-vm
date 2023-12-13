@@ -3,10 +3,9 @@ use super::{
         utils::get_trace_len, ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process,
         StackInputs, Word,
     },
-    build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
-    ExecutionContextInfo, OpGroupTableRow, OpGroupTableUpdate,
+    build_op_group,
 };
-use crate::{ContextId, DefaultHost};
+use crate::DefaultHost;
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -50,7 +49,7 @@ fn span_block_one_group() {
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 1, 0, 0);
@@ -80,24 +79,6 @@ fn span_block_one_group() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints =
-        vec![(0, BlockTableUpdate::BlockStarted(0)), (4, BlockTableUpdate::BlockEnded(false))];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -107,7 +88,7 @@ fn span_block_small() {
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
@@ -141,38 +122,6 @@ fn span_block_small() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-
-    // 3 op groups should be inserted at cycle 0, and removed one by one in subsequent cycles
-    let expected_ogt_hints = vec![
-        (0, OpGroupTableUpdate::InsertRows(3)),
-        (1, OpGroupTableUpdate::RemoveRow),
-        (2, OpGroupTableUpdate::RemoveRow),
-        (3, OpGroupTableUpdate::RemoveRow),
-    ];
-    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
-
-    // the groups are imm(1), imm(2), and op group with a single NOOP
-    let expected_ogt_rows = vec![
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(3), iv[0]),
-        OpGroupTableRow::new(INIT_ADDR, TWO, iv[1]),
-        OpGroupTableRow::new(INIT_ADDR, ONE, ZERO),
-    ];
-    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints =
-        vec![(0, BlockTableUpdate::BlockStarted(0)), (5, BlockTableUpdate::BlockEnded(false))];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -194,7 +143,7 @@ fn span_block() {
     ];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
-    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
@@ -249,47 +198,6 @@ fn span_block() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-
-    let expected_ogt_hints = vec![
-        (0, OpGroupTableUpdate::InsertRows(7)),
-        (1, OpGroupTableUpdate::RemoveRow),
-        (2, OpGroupTableUpdate::RemoveRow),
-        (3, OpGroupTableUpdate::RemoveRow),
-        (8, OpGroupTableUpdate::RemoveRow),
-        (9, OpGroupTableUpdate::RemoveRow),
-        (10, OpGroupTableUpdate::RemoveRow),
-        (13, OpGroupTableUpdate::RemoveRow),
-    ];
-    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
-
-    let batch0_groups = &span.op_batches()[0].groups();
-    let expected_ogt_rows = vec![
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(7), batch0_groups[1]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(6), batch0_groups[2]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(5), batch0_groups[3]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(4), batch0_groups[4]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(3), batch0_groups[5]),
-        OpGroupTableRow::new(INIT_ADDR, TWO, batch0_groups[6]),
-        OpGroupTableRow::new(INIT_ADDR, ONE, batch0_groups[7]),
-    ];
-    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (15, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -320,7 +228,7 @@ fn span_block_with_respan() {
     ];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
-    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 12, 0, 0);
@@ -377,60 +285,6 @@ fn span_block_with_respan() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-
-    let expected_ogt_hints = vec![
-        (0, OpGroupTableUpdate::InsertRows(7)),
-        (1, OpGroupTableUpdate::RemoveRow),
-        (2, OpGroupTableUpdate::RemoveRow),
-        (3, OpGroupTableUpdate::RemoveRow),
-        (4, OpGroupTableUpdate::RemoveRow),
-        (5, OpGroupTableUpdate::RemoveRow),
-        (6, OpGroupTableUpdate::RemoveRow),
-        (7, OpGroupTableUpdate::RemoveRow),
-        (9, OpGroupTableUpdate::InsertRows(3)),
-        (10, OpGroupTableUpdate::RemoveRow),
-        (12, OpGroupTableUpdate::RemoveRow),
-        (13, OpGroupTableUpdate::RemoveRow),
-    ];
-    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
-
-    let batch0_groups = &span.op_batches()[0].groups();
-    let batch1_groups = &span.op_batches()[1].groups();
-    let expected_ogt_rows = vec![
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(11), batch0_groups[1]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(10), batch0_groups[2]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(9), batch0_groups[3]),
-        OpGroupTableRow::new(INIT_ADDR, EIGHT, batch0_groups[4]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(7), batch0_groups[5]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(6), batch0_groups[6]),
-        OpGroupTableRow::new(INIT_ADDR, Felt::new(5), batch0_groups[7]),
-        // skipping the first group of batch 1
-        OpGroupTableRow::new(batch1_addr, Felt::new(3), batch1_groups[1]),
-        OpGroupTableRow::new(batch1_addr, TWO, batch1_groups[2]),
-        OpGroupTableRow::new(batch1_addr, ONE, batch1_groups[3]),
-    ];
-    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (9, BlockTableUpdate::SpanExtended),
-        (15, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
-        BlockStackTableRow::new_test(batch1_addr, ZERO, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // JOIN BLOCK TESTS
@@ -442,7 +296,7 @@ fn join_block() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
-    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -487,38 +341,6 @@ fn join_block() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(2)),
-        (1, BlockTableUpdate::BlockStarted(0)),
-        (3, BlockTableUpdate::BlockEnded(true)),
-        (4, BlockTableUpdate::BlockStarted(0)),
-        (6, BlockTableUpdate::BlockEnded(false)),
-        (7, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
-        BlockStackTableRow::new_test(span1_addr, INIT_ADDR, false),
-        BlockStackTableRow::new_test(span2_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, span1_hash, true, false),
-        BlockHashTableRow::new_test(INIT_ADDR, span2_hash, false, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // SPLIT BLOCK TESTS
@@ -530,7 +352,7 @@ fn split_block_true() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[1], &program);
+    let (trace, trace_len) = build_trace(&[1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + EIGHT;
@@ -565,34 +387,6 @@ fn split_block_true() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(1)),
-        (1, BlockTableUpdate::BlockStarted(0)),
-        (3, BlockTableUpdate::BlockEnded(false)),
-        (4, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
-        BlockStackTableRow::new_test(span_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, span1_hash, false, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -601,7 +395,7 @@ fn split_block_false() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
+    let (trace, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + EIGHT;
@@ -636,34 +430,6 @@ fn split_block_false() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(1)),
-        (1, BlockTableUpdate::BlockStarted(0)),
-        (3, BlockTableUpdate::BlockEnded(false)),
-        (4, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
-        BlockStackTableRow::new_test(span_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, span2_hash, false, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // LOOP BLOCK TESTS
@@ -674,7 +440,7 @@ fn loop_block() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[0, 1], &program);
+    let (trace, trace_len) = build_trace(&[0, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let body_addr = INIT_ADDR + EIGHT;
@@ -711,34 +477,6 @@ fn loop_block() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(1)),
-        (1, BlockTableUpdate::BlockStarted(0)),
-        (4, BlockTableUpdate::BlockEnded(false)),
-        (5, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, true),
-        BlockStackTableRow::new_test(body_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, loop_body_hash, false, true),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -746,7 +484,7 @@ fn loop_block_skip() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
+    let (trace, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Loop, 0, 0, 0);
@@ -773,24 +511,6 @@ fn loop_block_skip() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints =
-        vec![(0, BlockTableUpdate::BlockStarted(0)), (1, BlockTableUpdate::BlockEnded(false))];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -798,7 +518,7 @@ fn loop_block_repeat() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, aux_hints, trace_len) = build_trace(&[0, 1, 1], &program);
+    let (trace, trace_len) = build_trace(&[0, 1, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let iter1_addr = INIT_ADDR + EIGHT;
@@ -852,38 +572,6 @@ fn loop_block_repeat() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // op_group table should not have been touched
-    assert!(&aux_hints.op_group_table_hints().is_empty());
-    assert!(aux_hints.op_group_table_rows().is_empty());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(1)),
-        (1, BlockTableUpdate::BlockStarted(0)),
-        (4, BlockTableUpdate::BlockEnded(false)),
-        (5, BlockTableUpdate::LoopRepeated),
-        (6, BlockTableUpdate::BlockStarted(0)),
-        (9, BlockTableUpdate::BlockEnded(false)),
-        (10, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, true),
-        BlockStackTableRow::new_test(iter1_addr, INIT_ADDR, false),
-        BlockStackTableRow::new_test(iter2_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, loop_body_hash, false, true),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // CALL BLOCK TESTS
@@ -916,7 +604,7 @@ fn call_block() {
     let join1 = CodeBlock::new_join([first_span.clone(), foo_call.clone()]);
     let program = CodeBlock::new_join([join1.clone(), last_span.clone()]);
 
-    let (sys_trace, dec_trace, aux_hints, trace_len) =
+    let (sys_trace, dec_trace,   trace_len) =
         build_call_trace(&program, foo_root.clone(), None);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -929,10 +617,6 @@ fn call_block() {
     check_op_decoding(&dec_trace, 2, join1_addr, Operation::Span, 2, 0, 0);
     check_op_decoding(&dec_trace, 3, first_span_addr, Operation::Push(TWO), 1, 0, 1);
     check_op_decoding(&dec_trace, 4, first_span_addr, Operation::FmpUpdate, 0, 1, 1);
-    // as PAD operation is executed, the last item from the stack top moves to the overflow table.
-    // thus, the overflow address for the top row in the table will be set to the clock cycle at
-    // which PAD was executed - which is 5.
-    let overflow_addr_after_pad = Felt::new(5);
     check_op_decoding(&dec_trace, 5, first_span_addr, Operation::Pad, 0, 2, 1);
     check_op_decoding(&dec_trace, 6, first_span_addr, Operation::End, 0, 0, 0);
     // starting CALL block
@@ -1078,47 +762,6 @@ fn call_block() {
     for i in 13..trace_len {
         assert_eq!(get_fn_hash(&sys_trace, i), EMPTY_WORD);
     }
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(2)),
-        (1, BlockTableUpdate::BlockStarted(2)),
-        (2, BlockTableUpdate::BlockStarted(0)),
-        (6, BlockTableUpdate::BlockEnded(true)),
-        (7, BlockTableUpdate::BlockStarted(1)),
-        (8, BlockTableUpdate::BlockStarted(0)),
-        (11, BlockTableUpdate::BlockEnded(false)),
-        (12, BlockTableUpdate::BlockEnded(false)),
-        (13, BlockTableUpdate::BlockEnded(true)),
-        (14, BlockTableUpdate::BlockStarted(0)),
-        (16, BlockTableUpdate::BlockEnded(false)),
-        (17, BlockTableUpdate::BlockEnded(false)),
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table rows -----------------------------------------------------------
-    let call_ctx =
-        ExecutionContextInfo::new(ContextId::root(), EMPTY_WORD, FMP_MIN + TWO, 17, overflow_addr_after_pad);
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
-        BlockStackTableRow::new_test(join1_addr, INIT_ADDR, false),
-        BlockStackTableRow::new_test(first_span_addr, join1_addr, false),
-        BlockStackTableRow::new_test_with_ctx(foo_call_addr, join1_addr, false, call_ctx),
-        BlockStackTableRow::new_test(foo_root_addr, foo_call_addr, false),
-        BlockStackTableRow::new_test(last_span_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, join1_hash, true, false),
-        BlockHashTableRow::new_test(INIT_ADDR, last_span_hash, false, false),
-        BlockHashTableRow::new_test(join1_addr, first_span_hash, true, false),
-        BlockHashTableRow::new_test(join1_addr, foo_call_hash, false, false),
-        BlockHashTableRow::new_test(foo_call_addr, foo_root_hash, false, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // SYSCALL BLOCK TESTS
@@ -1166,7 +809,7 @@ fn syscall_block() {
     let inner_join = CodeBlock::new_join([first_span.clone(), bar_call.clone()]);
     let program = CodeBlock::new_join([inner_join.clone(), last_span.clone()]);
 
-    let (sys_trace, dec_trace, aux_hints, trace_len) =
+    let (sys_trace, dec_trace,   trace_len) =
         build_call_trace(&program, bar_root.clone(), Some(foo_root.clone()));
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -1179,10 +822,6 @@ fn syscall_block() {
     check_op_decoding(&dec_trace, 2, inner_join_addr, Operation::Span, 2, 0, 0);
     check_op_decoding(&dec_trace, 3, first_span_addr, Operation::Push(TWO), 1, 0, 1);
     check_op_decoding(&dec_trace, 4, first_span_addr, Operation::FmpUpdate, 0, 1, 1);
-    // as PAD operation is executed, the last item from the stack top moves to the overflow table.
-    // thus, the overflow address for the top row in the table will be set to the clock cycle at
-    // which PAD was executed - which is 5.
-    let overflow_addr_after_pad = Felt::new(5);
     check_op_decoding(&dec_trace, 5, first_span_addr, Operation::Pad, 0, 2, 1);
     check_op_decoding(&dec_trace, 6, first_span_addr, Operation::End, 0, 0, 0);
 
@@ -1409,60 +1048,6 @@ fn syscall_block() {
     for i in 21..trace_len {
         assert_eq!(get_fn_hash(&sys_trace, i), EMPTY_WORD);
     }
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(2)),    // join0
-        (1, BlockTableUpdate::BlockStarted(2)),    // join1
-        (2, BlockTableUpdate::BlockStarted(0)),    // span0
-        (6, BlockTableUpdate::BlockEnded(true)),   // end span0
-        (7, BlockTableUpdate::BlockStarted(1)),    // call
-        (8, BlockTableUpdate::BlockStarted(2)),    // join2
-        (9, BlockTableUpdate::BlockStarted(0)),    // span1
-        (12, BlockTableUpdate::BlockEnded(true)),  // end span1
-        (13, BlockTableUpdate::BlockStarted(1)),   // syscall
-        (14, BlockTableUpdate::BlockStarted(0)),   // span2
-        (17, BlockTableUpdate::BlockEnded(false)), // end span2
-        (18, BlockTableUpdate::BlockEnded(false)), // end syscall
-        (19, BlockTableUpdate::BlockEnded(false)), // end join2
-        (20, BlockTableUpdate::BlockEnded(false)), // end join1
-        (21, BlockTableUpdate::BlockEnded(true)),  // end join0
-        (22, BlockTableUpdate::BlockStarted(0)),   // span3
-        (24, BlockTableUpdate::BlockEnded(false)), // end span3
-        (25, BlockTableUpdate::BlockEnded(false)), // end program
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table rows -----------------------------------------------------------
-    let call_ctx =
-        ExecutionContextInfo::new(ContextId::root(), EMPTY_WORD, FMP_MIN + ONE, 17, overflow_addr_after_pad);
-    let syscall_ctx = ExecutionContextInfo::new(8.into(), bar_root_hash, FMP_MIN + TWO, 16, ZERO);
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
-        BlockStackTableRow::new_test(inner_join_addr, INIT_ADDR, false),
-        BlockStackTableRow::new_test(first_span_addr, inner_join_addr, false),
-        BlockStackTableRow::new_test_with_ctx(call_addr, inner_join_addr, false, call_ctx),
-        BlockStackTableRow::new_test(bar_join_addr, call_addr, false),
-        BlockStackTableRow::new_test(bar_span_addr, bar_join_addr, false),
-        BlockStackTableRow::new_test_with_ctx(syscall_addr, bar_join_addr, false, syscall_ctx),
-        BlockStackTableRow::new_test(syscall_span_addr, syscall_addr, false),
-        BlockStackTableRow::new_test(last_span_addr, INIT_ADDR, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, inner_join_hash, true, false),
-        BlockHashTableRow::new_test(INIT_ADDR, last_span_hash, false, false),
-        BlockHashTableRow::new_test(inner_join_addr, first_span_hash, true, false),
-        BlockHashTableRow::new_test(inner_join_addr, bar_call_hash, false, false),
-        BlockHashTableRow::new_test(call_addr, bar_root_hash, false, false),
-        BlockHashTableRow::new_test(bar_join_addr, bar_span_hash, true, false),
-        BlockHashTableRow::new_test(bar_join_addr, foo_call_hash, false, false),
-        BlockHashTableRow::new_test(syscall_addr, foo_root_hash, false, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // DYN BLOCK TESTS
@@ -1480,7 +1065,7 @@ fn dyn_block() {
     let dyn_block = CodeBlock::new_dyn();
     let program = CodeBlock::new_join([join.clone(), dyn_block.clone()]);
 
-    let (trace, aux_hints, trace_len) = build_dyn_trace(
+    let (trace, trace_len) = build_dyn_trace(
         &[
             foo_root.hash()[0].as_int(),
             foo_root.hash()[1].as_int(),
@@ -1574,55 +1159,6 @@ fn dyn_block() {
         assert_eq!(ONE, trace[OP_BITS_EXTRA_COLS_RANGE.start + 1][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
-
-    // --- check op_group table hints -------------------------------------------------------------
-    // 1 op group should be inserted at cycle 10, and removed in the subsequent cycle
-    let expected_ogt_hints =
-        vec![(10, OpGroupTableUpdate::InsertRows(1)), (11, OpGroupTableUpdate::RemoveRow)];
-    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
-
-    // the group is an op group with a single ADD
-    let expected_ogt_rows = vec![OpGroupTableRow::new(add_span_addr, ONE, ONE)];
-    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
-
-    // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(2)),    // outer join start
-        (1, BlockTableUpdate::BlockStarted(2)),    // inner join start
-        (2, BlockTableUpdate::BlockStarted(0)),    // mul span start
-        (4, BlockTableUpdate::BlockEnded(true)),   // mul span end
-        (5, BlockTableUpdate::BlockStarted(0)),    // save span start
-        (7, BlockTableUpdate::BlockEnded(false)),  // save span end
-        (8, BlockTableUpdate::BlockEnded(true)),   // inner join end
-        (9, BlockTableUpdate::BlockStarted(1)),    // dyn start
-        (10, BlockTableUpdate::BlockStarted(0)),   // foo span start
-        (13, BlockTableUpdate::BlockEnded(false)), // foo span end
-        (14, BlockTableUpdate::BlockEnded(false)), // dyn end
-        (15, BlockTableUpdate::BlockEnded(false)), // outer join end
-    ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints());
-
-    // --- check block stack table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false), // join
-        BlockStackTableRow::new_test(join_addr, INIT_ADDR, false), // inner join
-        BlockStackTableRow::new_test(mul_span_addr, join_addr, false), // mul span
-        BlockStackTableRow::new_test(save_span_addr, join_addr, false), // save span
-        BlockStackTableRow::new_test(dyn_addr, INIT_ADDR, false), // dyn
-        BlockStackTableRow::new_test(add_span_addr, dyn_addr, false), // foo span
-    ];
-    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
-
-    // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![
-        BlockHashTableRow::from_program_hash(program_hash),
-        BlockHashTableRow::new_test(INIT_ADDR, join_hash, true, false),
-        BlockHashTableRow::new_test(INIT_ADDR, dyn_hash, false, false),
-        BlockHashTableRow::new_test(join_addr, mul_span_hash, true, false),
-        BlockHashTableRow::new_test(join_addr, save_span_hash, false, false),
-        BlockHashTableRow::new_test(dyn_addr, foo_hash, false, false),
-    ];
-    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // HELPER REGISTERS TESTS
@@ -1658,14 +1194,14 @@ fn set_user_op_helpers_many() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
+fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
-    let (trace, aux_hints, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -1673,7 +1209,6 @@ fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxT
             .to_vec()
             .try_into()
             .expect("failed to convert vector to array"),
-        aux_hints.decoder,
         trace_len,
     )
 }
@@ -1682,7 +1217,7 @@ fn build_dyn_trace(
     stack_inputs: &[u64],
     program: &CodeBlock,
     fn_block: CodeBlock,
-) -> (DecoderTrace, AuxTraceHints, usize) {
+) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
@@ -1694,7 +1229,7 @@ fn build_dyn_trace(
 
     process.execute_code_block(program, &cb_table).unwrap();
 
-    let (trace, aux_hints, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -1702,7 +1237,6 @@ fn build_dyn_trace(
             .to_vec()
             .try_into()
             .expect("failed to convert vector to array"),
-        aux_hints.decoder,
         trace_len,
     )
 }
@@ -1711,7 +1245,7 @@ fn build_call_trace(
     program: &CodeBlock,
     fn_block: CodeBlock,
     kernel_proc: Option<CodeBlock>,
-) -> (SystemTrace, DecoderTrace, AuxTraceHints, usize) {
+) -> (SystemTrace, DecoderTrace, usize) {
     let kernel = match kernel_proc {
         Some(ref proc) => Kernel::new(&[proc.hash()]).unwrap(),
         None => Kernel::default(),
@@ -1729,7 +1263,7 @@ fn build_call_trace(
 
     process.execute_code_block(program, &cb_table).unwrap();
 
-    let (trace, aux_hints, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     let sys_trace = trace[SYS_TRACE_RANGE]
@@ -1742,7 +1276,7 @@ fn build_call_trace(
         .try_into()
         .expect("failed to convert vector to array");
 
-    (sys_trace, decoder_trace, aux_hints.decoder, trace_len)
+    (sys_trace, decoder_trace, trace_len)
 }
 
 // OPCODES
