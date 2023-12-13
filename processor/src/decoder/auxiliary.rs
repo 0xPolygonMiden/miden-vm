@@ -1,6 +1,4 @@
-use super::{
-    super::decoder::AuxTraceHints, ColMatrix, Felt, FieldElement, Vec, DECODER_TRACE_OFFSET,
-};
+use super::{Felt, StarkField, Vec, ONE, ZERO};
 
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
@@ -11,17 +9,14 @@ use miden_air::trace::{
         OP_BATCH_FLAGS_OFFSET,
     },
     stack::{B0_COL_IDX, B1_COL_IDX},
-    CTX_COL_IDX, FMP_COL_IDX, FN_HASH_OFFSET, STACK_TRACE_OFFSET,
+    CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET, STACK_TRACE_OFFSET,
 };
 
 use vm_core::{
-    chiplets::hasher::RATE_LEN, crypto::hash::RpoDigest, utils::uninit_vector, Operation,
-    StarkField, ONE, ZERO,
+    chiplets::hasher::RATE_LEN, crypto::hash::RpoDigest, utils::uninit_vector, FieldElement,
+    Operation,
 };
-use winter_prover::math::batch_inversion;
-
-#[cfg(test)]
-mod tests;
+use winter_prover::{math::batch_inversion, matrix::ColMatrix};
 
 // CONSTANTS
 // ================================================================================================
@@ -40,6 +35,27 @@ const PUSH: u8 = Operation::Push(ZERO).op_code();
 const END: u8 = Operation::End.op_code();
 const HALT: u8 = Operation::Halt.op_code();
 
+// AUXILIARY TRACE BUILDER
+// ================================================================================================
+
+/// Constructs the execution traces of stack-related auxiliary trace segment columns
+/// (used in multiset checks).
+#[derive(Default)]
+pub struct AuxTraceBuilder {}
+
+impl AuxTraceBuilder {
+    /// Builds and returns stack auxiliary trace columns. Currently this consists of a single
+    /// column p1 describing states of the stack overflow table.
+    pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
+        &self,
+        main_trace: &ColMatrix<Felt>,
+        rand_elements: &[E],
+        program_hash: &RpoDigest,
+    ) -> Vec<Vec<E>> {
+        build_aux_columns(main_trace, rand_elements, program_hash)
+    }
+}
+
 // DECODER AUXILIARY TRACE COLUMNS
 // ================================================================================================
 
@@ -47,12 +63,11 @@ const HALT: u8 = Operation::Halt.op_code();
 /// stack, block hash, and op group tables respectively.
 pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
-    aux_trace_hints: &AuxTraceHints,
     rand_elements: &[E],
     program_hash: &RpoDigest,
 ) -> Vec<Vec<E>> {
-    let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
-    let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements, program_hash);
+    let p1 = build_aux_col_p1(main_trace, rand_elements);
+    let p2 = build_aux_col_p2(main_trace, rand_elements, program_hash);
     let p3 = build_aux_col_p3(main_trace, rand_elements);
 
     vec![p1, p2, p3]
@@ -65,7 +80,6 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 /// stack table via multiset checks.
 fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
-    _aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
 ) -> Vec<E> {
     let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
@@ -129,7 +143,6 @@ where
 /// hash table via multiset checks.
 fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
     main_trace: &ColMatrix<Felt>,
-    _aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
     program_hash: &RpoDigest,
 ) -> Vec<E> {
