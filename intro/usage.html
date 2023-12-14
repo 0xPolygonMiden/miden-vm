@@ -228,6 +228,7 @@
 <li><code>debug</code> - this will instantiate a <a href="../tools/debugger.html">Miden debugger</a> against the specified Miden assembly program and inputs.</li>
 <li><code>analyze</code> - this will run a Miden assembly program against specific inputs and will output stats about its execution.</li>
 <li><code>repl</code> - this will initiate the <a href="../tools/repl.html">Miden REPL</a> tool.</li>
+<li><code>example</code> - this will execute a Miden assembly example program, generate a STARK proof of execution and verify it. Currently it is possible to run <code>blake3</code> and <code>fibonacci</code> examples.</li>
 </ul>
 <p>All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:</p>
 <pre><code>./target/optimized/miden [subcommand] --help
