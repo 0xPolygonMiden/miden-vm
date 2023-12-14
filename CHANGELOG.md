@@ -21,6 +21,7 @@
 
 #### CLI
 - Introduced the `!use` command for the Miden REPL (#1162).
+- Introduced a `BLAKE3` hashing example (#1180).
 
 ## 0.7.0 (2023-10-11)
 
