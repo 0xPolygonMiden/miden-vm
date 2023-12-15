@@ -906,7 +906,7 @@ fn assert_lt_with_constant() {
     let expected = "\
     begin \
         span \
-            dup0 push(32) u32sub swap drop eqz not assert(0) \
+            dup0 push(32) u32sub swap drop assert(0) \
         end \
     end";
     assert_eq!(expected, format!("{program}"));
