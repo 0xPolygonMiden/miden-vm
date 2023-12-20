@@ -26,7 +26,10 @@ pub mod crypto {
     }
 
     pub mod random {
-        pub use crate::random::*;
+        pub use miden_crypto::rand::RpoRandomCoin;
+        pub use winter_crypto::{
+            DefaultRandomCoin as WinterRandomCoin, RandomCoin, RandomCoinError,
+        };
     }
 
     pub mod dsa {
@@ -50,9 +53,6 @@ pub use operations::{
 
 pub mod stack;
 pub use stack::{StackInputs, StackOutputs};
-
-// TODO: this should move to miden-crypto crate
-mod random;
 
 pub mod utils;
 
