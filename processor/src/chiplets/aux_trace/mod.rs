@@ -1,19 +1,18 @@
 use super::{ColMatrix, Felt, FieldElement, StarkField, Vec};
 
-use miden_air::trace::chiplets::{
-    hasher::{
-        DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
-        MR_UPDATE_OLD_LABEL, RETURN_HASH_LABEL, RETURN_STATE_LABEL, STATE_WIDTH,
+use miden_air::trace::{
+    chiplets::{
+        hasher::{
+            DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
+            MR_UPDATE_OLD_LABEL, RETURN_HASH_LABEL, RETURN_STATE_LABEL, STATE_WIDTH,
+        },
+        kernel_rom::KERNEL_PROC_LABEL,
+        memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
     },
-    kernel_rom::KERNEL_PROC_LABEL,
-    memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
+    main_trace::MainTrace,
 };
 
 use vm_core::{utils::uninit_vector, Operation, ONE, ZERO};
-use winter_prover::math::batch_inversion;
-
-mod main_trace;
-use main_trace::MainTrace;
 
 // CONSTANTS
 // ================================================================================================
@@ -72,36 +71,30 @@ impl AuxTraceBuilder {
 pub struct BusTraceBuilder {}
 
 /// Builds the chiplets bus auxiliary trace column.
-///
-/// The bus is constructed in two stages. In the first stage, the requests sent to the chiplets
-/// are computed, batch inverted and stored in a vector of length equal to the trace length.
-/// The responses are also computed at this stage and stored in another vector of the same size
-/// separately. In the second stage, the bus column is constructed by computing the component-wise
-/// cumulative product of the two vectors.
 fn build_bus_aux_column<E>(main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
+    let main_tr = MainTrace::new(main_trace);
     let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
     let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    let mut result: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
     result_1[0] = E::ONE;
     result_2[0] = E::ONE;
-    result[0] = E::ONE;
-    let main_tr = MainTrace::new(main_trace);
 
+    let mut result_2_acc = E::ONE;
     for i in 0..main_trace.num_rows() - 1 {
-        result_1[i] = chiplets_requests(&main_tr, alphas, i);
-        result_2[i] = chiplets_responses(&main_tr, alphas, i);
+        result_1[i + 1] = result_1[i] * chiplets_responses(&main_tr, alphas, i);
+        result_2[i + 1] = chiplets_requests(&main_tr, alphas, i);
+        result_2_acc *= result_2[i + 1];
     }
 
-    let result_1 = batch_inversion(&result_1);
+    let mut acc_inv = result_2_acc.inv();
 
-    for i in 0..main_trace.num_rows() - 1 {
-        result[i + 1] = result[i] * result_2[i] * result_1[i];
+    for i in (0..main_trace.num_rows()).rev() {
+        result_1[i] *= acc_inv;
+        acc_inv *= result_2[i];
     }
-
-    result
+    result_1
 }
 
 // VIRTUAL TABLE TRACE BUILDER
@@ -117,28 +110,28 @@ fn build_vtable_aux_column<E>(main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec
 where
     E: FieldElement<BaseField = Felt>,
 {
+    let main_tr = MainTrace::new(main_trace);
     let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
     let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    let mut result: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
     result_1[0] = E::ONE;
     result_2[0] = E::ONE;
-    result[0] = E::ONE;
 
-    let main_tr = MainTrace::new(main_trace);
-
+    let mut result_2_acc = E::ONE;
     for i in 0..main_trace.num_rows() - 1 {
-        result_1[i] = chiplets_vtable_add_sibling(&main_tr, alphas, i)
+        result_1[i + 1] = result_1[i]
+            * chiplets_vtable_add_sibling(&main_tr, alphas, i)
             * chiplets_kernel_table_include(&main_tr, alphas, i);
-        result_2[i] = chiplets_vtable_remove_sibling(&main_tr, alphas, i);
+        result_2[i + 1] = chiplets_vtable_remove_sibling(&main_tr, alphas, i);
+        result_2_acc *= result_2[i + 1];
     }
 
-    let result_2 = batch_inversion(&result_2);
+    let mut acc_inv = result_2_acc.inv();
 
-    for i in 0..main_trace.num_rows() - 1 {
-        result[i + 1] = result[i] * result_2[i] * result_1[i];
+    for i in (0..main_trace.num_rows()).rev() {
+        result_1[i] *= acc_inv;
+        acc_inv *= result_2[i];
     }
-
-    result
+    result_1
 }
 
 // CHIPLETS VIRTUAL TABLE REQUESTS
@@ -383,9 +376,9 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
     i: usize,
 ) -> E {
     let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
-    let a = main_trace.s0(i);
-    let b = main_trace.s1(i);
-    let z = main_trace.s0(i + 1);
+    let a = main_trace.stack_element(0, i);
+    let b = main_trace.stack_element(1, i);
+    let z = main_trace.stack_element(0, i + 1);
 
     alphas[0]
         + alphas[1].mul_base(op_label)
@@ -407,21 +400,21 @@ fn build_mem_request<E: FieldElement<BaseField = Felt>>(
 
     let (v0, v1, v2, v3) = if word {
         (
-            main_trace.s0(i + 1),
-            main_trace.s1(i + 1),
-            main_trace.s2(i + 1),
-            main_trace.s3(i + 1),
+            main_trace.stack_element(0, i + 1),
+            main_trace.stack_element(1, i + 1),
+            main_trace.stack_element(2, i + 1),
+            main_trace.stack_element(3, i + 1),
         )
     } else {
         (
             main_trace.helper_0(i),
             main_trace.helper_1(i),
             main_trace.helper_2(i),
-            main_trace.s0(i + 1),
+            main_trace.stack_element(0, i + 1),
         )
     };
 
-    let s0_cur = main_trace.s0(i);
+    let s0_cur = main_trace.stack_element(0, i);
 
     alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
@@ -443,16 +436,16 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(i);
     let clk = main_trace.clk(i);
 
-    let s0_nxt = main_trace.s0(i + 1);
-    let s1_nxt = main_trace.s1(i + 1);
-    let s2_nxt = main_trace.s2(i + 1);
-    let s3_nxt = main_trace.s3(i + 1);
-    let s4_nxt = main_trace.s4(i + 1);
-    let s5_nxt = main_trace.s5(i + 1);
-    let s6_nxt = main_trace.s6(i + 1);
-    let s7_nxt = main_trace.s7(i + 1);
+    let s0_nxt = main_trace.stack_element(0, i + 1);
+    let s1_nxt = main_trace.stack_element(1, i + 1);
+    let s2_nxt = main_trace.stack_element(2, i + 1);
+    let s3_nxt = main_trace.stack_element(3, i + 1);
+    let s4_nxt = main_trace.stack_element(4, i + 1);
+    let s5_nxt = main_trace.stack_element(5, i + 1);
+    let s6_nxt = main_trace.stack_element(6, i + 1);
+    let s7_nxt = main_trace.stack_element(7, i + 1);
 
-    let s12_cur = main_trace.s12(i);
+    let s12_cur = main_trace.stack_element(12, i);
 
     let op_label = MEMORY_READ_LABEL;
 
@@ -487,33 +480,33 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     let helper_0 = main_trace.helper_0(i);
 
     let s0_s12_cur = [
-        main_trace.s0(i),
-        main_trace.s1(i),
-        main_trace.s2(i),
-        main_trace.s3(i),
-        main_trace.s4(i),
-        main_trace.s5(i),
-        main_trace.s6(i),
-        main_trace.s7(i),
-        main_trace.s8(i),
-        main_trace.s9(i),
-        main_trace.s10(i),
-        main_trace.s11(i),
+        main_trace.stack_element(0, i),
+        main_trace.stack_element(1, i),
+        main_trace.stack_element(2, i),
+        main_trace.stack_element(3, i),
+        main_trace.stack_element(4, i),
+        main_trace.stack_element(5, i),
+        main_trace.stack_element(6, i),
+        main_trace.stack_element(7, i),
+        main_trace.stack_element(8, i),
+        main_trace.stack_element(9, i),
+        main_trace.stack_element(10, i),
+        main_trace.stack_element(11, i),
     ];
 
     let s0_s12_nxt = [
-        main_trace.s0(i + 1),
-        main_trace.s1(i + 1),
-        main_trace.s2(i + 1),
-        main_trace.s3(i + 1),
-        main_trace.s4(i + 1),
-        main_trace.s5(i + 1),
-        main_trace.s6(i + 1),
-        main_trace.s7(i + 1),
-        main_trace.s8(i + 1),
-        main_trace.s9(i + 1),
-        main_trace.s10(i + 1),
-        main_trace.s11(i + 1),
+        main_trace.stack_element(0, i + 1),
+        main_trace.stack_element(1, i + 1),
+        main_trace.stack_element(2, i + 1),
+        main_trace.stack_element(3, i + 1),
+        main_trace.stack_element(4, i + 1),
+        main_trace.stack_element(5, i + 1),
+        main_trace.stack_element(6, i + 1),
+        main_trace.stack_element(7, i + 1),
+        main_trace.stack_element(8, i + 1),
+        main_trace.stack_element(9, i + 1),
+        main_trace.stack_element(10, i + 1),
+        main_trace.stack_element(11, i + 1),
     ];
 
     let op_label = LINEAR_HASH_LABEL;
@@ -561,10 +554,20 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let helper_0 = main_trace.helper_0(i);
 
-    let s0_s3 = [main_trace.s0(i), main_trace.s1(i), main_trace.s2(i), main_trace.s3(i)];
-    let s4 = main_trace.s4(i);
-    let s5 = main_trace.s5(i);
-    let s6_s9 = [main_trace.s6(i), main_trace.s7(i), main_trace.s8(i), main_trace.s9(i)];
+    let s0_s3 = [
+        main_trace.stack_element(0, i),
+        main_trace.stack_element(1, i),
+        main_trace.stack_element(2, i),
+        main_trace.stack_element(3, i),
+    ];
+    let s4 = main_trace.stack_element(4, i);
+    let s5 = main_trace.stack_element(5, i);
+    let s6_s9 = [
+        main_trace.stack_element(6, i),
+        main_trace.stack_element(7, i),
+        main_trace.stack_element(8, i),
+        main_trace.stack_element(9, i),
+    ];
 
     let op_label = MP_VERIFY_LABEL;
     let op_label = if addr_to_hash_cycle(helper_0) == 0 {
@@ -613,17 +616,32 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 ) -> E {
     let helper_0 = main_trace.helper_0(i);
 
-    let s0_s3 = [main_trace.s0(i), main_trace.s1(i), main_trace.s2(i), main_trace.s3(i)];
-    let s0_s3_nxt = [
-        main_trace.s0(i + 1),
-        main_trace.s1(i + 1),
-        main_trace.s2(i + 1),
-        main_trace.s3(i + 1),
+    let s0_s3 = [
+        main_trace.stack_element(0, i),
+        main_trace.stack_element(1, i),
+        main_trace.stack_element(2, i),
+        main_trace.stack_element(3, i),
     ];
-    let s4 = main_trace.s4(i);
-    let s5 = main_trace.s5(i);
-    let s6_s9 = [main_trace.s6(i), main_trace.s7(i), main_trace.s8(i), main_trace.s9(i)];
-    let s10_s13 = [main_trace.s10(i), main_trace.s11(i), main_trace.s12(i), main_trace.s13(i)];
+    let s0_s3_nxt = [
+        main_trace.stack_element(0, i + 1),
+        main_trace.stack_element(1, i + 1),
+        main_trace.stack_element(2, i + 1),
+        main_trace.stack_element(3, i + 1),
+    ];
+    let s4 = main_trace.stack_element(4, i);
+    let s5 = main_trace.stack_element(5, i);
+    let s6_s9 = [
+        main_trace.stack_element(6, i),
+        main_trace.stack_element(7, i),
+        main_trace.stack_element(8, i),
+        main_trace.stack_element(9, i),
+    ];
+    let s10_s13 = [
+        main_trace.stack_element(10, i),
+        main_trace.stack_element(11, i),
+        main_trace.stack_element(12, i),
+        main_trace.stack_element(13, i),
+    ];
 
     let op_label = MR_UPDATE_OLD_LABEL;
     let op_label = if addr_to_hash_cycle(helper_0) == 0 {
