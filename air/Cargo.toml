@@ -31,6 +31,7 @@ std = ["vm-core/std", "winter-air/std"]
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 winter-air = { package = "winter-air", version = "0.7", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.7", default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"
