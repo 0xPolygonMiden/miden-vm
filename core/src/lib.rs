@@ -26,9 +26,8 @@ pub mod crypto {
     }
 
     pub mod random {
-        pub use miden_crypto::rand::RpoRandomCoin;
-        pub use winter_crypto::{
-            DefaultRandomCoin as WinterRandomCoin, RandomCoin, RandomCoinError,
+        pub use miden_crypto::rand::{
+            RandomCoin, RandomCoinError, RpoRandomCoin, WinterRandomCoin,
         };
     }
 
