@@ -195,7 +195,7 @@ fn advice_push_mapval() {
         vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
     )];
 
-    let test = build_test!(source, &stack_inputs, vec![], MerkleStore::default(), adv_map);
+    let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
     test.expect_stack(&[5, 6, 7, 8]);
 
     // --- test adv.mapval with offset ----------------------------------------
@@ -220,7 +220,7 @@ fn advice_push_mapval() {
         vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
     )];
 
-    let test = build_test!(source, &stack_inputs, vec![], MerkleStore::default(), adv_map);
+    let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
     test.expect_stack(&[5, 6, 7, 8]);
 
     // --- test simple adv.mapvaln --------------------------------------------
@@ -243,7 +243,7 @@ fn advice_push_mapval() {
         vec![Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)],
     )];
 
-    let test = build_test!(source, &stack_inputs, vec![], MerkleStore::default(), adv_map);
+    let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
     test.expect_stack(&[15, 14, 13, 12, 11, 5]);
 
     // --- test adv.mapval with offset ----------------------------------------
@@ -269,7 +269,7 @@ fn advice_push_mapval() {
         vec![Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)],
     )];
 
-    let test = build_test!(source, &stack_inputs, vec![], MerkleStore::default(), adv_map);
+    let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
     test.expect_stack(&[15, 14, 13, 12, 11, 5]);
 }
 

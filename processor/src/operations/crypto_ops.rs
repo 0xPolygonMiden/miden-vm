@@ -230,7 +230,7 @@ mod tests {
     fn op_mpverify() {
         let index = 5usize;
         let nodes = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-        let tree = MerkleTree::new(nodes.to_vec()).unwrap();
+        let tree = MerkleTree::new(&nodes).unwrap();
         let store = MerkleStore::from(&tree);
         let root = tree.root();
         let node = nodes[index];

@@ -1217,7 +1217,7 @@ fn program_with_reexported_proc_in_same_library() {
     let ast = ModuleAst::parse(MODULE_BODY).unwrap();
 
     // check docs
-    let docs_checked_eqz = ast.reexported_procs().get(0).unwrap().docs().unwrap();
+    let docs_checked_eqz = ast.reexported_procs().first().unwrap().docs().unwrap();
     assert_eq!(
         docs_checked_eqz,
         "checked_eqz checks if the value is u32 and zero and returns 1 if it is, 0 otherwise"
