@@ -80,12 +80,12 @@ impl ExecutionTrace {
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
         // perfect zero knowledge.
-        let program_hash: Digest = process.decoder.program_hash().into();
-        let rng = RpoRandomCoin::new(program_hash.as_elements());
+        let program_hash = process.decoder.program_hash();
+        let rng = RpoRandomCoin::new(program_hash);
 
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
-        let program_info = ProgramInfo::new(program_hash, kernel);
+        let program_info = ProgramInfo::new(program_hash.into(), kernel);
         let (main_trace, aux_trace_hints, trace_len_summary) = finalize_trace(process, rng);
 
         Self {
@@ -182,7 +182,7 @@ impl ExecutionTrace {
     where
         H: Host,
     {
-        let rng = RpoRandomCoin::new(&EMPTY_WORD);
+        let rng = RpoRandomCoin::new(EMPTY_WORD);
         finalize_trace(process, rng)
     }
 }
@@ -249,7 +249,7 @@ impl Trace for ExecutionTrace {
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
-        let mut rng = RpoRandomCoin::new(self.program_hash().as_elements());
+        let mut rng = RpoRandomCoin::new(self.program_hash().into());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 column[i] = rng.draw().expect("failed to draw a random value");

@@ -46,8 +46,8 @@ pub fn generate_advice_inputs(
 
     // create AIR instance for the computation specified in the proof
     let air = ProcessorAir::new(proof.get_trace_info(), pub_inputs, proof.options().clone());
-
-    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(&public_coin_seed);
+    let seed_digest = Rpo256::hash_elements(&public_coin_seed);
+    let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
     let mut channel = VerifierChannel::new(&air, proof)?;
 
     // 1 ----- trace commitment -------------------------------------------------------------------
