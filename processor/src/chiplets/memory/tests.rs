@@ -370,7 +370,7 @@ fn build_trace_row(
     row[0] = op_selectors[0];
     row[1] = op_selectors[1];
     row[CTX_COL_IDX] = ctx;
-    row[ADDR_COL_IDX] = Felt::from(addr);
+    row[ADDR_COL_IDX] = addr;
     row[CLK_COL_IDX] = clk;
     row[V_COL_RANGE.start] = new_val[0];
     row[V_COL_RANGE.start + 1] = new_val[1];

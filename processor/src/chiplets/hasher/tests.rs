@@ -117,7 +117,7 @@ fn hasher_build_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2]);
-    let tree = MerkleTree::new(leaves.to_vec()).unwrap();
+    let tree = MerkleTree::new(&leaves).unwrap();
 
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
@@ -186,7 +186,7 @@ fn hasher_build_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = MerkleTree::new(leaves.to_vec()).unwrap();
+    let tree = MerkleTree::new(&leaves).unwrap();
 
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
@@ -347,7 +347,7 @@ fn hasher_update_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2]);
-    let mut tree = MerkleTree::new(leaves.to_vec()).unwrap();
+    let mut tree = MerkleTree::new(&leaves).unwrap();
 
     // initialize the hasher and update both leaves
     let mut hasher = Hasher::default();
@@ -457,7 +457,7 @@ fn hasher_update_merkle_root() {
 
     // build a Merkle tree
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let mut tree = MerkleTree::new(leaves.to_vec()).unwrap();
+    let mut tree = MerkleTree::new(&leaves).unwrap();
 
     // initialize the hasher
     let mut hasher = Hasher::default();
