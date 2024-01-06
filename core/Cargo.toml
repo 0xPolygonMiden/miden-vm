@@ -19,7 +19,6 @@ doctest = false
 [features]
 default = ["std"]
 std = ["miden-crypto/std", "math/std", "winter-utils/std"]
-sve = ["miden-crypto/sve", "std"]
 
 [dependencies]
 math = { package = "winter-math", version = "0.7", default-features = false }

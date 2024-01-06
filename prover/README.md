@@ -44,7 +44,6 @@ Miden prover can be compiled with the following features:
 
 * `std` - enabled by default and relies on the Rust standard library.
 * `concurrent` - implies `std` and also enables multi-threaded proof generation.
-* `sve` - enables [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE))-based acceleration of the RPO hash function on supported platforms (e.g., Graviton 3).
 * `metal` - enables [Metal](https://en.wikipedia.org/wiki/Metal_(API))-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 * `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
 

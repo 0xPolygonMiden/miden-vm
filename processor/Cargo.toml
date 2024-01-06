@@ -21,7 +21,6 @@ concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
 internals = []
 std = ["log/std", "vm-core/std", "winter-prover/std"]
-sve = ["std", "vm-core/sve"]
 
 [dependencies]
 log = { version = "0.4", default-features = false, optional = true }

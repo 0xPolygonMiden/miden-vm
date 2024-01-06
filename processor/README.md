@@ -62,7 +62,6 @@ A much more in-depth description of Miden VM design is available [here](https://
 Miden processor can be compiled with the following features:
 
 * `std` - enabled by default and relies on the Rust standard library.
-* `sve` - enables [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE))-based acceleration of the RPO hash function on supported platforms (e.g., Graviton 3).
 * `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
