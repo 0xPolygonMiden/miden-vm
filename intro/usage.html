@@ -210,11 +210,15 @@
 <p>Similar to <code>make exec</code> command, this will place the resulting <code>miden</code> executable into the <code>./target/optimized</code> directory.</p>
 <p>Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the <code>-r</code> flag.</p>
 <h3 id="simd-acceleration"><a class="header" href="#simd-acceleration">SIMD acceleration</a></h3>
-<p>Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled only on platforms supporting <a href="https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)">SVE</a> instructions (e.g., Graviton 3). To compile Miden VM with SVE acceleration enabled, you can run the following command:</p>
-<pre><code>make exec-graviton
+<p>Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled on platforms supporting <a href="https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)">SVE</a> and <a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#Advanced_Vector_Extensions_2">AVX2</a> instructions.</p>
+<p>To compile Miden VM with AVX2 acceleration enabled, you can run the following command:</p>
+<pre><code>make exec-avx2
+</code></pre>
+<p>To compile Miden VM with SVE acceleration enabled, you can run the following command:</p>
+<pre><code>make exec-sve
 </code></pre>
 <p>This will place the resulting <code>miden</code> executable into the <code>./target/optimized</code> directory.</p>
-<p>Similar to Metal acceleration, SVE acceleration is currently applicable only to recursive proofs which can be generated using the <code>-r</code> flag.</p>
+<p>Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable only to recursive proofs which can be generated using the <code>-r</code> flag.</p>
 <h3 id="running-miden-vm"><a class="header" href="#running-miden-vm">Running Miden VM</a></h3>
 <p>Once the executable has been compiled, you can run Miden VM like so:</p>
 <pre><code>./target/optimized/miden [subcommand] [parameters]
