@@ -43,7 +43,6 @@ default = ["std"]
 executable = ["dep:env_logger", "dep:hex", "hex?/std", "std", "dep:serde", "serde?/std", "dep:serde_derive", "dep:serde_json", "serde_json?/std", "dep:clap", "dep:rustyline"]
 metal = ["prover/metal", "std"]
 std = ["assembly/std", "log/std", "processor/std", "prover/std", "verifier/std"]
-sve = ["processor/sve", "prover/sve", "std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }

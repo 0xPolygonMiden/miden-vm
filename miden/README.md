@@ -224,8 +224,11 @@ make exec
 # build an executable for Apple silicon (concurrent+metal)
 make exec-metal
 
-# built an executable for the Graviton 3 target (concurrent+sve)
-make exec-graviton
+# built an executable for targets with AVX2 instructions (concurrent)
+make exec-avx2
+
+# built an executable for targets with SVE instructions (concurrent)
+make exec-sve
 ```
 
 ### Running Miden VM
@@ -263,7 +266,6 @@ Miden VM can be compiled with the following features:
 * `std` - enabled by default and relies on the Rust standard library.
 * `concurrent` - implies `std` and also enables multi-threaded proof generation.
 * `executable` - required for building Miden VM binary as described above. Implies `std`.
-* `sve` - enables [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE))-based acceleration of the RPO hash function on supported platforms (e.g., Graviton 3).
 * `metal` - enables [Metal](https://en.wikipedia.org/wiki/Metal_(API))-based acceleration of proof generation (for recursive proofs) on supported platforms (e.g., Apple silicon).
 * `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
 
