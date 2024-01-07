@@ -38,6 +38,9 @@ pub trait Host {
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError>;
 
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
+
     /// Creates a "by reference" host for this instance.
     ///
     /// The returned adapter also implements [Host] and will simply mutably borrow this
@@ -51,9 +54,6 @@ pub trait Host {
         // `Host` for mutable references of any type that also implements `Host`.
         self
     }
-
-    // PROVIDED METHODS
-    // --------------------------------------------------------------------------------------------
 
     /// Handles the event emitted from the VM.
     fn on_event<S: ProcessState>(
