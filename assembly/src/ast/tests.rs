@@ -479,7 +479,7 @@ fn test_missing_import() {
 
     let result = ProgramAst::parse(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!("should have panicked"),
         Err(err) => assert!(err.to_string().contains("module 'u64' was not imported")),
     }
 }
@@ -497,7 +497,7 @@ fn test_use_in_proc_body() {
 
     let result = ModuleAst::parse(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!("should have panicked"),
         Err(err) => assert!(err.to_string().contains("import in procedure body")),
     }
 }
@@ -508,7 +508,7 @@ fn test_unterminated_proc() {
 
     let result = ModuleAst::parse(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!("should have panicked"),
         Err(err) => assert!(err.to_string().contains("procedure 'foo' has no matching end")),
     }
 }
@@ -519,7 +519,7 @@ fn test_unterminated_if() {
 
     let result = ModuleAst::parse(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!("should have panicked"),
         Err(err) => assert!(err.to_string().contains("if without matching else/end")),
     }
 }
@@ -820,7 +820,7 @@ fn test_ast_program_serde_control_flow() {
 
 #[test]
 fn assert_parsing_line_unmatched_begin() {
-    let source = format!("\n\nbegin\npush.1.2\n\nadd mul");
+    let source = "\n\nbegin\npush.1.2\n\nadd mul".to_string();
     let err = ProgramAst::parse(&source).err().unwrap();
     let location = SourceLocation::new(3, 1);
     assert_eq!(err, ParsingError::unmatched_begin(&Token::new("begin", location)));
@@ -828,7 +828,7 @@ fn assert_parsing_line_unmatched_begin() {
 
 #[test]
 fn assert_parsing_line_extra_param() {
-    let source = format!("begin add.1.2\nend");
+    let source = "begin add.1.2\nend".to_string();
     let err = ProgramAst::parse(&source).err().unwrap();
     let location = SourceLocation::new(1, 7);
     assert_eq!(err, ParsingError::extra_param(&Token::new("add.1.2", location)));
@@ -875,7 +875,7 @@ fn assert_parsing_line_invalid_op() {
 
 #[test]
 fn assert_parsing_line_unexpected_eof() {
-    let source = format!("proc.foo\nadd\nend");
+    let source = "proc.foo\nadd\nend".to_string();
     let err = ProgramAst::parse(&source).err().unwrap();
     let location = SourceLocation::new(3, 1);
     assert_eq!(err, ParsingError::unexpected_eof(location));
@@ -883,7 +883,7 @@ fn assert_parsing_line_unexpected_eof() {
 
 #[test]
 fn assert_parsing_line_unexpected_token() {
-    let source = format!("proc.foo\nadd\nend\n\nmul");
+    let source = "proc.foo\nadd\nend\n\nmul".to_string();
     let err = ProgramAst::parse(&source).err().unwrap();
     let location = SourceLocation::new(5, 1);
     assert_eq!(err, ParsingError::unexpected_token(&Token::new("mul", location), "begin"));

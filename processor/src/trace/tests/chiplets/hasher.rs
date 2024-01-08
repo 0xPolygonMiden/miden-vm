@@ -408,7 +408,7 @@ pub fn b_chip_permutation() {
 fn b_chip_mpverify() {
     let index = 5usize;
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let tree = MerkleTree::new(leaves.to_vec()).unwrap();
+    let tree = MerkleTree::new(&leaves).unwrap();
 
     let stack_inputs = [
         tree.root()[0].as_int(),

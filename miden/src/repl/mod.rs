@@ -189,11 +189,10 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     program_lines.pop();
                 }
             }
-        } else {
-            if should_print_stack {
-                println!("{}", str::repeat("0 ", 16));
-            }
+        } else if should_print_stack {
+            println!("{}", str::repeat("0 ", 16));
         }
+
         match rl.readline(">> ") {
             Ok(line) => {
                 if line == "!program" {
@@ -297,7 +296,7 @@ fn execute(
         .with_libraries(provided_libraries.clone().into_iter())
         .map_err(|err| format!("{err}"))?;
 
-    let program = assembler.compile(&program).map_err(|err| format!("{err}"))?;
+    let program = assembler.compile(program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
     let host = DefaultHost::default();

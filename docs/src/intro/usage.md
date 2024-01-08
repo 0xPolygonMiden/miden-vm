@@ -43,13 +43,21 @@ Similar to `make exec` command, this will place the resulting `miden` executable
 Currently, GPU acceleration is applicable only to recursive proofs which can be generated using the `-r` flag.
 
 ### SIMD acceleration
-Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled only on platforms supporting [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)) instructions (e.g., Graviton 3). To compile Miden VM with SVE acceleration enabled, you can run the following command:
+Miden VM execution and proof generation can be accelerated via vectorized instructions. Currently, SIMD acceleration can be enabled on platforms supporting [SVE](https://en.wikipedia.org/wiki/AArch64#Scalable_Vector_Extension_(SVE)) and [AVX2](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions#Advanced_Vector_Extensions_2) instructions.
+
+To compile Miden VM with AVX2 acceleration enabled, you can run the following command:
 ```
-make exec-graviton
+make exec-avx2
 ```
+
+To compile Miden VM with SVE acceleration enabled, you can run the following command:
+```
+make exec-sve
+```
+
 This will place the resulting `miden` executable into the `./target/optimized` directory.
 
-Similar to Metal acceleration, SVE acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
+Similar to Metal acceleration, SVE/AVX2 acceleration is currently applicable only to recursive proofs which can be generated using the `-r` flag.
 
 ### Running Miden VM
 Once the executable has been compiled, you can run Miden VM like so:

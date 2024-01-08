@@ -132,7 +132,7 @@ fn prepare_advice_stack(
         stack.extend_from_slice(&com[(4 * i)..(4 * i + 4)]);
         stack.extend_from_slice(&alphas[(4 * i)..(4 * i + 2)]);
         // - 2 is due to the fact that we are folding by 4
-        stack.extend_from_slice(&vec![current_depth - 2, current_domain_size]);
+        stack.extend_from_slice(&[current_depth - 2, current_domain_size]);
         current_depth -= 2;
     }
 
