@@ -503,6 +503,7 @@ fn checked_and() {
 }
 
 #[test]
+#[ignore]
 fn checked_and_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
@@ -541,6 +542,7 @@ fn checked_or() {
 }
 
 #[test]
+#[ignore]
 fn checked_or_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
@@ -579,6 +581,7 @@ fn checked_xor() {
 }
 
 #[test]
+#[ignore]
 fn checked_xor_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();

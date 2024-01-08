@@ -71,6 +71,7 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 /// `Test::expect_error` will try to either compile or execute the test data, according to the
 /// provided TestError variant. Then it will validate that the resulting error contains the
 /// TestError variant's string slice.
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TestError<'a> {
     AssemblyError(&'a str),
     ExecutionError(&'a str),
@@ -117,18 +118,22 @@ impl Test {
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Asserts that running the test for the expected TestError variant will result in an error
-    /// that contains the TestError's error substring in its error message.
+    /// Asserts that running the test will result in the expected error.
     #[cfg(all(feature = "std", not(target_family = "wasm")))]
-    pub fn expect_error(&self, error: TestError) {
-        match error {
+    pub fn expect_error(&self, expected_error: TestError) {
+        match expected_error{
             TestError::AssemblyError(substr) => {
-                assert_eq!(
-                    std::panic::catch_unwind(|| self.compile())
+                // assert_eq!(
+                //     std::panic::catch_unwind(|| self.compile())
+                //         .err()
+                //         .and_then(|a| { a.downcast_ref::<TestError>()}),
+                //     Some()
+                // );
+                let actual_error = std::panic::catch_unwind(|| self.compile())
                         .err()
-                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
-                    Some(true)
-                );
+                        .and_then(|a| { a.downcast_ref::<TestError>()})
+                        .unwrap();
+                assert_eq!(actual_error, expected_error);
             }
             TestError::ExecutionError(substr) => {
                 assert_eq!(
@@ -139,6 +144,12 @@ impl Test {
                 );
             }
         }
+        // let actual_error = std::panic::catch_unwind(|| self.compile())
+        //     .err()
+        //     .and_then(|a| { a.downcast_ref::<TestError>()})
+        //     .unwrap();
+        //     //.clone();
+        // assert_eq!(*actual_error, expected_error);
     }
 
     /// Builds a final stack from the provided stack-ordered array and asserts that executing the
