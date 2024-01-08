@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
+use std::ops::Deref;
 // IMPORTS
 // ================================================================================================
 #[cfg(not(target_family = "wasm"))]
@@ -52,6 +53,7 @@ mod test_builders;
 
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
+use assembly::AssemblyError;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -123,17 +125,12 @@ impl Test {
     pub fn expect_error(&self, expected_error: TestError) {
         match expected_error{
             TestError::AssemblyError(substr) => {
-                // assert_eq!(
-                //     std::panic::catch_unwind(|| self.compile())
-                //         .err()
-                //         .and_then(|a| { a.downcast_ref::<TestError>()}),
-                //     Some()
-                // );
-                let actual_error = std::panic::catch_unwind(|| self.compile())
-                        .err()
-                        .and_then(|a| { a.downcast_ref::<TestError>()})
-                        .unwrap();
-                assert_eq!(actual_error, expected_error);
+                let actual_error: TestError = std::panic::catch_unwind(|| self.compile_with_error())
+                .err()
+                .and_then(|a| a.downcast::<TestError>().ok())
+                .map(|b| *b)
+                .expect("Failed to downcast to TestError");
+                assert_eq!(actual_error, expected_error)
             }
             TestError::ExecutionError(substr) => {
                 assert_eq!(
@@ -143,13 +140,7 @@ impl Test {
                     Some(true)
                 );
             }
-        }
-        // let actual_error = std::panic::catch_unwind(|| self.compile())
-        //     .err()
-        //     .and_then(|a| { a.downcast_ref::<TestError>()})
-        //     .unwrap();
-        //     //.clone();
-        // assert_eq!(*actual_error, expected_error);
+        };
     }
 
     /// Builds a final stack from the provided stack-ordered array and asserts that executing the
@@ -231,6 +222,20 @@ impl Test {
         }
         .compile(&self.source)
         .expect("Failed to compile test source.")
+    }
+
+    /// Compiles a test's source and returns the resulting Program.
+    pub fn compile_with_error(&self) -> Result<Program, AssemblyError>  {
+        let assembler = assembly::Assembler::default()
+            .with_debug_mode(self.in_debug_mode)
+            .with_libraries(self.libraries.iter())
+            .expect("failed to load stdlib");
+
+        match self.kernel.as_ref() {
+            Some(kernel) => assembler.with_kernel(kernel).expect("kernel compilation failed"),
+            None => assembler,
+        }
+            .compile(&self.source)
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
