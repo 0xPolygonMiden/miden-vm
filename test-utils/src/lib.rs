@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
+use std::mem;
 use std::ops::Deref;
 // IMPORTS
 // ================================================================================================
@@ -73,9 +74,9 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 /// `Test::expect_error` will try to either compile or execute the test data, according to the
 /// provided TestError variant. Then it will validate that the resulting error contains the
 /// TestError variant's string slice.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TestError<'a> {
-    AssemblyError(&'a str),
+    AssemblyError(AssemblyError),
     ExecutionError(&'a str),
 }
 
@@ -124,13 +125,32 @@ impl Test {
     #[cfg(all(feature = "std", not(target_family = "wasm")))]
     pub fn expect_error(&self, expected_error: TestError) {
         match expected_error{
-            TestError::AssemblyError(substr) => {
-                let actual_error: TestError = std::panic::catch_unwind(|| self.compile_with_error())
-                .err()
-                .and_then(|a| a.downcast::<TestError>().ok())
-                .map(|b| *b)
-                .expect("Failed to downcast to TestError");
-                assert_eq!(actual_error, expected_error)
+            TestError::AssemblyError(assembly_error) => {
+                // let actual_error = std::panic::catch_unwind(|| self.compile_with_error())
+                // .err()
+                // .and_then(|a| a.downcast::<TestError>().ok())
+                // .map(|b| *b)
+                // .expect("Failed to downcast to TestError");
+                // assert_eq!(actual_error, expected_error)
+                // std::panic::catch_unwind(|| {
+                //     let actual_error = self.compile();
+                //     println!("Actual error type: {}", std::any::type_name::<_>(&actual_error));
+                //     actual_error
+                // })
+                let actual_error: AssemblyError  = self.compile_with_error()
+                    .err()
+                    .expect("Test did not error as expected");
+                assert_eq!(assembly_error, actual_error);
+                // if let Some(actual_error) = self.compile_with_error().err() {
+                //     // Check if the actual error matches the expected variant
+                //     if let AssemblyError(actual_substr) = actual_error {
+                //         assert_eq!(actual_substr, substr);
+                //     } else {
+                //         panic!("Unexpected error type");
+                //     }
+                // } else {
+                //     panic!("Test did not error as expected");
+                // }
             }
             TestError::ExecutionError(substr) => {
                 assert_eq!(
