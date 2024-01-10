@@ -231,7 +231,7 @@ fn neg_fail() {
 
     // --- test illegal argument -------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    //test.expect_error(TestError::AssemblyError("neg"));
+    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'neg.1': too many parameters provided"))));
 }
 
 #[test]
@@ -263,7 +263,7 @@ fn inv_fail() {
 
     // --- test illegal argument -----------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    //test.expect_error(TestError::AssemblyError("inv"));
+    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'inv.1': too many parameters provided"))));
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     let test = build_op_test!(build_asm_op(65), &[base, pow]);
-    //test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'exp.u65', parameter u65 is invalid: parameter can at max be a u64 but found u65"))));
 }
 
 #[test]
