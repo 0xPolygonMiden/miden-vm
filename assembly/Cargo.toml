@@ -18,8 +18,9 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std"]
+std = ["vm-core/std", "tracing/attributes"]
 
 [dependencies]
 num_enum = "0.7"
+tracing = { version = "0.1", default-features = false, optional = true }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }

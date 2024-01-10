@@ -16,12 +16,12 @@ rust-version = "1.73"
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
 metal = ["dep:ministark-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
-std = ["air/std", "processor/std", "log/std", "winter-prover/std"]
+std = ["air/std", "processor/std", "tracing/attributes", "winter-prover/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
-log = { version = "0.4", default-features = false, optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false }
+tracing = { version = "0.1", default-features = false, optional = true }
 winter-prover = { package = "winter-prover", version = "0.7", default-features = false }
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]

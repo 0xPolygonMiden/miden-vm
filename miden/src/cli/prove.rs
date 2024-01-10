@@ -1,10 +1,10 @@
-use super::data::{Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
+use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 use clap::Parser;
 use miden::ProvingOptions;
-use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError};
-use std::{io::Write, path::PathBuf, time::Instant};
+use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 
-// TODO check if clap is supporting automatic generation of list values of hash function
+use std::{path::PathBuf, time::Instant};
+
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Prove a miden program")]
 pub struct ProveCmd {
@@ -61,25 +61,11 @@ impl ProveCmd {
     }
 
     pub fn execute(&self) -> Result<(), String> {
-        println!("============================================================");
-        println!("Prove program");
-        println!("============================================================");
+        println!("===============================================================================");
+        println!("Prove program: {}", self.assembly_file.display());
+        println!("-------------------------------------------------------------------------------");
 
-        // configure logging
-        env_logger::Builder::new()
-            .format(|buf, record| writeln!(buf, "{}", record.args()))
-            .filter_level(log::LevelFilter::Debug)
-            .init();
-
-        // load libraries from files
-        let libraries = Libraries::new(&self.library_paths)?;
-
-        // load program from file and compile
-        let program =
-            ProgramFile::read(&self.assembly_file)?.compile(&Debug::Off, libraries.libraries)?;
-
-        // load input data from file
-        let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
+        let (program, input_data) = load_data(&self)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Proving program with hash {}...", hex::encode(program_hash));
@@ -122,4 +108,22 @@ impl ProveCmd {
 
         Ok(())
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+#[instrument(skip_all)]
+fn load_data(params: &ProveCmd) -> Result<(Program, InputFile), String> {
+    // load libraries from files
+    let libraries = Libraries::new(&params.library_paths)?;
+
+    // load program from file and compile
+    let program =
+        ProgramFile::read(&params.assembly_file)?.compile(&Debug::Off, libraries.libraries)?;
+
+    // load input data from file
+    let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
+
+    Ok((program, input_data))
 }
