@@ -23,6 +23,8 @@ If the error code is omitted, the default value of $0$ is assumed.
 
 ### Arithmetic and Boolean operations
 
+The arithmetic operations below are performed in a 64-bit [prime filed](https://en.wikipedia.org/wiki/Finite_field) defined by modulus $p = 2^{64} - 2^{32} + 1$. This means that overflow happens after a value exceeds $p$. Also, the result of divisions may appear counter-intuitive because divisions are defined via inversions.
+
 | Instruction                                                                    | Stack_input | Stack_output  | Notes                                                                                                        |
 | ------------------------------------------------------------------------------ | ----------- | ------------- | ------------------------------------------------------------------------------------------------------------ |
 | add <br> - *(1 cycle)*  <br> add.*b* <br> - *(1-2 cycle)*                      | [b, a, ...] | [c, ...]      | $c \leftarrow (a + b) \mod p$                                                                                |
