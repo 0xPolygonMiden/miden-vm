@@ -1,6 +1,7 @@
 use crate::build_test;
 use core::cmp;
-use test_utils::{proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
+use processor::ExecutionError;
+use test_utils::{Felt, proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
 
 // ADDITION
 // ------------------------------------------------------------------------------------------------
@@ -518,7 +519,7 @@ fn checked_and_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), Felt::new(0))));
 }
 
 #[test]
@@ -557,7 +558,7 @@ fn checked_or_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), Felt::new(0))));
 }
 
 #[test]
@@ -596,7 +597,7 @@ fn checked_xor_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), Felt::new(0))));
 }
 
 #[test]

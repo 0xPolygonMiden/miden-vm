@@ -1,3 +1,4 @@
+use processor::ExecutionError;
 use super::{Felt, MerkleStore, SimpleSmt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO};
 use crate::build_test;
 
@@ -84,7 +85,7 @@ fn insert() {
     let value = EMPTY_WORD;
     let (init_stack, _, store) = prepare_insert_or_set(index, value, &mut smt);
     build_test!(source, &init_stack, &[], store, vec![])
-        .expect_error(TestError::ExecutionError("FailedAssertion"));
+       .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(13, Felt::new(0))));
 }
 
 #[test]

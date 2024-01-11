@@ -1,5 +1,6 @@
 use assembly::{Assembler, AssemblyContext, LibraryPath};
 use miden::ModuleAst;
+use processor::ExecutionError;
 use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
 use vm_core::StarkField;
@@ -137,7 +138,7 @@ fn local_fn_call() {
             call.foo
         end";
 
-    let expected_err = TestError::ExecutionError("InvalidStackDepthOnReturn(17)");
+    let expected_err = TestError::ExecutionError(ExecutionError::InvalidStackDepthOnReturn(17));
     build_test!(source, &[1, 2]).expect_error(expected_err);
 
     // dropping values from the stack in the current execution context should not affect values

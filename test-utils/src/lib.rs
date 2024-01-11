@@ -74,10 +74,10 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 /// `Test::expect_error` will try to either compile or execute the test data, according to the
 /// provided TestError variant. Then it will validate that the resulting error contains the
 /// TestError variant's string slice.
-#[derive(Debug, PartialEq, Clone)]
-pub enum TestError<'a> {
+#[derive(Debug, PartialEq)]
+pub enum TestError {
     AssemblyError(AssemblyError),
-    ExecutionError(&'a str),
+    ExecutionError(ExecutionError),
 }
 
 /// This is a container for the data required to run tests, which allows for running several
@@ -131,13 +131,11 @@ impl Test {
                     .expect("Test did not error as expected");
                 assert_eq!(assembly_error, actual_error);
             }
-            TestError::ExecutionError(substr) => {
-                assert_eq!(
-                    std::panic::catch_unwind(|| self.execute().unwrap())
+            TestError::ExecutionError(execution_error) => {
+                let actual_error = self.execute()
                         .err()
-                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
-                    Some(true)
-                );
+                        .expect("Test did not error as expected");
+                assert_eq!(execution_error, actual_error);
             }
         };
     }

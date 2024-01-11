@@ -1,4 +1,5 @@
 use assembly::AssemblyError;
+use processor::ExecutionError;
 use test_utils::{
     build_op_test, prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement,
     StarkField, TestError, ONE, WORD_SIZE,
@@ -202,7 +203,7 @@ fn div_fail() {
 
     // --- test divide by zero --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
 }
 
 #[test]
@@ -257,7 +258,7 @@ fn inv_fail() {
 
     // --- test no inv on 0 -----------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
 
     let asm_op = "inv.1";
 
@@ -284,7 +285,7 @@ fn pow2_fail() {
     let mut value = rand_value::<u32>() as u64;
     value += (u32::MAX as u64) + 1;
 
-    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError("FailedAssertion"));
+    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(16, Felt::new(0))));
 }
 
 #[test]
@@ -311,7 +312,7 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     build_op_test!(build_asm_op(9), &[base, pow])
-        .expect_error(TestError::ExecutionError("FailedAssertion"));
+       .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(18, Felt::new(0))));
 
     //---------------------- exp containing more than 64 bits -------------------------------------
 
@@ -354,7 +355,7 @@ fn not_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 }
 
 #[test]
@@ -380,13 +381,13 @@ fn and_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(3))));
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 }
 
 #[test]
@@ -412,13 +413,13 @@ fn or_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(3))));
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 }
 
 #[test]
@@ -444,13 +445,13 @@ fn xor_fail() {
 
     // --- test value > 1 --------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[2, 3]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 
     let test = build_op_test!(asm_op, &[2, 0]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 
     let test = build_op_test!(asm_op, &[0, 2]);
-    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotBinaryValue(Felt::new(2))));
 }
 
 // FIELD OPS COMPARISON - MANUAL TESTS
