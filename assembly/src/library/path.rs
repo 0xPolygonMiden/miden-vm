@@ -86,6 +86,11 @@ impl LibraryPath {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the full path of the Library
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
     /// Returns the first component of the path.
     ///
     /// The first component is the leftmost token separated by `::`.

@@ -51,6 +51,7 @@ pub use air::ExecutionProof;
 /// - The provided proof does not prove a correct execution of the program.
 /// - The the protocol parameters used to generate the proof is not in the set of acceptable
 ///   parameters.
+#[cfg_attr(feature = "std", tracing::instrument("Verifying program", skip_all))]
 pub fn verify(
     program_info: ProgramInfo,
     stack_inputs: StackInputs,

@@ -85,6 +85,13 @@ For example:
 
 To execute a program using the Miden VM there needs to be a `.masm` file containing the Miden Assembly code and a `.inputs` file containing the inputs.
 
+#### Enabling logging
+You can use `MIDEN_LOG` environment variable to control how much logging output the VM produces. For example:
+```
+MIDEN_LOG=trace ./target/optimized/miden [subcommand] [parameters]
+```
+If the level is not specified, `warn` level is set as default. 
+
 ### Inputs
 
 As described [here](https://0xpolygonmiden.github.io/miden-vm/intro/overview.html#inputs-and-outputs) the Miden VM can consume public and secret inputs.
