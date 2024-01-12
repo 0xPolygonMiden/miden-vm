@@ -1,5 +1,5 @@
-use processor::ExecutionError;
 use super::test_unchecked_execution;
+use processor::ExecutionError;
 use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS

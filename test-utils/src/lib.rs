@@ -50,9 +50,9 @@ pub mod rand;
 
 mod test_builders;
 
+use assembly::AssemblyError;
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
-use assembly::AssemblyError;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -122,17 +122,13 @@ impl Test {
     /// Asserts that running the test will result in the expected error.
     #[cfg(all(feature = "std", not(target_family = "wasm")))]
     pub fn expect_error(&self, expected_error: TestError) {
-        match expected_error{
+        match expected_error {
             TestError::AssemblyError(assembly_error) => {
-                let actual_error: AssemblyError  = self.compile_with_error()
-                    .err()
-                    .expect("Test did not error as expected");
+                let actual_error: AssemblyError = self.compile_with_error().err().unwrap();
                 assert_eq!(assembly_error, actual_error);
             }
             TestError::ExecutionError(execution_error) => {
-                let actual_error = self.execute()
-                    .err()
-                    .expect("Test did not error as expected");
+                let actual_error = self.execute().err().unwrap();
                 assert_eq!(execution_error, actual_error);
             }
         };
@@ -220,7 +216,7 @@ impl Test {
     }
 
     /// Compiles a test's source and returns the resulting Program.
-    pub fn compile_with_error(&self) -> Result<Program, AssemblyError>  {
+    pub fn compile_with_error(&self) -> Result<Program, AssemblyError> {
         let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
             .with_libraries(self.libraries.iter())
@@ -230,7 +226,7 @@ impl Test {
             Some(kernel) => assembler.with_kernel(kernel).expect("kernel compilation failed"),
             None => assembler,
         }
-            .compile(&self.source)
+        .compile(&self.source)
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a

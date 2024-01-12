@@ -21,7 +21,10 @@ fn assert_with_code() {
 
     // triggered assertion captures both the VM cycle and error code
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(1, Felt::new(123))));
+    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(
+        1,
+        Felt::new(123),
+    )));
 }
 
 #[test]

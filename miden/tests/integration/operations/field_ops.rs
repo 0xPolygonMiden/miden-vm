@@ -181,7 +181,9 @@ fn div_b() {
     test.expect_stack(&[77]);
 
     let test = build_op_test!(build_asm_op(0), &[14]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'div.0', parameter 0 is invalid: division by zero"))));
+    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
+        "malformed instruction 'div.0', parameter 0 is invalid: division by zero",
+    ))));
 
     let test = build_op_test!(build_asm_op(2), &[4]);
     test.expect_stack(&[2]);
@@ -232,7 +234,9 @@ fn neg_fail() {
 
     // --- test illegal argument -------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'neg.1': too many parameters provided"))));
+    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
+        "malformed instruction 'neg.1': too many parameters provided",
+    ))));
 }
 
 #[test]
@@ -264,7 +268,9 @@ fn inv_fail() {
 
     // --- test illegal argument -----------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from("malformed instruction 'inv.1': too many parameters provided"))));
+    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
+        "malformed instruction 'inv.1': too many parameters provided",
+    ))));
 }
 
 #[test]
@@ -285,7 +291,8 @@ fn pow2_fail() {
     let mut value = rand_value::<u32>() as u64;
     value += (u32::MAX as u64) + 1;
 
-    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(16, Felt::new(0))));
+    build_op_test!(asm_op, &[value])
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(16, Felt::new(0))));
 }
 
 #[test]
@@ -312,7 +319,7 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     build_op_test!(build_asm_op(9), &[base, pow])
-       .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(18, Felt::new(0))));
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(18, Felt::new(0))));
 
     //---------------------- exp containing more than 64 bits -------------------------------------
 
