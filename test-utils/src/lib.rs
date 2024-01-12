@@ -4,8 +4,6 @@
 #[macro_use]
 extern crate alloc;
 
-use std::mem;
-use std::ops::Deref;
 // IMPORTS
 // ================================================================================================
 #[cfg(not(target_family = "wasm"))]
@@ -133,8 +131,8 @@ impl Test {
             }
             TestError::ExecutionError(execution_error) => {
                 let actual_error = self.execute()
-                        .err()
-                        .expect("Test did not error as expected");
+                    .err()
+                    .expect("Test did not error as expected");
                 assert_eq!(execution_error, actual_error);
             }
         };

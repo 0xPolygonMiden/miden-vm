@@ -504,7 +504,6 @@ fn checked_and() {
 }
 
 #[test]
-#[ignore]
 fn checked_and_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
@@ -543,7 +542,6 @@ fn checked_or() {
 }
 
 #[test]
-#[ignore]
 fn checked_or_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
@@ -582,7 +580,6 @@ fn checked_xor() {
 }
 
 #[test]
-#[ignore]
 fn checked_xor_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
@@ -600,7 +597,7 @@ fn checked_xor_fail() {
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), Felt::new(0))));
 }
 
-#[test]
+#[test]#[ignore]
 fn unchecked_shl() {
     let source = "
         use.std::math::u64

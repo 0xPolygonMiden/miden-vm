@@ -58,7 +58,6 @@ fn get() {
 }
 
 #[test]
-#[ignore]
 fn insert() {
     let mut smt = SimpleSmt::new(64).unwrap();
 
