@@ -128,7 +128,7 @@ impl Test {
                 assert_eq!(assembly_error, actual_error);
             }
             TestError::ExecutionError(execution_error) => {
-                let actual_error = self.execute().err().unwrap();
+                let actual_error: ExecutionError = self.execute().err().unwrap();
                 assert_eq!(execution_error, actual_error);
             }
         };
@@ -215,7 +215,7 @@ impl Test {
         .expect("Failed to compile test source.")
     }
 
-    /// Compiles a test's source and returns the resulting Program.
+    /// Compiles a test's source and returns the resulting Result<Program, AssemblyError>.
     pub fn compile_with_error(&self) -> Result<Program, AssemblyError> {
         let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
