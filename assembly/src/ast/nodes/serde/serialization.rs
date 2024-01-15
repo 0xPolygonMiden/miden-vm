@@ -478,6 +478,12 @@ impl Serializable for Instruction {
                 OpCode::Emit.write_into(target);
                 target.write_u32(*event_id);
             }
+
+            // ----- trace instruction ------------------------------------------------------------
+            Self::Trace(trace_id) => {
+                OpCode::Trace.write_into(target);
+                target.write_u32(*trace_id);
+            }
         }
     }
 }

@@ -82,6 +82,22 @@ pub trait Host {
         Ok(HostResponse::None)
     }
 
+    /// Handles the trace emmited from the VM.
+    fn on_trace<S: ProcessState>(
+        &mut self,
+        process: &S,
+        trace_id: u32,
+    ) -> Result<HostResponse, ExecutionError> {
+        #[cfg(feature = "std")]
+        println!(
+            "Trace with id {} emitted at step {} in context {}",
+            trace_id,
+            process.clk(),
+            process.ctx()
+        );
+        Ok(HostResponse::None)
+    }
+
     /// Handles the failure of the assertion instruction.
     fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
         ExecutionError::FailedAssertion {
@@ -180,6 +196,14 @@ where
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         H::on_event(self, process, event_id)
+    }
+
+    fn on_trace<S: ProcessState>(
+        &mut self,
+        process: &S,
+        trace_id: u32,
+    ) -> Result<HostResponse, ExecutionError> {
+        H::on_trace(self, process, trace_id)
     }
 
     fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {

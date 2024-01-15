@@ -287,6 +287,9 @@ pub enum Instruction {
 
     // ----- emit instruction ---------------------------------------------------------------------
     Emit(u32),
+
+    // ----- trace instruction --------------------------------------------------------------------
+    Trace(u32),
 }
 
 impl Instruction {
@@ -547,6 +550,9 @@ impl fmt::Display for Instruction {
 
             // ----- emit instruction -------------------------------------------------------------
             Self::Emit(value) => write!(f, "emit.{value}"),
+
+            // ----- trace instruction ------------------------------------------------------------
+            Self::Trace(value) => write!(f, "trace.{value}"),
         }
     }
 }

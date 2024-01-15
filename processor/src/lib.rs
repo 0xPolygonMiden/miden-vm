@@ -502,6 +502,9 @@ where
             Decorator::Event(id) => {
                 self.host.borrow_mut().on_event(self, *id)?;
             }
+            Decorator::Trace(id) => {
+                self.host.borrow_mut().on_trace(self, *id)?;
+            }
         }
         Ok(())
     }
