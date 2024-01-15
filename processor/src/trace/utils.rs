@@ -1,6 +1,7 @@
 use super::{Felt, Vec, NUM_RAND_ROWS};
 use crate::chiplets::Chiplets;
 use core::slice;
+use vm_core::utils::uninit_vector;
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -190,10 +191,62 @@ impl ChipletsLengths {
     }
 }
 
+// AUXILIARY COLUMN BUILDER
+// ================================================================================================
+
+/// Defines a builder responsible for building a single column in an auxiliary segment of the
+/// execution trace.
+pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
+    // REQUIRED METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E;
+
+    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E;
+
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn init_requests(&self, _main_trace: &MainTrace, _alphas: &[E]) -> E {
+        E::ONE
+    }
+
+    fn init_responses(&self, _main_trace: &MainTrace, _alphas: &[E]) -> E {
+        E::ONE
+    }
+
+    /// Builds the chiplets bus auxiliary trace column.
+    fn build_aux_column(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E> {
+        let main_trace = MainTrace::new(main_trace);
+        let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+        let mut requests_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+        responses_prod[0] = self.init_responses(&main_trace, alphas);
+        requests_prod[0] = self.init_requests(&main_trace, alphas);
+
+        let mut result_2_acc = E::ONE;
+        for i in 0..main_trace.num_rows() - 1 {
+            responses_prod[i + 1] = responses_prod[i] * self.responses(&main_trace, alphas, i);
+            requests_prod[i + 1] = self.requests(&main_trace, alphas, i);
+            result_2_acc *= requests_prod[i + 1];
+        }
+
+        let mut acc_inv = result_2_acc.inv();
+
+        for i in (0..main_trace.num_rows()).rev() {
+            responses_prod[i] *= acc_inv;
+            acc_inv *= requests_prod[i];
+        }
+        responses_prod
+    }
+}
+
+use miden_air::trace::main_trace::MainTrace;
+use vm_core::FieldElement;
 // TEST HELPERS
 // ================================================================================================
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};
+use winter_prover::matrix::ColMatrix;
 #[cfg(test)]
 pub fn build_span_with_respan_ops() -> (Vec<Operation>, Vec<Felt>) {
     let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();

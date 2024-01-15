@@ -1,6 +1,7 @@
+use crate::trace::AuxColumnBuilder;
+
 use super::{ColMatrix, Felt, FieldElement, OverflowTableRow, Vec};
 use miden_air::trace::main_trace::MainTrace;
-use vm_core::utils::uninit_vector;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -27,49 +28,27 @@ impl AuxTraceBuilder {
     }
 }
 
-impl AuxTraceBuilder {
-    /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
-    /// stack table via multiset checks.
-    fn build_aux_column<E: FieldElement<BaseField = Felt>>(
-        &self,
-        main_trace: &ColMatrix<Felt>,
-        alphas: &[E],
-    ) -> Vec<E> {
-        let main_tr = MainTrace::new(main_trace);
-        let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-        let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-        result_1[0] = init_overflow_table(self, main_trace, alphas);
-        result_2[0] = E::ONE;
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder {
+    fn init_responses(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
+        init_overflow_table(self, alphas)
+    }
+    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        stack_overflow_table_removals(main_trace, alphas, i)
+    }
 
-        let mut result_2_acc = E::ONE;
-        for i in 0..main_trace.num_rows() - 1 {
-            result_1[i + 1] = result_1[i] * stack_overflow_table_inclusions(&main_tr, alphas, i);
-            result_2[i + 1] = stack_overflow_table_removals(&main_tr, alphas, i);
-            result_2_acc *= result_2[i + 1];
-        }
-
-        let mut acc_inv = result_2_acc.inv();
-
-        for i in (0..main_trace.num_rows()).rev() {
-            result_1[i] *= acc_inv;
-            acc_inv *= result_2[i];
-        }
-        result_1
+    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        stack_overflow_table_inclusions(main_trace, alphas, i)
     }
 }
 
 /// Initializes the overflow stack auxiliary column.
-fn init_overflow_table<E>(
-    overflow_table: &AuxTraceBuilder,
-    main_trace: &ColMatrix<Felt>,
-    alphas: &[E],
-) -> E
+fn init_overflow_table<E>(overflow_table: &AuxTraceBuilder, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
     let mut initial_column_value = E::ONE;
     for row in overflow_table.overflow_table_rows.iter().take(overflow_table.num_init_rows) {
-        let value = (*row).to_value(main_trace, alphas);
+        let value = (*row).to_value(alphas);
         initial_column_value *= value;
     }
     initial_column_value

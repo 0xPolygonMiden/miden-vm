@@ -1,3 +1,5 @@
+use crate::trace::AuxColumnBuilder;
+
 use super::{Felt, StarkField, Vec, ONE, ZERO};
 
 use miden_air::trace::{
@@ -5,7 +7,7 @@ use miden_air::trace::{
     main_trace::MainTrace,
 };
 
-use vm_core::{crypto::hash::RpoDigest, utils::uninit_vector, FieldElement, Operation};
+use vm_core::{crypto::hash::RpoDigest, FieldElement, Operation};
 use winter_prover::matrix::ColMatrix;
 
 // CONSTANTS
@@ -33,33 +35,23 @@ const HALT: u8 = Operation::Halt.op_code();
 pub struct AuxTraceBuilder {}
 
 impl AuxTraceBuilder {
-    /// Builds and returns stack auxiliary trace columns. Currently this consists of a single
-    /// column p1 describing states of the stack overflow table.
+    /// Builds and returns decoder auxiliary trace columns p1, p2, and p3 describing states of block
+    /// stack, block hash, and op group tables respectively.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &ColMatrix<Felt>,
         rand_elements: &[E],
-        program_hash: &RpoDigest,
     ) -> Vec<Vec<E>> {
-        build_aux_columns(main_trace, rand_elements, program_hash)
+        let block_stack_column_builder = BlockStackColumnBuilder::default();
+        let block_hash_column_builder = BlockHashTableColumnBuilder::default();
+        let op_group_table_column_builder = OpGroupTableColumnBuilder::default();
+
+        let p1 = block_stack_column_builder.build_aux_column(main_trace, rand_elements);
+        let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements);
+        let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements);
+
+        vec![p1, p2, p3]
     }
-}
-
-// DECODER AUXILIARY TRACE COLUMNS
-// ================================================================================================
-
-/// Builds and returns decoder auxiliary trace columns p1, p2, and p3 describing states of block
-/// stack, block hash, and op group tables respectively.
-pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
-    main_trace: &ColMatrix<Felt>,
-    rand_elements: &[E],
-    program_hash: &RpoDigest,
-) -> Vec<Vec<E>> {
-    let p1 = build_aux_col_p1(main_trace, rand_elements);
-    let p2 = build_aux_col_p2(main_trace, rand_elements, program_hash);
-    let p3 = build_aux_col_p3(main_trace, rand_elements);
-
-    vec![p1, p2, p3]
 }
 
 // BLOCK STACK TABLE COLUMN
@@ -67,30 +59,17 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 
 /// Builds the execution trace of the decoder's `p1` column which describes the state of the block
 /// stack table via multiset checks.
-fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
-    main_trace: &ColMatrix<Felt>,
-    alphas: &[E],
-) -> Vec<E> {
-    let main_tr = MainTrace::new(main_trace);
-    let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    result_1[0] = E::ONE;
-    result_2[0] = E::ONE;
+#[derive(Default)]
+pub struct BlockStackColumnBuilder {}
 
-    let mut result_2_acc = E::ONE;
-    for i in 0..main_trace.num_rows() - 1 {
-        result_1[i + 1] = result_1[i] * block_stack_table_inclusions(&main_tr, alphas, i);
-        result_2[i + 1] = block_stack_table_removals(&main_tr, alphas, i);
-        result_2_acc *= result_2[i + 1];
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumnBuilder {
+    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        block_stack_table_removals(main_trace, alphas, i)
     }
 
-    let mut acc_inv = result_2_acc.inv();
-
-    for i in (0..main_trace.num_rows()).rev() {
-        result_1[i] *= acc_inv;
-        acc_inv *= result_2[i];
+    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        block_stack_table_inclusions(main_trace, alphas, i)
     }
-    result_1
 }
 
 /// Adds a row to the block stack table.
@@ -129,31 +108,25 @@ where
 
 /// Builds the execution trace of the decoder's `p2` column which describes the state of the block
 /// hash table via multiset checks.
-fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
-    main_trace: &ColMatrix<Felt>,
-    alphas: &[E],
-    program_hash: &RpoDigest,
-) -> Vec<E> {
-    let main_tr = MainTrace::new(main_trace);
-    let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    result_1[0] = block_hash_table_initialize(program_hash, alphas);
-    result_2[0] = E::ONE;
+#[derive(Default)]
+pub struct BlockHashTableColumnBuilder {}
 
-    let mut result_2_acc = E::ONE;
-    for i in 0..main_trace.num_rows() - 1 {
-        result_1[i + 1] = result_1[i] * block_hash_table_inclusions(&main_tr, alphas, i);
-        result_2[i + 1] = block_hash_table_removals(&main_tr, alphas, i);
-        result_2_acc *= result_2[i + 1];
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableColumnBuilder {
+    fn init_responses(&self, main_trace: &MainTrace, alphas: &[E]) -> E {
+        let row_index = (0..main_trace.num_rows())
+            .find(|row| main_trace.get_op_code(*row) == Felt::from(HALT))
+            .expect("execution trace must include at least one occurance of HALT");
+        let program_hash = main_trace.decoder_hasher_state_first_half(row_index);
+        block_hash_table_initialize(&program_hash.into(), alphas)
     }
 
-    let mut acc_inv = result_2_acc.inv();
-
-    for i in (0..main_trace.num_rows()).rev() {
-        result_1[i] *= acc_inv;
-        acc_inv *= result_2[i];
+    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        block_hash_table_removals(main_trace, alphas, i)
     }
-    result_1
+
+    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        block_hash_table_inclusions(main_trace, alphas, i)
+    }
 }
 
 /// Adds a row to the block hash table.
@@ -196,30 +169,17 @@ where
 
 /// Builds the execution trace of the decoder's `p3` column which describes the state of the op
 /// group table via multiset checks.
-fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
-    main_trace: &ColMatrix<Felt>,
-    alphas: &[E],
-) -> Vec<E> {
-    let main_tr = MainTrace::new(main_trace);
-    let mut result_1: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    let mut result_2: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-    result_1[0] = E::ONE;
-    result_2[0] = E::ONE;
+#[derive(Default)]
+pub struct OpGroupTableColumnBuilder {}
 
-    let mut result_2_acc = E::ONE;
-    for i in 0..main_trace.num_rows() - 1 {
-        result_1[i + 1] = result_1[i] * op_group_table_inclusions(&main_tr, alphas, i);
-        result_2[i + 1] = op_group_table_removals(&main_tr, alphas, i);
-        result_2_acc *= result_2[i + 1];
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColumnBuilder {
+    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        op_group_table_removals(main_trace, alphas, i)
     }
 
-    let mut acc_inv = result_2_acc.inv();
-
-    for i in (0..main_trace.num_rows()).rev() {
-        result_1[i] *= acc_inv;
-        acc_inv *= result_2[i];
+    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+        op_group_table_inclusions(main_trace, alphas, i)
     }
-    result_1
 }
 
 /// Adds a row to the block hash table.
