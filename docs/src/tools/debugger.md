@@ -6,13 +6,13 @@ The Miden debugger supports the following commands:
 
 | Command | Shortcut | Arguments | Description |
 | --- | --- | --- | --- |
-| next | n | count? | Steps `count` clock cycles. Will step `1` cycle of `count` is ommitted. |
+| next | n | count? | Steps `count` clock cycles. Will step `1` cycle of `count` is omitted. |
 | continue | c | - | Executes the program until completion, failure or a breakpoint. |
-| back | b | count? | Backward step `count` clock cycles. Will back-step `1` cycle of `count` is ommitted. |
+| back | b | count? | Backward step `count` clock cycles. Will back-step `1` cycle of `count` is omitted. |
 | rewind | r | - | Executes the program backwards until the beginning, failure or a breakpoint. |
 | print | p | - | Displays the complete state of the virtual machine. |
-| print mem | p m | address? | Displays the memory value at `address`. If `address` is ommitted, didisplays all the memory values. |
-| print stack | p s | index? | Displays the stack value at `index`. If `index` is ommitted, displays all the stack values. |
+| print mem | p m | address? | Displays the memory value at `address`. If `address` is omitted, didisplays all the memory values. |
+| print stack | p s | index? | Displays the stack value at `index`. If `index` is omitted, displays all the stack values. |
 | clock | c | - | Displays the current clock cycle. |
 | quit | q | - | Quits the debugger. |
 | help | h | - | Displays the help message. |

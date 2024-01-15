@@ -50,6 +50,6 @@ The auxiliary columns used for buses and virtual tables are computed by includin
 This is true when the data in the main trace could go all the way to the end of the trace, such as in the case of the range checker.
 
 ## Cost of auxiliary columns for lookup arguments
-It is important to note that depending on the field in which we operate, an auxilliary column implementing a lookup argument may actually require more than one trace column. This is specifically true for small fields.
+It is important to note that depending on the field in which we operate, an auxiliary column implementing a lookup argument may actually require more than one trace column. This is specifically true for small fields.
 
 Since Miden uses a 64-bit field, each auxiliary column needs to be represented by $2$ columns to achieve ~100-bit security and by $3$ columns to achieve ~128-bit security.
