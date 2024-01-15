@@ -218,7 +218,7 @@ The effect on the rest of the stack is:
 * **No change** starting from position $4$.
 
 ## EXT2MUL
-The `EXT2MUL` operation pops top $4$ values from the top of the stack, performs mulitplication between the two extension field elements, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
+The `EXT2MUL` operation pops top $4$ values from the top of the stack, performs multiplication between the two extension field elements, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
 
 ![ext2mul](../../assets/design/stack/field_operations/EXT2MUL.png)
 
