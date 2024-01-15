@@ -181,13 +181,13 @@
 <p>The Miden debugger is a command-line interface (CLI) application, inspired by <a href="https://sourceware.org/gdb/">GNU gdb</a>, which allows debugging of Miden assembly (MASM) programs. The debugger allows the user to step through the execution of the program, both forward and backward, either per clock cycle tick, or via breakpoints.</p>
 <p>The Miden debugger supports the following commands:</p>
 <div class="table-wrapper"><table><thead><tr><th>Command</th><th>Shortcut</th><th>Arguments</th><th>Description</th></tr></thead><tbody>
-<tr><td>next</td><td>n</td><td>count?</td><td>Steps <code>count</code> clock cycles. Will step <code>1</code> cycle of <code>count</code> is ommitted.</td></tr>
+<tr><td>next</td><td>n</td><td>count?</td><td>Steps <code>count</code> clock cycles. Will step <code>1</code> cycle of <code>count</code> is omitted.</td></tr>
 <tr><td>continue</td><td>c</td><td>-</td><td>Executes the program until completion, failure or a breakpoint.</td></tr>
-<tr><td>back</td><td>b</td><td>count?</td><td>Backward step <code>count</code> clock cycles. Will back-step <code>1</code> cycle of <code>count</code> is ommitted.</td></tr>
+<tr><td>back</td><td>b</td><td>count?</td><td>Backward step <code>count</code> clock cycles. Will back-step <code>1</code> cycle of <code>count</code> is omitted.</td></tr>
 <tr><td>rewind</td><td>r</td><td>-</td><td>Executes the program backwards until the beginning, failure or a breakpoint.</td></tr>
 <tr><td>print</td><td>p</td><td>-</td><td>Displays the complete state of the virtual machine.</td></tr>
-<tr><td>print mem</td><td>p m</td><td>address?</td><td>Displays the memory value at <code>address</code>. If <code>address</code> is ommitted, didisplays all the memory values.</td></tr>
-<tr><td>print stack</td><td>p s</td><td>index?</td><td>Displays the stack value at <code>index</code>. If <code>index</code> is ommitted, displays all the stack values.</td></tr>
+<tr><td>print mem</td><td>p m</td><td>address?</td><td>Displays the memory value at <code>address</code>. If <code>address</code> is omitted, didisplays all the memory values.</td></tr>
+<tr><td>print stack</td><td>p s</td><td>index?</td><td>Displays the stack value at <code>index</code>. If <code>index</code> is omitted, displays all the stack values.</td></tr>
 <tr><td>clock</td><td>c</td><td>-</td><td>Displays the current clock cycle.</td></tr>
 <tr><td>quit</td><td>q</td><td>-</td><td>Quits the debugger.</td></tr>
 <tr><td>help</td><td>h</td><td>-</td><td>Displays the help message.</td></tr>
