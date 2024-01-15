@@ -14,6 +14,7 @@ mod field_ops;
 mod io_ops;
 mod stack_ops;
 mod sys_ops;
+mod trace;
 mod u32_ops;
 
 mod constants;

@@ -20,6 +20,7 @@
 - Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
 - Added [Tracing](https://crates.io/crates/tracing) logger to the VM (#1139).
 - Added `on_assert_failed()` method to the Host trait (#1197).
+- Added support for handling `trace` instruction in the `Host` interface (#1198).
 
 #### CLI
 - Introduced the `!use` command for the Miden REPL (#1162).

@@ -1,3 +1,5 @@
+use crate::ast::parsers::trace;
+
 use super::{
     super::ProcReExport, adv_ops, debug, emit, field_ops, io_ops, stack_ops, sys_ops, u32_ops,
     CodeBody, Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap,
@@ -628,6 +630,9 @@ impl ParserContext<'_> {
 
             // ----- emit instruction -------------------------------------------------------------
             "emit" => emit::parse_emit(op, &self.local_constants),
+
+            // ----- trace instruction ------------------------------------------------------------
+            "trace" => trace::parse_trace(op, &self.local_constants),
 
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),

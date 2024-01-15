@@ -33,6 +33,10 @@ pub struct RunCmd {
     /// Path to output file
     #[clap(short = 'o', long = "output", value_parser)]
     output_file: Option<PathBuf>,
+
+    /// Enable tracing to monitor execution of the VM
+    #[clap(short = 't', long = "tracing")]
+    tracing: bool,
 }
 
 impl RunCmd {
@@ -106,8 +110,9 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), String> {
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
 
     // get execution options
-    let execution_options = ExecutionOptions::new(Some(params.max_cycles), params.expected_cycles)
-        .map_err(|err| format!("{err}"))?;
+    let execution_options =
+        ExecutionOptions::new(Some(params.max_cycles), params.expected_cycles, params.tracing)
+            .map_err(|err| format!("{err}"))?;
 
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs()?;
