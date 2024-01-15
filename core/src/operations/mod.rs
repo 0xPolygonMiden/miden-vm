@@ -22,7 +22,7 @@ pub enum Operation {
     ///
     /// The internal value specifies an error code associated with the error in case when the
     /// execution fails.
-    Assert(Felt),
+    Assert(u32),
 
     /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
     /// pushes the result back onto the stack.
