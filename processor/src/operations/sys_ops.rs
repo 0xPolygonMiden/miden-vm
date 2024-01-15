@@ -17,9 +17,9 @@ where
     ///
     /// # Errors
     /// Returns an error if the popped value is not ONE.
-    pub(super) fn op_assert(&mut self, err_code: Felt) -> Result<(), ExecutionError> {
+    pub(super) fn op_assert(&mut self, err_code: u32) -> Result<(), ExecutionError> {
         if self.stack.get(0) != ONE {
-            return Err(ExecutionError::FailedAssertion(self.system.clk(), err_code));
+            return Err(self.host.borrow_mut().on_assert_failed(self, err_code));
         }
         self.stack.shift_left(1);
         Ok(())
@@ -128,7 +128,7 @@ mod tests {
         process.execute_op(Operation::Swap).unwrap();
         process.execute_op(Operation::Drop).unwrap();
 
-        assert!(process.execute_op(Operation::Assert(ZERO)).is_ok());
+        assert!(process.execute_op(Operation::Assert(0)).is_ok());
     }
 
     #[test]

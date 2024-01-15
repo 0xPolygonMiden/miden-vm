@@ -37,20 +37,14 @@ impl Assembler {
         }
 
         let result = match instruction {
-            Instruction::Assert => span.add_op(Assert(ZERO)),
-            Instruction::AssertWithError(err_code) => span.add_op(Assert(Felt::from(*err_code))),
-            Instruction::AssertEq => span.add_ops([Eq, Assert(ZERO)]),
-            Instruction::AssertEqWithError(err_code) => {
-                span.add_ops([Eq, Assert(Felt::from(*err_code))])
-            }
-            Instruction::AssertEqw => field_ops::assertw(span, ZERO),
-            Instruction::AssertEqwWithError(err_code) => {
-                field_ops::assertw(span, Felt::from(*err_code))
-            }
-            Instruction::Assertz => span.add_ops([Eqz, Assert(ZERO)]),
-            Instruction::AssertzWithError(err_code) => {
-                span.add_ops([Eqz, Assert(Felt::from(*err_code))])
-            }
+            Instruction::Assert => span.add_op(Assert(0)),
+            Instruction::AssertWithError(err_code) => span.add_op(Assert(*err_code)),
+            Instruction::AssertEq => span.add_ops([Eq, Assert(0)]),
+            Instruction::AssertEqWithError(err_code) => span.add_ops([Eq, Assert(*err_code)]),
+            Instruction::AssertEqw => field_ops::assertw(span, 0),
+            Instruction::AssertEqwWithError(err_code) => field_ops::assertw(span, *err_code),
+            Instruction::Assertz => span.add_ops([Eqz, Assert(0)]),
+            Instruction::AssertzWithError(err_code) => span.add_ops([Eqz, Assert(*err_code)]),
 
             Instruction::Add => span.add_op(Add),
             Instruction::AddImm(imm) => field_ops::add_imm(span, *imm),

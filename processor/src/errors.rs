@@ -28,15 +28,27 @@ pub enum ExecutionError {
     DivideByZero(u32),
     EventError(String),
     Ext2InttError(Ext2InttError),
-    FailedAssertion(u32, Felt),
+    FailedAssertion {
+        clk: u32,
+        err_code: u32,
+        err_msg: Option<String>,
+    },
     InvalidFmpValue(Felt, Felt),
     InvalidFriDomainSegment(u64),
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
-    InvalidMemoryRange { start_addr: u64, end_addr: u64 },
+    InvalidMemoryRange {
+        start_addr: u64,
+        end_addr: u64,
+    },
     InvalidStackDepthOnReturn(usize),
     InvalidStackWordOffset(usize),
-    InvalidTreeDepth { depth: Felt },
-    InvalidTreeNodeIndex { depth: Felt, value: Felt },
+    InvalidTreeDepth {
+        depth: Felt,
+    },
+    InvalidTreeNodeIndex {
+        depth: Felt,
+        value: Felt,
+    },
     MemoryAddressOutOfBounds(u64),
     MerkleStoreMergeFailed(MerkleError),
     MerkleStoreLookupFailed(MerkleError),
@@ -90,8 +102,19 @@ impl Display for ExecutionError {
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             EventError(error) => write!(f, "Failed to process event - {error}"),
             Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),
-            FailedAssertion(clk, err_code) => {
-                write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
+            FailedAssertion {
+                clk,
+                err_code,
+                err_msg,
+            } => {
+                if let Some(err_msg) = err_msg {
+                    write!(
+                        f,
+                        "Assertion failed at clock cycle {clk} with error code {err_code}: {err_msg}"
+                    )
+                } else {
+                    write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
+                }
             }
             InvalidFmpValue(old, new) => {
                 write!(f, "Updating FMP register from {old} to {new} failed because {new} is outside of {FMP_MIN}..{FMP_MAX}")

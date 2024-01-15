@@ -19,7 +19,7 @@ fn assert_with_code() {
     test.expect_stack(&[]);
 
     // triggered assertion captures both the VM cycle and error code
-    let expected_err = "FailedAssertion(1, 123)";
+    let expected_err = "FailedAssertion { clk: 1, err_code: 123, err_msg: None }";
     let test = build_op_test!(asm_op, &[0]);
     test.expect_error(TestError::ExecutionError(&expected_err));
 }

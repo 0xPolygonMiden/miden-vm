@@ -82,6 +82,15 @@ pub trait Host {
         Ok(HostResponse::None)
     }
 
+    /// Handles the failure of the assertion instruction.
+    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+        ExecutionError::FailedAssertion {
+            clk: process.clk(),
+            err_code,
+            err_msg: None,
+        }
+    }
+
     /// Pops an element from the advice stack and returns it.
     ///
     /// # Errors
@@ -171,6 +180,10 @@ where
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         H::on_event(self, process, event_id)
+    }
+
+    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+        H::on_assert_failed(self, process, err_code)
     }
 }
 
