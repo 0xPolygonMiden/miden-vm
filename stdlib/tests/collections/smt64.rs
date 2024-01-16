@@ -83,8 +83,13 @@ fn insert() {
     // try to insert an invalid value
     let value = EMPTY_WORD;
     let (init_stack, _, store) = prepare_insert_or_set(index, value, &mut smt);
-    build_test!(source, &init_stack, &[], store, vec![])
-        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(13, ZERO)));
+    build_test!(source, &init_stack, &[], store, vec![]).expect_error(TestError::ExecutionError(
+        ExecutionError::FailedAssertion {
+            clk: 13,
+            err_code: 0,
+            err_msg: None,
+        },
+    ));
 }
 
 #[test]

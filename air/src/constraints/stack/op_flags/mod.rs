@@ -624,7 +624,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of ASSERT operation.
     #[inline(always)]
     pub fn assert(&self) -> E {
-        self.degree7_op_flags[get_op_index(Operation::Assert(ZERO).op_code())]
+        self.degree7_op_flags[get_op_index(Operation::Assert(0).op_code())]
     }
 
     /// Operation Flag of EQ operation.
@@ -951,7 +951,7 @@ impl<E: FieldElement> OpFlags<E> {
     }
 
     /// Returns ONE when the stack item at the specified depth shifts to the left during an
-    /// operation, and ZERO otherwise. The left shift is not defined on the first postion in the
+    /// operation, and ZERO otherwise. The left shift is not defined on the first position in the
     /// stack and therefore, a ZERO is returned.
     #[inline(always)]
     pub fn left_shift_at(&self, index: usize) -> E {
@@ -959,7 +959,7 @@ impl<E: FieldElement> OpFlags<E> {
     }
 
     /// Returns ONE when the stack item at the specified depth shifts to the right during an
-    /// operation, and ZERO otherwise. The right shift is not defined on the last postion in the
+    /// operation, and ZERO otherwise. The right shift is not defined on the last position in the
     /// stack and therefore, a ZERO is returned.
     #[inline(always)]
     pub fn right_shift_at(&self, index: usize) -> E {
