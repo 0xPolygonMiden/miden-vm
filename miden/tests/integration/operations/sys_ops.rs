@@ -1,5 +1,5 @@
 use processor::ExecutionError;
-use test_utils::{build_op_test, Felt, TestError};
+use test_utils::{build_op_test, Felt, TestError, ZERO};
 
 // SYSTEM OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================
@@ -32,7 +32,7 @@ fn assert_fail() {
     let asm_op = "assert";
 
     let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(1, Felt::new(0))));
+    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(1, ZERO)));
 }
 
 #[test]
@@ -51,8 +51,8 @@ fn assert_eq_fail() {
     let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(2, Felt::new(0))));
+    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(2, ZERO)));
 
     let test = build_op_test!(asm_op, &[1, 4]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(2, Felt::new(0))));
+    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(2, ZERO)));
 }

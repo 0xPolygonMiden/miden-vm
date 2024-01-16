@@ -2,7 +2,7 @@ use assembly::AssemblyError;
 use processor::ExecutionError;
 use test_utils::{
     build_op_test, prop_randw, proptest::prelude::*, rand::rand_value, Felt, FieldElement,
-    StarkField, TestError, ONE, WORD_SIZE,
+    StarkField, TestError, ONE, WORD_SIZE, ZERO,
 };
 
 // FIELD OPS ARITHMETIC - MANUAL TESTS
@@ -292,7 +292,7 @@ fn pow2_fail() {
     value += (u32::MAX as u64) + 1;
 
     build_op_test!(asm_op, &[value])
-        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(16, Felt::new(0))));
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(16, ZERO)));
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     build_op_test!(build_asm_op(9), &[base, pow])
-        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(18, Felt::new(0))));
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(18, ZERO)));
 
     //---------------------- exp containing more than 64 bits -------------------------------------
 

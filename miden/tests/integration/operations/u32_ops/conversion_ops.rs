@@ -2,7 +2,7 @@ use super::{prop_randw, test_inputs_out_of_bounds};
 use processor::ExecutionError;
 use test_utils::{
     build_op_test, proptest::prelude::*, rand::rand_value, Felt, StarkField, TestError, U32_BOUND,
-    WORD_SIZE,
+    WORD_SIZE, ZERO,
 };
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
@@ -101,14 +101,14 @@ fn u32assert_fail() {
     let test = build_op_test!(asm_op, &[equal]);
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
         Felt::new(equal),
-        Felt::new(0),
+        ZERO,
     )));
 
     // --- test when a > 2^32 ---------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[larger]);
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
         Felt::new(larger),
-        Felt::new(0),
+        ZERO,
     )));
 }
 
@@ -138,7 +138,7 @@ fn u32assert2_fail() {
     let test = build_op_test!(asm_op, &[value_a, value_b]);
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
         Felt::new(value_b),
-        Felt::new(0),
+        ZERO,
     )));
 
     // -------- Case 2: a > 2^32 and b < 2^32 ---------------------------------------------------
@@ -147,7 +147,7 @@ fn u32assert2_fail() {
     let test = build_op_test!(asm_op, &[value_a, value_b]);
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
         Felt::new(value_a),
-        Felt::new(0),
+        ZERO,
     )));
 
     // --------- Case 3: a < 2^32 and b > 2^32 --------------------------------------------------
@@ -156,7 +156,7 @@ fn u32assert2_fail() {
     let test = build_op_test!(asm_op, &[value_a, value_b]);
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
         Felt::new(value_b),
-        Felt::new(0),
+        ZERO,
     )));
 }
 
@@ -181,7 +181,7 @@ fn u32assertw_fail() {
     let test = build_op_test!(asm_op, &[U32_BOUND; WORD_SIZE]);
     test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
         Felt::new(U32_BOUND),
-        Felt::new(0),
+        ZERO,
     )));
 }
 

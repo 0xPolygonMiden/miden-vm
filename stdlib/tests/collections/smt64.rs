@@ -84,7 +84,7 @@ fn insert() {
     let value = EMPTY_WORD;
     let (init_stack, _, store) = prepare_insert_or_set(index, value, &mut smt);
     build_test!(source, &init_stack, &[], store, vec![])
-        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(13, Felt::new(0))));
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(13, ZERO)));
 }
 
 #[test]

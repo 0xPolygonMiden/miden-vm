@@ -201,14 +201,14 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Compiles a test's source and returns the resulting Program or Assembly error.
-    pub fn compile(&self) -> Result<Program, AssemblyError>  {
+    pub fn compile(&self) -> Result<Program, AssemblyError> {
         let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
             .with_libraries(self.libraries.iter())
             .expect("failed to load stdlib");
 
         match self.kernel.as_ref() {
-            Some(kernel) =>  assembler.with_kernel(kernel).expect("kernel compilation failed"),
+            Some(kernel) => assembler.with_kernel(kernel).expect("kernel compilation failed"),
             None => assembler,
         }
         .compile(&self.source)

@@ -1,6 +1,6 @@
 use crate::build_test;
 use processor::ExecutionError;
-use test_utils::{build_expected_hash, build_expected_perm, Felt, StarkField, TestError};
+use test_utils::{build_expected_hash, build_expected_perm, StarkField, TestError, ZERO};
 
 #[test]
 fn test_invalid_end_addr() {
@@ -16,7 +16,7 @@ fn test_invalid_end_addr() {
     end
     ";
     build_test!(empty_range, &[])
-        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(20, Felt::new(0))));
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(20, ZERO)));
 
     // address range can not contain zero elements
     let empty_range = "
@@ -30,7 +30,7 @@ fn test_invalid_end_addr() {
     end
     ";
     build_test!(empty_range, &[])
-        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(20, Felt::new(0))));
+        .expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion(20, ZERO)));
 }
 
 #[test]
