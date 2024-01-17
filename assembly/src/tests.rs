@@ -427,6 +427,24 @@ fn constant_alphanumeric_expression() {
 }
 
 #[test]
+fn constant_hexadecimal_value() {
+    let assembler = Assembler::default();
+    let source = "const.TEST_CONSTANT=0xFF \
+    begin \
+    push.TEST_CONSTANT \
+    end \
+    ";
+    let expected = "\
+    begin \
+        span \
+            push(255) \
+        end \
+    end";
+    let program = assembler.compile(source).unwrap();
+    assert_eq!(expected, format!("{program}"));
+}
+
+#[test]
 fn constant_field_division() {
     let assembler = Assembler::default();
     let source = "const.TEST_CONSTANT=(17//4)/4*(1//2)+2 \
