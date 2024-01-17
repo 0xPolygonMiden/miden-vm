@@ -1,20 +1,13 @@
 use super::{
-    parse_checked_param, parse_param_with_constant_lookup, Felt,
+    parse_checked_param, parse_hex_value, parse_param_with_constant_lookup, Endianness, Felt,
     Instruction::*,
     LocalConstMap,
     Node::{self, Instruction},
-    ParsingError, Token, Vec, CONSTANT_LABEL_PARSER,
+    ParsingError, Token, Vec, CONSTANT_LABEL_PARSER, HEX_CHUNK_SIZE,
 };
-use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
+use crate::{StarkField, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
 use core::{convert::TryFrom, ops::RangeBounds};
 use vm_core::WORD_SIZE;
-
-/// Helper enum for endianness determination in the parsing functions.
-#[derive(Debug)]
-enum Endianness {
-    Little,
-    Big,
-}
 
 // CONSTANTS
 // ================================================================================================
@@ -313,67 +306,6 @@ fn parse_long_hex_param(op: &Token, hex_str: &str) -> Result<Node, ParsingError>
         .map(|i| parse_hex_value(op, &hex_str[i..i + HEX_CHUNK_SIZE], 1, Endianness::Little));
 
     build_push_many_instruction(values)
-}
-
-/// Parses a hexadecimal parameter value into a u64.
-///
-/// # Errors
-/// Returns an error if:
-/// - The length of a short hex string (big-endian) is not even.
-/// - The length of a short hex string (big-endian) is greater than 16.
-/// - The length of the chunk of a long hex string (little-endian) is not equal to 16.
-/// - If the string does not contain a valid hexadecimal value.
-/// - If the parsed value is greater than or equal to the field modulus.
-fn parse_hex_value(
-    op: &Token,
-    hex_str: &str,
-    param_idx: usize,
-    endianness: Endianness,
-) -> Result<u64, ParsingError> {
-    let value = match endianness {
-        Endianness::Big => {
-            if hex_str.len() % 2 != 0 {
-                return Err(ParsingError::invalid_param_with_reason(
-                    op,
-                    param_idx,
-                    &format!(
-                        "hex string '{hex_str}' does not contain an even number of characters"
-                    ),
-                ));
-            }
-            if hex_str.len() > HEX_CHUNK_SIZE {
-                return Err(ParsingError::invalid_param_with_reason(
-                    op,
-                    param_idx,
-                    &format!("hex string '{hex_str}' contains too many characters"),
-                ));
-            }
-            u64::from_str_radix(hex_str, 16)
-                .map_err(|_| ParsingError::invalid_param(op, param_idx))?
-        }
-        Endianness::Little => {
-            if hex_str.len() != HEX_CHUNK_SIZE {
-                return Err(ParsingError::invalid_param_with_reason(
-                    op,
-                    param_idx,
-                    &format!("hex string chunk '{hex_str}' must contain exactly 16 characters"),
-                ));
-            }
-            u64::from_str_radix(hex_str, 16)
-                .map(|v| v.swap_bytes())
-                .map_err(|_| ParsingError::invalid_param(op, param_idx))?
-        }
-    };
-
-    if value >= Felt::MODULUS {
-        Err(ParsingError::invalid_param_with_reason(
-            op,
-            param_idx,
-            &format!("hex string '{hex_str}' contains value greater than field modulus"),
-        ))
-    } else {
-        Ok(value)
-    }
 }
 
 /// Determines the minimal type appropriate for provided value and returns appropriate instruction
