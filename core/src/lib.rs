@@ -11,8 +11,8 @@ pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
         pub use miden_crypto::merkle::{
-            DefaultMerkleStore, EmptySubtreeRoots, InnerNodeInfo, MerkleError, MerklePath,
-            MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, PartialMerkleTree,
+            DefaultMerkleStore, EmptySubtreeRoots, InnerNodeInfo, LeafIndex, MerkleError,
+            MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, PartialMerkleTree,
             RecordingMerkleStore, SimpleSmt, StoreNode, TieredSmt,
         };
     }

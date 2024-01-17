@@ -1,8 +1,12 @@
-use super::{Felt, MerkleStore, SimpleSmt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO};
+use super::{
+    Felt, LeafIndex, MerkleStore, SimpleSmt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO,
+};
 use crate::build_test;
 
 // TEST DATA
 // ================================================================================================
+
+const DEPTH: u8 = 64;
 
 const LEAVES: [(u64, Word); 5] = [
     (
@@ -36,7 +40,7 @@ const LEAVES: [(u64, Word); 5] = [
 
 #[test]
 fn get() {
-    let smt = SimpleSmt::with_leaves(64, LEAVES).unwrap();
+    let smt = SimpleSmt::<DEPTH>::with_leaves(LEAVES).unwrap();
 
     let source = "
     use.std::collections::smt64
@@ -58,7 +62,7 @@ fn get() {
 
 #[test]
 fn insert() {
-    let mut smt = SimpleSmt::new(64).unwrap();
+    let mut smt = SimpleSmt::<DEPTH>::new().unwrap();
 
     let source = "
     use.std::collections::smt64
@@ -88,7 +92,7 @@ fn insert() {
 
 #[test]
 fn set() {
-    let mut smt = SimpleSmt::new(64).unwrap();
+    let mut smt = SimpleSmt::<DEPTH>::new().unwrap();
     let empty_tree_root = smt.root();
 
     let source = "
@@ -133,17 +137,19 @@ fn set() {
 fn prepare_insert_or_set(
     index: u64,
     value: Word,
-    smt: &mut SimpleSmt,
+    smt: &mut SimpleSmt<DEPTH>,
 ) -> (Vec<u64>, Vec<u64>, MerkleStore) {
+    let index = LeafIndex::new_max_depth(index);
+
     // set initial state of the stack to be [VALUE, key, ROOT, ...]
     let mut initial_stack = Vec::new();
     append_word_to_vec(&mut initial_stack, smt.root().into());
-    initial_stack.push(index);
+    initial_stack.push(index.value());
     append_word_to_vec(&mut initial_stack, value);
 
     // build a Merkle store for the test before the tree is updated, and then update the tree
     let store: MerkleStore = (&*smt).into();
-    let old_value = smt.update_leaf(index, value).unwrap();
+    let old_value = smt.insert(index, value);
 
     // after insert or set, the stack should be [OLD_VALUE, ROOT, ...]
     let expected_output = build_expected_stack(old_value, smt.root().into());
