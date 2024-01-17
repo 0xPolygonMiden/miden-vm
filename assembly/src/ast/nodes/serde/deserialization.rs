@@ -341,8 +341,9 @@ impl Deserializable for Instruction {
                 Ok(Instruction::Debug(options))
             }
 
-            // ----- emit ------------------------------------------------------------------------
+            // ----- event decorators -------------------------------------------------------------
             OpCode::Emit => Ok(Instruction::Emit(source.read_u32()?)),
+            OpCode::Trace => Ok(Instruction::Trace(source.read_u32()?)),
 
             // ----- control flow -----------------------------------------------------------------
             // control flow instructions should be parsed as a part of Node::read_from() and we

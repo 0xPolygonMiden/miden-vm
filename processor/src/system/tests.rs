@@ -5,8 +5,12 @@ use crate::{DefaultHost, ExecutionOptions, Kernel, Operation, Process, StackInpu
 fn cycles_num_exceeded() {
     let stack = StackInputs::default();
     let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack, host, ExecutionOptions::new(Some(64), 64).unwrap());
+    let mut process = Process::new(
+        Kernel::default(),
+        stack,
+        host,
+        ExecutionOptions::new(Some(64), 64, false).unwrap(),
+    );
     for _ in 0..64 {
         process.execute_op(Operation::Noop).unwrap();
     }

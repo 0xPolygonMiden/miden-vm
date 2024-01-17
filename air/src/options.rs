@@ -150,6 +150,7 @@ impl From<ProvingOptions> for WinterProofOptions {
 pub struct ExecutionOptions {
     max_cycles: u32,
     expected_cycles: u32,
+    enable_tracing: bool,
 }
 
 impl Default for ExecutionOptions {
@@ -157,6 +158,7 @@ impl Default for ExecutionOptions {
         ExecutionOptions {
             max_cycles: u32::MAX,
             expected_cycles: MIN_TRACE_LEN as u32,
+            enable_tracing: false,
         }
     }
 }
@@ -171,6 +173,7 @@ impl ExecutionOptions {
     pub fn new(
         max_cycles: Option<u32>,
         expected_cycles: u32,
+        enable_tracing: bool,
     ) -> Result<Self, ExecutionOptionsError> {
         let max_cycles = max_cycles.unwrap_or(u32::MAX);
         if max_cycles < MIN_TRACE_LEN as u32 {
@@ -187,8 +190,18 @@ impl ExecutionOptions {
         Ok(ExecutionOptions {
             max_cycles,
             expected_cycles,
+            enable_tracing,
         })
     }
+
+    /// Enables Host to handle the `tracing` instructions.
+    pub fn with_tracing(mut self) -> Self {
+        self.enable_tracing = true;
+        self
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
 
     /// Returns maximum number of cycles
     pub fn max_cycles(&self) -> u32 {
@@ -198,5 +211,10 @@ impl ExecutionOptions {
     /// Returns number of the expected cycles
     pub fn expected_cycles(&self) -> u32 {
         self.expected_cycles
+    }
+
+    /// Returns a flag indicating whether the Host should handle `trace` instructions
+    pub fn enable_tracing(&self) -> bool {
+        self.enable_tracing
     }
 }

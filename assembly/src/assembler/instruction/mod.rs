@@ -314,6 +314,12 @@ impl Assembler {
                 span.push_decorator(Decorator::Event(*event_id));
                 Ok(None)
             }
+
+            // ----- trace instruction ------------------------------------------------------------
+            Instruction::Trace(trace_id) => {
+                span.push_decorator(Decorator::Trace(*trace_id));
+                Ok(None)
+            }
         };
 
         // compute and update the cycle count of the instruction which just finished executing
