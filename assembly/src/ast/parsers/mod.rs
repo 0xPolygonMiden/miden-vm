@@ -9,12 +9,11 @@ use core::{fmt::Display, ops::RangeBounds};
 
 mod adv_ops;
 mod debug;
-mod emit;
+mod events;
 mod field_ops;
 mod io_ops;
 mod stack_ops;
 mod sys_ops;
-mod trace;
 mod u32_ops;
 
 mod constants;

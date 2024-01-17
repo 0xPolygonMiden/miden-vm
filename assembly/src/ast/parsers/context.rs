@@ -1,7 +1,5 @@
-use crate::ast::parsers::trace;
-
 use super::{
-    super::ProcReExport, adv_ops, debug, emit, field_ops, io_ops, stack_ops, sys_ops, u32_ops,
+    super::ProcReExport, adv_ops, debug, events, field_ops, io_ops, stack_ops, sys_ops, u32_ops,
     CodeBody, Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap,
     ModuleImports, Node, ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap,
     Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
@@ -628,11 +626,9 @@ impl ParserContext<'_> {
             "breakpoint" => simple_instruction(op, Breakpoint),
             "debug" => debug::parse_debug(op, self.num_proc_locals),
 
-            // ----- emit instruction -------------------------------------------------------------
-            "emit" => emit::parse_emit(op, &self.local_constants),
-
-            // ----- trace instruction ------------------------------------------------------------
-            "trace" => trace::parse_trace(op, &self.local_constants),
+            // ----- event decorators -------------------------------------------------------------
+            "emit" => events::parse_emit(op, &self.local_constants),
+            "trace" => events::parse_trace(op, &self.local_constants),
 
             // ----- catch all --------------------------------------------------------------------
             _ => Err(ParsingError::invalid_op(op)),
