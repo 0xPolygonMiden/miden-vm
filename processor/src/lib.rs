@@ -166,6 +166,7 @@ where
     chiplets: Chiplets,
     host: RefCell<H>,
     max_cycles: u32,
+    enable_tracing: bool,
 }
 
 impl<H> Process<H>
@@ -186,7 +187,13 @@ where
 
     /// Creates a new process with provided inputs and debug options enabled.
     pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, host: H) -> Self {
-        Self::initialize(kernel, stack_inputs, host, true, ExecutionOptions::default())
+        Self::initialize(
+            kernel,
+            stack_inputs,
+            host,
+            true,
+            ExecutionOptions::default().with_tracing(),
+        )
     }
 
     fn initialize(
@@ -204,6 +211,7 @@ where
             chiplets: Chiplets::new(kernel),
             host: RefCell::new(host),
             max_cycles: execution_options.max_cycles(),
+            enable_tracing: execution_options.enable_tracing(),
         }
     }
 
@@ -503,7 +511,9 @@ where
                 self.host.borrow_mut().on_event(self, *id)?;
             }
             Decorator::Trace(id) => {
-                self.host.borrow_mut().on_trace(self, *id)?;
+                if self.enable_tracing {
+                    self.host.borrow_mut().on_trace(self, *id)?;
+                }
             }
         }
         Ok(())
@@ -622,4 +632,5 @@ where
     pub chiplets: Chiplets,
     pub host: RefCell<H>,
     pub max_cycles: u32,
+    pub enable_tracing: bool,
 }

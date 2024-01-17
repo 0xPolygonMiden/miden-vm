@@ -194,6 +194,15 @@ impl ExecutionOptions {
         })
     }
 
+    /// Enables Host to handle the `tracing` instructions.
+    pub fn with_tracing(mut self) -> Self {
+        self.enable_tracing = true;
+        self
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns maximum number of cycles
     pub fn max_cycles(&self) -> u32 {
         self.max_cycles
@@ -202,5 +211,10 @@ impl ExecutionOptions {
     /// Returns number of the expected cycles
     pub fn expected_cycles(&self) -> u32 {
         self.expected_cycles
+    }
+
+    /// Returns a flag indicating whether the Host should handle `trace` instructions
+    pub fn enable_tracing(&self) -> bool {
+        self.enable_tracing
     }
 }

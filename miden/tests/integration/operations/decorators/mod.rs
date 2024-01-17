@@ -6,8 +6,7 @@ use vm_core::AdviceInjector;
 
 mod advice;
 mod asmop;
-mod event;
-mod trace;
+mod events;
 
 // TEST HOST
 // ================================================================================================

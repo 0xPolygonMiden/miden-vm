@@ -341,10 +341,8 @@ impl Deserializable for Instruction {
                 Ok(Instruction::Debug(options))
             }
 
-            // ----- emit -------------------------------------------------------------------------
+            // ----- event decorators -------------------------------------------------------------
             OpCode::Emit => Ok(Instruction::Emit(source.read_u32()?)),
-
-            // ----- trace ------------------------------------------------------------------------
             OpCode::Trace => Ok(Instruction::Trace(source.read_u32()?)),
 
             // ----- control flow -----------------------------------------------------------------
