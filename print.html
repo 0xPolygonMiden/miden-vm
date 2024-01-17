@@ -1181,11 +1181,18 @@ push.4660.22136.36882.43981
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h2 id="events"><a class="header" href="#events">Events</a></h2>
-<p>Miden assembly supports the concept of events. Events are a simple data structure with a single <code>event_id</code> field.  When an event is emitted by a program, it is communicated to the host.  Events can be emitted at specific points of program execution with the intent of triggering some action on the host. This is useful as the program has contextual information that would be challenging for the host to infer. The emission of events allows the program to communicate this contextual information to the host. The host contains an event handler that is responsible for handling events and taking appropriate actions. The emission of events does not change the state of the VM but it can  change the state of the host.</p>
+<p>Miden assembly supports the concept of events. Events are a simple data structure with a single <code>event_id</code> field.  When an event is emitted by a program, it is communicated to the host. Events can be emitted at specific points of program execution with the intent of triggering some action on the host. This is useful as the program has contextual information that would be challenging for the host to infer. The emission of events allows the program to communicate this contextual information to the host. The host contains an event handler that is responsible for handling events and taking appropriate actions. The emission of events does not change the state of the VM but it can  change the state of the host.</p>
 <p>An event can be emitted via the <code>emit.&lt;event_id&gt;</code> assembly instruction where <code>&lt;event_id&gt;</code> can be any 32-bit value specified either directly or via a <a href="user_docs/assembly/./code_organization.html#constants">named constant</a>. For example:</p>
 <pre><code>emit.EVENT_ID_1
 emit.2
 </code></pre>
+<h2 id="tracing"><a class="header" href="#tracing">Tracing</a></h2>
+<p>Miden assembly also supports code tracing, which works similar to the event emitting. </p>
+<p>A trace can be emitted via the <code>trace.&lt;trace_id&gt;</code> assembly instruction where <code>&lt;trace_id&gt;</code> can be any 32-bit value specified either directly or via a <a href="user_docs/assembly/./code_organization.html#constants">named constant</a>. For example:</p>
+<pre><code>trace.EVENT_ID_1
+trace.2
+</code></pre>
+<p>To make use of the <code>trace</code> instruction, programs should be ran with tracing flag (<code>-t</code> or <code>--tracing</code>), otherwise these instructions will be ignored.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="debugging"><a class="header" href="#debugging">Debugging</a></h1>
 <p>To support basic debugging capabilities, Miden assembly provides a <code>debug</code> instruction. This instruction prints out the state of the VM at the time when the <code>debug</code> instruction is executed. The instruction can be parameterized as follows:</p>
