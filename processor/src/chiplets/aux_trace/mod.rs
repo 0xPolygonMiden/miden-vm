@@ -2,6 +2,7 @@ use super::{super::trace::AuxColumnBuilder, ColMatrix, Felt, FieldElement, Stark
 
 use miden_air::trace::{
     chiplets::{
+        bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN,
         hasher::{
             CAPACITY_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL,
             MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD_LABEL, NUM_ROUNDS, RETURN_HASH_LABEL,
@@ -74,12 +75,68 @@ impl AuxTraceBuilder {
 pub struct BusColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder {
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        chiplets_requests(main_trace, alphas, i)
+    /// Constructs the requests made by the VM-components to the chiplets at row i.
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        let op_code_felt = main_trace.get_op_code(i);
+        let op_code = op_code_felt.as_int() as u8;
+
+        match op_code {
+            JOIN | SPLIT | LOOP | DYN | CALL => {
+                build_control_block_request(main_trace, op_code_felt, alphas, i)
+            }
+            SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, i),
+            SPAN => build_span_block_request(main_trace, alphas, i),
+            RESPAN => build_respan_block_request(main_trace, alphas, i),
+            END => build_end_block_request(main_trace, alphas, i),
+            AND => build_bitwise_request(main_trace, ZERO, alphas, i),
+            XOR => build_bitwise_request(main_trace, ONE, alphas, i),
+            MLOADW => build_mem_request(main_trace, MEMORY_READ_LABEL, true, alphas, i),
+            MSTOREW => build_mem_request(main_trace, MEMORY_WRITE_LABEL, true, alphas, i),
+            MLOAD => build_mem_request(main_trace, MEMORY_READ_LABEL, false, alphas, i),
+            MSTORE => build_mem_request(main_trace, MEMORY_WRITE_LABEL, false, alphas, i),
+            MSTREAM => build_mstream_request(main_trace, alphas, i),
+            HPERM => build_hperm_request(main_trace, alphas, i),
+            MPVERIFY => build_mpverify_request(main_trace, alphas, i),
+            MRUPDATE => build_mrupdate_request(main_trace, alphas, i),
+            _ => E::ONE,
+        }
     }
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        chiplets_responses(main_trace, alphas, i)
+    /// Constructs the responses from the chiplets to the other VM-components at row i.
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        let selector0 = main_trace.chiplet_selector_0(i);
+        let selector1 = main_trace.chiplet_selector_1(i);
+        let selector2 = main_trace.chiplet_selector_2(i);
+        let selector3 = main_trace.chiplet_selector_3(i);
+        let selector4 = main_trace.chiplet_selector_4(i);
+
+        if selector0 == ZERO {
+            build_hasher_chiplet_responses(main_trace, i, alphas, selector1, selector2, selector3)
+        } else if selector1 == ZERO {
+            debug_assert_eq!(selector0, ONE);
+            build_bitwise_chiplet_responses(main_trace, i, selector2, alphas)
+        } else if selector2 == ZERO {
+            debug_assert_eq!(selector0, ONE);
+            debug_assert_eq!(selector1, ONE);
+            build_memory_chiplet_responses(main_trace, i, selector3, alphas)
+        } else if selector3 == ZERO && selector4 == ONE {
+            debug_assert_eq!(selector0, ONE);
+            debug_assert_eq!(selector1, ONE);
+            debug_assert_eq!(selector2, ONE);
+            build_kernel_chiplet_responses(main_trace, i, alphas)
+        } else {
+            debug_assert_eq!(selector0, ONE);
+            debug_assert_eq!(selector1, ONE);
+            debug_assert_eq!(selector2, ONE);
+            debug_assert_eq!(selector3, ONE);
+            E::ONE
+        }
     }
 }
 
@@ -92,11 +149,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
 pub struct ChipletsVTableColBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         chiplets_vtable_remove_sibling(main_trace, alphas, i)
     }
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         chiplets_vtable_add_sibling(main_trace, alphas, i)
             * chiplets_kernel_table_include(main_trace, alphas, i)
     }
@@ -200,36 +257,6 @@ where
 
 // CHIPLETS REQUESTS
 // ================================================================================================
-
-/// Constructs the requests made by the VM-components to the chiplets at row i.
-fn chiplets_requests<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let op_code_felt = main_trace.get_op_code(i);
-    let op_code = op_code_felt.as_int() as u8;
-
-    match op_code {
-        JOIN | SPLIT | LOOP | DYN | CALL => {
-            build_control_block_request(main_trace, op_code_felt, alphas, i)
-        }
-        SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, i),
-        SPAN => build_span_block_request(main_trace, alphas, i),
-        RESPAN => build_respan_block_request(main_trace, alphas, i),
-        END => build_end_block_request(main_trace, alphas, i),
-        AND => build_bitwise_request(main_trace, ZERO, alphas, i),
-        XOR => build_bitwise_request(main_trace, ONE, alphas, i),
-        MLOADW => build_mem_request(main_trace, MEMORY_READ_LABEL, true, alphas, i),
-        MSTOREW => build_mem_request(main_trace, MEMORY_WRITE_LABEL, true, alphas, i),
-        MLOAD => build_mem_request(main_trace, MEMORY_READ_LABEL, false, alphas, i),
-        MSTORE => build_mem_request(main_trace, MEMORY_WRITE_LABEL, false, alphas, i),
-        MSTREAM => build_mstream_request(main_trace, alphas, i),
-        HPERM => build_hperm_request(main_trace, alphas, i),
-        MPVERIFY => build_mpverify_request(main_trace, alphas, i),
-        MRUPDATE => build_mrupdate_request(main_trace, alphas, i),
-        _ => E::ONE,
-    }
-}
 
 /// Builds requests made to the hasher chiplet at the start of a control block.
 fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
@@ -686,40 +713,6 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 // CHIPLETS RESPONSES
 // ================================================================================================
 
-/// Constructs the responses from the chiplets to the other VM-components at row i.
-fn chiplets_responses<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let selector0 = main_trace.chiplet_selector_0(i);
-    let selector1 = main_trace.chiplet_selector_1(i);
-    let selector2 = main_trace.chiplet_selector_2(i);
-    let selector3 = main_trace.chiplet_selector_3(i);
-    let selector4 = main_trace.chiplet_selector_4(i);
-
-    if selector0 == ZERO {
-        build_hasher_chiplet_responses(main_trace, i, alphas, selector1, selector2, selector3)
-    } else if selector1 == ZERO {
-        debug_assert_eq!(selector0, ONE);
-        build_bitwise_chiplet_responses(main_trace, i, selector2, alphas)
-    } else if selector2 == ZERO {
-        debug_assert_eq!(selector0, ONE);
-        debug_assert_eq!(selector1, ONE);
-        build_memory_chiplet_responses(main_trace, i, selector3, alphas)
-    } else if selector3 == ZERO && selector4 == ONE {
-        debug_assert_eq!(selector0, ONE);
-        debug_assert_eq!(selector1, ONE);
-        debug_assert_eq!(selector2, ONE);
-        build_kernel_chiplet_responses(main_trace, i, alphas)
-    } else {
-        debug_assert_eq!(selector0, ONE);
-        debug_assert_eq!(selector1, ONE);
-        debug_assert_eq!(selector2, ONE);
-        debug_assert_eq!(selector3, ONE);
-        E::ONE
-    }
-}
-
 /// Builds the response from the hasher chiplet at row `i`.
 fn build_hasher_chiplet_responses<E>(
     main_trace: &MainTrace,
@@ -831,21 +824,21 @@ fn build_bitwise_chiplet_responses<E>(
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let mut multiplicand = E::ONE;
-    if i % HASH_CYCLE_LEN == NUM_ROUNDS {
+    if i % BITWISE_OP_CYCLE_LEN == BITWISE_OP_CYCLE_LEN - 1 {
         let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
 
         let a = main_trace.chiplet_bitwise_a(i);
         let b = main_trace.chiplet_bitwise_b(i);
         let z = main_trace.chiplet_bitwise_z(i);
 
-        multiplicand = alphas[0]
+        alphas[0]
             + alphas[1].mul_base(op_label)
             + alphas[2].mul_base(a)
             + alphas[3].mul_base(b)
-            + alphas[4].mul_base(z);
+            + alphas[4].mul_base(z)
+    } else {
+        E::ONE
     }
-    multiplicand
 }
 
 /// Builds the response from the memory chiplet at row `i`.

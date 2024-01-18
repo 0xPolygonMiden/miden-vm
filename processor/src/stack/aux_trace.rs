@@ -32,11 +32,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
     fn init_responses(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
         init_overflow_table(self, alphas)
     }
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         stack_overflow_table_removals(main_trace, alphas, i)
     }
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         stack_overflow_table_inclusions(main_trace, alphas, i)
     }
 }

@@ -200,9 +200,9 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E;
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row_idx: usize) -> E;
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E;
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row_idx: usize) -> E;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -224,10 +224,11 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
         requests_prod[0] = self.init_requests(&main_trace, alphas);
 
         let mut result_2_acc = E::ONE;
-        for i in 0..main_trace.num_rows() - 1 {
-            responses_prod[i + 1] = responses_prod[i] * self.responses(&main_trace, alphas, i);
-            requests_prod[i + 1] = self.requests(&main_trace, alphas, i);
-            result_2_acc *= requests_prod[i + 1];
+        for row_idx in 0..main_trace.num_rows() - 1 {
+            responses_prod[row_idx + 1] =
+                responses_prod[row_idx] * self.get_responses_at(&main_trace, alphas, row_idx);
+            requests_prod[row_idx + 1] = self.get_requests_at(&main_trace, alphas, row_idx);
+            result_2_acc *= requests_prod[row_idx + 1];
         }
 
         let mut acc_inv = result_2_acc.inv();

@@ -63,11 +63,11 @@ impl AuxTraceBuilder {
 pub struct BlockStackColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockStackColumnBuilder {
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         block_stack_table_removals(main_trace, alphas, i)
     }
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         block_stack_table_inclusions(main_trace, alphas, i)
     }
 }
@@ -120,11 +120,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
         block_hash_table_initialize(&program_hash.into(), alphas)
     }
 
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         block_hash_table_removals(main_trace, alphas, i)
     }
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         block_hash_table_inclusions(main_trace, alphas, i)
     }
 }
@@ -173,11 +173,11 @@ where
 pub struct OpGroupTableColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for OpGroupTableColumnBuilder {
-    fn requests(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         op_group_table_removals(main_trace, alphas, i)
     }
 
-    fn responses(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
         op_group_table_inclusions(main_trace, alphas, i)
     }
 }
