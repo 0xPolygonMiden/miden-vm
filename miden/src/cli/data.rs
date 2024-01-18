@@ -16,6 +16,10 @@ use std::{
 use stdlib::StdLibrary;
 pub use tracing::{event, info_span, instrument, trace_span, Level};
 
+// CONSTANTS
+// ================================================================================================
+const SIMPLE_SMT_DEPTH: u8 = u64::BITS as u8;
+
 // HELPERS
 // ================================================================================================
 
@@ -206,7 +210,7 @@ impl InputFile {
                 }
                 MerkleData::SparseMerkleTree(data) => {
                     let entries = Self::parse_sparse_merkle_tree(data)?;
-                    let tree = SimpleSmt::with_leaves(u64::BITS as u8, entries)
+                    let tree = SimpleSmt::<SIMPLE_SMT_DEPTH>::with_leaves(entries)
                         .map_err(|e| format!("failed to parse a Sparse Merkle Tree: {e}"))?;
                     merkle_store.extend(tree.inner_nodes());
                     event!(
