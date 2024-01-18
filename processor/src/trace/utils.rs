@@ -219,25 +219,26 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     fn build_aux_column(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E> {
         let main_trace = MainTrace::new(main_trace);
         let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-        let mut requests_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
-        responses_prod[0] = self.init_responses(&main_trace, alphas);
-        requests_prod[0] = self.init_requests(&main_trace, alphas);
+        let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
 
-        let mut result_2_acc = E::ONE;
+        responses_prod[0] = self.init_responses(&main_trace, alphas);
+        requests[0] = self.init_requests(&main_trace, alphas);
+
+        let mut requests_running_prod = E::ONE;
         for row_idx in 0..main_trace.num_rows() - 1 {
             responses_prod[row_idx + 1] =
                 responses_prod[row_idx] * self.get_responses_at(&main_trace, alphas, row_idx);
-            requests_prod[row_idx + 1] = self.get_requests_at(&main_trace, alphas, row_idx);
-            result_2_acc *= requests_prod[row_idx + 1];
+            requests[row_idx + 1] = self.get_requests_at(&main_trace, alphas, row_idx);
+            requests_running_prod *= requests[row_idx + 1];
         }
 
-        let mut acc_inv = result_2_acc.inv();
-
+        let mut requests_running_divisor = requests_running_prod.inv();
+        let mut result_aux_column = responses_prod;
         for i in (0..main_trace.num_rows()).rev() {
-            responses_prod[i] *= acc_inv;
-            acc_inv *= requests_prod[i];
+            result_aux_column[i] *= requests_running_divisor;
+            requests_running_divisor *= requests[i];
         }
-        responses_prod
+        result_aux_column
     }
 }
 
