@@ -14,7 +14,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use stdlib::StdLibrary;
-pub use tracing::{event, info_span, instrument, trace_span, Level};
+pub use tracing::{event, instrument, Level};
 
 // CONSTANTS
 // ================================================================================================

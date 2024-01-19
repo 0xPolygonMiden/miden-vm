@@ -1,7 +1,8 @@
 use super::{prop_randw, test_inputs_out_of_bounds};
+use processor::ExecutionError;
 use test_utils::{
     build_op_test, proptest::prelude::*, rand::rand_value, Felt, StarkField, TestError, U32_BOUND,
-    WORD_SIZE,
+    WORD_SIZE, ZERO,
 };
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
@@ -91,7 +92,6 @@ fn u32assert() {
 fn u32assert_fail() {
     // assertion fails if a >= 2^32
     let asm_op = "u32assert";
-    let err = "NotU32Value";
 
     // vars to test
     let equal = 1_u64 << 32;
@@ -99,11 +99,17 @@ fn u32assert_fail() {
 
     // --- test when a = 2^32 ---------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[equal]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
+        Felt::new(equal),
+        ZERO,
+    )));
 
     // --- test when a > 2^32 ---------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[larger]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
+        Felt::new(larger),
+        ZERO,
+    )));
 }
 
 #[test]
@@ -124,26 +130,34 @@ fn u32assert2() {
 #[test]
 fn u32assert2_fail() {
     let asm_op = "u32assert2";
-    let err = "NotU32Value";
 
     // vars to test
     // -------- Case 1: a > 2^32 and b > 2^32 ---------------------------------------------------
     let value_a = (1_u64 << 32) + 1;
     let value_b = value_a + 2;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
+        Felt::new(value_b),
+        ZERO,
+    )));
 
     // -------- Case 2: a > 2^32 and b < 2^32 ---------------------------------------------------
     let value_a = (1_u64 << 32) + 1;
     let value_b = 1_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
+        Felt::new(value_a),
+        ZERO,
+    )));
 
     // --------- Case 3: a < 2^32 and b > 2^32 --------------------------------------------------
     let value_b = (1_u64 << 32) + 1;
     let value_a = 1_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
+        Felt::new(value_b),
+        ZERO,
+    )));
 }
 
 #[test]
@@ -159,14 +173,16 @@ fn u32assertw() {
 fn u32assertw_fail() {
     // fails if any element in the word >= 2^32
     let asm_op = "u32assertw";
-    let err = "NotU32Value";
 
     // --- any one of the inputs inputs >= 2^32 (out of bounds) -----------------------------------
     test_inputs_out_of_bounds(asm_op, WORD_SIZE);
 
     // --- all elements out of range --------------------------------------------------------------
     let test = build_op_test!(asm_op, &[U32_BOUND; WORD_SIZE]);
-    test.expect_error(TestError::ExecutionError(err));
+    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
+        Felt::new(U32_BOUND),
+        ZERO,
+    )));
 }
 
 #[test]
