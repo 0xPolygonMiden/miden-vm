@@ -50,6 +50,7 @@ pub mod rand;
 
 mod test_builders;
 
+use assembly::AssemblyError;
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
 
@@ -71,9 +72,10 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 /// `Test::expect_error` will try to either compile or execute the test data, according to the
 /// provided TestError variant. Then it will validate that the resulting error contains the
 /// TestError variant's string slice.
-pub enum TestError<'a> {
-    AssemblyError(&'a str),
-    ExecutionError(&'a str),
+#[derive(Debug, PartialEq)]
+pub enum TestError {
+    AssemblyError(AssemblyError),
+    ExecutionError(ExecutionError),
 }
 
 /// This is a container for the data required to run tests, which allows for running several
@@ -117,28 +119,19 @@ impl Test {
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Asserts that running the test for the expected TestError variant will result in an error
-    /// that contains the TestError's error substring in its error message.
+    /// Asserts that running the test will result in the expected error.
     #[cfg(all(feature = "std", not(target_family = "wasm")))]
-    pub fn expect_error(&self, error: TestError) {
-        match error {
-            TestError::AssemblyError(substr) => {
-                assert_eq!(
-                    std::panic::catch_unwind(|| self.compile())
-                        .err()
-                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
-                    Some(true)
-                );
+    pub fn expect_error(&self, expected_error: TestError) {
+        match expected_error {
+            TestError::AssemblyError(assembly_error) => {
+                let actual_error = self.compile().err().unwrap();
+                assert_eq!(assembly_error, actual_error);
             }
-            TestError::ExecutionError(substr) => {
-                assert_eq!(
-                    std::panic::catch_unwind(|| self.execute().unwrap())
-                        .err()
-                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
-                    Some(true)
-                );
+            TestError::ExecutionError(execution_error) => {
+                let actual_error = self.execute().err().unwrap();
+                assert_eq!(execution_error, actual_error);
             }
-        }
+        };
     }
 
     /// Builds a final stack from the provided stack-ordered array and asserts that executing the
@@ -159,7 +152,7 @@ impl Test {
         expected_mem: &[u64],
     ) {
         // compile the program
-        let program = self.compile();
+        let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
 
         // execute the test
@@ -207,8 +200,8 @@ impl Test {
     // UTILITY METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles a test's source and returns the resulting Program.
-    pub fn compile(&self) -> Program {
+    /// Compiles a test's source and returns the resulting Program or Assembly error.
+    pub fn compile(&self) -> Result<Program, AssemblyError> {
         let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
             .with_libraries(self.libraries.iter())
@@ -219,13 +212,12 @@ impl Test {
             None => assembler,
         }
         .compile(&self.source)
-        .expect("Failed to compile test source.")
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let program = self.compile();
+        let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
@@ -235,7 +227,7 @@ impl Test {
     pub fn execute_process(
         &self,
     ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
-        let program = self.compile();
+        let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let mut process = Process::new(
             program.kernel().clone(),
@@ -252,7 +244,7 @@ impl Test {
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
-        let program = self.compile();
+        let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
@@ -271,7 +263,7 @@ impl Test {
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
-        let program = self.compile();
+        let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }

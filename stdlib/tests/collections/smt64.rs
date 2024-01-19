@@ -2,6 +2,7 @@ use super::{
     Felt, LeafIndex, MerkleStore, SimpleSmt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO,
 };
 use crate::build_test;
+use processor::ExecutionError;
 
 // TEST DATA
 // ================================================================================================
@@ -86,8 +87,13 @@ fn insert() {
     // try to insert an invalid value
     let value = EMPTY_WORD;
     let (init_stack, _, store) = prepare_insert_or_set(index, value, &mut smt);
-    build_test!(source, &init_stack, &[], store, vec![])
-        .expect_error(TestError::ExecutionError("FailedAssertion"));
+    build_test!(source, &init_stack, &[], store, vec![]).expect_error(TestError::ExecutionError(
+        ExecutionError::FailedAssertion {
+            clk: 13,
+            err_code: 0,
+            err_msg: None,
+        },
+    ));
 }
 
 #[test]

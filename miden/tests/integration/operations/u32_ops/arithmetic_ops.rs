@@ -1,4 +1,5 @@
 use super::test_unchecked_execution;
+use processor::ExecutionError;
 use test_utils::{build_op_test, proptest::prelude::*, rand::rand_value, TestError, U32_BOUND};
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
@@ -467,7 +468,7 @@ fn u32div_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
 }
 
 #[test]
@@ -508,7 +509,7 @@ fn u32mod_fail() {
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
 }
 
 #[test]
@@ -554,7 +555,7 @@ fn u32divmod_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    test.expect_error(TestError::ExecutionError("DivideByZero"));
+    test.expect_error(TestError::ExecutionError(ExecutionError::DivideByZero(1)));
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - ARITHMETIC OPERATIONS
