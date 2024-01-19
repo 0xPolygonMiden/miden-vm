@@ -37,10 +37,10 @@ fn p1_trace() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        OverflowTableRow::new(2, ONE, ZERO).to_value(&trace.main_trace, &alphas),
-        OverflowTableRow::new(3, TWO, TWO).to_value(&trace.main_trace, &alphas),
-        OverflowTableRow::new(6, TWO, TWO).to_value(&trace.main_trace, &alphas),
-        OverflowTableRow::new(10, ZERO, ZERO).to_value(&trace.main_trace, &alphas),
+        OverflowTableRow::new(2, ONE, ZERO).to_value(&alphas),
+        OverflowTableRow::new(3, TWO, TWO).to_value(&alphas),
+        OverflowTableRow::new(6, TWO, TWO).to_value(&alphas),
+        OverflowTableRow::new(10, ZERO, ZERO).to_value(&alphas),
     ];
 
     // make sure the first entry is ONE
