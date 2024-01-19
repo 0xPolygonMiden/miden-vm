@@ -39,6 +39,10 @@ impl<'a> MainTrace<'a> {
         }
     }
 
+    pub fn num_rows(&self) -> usize {
+        self.columns.num_rows()
+    }
+
     // SYSTEM COLUMNS
     // --------------------------------------------------------------------------------------------
 

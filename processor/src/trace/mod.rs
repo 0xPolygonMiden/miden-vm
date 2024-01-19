@@ -17,7 +17,7 @@ use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{ChipletsLengths, TraceFragment, TraceLenSummary};
+pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
 
 #[cfg(test)]
 mod tests;
@@ -217,11 +217,10 @@ impl Trace for ExecutionTrace {
         // TODO: build auxiliary columns in multiple threads
 
         // add decoder's running product columns
-        let decoder_aux_columns = self.aux_trace_builders.decoder.build_aux_columns(
-            &self.main_trace,
-            rand_elements,
-            self.program_hash(),
-        );
+        let decoder_aux_columns = self
+            .aux_trace_builders
+            .decoder
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // add stack's running product columns
         let stack_aux_columns =
