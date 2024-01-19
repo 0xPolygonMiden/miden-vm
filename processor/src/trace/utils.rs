@@ -1,7 +1,12 @@
 use super::{Felt, Vec, NUM_RAND_ROWS};
 use crate::chiplets::Chiplets;
 use core::slice;
-use vm_core::utils::uninit_vector;
+use miden_air::trace::main_trace::MainTrace;
+use vm_core::{utils::uninit_vector, FieldElement};
+
+#[cfg(test)]
+use vm_core::{utils::ToElements, Operation};
+use winter_prover::matrix::ColMatrix;
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -242,13 +247,9 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     }
 }
 
-use miden_air::trace::main_trace::MainTrace;
-use vm_core::FieldElement;
 // TEST HELPERS
 // ================================================================================================
-#[cfg(test)]
-use vm_core::{utils::ToElements, Operation};
-use winter_prover::matrix::ColMatrix;
+
 #[cfg(test)]
 pub fn build_span_with_respan_ops() -> (Vec<Operation>, Vec<Felt>) {
     let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
