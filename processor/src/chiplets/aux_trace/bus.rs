@@ -1,7 +1,8 @@
 use super::{
     super::{hasher::HasherLookup, BitwiseLookup, KernelProcLookup, MemoryLookup},
-    BTreeMap, BusTraceBuilder, ColMatrix, Felt, FieldElement, LookupTableRow, Vec,
+    BTreeMap, BusTraceBuilder, Felt, FieldElement, LookupTableRow, Vec,
 };
+use crate::trace::MainTrace;
 
 // CHIPLETS BUS
 // ================================================================================================
@@ -268,7 +269,7 @@ pub(crate) enum ChipletLookup {
 impl LookupTableRow for ChipletLookup {
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         match self {

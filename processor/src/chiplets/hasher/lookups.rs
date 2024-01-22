@@ -1,4 +1,5 @@
-use super::{ColMatrix, Felt, FieldElement, LookupTableRow, StarkField, Vec, ZERO};
+use super::{Felt, FieldElement, LookupTableRow, StarkField, Vec, ZERO};
+use crate::trace::MainTrace;
 use core::ops::Range;
 use miden_air::trace::chiplets::{
     hasher::{
@@ -77,7 +78,7 @@ impl LookupTableRow for HasherLookup {
     /// at least 16 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         let header = self.get_header_value(&alphas[..NUM_HEADER_ALPHAS]);
@@ -162,11 +163,7 @@ fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt
 
 /// Returns the portion of the hasher state at the provided address that is within the provided
 /// column range.
-fn get_hasher_state_at(
-    addr: u32,
-    main_trace: &ColMatrix<Felt>,
-    col_range: Range<usize>,
-) -> Vec<Felt> {
+fn get_hasher_state_at(addr: u32, main_trace: &MainTrace, col_range: Range<usize>) -> Vec<Felt> {
     let row = get_row_from_addr(addr);
     col_range
         .map(|col| main_trace.get(HASHER_STATE_COL_RANGE.start + col, row))
@@ -176,7 +173,7 @@ fn get_hasher_state_at(
 /// Returns the rate portion of the hasher state for the provided row and the next row.
 fn get_adjacent_hasher_rates(
     addr: u32,
-    main_trace: &ColMatrix<Felt>,
+    main_trace: &MainTrace,
 ) -> ([Felt; RATE_LEN], [Felt; RATE_LEN]) {
     let row = get_row_from_addr(addr);
 

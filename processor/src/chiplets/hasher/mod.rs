@@ -1,7 +1,6 @@
 use super::{
-    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
-    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
-    ZERO,
+    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, Felt, FieldElement, HasherState,
+    MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE, ZERO,
 };
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,

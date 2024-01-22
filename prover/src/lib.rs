@@ -7,14 +7,14 @@ use processor::{
         Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace,
+    ExecutionTrace, MainTrace,
 };
 #[cfg(feature = "std")]
 use tracing::{event, instrument, Level};
 use winter_prover::{
-    matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
-    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
-    StarkDomain, TraceInfo, TracePolyTable,
+    AuxTraceRandElements, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
+    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
+    TracePolyTable,
 };
 
 #[cfg(feature = "std")]
@@ -201,7 +201,7 @@ where
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         domain: &StarkDomain<Felt>,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
         DefaultTraceLde::new(trace_info, main_trace, domain)

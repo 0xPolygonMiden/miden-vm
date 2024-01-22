@@ -1,5 +1,5 @@
-use super::{ColMatrix, Felt, FieldElement, StarkField, Word};
-use crate::trace::LookupTableRow;
+use super::{Felt, FieldElement, StarkField, Word};
+use crate::trace::{LookupTableRow, MainTrace};
 
 // CHIPLETS VIRTUAL TABLE
 // ================================================================================================
@@ -52,7 +52,7 @@ impl LookupTableRow for ChipletsVTableRow {
     /// at least 6 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         if let Some(sibling) = self.sibling {
@@ -93,7 +93,7 @@ impl LookupTableRow for SiblingTableRow {
     /// at least 6 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         // when the least significant bit of the index is 0, the sibling will be in the 3rd word
@@ -147,7 +147,7 @@ impl LookupTableRow for KernelProc {
     /// at least 6 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         alphas[0]

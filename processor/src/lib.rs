@@ -55,7 +55,7 @@ use chiplets::Chiplets;
 
 mod trace;
 use trace::TraceFragment;
-pub use trace::{ChipletsLengths, ExecutionTrace, TraceLenSummary};
+pub use trace::{ChipletsLengths, ExecutionTrace, MainTrace, TraceLenSummary};
 
 mod errors;
 pub use errors::{ExecutionError, Ext2InttError};

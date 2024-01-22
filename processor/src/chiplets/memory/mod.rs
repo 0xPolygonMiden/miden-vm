@@ -1,8 +1,8 @@
 use super::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
-    BTreeMap, ChipletsBus, ColMatrix, Felt, FieldElement, RangeChecker, StarkField, TraceFragment,
-    Vec, Word, EMPTY_WORD, ONE,
+    BTreeMap, ChipletsBus, Felt, FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word,
+    EMPTY_WORD, ONE,
 };
 use crate::system::ContextId;
 use miden_air::trace::chiplets::memory::{
@@ -10,6 +10,7 @@ use miden_air::trace::chiplets::memory::{
 };
 
 mod segment;
+use crate::trace::MainTrace;
 use segment::MemorySegmentTrace;
 
 #[cfg(test)]
@@ -333,7 +334,7 @@ impl LookupTableRow for MemoryLookup {
     /// at least 9 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         let word_value = self

@@ -45,6 +45,9 @@ pub struct AuxTraceHints {
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
+// TODO: add documentation
+pub type MainTrace = ColMatrix<Felt>;
+
 /// Execution trace which is generated when a program is executed on the VM.
 ///
 /// The trace consists of the following components:
@@ -55,7 +58,7 @@ pub struct AuxTraceHints {
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
-    main_trace: ColMatrix<Felt>,
+    main_trace: MainTrace,
     aux_trace_hints: AuxTraceHints,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,

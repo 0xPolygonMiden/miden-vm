@@ -1,7 +1,8 @@
 use super::{
-    trace::LookupTableRow, BTreeMap, ChipletsBus, ChipletsVTableTraceBuilder, ColMatrix, Digest,
+    trace::LookupTableRow, BTreeMap, ChipletsBus, ChipletsVTableTraceBuilder, Digest,
     ExecutionError, Felt, FieldElement, Kernel, TraceFragment, Word, ONE, ZERO,
 };
+use crate::trace::MainTrace;
 use miden_air::trace::chiplets::kernel_rom::{KERNEL_PROC_LABEL, TRACE_WIDTH};
 
 #[cfg(test)]
@@ -190,7 +191,7 @@ impl LookupTableRow for KernelProcLookup {
     /// at least 6 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         alphas[0]

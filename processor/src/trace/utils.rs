@@ -1,4 +1,4 @@
-use super::{ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
+use super::{Felt, FieldElement, Vec, NUM_RAND_ROWS};
 use crate::chiplets::Chiplets;
 use core::slice;
 use vm_core::utils::uninit_vector;
@@ -77,7 +77,7 @@ pub trait LookupTableRow {
     /// computed using the provided random values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_values: &[E],
     ) -> E;
 }
@@ -90,7 +90,7 @@ pub trait LookupTableRow {
 /// computationally infeasible.
 pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
     rows: &[R],
-    main_trace: &ColMatrix<Felt>,
+    main_trace: &MainTrace,
     rand_values: &[E],
 ) -> (Vec<E>, Vec<E>) {
     let mut row_values = unsafe { uninit_vector(rows.len()) };
@@ -149,7 +149,7 @@ pub trait AuxColumnBuilder<H: Clone, R: LookupTableRow, U: HintCycle> {
     // --------------------------------------------------------------------------------------------
 
     /// Builds and returns the auxiliary trace column managed by this builder.
-    fn build_aux_column<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E>
+    fn build_aux_column<E>(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E>
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -199,7 +199,7 @@ pub trait AuxColumnBuilder<H: Clone, R: LookupTableRow, U: HintCycle> {
 
     /// Builds and returns row values and their inverses for all rows which were added to the
     /// lookup table managed by this column builder.
-    fn build_row_values<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &MainTrace, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -363,8 +363,10 @@ impl ChipletsLengths {
 
 // TEST HELPERS
 // ================================================================================================
+use crate::trace::MainTrace;
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};
+
 #[cfg(test)]
 pub fn build_span_with_respan_ops() -> (Vec<Operation>, Vec<Felt>) {
     let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();

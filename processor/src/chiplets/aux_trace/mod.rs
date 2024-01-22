@@ -1,12 +1,13 @@
 use super::{
     trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
-    BTreeMap, ColMatrix, Felt, FieldElement, StarkField, Vec, Word,
+    BTreeMap, Felt, FieldElement, StarkField, Vec, Word,
 };
 
 mod bus;
 pub(crate) use bus::{ChipletLookup, ChipletsBus, ChipletsBusRow};
 
 mod virtual_table;
+use crate::trace::MainTrace;
 pub(crate) use virtual_table::{ChipletsVTableRow, ChipletsVTableUpdate};
 
 /// Contains all relevant information and describes how to construct the execution trace for
@@ -32,7 +33,7 @@ impl AuxTraceBuilder {
     /// provided by chiplets in the Chiplets module.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let t_chip = self.table_builder.build_aux_column(main_trace, rand_elements);
@@ -109,7 +110,7 @@ impl AuxColumnBuilder<ChipletsBusRow, ChipletLookup, u32> for BusTraceBuilder {
     /// requests. Since responses are grouped by chiplet, the operation order for the requests and
     /// responses will be permutations of each other rather than sharing the same order. Therefore,
     /// the `row_values` and `inv_row_values` must be built separately.
-    fn build_row_values<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &MainTrace, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {

@@ -1,9 +1,8 @@
 use crate::system::ContextId;
 
 use super::{
-    crypto::MerklePath, trace, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt,
-    FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD,
-    ONE, ZERO,
+    crypto::MerklePath, trace, utils, BTreeMap, ChipletsTrace, ExecutionError, Felt, FieldElement,
+    RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
 use miden_air::trace::chiplets::{
     bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},

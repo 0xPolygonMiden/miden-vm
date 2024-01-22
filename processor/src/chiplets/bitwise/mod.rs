@@ -1,7 +1,8 @@
 use super::{
-    trace::LookupTableRow, utils::get_trace_len, ChipletsBus, ColMatrix, ExecutionError, Felt,
-    FieldElement, StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL, ZERO,
+    trace::LookupTableRow, utils::get_trace_len, ChipletsBus, ExecutionError, Felt, FieldElement,
+    StarkField, TraceFragment, Vec, BITWISE_AND_LABEL, BITWISE_XOR_LABEL, ZERO,
 };
+use crate::trace::MainTrace;
 use miden_air::trace::chiplets::bitwise::{
     A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
     OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
@@ -262,7 +263,7 @@ impl LookupTableRow for BitwiseLookup {
     /// at least 5 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         alphas[0]

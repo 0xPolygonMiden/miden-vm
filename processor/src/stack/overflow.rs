@@ -1,7 +1,7 @@
 use super::{
-    super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, ColMatrix, Felt, FieldElement, Vec,
-    ZERO,
+    super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, Felt, FieldElement, Vec, ZERO,
 };
+use crate::trace::MainTrace;
 use vm_core::{utils::uninit_vector, StarkField};
 
 // OVERFLOW TABLE
@@ -271,7 +271,7 @@ impl LookupTableRow for OverflowTableRow {
     /// at least 4 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         alphas[0]
