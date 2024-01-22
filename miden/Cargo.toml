@@ -47,7 +47,7 @@ sve = ["processor/sve", "prover/sve", "std"]
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.7", default-features = false }
 clap = { version = "4.4", features = ["derive"], optional = true }
-env_logger = { version = "0.10", default-features = false, optional = true }
+env_logger = { version = "0.11", default-features = false, optional = true }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false, optional = true }
 processor = { package = "miden-processor", path = "../processor", version = "0.7", default-features = false }
