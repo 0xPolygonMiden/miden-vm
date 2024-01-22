@@ -2,7 +2,6 @@ use crate::ast::MAX_BODY_LEN;
 
 use super::{
     super::tokens::SourceLocation,
-    check_unused_imports,
     code_body::CodeBody,
     imports::ModuleImports,
     instrument,
@@ -182,7 +181,7 @@ impl ProgramAst {
             return Err(ParsingError::dangling_ops_after_program(token));
         }
 
-        check_unused_imports(context.import_info);
+        context.import_info.check_unused_imports();
 
         let local_procs = sort_procs_into_vec(context.local_procs);
         let (nodes, locations) = body.into_parts();

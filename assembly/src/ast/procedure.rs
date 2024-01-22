@@ -2,7 +2,7 @@ use crate::ast::{MAX_BODY_LEN, MAX_DOCS_LEN};
 
 use super::{
     super::tokens::SourceLocation, code_body::CodeBody, nodes::Node, ByteReader, ByteWriter,
-    Deserializable, DeserializationError, LibraryPath, ProcedureId, ProcedureName, Serializable,
+    Deserializable, DeserializationError, ProcedureId, ProcedureName, Serializable,
 };
 use crate::utils::{collections::*, string::*};
 use core::{iter, str::from_utf8};
@@ -203,11 +203,6 @@ impl ProcReExport {
     /// Returns the documentation of the re-exported procedure, if present.
     pub fn docs(&self) -> Option<&str> {
         self.docs.as_deref()
-    }
-
-    /// Returns the ID of the re-exported procedure using the specified module.
-    pub fn get_alias_id(&self, module_path: &LibraryPath) -> ProcedureId {
-        ProcedureId::from_name(&self.name, module_path)
     }
 }
 

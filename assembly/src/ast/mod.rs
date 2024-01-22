@@ -92,16 +92,3 @@ fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
 
     procedures.into_iter().map(|(_idx, proc)| proc).collect()
 }
-
-/// Logging a warning message for every imported but unused module.
-fn check_unused_imports(import_info: &ModuleImports) {
-    let import_lib_paths = import_info.import_paths();
-    let invoked_procs_paths: Vec<&LibraryPath> =
-        import_info.invoked_procs().iter().map(|(_id, (_name, path))| path).collect();
-
-    for lib in import_lib_paths {
-        if !invoked_procs_paths.contains(&lib) {
-            event!(Level::WARN, "unused import: \"{}\"", lib);
-        }
-    }
-}

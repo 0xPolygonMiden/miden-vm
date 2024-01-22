@@ -1,4 +1,3 @@
-use super::check_unused_imports;
 use super::{
     format::*,
     imports::ModuleImports,
@@ -110,7 +109,7 @@ impl ModuleAst {
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
 
-        check_unused_imports(context.import_info);
+        context.import_info.check_unused_imports();
 
         Ok(Self::new(local_procs, reexported_procs, docs)?.with_import_info(import_info))
     }

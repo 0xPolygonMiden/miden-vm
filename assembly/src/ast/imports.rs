@@ -1,7 +1,7 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, InvokedProcsMap, LibraryPath,
-    ParsingError, ProcedureId, ProcedureName, Serializable, Token, TokenStream, MAX_IMPORTS,
-    MAX_INVOKED_IMPORTED_PROCS,
+    event, ByteReader, ByteWriter, Deserializable, DeserializationError, InvokedProcsMap, Level,
+    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, Token, TokenStream,
+    MAX_IMPORTS, MAX_INVOKED_IMPORTED_PROCS,
 };
 use crate::utils::{collections::*, string::*};
 
@@ -20,6 +20,8 @@ pub struct ModuleImports {
     imports: ImportedModulesMap,
     /// Imported procedures that are called from somewhere in the AST.
     invoked_procs: InvokedProcsMap,
+    /// Library paths of the modules which some of the procedures were reexported from.
+    reexported_modules: BTreeSet<LibraryPath>,
 }
 
 impl ModuleImports {
@@ -30,7 +32,11 @@ impl ModuleImports {
     /// # Panics
     /// Panics if the number of imports is greater than MAX_IMPORTS, or if the number of invoked
     /// procedures is greater than MAX_INVOKED_IMPORTED_PROCS
-    pub fn new(imports: ImportedModulesMap, invoked_procs: InvokedProcsMap) -> Self {
+    pub fn new(
+        imports: ImportedModulesMap,
+        invoked_procs: InvokedProcsMap,
+        reexported_modules: BTreeSet<LibraryPath>,
+    ) -> Self {
         assert!(imports.len() <= MAX_IMPORTS, "too many imports");
         assert!(
             invoked_procs.len() <= MAX_INVOKED_IMPORTED_PROCS,
@@ -39,6 +45,7 @@ impl ModuleImports {
         Self {
             imports,
             invoked_procs,
+            reexported_modules,
         }
     }
 
@@ -72,6 +79,7 @@ impl ModuleImports {
         Ok(Self {
             imports,
             invoked_procs: BTreeMap::new(),
+            reexported_modules: BTreeSet::new(),
         })
     }
 
@@ -128,6 +136,18 @@ impl ModuleImports {
         &self.invoked_procs
     }
 
+    /// Logs a warning message for every imported but unused module.
+    pub(super) fn check_unused_imports(&self) {
+        let invoked_procs_paths: Vec<&LibraryPath> =
+            self.invoked_procs().iter().map(|(_id, (_name, path))| path).collect();
+
+        for lib in self.import_paths() {
+            if !invoked_procs_paths.contains(&lib) && !self.reexported_modules.contains(lib) {
+                event!(Level::WARN, "unused import: \"{}\"", lib);
+            }
+        }
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -160,6 +180,11 @@ impl ModuleImports {
         Ok(proc_id)
     }
 
+    /// Adds the specified library path to the vector of paths from which some procedure was reexported.
+    pub fn add_reexported_module(&mut self, proc_lib_path: &LibraryPath) {
+        self.reexported_modules.insert(proc_lib_path.clone());
+    }
+
     /// Clears all stored information about imported modules and invoked procedures
     pub fn clear(&mut self) {
         self.imports.clear();
@@ -179,6 +204,8 @@ impl Serializable for ModuleImports {
             proc_name.write_into(target);
             lib_path.write_into(target);
         }
+        target.write_usize(self.reexported_modules.len());
+        self.reexported_modules.iter().for_each(|lib| lib.write_into(target));
     }
 }
 
@@ -199,6 +226,11 @@ impl Deserializable for ModuleImports {
             let lib_path = LibraryPath::read_from(source)?;
             used_imported_procs.insert(proc_id, (proc_name, lib_path));
         }
-        Ok(Self::new(imports, used_imported_procs))
+        let num_reexported_modules = source.read_usize()?;
+        let reexported_modules: BTreeSet<LibraryPath> = (0..num_reexported_modules)
+            .map(|_| LibraryPath::read_from(source))
+            .collect::<Result<_, _>>()?;
+
+        Ok(Self::new(imports, used_imported_procs, reexported_modules))
     }
 }
