@@ -139,14 +139,6 @@ impl ModuleAst {
         &self.import_info
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Clears the source locations from this module.
-    pub fn clear_locations(&mut self) {
-        self.local_procs.iter_mut().for_each(|p| p.clear_locations())
-    }
-
     // SERIALIZATION / DESERIALIZATION
     // --------------------------------------------------------------------------------------------
 
@@ -288,6 +280,17 @@ impl ModuleAst {
     /// Clear import info from the module
     pub fn clear_imports(&mut self) {
         self.import_info.clear();
+    }
+
+    /// Clears the source locations from this module.
+    pub fn clear_locations(&mut self) {
+        self.local_procs.iter_mut().for_each(|p| p.clear_locations())
+    }
+
+    /// Clears import info and source locations from this module.
+    pub fn minify(&mut self) {
+        self.clear_imports();
+        self.clear_locations();
     }
 }
 

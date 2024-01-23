@@ -1,4 +1,7 @@
-use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, ModuleAst, Version};
+use super::{
+    AstSerdeOptions, Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, ModuleAst,
+    Version,
+};
 use vm_core::utils::{Deserializable, Serializable, SliceReader};
 
 #[test]
@@ -33,9 +36,9 @@ fn masl_locations_serialization() {
     // create the bundle with locations
     let namespace = LibraryNamespace::new("test").unwrap();
     let version = Version::MIN;
-    let locations = true;
+    let options = AstSerdeOptions::new(true, true);
     let bundle =
-        MaslLibrary::new(namespace, version, locations, modules.clone(), Vec::new()).unwrap();
+        MaslLibrary::new(namespace, version, options, modules.clone(), Vec::new()).unwrap();
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
@@ -45,8 +48,8 @@ fn masl_locations_serialization() {
 
     // create the bundle without locations
     let namespace = LibraryNamespace::new("test").unwrap();
-    let locations = false;
-    let mut bundle = MaslLibrary::new(namespace, version, locations, modules, Vec::new()).unwrap();
+    let options = AstSerdeOptions::new(true, false);
+    let mut bundle = MaslLibrary::new(namespace, version, options, modules, Vec::new()).unwrap();
 
     // serialize/deserialize the bundle
     let mut bytes = Vec::new();
@@ -74,9 +77,9 @@ fn get_module_by_path() {
     // create the bundle with locations
     let namespace = LibraryNamespace::new("test").unwrap();
     let version = Version::MIN;
-    let locations = true;
+    let options = AstSerdeOptions::new(true, true);
     let bundle =
-        MaslLibrary::new(namespace, version, locations, modules.clone(), Vec::new()).unwrap();
+        MaslLibrary::new(namespace, version, options, modules.clone(), Vec::new()).unwrap();
 
     // get AST associated with "test::foo" path
     let foo_ast = bundle.get_module_ast(&LibraryPath::new("test::foo").unwrap()).unwrap();

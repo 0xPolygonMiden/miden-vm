@@ -318,6 +318,19 @@ impl ProgramAst {
         self.import_info.clear();
     }
 
+    /// Clears the source locations from this program.
+    pub fn clear_locations(&mut self) {
+        self.body.clear_locations();
+        self.local_procs.iter_mut().for_each(|p| p.clear_locations());
+        self.start = SourceLocation::default();
+    }
+
+    /// Clears import info and source locations from this program.
+    pub fn minify(&mut self) {
+        self.clear_imports();
+        self.clear_locations();
+    }
+
     // WRITE TO FILE
     // --------------------------------------------------------------------------------------------
 

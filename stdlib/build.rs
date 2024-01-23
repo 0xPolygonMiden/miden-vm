@@ -1,4 +1,7 @@
-use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
+use assembly::{
+    ast::{AstSerdeOptions, ModuleAst},
+    Library, LibraryNamespace, MaslLibrary, Version,
+};
 use std::{collections::BTreeMap, env, fs, io, path::Path};
 
 mod md_renderer;
@@ -25,13 +28,14 @@ type ModuleMap = BTreeMap<String, ModuleAst>;
 fn main() -> io::Result<()> {
     // re-build the `[OUT_DIR]/assets/std.masl` file iff something in the `./asm` directory
     // or its builder changed:
+
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");
 
     let namespace = LibraryNamespace::try_from("std".to_string()).expect("invalid base namespace");
     let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let locations = true; // store & load locations by default
-    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, locations, version)?;
+    let options = AstSerdeOptions::new(true, true); // store & load locations by default
+    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, options, version)?;
     let docs = stdlib
         .modules()
         .map(|module| (module.path.to_string(), module.ast.clone()))

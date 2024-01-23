@@ -1,4 +1,4 @@
-use assembly::{LibraryNamespace, MaslLibrary, Version};
+use assembly::{ast::AstSerdeOptions, LibraryNamespace, MaslLibrary, Version};
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -38,14 +38,10 @@ impl BundleCmd {
         let library_namespace =
             LibraryNamespace::try_from(namespace.clone()).expect("invalid base namespace");
         let version = Version::try_from(self.version.as_ref()).expect("invalid cargo version");
-        let with_source_locations = true;
-        let stdlib = MaslLibrary::read_from_dir(
-            self.dir.clone(),
-            library_namespace,
-            with_source_locations,
-            version,
-        )
-        .map_err(|e| e.to_string())?;
+        let options = AstSerdeOptions::new(true, true);
+        let stdlib =
+            MaslLibrary::read_from_dir(self.dir.clone(), library_namespace, options, version)
+                .map_err(|e| e.to_string())?;
 
         // write the masl output
         stdlib.write_to_dir(self.dir.clone()).map_err(|e| e.to_string())?;

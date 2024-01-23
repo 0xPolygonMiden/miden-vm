@@ -21,8 +21,9 @@ pub struct MaslLibrary {
     namespace: LibraryNamespace,
     /// Version of the library.
     version: Version,
-    /// Flag defining if locations are serialized with the library.
-    has_source_locations: bool,
+    /// Options defining whether imports and source locations should be serialized with the
+    /// library.
+    options: AstSerdeOptions,
     /// Available modules.
     modules: Vec<Module>,
     /// Dependencies of the library.
@@ -68,7 +69,7 @@ impl MaslLibrary {
     pub fn new(
         namespace: LibraryNamespace,
         version: Version,
-        has_source_locations: bool,
+        options: AstSerdeOptions,
         modules: Vec<Module>,
         dependencies: Vec<LibraryNamespace>,
     ) -> Result<Self, LibraryError> {
@@ -93,7 +94,7 @@ impl MaslLibrary {
         Ok(Self {
             namespace,
             version,
-            has_source_locations,
+            options,
             modules,
             dependencies,
         })
@@ -130,7 +131,7 @@ mod use_std {
         pub fn read_from_dir<P>(
             path: P,
             namespace: LibraryNamespace,
-            with_source_locations: bool,
+            options: AstSerdeOptions,
             version: Version,
         ) -> io::Result<Self>
         where
@@ -171,7 +172,7 @@ mod use_std {
             let dependencies =
                 dependencies_set.into_iter().filter(|dep| dep != &namespace).collect();
 
-            Self::new(namespace, version, with_source_locations, modules, dependencies)
+            Self::new(namespace, version, options, modules, dependencies)
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
         }
 
@@ -306,25 +307,20 @@ impl Serializable for MaslLibrary {
         debug_assert!(modules.len() <= MAX_MODULES, "too many modules");
 
         // write the flag whether the source locations should be serialized
-        target.write_bool(self.has_source_locations);
+        self.options.write_into(target);
+        // target.write_bool(self.has_source_locations);
 
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
             LibraryPath::strip_first(&module.path)
                 .expect("module path consists of a single component")
                 .write_into(target);
-            module.ast.write_into(
-                target,
-                AstSerdeOptions {
-                    serialize_imports: true,
-                    serialize_source_locations: self.has_source_locations,
-                },
-            );
+            module.ast.write_into(target, self.options);
         });
 
         // optionally write the locations into the target. given the modules count is already
         // written, we can safely dump the locations structs
-        if self.has_source_locations {
+        if self.options.serialize_source_locations {
             self.modules.iter().for_each(|m| m.write_source_locations(target));
         }
     }
@@ -343,7 +339,7 @@ impl Deserializable for MaslLibrary {
             .collect::<Result<_, _>>()?;
 
         // read the flag whether source locations should be deserialized
-        let has_source_locations = source.read_bool()?;
+        let options = AstSerdeOptions::read_from(source)?;
 
         // read modules
         let num_modules = source.read_u16()? as usize;
@@ -352,23 +348,17 @@ impl Deserializable for MaslLibrary {
             let path = LibraryPath::read_from(source)?
                 .prepend(&namespace)
                 .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
-            let ast = ModuleAst::read_from(
-                source,
-                AstSerdeOptions {
-                    serialize_imports: true,
-                    serialize_source_locations: has_source_locations,
-                },
-            )?;
+            let ast = ModuleAst::read_from(source, options)?;
             modules.push(Module { path, ast });
         }
 
         // for each module, load its locations
-        if has_source_locations {
+        if options.serialize_source_locations {
             modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
         }
 
         let deps = deps_set.into_iter().collect();
-        Self::new(namespace, version, has_source_locations, modules, deps)
+        Self::new(namespace, version, options, modules, deps)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
 }
