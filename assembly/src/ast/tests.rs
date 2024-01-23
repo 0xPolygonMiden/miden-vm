@@ -675,10 +675,9 @@ of the comments is correctly parsed. There was a bug here earlier."
             proc
         );
     }
-    let module_serialized = module.to_bytes(AstSerdeOptions::new(true));
+    let module_serialized = module.to_bytes(AstSerdeOptions::new(true, true));
     let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
-    let module = clear_procs_loc_module(module);
     assert_eq!(module, module_deserialized);
 }
 
@@ -755,7 +754,7 @@ fn test_ast_parsing_module_docs_fail() {
 #[test]
 fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
-    assert_correct_program_serialization(source, true);
+    assert_correct_program_serialization(source, true, true);
 }
 
 #[test]
@@ -771,7 +770,7 @@ fn test_ast_program_serde_local_procs() {
         exec.foo
         exec.bar
     end";
-    assert_correct_program_serialization(source, true);
+    assert_correct_program_serialization(source, true, true);
 }
 
 #[test]
@@ -783,7 +782,7 @@ fn test_ast_program_serde_exported_procs() {
     export.bar.2
         padw
     end";
-    assert_correct_module_serialization(source, true);
+    assert_correct_module_serialization(source, true, true);
 }
 
 #[test]
@@ -815,7 +814,7 @@ fn test_ast_program_serde_control_flow() {
         end
 
     end";
-    assert_correct_program_serialization(source, true);
+    assert_correct_program_serialization(source, true, true);
 }
 
 #[test]
@@ -890,7 +889,7 @@ fn assert_parsing_line_unexpected_token() {
 }
 
 #[test]
-fn test_ast_program_serde_imports_serialized() {
+fn test_ast_program_serde_with_imports_with_locations() {
     let source = "\
     use.std::math::u64
     use.std::crypto::fri
@@ -900,11 +899,11 @@ fn test_ast_program_serde_imports_serialized() {
         push.1
         exec.u64::wrapping_add
     end";
-    assert_correct_program_serialization(source, true);
+    assert_correct_program_serialization(source, true, true);
 }
 
 #[test]
-fn test_ast_program_serde_imports_not_serialized() {
+fn test_ast_program_serde_without_imports_with_locations() {
     let source = "\
     use.std::math::u64
     use.std::crypto::fri
@@ -914,11 +913,39 @@ fn test_ast_program_serde_imports_not_serialized() {
         push.1
         exec.u64::wrapping_add
     end";
-    assert_correct_program_serialization(source, false);
+    assert_correct_program_serialization(source, false, true);
 }
 
 #[test]
-fn test_ast_module_serde_imports_serialized() {
+fn test_ast_program_serde_with_imports_without_locations() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    begin
+        push.0
+        push.1
+        exec.u64::wrapping_add
+    end";
+    assert_correct_program_serialization(source, true, false);
+}
+
+#[test]
+fn test_ast_program_serde_without_imports_without_locations() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    begin
+        push.0
+        push.1
+        exec.u64::wrapping_add
+    end";
+    assert_correct_program_serialization(source, false, false);
+}
+
+#[test]
+fn test_ast_module_serde_with_imports_with_locations() {
     let source = "\
     use.std::math::u64
     use.std::crypto::fri
@@ -928,11 +955,11 @@ fn test_ast_module_serde_imports_serialized() {
         push.1
         exec.u64::wrapping_add
     end";
-    assert_correct_module_serialization(source, true);
+    assert_correct_module_serialization(source, true, true);
 }
 
 #[test]
-fn test_ast_module_serde_imports_not_serialized() {
+fn test_ast_module_serde_without_imports_with_locations() {
     let source = "\
     use.std::math::u64
     use.std::crypto::fri
@@ -942,7 +969,35 @@ fn test_ast_module_serde_imports_not_serialized() {
         push.1
         exec.u64::wrapping_add
     end";
-    assert_correct_module_serialization(source, false);
+    assert_correct_module_serialization(source, false, true);
+}
+
+#[test]
+fn test_ast_module_serde_with_imports_without_locations() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    proc.foo.2
+        push.0
+        push.1
+        exec.u64::wrapping_add
+    end";
+    assert_correct_module_serialization(source, true, false);
+}
+
+#[test]
+fn test_ast_module_serde_without_imports_without_locations() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri
+
+    proc.foo.2
+        push.0
+        push.1
+        exec.u64::wrapping_add
+    end";
+    assert_correct_module_serialization(source, false, false);
 }
 
 #[test]
@@ -961,7 +1016,7 @@ fn test_repeat_with_constant_count() {
         end
     end";
 
-    assert_correct_program_serialization(source, false);
+    assert_correct_program_serialization(source, false, true);
 
     let nodes: Vec<Node> = vec![
         Node::Repeat {
@@ -999,26 +1054,24 @@ fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>
 ///
 /// Currently, the locations are not part of the serialized libraries; thus, they have to be
 /// cleared before testing for equality
-fn clear_procs_loc_module(mut module: ModuleAst) -> ModuleAst {
+fn clear_procs_loc_module(module: &mut ModuleAst) {
     module.local_procs.iter_mut().for_each(|m| {
         m.body.clear_locations();
         m.start = SourceLocation::default();
     });
-    module
 }
 
 /// Clears the proc locations.
 ///
 /// Currently, the locations are not part of the serialized libraries; thus, they have to be
 /// cleared before testing for equality
-fn clear_procs_loc_program(mut program: ProgramAst) -> ProgramAst {
+fn clear_procs_loc_program(program: &mut ProgramAst) {
     program.start = SourceLocation::default();
     program.local_procs.iter_mut().for_each(|m| {
         m.body.clear_locations();
         m.start = SourceLocation::default();
     });
     program.body.clear_locations();
-    program
 }
 
 /// Clears the module's imports.
@@ -1037,13 +1090,21 @@ fn clear_imports_program(program: &mut ProgramAst) {
     program.clear_imports();
 }
 
-fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
+fn assert_correct_program_serialization(
+    source: &str,
+    serialize_imports: bool,
+    serialize_source_locations: bool,
+) {
     let program = ProgramAst::parse(source).unwrap();
 
     // assert the correct program serialization
-    let program_serialized = program.to_bytes(AstSerdeOptions::new(serialize_imports));
+    let program_serialized =
+        program.to_bytes(AstSerdeOptions::new(serialize_imports, serialize_source_locations));
     let mut program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
-    let mut clear_program = clear_procs_loc_program(program.clone());
+    let mut clear_program = program.clone();
+    if !serialize_source_locations {
+        clear_procs_loc_program(&mut clear_program);
+    }
     if !serialize_imports {
         clear_imports_program(&mut clear_program);
     }
@@ -1052,18 +1113,11 @@ fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
     // assert the correct locations serialization
     let mut locations = Vec::new();
     program.write_source_locations(&mut locations);
-
-    // assert empty locations
-    {
-        let mut locations = program_deserialized.source_locations();
-        let start = locations.next().unwrap();
-        assert_eq!(start, &SourceLocation::default());
-        assert!(locations.next().is_none());
+    if !serialize_source_locations {
+        program_deserialized
+            .load_source_locations(&mut SliceReader::new(&locations))
+            .unwrap();
     }
-
-    program_deserialized
-        .load_source_locations(&mut SliceReader::new(&locations))
-        .unwrap();
 
     let program_deserialized = if !serialize_imports {
         program_deserialized.with_import_info(program.import_info().clone())
@@ -1074,11 +1128,19 @@ fn assert_correct_program_serialization(source: &str, serialize_imports: bool) {
     assert_eq!(program, program_deserialized);
 }
 
-fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
+fn assert_correct_module_serialization(
+    source: &str,
+    serialize_imports: bool,
+    serialize_source_locations: bool,
+) {
     let module = ModuleAst::parse(source).unwrap();
-    let module_serialized = module.to_bytes(AstSerdeOptions::new(serialize_imports));
+    let module_serialized =
+        module.to_bytes(AstSerdeOptions::new(serialize_imports, serialize_source_locations));
     let mut module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
-    let mut clear_module = clear_procs_loc_module(module.clone());
+    let mut clear_module = module.clone();
+    if !serialize_source_locations {
+        clear_procs_loc_module(&mut clear_module);
+    }
     if !serialize_imports {
         clear_imports_module(&mut clear_module);
     }
@@ -1087,18 +1149,11 @@ fn assert_correct_module_serialization(source: &str, serialize_imports: bool) {
     // assert the correct locations serialization
     let mut locations = Vec::new();
     module.write_source_locations(&mut locations);
-
-    // assert module locations are empty
-    module_deserialized.procs().iter().for_each(|m| {
-        let mut locations = m.source_locations();
-        let start = locations.next().unwrap();
-        assert_eq!(start, &SourceLocation::default());
-        assert!(locations.next().is_none());
-    });
-
-    module_deserialized
-        .load_source_locations(&mut SliceReader::new(&locations))
-        .unwrap();
+    if !serialize_source_locations {
+        module_deserialized
+            .load_source_locations(&mut SliceReader::new(&locations))
+            .unwrap();
+    }
 
     module_deserialized = if !serialize_imports {
         module_deserialized.with_import_info(module.import_info().clone())

@@ -10,23 +10,29 @@ use super::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serial
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AstSerdeOptions {
     pub serialize_imports: bool,
+    pub serialize_source_locations: bool,
 }
 
 impl AstSerdeOptions {
-    pub const fn new(serialize_imports: bool) -> Self {
-        Self { serialize_imports }
+    pub const fn new(serialize_imports: bool, serialize_source_locations: bool) -> Self {
+        Self {
+            serialize_imports,
+            serialize_source_locations,
+        }
     }
 }
 
 impl Serializable for AstSerdeOptions {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_bool(self.serialize_imports);
+        target.write_bool(self.serialize_source_locations);
     }
 }
 
 impl Deserializable for AstSerdeOptions {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let serialize_imports = source.read_bool()?;
-        Ok(Self::new(serialize_imports))
+        let serialize_source_locations = source.read_bool()?;
+        Ok(Self::new(serialize_imports, serialize_source_locations))
     }
 }

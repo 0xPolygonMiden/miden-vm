@@ -7,16 +7,6 @@ use super::{
 };
 use core::slice::Iter;
 
-// CONSTANT DEFINITIONS
-// ================================================================================================
-//
-
-/// Serialization options for [ModuleAst]. Imports and information about imported procedures are
-/// part of the ModuleAst serialization by default.
-const AST_DEFAULT_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions {
-    serialize_imports: true,
-};
-
 // LIBRARY IMPLEMENTATION FOR MASL FILES
 // ================================================================================================
 
@@ -315,17 +305,25 @@ impl Serializable for MaslLibrary {
         // this assert is OK because maximum number of modules is enforced by Library constructor
         debug_assert!(modules.len() <= MAX_MODULES, "too many modules");
 
+        // write the flag whether the source locations should be serialized
+        target.write_bool(self.has_source_locations);
+
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
             LibraryPath::strip_first(&module.path)
                 .expect("module path consists of a single component")
                 .write_into(target);
-            module.ast.write_into(target, AST_DEFAULT_SERDE_OPTIONS);
+            module.ast.write_into(
+                target,
+                AstSerdeOptions {
+                    serialize_imports: true,
+                    serialize_source_locations: self.has_source_locations,
+                },
+            );
         });
 
         // optionally write the locations into the target. given the modules count is already
         // written, we can safely dump the locations structs
-        target.write_bool(self.has_source_locations);
         if self.has_source_locations {
             self.modules.iter().for_each(|m| m.write_source_locations(target));
         }
@@ -344,6 +342,9 @@ impl Deserializable for MaslLibrary {
             .map(|_| LibraryNamespace::read_from(source))
             .collect::<Result<_, _>>()?;
 
+        // read the flag whether source locations should be deserialized
+        let has_source_locations = source.read_bool()?;
+
         // read modules
         let num_modules = source.read_u16()? as usize;
         let mut modules = Vec::with_capacity(num_modules);
@@ -351,12 +352,17 @@ impl Deserializable for MaslLibrary {
             let path = LibraryPath::read_from(source)?
                 .prepend(&namespace)
                 .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
-            let ast = ModuleAst::read_from(source, AST_DEFAULT_SERDE_OPTIONS)?;
+            let ast = ModuleAst::read_from(
+                source,
+                AstSerdeOptions {
+                    serialize_imports: true,
+                    serialize_source_locations: has_source_locations,
+                },
+            )?;
             modules.push(Module { path, ast });
         }
 
         // for each module, load its locations
-        let has_source_locations = source.read_bool()?;
         if has_source_locations {
             modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
         }

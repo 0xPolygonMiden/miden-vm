@@ -220,6 +220,11 @@ impl ProgramAst {
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
         self.body.nodes().write_into(target);
+
+        // serialize source locations if required
+        if options.serialize_source_locations {
+            self.write_source_locations(target);
+        }
     }
 
     /// Returns byte representation of this [ProgramAst].
@@ -254,10 +259,16 @@ impl ProgramAst {
         let body_len = source.read_u16()? as usize;
         let nodes = Deserializable::read_batch_from(source, body_len)?;
 
-        match Self::new(nodes, local_procs) {
-            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => Ok(res.with_import_info(import_info)),
+        let mut program_ast = Self::new(nodes, local_procs)
+            .map_err(|err| DeserializationError::UnknownError(err.message().clone()))?
+            .with_import_info(import_info);
+
+        // deserialize source locations if required
+        if options.serialize_source_locations {
+            program_ast.load_source_locations(source)?;
         }
+
+        Ok(program_ast)
     }
 
     /// Returns a [ProgramAst] struct deserialized from the provided bytes.
@@ -323,6 +334,7 @@ impl ProgramAst {
 
         let bytes = self.to_bytes(AstSerdeOptions {
             serialize_imports: true,
+            serialize_source_locations: true,
         });
         fs::write(path, bytes)
     }
