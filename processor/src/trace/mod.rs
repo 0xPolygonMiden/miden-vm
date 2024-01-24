@@ -87,8 +87,8 @@ impl ExecutionTrace {
         Self {
             meta: Vec::new(),
             layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
-            main_trace: MainTrace::new(ColMatrix::new(main_trace)),
             aux_trace_builders: aux_trace_hints,
+            main_trace,
             program_info,
             stack_outputs,
             trace_len_summary,
@@ -174,7 +174,7 @@ impl ExecutionTrace {
     #[cfg(test)]
     pub fn test_finalize_trace<H>(
         process: Process<H>,
-    ) -> (Vec<Vec<Felt>>, AuxTraceBuilders, TraceLenSummary)
+    ) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
     where
         H: Host,
     {
@@ -277,7 +277,7 @@ impl Trace for ExecutionTrace {
 fn finalize_trace<H>(
     process: Process<H>,
     mut rng: RpoRandomCoin,
-) -> (Vec<Vec<Felt>>, AuxTraceBuilders, TraceLenSummary)
+) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
 where
     H: Host,
 {
@@ -342,5 +342,7 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    (trace, aux_trace_hints, trace_len_summary)
+    let main_trace = MainTrace::new(ColMatrix::new(trace));
+
+    (main_trace, aux_trace_hints, trace_len_summary)
 }

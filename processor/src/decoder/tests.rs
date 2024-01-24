@@ -1,7 +1,6 @@
 use super::{
     super::{
-        utils::get_trace_len, ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process,
-        StackInputs, Word,
+        ExecutionOptions, ExecutionTrace, Felt, Kernel, Operation, Process, StackInputs, Word,
     },
     build_op_group,
 };
@@ -1202,7 +1201,7 @@ fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, usiz
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
         trace[DECODER_TRACE_RANGE]
@@ -1230,7 +1229,7 @@ fn build_dyn_trace(
     process.execute_code_block(program, &cb_table).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
         trace[DECODER_TRACE_RANGE]
@@ -1264,7 +1263,7 @@ fn build_call_trace(
     process.execute_code_block(program, &cb_table).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     let sys_trace = trace[SYS_TRACE_RANGE]
         .to_vec()
