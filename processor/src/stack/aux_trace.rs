@@ -29,67 +29,46 @@ impl AuxTraceBuilder {
 }
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder {
+    /// Initializes the overflow stack auxiliary column.
     fn init_responses(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
-        init_overflow_table(self, alphas)
+        let mut initial_column_value = E::ONE;
+        for row in self.overflow_table_rows.iter().take(self.num_init_rows) {
+            let value = (*row).to_value(alphas);
+            initial_column_value *= value;
+        }
+        initial_column_value
     }
+
+    /// Removes a row from the stack overflow table.
     fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        stack_overflow_table_removals(main_trace, alphas, i)
+        let is_left_shift = main_trace.is_left_shift(i);
+        let is_non_empty_overflow = main_trace.is_non_empty_overflow(i);
+
+        if is_left_shift && is_non_empty_overflow {
+            let b1 = main_trace.parent_overflow_address(i);
+            let s15_prime = main_trace.stack_element(15, i + 1);
+            let b1_prime = main_trace.parent_overflow_address(i + 1);
+
+            let row = OverflowTableRow::new(b1, s15_prime, b1_prime);
+            row.to_value(alphas)
+        } else {
+            E::ONE
+        }
     }
 
+    /// Adds a row to the stack overflow table.
     fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        stack_overflow_table_inclusions(main_trace, alphas, i)
-    }
-}
+        let is_right_shift = main_trace.is_right_shift(i);
 
-/// Initializes the overflow stack auxiliary column.
-fn init_overflow_table<E>(overflow_table: &AuxTraceBuilder, alphas: &[E]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let mut initial_column_value = E::ONE;
-    for row in overflow_table.overflow_table_rows.iter().take(overflow_table.num_init_rows) {
-        let value = (*row).to_value(alphas);
-        initial_column_value *= value;
-    }
-    initial_column_value
-}
+        if is_right_shift {
+            let k0 = main_trace.clk(i);
+            let s15 = main_trace.stack_element(15, i);
+            let b1 = main_trace.parent_overflow_address(i);
 
-/// Adds a row to the stack overflow table.
-fn stack_overflow_table_inclusions<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let is_right_shift = main_trace.is_right_shift(i);
-
-    if is_right_shift {
-        let k0 = main_trace.clk(i);
-        let s15 = main_trace.stack_element(15, i);
-        let b1 = main_trace.parent_overflow_address(i);
-
-        alphas[0] + alphas[1].mul_base(k0) + alphas[2].mul_base(s15) + alphas[3].mul_base(b1)
-    } else {
-        E::ONE
-    }
-}
-
-/// Removes a row from the stack overflow table.
-fn stack_overflow_table_removals<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let is_left_shift = main_trace.is_left_shift(i);
-    let is_non_empty_overflow = main_trace.is_non_empty_overflow(i);
-
-    if is_left_shift && is_non_empty_overflow {
-        let b1 = main_trace.parent_overflow_address(i);
-        let s15_prime = main_trace.stack_element(15, i + 1);
-        let b1_prime = main_trace.parent_overflow_address(i + 1);
-
-        alphas[0]
-            + alphas[1].mul_base(b1)
-            + alphas[2].mul_base(s15_prime)
-            + alphas[3].mul_base(b1_prime)
-    } else {
-        E::ONE
+            let row = OverflowTableRow::new(k0, s15, b1);
+            row.to_value(alphas)
+        } else {
+            E::ONE
+        }
     }
 }

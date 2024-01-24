@@ -240,7 +240,7 @@ impl Stack {
 
         // Update the overflow table.
         let to_overflow = self.trace.get_stack_value_at(self.clk, MAX_TOP_IDX);
-        self.overflow.push(to_overflow, self.clk as u64);
+        self.overflow.push(to_overflow, Felt::from(self.clk));
 
         // Stack depth always increases on right shift.
         self.active_depth += 1;

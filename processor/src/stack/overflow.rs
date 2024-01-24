@@ -16,9 +16,6 @@ pub struct OverflowTable {
     /// A list of indices into the `all_rows` vector which describes the rows currently in the
     /// overflow table.
     active_rows: Vec<usize>,
-    /// A list of updates made to the overflow table during program execution. For each update we
-    /// also track the cycle at which the update happened.
-    update_trace: Vec<(u64, OverflowTableUpdate)>,
     /// A map which records the full state of the overflow table at every cycle during which an
     /// update happened. This map is populated only when `trace_enabled` = true.
     trace: BTreeMap<u64, Vec<Felt>>,
@@ -42,7 +39,6 @@ impl OverflowTable {
         Self {
             all_rows: Vec::new(),
             active_rows: Vec::new(),
-            update_trace: Vec::new(),
             trace: BTreeMap::new(),
             trace_enabled: enable_trace,
             num_init_rows: 0,
@@ -62,7 +58,7 @@ impl OverflowTable {
 
         let mut clk = Felt::MODULUS - init_values.len() as u64;
         for &val in init_values.iter().rev() {
-            overflow_table.push(val, clk);
+            overflow_table.push(val, Felt::new(clk));
             clk += 1;
         }
 
@@ -75,12 +71,12 @@ impl OverflowTable {
     /// Pushes the specified value into the overflow table.
     ///
     /// Parameter clk specifies the clock cycle at which the value is added to the table.
-    pub fn push(&mut self, value: Felt, clk: u64) {
+    pub fn push(&mut self, value: Felt, clk: Felt) {
         // ZERO address indicates that the overflow table is empty, and thus, no actual value
         // should be inserted into the table with this address. This is not a problem since for
         // every real program, we first execute an operation marking the start of a code block,
         // and thus, no operation can shift the stack to the right at clk = 0.
-        debug_assert_ne!(clk, 0, "cannot add value to overflow at clk=0");
+        debug_assert_ne!(clk, ZERO, "cannot add value to overflow at clk=0");
 
         // create and record the new row, and also put it at the top of the overflow table
         let row_idx = self.all_rows.len() as u32;
@@ -89,14 +85,11 @@ impl OverflowTable {
         self.active_rows.push(row_idx as usize);
 
         // set the last row address to the address of the newly added row
-        self.last_row_addr = Felt::from(clk);
-
-        // mark this clock cycle as the cycle at which a new row was inserted into the table
-        self.update_trace.push((clk, OverflowTableUpdate::RowInserted(row_idx)));
+        self.last_row_addr = clk;
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.save_current_state(clk);
+            self.save_current_state(clk.as_int());
         }
     }
 
@@ -118,10 +111,6 @@ impl OverflowTable {
         // last row address points to the next row in the current execution context.
         let removed_value = last_row.val;
         self.last_row_addr = last_row.prev;
-
-        // mark this clock cycle as the clock cycle at which a row was removed from the table
-        self.update_trace
-            .push((clk, OverflowTableUpdate::RowRemoved(last_row_idx as u32)));
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
@@ -252,12 +241,8 @@ pub struct OverflowTableRow {
 }
 
 impl OverflowTableRow {
-    pub fn new(clk: u64, val: Felt, prev: Felt) -> Self {
-        Self {
-            val,
-            clk: Felt::from(clk),
-            prev,
-        }
+    pub fn new(clk: Felt, val: Felt, prev: Felt) -> Self {
+        Self { val, clk, prev }
     }
 }
 
@@ -270,18 +255,4 @@ impl OverflowTableRow {
             + alphas[2].mul_base(self.val)
             + alphas[3].mul_base(self.prev)
     }
-}
-
-// OVERFLOW TABLE UPDATES
-// ================================================================================================
-
-/// Describes an update to the stack overflow table. There could be two types of updates:
-/// - A single row can be added to the table. This happens during a right shift.
-/// - A single row can be removed from the table. This happens during a left shift.
-///
-/// For each update we also record the index of the row that was added/removed from the table.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum OverflowTableUpdate {
-    RowInserted(u32),
-    RowRemoved(u32),
 }
