@@ -4,7 +4,7 @@ use test_utils::{
     stack_to_ints, stack_top_to_ints, Felt, StarkField, Word, ONE, ZERO,
 };
 
-type AdvMapEntry = ([u8; 32], Vec<Felt>);
+type AdvMapEntry = (RpoDigest, Vec<Felt>);
 
 // CONSTANTS
 // ================================================================================================
@@ -148,14 +148,14 @@ fn assert_get(smt: &TieredSmt, key: RpoDigest, value: Word) {
         .expect_stack(&expected_output);
 }
 
-fn build_advice_inputs(smt: &TieredSmt) -> (MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+fn build_advice_inputs(smt: &TieredSmt) -> (MerkleStore, Vec<(RpoDigest, Vec<Felt>)>) {
     let store = MerkleStore::from(smt);
     let advice_map = smt
         .upper_leaves()
         .map(|(node, key, value)| {
             let mut elements = key.as_elements().to_vec();
             elements.extend(&value);
-            (node.as_bytes(), elements)
+            (node, elements)
         })
         .collect::<Vec<_>>();
 

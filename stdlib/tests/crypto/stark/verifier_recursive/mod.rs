@@ -19,7 +19,7 @@ pub struct VerifierData {
     pub initial_stack: Vec<u64>,
     pub tape: Vec<u64>,
     pub store: MerkleStore,
-    pub advice_map: Vec<([u8; 32], Vec<Felt>)>,
+    pub advice_map: Vec<(RpoDigest, Vec<Felt>)>,
 }
 
 pub fn generate_advice_inputs(

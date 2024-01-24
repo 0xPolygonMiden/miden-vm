@@ -1,4 +1,5 @@
 use crate::build_test;
+use processor::Digest;
 use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
 
 mod channel;
@@ -44,7 +45,7 @@ fn fri_fold4_ext2_remainder32() {
         remainder,
     );
 
-    let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_maps);
+    let advice_map: BTreeMap<Digest, Vec<Felt>> = BTreeMap::from_iter(advice_maps);
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();
@@ -92,7 +93,7 @@ fn fri_fold4_ext2_remainder64() {
         remainder,
     );
 
-    let advice_map: BTreeMap<[u8; 32], Vec<Felt>> = BTreeMap::from_iter(advice_maps);
+    let advice_map: BTreeMap<Digest, Vec<Felt>> = BTreeMap::from_iter(advice_maps);
     let domain_generator = Felt::get_root_of_unity(domain_size.ilog2()).as_int();
 
     let mut store = MerkleStore::new();

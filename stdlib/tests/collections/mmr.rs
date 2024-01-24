@@ -380,9 +380,9 @@ fn test_mmr_unpack() {
     map_data.extend_from_slice(&[number_of_leaves.into(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
-    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash.as_bytes(), map_data),
+        (hash, map_data),
     ];
 
     let source = "
@@ -445,9 +445,9 @@ fn test_mmr_unpack_invalid_hash() {
     map_data.extend_from_slice(&[Felt::new(0b10101), ZERO, ZERO, ZERO]); // 3 peaks, 21 leaves
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
-    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash.as_bytes(), map_data),
+        (hash, map_data),
     ];
 
     let source = "
@@ -504,9 +504,9 @@ fn test_mmr_unpack_large_mmr() {
     map_data.extend_from_slice(&[number_of_leaves.into(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
-    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash.as_bytes(), map_data),
+        (hash, map_data),
     ];
 
     let source = "
@@ -567,9 +567,9 @@ fn test_mmr_pack_roundtrip() {
     map_data.extend_from_slice(&[Felt::new(accumulator.num_leaves() as u64), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(digests_to_elements(&hash_data).as_ref());
 
-    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash.as_bytes(), map_data),
+        (hash, map_data),
     ];
 
     let source = "
@@ -619,7 +619,7 @@ fn test_mmr_pack() {
     hash_data.resize(16 * 4, ZERO); // padding data
 
     let hash = hash_elements(&hash_data);
-    let hash_u8 = hash.as_bytes();
+    let hash_u8 = hash;
 
     let mut expect_data: Vec<Felt> = Vec::new();
     expect_data.extend_from_slice(&[Felt::new(3), ZERO, ZERO, ZERO]); // num_leaves
@@ -765,9 +765,9 @@ fn test_mmr_large_add_roundtrip() {
     map_data.extend_from_slice(&[Felt::from(num_leaves), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&digests_to_elements(&hash_data));
 
-    let advice_map: &[([u8; 32], Vec<Felt>)] = &[
+    let advice_map: &[(RpoDigest, Vec<Felt>)] = &[
         // Under the MMR key is the number_of_leaves, followed by the MMR peaks, and any padding
-        (hash.as_bytes(), map_data),
+        (hash, map_data),
     ];
 
     let source = format!(

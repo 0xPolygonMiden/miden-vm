@@ -33,7 +33,7 @@ fn generate_test(keypair: KeyPair, message: Word) -> Test {
     let pk_sk_bytes = keypair.to_bytes();
     let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    let advice_map: Vec<([u8; 32], Vec<Felt>)> = vec![(pk.as_bytes(), to_adv_map.into())];
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map.into())];
 
     let message = message.into_iter().map(|a| a.as_int() as u64).collect::<Vec<u64>>();
 

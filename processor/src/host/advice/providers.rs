@@ -1,7 +1,6 @@
 use super::{
-    injectors, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt,
-    IntoBytes, KvMap, MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField,
-    StoreNode, Vec, Word,
+    injectors, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, KvMap,
+    MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec, Word,
 };
 use crate::ProcessState;
 use vm_core::SignatureKind;
@@ -12,8 +11,8 @@ use vm_core::SignatureKind;
 type SimpleMerkleMap = BTreeMap<RpoDigest, StoreNode>;
 type RecordingMerkleMap = RecordingMap<RpoDigest, StoreNode>;
 
-type SimpleAdviceMap = BTreeMap<[u8; 32], Vec<Felt>>;
-type RecordingAdviceMap = RecordingMap<[u8; 32], Vec<Felt>>;
+type SimpleAdviceMap = BTreeMap<RpoDigest, Vec<Felt>>;
+type RecordingAdviceMap = RecordingMap<RpoDigest, Vec<Felt>>;
 
 // BASE ADVICE PROVIDER
 // ================================================================================================
@@ -23,7 +22,7 @@ type RecordingAdviceMap = RecordingMap<[u8; 32], Vec<Felt>>;
 #[derive(Debug, Clone, Default)]
 pub struct BaseAdviceProvider<M, S>
 where
-    M: KvMap<[u8; 32], Vec<Felt>>,
+    M: KvMap<RpoDigest, Vec<Felt>>,
     S: KvMap<RpoDigest, StoreNode>,
 {
     stack: Vec<Felt>,
@@ -33,7 +32,7 @@ where
 
 impl<M, S> From<AdviceInputs> for BaseAdviceProvider<M, S>
 where
-    M: KvMap<[u8; 32], Vec<Felt>>,
+    M: KvMap<RpoDigest, Vec<Felt>>,
     S: KvMap<RpoDigest, StoreNode>,
 {
     fn from(inputs: AdviceInputs) -> Self {
@@ -41,7 +40,7 @@ where
         stack.reverse();
         Self {
             stack,
-            map: map.into_iter().collect(),
+            map: map.get_inner_map().clone().into_iter().collect(),
             store: store.inner_nodes().collect(),
         }
     }
@@ -49,7 +48,7 @@ where
 
 impl<M, S> AdviceProvider for BaseAdviceProvider<M, S>
 where
-    M: KvMap<[u8; 32], Vec<Felt>>,
+    M: KvMap<RpoDigest, Vec<Felt>>,
     S: KvMap<RpoDigest, StoreNode>,
 {
     // ADVICE STACK
@@ -92,10 +91,8 @@ where
                 self.stack.extend(word.iter().rev());
             }
             AdviceSource::Map { key, include_len } => {
-                let values = self
-                    .map
-                    .get(&key.into_bytes())
-                    .ok_or(ExecutionError::AdviceMapKeyNotFound(key))?;
+                let values =
+                    self.map.get(&key.into()).ok_or(ExecutionError::AdviceMapKeyNotFound(key))?;
 
                 self.stack.extend(values.iter().rev());
                 if include_len {
@@ -115,7 +112,7 @@ where
     ) -> Result<Vec<Felt>, ExecutionError> {
         let pk_sk = self
             .map
-            .get(&pub_key.into_bytes())
+            .get(&pub_key.into())
             .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
 
         match kind {
@@ -126,12 +123,12 @@ where
     // ADVICE MAP
     // --------------------------------------------------------------------------------------------
 
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         self.map.get(key).map(|v| v.as_slice())
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
-        self.map.insert(key.into_bytes(), values);
+        self.map.insert(key.into(), values);
         Ok(())
     }
 
@@ -303,7 +300,7 @@ impl AdviceProvider for MemAdviceProvider {
         self.provider.get_signature(kind, pub_key, msg)
     }
 
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
 
@@ -428,7 +425,7 @@ impl AdviceProvider for RecAdviceProvider {
         self.provider.get_signature(kind, pub_key, msg)
     }
 
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         self.provider.get_mapped_values(key)
     }
 

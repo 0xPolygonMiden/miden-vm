@@ -248,9 +248,8 @@ fn get_smt_upper_leaf_preimage<A: AdviceProvider>(
     advice_provider: &A,
     node: Word,
 ) -> Result<(Word, Word), ExecutionError> {
-    let node_bytes = RpoDigest::from(node).as_bytes();
     let kv = advice_provider
-        .get_mapped_values(&node_bytes)
+        .get_mapped_values(&node.into())
         .ok_or(ExecutionError::AdviceMapKeyNotFound(node))?;
 
     if kv.len() != WORD_SIZE * 2 {
