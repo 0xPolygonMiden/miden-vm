@@ -1,11 +1,51 @@
 const.DEPTH=64
 
+#! Input:  [V, K, R, ...]
+#! Output: [V_old, R_new, ...]
+export.set
+    adv.push_smtpeek adv_push.4
+    # => [V_old, V, K, R]
+
+    padw eqw
+    # => [V_old == ZERO, ZERO, V_old, V, K, R]
+
+    if.true
+        # empty leaf
+
+        dropw dropw
+        #=> [V, K, R]
+
+        # Update advice map with new leaf preimage
+        # adv_map[hash(K, V)] = [K, V]
+        adv.insert_hdword
+        #=> [V, K, R]
+
+        # Prepare stack for `mtree_set`
+        movupw.2 dup.11 push.DEPTH
+        #=> [depth, K[3], R, V, K]
+
+        # Insert node in Merkle store
+        mtree_set
+        #=> [V_in_leaf, R_new, K]
+
+        # Check that V_in_leaf is indeed empty
+        padw assert_eqw
+        #=> [R_new, K]
+
+        # Prepare stack for return
+        swapw dropw padw
+        #=> [ZERO, R_new]
+    else
+        # Single or Multiple leaf
+    end
+end
+
 #! Input:  [K, R, ...]
 #! Output: [V, R, ...]
 export.get
     # Prepare for `mtree_get`
     # TODO: Confirm K[3] is indeed the MSB (i.e. are words pushed in reversed order on stack?)
-    dupw.1 dup.6 push.DEPTH
+    dupw.1 dup.7 push.DEPTH
     # => [depth, K[3], R, K, R]
 
     # Retrieve node value from merkle store
@@ -36,6 +76,9 @@ export.get
         if.true
             # Single kv-pair case
 
+            # TODO: Does `adv_push` return `K, V` or `V, K`?
+            # As of currently, the order of inputs to `hmerge` below are
+            # inverted; `hmerge` should act on `[V, K]`.
             # Push leaf pre-image on stack (single K-V pair)
             drop adv_push.8
             # => [K, V, NV, K, R]
