@@ -16,8 +16,7 @@ use super::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
     STACK_TRACE_OFFSET,
 };
-use core::ops::Range;
-use std::ops::Deref;
+use core::ops::{Range, Deref};
 use vm_core::{utils::range, Felt, ONE, ZERO};
 
 // CONSTANTS
