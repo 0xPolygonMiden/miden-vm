@@ -37,6 +37,64 @@ export.set
         #=> [ZERO, R_new]
     else
         # Single or Multiple leaf
+
+        dropw
+        # => [V_old, V, K, R]
+
+        # Retrieve leaf pre-image on advice stack, and push leaf size on stack
+        adv.push_mapval adv_push.1
+        # => [leaf_size, V_old, V, K, R]
+
+        # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
+        dup eq.8
+        # => [is_single_kv_pair, leaf_size, V_old, V, K, R]
+        
+        if.true
+            #  Single kv-pair case
+
+            drop dropw adv_push.8
+            # => [K_in_leaf, V_old ,V, K, R]
+
+            # Check if the key stored in the leaf is the same
+            dupw.3 dupw.1 eqw
+            # => [K_in_leaf==K, K_in_leaf, V_old, V, K, R]
+
+            if.true
+                # Leaf stays a "single" variant
+
+                dropw
+                # => [V_old, V, K, R]
+
+                # Update advice map
+                movupw.2 movupw.2 adv.insert_hdword
+                # => [V, K, V_old, R]
+
+                # Prepare stack to update Merkle store
+                movupw.3 dup.11 push.DEPTH
+                # => [depth, K[3], R, V, K, V_old]
+
+                # Update Merkle store
+                mtree_set
+                # => [V_old_from_set, R_new, K, V_old_from_peek]
+
+                # Confirm that claimed `V_old` from `adv.push_smtpeek` is correct
+                movupw.3 dupw.1 assert_eqw
+                # => [V_old, R_new, K]
+
+                # Clean up stack for return
+                movupw.2 dropw
+                # => [V_old, R_new]
+            else
+                # Leaf becomes a Multiple kv-pair case
+                # TODO (fail for now)
+                push.1 assertz
+            end
+
+        else
+            # Multiple kv-pair case
+            # TODO (fail for now)
+            push.1 assertz
+        end
     end
 end
 
