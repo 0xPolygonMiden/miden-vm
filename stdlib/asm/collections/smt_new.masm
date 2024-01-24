@@ -1,4 +1,4 @@
-const.DEPTH=64
+const.LEAF_DEPTH=64
 
 #! Input:  [V, K, R, ...]
 #! Output: [V_old, R_new, ...]
@@ -21,7 +21,7 @@ export.set
         #=> [V, K, R]
 
         # Prepare stack for `mtree_set`
-        movupw.2 dup.11 push.DEPTH
+        movupw.2 dup.11 push.LEAF_DEPTH
         #=> [depth, K[3], R, V, K]
 
         # Insert node in Merkle store
@@ -70,7 +70,7 @@ export.set
                 # => [V, K, V_old, R]
 
                 # Prepare stack to update Merkle store
-                movupw.3 dup.11 push.DEPTH
+                movupw.3 dup.11 push.LEAF_DEPTH
                 # => [depth, K[3], R, V, K, V_old]
 
                 # Update Merkle store
@@ -102,7 +102,7 @@ end
 #! Output: [V, R, ...]
 export.get
     # Prepare for `mtree_get`
-    dupw.1 dup.7 push.DEPTH
+    dupw.1 dup.7 push.LEAF_DEPTH
     # => [depth, K[3], R, K, R]
 
     # Retrieve node value from merkle store
