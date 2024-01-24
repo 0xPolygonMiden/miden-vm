@@ -4,7 +4,8 @@ use super::{
     ZERO,
 };
 
-use crate::{ColMatrix, StackInputs};
+use crate::{StackInputs};
+use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
@@ -188,7 +189,7 @@ impl SiblingTableRow {
     /// at least 6 alpha values.
     pub fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         // when the least significant bit of the index is 0, the sibling will be in the 3rd word

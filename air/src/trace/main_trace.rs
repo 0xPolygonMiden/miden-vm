@@ -17,6 +17,7 @@ use super::{
     STACK_TRACE_OFFSET,
 };
 use core::ops::Range;
+use std::ops::Deref;
 use vm_core::{utils::range, Felt, ONE, ZERO};
 
 // CONSTANTS
@@ -28,12 +29,20 @@ const DECODER_HASHER_RANGE: Range<usize> =
 // HELPER STRUCT AND METHODS
 // ================================================================================================
 
-pub struct MainTrace<'a> {
-    columns: &'a ColMatrix<Felt>,
+pub struct MainTrace {
+    columns: ColMatrix<Felt>,
 }
 
-impl<'a> MainTrace<'a> {
-    pub fn new(main_trace: &'a ColMatrix<Felt>) -> Self {
+impl Deref for MainTrace {
+    type Target = ColMatrix<Felt>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.columns
+    }
+}
+
+impl MainTrace {
+    pub fn new(main_trace: ColMatrix<Felt>) -> Self {
         Self {
             columns: main_trace,
         }

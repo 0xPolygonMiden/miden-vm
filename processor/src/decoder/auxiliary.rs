@@ -8,7 +8,6 @@ use miden_air::trace::{
 };
 
 use vm_core::{crypto::hash::RpoDigest, FieldElement, Operation};
-use winter_prover::matrix::ColMatrix;
 
 // CONSTANTS
 // ================================================================================================
@@ -39,7 +38,7 @@ impl AuxTraceBuilder {
     /// stack, block hash, and op group tables respectively.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let block_stack_column_builder = BlockStackColumnBuilder::default();

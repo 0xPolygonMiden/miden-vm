@@ -6,7 +6,6 @@ use vm_core::{utils::uninit_vector, FieldElement};
 
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};
-use winter_prover::matrix::ColMatrix;
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -221,8 +220,7 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     }
 
     /// Builds the chiplets bus auxiliary trace column.
-    fn build_aux_column(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E> {
-        let main_trace = MainTrace::new(main_trace);
+    fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E> {
         let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
 

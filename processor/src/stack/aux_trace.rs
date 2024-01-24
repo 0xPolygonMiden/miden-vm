@@ -1,6 +1,6 @@
 use crate::trace::AuxColumnBuilder;
 
-use super::{ColMatrix, Felt, FieldElement, OverflowTableRow, Vec};
+use super::{Felt, FieldElement, OverflowTableRow, Vec};
 use miden_air::trace::main_trace::MainTrace;
 
 // AUXILIARY TRACE BUILDER
@@ -20,7 +20,7 @@ impl AuxTraceBuilder {
     /// column p1 describing states of the stack overflow table.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let p1 = self.build_aux_column(main_trace, rand_elements);
