@@ -102,7 +102,6 @@ end
 #! Output: [V, R, ...]
 export.get
     # Prepare for `mtree_get`
-    # TODO: Confirm K[3] is indeed the MSB (i.e. are words pushed in reversed order on stack?)
     dupw.1 dup.7 push.DEPTH
     # => [depth, K[3], R, K, R]
 
