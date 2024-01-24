@@ -1,0 +1,63 @@
+const.DEPTH=64
+
+#! Input:  [K, R, ...]
+#! Output: [V, R, ...]
+export.get
+    # Prepare for `mtree_get`
+    # TODO: Confirm K[3] is indeed the MSB (i.e. are words pushed in reversed order on stack?)
+    dupw.1 dup.6 push.DEPTH
+    # => [depth, K[3], R, K, R]
+
+    # Retrieve node value from merkle store
+    mtree_get swapw dropw
+    # => [NV, K, R]
+
+    # Check if value is empty; if so, return empty value
+    padw eqw
+    # => [NV == 0, ZERO, V, K, R]
+
+    if.true
+        # Return empty value
+        dropw swapw dropw
+        # => [NV, R]
+    else
+        # Drop extra ZERO word
+        dropw
+        # => [NV, K, R]
+
+        # Prepare the stack to look up the leaf pre-image from the advice map
+        # The leaf index is constructed by taking the most significant felt from the key
+        # TODO: push 0's before or after key[3]?
+        swapw dup.3 push.0 push.0 push.0
+        # => [LEAF_INDEX, K, NV, R]
+
+        # Get leaf pre-image from advice map. Push the leaf preimage size on the stack
+        adv.push_mapvaln dropw dropw adv_push.1
+        # => [leaf_size, NV, R]
+
+        # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
+        dup eq.8
+        # => [is_single_kv_pair, leaf_size, NV, R]
+
+        if.true
+            # Single kv-pair case
+            # Hash preimage and confirm that it matches the node value
+
+            # Push leaf pre-image on stack (single K-V pair)
+            drop adv_push.8
+            # => [K, V, NV, R]
+
+            # Duplicate V to return it after hash check
+            dupw.1 mvdnw.3
+            # => [K, V, NV, V, R]
+
+            # Hash preimage and ensure that it equals node value
+            hash assert_eqw
+            # => [V, R]
+        else
+            # Multiple kv-pair case
+            # TODO (fail for now)
+            push.1 assertz
+        end
+    end
+end
