@@ -48,7 +48,7 @@ export.get
             # => [K, V, NV, R]
 
             # Duplicate V to return it after hash check
-            dupw.1 mvdnw.3
+            dupw.1 movdnw.3
             # => [K, V, NV, V, R]
 
             # Hash preimage and ensure that it equals node value
