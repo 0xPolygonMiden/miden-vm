@@ -1,5 +1,8 @@
 use super::*;
-use miden_core::crypto::{hash::RpoDigest, merkle::Smt};
+use miden_core::{
+    crypto::{hash::RpoDigest, merkle::Smt},
+    utils::Serializable,
+};
 
 // TEST DATA
 // ================================================================================================
@@ -26,7 +29,11 @@ fn test_smt_get() {
         let expected_output = build_expected_stack(value, smt.root().into());
 
         let store = MerkleStore::from(smt);
-        build_test!(source, &initial_stack, &[], store, vec![]).expect_stack(&expected_output);
+        let advice_map: Vec<([u8; 32], Vec<Felt>)> = LEAVES
+            .iter()
+            .map(|(key, value)| (key.to_bytes().try_into().unwrap(), value.to_vec()))
+            .collect();
+        build_test!(source, &initial_stack, &[], store, advice_map).expect_stack(&expected_output);
     }
 
     let smt = Smt::with_entries(LEAVES).unwrap();
