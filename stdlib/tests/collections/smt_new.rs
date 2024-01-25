@@ -1,8 +1,5 @@
 use super::*;
-use miden_core::{
-    crypto::{hash::RpoDigest, merkle::Smt},
-    utils::Serializable,
-};
+use miden_core::crypto::{hash::RpoDigest, merkle::Smt};
 
 // TEST DATA
 // ================================================================================================
@@ -28,11 +25,7 @@ fn test_smt_get() {
         append_word_to_vec(&mut initial_stack, key.into());
         let expected_output = build_expected_stack(value, smt.root().into());
 
-        let store = MerkleStore::from(smt);
-        let advice_map: Vec<([u8; 32], Vec<Felt>)> = LEAVES
-            .iter()
-            .map(|(key, value)| (key.to_bytes().try_into().unwrap(), value.to_vec()))
-            .collect();
+        let (store, advice_map) = build_advice_inputs(smt);
         build_test!(source, &initial_stack, &[], store, advice_map).expect_stack(&expected_output);
     }
 
@@ -69,26 +62,28 @@ fn test_smt_set() {
     let mut old_roots = Vec::new();
     for (key, value) in LEAVES {
         old_roots.push(smt.root());
-        let (init_stack, final_stack, store) = prepare_insert_or_set(key, value, &mut smt);
-        build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
+        let (init_stack, final_stack, store, advice_map) =
+            prepare_insert_or_set(key, value, &mut smt);
+        build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
     }
 
     // update one of the previously inserted values (on a cloned tree)
     let mut smt2 = smt.clone();
     let key = LEAVES[0].0;
     let value = [42323_u64.into(); 4];
-    let (init_stack, final_stack, store) = prepare_insert_or_set(key, value, &mut smt2);
-    build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
+    let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt2);
+    build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
 
     // setting to [ZERO; 4] should return the tree to the prior state
     for (key, old_value) in LEAVES.iter().rev() {
         let value = EMPTY_WORD;
-        let (init_stack, final_stack, store) = prepare_insert_or_set(*key, value, &mut smt);
+        let (init_stack, final_stack, store, advice_map) =
+            prepare_insert_or_set(*key, value, &mut smt);
 
         let expected_final_stack =
             build_expected_stack(*old_value, old_roots.pop().unwrap().into());
         assert_eq!(expected_final_stack, final_stack);
-        build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
+        build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
     }
 
     assert_eq!(smt.root(), empty_tree_root);
@@ -101,7 +96,7 @@ fn prepare_insert_or_set(
     key: RpoDigest,
     value: Word,
     smt: &mut Smt,
-) -> (Vec<u64>, Vec<u64>, MerkleStore) {
+) -> (Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
     // set initial state of the stack to be [VALUE, KEY, ROOT, ...]
     let mut initial_stack = Vec::new();
     append_word_to_vec(&mut initial_stack, smt.root().into());
@@ -109,13 +104,26 @@ fn prepare_insert_or_set(
     append_word_to_vec(&mut initial_stack, value);
 
     // build a Merkle store for the test before the tree is updated, and then update the tree
-    let store: MerkleStore = (&*smt).into();
+    let (store, advice_map) = build_advice_inputs(smt);
     let old_value = smt.insert(key, value);
 
     // after insert or set, the stack should be [OLD_VALUE, ROOT, ...]
     let expected_output = build_expected_stack(old_value, smt.root().into());
 
-    (initial_stack, expected_output, store)
+    (initial_stack, expected_output, store, advice_map)
+}
+
+fn build_advice_inputs(smt: &Smt) -> (MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+    let store = MerkleStore::from(smt);
+    let advice_map = smt
+        .leaves()
+        .map(|(_, leaf)| {
+            let leaf_hash = leaf.hash();
+            (leaf_hash.as_bytes(), leaf.to_elements())
+        })
+        .collect::<Vec<_>>();
+
+    (store, advice_map)
 }
 
 fn build_expected_stack(word0: Word, word1: Word) -> Vec<u64> {
