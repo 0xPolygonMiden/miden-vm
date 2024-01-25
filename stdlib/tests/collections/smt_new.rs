@@ -5,9 +5,15 @@ use miden_core::crypto::{hash::RpoDigest, merkle::Smt};
 // ================================================================================================
 
 const LEAVES: [(RpoDigest, Word); 2] = [
-    (RpoDigest::new([ZERO, ZERO, ZERO, ZERO]), [ONE, ZERO, ZERO, ZERO]),
+    (
+        RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
+        [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+    ),
     // Most significant Felt differs from previous
-    (RpoDigest::new([ZERO, ZERO, ZERO, ONE]), [ONE, ONE, ZERO, ZERO]),
+    (
+        RpoDigest::new([Felt::new(105), Felt::new(106), Felt::new(107), Felt::new(108)]),
+        [Felt::new(5_u64), Felt::new(6_u64), Felt::new(7_u64), Felt::new(8_u64)],
+    ),
 ];
 
 /// Tests `get` on every key present in the SMT, as well as an empty leaf
