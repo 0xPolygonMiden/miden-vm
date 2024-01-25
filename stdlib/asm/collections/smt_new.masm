@@ -3,7 +3,11 @@ const.LEAF_DEPTH=64
 #! Input:  [V, K, R, ...]
 #! Output: [V_old, R_new, ...]
 export.set
-    adv.push_smtpeek adv_push.4
+    movdnw.2 adv.push_smtpeek movupw.2
+    # => [V, K, R]
+
+    # Push peeked value on stack
+    adv_push.4
     # => [V_old, V, K, R]
 
     padw eqw
@@ -21,8 +25,8 @@ export.set
         #=> [V, K, R]
 
         # Prepare stack for `mtree_set`
-        movupw.2 dup.11 push.LEAF_DEPTH
-        #=> [depth, K[3], R, V, K]
+        movupw.2 dup.8 push.LEAF_DEPTH
+        #=> [depth, K[0], R, V, K]
 
         # Insert node in Merkle store
         mtree_set
@@ -53,16 +57,16 @@ export.set
             #  Single kv-pair case
 
             drop dropw adv_push.8
-            # => [K_in_leaf, V_old ,V, K, R]
+            # => [V_old, K_in_leaf, V, K, R]
 
             # Check if the key stored in the leaf is the same
-            dupw.3 dupw.1 eqw
-            # => [K_in_leaf==K, K_in_leaf, V_old, V, K, R]
+            dupw.3 dupw.2 eqw
+            # => [K_in_leaf==K, K_in_leaf, K, V_old, V, K, R]
 
             if.true
                 # Leaf stays a "single" variant
 
-                dropw
+                dropw dropw
                 # => [V_old, V, K, R]
 
                 # Update advice map
@@ -70,8 +74,8 @@ export.set
                 # => [V, K, V_old, R]
 
                 # Prepare stack to update Merkle store
-                movupw.3 dup.11 push.LEAF_DEPTH
-                # => [depth, K[3], R, V, K, V_old]
+                movupw.3 dup.8 push.LEAF_DEPTH
+                # => [depth, K[0], R, V, K, V_old]
 
                 # Update Merkle store
                 mtree_set
@@ -79,7 +83,7 @@ export.set
 
                 # Confirm that claimed `V_old` from `adv.push_smtpeek` is correct
                 movupw.3 dupw.1 assert_eqw
-                # => [V_old, R_new, K]
+                # => [V_old_from_set, R_new, K]
 
                 # Clean up stack for return
                 movupw.2 dropw
