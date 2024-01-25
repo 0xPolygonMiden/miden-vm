@@ -102,8 +102,8 @@ end
 #! Output: [V, R, ...]
 export.get
     # Prepare for `mtree_get`
-    dupw.1 dup.7 push.LEAF_DEPTH
-    # => [depth, K[3], R, K, R]
+    dupw.1 dup.4 push.LEAF_DEPTH
+    # => [depth, K[0], R, K, R]
 
     # Retrieve node value from merkle store
     mtree_get swapw dropw
