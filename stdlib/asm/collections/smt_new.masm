@@ -24,9 +24,13 @@ export.set
         adv.insert_hdword
         #=> [V, K, R]
 
+        # Compute hash([K, V]); the new node value (NV)
+        dupw.1 swapw hmerge
+        # => [NV, K, R]
+
         # Prepare stack for `mtree_set`
         movupw.2 dup.8 push.LEAF_DEPTH
-        #=> [depth, K[0], R, V, K]
+        #=> [depth, K[0], R, NV, K]
 
         # Insert node in Merkle store
         mtree_set
@@ -70,12 +74,16 @@ export.set
                 # => [V_old, V, K, R]
 
                 # Update advice map
-                movupw.2 movupw.2 adv.insert_hdword
-                # => [V, K, V_old, R]
+                movdnw.3 adv.insert_hdword
+                # => [V, K, R, V_old]
+
+                # Compute hash([K, V]); the new node value (NV)
+                dupw.1 swapw hmerge
+                # => [NV, K, R, V_old]
 
                 # Prepare stack to update Merkle store
-                movupw.3 dup.8 push.LEAF_DEPTH
-                # => [depth, K[0], R, V, K, V_old]
+                movupw.2 dup.8 push.LEAF_DEPTH
+                # => [depth, K[0], R, NV, K, V_old]
 
                 # Update Merkle store
                 mtree_set
