@@ -133,20 +133,17 @@ export.get
         if.true
             # Single kv-pair case
 
-            # TODO: Does `adv_push` return `K, V` or `V, K`?
-            # As of currently, the order of inputs to `hmerge` below are
-            # inverted; `hmerge` should act on `[V, K]`.
             # Push leaf pre-image on stack (single K-V pair)
             drop adv_push.8
-            # => [K, V, NV, K, R]
+            # => [V, K, NV, K, R]
 
             # Confirm that the key stored in the leaf is as expected
-            movupw.3 dupw.1 assert_eqw
-            # => [K, V, NV, R]
+            movupw.3 dupw.2 assert_eqw
+            # => [V, K, NV, R]
 
             # Duplicate V to return it after hash check
-            dupw.1 movdnw.3
-            # => [K, V, NV, V, R]
+            dupw movdnw.3
+            # => [V, K, NV, V, R]
 
             # Hash leaf preimage and ensure that it equals node value
             hmerge assert_eqw
