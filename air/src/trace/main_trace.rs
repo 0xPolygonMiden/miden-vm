@@ -51,6 +51,13 @@ impl MainTrace {
         self.columns.num_rows()
     }
 
+    pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
+        range.fold(vec![], |mut acc, col_idx| {
+            acc.push(self.get_column(col_idx).to_vec());
+            acc
+        })
+    }
+
     // SYSTEM COLUMNS
     // --------------------------------------------------------------------------------------------
 

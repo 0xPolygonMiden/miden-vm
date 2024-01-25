@@ -120,8 +120,8 @@ fn build_trace(
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
-        trace[CHIPLETS_RANGE]
-            .to_vec()
+        trace
+            .get_column_range(CHIPLETS_RANGE)
             .try_into()
             .expect("failed to convert vector to array"),
         trace_len,

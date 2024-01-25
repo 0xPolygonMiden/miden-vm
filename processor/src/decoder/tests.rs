@@ -1204,8 +1204,8 @@ fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, usiz
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
-        trace[DECODER_TRACE_RANGE]
-            .to_vec()
+        trace
+            .get_column_range(DECODER_TRACE_RANGE)
             .try_into()
             .expect("failed to convert vector to array"),
         trace_len,
@@ -1232,8 +1232,8 @@ fn build_dyn_trace(
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
-        trace[DECODER_TRACE_RANGE]
-            .to_vec()
+        trace
+            .get_column_range(DECODER_TRACE_RANGE)
             .try_into()
             .expect("failed to convert vector to array"),
         trace_len,
@@ -1265,13 +1265,13 @@ fn build_call_trace(
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
 
-    let sys_trace = trace[SYS_TRACE_RANGE]
-        .to_vec()
+    let sys_trace = trace
+        .get_column_range(SYS_TRACE_RANGE)
         .try_into()
         .expect("failed to convert vector to array");
 
-    let decoder_trace = trace[DECODER_TRACE_RANGE]
-        .to_vec()
+    let decoder_trace = trace
+        .get_column_range(DECODER_TRACE_RANGE)
         .try_into()
         .expect("failed to convert vector to array");
 
