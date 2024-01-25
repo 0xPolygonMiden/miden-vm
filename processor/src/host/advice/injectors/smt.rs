@@ -3,7 +3,7 @@ use crate::{AdviceProvider, ProcessState};
 use vm_core::{
     crypto::{
         hash::{Rpo256, RpoDigest},
-        merkle::{EmptySubtreeRoots, NodeIndex, TieredSmt},
+        merkle::{EmptySubtreeRoots, NodeIndex, Smt, TieredSmt, SMT_DEPTH},
     },
     utils::collections::{btree_map::Entry, BTreeMap, Vec},
     ONE, WORD_SIZE, ZERO,
@@ -113,30 +113,34 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
 ) -> Result<HostResponse, ExecutionError> {
+    let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
     // fetch the arguments from the operand stack
     let key = process.get_stack_word(0);
     let root = process.get_stack_word(1);
 
     // get the node from the SMT for the specified key; this node can be either a leaf node,
     // or a root of an empty subtree at the returned depth
-    let (node, depth, _) = get_smt_node(advice_provider, root, key)?;
+    let node = advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])?;
 
-    let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
-    if node == Word::from(empty) {
+    if node == Word::from(empty_leaf) {
         // if the node is a root of an empty subtree, then there is no value associated with
         // the specified key
-        advice_provider.push_stack(AdviceSource::Word(TieredSmt::EMPTY_VALUE))?;
+        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
     } else {
-        // get the key and value stored in the current leaf
-        let (leaf_key, leaf_value) = get_smt_upper_leaf_preimage(advice_provider, node)?;
+        let leaf_preimage = get_smt_leaf_preimage(advice_provider, node)?;
 
-        // if the leaf is for a different key, then there is no value associated with the
-        // specified key
-        if leaf_key == key {
-            advice_provider.push_stack(AdviceSource::Word(leaf_value))?;
-        } else {
-            advice_provider.push_stack(AdviceSource::Word(TieredSmt::EMPTY_VALUE))?;
+        for (key_in_leaf, value_in_leaf) in leaf_preimage {
+            if key == key_in_leaf {
+                // Found key - push value associated with key, and return
+                advice_provider.push_stack(AdviceSource::Word(value_in_leaf))?;
+
+                return Ok(HostResponse::None);
+            }
         }
+
+        // if we can't find any key in the leaf that matches `key`, it means no value is associated
+        // with `key`
+        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
     }
 
     Ok(HostResponse::None)
@@ -237,6 +241,31 @@ fn get_smt_node<A: AdviceProvider>(
     let node = advice_provider.get_tree_node(root, &Felt::from(depth), &index)?;
 
     Ok((node, depth, index))
+}
+
+fn get_smt_leaf_preimage<A: AdviceProvider>(
+    advice_provider: &A,
+    node: Word,
+) -> Result<Vec<(Word, Word)>, ExecutionError> {
+    let node_bytes = RpoDigest::from(node).as_bytes();
+
+    let kv_pairs = advice_provider
+        .get_mapped_values(&node_bytes)
+        .ok_or(ExecutionError::AdviceMapKeyNotFound(node))?;
+
+    if kv_pairs.len() % WORD_SIZE * 2 != 0 {
+        return Err(ExecutionError::AdviceMapValueInvalidLength2(node, kv_pairs.len()));
+    }
+
+    Ok(kv_pairs
+        .chunks_exact(WORD_SIZE * 2)
+        .map(|kv_chunk| {
+            let key = [kv_chunk[0], kv_chunk[1], kv_chunk[2], kv_chunk[3]];
+            let value = [kv_chunk[4], kv_chunk[5], kv_chunk[6], kv_chunk[7]];
+
+            (key, value)
+        })
+        .collect())
 }
 
 /// Retrieves a key-value pair for the specified leaf node from the advice map.
