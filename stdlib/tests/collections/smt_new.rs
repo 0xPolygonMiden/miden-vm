@@ -1,10 +1,6 @@
 use super::*;
 use miden_core::crypto::{hash::RpoDigest, merkle::Smt};
 
-// Case
-// + set an empty leaf
-// + set a single leaf (same key)
-
 // TEST DATA
 // ================================================================================================
 
@@ -48,8 +44,72 @@ fn test_smt_get() {
     );
 }
 
+/// Tests inserting and removing key-value pairs to an SMT. Also tests updating an existing key with
+/// a different value.
+#[test]
+fn test_smt_set() {
+    let mut smt = Smt::new();
+    let empty_tree_root = smt.root();
+
+    let source = "
+    use.std::collections::smt_new
+    begin
+      exec.smt_new::set
+    end
+    ";
+
+    // insert values one-by-one into the tree
+    let mut old_roots = Vec::new();
+    for (key, value) in LEAVES {
+        old_roots.push(smt.root());
+        let (init_stack, final_stack, store) = prepare_insert_or_set(key, value, &mut smt);
+        build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
+    }
+
+    // update one of the previously inserted values (on a cloned tree)
+    let mut smt2 = smt.clone();
+    let key = LEAVES[0].0;
+    let value = [42323_u64.into(); 4];
+    let (init_stack, final_stack, store) = prepare_insert_or_set(key, value, &mut smt2);
+    build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
+
+    // setting to [ZERO; 4] should return the tree to the prior state
+    for (key, old_value) in LEAVES.iter().rev() {
+        let value = EMPTY_WORD;
+        let (init_stack, final_stack, store) = prepare_insert_or_set(*key, value, &mut smt);
+
+        let expected_final_stack =
+            build_expected_stack(*old_value, old_roots.pop().unwrap().into());
+        assert_eq!(expected_final_stack, final_stack);
+        build_test!(source, &init_stack, &[], store, vec![]).expect_stack(&final_stack);
+    }
+
+    assert_eq!(smt.root(), empty_tree_root);
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
+
+fn prepare_insert_or_set(
+    key: RpoDigest,
+    value: Word,
+    smt: &mut Smt,
+) -> (Vec<u64>, Vec<u64>, MerkleStore) {
+    // set initial state of the stack to be [VALUE, KEY, ROOT, ...]
+    let mut initial_stack = Vec::new();
+    append_word_to_vec(&mut initial_stack, smt.root().into());
+    append_word_to_vec(&mut initial_stack, key.into());
+    append_word_to_vec(&mut initial_stack, value);
+
+    // build a Merkle store for the test before the tree is updated, and then update the tree
+    let store: MerkleStore = (&*smt).into();
+    let old_value = smt.insert(key, value);
+
+    // after insert or set, the stack should be [OLD_VALUE, ROOT, ...]
+    let expected_output = build_expected_stack(old_value, smt.root().into());
+
+    (initial_stack, expected_output, store)
+}
 
 fn build_expected_stack(word0: Word, word1: Word) -> Vec<u64> {
     vec![
