@@ -44,8 +44,7 @@ fn test_smt_get() {
     );
 }
 
-/// Tests inserting and removing key-value pairs to an SMT. Also tests updating an existing key with
-/// a different value.
+/// Tests inserting and removing key-value pairs to an SMT.
 #[test]
 fn test_smt_set() {
     let mut smt = Smt::new();
@@ -67,13 +66,6 @@ fn test_smt_set() {
         build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
     }
 
-    // update one of the previously inserted values (on a cloned tree)
-    let mut smt2 = smt.clone();
-    let key = LEAVES[0].0;
-    let value = [42323_u64.into(); 4];
-    let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt2);
-    build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
-
     // setting to [ZERO; 4] should return the tree to the prior state
     for (key, old_value) in LEAVES.iter().rev() {
         let value = EMPTY_WORD;
@@ -87,6 +79,24 @@ fn test_smt_set() {
     }
 
     assert_eq!(smt.root(), empty_tree_root);
+}
+
+/// Tests updating an existing key with a different value
+#[test]
+fn test_smt_set_same_key() {
+    let mut smt = Smt::with_entries(LEAVES).unwrap();
+
+    let source = "
+    use.std::collections::smt_new
+    begin
+      exec.smt_new::set
+    end
+    ";
+
+    let key = LEAVES[0].0;
+    let value = [42323_u64.into(); 4];
+    let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
+    build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
 }
 
 // HELPER FUNCTIONS
