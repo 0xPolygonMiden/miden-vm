@@ -19,9 +19,7 @@ use std::error::Error;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
-    // TODO: REMOVE
-    AdviceMapValueInvalidLength(Word, usize, usize),
-    AdviceMapValueInvalidLength2(Word, usize),
+    AdviceMapValueInvalidLength(Word, usize),
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
     CodeBlockNotFound(Digest),
@@ -73,19 +71,9 @@ impl Display for ExecutionError {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
                 write!(f, "Value for key {hex} not present in the advice map")
             }
-            AdviceMapValueInvalidLength(key, expected, actual) => {
+            AdviceMapValueInvalidLength(key, actual) => {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
-                write!(
-                    f,
-                    "Expected value for key {hex} to contain {expected} elements, but was {actual}"
-                )
-            }
-            AdviceMapValueInvalidLength2(key, actual) => {
-                let hex = to_hex(Felt::elements_as_bytes(key))?;
-                write!(
-                    f,
-                    "Expected value for key {hex} to be a multiple of 8, but was {actual}"
-                )
+                write!(f, "Expected value for key {hex} to be a multiple of 8, but was {actual}")
             }
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
             CallerNotInSyscall => {
