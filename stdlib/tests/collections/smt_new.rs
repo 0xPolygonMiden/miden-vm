@@ -4,6 +4,9 @@ use miden_core::crypto::{hash::RpoDigest, merkle::Smt};
 // TEST DATA
 // ================================================================================================
 
+/// Note: We never insert at the same key twice. This is so that the `smt::get` test can loop over
+/// leaves, get the associated value, and compare. We test inserting at the same key twice in tests
+/// that use different data.
 const LEAVES: [(RpoDigest, Word); 2] = [
     (
         RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), Felt::new(104)]),
