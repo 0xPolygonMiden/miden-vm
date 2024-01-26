@@ -59,16 +59,40 @@ proc.set_single_leaf
     # => [V==ZERO, ZERO, V, V_old, K, R, ...] 
     if.true
         # we're removing the key/value pair from the leaf; i.e. the leaf becomes empty
+
+        dropw 
+        # => [V, V_old, K, R, ...] 
+
+        # Update advice map
+        movupw.2 swapw adv.insert_hdword
+        # => [V, K, V_old, R, ...] 
+
+        # Prepare the stack for `mtree_set`
+        # Note that the new node value will be the empty word, so we can use `V`
+        # as the node value (since we confirmed that it's `ZERO`)
+        movupw.3 dup.8 push.LEAF_DEPTH
+        # => [depth, K[0], R, V, K, V_old, ...] 
+
+        mtree_set
+        # => [NV_old, R_new, K, V_old, ...] 
+
+        # Confirm that hmerge([K, V_old]) = NV
+        movupw.2 dupw.3 hmerge assert_eqw
+        # => [R_new, V_old, ...] 
+
+        # Cleanup stack for return
+        swapw
+        # => [V_old, R_new, ...] 
     else
         # we're inserting the key/value pair
-        
+
         dropw swapw
         # => [V_old, V, K, R, ...] 
 
-        # Note: We don't need to push the `V_old_in_leaf` value.
+        # Note: We don't need the `V_old_in_leaf` value.
         # It is sufficient to deal with `V_old` from `adv.push_smtpeek`, and check its authenticity
         # at the end after inserting with `mtree_set`
-        adv_push.4
+        adv_push.8 dropw
         # => [K_in_leaf, V_old, V, K, R]
 
         # Check if the key stored in the leaf is the same
