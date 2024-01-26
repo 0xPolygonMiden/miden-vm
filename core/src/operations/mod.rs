@@ -422,6 +422,17 @@ pub enum Operation {
 
     /// TODO: add docs
     FriE2F4,
+
+    /// Performs a single step of a random linear combination defining the DEEP composition
+    /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
+    /// \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
+    ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
+    ///
+    /// and the following instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$
+    /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
+    /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
+    /// the values $T_i(x)$ are base field elements.
+    RanComb1,
 }
 
 impl Operation {
@@ -474,7 +485,7 @@ impl Operation {
             Self::SwapW2        => 0b0001_1100,
             Self::SwapW3        => 0b0001_1101,
             Self::SwapDW        => 0b0001_1110,
-            // <empty>          => 0b0001_1111,
+            Self::RanComb1      => 0b0001_1111,
 
             Self::Assert(_)     => 0b0010_0000,
             Self::Eq            => 0b0010_0001,
@@ -696,6 +707,7 @@ impl fmt::Display for Operation {
             Self::MpVerify => write!(f, "mpverify"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
+            Self::RanComb1 => write!(f, "rcomb1"),
         }
     }
 }
