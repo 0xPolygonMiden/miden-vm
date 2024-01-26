@@ -1,4 +1,8 @@
+# Constant value for the depth at which leaves sit
 const.LEAF_DEPTH=64
+
+# SET
+# =================================================================================================
 
 #! Input:  [V, K, R, ...]
 #! Output: [V_old, R_new, ...]
@@ -43,8 +47,6 @@ proc.set_empty_leaf
         swapw dropw padw
         #=> [ZERO, R_new]
     end
-
-    
 end
 
 #! Input:  [V, K, R, ...]
@@ -141,6 +143,9 @@ export.set
         end
     end
 end
+
+# GET
+# =================================================================================================
 
 #! Input:  [K, R, ...]
 #! Output: [V, R, ...]
