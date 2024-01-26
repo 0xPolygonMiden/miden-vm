@@ -4,8 +4,14 @@ const.LEAF_DEPTH=64
 # SET
 # =================================================================================================
 
-#! Input:  [V, K, R, ...]
-#! Output: [V_old, R_new, ...]
+#! Inserts or removes a value associated with the given key. The leaf to which we're inserting is
+#! guaranteed to be empty.
+#!
+#! Inputs:  
+#!   Operand stack: [V, K, R, ...]
+#!
+#! Outputs: 
+#!   Operand stack: [V_old, R_new, ...]
 proc.set_empty_leaf
     # Check if we're inserting the empty value
     padw eqw
@@ -49,8 +55,14 @@ proc.set_empty_leaf
     end
 end
 
-#! Inputs: [V, V_old, K, R, ...]
-#! Output: [V_old, R_new, ...]
+#! Inserts a value at the given key. The leaf to which we're inserting is
+#! guaranteed to hold a single key-value pair (provided on the advice stack).
+#!
+#! Inputs: 
+#!   Operand stack: [V, V_old, K, R, ...]
+#!
+#! Outputs:
+#!   Operand stack: [V_old, R_new, ...]
 proc.insert_single_leaf
     swapw
     # => [V_old, V, K, R, ...] 
@@ -102,8 +114,15 @@ proc.insert_single_leaf
     end
 end
 
-#! Inputs: [V (=ZERO), V_old, K, R, ...]
-#! Output: [V_old, R_new, ...]
+#! Removes the provided key/value pair from the leaf. The leaf to which we're inserting is
+#! guaranteed to hold a single key-value pair (provided on the advice stack). Hence, after the
+#! operation, the leaf will be empty.
+#!
+#! Inputs:
+#!   Operand stack: [V (=ZERO), V_old, K, R, ...]
+#!
+#! Outputs:
+#!   Operand stack: [V_old, R_new, ...]
 proc.remove_single_leaf
     # Update advice map
     movupw.2 swapw adv.insert_hdword
@@ -127,10 +146,15 @@ proc.remove_single_leaf
     # => [V_old, R_new, ...] 
 end
 
+#! Inserts or removes a value associated with the given key. The leaf to which we're inserting is
+#! guaranteed to hold a single key-value pair (provided on the advice stack).
+#!
 #! Inputs:
-#!  - operand stack: [V_old, V, K, R, ...]
-#!  - advice stack:  [K, V]
-#! Output: [V_old, R_new, ...]
+#!   Operand stack: [V_old, V, K, R, ...]
+#!   Advice stack:  [K_in_leaf, V_in_leaf]
+#!
+#! Outputs:
+#!   Operand stack: [V_old, R_new, ...]
 proc.set_single_leaf
     # Check if we're inserting or removing a value
     swapw padw eqw
@@ -154,8 +178,19 @@ proc.set_single_leaf
     end
 end
 
-#! Input:  [V, K, R, ...]
-#! Output: [V_old, R_new, ...]
+#! Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the
+#! specified root. If the insert is successful, the old value located under the specified key
+#! is returned via the stack.
+#!
+#! If the VALUE is an empty word (i.e., [ZERO; 4]), the new state of the tree is guaranteed to
+#! be equivalent to the state as if the updated value was never inserted.
+#!
+#! Inputs:
+#!   Operand stack: [V, K, R, ...]
+#! Outputs:
+#!   Operand stack: [V_old, R_new, ...]
+#!
+#! Fails if the tree with the specified root does not exits in the VM's advice provider.
 export.set
     movdnw.2 adv.push_smtpeek movupw.2
     # => [V, K, R]
@@ -210,8 +245,19 @@ end
 # GET
 # =================================================================================================
 
-#! Input:  [K, R, ...]
-#! Output: [V, R, ...]
+#! Returns the value located under the specified key in the Sparse Merkle Tree defined by the
+#! specified root.
+#!
+#! If no values had been previously inserted under the specified key, an empty word (i.e.,
+#! [ZERO; 4]) is returned.
+#!
+#! Inputs:
+#!   Operand stack: [K, R, ...]
+#!
+#! Outputs:
+#!   Operand stack: [V, R, ...]
+#!
+#! Fails if the tree with the specified root does not exits in the VM's advice provider.
 export.get
     # Prepare for `mtree_get`
     dupw.1 dup.4 push.LEAF_DEPTH
