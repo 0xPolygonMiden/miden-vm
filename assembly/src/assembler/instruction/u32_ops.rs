@@ -384,7 +384,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 
 /// Translates u32lt assembly instructions to VM operations.
 ///
-/// This operation takes 5 cycles.
+/// This operation takes 3 cycles.
 pub fn u32lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     compute_lt(span);
 
@@ -393,7 +393,7 @@ pub fn u32lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError>
 
 /// Translates u32lte assembly instructions to VM operations.
 ///
-/// This operation takes 7 cycles.
+/// This operation takes 5 cycles.
 pub fn u32lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Compute the lt with reversed number to get a gt check
     span.push_op(Swap);
@@ -405,7 +405,7 @@ pub fn u32lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 
 /// Translates u32gt assembly instructions to VM operations.
 ///
-/// This operation takes 6 cycles.
+/// This operation takes 4 cycles.
 pub fn u32gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Reverse the numbers so we can get a gt check.
     span.push_op(Swap);
@@ -417,7 +417,7 @@ pub fn u32gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError>
 
 /// Translates u32gte assembly instructions to VM operations.
 ///
-/// This operation takes 6 cycles.
+/// This operation takes 4 cycles.
 pub fn u32gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     compute_lt(span);
 
@@ -457,11 +457,10 @@ pub fn u32max(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 // ================================================================================================
 
 /// Inserts the VM operations to check if the second element is less than
-/// the top element. This takes 5 cycles.
+/// the top element. This takes 3 cycles.
 fn compute_lt(span: &mut SpanBuilder) {
     span.push_ops([
         U32sub, Swap, Drop, // Perform the operations
-        Eqz, Not, // Check the underflow flag
     ])
 }
 

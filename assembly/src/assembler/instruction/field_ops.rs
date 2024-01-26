@@ -279,7 +279,7 @@ pub fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 /// than" comparison. The stack is expected to be arranged as [b, a, ...] (from the top). A value
 /// of 1 is pushed onto the stack if a < b. Otherwise, 0 is pushed.
 ///
-/// This operation takes 17 VM cycles.
+/// This operation takes 14 VM cycles.
 pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
@@ -287,7 +287,7 @@ pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // compare the high bit values and put comparison result flags on the stack for eq and lt
     // then reorder in preparation for the low-bit comparison (a_lo < b_lo)
-    // 9 cycles
+    // 6 cycles
     check_lt_high_bits(span);
 
     // check a_lo < b_lo, resulting in 1 if true and 0 otherwise
@@ -305,7 +305,7 @@ pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 /// than or equal" comparison. The stack is expected to be arranged as [b, a, ...] (from the top).
 /// A value of 1 is pushed onto the stack if a <= b. Otherwise, 0 is pushed.
 ///
-/// This operation takes 18 VM cycles.
+/// This operation takes 15 VM cycles.
 pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
@@ -313,7 +313,7 @@ pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // compare the high bit values and put comparison result flags on the stack for eq and lt
     // then reorder in preparation for the low-bit comparison (a_lo <= b_lo)
-    // 9 cycles
+    // 6 cycles
     check_lt_high_bits(span);
 
     // check a_lo <= b_lo, resulting in 1 if true and 0 otherwise
@@ -331,7 +331,7 @@ pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 /// than" comparison. The stack is expected to be arranged as [b, a, ...] (from the top). A value
 /// of 1 is pushed onto the stack if a > b. Otherwise, 0 is pushed.
 ///
-/// This operation takes 18 VM cycles.
+/// This operation takes 15 VM cycles.
 pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
@@ -339,7 +339,7 @@ pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // compare the high bit values and put comparison result flags on the stack for eq and gt
     // then reorder in preparation for the low-bit comparison (b_lo < a_lo)
-    // 10 cycles
+    // 7 cycles
     check_gt_high_bits(span);
 
     // check b_lo < a_lo, resulting in 1 if true and 0 otherwise
@@ -357,7 +357,7 @@ pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 /// than or equal" comparison. The stack is expected to be arranged as [b, a, ...] (from the top).
 /// A value of 1 is pushed onto the stack if a >= b. Otherwise, 0 is pushed.
 ///
-/// This operation takes 19 VM cycles.
+/// This operation takes 16 VM cycles.
 pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
@@ -365,7 +365,7 @@ pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
 
     // compare the high bit values and put comparison result flags on the stack for eq and gt
     // then reorder in preparation for the low-bit comparison (b_lo <= a_lo)
-    // 10 cycles
+    // 7 cycles
     check_gt_high_bits(span);
 
     // check b_lo <= a_lo, resulting in 1 if true and 0 otherwise
@@ -413,17 +413,22 @@ fn split_elements(span: &mut SpanBuilder) {
 ///
 /// The resulting stack after this operation is: [eq_flag, lt_flag, ...].
 ///
-/// This operation takes 6 cycles.
+/// This operation takes 3 cycles.
 fn check_lt_and_eq(span: &mut SpanBuilder) {
     // calculate a - b
     // stack: [b, a, ...] => [underflow_flag, result, ...]
     span.push_op(U32sub);
-    // Put 1 on the stack if the underflow flag was not set (there was no underflow)
-    span.push_ops([Dup0, Not]);
-    // move the result to the top of the stack and check if it was zero
-    span.push_ops([MovUp2, Eqz]);
-    // set the equality flag to 1 if there was no underflow and the result was zero
-    span.push_op(And);
+    // after the u32sub operation we can be in one of 3 states:
+    // - [1, result > 0] - this means that we underflowed (a < b)
+    // - [0, result > 0] - this means that we didn't underflow (a > b)
+    // - [0, result = 0] - this means that comparing values are equal (a = b)
+    //
+    // The situation of `[1, 0]` is impossible because we can't reach 0 with underflow: subtracting
+    // maximum type value from minimum value (which is 0) will result in 1, so to reach 0 we need
+    // to subtract value that is bigger than the maximum type value, which is impossible.
+    // For example `0u64.wrapping_sub(u64::MAX) = 1`, but `0u64.wrapping_sub(u64::MAX + 1)` is
+    // impossible.
+    span.push_ops([Swap, Eqz]);
 }
 
 /// This is a helper function for comparison operations that perform a less-than check a < b
@@ -442,7 +447,7 @@ fn check_lt_and_eq(span: &mut SpanBuilder) {
 /// - hi_flag_eq: 1 if the high bit values were equal; 0 otherwise
 /// - hi_flag_lt: 1 if a's high-bit values were less than b's (a_hi < b_hi); 0 otherwise
 ///
-/// This operation takes 9 cycles.
+/// This operation takes 6 cycles.
 fn check_lt_high_bits(span: &mut SpanBuilder) {
     // reorder the stack to check a_hi < b_hi
     span.push_op(MovUp2);
@@ -533,7 +538,7 @@ fn check_lte(span: &mut SpanBuilder) {
 /// - hi_flag_eq: 1 if the high bit values were equal; 0 otherwise
 /// - hi_flag_gt: 1 if a's high-bit values were greater than b's (a_hi > b_hi); 0 otherwise
 ///
-/// This function takes 10 cycles.
+/// This function takes 7 cycles.
 fn check_gt_high_bits(span: &mut SpanBuilder) {
     // reorder the stack to check b_hi < a_hi
     span.push_ops([Swap, MovDn2]);
