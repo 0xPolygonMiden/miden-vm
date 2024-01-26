@@ -17,7 +17,10 @@ use super::{
     STACK_TRACE_OFFSET,
 };
 use core::ops::{Deref, Range};
-use vm_core::{utils::range, Felt, ONE, ZERO};
+use vm_core::{
+    utils::{collections::Vec, range},
+    Felt, ONE, ZERO,
+};
 
 // CONSTANTS
 // ================================================================================================
