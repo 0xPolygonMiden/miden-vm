@@ -3,30 +3,48 @@ const.LEAF_DEPTH=64
 #! Input:  [V, K, R, ...]
 #! Output: [V_old, R_new, ...]
 proc.set_empty_leaf
-    # Update advice map with new leaf preimage
-    # adv_map[hash(K, V)] = [K, V]
-    adv.insert_hdword
-    #=> [V, K, R]
+    # Check if we're inserting the empty value
+    padw eqw
 
-    # Compute hash([K, V]); the new node value (NV)
-    dupw.1 swapw hmerge
-    # => [NV, K, R]
+    if.true
+        # Inserting an empty value; this is a no-op
+        #=> [ZERO, V, K, R, ...]
+        
+        # Prepare stack for return
+        dropw swapw dropw
+        #=> [V, R, ...]
+    else
+        # Inserting a non-empty value
+        dropw
+        #=> [V, K, R, ...]
 
-    # Prepare stack for `mtree_set`
-    movupw.2 dup.8 push.LEAF_DEPTH
-    #=> [depth, K[0], R, NV, K]
+        # Update advice map with new leaf preimage
+        # adv_map[hash(K, V)] = [K, V]
+        adv.insert_hdword
+        #=> [V, K, R]
 
-    # Insert node in Merkle store
-    mtree_set
-    #=> [V_in_leaf, R_new, K]
+        # Compute hash([K, V]); the new node value (NV)
+        dupw.1 swapw hmerge
+        # => [NV, K, R]
 
-    # Check that V_in_leaf is indeed empty
-    padw assert_eqw
-    #=> [R_new, K]
+        # Prepare stack for `mtree_set`
+        movupw.2 dup.8 push.LEAF_DEPTH
+        #=> [depth, K[0], R, NV, K]
 
-    # Prepare stack for return
-    swapw dropw padw
-    #=> [ZERO, R_new]
+        # Insert node in Merkle store
+        mtree_set
+        #=> [V_in_leaf, R_new, K]
+
+        # Check that V_in_leaf is indeed empty
+        padw assert_eqw
+        #=> [R_new, K]
+
+        # Prepare stack for return
+        swapw dropw padw
+        #=> [ZERO, R_new]
+    end
+
+    
 end
 
 #! Input:  [V, K, R, ...]

@@ -108,7 +108,7 @@ fn test_smt_set_same_key() {
 /// Tests inserting an empty value to an empty tree
 #[test]
 fn test_smt_set_empty_value_to_empty_tree() {
-    let mut smt = Smt::with_entries(LEAVES).unwrap();
+    let mut smt = Smt::new();
     let empty_tree_root = smt.root();
 
     let source = "
