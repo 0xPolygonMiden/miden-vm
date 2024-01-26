@@ -60,7 +60,7 @@ export.set
         # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
         dup eq.8
         # => [is_single_kv_pair, leaf_size, V_old, V, K, R]
-        
+
         if.true
             #  Single kv-pair case
 
@@ -94,14 +94,15 @@ export.set
 
                 # Update Merkle store
                 mtree_set
-                # => [V_old_from_set, R_new, K, V_old_from_peek]
+                # => [NV_old, R_new, K, V_old_from_peek]
 
-                # Confirm that claimed `V_old` from `adv.push_smtpeek` is correct
-                movupw.3 dupw.1 assert_eqw
-                # => [V_old_from_set, R_new, K]
+                # Confirm that claimed `V_old` from `adv.push_smtpeek` is correct by checking if 
+                # `[K, V_old]` hashes to `NV_old`
+                movupw.2 dupw.3 hmerge assert_eqw
+                # => [R_new, V_old_from_peek]
 
                 # Clean up stack for return
-                movupw.2 dropw
+                swapw
                 # => [V_old, R_new]
             else
                 # Leaf becomes a Multiple kv-pair case
