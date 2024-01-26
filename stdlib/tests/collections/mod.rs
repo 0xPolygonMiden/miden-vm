@@ -6,4 +6,3 @@ use test_utils::{
 mod mmr;
 mod smt;
 mod smt64;
-mod smt_new;
