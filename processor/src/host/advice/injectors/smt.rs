@@ -142,42 +142,10 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
 /// # Panics
 /// Will panic as unimplemented if the target depth is `64`.
 pub(crate) fn push_smtset_inputs<S: ProcessState, A: AdviceProvider>(
-    advice_provider: &mut A,
-    process: &S,
+    _advice_provider: &mut A,
+    _process: &S,
 ) -> Result<HostResponse, ExecutionError> {
-    // get the key, value, and tree root from the stack
-    let value = process.get_stack_word(0);
-    let key = process.get_stack_word(1);
-    let root = process.get_stack_word(2);
-
-    // get the node from the SMT for the specified key; this node can be either a leaf node,
-    // or a root of an empty subtree at the returned depth
-    let (node, depth, index) = get_smt_node(advice_provider, root, key)?;
-
-    // if the value to be inserted is an empty word, we need to process it as a delete
-    if value == TieredSmt::EMPTY_VALUE {
-        return handle_smt_delete(advice_provider, root, node, depth, index, key);
-    }
-
-    // figure out what kind of insert we are doing; possible options are:
-    // - if the node is a root of an empty subtree, this is a simple insert.
-    // - if the node is a leaf, this could be either an update (for the same key), or a
-    //   complex insert (i.e., the existing leaf needs to be moved to a lower tier).
-    let empty = EmptySubtreeRoots::empty_hashes(64)[depth as usize];
-    if node == Word::from(empty) {
-        handle_smt_simple_insert(advice_provider, root, depth, index)
-    } else {
-        // get the key and value stored in the current leaf
-        let (leaf_key, leaf_value) = get_smt_upper_leaf_preimage(advice_provider, node)?;
-
-        // if the key for the value to be inserted is the same as the leaf's key, we are
-        // dealing with a simple update; otherwise, we are dealing with a complex insert
-        if leaf_key == key {
-            handle_smt_update(advice_provider, depth, leaf_value)
-        } else {
-            handle_smt_complex_insert(advice_provider, depth, key, leaf_key, leaf_value)
-        }
-    }
+    unimplemented!()
 }
 
 // TSMT UPDATE HELPER METHODS
