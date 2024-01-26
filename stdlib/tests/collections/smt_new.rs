@@ -105,6 +105,28 @@ fn test_smt_set_same_key() {
     build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
 }
 
+/// Tests inserting an empty value to an empty tree
+#[test]
+fn test_smt_set_empty_value_to_empty_tree() {
+    let mut smt = Smt::with_entries(LEAVES).unwrap();
+    let empty_tree_root = smt.root();
+
+    let source = "
+    use.std::collections::smt_new
+    begin
+      exec.smt_new::set
+    end
+    ";
+
+    let key = LEAVES[0].0;
+    let value = EMPTY_WORD;
+    let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
+    build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
+
+    assert_eq!(smt.root(), empty_tree_root);
+}
+
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
