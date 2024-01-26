@@ -74,9 +74,6 @@ pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
 ///
 /// # Errors
 /// Returns an error if the provided Merkle root doesn't exist on the advice provider.
-///
-/// # Panics
-/// Will panic as unimplemented if the target depth is `64`.
 pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,
