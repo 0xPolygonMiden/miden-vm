@@ -55,12 +55,16 @@ end
 #! Output: [V_old, R_new, ...]
 proc.set_single_leaf
     # Check if we're inserting or removing a value
-    dupw.1 padw eqw
-    # => [V==ZERO, ZERO, V, V_old, V, K, R, ...] 
+    swapw padw eqw
+    # => [V==ZERO, ZERO, V, V_old, K, R, ...] 
     if.true
         # we're removing the key/value pair from the leaf; i.e. the leaf becomes empty
     else
         # we're inserting the key/value pair
+        
+        dropw swapw
+        # => [V_old, V, K, R, ...] 
+
         # Note: We don't need to push the `V_old_in_leaf` value.
         # It is sufficient to deal with `V_old` from `adv.push_smtpeek`, and check its authenticity
         # at the end after inserting with `mtree_set`
