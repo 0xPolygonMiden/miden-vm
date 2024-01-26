@@ -52,42 +52,10 @@ const SMT_NORMALIZED_DEPTHS: [u8; 65] = [
 /// # Panics
 /// Will panic as unimplemented if the target depth is `64`.
 pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
-    advice_provider: &mut A,
-    process: &S,
+    _advice_provider: &mut A,
+    _process: &S,
 ) -> Result<HostResponse, ExecutionError> {
-    // fetch the arguments from the operand stack
-    let key = process.get_stack_word(0);
-    let root = process.get_stack_word(1);
-
-    // get the node from the SMT for the specified key; this node can be either a leaf node,
-    // or a root of an empty subtree at the returned depth
-    let (node, depth, _) = get_smt_node(advice_provider, root, key)?;
-
-    // set the node value; zeroed if empty sub-tree
-    let empty = EmptySubtreeRoots::empty_hashes(64);
-    if Word::from(empty[depth as usize]) == node {
-        // push zeroes for remaining key, value & empty remaining key flag
-        for _ in 0..9 {
-            advice_provider.push_stack(AdviceSource::Value(ZERO))?;
-        }
-    } else {
-        // push a flag indicating that a remaining key exists
-        advice_provider.push_stack(AdviceSource::Value(ONE))?;
-
-        // map is expected to contain `node |-> {K, V}`
-        advice_provider.push_stack(AdviceSource::Map {
-            key: node,
-            include_len: false,
-        })?;
-    }
-
-    // set the flags
-    let is_16_or_32 = if depth == 16 || depth == 32 { ONE } else { ZERO };
-    let is_16_or_48 = if depth == 16 || depth == 48 { ONE } else { ZERO };
-    advice_provider.push_stack(AdviceSource::Value(is_16_or_32))?;
-    advice_provider.push_stack(AdviceSource::Value(is_16_or_48))?;
-
-    Ok(HostResponse::None)
+    unimplemented!()
 }
 
 /// Pushes onto the advice stack the value associated with the specified key in a Sparse
