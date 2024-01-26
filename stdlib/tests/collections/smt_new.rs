@@ -50,41 +50,48 @@ fn test_smt_get() {
     );
 }
 
-/// Tests inserting and removing key-value pairs to an SMT.
+/// Tests inserting and removing key-value pairs to an SMT. We do the insert/removal twice to ensure
+/// that the removal properly updates the advice map/stack.
 #[test]
 fn test_smt_set() {
+    fn assert_insert_and_remove(smt: &mut Smt) {
+        let empty_tree_root = smt.root();
+
+        let source = "
+            use.std::collections::smt_new
+            begin
+            exec.smt_new::set
+            end
+        ";
+
+        // insert values one-by-one into the tree
+        let mut old_roots = Vec::new();
+        for (key, value) in LEAVES {
+            old_roots.push(smt.root());
+            let (init_stack, final_stack, store, advice_map) =
+                prepare_insert_or_set(key, value, smt);
+            build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
+        }
+
+        // setting to [ZERO; 4] should return the tree to the prior state
+        for (key, old_value) in LEAVES.iter().rev() {
+            let value = EMPTY_WORD;
+            let (init_stack, final_stack, store, advice_map) =
+                prepare_insert_or_set(*key, value, smt);
+
+            let expected_final_stack =
+                build_expected_stack(*old_value, old_roots.pop().unwrap().into());
+            assert_eq!(expected_final_stack, final_stack);
+            build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
+        }
+
+        assert_eq!(smt.root(), empty_tree_root);
+    }
+
     let mut smt = Smt::new();
-    let empty_tree_root = smt.root();
 
-    let source = "
-    use.std::collections::smt_new
-    begin
-      exec.smt_new::set
-    end
-    ";
-
-    // insert values one-by-one into the tree
-    let mut old_roots = Vec::new();
-    for (key, value) in LEAVES {
-        old_roots.push(smt.root());
-        let (init_stack, final_stack, store, advice_map) =
-            prepare_insert_or_set(key, value, &mut smt);
-        build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
-    }
-
-    // setting to [ZERO; 4] should return the tree to the prior state
-    for (key, old_value) in LEAVES.iter().rev() {
-        let value = EMPTY_WORD;
-        let (init_stack, final_stack, store, advice_map) =
-            prepare_insert_or_set(*key, value, &mut smt);
-
-        let expected_final_stack =
-            build_expected_stack(*old_value, old_roots.pop().unwrap().into());
-        assert_eq!(expected_final_stack, final_stack);
-        build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
-    }
-
-    assert_eq!(smt.root(), empty_tree_root);
+    assert_insert_and_remove(&mut smt);
+    assert_insert_and_remove(&mut smt);
 }
 
 /// Tests updating an existing key with a different value
@@ -125,7 +132,6 @@ fn test_smt_set_empty_value_to_empty_tree() {
 
     assert_eq!(smt.root(), empty_tree_root);
 }
-
 
 // HELPER FUNCTIONS
 // ================================================================================================
