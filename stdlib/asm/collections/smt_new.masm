@@ -54,52 +54,59 @@ end
 #!  - advice stack:  [K, V]
 #! Output: [V_old, R_new, ...]
 proc.set_single_leaf
-    # Note: We don't need to push the `V_old_in_leaf` value.
-    # It is sufficient to deal with `V_old` from `adv.push_smtpeek`, and check its authenticity
-    # at the end after inserting with `mtree_set`
-    adv_push.4
-    # => [K_in_leaf, V_old, V, K, R]
-
-    # Check if the key stored in the leaf is the same
-    dupw.3 eqw
-    # => [K_in_leaf==K, K, K_in_leaf, V_old, V, K, R]
-
+    # Check if we're inserting or removing a value
+    dupw.1 padw eqw
+    # => [V==ZERO, ZERO, V, V_old, V, K, R, ...] 
     if.true
-        # Leaf stays a "single" variant
-
-        dropw dropw
-        # => [V_old, V, K, R]
-
-        # Update advice map
-        movdnw.3 adv.insert_hdword
-        # => [V, K, R, V_old]
-
-        # Compute hash([K, V]); the new node value (NV)
-        dupw.1 swapw hmerge
-        # => [NV, K, R, V_old]
-
-        # Prepare stack to update Merkle store
-        movupw.2 dup.8 push.LEAF_DEPTH
-        # => [depth, K[0], R, NV, K, V_old]
-
-        # Update Merkle store
-        mtree_set
-        # => [NV_old, R_new, K, V_old_from_peek]
-
-        # Confirm that claimed `V_old` from `adv.push_smtpeek` is correct by checking if 
-        # `[K, V_old]` hashes to `NV_old`
-        movupw.2 dupw.3 hmerge assert_eqw
-        # => [R_new, V_old_from_peek]
-
-        # Clean up stack for return
-        swapw
-        # => [V_old, R_new]
+        # we're removing the key/value pair from the leaf; i.e. the leaf becomes empty
     else
-        # Leaf becomes a Multiple kv-pair case
-        # TODO (fail for now)
-        push.1 assertz
-    end
+        # we're inserting the key/value pair
+        # Note: We don't need to push the `V_old_in_leaf` value.
+        # It is sufficient to deal with `V_old` from `adv.push_smtpeek`, and check its authenticity
+        # at the end after inserting with `mtree_set`
+        adv_push.4
+        # => [K_in_leaf, V_old, V, K, R]
 
+        # Check if the key stored in the leaf is the same
+        dupw.3 eqw
+        # => [K_in_leaf==K, K, K_in_leaf, V_old, V, K, R]
+
+        if.true
+            # Leaf stays a "single" variant
+
+            dropw dropw
+            # => [V_old, V, K, R]
+
+            # Update advice map
+            movdnw.3 adv.insert_hdword
+            # => [V, K, R, V_old]
+
+            # Compute hash([K, V]); the new node value (NV)
+            dupw.1 swapw hmerge
+            # => [NV, K, R, V_old]
+
+            # Prepare stack to update Merkle store
+            movupw.2 dup.8 push.LEAF_DEPTH
+            # => [depth, K[0], R, NV, K, V_old]
+
+            # Update Merkle store
+            mtree_set
+            # => [NV_old, R_new, K, V_old_from_peek]
+
+            # Confirm that claimed `V_old` from `adv.push_smtpeek` is correct by checking if 
+            # `[K, V_old]` hashes to `NV_old`
+            movupw.2 dupw.3 hmerge assert_eqw
+            # => [R_new, V_old_from_peek]
+
+            # Clean up stack for return
+            swapw
+            # => [V_old, R_new]
+        else
+            # Leaf becomes a Multiple kv-pair case
+            # TODO (fail for now)
+            push.1 assertz
+        end
+    end
 end
 
 #! Input:  [V, K, R, ...]
