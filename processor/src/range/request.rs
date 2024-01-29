@@ -54,7 +54,7 @@ impl CycleRangeChecks {
     /// element in the field specified by E.
     pub fn to_stack_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         let mut value = E::ONE;
@@ -70,7 +70,7 @@ impl CycleRangeChecks {
     /// element in the field specified by E.
     fn to_mem_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         let mut value = E::ONE;
@@ -88,7 +88,7 @@ impl LookupTableRow for CycleRangeChecks {
     /// at least 1 alpha value. Includes all values included at this cycle from all processors.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         let stack_value = self.to_stack_value(main_trace, alphas);
@@ -115,7 +115,7 @@ impl LookupTableRow for RangeCheckRequest {
     /// at least 1 alpha value.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
-        _main_trace: &ColMatrix<Felt>,
+        _main_trace: &MainTrace,
         alphas: &[E],
     ) -> E {
         let alpha: E = alphas[0];

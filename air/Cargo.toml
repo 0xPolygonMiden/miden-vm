@@ -27,6 +27,7 @@ harness = false
 [features]
 default = ["std"]
 std = ["vm-core/std", "winter-air/std"]
+internals = []
 
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }

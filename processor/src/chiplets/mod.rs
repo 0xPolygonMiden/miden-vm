@@ -1,9 +1,8 @@
 use crate::system::ContextId;
 
 use super::{
-    crypto::MerklePath, utils, BTreeMap, ChipletsTrace, ColMatrix, ExecutionError, Felt,
-    FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD,
-    ONE, ZERO,
+    crypto::MerklePath, utils, BTreeMap, ChipletsTrace, ExecutionError, Felt, FieldElement,
+    RangeChecker, StarkField, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
 use miden_air::trace::chiplets::hasher::{Digest, HasherState};
 use vm_core::{code_blocks::OpBatch, Kernel};
