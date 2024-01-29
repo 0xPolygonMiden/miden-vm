@@ -12,52 +12,60 @@ const.LEAF_DEPTH=64
 #!
 #! Outputs: 
 #!   Operand stack: [V_old, R_new, ...]
+#!
+#! Cycles
+#!   Insert empty leaf: 43 cycles
+#!   Insert non-empty leaf: 102 cycles
 proc.set_empty_leaf
-    # Check if we're inserting the empty value
+    # Check if we're inserting the empty value (19 cycles)
     padw eqw
 
     if.true
-        # Inserting an empty value; this is a no-op
+        # Inserting an empty value; this is a no-op (4 cycles)
         dropw
         #=> [V (=ZERO), K, R, ...]
 
         # Prepare stack: verify that the leaf is actually empty
+        # (9 cycles)
         movupw.2 swapw dup.8 movdn.4 push.LEAF_DEPTH movdn.4
         #=> [V (=ZERO), depth, K[0], R, K, ...]
 
+        # (1 cycle)
         mtree_verify
         #=> [V (=ZERO), depth, K[0], R, K, ...]
         
-        # Prepare stack for return
+        # Prepare stack for return (10 cycles)
         movup.4 drop movup.4 drop movupw.2 dropw
         #=> [V (=ZERO), R, ...]
     else
-        # Inserting a non-empty value
+        # Inserting a non-empty value (4 cycles)
         dropw
         #=> [V, K, R, ...]
 
         # Update advice map with new leaf preimage
         # adv_map[hash(K, V)] = [K, V]
+        # (0 cycles)
         adv.insert_hdword
         #=> [V, K, R]
 
         # Compute hash([K, V]); the new node value (NV)
+        # (21 cycles)
         dupw.1 swapw hmerge
         # => [NV, K, R]
 
-        # Prepare stack for `mtree_set`
+        # Prepare stack for `mtree_set` (5 cycles)
         movupw.2 dup.8 push.LEAF_DEPTH
         #=> [depth, K[0], R, NV, K]
 
-        # Insert node in Merkle store
+        # Insert node in Merkle store (29 cycles)
         mtree_set
         #=> [V_in_leaf, R_new, K]
 
-        # Check that V_in_leaf is indeed empty
+        # Check that V_in_leaf is indeed empty (15 cycles)
         padw assert_eqw
         #=> [R_new, K]
 
-        # Prepare stack for return
+        # Prepare stack for return (9 cycles)
         swapw dropw padw
         #=> [ZERO, R_new]
     end
