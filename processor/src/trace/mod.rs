@@ -5,6 +5,7 @@ use super::{
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState, Vec,
 };
+use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
@@ -50,7 +51,7 @@ pub struct AuxTraceBuilders {
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
-    main_trace: ColMatrix<Felt>,
+    main_trace: MainTrace,
     aux_trace_builders: AuxTraceBuilders,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,
@@ -86,8 +87,8 @@ impl ExecutionTrace {
         Self {
             meta: Vec::new(),
             layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
-            main_trace: ColMatrix::new(main_trace),
             aux_trace_builders: aux_trace_hints,
+            main_trace,
             program_info,
             stack_outputs,
             trace_len_summary,
@@ -173,7 +174,7 @@ impl ExecutionTrace {
     #[cfg(test)]
     pub fn test_finalize_trace<H>(
         process: Process<H>,
-    ) -> (Vec<Vec<Felt>>, AuxTraceBuilders, TraceLenSummary)
+    ) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
     where
         H: Host,
     {
@@ -276,7 +277,7 @@ impl Trace for ExecutionTrace {
 fn finalize_trace<H>(
     process: Process<H>,
     mut rng: RpoRandomCoin,
-) -> (Vec<Vec<Felt>>, AuxTraceBuilders, TraceLenSummary)
+) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
 where
     H: Host,
 {
@@ -341,5 +342,7 @@ where
         chiplets: chiplets_trace.aux_builder,
     };
 
-    (trace, aux_trace_hints, trace_len_summary)
+    let main_trace = MainTrace::new(ColMatrix::new(trace));
+
+    (main_trace, aux_trace_hints, trace_len_summary)
 }

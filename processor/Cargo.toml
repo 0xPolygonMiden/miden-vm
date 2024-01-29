@@ -19,7 +19,7 @@ doctest = false
 [features]
 concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
-internals = []
+internals = ["miden-air/internals"]
 std = ["tracing/attributes", "vm-core/std", "winter-prover/std"]
 
 [dependencies]
