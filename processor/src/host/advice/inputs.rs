@@ -53,7 +53,7 @@ impl AdviceInputs {
     where
         I: IntoIterator<Item = (RpoDigest, Vec<Felt>)>,
     {
-        self.map.get_inner_map_mut().extend(iter);
+        self.map.get_map_mut().extend(iter);
         self
     }
 
@@ -79,7 +79,7 @@ impl AdviceInputs {
     where
         I: IntoIterator<Item = (RpoDigest, Vec<Felt>)>,
     {
-        self.map.get_inner_map_mut().extend(iter);
+        self.map.get_map_mut().extend(iter);
     }
 
     /// Extends the [MerkleStore] with the given nodes.
@@ -93,7 +93,7 @@ impl AdviceInputs {
     /// Extends the contents of this instance with the contents of the other instance.
     pub fn extend(&mut self, other: Self) {
         self.stack.extend(other.stack);
-        self.map.get_inner_map_mut().extend(other.map.get_inner_map().clone());
+        self.map.get_map_mut().extend(other.map.get_map().clone());
         self.store.extend(other.store.inner_nodes());
     }
 
@@ -107,7 +107,7 @@ impl AdviceInputs {
 
     /// Fetch a values set mapped by the given key.
     pub fn mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
-        self.map.get_inner_map().get(key).map(Vec::as_slice)
+        self.map.get_map().get(key).map(Vec::as_slice)
     }
 
     /// Returns the underlying [MerkleStore].
