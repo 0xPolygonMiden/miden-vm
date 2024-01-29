@@ -17,10 +17,7 @@ use super::{
     STACK_TRACE_OFFSET,
 };
 use core::ops::{Deref, Range};
-use vm_core::{
-    utils::{collections::Vec, range},
-    Felt, ONE, ZERO,
-};
+use vm_core::{utils::range, Felt, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -54,6 +51,7 @@ impl MainTrace {
         self.columns.num_rows()
     }
 
+    #[cfg(any(test, feature = "internals"))]
     pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
         range.fold(vec![], |mut acc, col_idx| {
             acc.push(self.get_column(col_idx).to_vec());
