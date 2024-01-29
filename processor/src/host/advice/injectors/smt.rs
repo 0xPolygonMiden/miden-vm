@@ -12,32 +12,6 @@ use vm_core::{
 // SMT INJECTORS
 // ================================================================================================
 
-/// Pushes values onto the advice stack which are required for successful retrieval of a
-/// value from a Sparse Merkle Tree data structure.
-///
-/// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
-/// The depth flags define the tier on which the leaf is located.
-///
-/// Inputs:
-///   Operand stack: [KEY, ROOT, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [KEY, ROOT, ...]
-///   Advice stack: [f0, f1, K, V, f2]
-///
-/// Where:
-/// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
-/// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
-/// - K is the key; will be zeroed if the tree don't contain a mapped value for the key.
-/// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
-/// - f2 is a boolean flag set to `1` if the key is not zero.
-///
-/// # Errors
-/// Returns an error if the provided Merkle root doesn't exist on the advice provider.
-///
-/// # Panics
-/// Will panic as unimplemented if the target depth is `64`.
 pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
     _advice_provider: &mut A,
     _process: &S,
@@ -98,33 +72,6 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
     Ok(HostResponse::None)
 }
 
-/// Pushes values onto the advice stack which are required for successful insertion of a
-/// key-value pair into a Sparse Merkle Tree data structure.
-///
-/// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
-///
-/// Inputs:
-///   Operand stack: [VALUE, KEY, ROOT, ...]
-///   Advice stack: [...]
-///
-/// Outputs:
-///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
-///   Advice stack: see comments for specialized handlers below.
-///
-/// Where:
-/// - ROOT and NEW_ROOT are the roots of the TSMT before and after the insert respectively.
-/// - VALUE is the value to be inserted.
-/// - OLD_VALUE is the value previously associated with the specified KEY.
-///
-/// # Errors
-/// Returns an error if:
-/// - The Merkle store does not contain a node with the specified root.
-/// - The Merkle store does not contain all nodes needed to validate the path between the root
-///   and the relevant TSMT nodes.
-/// - The advice map does not contain required data about TSMT leaves to be modified.
-///
-/// # Panics
-/// Will panic as unimplemented if the target depth is `64`.
 pub(crate) fn push_smtset_inputs<S: ProcessState, A: AdviceProvider>(
     _advice_provider: &mut A,
     _process: &S,
