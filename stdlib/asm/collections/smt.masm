@@ -18,11 +18,19 @@ proc.set_empty_leaf
 
     if.true
         # Inserting an empty value; this is a no-op
-        #=> [ZERO, V, K, R, ...]
+        dropw
+        #=> [V (=ZERO), K, R, ...]
+
+        # Prepare stack: verify that the leaf is actually empty
+        movupw.2 swapw dup.8 movdn.4 push.LEAF_DEPTH movdn.4
+        #=> [V (=ZERO), depth, K[0], R, K, ...]
+
+        mtree_verify
+        #=> [V (=ZERO), depth, K[0], R, K, ...]
         
         # Prepare stack for return
-        dropw swapw dropw
-        #=> [V, R, ...]
+        movup.4 drop movup.4 drop movupw.2 dropw
+        #=> [V (=ZERO), R, ...]
     else
         # Inserting a non-empty value
         dropw
