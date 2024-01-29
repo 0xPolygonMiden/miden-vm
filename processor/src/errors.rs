@@ -55,6 +55,7 @@ pub enum ExecutionError {
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
     ProverError(ProverError),
+    SmtNodeNotFound(Word),
     SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
@@ -156,6 +157,10 @@ impl Display for ExecutionError {
                     f,
                     "An operation expected a u32 value, but received {v} (error code: {err_code})"
                 )
+            }
+            SmtNodeNotFound(node) => {
+                let node_hex = to_hex(Felt::elements_as_bytes(node))?;
+                write!(f, "Smt node {node_hex} not found")
             }
             SmtNodePreImageNotValid(node, preimage_len) => {
                 let node_hex = to_hex(Felt::elements_as_bytes(node))?;

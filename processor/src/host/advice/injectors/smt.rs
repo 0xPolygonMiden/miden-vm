@@ -90,7 +90,7 @@ fn get_smt_leaf_preimage<A: AdviceProvider>(
 
     let kv_pairs = advice_provider
         .get_mapped_values(&node_bytes)
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(node))?;
+        .ok_or(ExecutionError::SmtNodeNotFound(node))?;
 
     if kv_pairs.len() % WORD_SIZE * 2 != 0 {
         return Err(ExecutionError::SmtNodePreImageNotValid(node, kv_pairs.len()));
