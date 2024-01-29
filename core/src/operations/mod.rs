@@ -432,7 +432,7 @@ pub enum Operation {
     /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
     /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
-    RanComb1,
+    RCombBase,
 }
 
 impl Operation {
@@ -485,7 +485,7 @@ impl Operation {
             Self::SwapW2        => 0b0001_1100,
             Self::SwapW3        => 0b0001_1101,
             Self::SwapDW        => 0b0001_1110,
-            Self::RanComb1      => 0b0001_1111,
+            // <empty>          => 0b0001_1111,
 
             Self::Assert(_)     => 0b0010_0000,
             Self::Eq            => 0b0010_0001,
@@ -539,7 +539,7 @@ impl Operation {
             Self::Span          => 0b0101_0110,
             Self::Join          => 0b0101_0111,
             Self::Dyn           => 0b0101_1000,
-            // <empty>          => 0b0101_1001,
+            Self::RCombBase     => 0b0101_1001,
             // <empty>          => 0b0101_1010,
             // <empty>          => 0b0101_1011,
             // <empty>          => 0b0101_1100,
@@ -707,7 +707,7 @@ impl fmt::Display for Operation {
             Self::MpVerify => write!(f, "mpverify"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
-            Self::RanComb1 => write!(f, "rcomb1"),
+            Self::RCombBase => write!(f, "rcomb1"),
         }
     }
 }

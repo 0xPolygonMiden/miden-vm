@@ -259,7 +259,7 @@ export.probablistic_product.4
     repeat.64
         mem_stream
         repeat.8
-            rcomb1
+            rcomb_base
         end
     end
 
@@ -282,7 +282,7 @@ export.probablistic_product.4
     repeat.64
         mem_stream
         repeat.8
-            rcomb1
+            rcomb_base
         end
     end
 
@@ -311,7 +311,7 @@ export.probablistic_product.4
     repeat.64
         mem_stream
         repeat.8
-            rcomb1
+            rcomb_base
         end
     end
     #=> [X, X, ev1, ev0, ev1, ev0, pi_ptr, zeros_ptr, tau_ptr, 0, ...]
@@ -331,7 +331,7 @@ export.probablistic_product.4
     repeat.64
         mem_stream
         repeat.8
-            rcomb1
+            rcomb_base
         end
     end
     #=> [X, X, ev1, ev0, ev1, ev0, pi_ptr, zeros_ptr, tau_ptr, 0, ...]

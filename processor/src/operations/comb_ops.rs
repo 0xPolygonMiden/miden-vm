@@ -11,15 +11,19 @@ where
 {
     // COMBINE VALUES USING RANDOMNESS
     // --------------------------------------------------------------------------------------------
-    /// Performs a single step of a random linear combination defining the DEEP composition
-    /// polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
+    /// Performs a single step in the computation of the random linear combination:
+    ///
     /// \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
     ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
     ///
-    /// and the following instruction computes the numerator $\alpha_i \cdot (T_i(x) - T_i(z))$
-    /// and $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators
-    /// $r$ and $p$, respectively. This instruction is specialized to main trace columns i.e.
+    /// The instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$ and
+    /// $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators $p$
+    /// and $r$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
+    /// The instruction is used in the context of STARK proof verification in order to compute
+    /// the queries of the DEEP composition polynomial for FRI. It works in combination with
+    /// the `mem_stream` instruction where it is called 8 times in a row for each call to
+    /// `mem_stream`.
     ///
     /// The stack transition of the instruction can be visualized as follows:
     ///
@@ -41,16 +45,19 @@ where
     ///
     /// 1. Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current
     ///  query i.e. T_i(x).
-    /// 2. (p0, p1) stands for an extension field element accumulating the values for the quotients
+    /// 2. (r0, r1) stands for an extension field element accumulating the values for the quotients
     ///  with common denominator (x - gz).
-    /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
+    /// 3. (p0, p1) stands for an extension field element accumulating the values for the quotients
     ///  with common denominator (x - z).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
     ///  instruction.
-    /// 5. z_addr is the memory address to the i-th OOD evaluation frame at z and gz
+    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz
     ///  i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
-    /// 6. a_addr is the memory address of the i-th random element used in batching the trace
-    ///  polynomial quotients.
+    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching
+    ///  the trace polynomial quotients.
+    ///
+    /// The instruction also makes use of the helper registers to hold the values of T_i(z), T_i(gz)
+    /// and alpha_i during the course of its execution.
     ///
     /// Stack transition for this operation looks as follows:
     ///
@@ -61,7 +68,7 @@ where
     /// [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr+1, a_addr+1, 0]
     pub(super) fn op_rcomb_base(&mut self) -> Result<(), ExecutionError> {
         // --- read the T_i(x) value from the stack -----------------------------------------------
-        let [v7, v6, v5, v4, v3, v2, v1, v0] = self.get_trace_values();
+        let [t7, t6, t5, t4, t3, t2, t1, t0] = self.get_trace_values();
 
         // --- read the randomness from memory ----------------------------------------------------
         let alpha = self.get_randomness();
@@ -73,17 +80,22 @@ where
         self.set_helper_reg(alpha, tz, tgz);
 
         // --- read the accumulator values from stack ---------------------------------------------
-        let [p_new, r_new] = self.compute_new_accumulator(tz, tgz, alpha);
+        let [p, r] = self.read_accumulators();
+
+        let v0 = self.stack.get(7);
+        let tx = QuadFelt::new(v0, ZERO);
+
+        let [p_new, r_new] = [p + alpha * (tx - tz), r + alpha * (tx - tgz)];
 
         // --- rotate the top 8 elements of the stack ---------------------------------------------
-        self.stack.set(0, v0);
-        self.stack.set(1, v7);
-        self.stack.set(2, v6);
-        self.stack.set(3, v5);
-        self.stack.set(4, v4);
-        self.stack.set(5, v3);
-        self.stack.set(6, v2);
-        self.stack.set(7, v1);
+        self.stack.set(0, t0);
+        self.stack.set(1, t7);
+        self.stack.set(2, t6);
+        self.stack.set(3, t5);
+        self.stack.set(4, t4);
+        self.stack.set(5, t3);
+        self.stack.set(6, t2);
+        self.stack.set(7, t1);
 
         // --- update the accumulators ------------------------------------------------------------
         self.stack.set(8, p_new.to_base_elements()[1]);
@@ -136,13 +148,8 @@ where
         [QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])]
     }
 
-    /// Computes the updated accumulator values for base field elements.
-    fn compute_new_accumulator(
-        &self,
-        tz: QuadFelt,
-        tgz: QuadFelt,
-        alpha: QuadFelt,
-    ) -> [QuadFelt; 2] {
+    /// Reads the accumulator values.
+    fn read_accumulators(&self) -> [QuadFelt; 2] {
         let p1 = self.stack.get(8);
         let p0 = self.stack.get(9);
         let p = QuadFelt::new(p0, p1);
@@ -151,10 +158,7 @@ where
         let r0 = self.stack.get(11);
         let r = QuadFelt::new(r0, r1);
 
-        let v0 = self.stack.get(7);
-        let tx = QuadFelt::new(v0, ZERO);
-
-        [p + alpha * (tx - tz), r + alpha * (tx - tgz)]
+        [p, r]
     }
 
     /// Populates helper registers with OOD values and randomness.
@@ -163,7 +167,7 @@ where
         let [tz0, tz1] = tz.to_base_elements();
         let [tgz0, tgz1] = tgz.to_base_elements();
         let values = [tz0, tz1, tgz0, tgz1, a0, a1];
-        self.decoder.set_user_op_helpers(Operation::RanComb1, &values);
+        self.decoder.set_user_op_helpers(Operation::RCombBase, &values);
     }
 }
 
@@ -215,7 +219,7 @@ mod tests {
         );
 
         // --- execute RCOMB1 operation -----------------------------------------------------------
-        process.execute_op(Operation::RanComb1).unwrap();
+        process.execute_op(Operation::RCombBase).unwrap();
 
         // --- check that the top 8 stack elements are correctly rotated --------------------------
         let stack_state = process.stack.trace_state();

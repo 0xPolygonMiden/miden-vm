@@ -241,7 +241,7 @@ pub enum OpCode {
 
     // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4 = 209,
-    RandCombMain = 210,
+    RCombBase = 210,
 
     // ----- exec / call --------------------------------------------------------------------------
     ExecLocal = 211,

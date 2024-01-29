@@ -609,8 +609,9 @@ impl ParserContext<'_> {
             "mtree_merge" => simple_instruction(op, MTreeMerge),
             "mtree_verify" => simple_instruction(op, MTreeVerify),
 
+            // ----- STARK proof verification -----------------------------------------------------
             "fri_ext2fold4" => simple_instruction(op, FriExt2Fold4),
-            "rcomb1" => simple_instruction(op, RandCombMain),
+            "rcomb_base" => simple_instruction(op, RCombBase),
 
             // ----- procedure invocations --------------------------------------------------------
             "exec" => self.parse_exec(op),

@@ -9,6 +9,7 @@
 - Added the ability to use constants as counters in `repeat` loops (#1124). 
 - All `checked` versions of the u32 instructions were removed. All `unchecked` versions were renamed: this mode specification was removed from their titles (#1115).
 - Added support for hexadecimal values in constants (#1199).
+- Added the `RCombBase` instruction (#1216).
 
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
