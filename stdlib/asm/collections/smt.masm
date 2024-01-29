@@ -42,11 +42,7 @@ proc.set_empty_leaf
         dropw
         #=> [V, K, R, ...]
 
-        # Update advice map with new leaf preimage
-        # adv_map[hash(K, V)] = [K, V]
-        # (0 cycles)
-        adv.insert_hdword
-        #=> [V, K, R]
+        # TODO: Remove entry from advice map (requires new advice injector)
 
         # Compute hash([K, V]); the new node value (NV)
         # (21 cycles)
