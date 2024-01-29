@@ -1,4 +1,4 @@
-use super::{super::trace::AuxColumnBuilder, ColMatrix, Felt, FieldElement, StarkField, Vec};
+use super::{super::trace::AuxColumnBuilder, Felt, FieldElement, StarkField, Vec};
 
 use miden_air::trace::{
     chiplets::{
@@ -56,7 +56,7 @@ impl AuxTraceBuilder {
     /// provided by chiplets in the Chiplets module.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let v_table_col_builder = ChipletsVTableColBuilder::default();
