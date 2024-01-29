@@ -17,6 +17,8 @@ use super::{
     STACK_TRACE_OFFSET,
 };
 use core::ops::{Deref, Range};
+#[cfg(any(test, feature = "internals"))]
+use vm_core::utils::collections::Vec;
 use vm_core::{utils::range, Felt, ONE, ZERO};
 
 // CONSTANTS
