@@ -26,6 +26,8 @@ std = []
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
+rand = { version = "0.8.5", features = [] }
+num = "0.4.1"
 
 [dev-dependencies]
 blake3 = "1.5"
