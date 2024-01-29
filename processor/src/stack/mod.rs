@@ -1,6 +1,5 @@
 use super::{
-    BTreeMap, ColMatrix, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE,
-    STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};

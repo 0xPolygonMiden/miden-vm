@@ -16,7 +16,9 @@ use super::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
     STACK_TRACE_OFFSET,
 };
-use core::ops::Range;
+use core::ops::{Deref, Range};
+#[cfg(any(test, feature = "internals"))]
+use vm_core::utils::collections::Vec;
 use vm_core::{utils::range, Felt, ONE, ZERO};
 
 // CONSTANTS
@@ -28,12 +30,20 @@ const DECODER_HASHER_RANGE: Range<usize> =
 // HELPER STRUCT AND METHODS
 // ================================================================================================
 
-pub struct MainTrace<'a> {
-    columns: &'a ColMatrix<Felt>,
+pub struct MainTrace {
+    columns: ColMatrix<Felt>,
 }
 
-impl<'a> MainTrace<'a> {
-    pub fn new(main_trace: &'a ColMatrix<Felt>) -> Self {
+impl Deref for MainTrace {
+    type Target = ColMatrix<Felt>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.columns
+    }
+}
+
+impl MainTrace {
+    pub fn new(main_trace: ColMatrix<Felt>) -> Self {
         Self {
             columns: main_trace,
         }
@@ -41,6 +51,14 @@ impl<'a> MainTrace<'a> {
 
     pub fn num_rows(&self) -> usize {
         self.columns.num_rows()
+    }
+
+    #[cfg(any(test, feature = "internals"))]
+    pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
+        range.fold(vec![], |mut acc, col_idx| {
+            acc.push(self.get_column(col_idx).to_vec());
+            acc
+        })
     }
 
     // SYSTEM COLUMNS
