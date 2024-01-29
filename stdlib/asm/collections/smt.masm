@@ -28,11 +28,11 @@ proc.set_empty_leaf
         # Prepare stack: verify that the leaf is actually empty
         # (9 cycles)
         movupw.2 swapw dup.8 movdn.4 push.LEAF_DEPTH movdn.4
-        #=> [V (=ZERO), depth, K[0], R, K, ...]
+        #=> [V (=ZERO), depth, K[3], R, K, ...]
 
         # (1 cycle)
         mtree_verify
-        #=> [V (=ZERO), depth, K[0], R, K, ...]
+        #=> [V (=ZERO), depth, K[3], R, K, ...]
         
         # Prepare stack for return (10 cycles)
         movup.4 drop movup.4 drop movupw.2 dropw
@@ -55,7 +55,7 @@ proc.set_empty_leaf
 
         # Prepare stack for `mtree_set` (5 cycles)
         movupw.2 dup.8 push.LEAF_DEPTH
-        #=> [depth, K[0], R, NV, K]
+        #=> [depth, K[3], R, NV, K]
 
         # Insert node in Merkle store (29 cycles)
         mtree_set
@@ -120,7 +120,7 @@ proc.insert_single_leaf
         # Prepare stack to update Merkle store
         # (6 cycles)
         movupw.2 dup.8 push.LEAF_DEPTH
-        # => [depth, K[0], R, NV, K, V_old]
+        # => [depth, K[3], R, NV, K, V_old]
 
         # Update Merkle store (29 cycles)
         mtree_set
@@ -165,7 +165,7 @@ proc.remove_single_leaf
     # as the node value (since we confirmed that it's `ZERO`)
     # (7 cycles)
     movupw.3 dup.8 push.LEAF_DEPTH
-    # => [depth, K[0], R, V, K, V_old, ...] 
+    # => [depth, K[3], R, V, K, V_old, ...] 
 
     # (29 cycles)
     mtree_set
@@ -334,7 +334,7 @@ export.get
     # Prepare for `mtree_get`
     # (6 cycles)
     dupw.1 dup.4 push.LEAF_DEPTH
-    # => [depth, K[0], R, K, R]
+    # => [depth, K[3], R, K, R]
 
     # Retrieve node value from merkle store
     # (14 cycles)
