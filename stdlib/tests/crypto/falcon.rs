@@ -12,6 +12,7 @@ use test_utils::{
 
 const M: u64 = 12289;
 const Q: u64 = (M - 1) / 2;
+const J: u64 = 512 * M * M;
 
 #[test]
 fn test_falcon_verify() {
@@ -57,18 +58,17 @@ fn test_falcon_diff_mod_q() {
     end
     ";
 
-    let num1 = rand::thread_rng().gen_range(Q..M);
-
-    let test1 = build_test!(source, &[num1]);
-
-    test1.expect_stack(&[(M - num1) * (M - num1)]);
-
-    let num2 = rand::thread_rng().gen_range(0..Q);
+    let u = rand::thread_rng().gen_range(0..J);
+    let v = rand::thread_rng().gen_range(Q..M);
+    let w = rand::thread_rng().gen_range(0..J);
+    let neg_w: i64 = (-1 * w) as i64;
 
 
-    let test2 = build_test!(source, &[num2]);
+    let test1 = build_test!(source, &[u, v, w]);
+    let expected_answer1 =  v - (u + ((neg_w).rem_euclid(M)).rem_euclid(M)).rem_euclid(M);
 
-    test2.expect_stack(&[num2 * num2])
+    let expected_answer = (v + w + J - u).rem_euclid(M);
+    test1.expect_stack(&[expected_answer1]);
 }
 
 fn generate_test_verify(keypair: KeyPair, message: Word) -> Test {
