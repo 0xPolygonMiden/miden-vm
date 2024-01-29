@@ -325,33 +325,45 @@ end
 #!   Operand stack: [V, R, ...]
 #!
 #! Fails if the tree with the specified root does not exits in the VM's advice provider.
+#!
+#! Cycles
+#!   Leaf empty: 48 cycles
+#!   Leaf single: 99 cycles
+#!   Leaf multiple: unimplemented
 export.get
     # Prepare for `mtree_get`
+    # (6 cycles)
     dupw.1 dup.4 push.LEAF_DEPTH
     # => [depth, K[0], R, K, R]
 
     # Retrieve node value from merkle store
+    # (14 cycles)
     mtree_get swapw dropw
     # => [NV, K, R]
 
     # Check if value is empty; if so, return empty value
+    # (19 cycles)
     padw eqw
     # => [NV == 0, ZERO, V, K, R]
 
     if.true
         # Return empty value
+        # (9 cycles)
         dropw swapw dropw
         # => [NV, R]
     else
         # Drop extra ZERO word
+        # (4 cycles)
         dropw
         # => [NV, K, R]
 
         # Get leaf pre-image from advice map. Push the leaf preimage size on the stack
+        # (0 cycles)
         adv.push_mapvaln adv_push.1
         # => [leaf_size, NV, K, R]
 
         # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
+        # (3 cycles)
         dup eq.8
         # => [is_single_kv_pair, leaf_size, NV, K, R]
 
@@ -359,18 +371,22 @@ export.get
             # Single kv-pair case
 
             # Push leaf pre-image on stack (single K-V pair)
+            # (1 cycle)
             drop adv_push.8
             # => [V, K, NV, K, R]
 
             # Confirm that the key stored in the leaf is as expected
+            # (18 cycles)
             movupw.3 dupw.2 assert_eqw
             # => [V, K, NV, R]
 
             # Duplicate V to return it after hash check
+            # (7 cycles)
             dupw movdnw.3
             # => [V, K, NV, V, R]
 
             # Hash leaf preimage and ensure that it equals node value
+            # (27 cycles)
             hmerge assert_eqw
             # => [V, R]
         else
