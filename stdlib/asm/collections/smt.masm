@@ -14,8 +14,8 @@ const.LEAF_DEPTH=64
 #!   Operand stack: [V_old, R_new, ...]
 #!
 #! Cycles
-#!   Insert empty leaf: 43 cycles
-#!   Insert non-empty leaf: 102 cycles
+#!   Insert empty value: 43 cycles
+#!   Insert non-empty value: 102 cycles
 proc.set_empty_leaf
     # Check if we're inserting the empty value (19 cycles)
     padw eqw
@@ -152,25 +152,31 @@ end
 #!
 #! Outputs:
 #!   Operand stack: [V_old, R_new, ...]
+#!
+#! Cycles: 143 
 proc.remove_single_leaf
     # Update advice map
+    # (3 cycles)
     movupw.2 swapw adv.insert_hdword
     # => [V, K, V_old, R, ...] 
 
     # Prepare the stack for `mtree_set`
     # Note that the new node value will be the empty word, so we can use `V`
     # as the node value (since we confirmed that it's `ZERO`)
+    # (7 cycles)
     movupw.3 dup.8 push.LEAF_DEPTH
     # => [depth, K[0], R, V, K, V_old, ...] 
 
+    # (29 cycles)
     mtree_set
     # => [NV_old, R_new, K, V_old, ...] 
 
     # Confirm that hmerge([K, V_old]) = NV
+    # (33 cycles)
     movupw.2 dupw.3 hmerge assert_eqw
     # => [R_new, V_old, ...] 
 
-    # Cleanup stack for return
+    # Cleanup stack for return (1 cycle)
     swapw
     # => [V_old, R_new, ...] 
 end
@@ -184,24 +190,33 @@ end
 #!
 #! Outputs:
 #!   Operand stack: [V_old, R_new, ...]
+#! Cycles:
+#!   Remove: 168 cycles
+#!   Insert; leaf single after insertion: 146 cycles
+#!   Insert; leaf multiple after insertion: unimplemented
 proc.set_single_leaf
     # Check if we're inserting or removing a value
+    # (21 cycles)
     swapw padw eqw
     # => [V==ZERO, ZERO, V, V_old, K, R, ...] 
     if.true
         # we're removing the key/value pair from the leaf; i.e. the leaf becomes empty
 
+        # (4 cycles)
         dropw 
         # => [V, V_old, K, R, ...] 
 
+        # (143 cycles)
         exec.remove_single_leaf
         # => [V_old, R_new]
     else
         # we're inserting the key/value pair
 
+        # (4 cycles)
         dropw 
         # => [V, V_old, K, R, ...] 
 
+        # (121 cycles)
         exec.insert_single_leaf
         # => [V_old, R_new]
     end
@@ -220,48 +235,71 @@ end
 #!   Operand stack: [V_old, R_new, ...]
 #!
 #! Fails if the tree with the specified root does not exits in the VM's advice provider.
+#!
+#! Cycles
+#!   Leaf empty
+#!     removal: 74 cycles
+#!     insertion: 133 cycles
+#!   Leaf single
+#!     removal: 227 cycles
+#!     insertion (leaf remains single): 205
+#!     insertion (leaf becomes multiple): unimplemented
+#!   Leaf multiple
+#!     unimplemented
 export.set
+    # (4 cycles)
     movdnw.2 adv.push_smtpeek movupw.2
     # => [V, K, R]
 
-    # Push peeked value on stack
+    # Push peeked value on stack (0 cycles)
     adv_push.4
     # => [V_old, V, K, R]
 
+    # (19 cycles)
     padw eqw
     # => [V_old == ZERO, ZERO, V_old, V, K, R]
 
     if.true
         # empty leaf
 
+        # (8 cycles)
         dropw dropw
         #=> [V, K, R]
 
+        # (insert empty value: 43 cycles)
+        # (insert non-empty value: 102 cycles)
         exec.set_empty_leaf
     else
         # Single or Multiple leaf
 
+        # (4 cycles)
         dropw
         # => [V_old, V, K, R]
 
         # Prepare stack to retrieve leaf pre-image
+        # (24 cycles)
         dupw.2 dupw.1 hmerge
         # => [NV, V_old, V, K, R]
 
         # Retrieve leaf pre-image on advice stack, and push leaf size on stack
+        # (4 cycles)
         adv.push_mapvaln dropw adv_push.1
         # => [leaf_size, V_old, V, K, R]
 
         # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
+        # (3 cycles)
         dup eq.8
         # => [is_single_kv_pair, leaf_size, V_old, V, K, R]
 
         if.true
             #  Single kv-pair case
 
+            # (1 cycle)
             drop
             # => [V_old, V, K, R]
 
+            # (remove key/value: 168 cycles)
+            # (insert; leaf single after insertion: 146 cycles)
             exec.set_single_leaf
         else
             # Multiple kv-pair case
