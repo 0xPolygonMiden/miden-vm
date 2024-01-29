@@ -128,7 +128,7 @@ fn test_smt_set_empty_value_to_empty_tree() {
     end
     ";
 
-    let key = LEAVES[0].0;
+    let key = RpoDigest::new([41_u64.into(), 42_u64.into(), 43_u64.into(), 44_u64.into()]);
     let value = EMPTY_WORD;
     let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
     build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
