@@ -6,7 +6,6 @@ use vm_core::{utils::uninit_vector, FieldElement};
 
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};
-use winter_prover::matrix::ColMatrix;
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -221,19 +220,18 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     }
 
     /// Builds the chiplets bus auxiliary trace column.
-    fn build_aux_column(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E> {
-        let main_trace = MainTrace::new(main_trace);
+    fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E> {
         let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
 
-        responses_prod[0] = self.init_responses(&main_trace, alphas);
-        requests[0] = self.init_requests(&main_trace, alphas);
+        responses_prod[0] = self.init_responses(main_trace, alphas);
+        requests[0] = self.init_requests(main_trace, alphas);
 
         let mut requests_running_prod = E::ONE;
         for row_idx in 0..main_trace.num_rows() - 1 {
             responses_prod[row_idx + 1] =
-                responses_prod[row_idx] * self.get_responses_at(&main_trace, alphas, row_idx);
-            requests[row_idx + 1] = self.get_requests_at(&main_trace, alphas, row_idx);
+                responses_prod[row_idx] * self.get_responses_at(main_trace, alphas, row_idx);
+            requests[row_idx + 1] = self.get_requests_at(main_trace, alphas, row_idx);
             requests_running_prod *= requests[row_idx + 1];
         }
 
