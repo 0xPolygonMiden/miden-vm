@@ -14,8 +14,8 @@ impl AdviceMap {
         Self(BTreeMap::<RpoDigest, Vec<Felt>>::new())
     }
 
-    pub fn get(&self, key: &RpoDigest) -> Option<&Vec<Felt>> {
-        self.0.get(key)
+    pub fn get(&self, key: &RpoDigest) -> Option<&[Felt]> {
+        self.0.get(key).map(|v| v.as_slice())
     }
 
     pub fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<Vec<Felt>> {

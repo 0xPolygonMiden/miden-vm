@@ -107,7 +107,7 @@ impl AdviceInputs {
 
     /// Fetch a values set mapped by the given key.
     pub fn mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
-        self.map.get(key).map(Vec::as_slice)
+        self.map.get(key)
     }
 
     /// Returns the underlying [MerkleStore].
