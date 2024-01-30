@@ -1,7 +1,7 @@
 use super::{BTreeMap, Felt, Vec};
 
 extern crate alloc;
-use alloc::collections::btree_map::IterMut;
+use alloc::collections::btree_map::IntoIter;
 
 use vm_core::crypto::hash::RpoDigest;
 
@@ -18,10 +18,6 @@ impl AdviceMap {
         self.0.get(key)
     }
 
-    pub fn get_mut(&mut self, key: &RpoDigest) -> Option<&mut Vec<Felt>> {
-        self.0.get_mut(key)
-    }
-
     pub fn insert(&mut self, key: RpoDigest, value: Vec<Felt>) -> Option<Vec<Felt>> {
         self.0.insert(key, value)
     }
@@ -29,16 +25,19 @@ impl AdviceMap {
     pub fn remove(&mut self, key: RpoDigest) -> Option<Vec<Felt>> {
         self.0.remove(&key)
     }
+}
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, RpoDigest, Vec<Felt>> {
-        self.0.iter_mut()
+impl IntoIterator for AdviceMap {
+    type Item = (RpoDigest, Vec<Felt>);
+    type IntoIter = IntoIter<RpoDigest, Vec<Felt>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
+}
 
-    pub fn get_map(&self) -> &BTreeMap<RpoDigest, Vec<Felt>> {
-        &self.0
-    }
-
-    pub fn get_map_mut(&mut self) -> &mut BTreeMap<RpoDigest, Vec<Felt>> {
-        &mut self.0
+impl Extend<(RpoDigest, Vec<Felt>)> for AdviceMap {
+    fn extend<T: IntoIterator<Item = (RpoDigest, Vec<Felt>)>>(&mut self, iter: T) {
+        self.0.extend(iter)
     }
 }
