@@ -4,11 +4,8 @@ use processor::Digest;
 use rand::Rng;
 
 use std::vec;
-use test_utils::{
-    crypto::{rpo_falcon512::KeyPair, MerkleStore},
-    rand::rand_vector,
-    Test, Word,
-};
+use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, QuadFelt, rand::rand_vector, Test, Word};
+use test_utils::rand::rand_value;
 
 const M: u64 = 12289;
 const Q: u64 = (M - 1) / 2;
@@ -61,14 +58,49 @@ fn test_falcon_diff_mod_q() {
     let u = rand::thread_rng().gen_range(0..J);
     let v = rand::thread_rng().gen_range(Q..M);
     let w = rand::thread_rng().gen_range(0..J);
-    let neg_w: i64 = (-1 * w) as i64;
-
 
     let test1 = build_test!(source, &[u, v, w]);
-    let expected_answer1 =  v - (u + ((neg_w).rem_euclid(M)).rem_euclid(M)).rem_euclid(M);
+    let expected_answer =  (v + w + J - u).rem_euclid(M);
 
-    let expected_answer = (v + w + J - u).rem_euclid(M);
-    test1.expect_stack(&[expected_answer1]);
+    test1.expect_stack(&[expected_answer]);
+}
+
+#[test]
+fn test_falcon_powers_of_tau() {
+    // let source = "
+    // use.std::crypto::dsa::rpo_falcon512
+    //
+    // begin
+    //     exec.rpo_falcon512::powers_of_tau
+    // end
+    // ";
+
+    let source = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        push.1 push.0.0.0
+        dup.6 add.1 swap.7
+        mem_storew
+        drop drop
+    end
+    ";
+
+    let tau = rand_value::<QuadFelt>();
+
+    let tau_ptr: u32 = 0;
+    let (elem_0, elem_1) = ext_element_to_ints(tau);
+
+    let stack_init = [elem_1, elem_0, tau_ptr.into()];
+
+    let test = build_test!(source, &stack_init);
+
+    // let expected_stack = tau_ptr + 513;
+    // let expected_memory = &[0, 1, elem_1, elem_0, tau_ptr + 1];
+
+    let expected_stack = &[0, 1, elem_1, elem_0, (tau_ptr + 1).into()];
+
+    test.expect_stack(expected_stack);
 }
 
 fn generate_test_verify(keypair: KeyPair, message: Word) -> Test {
@@ -125,4 +157,13 @@ fn generate_test_norm_sq(keypair: KeyPair, message: Word) -> Test {
     let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
 
     test
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+/// Helper function to convert a quadratic extension field element into a tuple of elements in the
+/// underlying base field and convert them into integers.
+fn ext_element_to_ints(ext_elem: QuadFelt) -> (u64, u64) {
+    let base_elements = ext_elem.to_base_elements();
+    (base_elements[0].as_int(), base_elements[1].as_int())
 }
