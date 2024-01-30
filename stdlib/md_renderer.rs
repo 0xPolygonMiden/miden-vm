@@ -71,6 +71,7 @@ impl Renderer for MarkdownRenderer {
             let f = fs::OpenOptions::new()
                 .write(true)
                 .create(true)
+                .truncate(true)
                 .open(file_path)
                 .expect("unable to open stdlib markdown file");
 
