@@ -13,6 +13,7 @@ mod decoder;
 mod hasher;
 mod range;
 mod stack;
+mod multiset;
 
 // TEST HELPERS
 // ================================================================================================
