@@ -58,14 +58,6 @@ where
     ///
     /// The instruction also makes use of the helper registers to hold the values of T_i(z), T_i(gz)
     /// and alpha_i during the course of its execution.
-    ///
-    /// Stack transition for this operation looks as follows:
-    ///
-    /// Input:
-    /// [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
-    ///
-    /// Output:
-    /// [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr+1, a_addr+1, 0]
     pub(super) fn op_rcomb_base(&mut self) -> Result<(), ExecutionError> {
         // --- read the T_i(x) value from the stack -----------------------------------------------
         let [t7, t6, t5, t4, t3, t2, t1, t0] = self.get_trace_values();
@@ -76,15 +68,12 @@ where
         // --- read the OOD values from memory ----------------------------------------------------
         let [tz, tgz] = self.get_ood_values();
 
-        // --- set the helper registers -----------------------------------------------------------
-        self.set_helper_reg(alpha, tz, tgz);
-
         // --- read the accumulator values from stack ---------------------------------------------
         let [p, r] = self.read_accumulators();
 
+        // --- compute the updated accumulator values ---------------------------------------------
         let v0 = self.stack.get(7);
         let tx = QuadFelt::new(v0, ZERO);
-
         let [p_new, r_new] = [p + alpha * (tx - tz), r + alpha * (tx - tgz)];
 
         // --- rotate the top 8 elements of the stack ---------------------------------------------
@@ -108,6 +97,9 @@ where
         self.stack.set(13, self.stack.get(13) + ONE);
         self.stack.set(14, self.stack.get(14) + ONE);
         self.stack.set(15, self.stack.get(15));
+
+        // --- set the helper registers -----------------------------------------------------------
+        self.set_helper_reg(alpha, tz, tgz);
 
         Ok(())
     }

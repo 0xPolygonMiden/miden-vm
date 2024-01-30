@@ -165,6 +165,10 @@ The stack for the operation is expected to be arranged as follows:
 - The next element contains the value of the memory pointer `z_ptr` to the $i$-th OOD evaluations at z and gz i.e. $T_i(z) = (T_i(z)_0, T_i(z)_1)$ and $T_i(gz) = (T_i(gz)_0, T_i(gz)_1)$.
 - The next element contains the value of the memory pointer `a_ptr` to the $i$-th random value $\alpha_i = (\alpha_{i, 0}, \alpha_{i,1})$.
 
+The diagram below illustrates the stack transition for `RCombBase` operation.
+
+![rcomb_base](../../assets/design/stack/crypto_ops/RCOMBBASE.png)
+
 After calling the `mem_stream ` with `x_ptr`, the operation does the following:
 - Populates the helper registers with $\left[T_i(z)_0, T_i(z)_1, T_i(gz)_0, T_i(gz)_1, \alpha_{i, 0}, \alpha_{i,1}\right]$ using the pointers `z_ptr` and `a_ptr`.
 - Updates the accumulators $$p \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(z)\right)$$ and $$r \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(gz)\right).$$
