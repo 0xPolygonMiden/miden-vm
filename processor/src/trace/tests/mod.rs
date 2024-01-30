@@ -11,9 +11,9 @@ use vm_core::{
 mod chiplets;
 mod decoder;
 mod hasher;
+mod multiset;
 mod range;
 mod stack;
-mod multiset;
 
 // TEST HELPERS
 // ================================================================================================
