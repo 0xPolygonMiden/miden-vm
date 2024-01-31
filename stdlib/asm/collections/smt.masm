@@ -42,7 +42,9 @@ proc.set_empty_leaf
         dropw
         #=> [V, K, R, ...]
 
-        # TODO: Remove entry from advice map (requires new advice injector)
+        # Update advice map
+        adv.insert_hdword
+        #=> [V, K, R, ...]
 
         # Compute hash([K, V]); the new node value (NV)
         # (21 cycles)
