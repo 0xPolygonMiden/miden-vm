@@ -135,6 +135,53 @@ fn test_smt_set_empty_value_to_empty_leaf() {
     assert_eq!(smt.root(), empty_tree_root);
 }
 
+/// Tests that the advice map is properly updated after a `set`
+#[test]
+fn test_set_advice_map() {
+    let mut smt = Smt::new();
+
+    let source = "
+    use.std::collections::smt
+    # Stack: [V, K, R]
+    begin
+        # copy V and K, and save lower on stack
+        dupw.1 movdnw.3 dupw movdnw.3
+        # => [V, K, R, V, K]
+
+        # Sets the advice map
+        exec.smt::set
+        # => [V_old, R_new, V, K]
+
+        # Prepare for peek
+        dropw dupw.2
+        # => [K, R_new, V, K]
+
+        # Fetch what was stored on advice map and clean stack
+        adv.push_smtpeek dropw dropw
+        # => [V, K]
+        
+        # Push advice map values on stack
+        adv_push.8
+        # => [V_in_map, K_in_map, V, K]
+
+        # Check for equality of V's
+        movupw.2 assert_eqw
+        # => [K_in_map, K]
+
+        # Check for equality of K's
+        assert_eqw
+        # => [K_in_map, K]
+    end
+    ";
+
+    let key = RpoDigest::new([41_u64.into(), 42_u64.into(), 43_u64.into(), 44_u64.into()]);
+    let value: [Felt; 4] = [42323_u64.into(); 4];
+    let (init_stack, _, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
+
+    // assert is checked in MASM
+    build_test!(source, &init_stack, &[], store, advice_map).execute().unwrap();
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
