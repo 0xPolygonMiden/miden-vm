@@ -177,5 +177,7 @@ After calling the `mem_stream ` with `x_ptr`, the operation does the following:
 
 > TODO: add detailed constraint descriptions. See discussion [here](https://github.com/0xPolygonMiden/miden-vm/issues/869).
 
+> TODO: add detailed constraint descriptions. See discussion [here](https://github.com/0xPolygonMiden/miden-vm/issues/869).
+
 The effect on the rest of the stack is:
 * **No change.**
