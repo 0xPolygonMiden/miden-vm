@@ -135,6 +135,92 @@ fn test_smt_set_empty_value_to_empty_leaf() {
     assert_eq!(smt.root(), empty_tree_root);
 }
 
+/// Tests that the advice map is properly updated after a `set` on an empty key
+#[test]
+fn test_set_advice_map_empty_key() {
+    let mut smt = Smt::new();
+
+    let source = "
+    use.std::collections::smt
+    # Stack: [V, K, R]
+    begin
+        # copy V and K, and save lower on stack
+        dupw.1 movdnw.3 dupw movdnw.3
+        # => [V, K, R, V, K]
+
+        # Sets the advice map
+        exec.smt::set
+        # => [V_old, R_new, V, K]
+
+        # Prepare for peek
+        dropw movupw.2
+        # => [K, R_new, V]
+
+        # Fetch what was stored on advice map and clean stack
+        adv.push_smtpeek dropw dropw
+        # => [V]
+        
+        # Push advice map values on stack
+        adv_push.4
+        # => [V_in_map, V]
+
+        # Check for equality of V's
+        assert_eqw
+        # => [K]
+    end
+    ";
+
+    let key = RpoDigest::new([41_u64.into(), 42_u64.into(), 43_u64.into(), 44_u64.into()]);
+    let value: [Felt; 4] = [42323_u64.into(); 4];
+    let (init_stack, _, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
+
+    // assert is checked in MASM
+    build_test!(source, &init_stack, &[], store, advice_map).execute().unwrap();
+}
+
+/// Tests that the advice map is properly updated after a `set` on a key that has existing value
+#[test]
+fn test_set_advice_map_single_key() {
+    let mut smt = Smt::with_entries(LEAVES).unwrap();
+
+    let source = "
+    use.std::collections::smt
+    # Stack: [V, K, R]
+    begin
+        # copy V and K, and save lower on stack
+        dupw.1 movdnw.3 dupw movdnw.3
+        # => [V, K, R, V, K]
+
+        # Sets the advice map
+        exec.smt::set
+        # => [V_old, R_new, V, K]
+
+        # Prepare for peek
+        dropw movupw.2
+        # => [K, R_new, V]
+
+        # Fetch what was stored on advice map and clean stack
+        adv.push_smtpeek dropw dropw
+        # => [V]
+        
+        # Push advice map values on stack
+        adv_push.4
+        # => [V_in_map, V]
+
+        # Check for equality of V's
+        assert_eqw
+        # => [K]
+    end
+    ";
+
+    let key = LEAVES[0].0;
+    let value: [Felt; 4] = [42323_u64.into(); 4];
+    let (init_stack, _, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
+
+    // assert is checked in MASM
+    build_test!(source, &init_stack, &[], store, advice_map).execute().unwrap();
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
