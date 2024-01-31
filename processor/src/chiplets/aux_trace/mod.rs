@@ -477,12 +477,12 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(i);
     let clk = main_trace.clk(i);
 
-    let h0_nxt = main_trace.helper_i(0, i + 1);
-    let h1_nxt = main_trace.helper_i(1, i + 1);
-    let h2_nxt = main_trace.helper_i(2, i + 1);
-    let h3_nxt = main_trace.helper_i(3, i + 1);
-    let h4_nxt = main_trace.helper_i(4, i + 1);
-    let h5_nxt = main_trace.helper_i(5, i + 1);
+    let tz0 = main_trace.helper_i(0, i);
+    let tz1 = main_trace.helper_i(1, i);
+    let tzg0 = main_trace.helper_i(2, i);
+    let tzg1 = main_trace.helper_i(3, i);
+    let a0 = main_trace.helper_i(4, i);
+    let a1 = main_trace.helper_i(5, i);
 
     let z_ptr = main_trace.stack_element(13, i);
     let a_ptr = main_trace.stack_element(14, i);
@@ -494,18 +494,18 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
         + alphas[2].mul_base(ctx)
         + alphas[3].mul_base(z_ptr)
         + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(h0_nxt)
-        + alphas[6].mul_base(h1_nxt)
-        + alphas[7].mul_base(h2_nxt)
-        + alphas[8].mul_base(h3_nxt);
+        + alphas[5].mul_base(tz0)
+        + alphas[6].mul_base(tz1)
+        + alphas[7].mul_base(tzg0)
+        + alphas[8].mul_base(tzg1);
 
     let factor2 = alphas[0]
         + alphas[1].mul_base(Felt::from(op_label))
         + alphas[2].mul_base(ctx)
         + alphas[3].mul_base(a_ptr)
         + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(h4_nxt)
-        + alphas[6].mul_base(h5_nxt)
+        + alphas[5].mul_base(a0)
+        + alphas[6].mul_base(a1)
         + alphas[7].mul_base(ZERO)
         + alphas[8].mul_base(ZERO);
     factor1 * factor2
