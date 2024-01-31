@@ -20,6 +20,7 @@ where
     /// $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators $p$
     /// and $r$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
+    ///
     /// The instruction is used in the context of STARK proof verification in order to compute
     /// the queries of the DEEP composition polynomial for FRI. It works in combination with
     /// the `mem_stream` instruction where it is called 8 times in a row for each call to
@@ -45,10 +46,10 @@ where
     ///
     /// 1. Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current
     ///  query i.e. T_i(x).
-    /// 2. (r0, r1) stands for an extension field element accumulating the values for the quotients
-    ///  with common denominator (x - gz).
-    /// 3. (p0, p1) stands for an extension field element accumulating the values for the quotients
+    /// 2. (p0, p1) stands for an extension field element accumulating the values for the quotients
     ///  with common denominator (x - z).
+    /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
+    ///  with common denominator (x - gz).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
     ///  instruction.
     /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz
