@@ -264,6 +264,7 @@ impl From<HostResponse> for Felt {
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
+#[derive(Clone)]
 pub struct DefaultHost<A> {
     adv_provider: A,
 }
