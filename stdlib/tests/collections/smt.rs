@@ -153,24 +153,20 @@ fn test_set_advice_map() {
         # => [V_old, R_new, V, K]
 
         # Prepare for peek
-        dropw dupw.2
-        # => [K, R_new, V, K]
+        dropw movupw.2
+        # => [K, R_new, V]
 
         # Fetch what was stored on advice map and clean stack
         adv.push_smtpeek dropw dropw
-        # => [V, K]
+        # => [V]
         
         # Push advice map values on stack
-        adv_push.8
-        # => [V_in_map, K_in_map, V, K]
+        adv_push.4
+        # => [V_in_map, V]
 
         # Check for equality of V's
-        movupw.2 assert_eqw
-        # => [K_in_map, K]
-
-        # Check for equality of K's
         assert_eqw
-        # => [K_in_map, K]
+        # => [K]
     end
     ";
 
