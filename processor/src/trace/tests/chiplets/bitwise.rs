@@ -68,8 +68,7 @@ fn b_chip_trace_bitwise() {
         Felt::from(b),
         Felt::from(a & b),
     );
-    let mut expected = (value + rand_elements[0]).inv();
-    expected *= ONE + rand_elements[0];
+    let mut expected = value.inv();
     assert_eq!(expected, b_chip[2]);
 
     // Nothing changes during user operations with no requests to the Chiplets.
@@ -86,8 +85,7 @@ fn b_chip_trace_bitwise() {
         Felt::from(b),
         Felt::from(a & b),
     );
-    expected *= ONE + rand_elements[0];
-    expected *= (value + rand_elements[0]).inv();
+    expected *= value.inv();
     assert_eq!(expected, b_chip[5]);
 
     // Nothing changes during user operations with no requests to the Chiplets.
@@ -122,9 +120,8 @@ fn b_chip_trace_bitwise() {
         Felt::from(b),
         Felt::from(a ^ b),
     );
-    expected *= (value + rand_elements[0]).inv();
-    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_1_row - 1)
-        + rand_elements[0];
+    expected *= value.inv();
+    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_1_row - 1);
     assert_eq!(expected, b_chip[response_1_row]);
 
     // Nothing changes until the decoder requests the result of the `SPAN` hash at cycle 21.
@@ -145,9 +142,7 @@ fn b_chip_trace_bitwise() {
 
     // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
-    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_2_row - 1)
-        + rand_elements[0];
-    expected *= (ONE + rand_elements[0]).inv();
+    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_2_row - 1);
     assert_eq!(expected, b_chip[response_2_row]);
 
     // Nothing changes until the next time the Bitwise chiplet responds.
@@ -157,9 +152,7 @@ fn b_chip_trace_bitwise() {
 
     // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
-    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_3_row - 1)
-        + rand_elements[0];
-    expected *= (ONE + rand_elements[0]).inv();
+    expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_3_row - 1);
     assert_eq!(expected, b_chip[response_3_row]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
