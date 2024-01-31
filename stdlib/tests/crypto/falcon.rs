@@ -4,7 +4,7 @@ use processor::Digest;
 use rand::Rng;
 
 use std::vec;
-use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, QuadFelt, rand::rand_vector, Test, Word};
+use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, ONE, QuadFelt, rand::rand_vector, Test, Word, ZERO};
 use test_utils::rand::rand_value;
 
 const M: u64 = 12289;
@@ -83,24 +83,42 @@ fn test_falcon_powers_of_tau() {
         dup.6 add.1 swap.7
         mem_storew
         drop drop
+
+        repeat.2
+            dupw ext2mul
+
+            movup.3 movup.3
+
+            dup.6 add.1 swap.7 mem_storew
+
+            drop drop
+        end
+
+        dropw
     end
     ";
 
     let tau = rand_value::<QuadFelt>();
+    let tau_squared = tau.square();
 
-    let tau_ptr: u32 = 0;
+
+
     let (elem_0, elem_1) = ext_element_to_ints(tau);
+    let (elem_2, elem_3) = ext_element_to_ints(tau_squared);
+    println!("elem_0 is: {:?}", elem_0);
+    println!("elem_1 is: {:?}", elem_1);
 
-    let stack_init = [elem_1, elem_0, tau_ptr.into()];
+    println!("elem_2 is: {:?}", elem_2);
+    println!("elem_3 is: {:?}", elem_3);
+
+
+    let stack_init = [6, elem_0, elem_1];
 
     let test = build_test!(source, &stack_init);
 
-    // let expected_stack = tau_ptr + 513;
-    // let expected_memory = &[0, 1, elem_1, elem_0, tau_ptr + 1];
+    let expected_stack = &[9];
 
-    let expected_stack = &[0, 1, elem_1, elem_0, (tau_ptr + 1).into()];
-
-    test.expect_stack(expected_stack);
+    test.expect_stack_and_memory(expected_stack, 6, &[1, 0, 0, 0, elem_0, elem_1, 1, 0, elem_2, elem_3, elem_1, elem_0]);
 }
 
 fn generate_test_verify(keypair: KeyPair, message: Word) -> Test {
