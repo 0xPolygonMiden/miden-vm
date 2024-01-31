@@ -93,8 +93,8 @@ impl MainTrace {
     }
 
     /// First decoder helper register at row i.
-    pub fn helper_0(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i]
+    pub fn helper_0(&self, row: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[row]
     }
 
     /// Second decoder helper register at row i.
@@ -105,6 +105,11 @@ impl MainTrace {
     /// Third decoder helper register at row i.
     pub fn helper_2(&self, i: usize) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i]
+    }
+
+    /// i-th decoder helper register at `row`.
+    pub fn helper_i(&self, i:usize, row: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[row]
     }
 
     /// Returns the hasher state at row i.

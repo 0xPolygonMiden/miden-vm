@@ -35,6 +35,7 @@ const MSTOREW: u8 = Operation::MStoreW.op_code();
 const MLOAD: u8 = Operation::MLoad.op_code();
 const MSTORE: u8 = Operation::MStore.op_code();
 const MSTREAM: u8 = Operation::MStream.op_code();
+const RCOMBBASE: u8 = Operation::RCombBase.op_code();
 const HPERM: u8 = Operation::HPerm.op_code();
 const MPVERIFY: u8 = Operation::MpVerify.op_code();
 const MRUPDATE: u8 = Operation::MrUpdate.op_code();
@@ -98,6 +99,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             MLOAD => build_mem_request(main_trace, MEMORY_READ_LABEL, false, alphas, i),
             MSTORE => build_mem_request(main_trace, MEMORY_WRITE_LABEL, false, alphas, i),
             MSTREAM => build_mstream_request(main_trace, alphas, i),
+            RCOMBBASE => build_rcomb_base_request(main_trace, alphas, i),
             HPERM => build_hperm_request(main_trace, alphas, i),
             MPVERIFY => build_mpverify_request(main_trace, alphas, i),
             MRUPDATE => build_mrupdate_request(main_trace, alphas, i),
@@ -463,6 +465,49 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
         + alphas[6].mul_base(s2_nxt)
         + alphas[7].mul_base(s1_nxt)
         + alphas[8].mul_base(s0_nxt);
+    factor1 * factor2
+}
+
+/// Builds `RCOMBBASE` requests made to the memory chiplet.
+fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let ctx = main_trace.ctx(i);
+    let clk = main_trace.clk(i);
+
+    let h0_nxt = main_trace.helper_i(0, i + 1);
+    let h1_nxt = main_trace.helper_i(1, i + 1);
+    let h2_nxt = main_trace.helper_i(2, i + 1);
+    let h3_nxt = main_trace.helper_i(3, i + 1);
+    let h4_nxt = main_trace.helper_i(4, i + 1);
+    let h5_nxt = main_trace.helper_i(5, i + 1);
+
+    let z_ptr = main_trace.stack_element(13, i);
+    let a_ptr = main_trace.stack_element(14, i);
+
+    let op_label = MEMORY_READ_LABEL;
+
+    let factor1 = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(z_ptr)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(h0_nxt)
+        + alphas[6].mul_base(h1_nxt)
+        + alphas[7].mul_base(h2_nxt)
+        + alphas[8].mul_base(h3_nxt);
+
+    let factor2 = alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(a_ptr)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(h4_nxt)
+        + alphas[6].mul_base(h5_nxt)
+        + alphas[7].mul_base(ZERO)
+        + alphas[8].mul_base(ZERO);
     factor1 * factor2
 }
 
