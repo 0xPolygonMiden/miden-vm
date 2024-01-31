@@ -35,14 +35,31 @@ $$
 Then, when row $i$ is added to the table, we'll update the value in the $p$ column like so:
 
 $$
-p' = p \cdot r_i
+p' = p \cdot (\gamma  + r_i)
 $$
 
 Analogously, when row $i$ is removed from the table, we'll update the value in column $p$ like so:
 
 $$
-p' = \frac{p}{r_i}
+p' = \frac{p}{(\gamma + r_i)}
 $$
+
+It is essential to shift the value $r_i$ by $ \gamma $. Failure to do that can result in the verifier accepting a multiset check even when the sets are not permutations of each other.
+
+One example can be in checking that the two sets below are permutations of each other.
+
+$$ t_1 = [1, 5, 3] $$
+$$ t_2 = [1, 1, 15] $$
+
+In this case, although the two sets are not permutations of each other, the multiset check would pass.
+
+$$ 
+p = \frac{1 * 5 * 3}{1 * 1 * 15}
+$$
+
+Shifting the multiplicand by a random $ \gamma $ prevents a cheating prover from passing the check.
+
+Other benefits of shifting the multiplicand by $ \gamma $ is that it helps the protocol stay secure even when a developer forgets to add the $ \gamma $ as $ \gamma $ is already added.
 
 ### Virtual tables in Miden VM
 
