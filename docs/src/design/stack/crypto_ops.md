@@ -173,6 +173,7 @@ After calling the `mem_stream ` with `x_ptr`, the operation does the following:
 - Populates the helper registers with $\left[T_i(z)_0, T_i(z)_1, T_i(gz)_0, T_i(gz)_1, \alpha_{i, 0}, \alpha_{i,1}\right]$ using the pointers `z_ptr` and `a_ptr`.
 - Updates the accumulators $$p \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(z)\right)$$ and $$r \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(gz)\right).$$
 - Increments the pointers `z_ptr` and `a_ptr` by $1$.
+- The top $8$ base field elements $T_0,\cdots , T_7$ are circularly shifted so that `T_0` becomes the element at the top of the operand stack.
 
 > TODO: add detailed constraint descriptions. See discussion [here](https://github.com/0xPolygonMiden/miden-vm/issues/869).
 
