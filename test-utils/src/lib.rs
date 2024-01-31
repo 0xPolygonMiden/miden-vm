@@ -95,7 +95,7 @@ pub struct Test {
     pub source: String,
     pub kernel: Option<String>,
     pub stack_inputs: StackInputs,
-    pub host: DefaultHost<MemAdviceProvider>,
+    pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
     pub libraries: Vec<MaslLibrary>,
 }
@@ -104,22 +104,15 @@ impl Test {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
 
-    // Creates a test
-    pub fn new(
-        source: String,
-        kernel: Option<String>,
-        stack_inputs: StackInputs,
-        advice_inputs: AdviceInputs,
-        in_debug_mode: bool,
-        libraries: Vec<MaslLibrary>,
-    ) -> Self {
+    /// Creates the simplest possible new test, with only a source string and no inputs.
+    pub fn new(source: &str, in_debug_mode: bool) -> Self {
         Test {
-            source,
-            kernel,
-            stack_inputs,
-            host: DefaultHost::new(MemAdviceProvider::from(advice_inputs)),
+            source: String::from(source),
+            kernel: None,
+            stack_inputs: StackInputs::default(),
+            advice_inputs: AdviceInputs::default(),
             in_debug_mode,
-            libraries,
+            libraries: Vec::default(),
         }
     }
 
@@ -160,12 +153,13 @@ impl Test {
     ) {
         // compile the program
         let program = self.compile().expect("Failed to compile test source.");
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
 
         // execute the test
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            self.host.clone(),
+            host,
             ExecutionOptions::default(),
         );
         process.execute(&program).unwrap();
@@ -224,7 +218,8 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile().expect("Failed to compile test source.");
-        processor::execute(&program, self.stack_inputs.clone(), self.host.clone(), ExecutionOptions::default())
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -233,10 +228,11 @@ impl Test {
         &self,
     ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
         let program = self.compile().expect("Failed to compile test source.");
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
-            self.host.clone(),
+            host,
             ExecutionOptions::default(),
         );
         process.execute(&program)?;
@@ -249,8 +245,9 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile().expect("Failed to compile test source.");
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), self.host.clone(), ProvingOptions::default()).unwrap();
+            prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -267,7 +264,8 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile().expect("Failed to compile test source.");
-        processor::execute_iter(&program, self.stack_inputs.clone(), self.host.clone())
+        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }
 
     /// Returns the last state of the stack after executing a test.

@@ -201,15 +201,15 @@ fn simple_syscall() {
             syscall.foo
         end";
 
-    let test = Test::new(
-        program_source.to_string(),
-        Some(kernel_source.to_string()),
-        StackInputs::try_from_values([1, 2]).unwrap(),
-        AdviceInputs::default(),
-        false,
-        Vec::default(),
-    );
-
+    // TODO: update and use macro?
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: Some(kernel_source.to_string()),
+        stack_inputs: StackInputs::try_from_values([1, 2]).unwrap(),
+        advice_inputs: AdviceInputs::default(),
+        in_debug_mode: false,
+        libraries: Vec::default(),
+    };
     test.expect_stack(&[3]);
 
     test.prove_and_verify(vec![1, 2], false);
@@ -249,10 +249,10 @@ fn simple_dyn_exec() {
     // As ints:
     //   [16045159387802755434, 10308872899350860082, 17306481765929021384, 16642043361554117790]
 
-    let test = Test::new(
-        program_source.to_string(),
-        None,
-        StackInputs::try_from_values([
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: None,
+        stack_inputs: StackInputs::try_from_values([
             3,
             // put the hash of foo on the stack
             16045159387802755434,
@@ -263,10 +263,10 @@ fn simple_dyn_exec() {
             2,
         ])
         .unwrap(),
-        AdviceInputs::default(),
-        false,
-        Vec::default(),
-    );
+        advice_inputs: AdviceInputs::default(),
+        in_debug_mode: false,
+        libraries: Vec::default(),
+    };
 
     test.expect_stack(&[6]);
 
@@ -355,10 +355,10 @@ fn simple_dyncall() {
     // As ints:
     //   [8324248212344458853, 17691992706129158519, 18131640149172243086, 16129275750103409835]
 
-    let test = Test::new(
-        program_source.to_string(),
-        None,
-        StackInputs::try_from_values([
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: None,
+        stack_inputs: StackInputs::try_from_values([
             3,
             // put the hash of foo on the stack
             8324248212344458853,
@@ -369,10 +369,10 @@ fn simple_dyncall() {
             2,
         ])
         .unwrap(),
-        AdviceInputs::default(),
-        false,
-        Vec::default(),
-    );
+        advice_inputs: AdviceInputs::default(),
+        in_debug_mode: false,
+        libraries: Vec::default(),
+    };
 
     test.expect_stack(&[6]);
 

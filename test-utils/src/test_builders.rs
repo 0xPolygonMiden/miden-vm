@@ -78,17 +78,21 @@ macro_rules! build_debug_test {
 #[macro_export]
 macro_rules! build_test_by_mode {
     ($in_debug_mode:expr, $source:expr) => {{
-        let stack_inputs = $crate::StackInputs::try_from_values(Vec::new()).unwrap();
-        let advice_inputs = $crate::AdviceInputs::default();
-
-        $crate::Test::new(String::from($source), None, stack_inputs, advice_inputs, $in_debug_mode, Vec::default())
+        $crate::Test::new($source, $in_debug_mode)
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
         let advice_inputs = $crate::AdviceInputs::default();
 
-        $crate::Test::new(String::from($source), None, stack_inputs, advice_inputs, $in_debug_mode, Vec::default())
+        $crate::Test {
+            source: String::from($source),
+            kernel: None,
+            stack_inputs,
+            advice_inputs,
+            in_debug_mode: $in_debug_mode,
+            libraries: Vec::default(),
+        }
     }};
     (
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr
@@ -102,7 +106,14 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store(store);
 
-        $crate::Test::new(String::from($source), None, stack_inputs, advice_inputs, $in_debug_mode, Vec::default())
+        $crate::Test {
+            source: String::from($source),
+            kernel: None,
+            stack_inputs,
+            advice_inputs,
+            in_debug_mode: $in_debug_mode,
+            libraries: Vec::default(),
+        }
     }};
     (
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr
@@ -115,7 +126,14 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store($advice_merkle_store);
 
-        $crate::Test::new(String::from($source), None, stack_inputs, advice_inputs, $in_debug_mode, Vec::default())
+        $crate::Test {
+            source: String::from($source),
+            kernel: None,
+            stack_inputs,
+            advice_inputs,
+            in_debug_mode: $in_debug_mode,
+            libraries: Vec::default(),
+        }
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
@@ -127,6 +145,13 @@ macro_rules! build_test_by_mode {
             .with_merkle_store($advice_merkle_store)
             .with_map($advice_map);
 
-        $crate::Test::new(String::from($source), None, stack_inputs, advice_inputs, $in_debug_mode, Vec::default())
+        $crate::Test {
+            source: String::from($source),
+            kernel: None,
+            stack_inputs,
+            advice_inputs,
+            in_debug_mode: $in_debug_mode,
+            libraries: Vec::default(),
+        }
     }};
 }
