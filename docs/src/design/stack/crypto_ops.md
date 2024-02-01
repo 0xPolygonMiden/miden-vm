@@ -197,7 +197,7 @@ u_{mem, 1} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \al
 $$
 
 $$
-u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot (s_{14} + 1) + \alpha_4 \cdot clk + v_2
+u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{14} + \alpha_4 \cdot clk + v_2
 $$
 
 $$
