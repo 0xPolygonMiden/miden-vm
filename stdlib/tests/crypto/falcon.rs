@@ -94,6 +94,44 @@ fn test_falcon_powers_of_tau() {
 }
 
 #[test]
+fn test_falcon_probabilistic_product() {
+    let source = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        exec.rpo_falcon512::probabilistic_product
+    end
+    ";
+
+    let tau = rand_value::<QuadFelt>();
+    let tau_ptr = 0_u32;
+    let (tau_0, tau_1) = ext_element_to_ints(tau);
+
+    let mut tau_power: QuadFelt;
+    let mut elem_0: u64;
+    let mut elem_1: u64;
+    let mut expected_memory = vec![0; 513 * 4];
+    expected_memory[0] = 1;
+
+    for i in (1..513usize) {
+        tau_power = tau.exp(i as u64);
+        (elem_0, elem_1) = ext_element_to_ints(tau_power);
+        expected_memory[i * 4] = elem_0;
+        expected_memory[i * 4 + 1] = elem_1;
+        expected_memory[i * 4 + 2] = expected_memory[i * 4 - 4];
+        expected_memory[i * 4 + 3] = expected_memory[i * 4 - 3];
+    }
+
+    let stack_init = [tau_ptr.into(), tau_0, tau_1];
+
+    let test = build_test!(source, &stack_init);
+
+    let expected_stack = &[<u32 as Into<u64>>::into(tau_ptr) + 513];
+
+    test.expect_stack_and_memory(expected_stack, tau_ptr, &expected_memory);
+}
+
+#[test]
 fn test_falcon_verify() {
     let keypair = KeyPair::new().unwrap();
 
@@ -110,34 +148,6 @@ fn generate_test_verify(keypair: KeyPair, message: Word) -> Test {
 
     begin
         exec.rpo_falcon512::verify
-    end
-    ";
-
-    let pk: Word = keypair.public_key().into();
-    let pk: Digest = pk.into();
-    let pk_sk_bytes = keypair.to_bytes();
-    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-
-    let advice_map: Vec<([u8; 32], Vec<Felt>)> = vec![(pk.as_bytes(), to_adv_map.into())];
-
-    let message = message.into_iter().map(|a| a.as_int() as u64).collect::<Vec<u64>>();
-
-    let mut op_stack = vec![];
-    op_stack.extend_from_slice(&message);
-    op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
-    let adv_stack = vec![];
-    let store = MerkleStore::new();
-    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
-
-    test
-}
-
-fn generate_test_norm_sq(keypair: KeyPair, message: Word) -> Test {
-    let source = "
-    use.std::crypto::dsa::rpo_falcon512
-
-    begin
-        exec.rpo_falcon512::norm_sq
     end
     ";
 
