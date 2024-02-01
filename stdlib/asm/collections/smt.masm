@@ -148,33 +148,48 @@ end
 #!
 #! Cycles: 143 
 proc.remove_single_leaf
-    # TODO
-    # PREVIOUS Operand stack: [V (=ZERO), V_old, K, R, ...]
+    # Push the leaf pre-image on stack
+    # (8 cycles)
+    adv_push.8
+    # => [V_in_leaf, K_in_leaf, V, K, R]
 
-    # Update advice map
-    # (3 cycles)
-    movupw.2 swapw adv.insert_hdword
-    # => [V, K, V_old, R, ...] 
+    # Check if the key stored in the leaf is the same as K
+    movupw.3 movupw.2 eqw
+    # => [K_in_leaf==K, K_in_leaf, K, V_in_leaf, V, R]
 
-    # Prepare the stack for `mtree_set`
-    # Note that the new node value will be the empty word, so we can use `V`
-    # as the node value (since we confirmed that it's `ZERO`)
-    # (7 cycles)
-    movupw.3 dup.8 push.LEAF_DEPTH
-    # => [depth, K[3], R, V, K, V_old, ...] 
+    if.true
+        # Keys match; we're removing the value associated with K
 
-    # (29 cycles)
-    mtree_set
-    # => [NV_old, R_new, K, V_old, ...] 
+        # (4 cycles)
+        dropw 
+        # => [K, V_in_leaf, V, R]
 
-    # Confirm that hmerge([K, V_old]) = NV_old
-    # (33 cycles)
-    movupw.2 dupw.3 hmerge assert_eqw
-    # => [R_new, V_old, ...] 
+        # Update advice map (3 cycles)
+        movupw.2 adv.insert_hdword
+        # => [V, K, V_in_leaf, R]
 
-    # Cleanup stack for return (1 cycle)
-    swapw
-    # => [V_old, R_new, ...] 
+        # Prepare the stack for `mtree_set`
+        # Note that the new node value will be the empty word, so we can use `V`
+        # as the node value (since we confirmed that it's `ZERO`)
+        # (7 cycles)
+        movupw.3 dup.8 push.LEAF_DEPTH
+        # => [depth, K[3], R, V, K, V_in_leaf]
+
+        # (29 cycles)
+        mtree_set
+        # => [NV_old, R_new, K, V_in_leaf, ...] 
+
+        # Confirm that hmerge([K, V_in_leaf]) = NV_old
+        # (33 cycles)
+        movupw.2 dupw.3 hmerge assert_eqw
+        # => [R_new, V_in_leaf, ...] 
+
+        # Cleanup stack for return (1 cycle)
+        swapw
+        # => [V_in_leaf, R_new, ...] 
+    else
+
+    end
 end
 
 #! Inserts or removes a value associated with the given key. The leaf to which we're inserting is
