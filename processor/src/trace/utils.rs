@@ -229,9 +229,24 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
 
         let mut requests_running_prod = E::ONE;
         for row_idx in 0..main_trace.num_rows() - 1 {
-            responses_prod[row_idx + 1] = responses_prod[row_idx]
-                * (self.get_responses_at(main_trace, alphas, row_idx) + alphas[0]);
-            requests[row_idx + 1] = self.get_requests_at(main_trace, alphas, row_idx) + alphas[0];
+            let response = self.get_responses_at(main_trace, alphas, row_idx);
+            let request = self.get_requests_at(main_trace, alphas, row_idx);
+
+            // shift response and request
+            let shifted_response = if response != E::ONE {
+                response + alphas[0]
+            } else {
+                response
+            };
+
+            let shifted_request = if request != E::ONE {
+                request + alphas[0]
+            } else {
+                request
+            };
+
+            responses_prod[row_idx + 1] = responses_prod[row_idx] * shifted_response;
+            requests[row_idx + 1] = shifted_request;
             requests_running_prod *= requests[row_idx + 1];
         }
 
