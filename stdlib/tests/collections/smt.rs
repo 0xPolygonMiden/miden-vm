@@ -221,6 +221,35 @@ fn test_set_advice_map_single_key() {
     build_test!(source, &init_stack, &[], store, advice_map).execute().unwrap();
 }
 
+/// Tests setting an empty value to an empty key, but that maps to a leaf with another key
+/// (i.e. removing a value that's already empty)
+#[test]
+fn test_set_empty_key_in_non_empty_leaf() {
+    let key_mse = Felt::new(42);
+
+    let leaves: [(RpoDigest, Word); 1] = [(
+        RpoDigest::new([Felt::new(101), Felt::new(102), Felt::new(103), key_mse]),
+        [Felt::new(1_u64), Felt::new(2_u64), Felt::new(3_u64), Felt::new(4_u64)],
+    )];
+
+    let mut smt = Smt::with_entries(leaves).unwrap();
+
+    // This key has same most significant element as key in the existing leaf, so will map to that
+    // leaf
+    let new_key = RpoDigest::new([Felt::new(1), Felt::new(12), Felt::new(3), key_mse]);
+
+    let source = "
+    use.std::collections::smt
+    begin
+      exec.smt::set
+    end
+    ";
+    let (init_stack, final_stack, store, advice_map) =
+        prepare_insert_or_set(new_key, EMPTY_WORD, &mut smt);
+
+    build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
