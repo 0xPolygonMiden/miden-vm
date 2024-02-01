@@ -19,6 +19,7 @@ const.LEAF_DEPTH=64
 proc.set_empty_leaf
     # Check if we're inserting the empty value (19 cycles)
     padw eqw
+    #=> [V == ZERO, ZERO, V, K, R]
 
     if.true
         # Inserting an empty value; this is a no-op (4 cycles)
@@ -169,7 +170,7 @@ proc.remove_single_leaf
     mtree_set
     # => [NV_old, R_new, K, V_old, ...] 
 
-    # Confirm that hmerge([K, V_old]) = NV
+    # Confirm that hmerge([K, V_old]) = NV_old
     # (33 cycles)
     movupw.2 dupw.3 hmerge assert_eqw
     # => [R_new, V_old, ...] 
@@ -183,7 +184,7 @@ end
 #! guaranteed to hold a single key-value pair (provided on the advice stack).
 #!
 #! Inputs:
-#!   Operand stack: [V_old, V, K, R, ...]
+#!   Operand stack: [V, K, R, ...]
 #!   Advice stack:  [K_in_leaf, V_in_leaf]
 #!
 #! Outputs:
@@ -193,6 +194,14 @@ end
 #!   Insert; leaf single after insertion: 146 cycles
 #!   Insert; leaf multiple after insertion: unimplemented
 proc.set_single_leaf
+    # (4 cycles)
+    movdnw.2 adv.push_smtpeek movupw.2
+    # => [V, K, R]
+
+    # Push peeked value on stack (0 cycles)
+    adv_push.4
+    # => [V_old, V, K, R]
+
     # Check if we're inserting or removing a value
     # (21 cycles)
     swapw padw eqw
@@ -245,17 +254,18 @@ end
 #!   Leaf multiple
 #!     unimplemented
 export.set
-    # (4 cycles)
-    movdnw.2 adv.push_smtpeek movupw.2
-    # => [V, K, R]
+    # Prepare stack for adv.push_mtnode
+    movupw.2 dup.8 push.LEAF_DEPTH
+    # => [depth, leaf_index, R, V, K]
 
-    # Push peeked value on stack (0 cycles)
-    adv_push.4
-    # => [V_old, V, K, R]
+    # Push MT node on advice stack, cleanup operand stack, and then
+    # push MT node on operand stack (NV)
+    adv.push_mtnode drop drop movdnw.2 adv_push.4
+    # => [NV, V, K, R]
 
     # (19 cycles)
     padw eqw
-    # => [V_old == ZERO, ZERO, V_old, V, K, R]
+    # => [NV == ZERO, ZERO, NV, V, K, R]
 
     if.true
         # empty leaf
@@ -272,29 +282,25 @@ export.set
 
         # (4 cycles)
         dropw
-        # => [V_old, V, K, R]
-
-        # Prepare stack to retrieve leaf pre-image
-        # (24 cycles)
-        dupw.2 dupw.1 hmerge
-        # => [NV, V_old, V, K, R]
+        # => [NV, V, K, R]
 
         # Retrieve leaf pre-image on advice stack, and push leaf size on stack
+        # Note: the rest of the leaf pre-image will be pulled out later
         # (4 cycles)
         adv.push_mapvaln dropw adv_push.1
-        # => [leaf_size, V_old, V, K, R]
+        # => [leaf_size, V, K, R]
 
         # Leaf size will be a multiple of 8 (each kv-pair in a leaf is 8 elements)
         # (3 cycles)
         dup eq.8
-        # => [is_single_kv_pair, leaf_size, V_old, V, K, R]
+        # => [is_single_kv_pair, leaf_size, V, K, R]
 
         if.true
             #  Single kv-pair case
 
             # (1 cycle)
             drop
-            # => [V_old, V, K, R]
+            # => [V, K, R]
 
             # (remove key/value: 168 cycles)
             # (insert; leaf single after insertion: 146 cycles)
