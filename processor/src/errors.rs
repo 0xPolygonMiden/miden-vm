@@ -50,6 +50,11 @@ pub enum ExecutionError {
         value: Felt,
     },
     MemoryAddressOutOfBounds(u64),
+    MerklePathVerificationFailed {
+        value: Word,
+        index: Felt,
+        root: Digest,
+    },
     MerkleStoreMergeFailed(MerkleError),
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
@@ -145,6 +150,11 @@ impl Display for ExecutionError {
             }
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
+            }
+            MerklePathVerificationFailed { value, index, root } => {
+                let value = to_hex(Felt::elements_as_bytes(value))?;
+                let root = to_hex(&root.as_bytes())?;
+                write!(f, "Merkle path verification failed for value {value} at index {index}, in the Merkle tree with root {root}")
             }
             MerkleStoreLookupFailed(reason) => {
                 write!(f, "Advice provider Merkle store backend lookup failed: {reason}")

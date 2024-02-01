@@ -87,6 +87,13 @@ where
         // Asserting the computed root of the Merkle path from the advice provider is consistent with
         // the input root.
         assert_eq!(root, computed_root, "inconsistent Merkle tree root");
+        if root == computed_root {
+            return Err(ExecutionError::MerklePathVerificationFailed {
+                value: node,
+                index,
+                root: root.into(),
+            });
+        }
 
         // The same state is copied over to the next clock cycle with no changes.
         self.stack.copy_state(0);
