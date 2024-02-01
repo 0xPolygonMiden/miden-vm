@@ -179,3 +179,27 @@ After calling the `mem_stream ` with `x_ptr`, the operation does the following:
 
 The effect on the rest of the stack is:
 * **No change.**
+
+The `RCOMBBASE` makes two memory access request. To simplify the description of these, we first define the following variables :
+
+$$
+v_1 = \sum_{i=0}^3\alpha_{i+5} \cdot h_{i}'
+$$
+
+$$
+v_2 = \sum_{i=0}^1\alpha_{i+5} \cdot h_{i + 4}'
+$$
+
+Using the above variables, we define the values representing the memory access request as follows:
+
+$$
+u_{mem, 1} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot s_{13} + \alpha_4 \cdot clk + v_1
+$$
+
+$$
+u_{mem, 2} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_2 \cdot ctx + \alpha_3 \cdot (s_{14} + 1) + \alpha_4 \cdot clk + v_2
+$$
+
+$$
+u_{mem} = u_{mem, 1} \cdot u_{mem, 2}
+$$
