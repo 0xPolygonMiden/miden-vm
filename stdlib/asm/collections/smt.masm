@@ -188,7 +188,36 @@ proc.remove_single_leaf
         swapw
         # => [V_in_leaf, R_new, ...] 
     else
+        # Keys don't match; this is a no-op
+        # We need to ensure to ensure that hash([K_in_leaf, V_in_leaf]) = NV;
+        # that is, we need to verify the advice provider's claims.
+        # If all checks pass, we're done.
 
+        # => [K_in_leaf, K, V_in_leaf, V, R]
+
+        # We no longer need V, since we're not removing anything
+        movupw.3 dropw
+        # => [K_in_leaf, K, V_in_leaf, R]
+
+        # Prepare stack for mtree_get
+        movupw.3 dup.8 push.LEAF_DEPTH
+        # => [depth, K[3], R, K_in_leaf, K, V_in_leaf]
+
+        # Retrieve node value (NV) from merkle tree
+        mtree_get
+        # => [NV, R, K_in_leaf, K, V_in_leaf]
+
+        # Cleanup stack (we no longer need K)
+        movupw.3 dropw
+        # => [NV, R, K_in_leaf, V_in_leaf]
+
+        # Ensure that hash([K_in_leaf, V_in_leaf]) == NV
+        movupw.2 movupw.3 hmerge assert_eqw
+        # => [R]
+
+        # Prepare stack for return
+        padw
+        # => [ZERO, R]
     end
 end
 
