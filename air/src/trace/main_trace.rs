@@ -92,24 +92,9 @@ impl MainTrace {
         self.addr(i) != self.addr(i + 1)
     }
 
-    /// First decoder helper register at row i.
-    pub fn helper_0(&self, row: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[row]
-    }
-
-    /// Second decoder helper register at row i.
-    pub fn helper_1(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1)[i]
-    }
-
-    /// Third decoder helper register at row i.
-    pub fn helper_2(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i]
-    }
-
-    /// i-th decoder helper register at `row`.
-    pub fn helper_i(&self, i:usize, row: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[row]
+    /// j-th decoder helper register at `row`.
+    pub fn helper(&self, j: usize, i: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + j)[i]
     }
 
     /// Returns the hasher state at row i.

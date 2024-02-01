@@ -404,9 +404,9 @@ fn build_mem_request<E: FieldElement<BaseField = Felt>>(
         )
     } else {
         (
-            main_trace.helper_0(i),
-            main_trace.helper_1(i),
-            main_trace.helper_2(i),
+            main_trace.helper(0, i),
+            main_trace.helper(1, i),
+            main_trace.helper(2, i),
             main_trace.stack_element(0, i + 1),
         )
     };
@@ -477,12 +477,12 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     let ctx = main_trace.ctx(i);
     let clk = main_trace.clk(i);
 
-    let tz0 = main_trace.helper_i(0, i);
-    let tz1 = main_trace.helper_i(1, i);
-    let tzg0 = main_trace.helper_i(2, i);
-    let tzg1 = main_trace.helper_i(3, i);
-    let a0 = main_trace.helper_i(4, i);
-    let a1 = main_trace.helper_i(5, i);
+    let tz0 = main_trace.helper(0, i);
+    let tz1 = main_trace.helper(1, i);
+    let tzg0 = main_trace.helper(2, i);
+    let tzg1 = main_trace.helper(3, i);
+    let a0 = main_trace.helper(4, i);
+    let a1 = main_trace.helper(5, i);
 
     let z_ptr = main_trace.stack_element(13, i);
     let a_ptr = main_trace.stack_element(14, i);
@@ -517,7 +517,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let helper_0 = main_trace.helper_0(i);
+    let helper_0 = main_trace.helper(0, i);
 
     let s0_s12_cur = [
         main_trace.stack_element(0, i),
@@ -592,7 +592,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let helper_0 = main_trace.helper_0(i);
+    let helper_0 = main_trace.helper(0, i);
 
     let s0_s3 = [
         main_trace.stack_element(0, i),
@@ -654,7 +654,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let helper_0 = main_trace.helper_0(i);
+    let helper_0 = main_trace.helper(0, i);
 
     let s0_s3 = [
         main_trace.stack_element(0, i),
