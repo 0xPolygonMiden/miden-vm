@@ -426,6 +426,7 @@ impl Serializable for Instruction {
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),
+            Self::RCombBase => OpCode::RCombBase.write_into(target),
 
             // ----- exec / call ------------------------------------------------------------------
             Self::ExecLocal(v) => {
