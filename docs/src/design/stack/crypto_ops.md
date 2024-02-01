@@ -150,3 +150,32 @@ To keep the degree of the constraints low, a number of intermediate values are u
 
 The effect on the rest of the stack is:
 * **Left shift** starting from position $16$.
+
+## RCOMBBASE
+The `RCOMBBASE` operation performs a single step in the computation of the random linear combination defining the DEEP composition polynomial i.e., the input to the FRI protocol. More precisely, the sum in question is:
+    $$\sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} + \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}$$
+where $x$ is the current query to the DEEP composition polynomial for which we are computing the above random linear combination.
+The `RCOMBBASE` instruction computes the numerators $$\alpha_i \cdot (T_i(x) - T_i(z))$$ and $$\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$$ and stores the values in two accumulators $p$ and $r$, respectively. This instruction is specialized to main trace columns i.e. the values $T_i(x)$ are base field elements. The instruction works in combination with the `mem_stream` instruction where it is called 8 times in a row for each call to `mem_stream`.
+
+The stack for the operation is expected to be arranged as follows:
+- The first $8$ stack elements contain $8$ base field elements $T_0,\cdots , T_7$ representing the values of $T_i(x)$ for the current query $x$ and the current batch of $8$ column values of the main trace for query $x$.
+- The next $2$ elements contain the current value of the accumulator $p$ as a quadratic extension field element.
+- The next $2$ elements contain the current value of the accumulator $r$ as a quadratic extension field element.
+- The next element contains the value of the memory pointer `x_ptr` to the next batch of $8$ column values for query $x$.
+- The next element contains the value of the memory pointer `z_ptr` to the $i$-th OOD evaluations at z and gz i.e. $T_i(z) = (T_i(z)_0, T_i(z)_1)$ and $T_i(gz) = (T_i(gz)_0, T_i(gz)_1)$.
+- The next element contains the value of the memory pointer `a_ptr` to the $i$-th random value $\alpha_i = (\alpha_{i, 0}, \alpha_{i,1})$. The remaining elements of the word are expected to be empty.
+
+The diagram below illustrates the stack transition for `RCOMBBASE` operation.
+
+![rcomb_base](../../assets/design/stack/crypto_ops/RCOMBBASE.png)
+
+After calling the `mem_stream ` with `x_ptr`, the operation does the following:
+- Populates the helper registers with $\left[T_i(z)_0, T_i(z)_1, T_i(gz)_0, T_i(gz)_1, \alpha_{i, 0}, \alpha_{i,1}\right]$ using the pointers `z_ptr` and `a_ptr`.
+- Updates the accumulators $$p \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(z)\right)$$ and $$r \mathrel{{+}{=}} \alpha_i\cdot\left(T_i(x) - T_i(gz)\right).$$
+- Increments the pointers `z_ptr` and `a_ptr` by $1$.
+- The top $8$ base field elements $T_0,\cdots , T_7$ are circularly shifted so that `T_0` becomes the element at the top of the operand stack.
+
+> TODO: add detailed constraint descriptions. See discussion [here](https://github.com/0xPolygonMiden/miden-vm/issues/869).
+
+The effect on the rest of the stack is:
+* **No change.**
