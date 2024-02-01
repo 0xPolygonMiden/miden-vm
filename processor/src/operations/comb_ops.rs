@@ -97,7 +97,9 @@ where
         self.stack.set(12, self.stack.get(12));
         self.stack.set(13, self.stack.get(13) + ONE);
         self.stack.set(14, self.stack.get(14) + ONE);
-        self.stack.set(15, self.stack.get(15));
+
+        // --- copy the rest of the stack ---------------------------------------------------------
+        self.stack.copy_state(15);
 
         // --- set the helper registers -----------------------------------------------------------
         self.set_helper_reg(alpha, tz, tgz);
