@@ -42,7 +42,7 @@ fn main() -> io::Result<()> {
     stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
 
     // updates the documentation of these modules
-    build_stdlib_docs(&docs, DOC_DIR_PATH);
+    build_stdlib_docs(&docs, DOC_DIR_PATH)?;
 
     Ok(())
 }
@@ -57,12 +57,24 @@ trait Renderer {
 }
 
 /// Writes Miden standard library modules documentation markdown files based on the available modules and comments.
-pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) {
-    // Remove functions folder to re-generate
-    fs::remove_dir_all(output_dir).unwrap();
-    fs::create_dir(output_dir).unwrap();
+pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) -> io::Result<()> {
+    // Clean the output folder. This only deletes the folder's content, and not the folder itself,
+    // because removing the folder fails on docs.rs
+    for entry in fs::read_dir(output_dir)? {
+        let entry = entry?;
+        let metadata = entry.metadata()?;
+
+        if metadata.is_dir() {
+            fs::remove_dir_all(entry.path())?;
+        } else {
+            assert!(metadata.is_file());
+            fs::remove_file(entry.path())?;
+        }
+    }
 
     // Render the stdlib struct into markdown
     // TODO: Make the renderer choice pluggable.
     MarkdownRenderer::render(module_map, output_dir);
+
+    Ok(())
 }

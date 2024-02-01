@@ -241,25 +241,26 @@ pub enum OpCode {
 
     // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4 = 209,
+    RCombBase = 210,
 
     // ----- exec / call --------------------------------------------------------------------------
-    ExecLocal = 210,
-    ExecImported = 211,
-    CallLocal = 212,
-    CallMastRoot = 213,
-    CallImported = 214,
-    SysCall = 215,
-    DynExec = 216,
-    DynCall = 217,
-    ProcRefLocal = 218,
-    ProcRefImported = 219,
+    ExecLocal = 211,
+    ExecImported = 212,
+    CallLocal = 213,
+    CallMastRoot = 214,
+    CallImported = 215,
+    SysCall = 216,
+    DynExec = 217,
+    DynCall = 218,
+    ProcRefLocal = 219,
+    ProcRefImported = 220,
 
     // ----- debugging ----------------------------------------------------------------------------
-    Debug = 220,
+    Debug = 221,
 
     // ----- event decorators ---------------------------------------------------------------------
-    Emit = 221,
-    Trace = 222,
+    Emit = 222,
+    Trace = 223,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,
