@@ -1,6 +1,7 @@
 use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField};
 use vm_core::stack::STACK_TOP_SIZE;
 
+mod comb_ops;
 mod crypto_ops;
 mod ext2_ops;
 mod field_ops;
@@ -148,6 +149,7 @@ where
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate => self.op_mrupdate()?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
+            Operation::RCombBase => self.op_rcomb_base()?,
         }
 
         self.advance_clock()?;

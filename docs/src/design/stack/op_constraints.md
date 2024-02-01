@@ -188,7 +188,7 @@ This group contains operations which require constraints with degree up to $3$. 
 | `SPAN`       | $86$         | `101_0110`      | [Flow control ops](../decoder/main.md) | $5$         |
 | `JOIN`       | $87$         | `101_0111`      | [Flow control ops](../decoder/main.md) | $5$         |
 | `DYN`        | $88$         | `101_1000`      | [Flow control ops](../decoder/main.md) | $5$         |
-| `<unused>`   | $89$         | `101_1001`      |                                        | $5$         |
+| `RCombBase`  | $89$         | `101_1001`      | [Crypto ops](./crypto_ops.md)          | $5$         |
 | `<unused>`   | $90$         | `101_1010`      |                                        | $5$         |
 | `<unused>`   | $91$         | `101_1011`      |                                        | $5$         |
 | `<unused>`   | $92$         | `101_1100`      |                                        | $5$         |
