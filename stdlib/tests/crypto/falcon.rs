@@ -4,15 +4,18 @@ use processor::Digest;
 use rand::Rng;
 
 use std::vec;
-use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, ONE, QuadFelt, rand::rand_vector, Test, Word, ZERO};
+use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, QuadFelt, rand::rand_vector, Test, Word, WORD_SIZE};
+use test_utils::math::QuadExtension;
 use test_utils::rand::rand_value;
 
 const M: u64 = 12289;
 const Q: u64 = (M - 1) / 2;
-const J: u64 = 512 * M * M;
+const N: usize = 512;
+const J: u64 = (N * M as usize * M as usize) as u64;
+
 
 #[test]
-fn test_falcon_norm_sq() {
+fn test_falcon512_norm_sq() {
     let source = "
     use.std::crypto::dsa::rpo_falcon512
 
@@ -36,7 +39,7 @@ fn test_falcon_norm_sq() {
 }
 
 #[test]
-fn test_falcon_diff_mod_q() {
+fn test_falcon512_diff_mod_q() {
     let source = "
     use.std::crypto::dsa::rpo_falcon512
 
@@ -56,7 +59,7 @@ fn test_falcon_diff_mod_q() {
 }
 
 #[test]
-fn test_falcon_powers_of_tau() {
+fn test_falcon512_powers_of_tau() {
     let source = "
     use.std::crypto::dsa::rpo_falcon512
 
@@ -69,32 +72,19 @@ fn test_falcon_powers_of_tau() {
     let tau_ptr = 0_u32;
     let (tau_0, tau_1) = ext_element_to_ints(tau);
 
-    let mut tau_power: QuadFelt;
-    let mut elem_0: u64;
-    let mut elem_1: u64;
-    let mut expected_memory = vec![0; 513 * 4];
-    expected_memory[0] = 1;
-
-    for i in (1..513usize) {
-        tau_power = tau.exp(i as u64);
-        (elem_0, elem_1) = ext_element_to_ints(tau_power);
-        expected_memory[i * 4] = elem_0;
-        expected_memory[i * 4 + 1] = elem_1;
-        expected_memory[i * 4 + 2] = expected_memory[i * 4 - 4];
-        expected_memory[i * 4 + 3] = expected_memory[i * 4 - 3];
-    }
+    let expected_memory = powers_of_tau(tau);
 
     let stack_init = [tau_ptr.into(), tau_0, tau_1];
 
     let test = build_test!(source, &stack_init);
 
-    let expected_stack = &[<u32 as Into<u64>>::into(tau_ptr) + 513];
+    let expected_stack = &[<u32 as Into<u64>>::into(tau_ptr) + N as u64 + 1];
 
     test.expect_stack_and_memory(expected_stack, tau_ptr, &expected_memory);
 }
 
 #[test]
-fn test_falcon_probabilistic_product() {
+fn test_falcon512_probabilistic_product() {
     let source = "
     use.std::crypto::dsa::rpo_falcon512
 
@@ -103,7 +93,9 @@ fn test_falcon_probabilistic_product() {
     end
     ";
 
+    // Create an array of the powers of a random quadratic extension field element from 0 to N.
     let tau = rand_value::<QuadFelt>();
+    let powers_of_tau = powers_of_tau(tau);
     let tau_ptr = 0_u32;
     let (tau_0, tau_1) = ext_element_to_ints(tau);
 
@@ -113,7 +105,7 @@ fn test_falcon_probabilistic_product() {
     let mut expected_memory = vec![0; 513 * 4];
     expected_memory[0] = 1;
 
-    for i in (1..513usize) {
+    for i in 1..513usize {
         tau_power = tau.exp(i as u64);
         (elem_0, elem_1) = ext_element_to_ints(tau_power);
         expected_memory[i * 4] = elem_0;
@@ -132,7 +124,7 @@ fn test_falcon_probabilistic_product() {
 }
 
 #[test]
-fn test_falcon_verify() {
+fn test_falcon512_verify() {
     let keypair = KeyPair::new().unwrap();
 
     let message = rand_vector::<Felt>(4).try_into().unwrap();
@@ -177,4 +169,22 @@ fn generate_test_verify(keypair: KeyPair, message: Word) -> Test {
 fn ext_element_to_ints(ext_elem: QuadFelt) -> (u64, u64) {
     let base_elements = ext_elem.to_base_elements();
     (base_elements[0].as_int(), base_elements[1].as_int())
+}
+
+fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
+    let mut tau_power: QuadFelt;
+    let mut elem_0: u64;
+    let mut elem_1: u64;
+    let mut expected_memory = vec![0; (N + 1) * WORD_SIZE];
+    expected_memory[0] = 1;
+
+    for i in 1..N + 1 {
+        tau_power = tau.exp(i as u64);
+        (elem_0, elem_1) = ext_element_to_ints(tau_power);
+        expected_memory[i * WORD_SIZE] = elem_0;
+        expected_memory[i * WORD_SIZE+ 1] = elem_1;
+        expected_memory[i * WORD_SIZE + 2] = expected_memory[i * WORD_SIZE - WORD_SIZE];
+        expected_memory[i * WORD_SIZE + 3] = expected_memory[i * WORD_SIZE - 3];
+    }
+    expected_memory
 }
