@@ -14,10 +14,10 @@ const.LEAF_DEPTH=64
 #!   Operand stack: [V_old, R_new, ...]
 #!
 #! Cycles
-#!   Insert empty value: 43 cycles
-#!   Insert non-empty value: 102 cycles
+#!   Insert empty value: X cycles
+#!   Insert non-empty value: X cycles
 proc.set_empty_leaf
-    # Check if we're inserting the empty value (19 cycles)
+    # Check if we're inserting the empty value (X cycles)
     padw eqw
     #=> [V == ZERO, ZERO, V, K, R]
 
@@ -27,7 +27,7 @@ proc.set_empty_leaf
         #=> [V (=ZERO), K, R, ...]
 
         # Prepare stack: verify that the leaf is actually empty
-        # (9 cycles)
+        # (X cycles)
         movupw.2 swapw dup.8 movdn.4 push.LEAF_DEPTH movdn.4
         #=> [V (=ZERO), depth, K[3], R, K, ...]
 
@@ -35,7 +35,7 @@ proc.set_empty_leaf
         mtree_verify
         #=> [V (=ZERO), depth, K[3], R, K, ...]
         
-        # Prepare stack for return (10 cycles)
+        # Prepare stack for return (X cycles)
         movup.4 drop movup.4 drop movupw.2 dropw
         #=> [V (=ZERO), R, ...]
     else
@@ -81,15 +81,16 @@ end
 #!   Operand stack: [V_old, R_new, ...]
 #!
 #! Cycles:
-#!   Leaf single after insertion: 121 cycles
+#!   Leaf single after insertion: X cycles
 #!   Leaf multiple after insertion: unimplemented
 proc.insert_single_leaf
     # Push the leaf pre-image on stack
-    # (8 cycles)
+    # (X cycles)
     adv_push.8
     # => [V_in_leaf, K_in_leaf, V, K, R]
 
     # Check if the key stored in the leaf is the same as K
+    # (X cycles)
     movupw.3 movupw.2 eqw
     # => [K_in_leaf==K, K_in_leaf, K, V_in_leaf, V, R]
 
@@ -105,12 +106,12 @@ proc.insert_single_leaf
         # => [V, K, V_in_leaf, R]
 
         # Compute hash([K, V]); the new node value (NV)
-        # (21 cycles)
+        # (X cycles)
         dupw.1 swapw hmerge
         # => [NV, K, V_in_leaf, R]
 
         # Prepare stack to update Merkle store
-        # (6 cycles)
+        # (X cycles)
         movupw.3 dup.8 push.LEAF_DEPTH
         # => [depth, K[3], R, NV, K, V_in_leaf]
 
@@ -146,14 +147,15 @@ end
 #! Outputs:
 #!   Operand stack: [V_old, R_new, ...]
 #!
-#! Cycles: 143 
+#! Cycles: X 
 proc.remove_single_leaf
     # Push the leaf pre-image on stack
-    # (8 cycles)
+    # (0 cycles)
     adv_push.8
     # => [V_in_leaf, K_in_leaf, V, K, R]
 
     # Check if the key stored in the leaf is the same as K
+    # (X cycles)
     movupw.3 movupw.2 eqw
     # => [K_in_leaf==K, K_in_leaf, K, V_in_leaf, V, R]
 
@@ -231,11 +233,12 @@ end
 #! Outputs:
 #!   Operand stack: [V_old, R_new, ...]
 #! Cycles:
-#!   Remove: 168 cycles
-#!   Insert; leaf single after insertion: 146 cycles
+#!   Remove: X cycles
+#!   Insert; leaf single after insertion: X cycles
 #!   Insert; leaf multiple after insertion: unimplemented
 proc.set_single_leaf
     # Check if we're inserting or removing a value
+    # (X cycles)
     padw eqw
     # => [V==ZERO, ZERO, V, K, R, ...] 
     if.true
@@ -245,7 +248,7 @@ proc.set_single_leaf
         dropw 
         # => [V, K, R, ...] 
 
-        # (143 cycles)
+        # (X cycles)
         exec.remove_single_leaf
         # => [V_old, R_new]
     else
@@ -255,7 +258,7 @@ proc.set_single_leaf
         dropw 
         # => [V, K, R, ...] 
 
-        # (121 cycles)
+        # (X cycles)
         exec.insert_single_leaf
         # => [V_old, R_new]
     end
@@ -287,15 +290,17 @@ end
 #!     unimplemented
 export.set
     # Prepare stack for adv.push_mtnode
+    # (X cycles)
     movupw.2 dup.8 push.LEAF_DEPTH
     # => [depth, leaf_index, R, V, K]
 
     # Push MT node on advice stack, cleanup operand stack, and then
     # push MT node on operand stack (NV)
+    # (X cycles)
     adv.push_mtnode drop drop movdnw.2 adv_push.4
     # => [NV, V, K, R]
 
-    # (19 cycles)
+    # (X cycles)
     padw eqw
     # => [NV == ZERO, ZERO, NV, V, K, R]
 
@@ -306,13 +311,13 @@ export.set
         dropw dropw
         #=> [V, K, R]
 
-        # (insert empty value: 43 cycles)
-        # (insert non-empty value: 102 cycles)
+        # (insert empty value: X cycles)
+        # (insert non-empty value: X cycles)
         exec.set_empty_leaf
     else
         # Single or Multiple leaf
 
-        # (4 cycles)
+        # (X cycles)
         dropw
         # => [NV, V, K, R]
 
@@ -334,8 +339,8 @@ export.set
             drop
             # => [V, K, R]
 
-            # (remove key/value: 168 cycles)
-            # (insert; leaf single after insertion: 146 cycles)
+            # (remove key/value: X cycles)
+            # (insert; leaf single after insertion: X cycles)
             exec.set_single_leaf
         else
             # Multiple kv-pair case
