@@ -189,7 +189,7 @@ proc.remove_single_leaf
         # => [V_in_leaf, R_new, ...] 
     else
         # Keys don't match; this is a no-op
-        # We need to ensure to ensure that hash([K_in_leaf, V_in_leaf]) = NV;
+        # We need to ensure that hash([K_in_leaf, V_in_leaf]) = NV;
         # that is, we need to verify the advice provider's claims.
         # If all checks pass, we're done.
 
