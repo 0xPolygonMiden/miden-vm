@@ -45,9 +45,9 @@ impl AuxTraceBuilder {
         let block_hash_column_builder = BlockHashTableColumnBuilder::default();
         let op_group_table_column_builder = OpGroupTableColumnBuilder::default();
 
-        let p1 = block_stack_column_builder.build_aux_column(main_trace, rand_elements);
-        let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements);
-        let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements);
+        let p1 = block_stack_column_builder.build_aux_column(main_trace, rand_elements, false);
+        let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements, false);
+        let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements, false);
 
         vec![p1, p2, p3]
     }

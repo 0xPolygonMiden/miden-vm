@@ -61,8 +61,8 @@ impl AuxTraceBuilder {
     ) -> Vec<Vec<E>> {
         let v_table_col_builder = ChipletsVTableColBuilder::default();
         let bus_col_builder = BusColumnBuilder::default();
-        let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
-        let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
+        let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements, true);
+        let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements, false);
         vec![t_chip, b_chip]
     }
 }
@@ -180,16 +180,14 @@ where
         let lsb = index.as_int() & 1;
         if lsb == 0 {
             let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
+            alphas[3].mul_base(index)
                 + alphas[12].mul_base(sibling[0])
                 + alphas[13].mul_base(sibling[1])
                 + alphas[14].mul_base(sibling[2])
                 + alphas[15].mul_base(sibling[3])
         } else {
             let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
+            alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
                 + alphas[9].mul_base(sibling[1])
                 + alphas[10].mul_base(sibling[2])
@@ -218,16 +216,14 @@ where
         let lsb = index.as_int() & 1;
         if lsb == 0 {
             let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
+            alphas[3].mul_base(index)
                 + alphas[12].mul_base(sibling[0])
                 + alphas[13].mul_base(sibling[1])
                 + alphas[14].mul_base(sibling[2])
                 + alphas[15].mul_base(sibling[3])
         } else {
             let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
+            alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
                 + alphas[9].mul_base(sibling[1])
                 + alphas[10].mul_base(sibling[2])
@@ -244,8 +240,7 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     if main_trace.is_kernel_row(i) && main_trace.is_addr_change(i) {
-        alphas[0]
-            + alphas[1].mul_base(main_trace.addr(i))
+        alphas[1].mul_base(main_trace.addr(i))
             + alphas[2].mul_base(main_trace.chiplet_kernel_root_0(i))
             + alphas[3].mul_base(main_trace.chiplet_kernel_root_1(i))
             + alphas[4].mul_base(main_trace.chiplet_kernel_root_2(i))
