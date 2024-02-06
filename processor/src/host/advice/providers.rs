@@ -40,7 +40,7 @@ where
         stack.reverse();
         Self {
             stack,
-            map: map.clone().into_iter().collect(),
+            map: map.into_iter().collect(),
             store: store.inner_nodes().collect(),
         }
     }

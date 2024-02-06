@@ -93,7 +93,7 @@ impl AdviceInputs {
     /// Extends the contents of this instance with the contents of the other instance.
     pub fn extend(&mut self, other: Self) {
         self.stack.extend(other.stack);
-        self.map.extend(other.map.clone());
+        self.map.extend(other.map);
         self.store.extend(other.store.inner_nodes());
     }
 
