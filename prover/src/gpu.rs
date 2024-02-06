@@ -8,7 +8,6 @@ use super::{
     ExecutionProver, ExecutionTrace, Felt, FieldElement, Level, ProcessorAir, PublicInputs,
     WinterProofOptions,
 };
-use air::trace::main_trace::MainTrace;
 use elsa::FrozenVec;
 use ministark_gpu::{
     plan::{gen_rpo_merkle_tree, GpuRpo256RowMajor},
@@ -63,7 +62,7 @@ where
     fn new_trace_lde<E: FieldElement<BaseField = Felt>>(
         &self,
         trace_info: &TraceInfo,
-        main_trace: &MainTrace,
+        main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
         MetalRpoTraceLde::new(trace_info, main_trace, domain)
@@ -201,7 +200,7 @@ impl<E: FieldElement<BaseField = Felt>> MetalRpoTraceLde<E> {
     /// segment and the new [DefaultTraceLde].
     pub fn new(
         trace_info: &TraceInfo,
-        main_trace: &MainTrace,
+        main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
     ) -> (Self, TracePolyTable<E>) {
         // extend the main execution trace and build a Merkle tree from the extended trace
