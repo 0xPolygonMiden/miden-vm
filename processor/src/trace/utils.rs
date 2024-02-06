@@ -101,12 +101,12 @@ impl TraceLenSummary {
         }
     }
 
-    /// Returns length of the main trace
+    /// Returns length of the main trace.
     pub fn main_trace_len(&self) -> usize {
         self.main_trace_len
     }
 
-    /// Returns length of the range table
+    /// Returns length of the range checker trace.
     pub fn range_trace_len(&self) -> usize {
         self.range_trace_len
     }
@@ -126,6 +126,12 @@ impl TraceLenSummary {
     /// Returns `trace_len` rounded up to the next power of two.
     pub fn padded_trace_len(&self) -> usize {
         (self.trace_len() + NUM_RAND_ROWS).next_power_of_two()
+    }
+
+    /// Returns the percent (0 - 100) of the steps that were added to the trace to pad it to the
+    /// next power of tow.
+    pub fn padding_percentage(&self) -> usize {
+        (self.padded_trace_len() - self.trace_len()) * 100 / self.padded_trace_len()
     }
 }
 
