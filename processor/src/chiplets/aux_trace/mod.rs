@@ -474,40 +474,18 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let ctx = main_trace.ctx(i);
-    let clk = main_trace.clk(i);
-
     let tz0 = main_trace.helper(0, i);
     let tz1 = main_trace.helper(1, i);
     let tzg0 = main_trace.helper(2, i);
     let tzg1 = main_trace.helper(3, i);
     let a0 = main_trace.helper(4, i);
     let a1 = main_trace.helper(5, i);
-
     let z_ptr = main_trace.stack_element(13, i);
     let a_ptr = main_trace.stack_element(14, i);
 
-    let op_label = MEMORY_READ_LABEL;
+    let factor1 = main_trace.compute_memory_read_request(alphas, i, z_ptr, [tz0, tz1, tzg0, tzg1]);
+    let factor2 = main_trace.compute_memory_read_request(alphas, i, a_ptr, [a0, a1, ZERO, ZERO]);
 
-    let factor1 = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(z_ptr)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(tz0)
-        + alphas[6].mul_base(tz1)
-        + alphas[7].mul_base(tzg0)
-        + alphas[8].mul_base(tzg1);
-
-    let factor2 = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(a_ptr)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(a0)
-        + alphas[6].mul_base(a1)
-        + alphas[7].mul_base(ZERO)
-        + alphas[8].mul_base(ZERO);
     factor1 * factor2
 }
 

@@ -1,9 +1,9 @@
-// RANDOM LINEAR COMBINATION OPERATIONS
-// ================================================================================================
-
 use vm_core::{Felt, Operation, StarkField, ONE, ZERO};
 
 use crate::{ExecutionError, Host, Process, QuadFelt};
+
+// RANDOM LINEAR COMBINATION OPERATIONS
+// ================================================================================================
 
 impl<H> Process<H>
 where

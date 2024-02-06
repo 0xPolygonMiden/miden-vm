@@ -183,11 +183,11 @@ The effect on the rest of the stack is:
 The `RCOMBBASE` makes two memory access request. To simplify the description of these, we first define the following variables :
 
 $$
-v_1 = \sum_{i=0}^3\alpha_{i+5} \cdot h_{i}'
+v_1 = \sum_{i=0}^3\alpha_{i+5} \cdot h_{i}
 $$
 
 $$
-v_2 = \sum_{i=0}^1\alpha_{i+5} \cdot h_{i + 4}'
+v_2 = \sum_{i=0}^1\alpha_{i+5} \cdot h_{i + 4}
 $$
 
 Using the above variables, we define the values representing the memory access request as follows:

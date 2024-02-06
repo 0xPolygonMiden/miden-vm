@@ -1,5 +1,5 @@
-use super::super::ColMatrix;
 use super::{
+    super::{trace::chiplets::memory::MEMORY_READ_LABEL, ColMatrix},
     chiplets::{
         hasher::{DIGEST_LEN, STATE_WIDTH},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
@@ -19,7 +19,7 @@ use super::{
 use core::ops::{Deref, Range};
 #[cfg(any(test, feature = "internals"))]
 use vm_core::utils::collections::Vec;
-use vm_core::{utils::range, Felt, ONE, ZERO};
+use vm_core::{utils::range, Felt, FieldElement, Word, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -92,9 +92,9 @@ impl MainTrace {
         self.addr(i) != self.addr(i + 1)
     }
 
-    /// j-th decoder helper register at `row`.
-    pub fn helper(&self, j: usize, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + j)[i]
+    /// The i-th decoder helper register at `row`.
+    pub fn helper(&self, i: usize, row: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[row]
     }
 
     /// Returns the hasher state at row i.
@@ -355,6 +355,30 @@ impl MainTrace {
     /// Returns the i-th row of the chiplet column containing the third memory value element.
     pub fn chiplet_memory_value_3(&self, i: usize) -> Felt {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
+    }
+
+    /// Computes a memory read request at `row` given randomness `alphas`, memory address `addr`
+    /// and value `value`.
+    pub fn compute_memory_read_request<E: FieldElement<BaseField = Felt>>(
+        &self,
+        alphas: &[E],
+        row: usize,
+        addr: Felt,
+        value: Word,
+    ) -> E {
+        let op_label = MEMORY_READ_LABEL;
+        let ctx = self.ctx(row);
+        let clk = self.clk(row);
+
+        alphas[0]
+            + alphas[1].mul_base(Felt::from(op_label))
+            + alphas[2].mul_base(ctx)
+            + alphas[3].mul_base(addr)
+            + alphas[4].mul_base(clk)
+            + alphas[5].mul_base(value[0])
+            + alphas[6].mul_base(value[1])
+            + alphas[7].mul_base(value[2])
+            + alphas[8].mul_base(value[3])
     }
 
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel
