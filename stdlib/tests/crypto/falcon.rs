@@ -6,6 +6,7 @@ use rand::Rng;
 use std::vec;
 use processor::math::fft;
 use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, QuadFelt, rand::rand_vector, Test, TestError, Word, WORD_SIZE};
+use test_utils::crypto::rpo_falcon512::Polynomial;
 use test_utils::math::{polynom, QuadExtension};
 use test_utils::rand::rand_value;
 
@@ -101,32 +102,16 @@ fn test_falcon512_probabilistic_product() {
     let powers_of_tau = powers_of_tau(tau);
 
     // Create zeros array.
-    let zeros_ptr: Vec<u64> = vec![1024];
+    let zeros_ptr: Vec<u64> = vec![2048];
 
-    // Create the polynomials h and s2.
-    let mut h = random_polynomial_coefficients();
-    let s2 = random_polynomial_coefficients();
+    let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
 
-    // Multiply them to get pi.
-    let pi = polynom::mul(&*h, &*s2);
+    let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
 
-    // Evaluate s2(tau)
-    let h_tau = polynom::eval(&*h, tau);
+    let pi = Polynomial::mul_modulo_p(&h, &s2);
 
-    // Evaluate s2(tau)
-    let s2_tau = polynom::eval(&*s2, tau);
-
-    // Evaluate pi(tau)
-    let pi_tau = polynom::eval(&*pi, tau);
-    assert_eq!(pi_tau, h_tau * s2_tau);
-
-    println!("h_tau is: {:?}", h_tau);
-    println!("s2_tau is: {:?}", s2_tau);
-    println!("The product of h_tau and s2_tau is: {:?}", h_tau * s2_tau);
-    println!("pi_tau is: {:?}", pi_tau);
-
-    let mut h_64: Vec<u64> = h.iter().map(|&e| e.into()).collect();
-    let s2_64: Vec<u64> = s2.iter().map(|&e| e.into()).collect();
+    let mut h_64: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
+    let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
     let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
 
     h_64.extend(s2_64);
@@ -134,7 +119,7 @@ fn test_falcon512_probabilistic_product() {
     h_64.extend(zeros_ptr);
     h_64.extend(powers_of_tau);
 
-    // Stack should be empty and memory shouldn't change.
+    // Stack should be empty.
 
     let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
 
@@ -155,41 +140,26 @@ fn test_falcon512_probabilistic_product_failure() {
     end
     ";
 
+    let h_ptr = 0_u32;
+
     // Create an array of the powers of a random quadratic extension field element from 0 to N.
     let tau = rand_value::<QuadFelt>();
     let powers_of_tau = powers_of_tau(tau);
 
     // Create zeros array.
-    let zeros_ptr: Vec<u64> = vec![1024];
+    let zeros_ptr: Vec<u64> = vec![2048];
 
-    // Create the polynomials h and s2.
-    let mut h = random_polynomial_coefficients();
-    let h_ptr = 0_u32;
+    let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
 
-    let s2 = random_polynomial_coefficients();
+    let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
 
-    // Multiply them to get pi.
-    let pi = random_polynomial_coefficients();
+    let pi = unsafe { Polynomial::new(random_coefficients()) };
 
-    // Evaluate h(tau)
-    let h_tau = polynom::eval(&*h, tau);
+    let pi_test = Polynomial::mul_modulo_p(&h, &s2);
 
-    // Evaluate s2(tau)
-    let s2_tau = polynom::eval(&*s2, tau);
-
-    // Evaluate pi(tau)
-    let pi_tau = polynom::eval(&*pi, tau);
-    assert_ne!(pi_tau, h_tau * s2_tau);
-
-    println!("h_tau is: {:?}", h_tau);
-    println!("s2_tau is: {:?}", s2_tau);
-    println!("The product of h_tau and s2_tau is: {:?}", h_tau * s2_tau);
-    println!("pi_tau is: {:?}", pi_tau);
-
-
-    let mut h_64: Vec<u64> = h.iter().map(|&e| e.into()).collect();
-    let s2_64: Vec<u64> = s2.iter().map(|&e| e.into()).collect();
-    let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
+    let mut h_64: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
+    let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
+    let pi_64: Vec<u64> = pi.to_elements().iter().map(|&e| e.into()).collect();
 
     h_64.extend(s2_64);
     h_64.extend(pi_64);
@@ -271,10 +241,10 @@ fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
     expected_memory
 }
 
-fn random_polynomial_coefficients() -> Vec<Felt> {
-    let mut array:Vec<Felt> = vec![ZERO; N];
-    for felt in array.iter_mut() {
-        *felt = rand_value::<Felt>();
+fn random_coefficients() -> [u16; N] {
+    let mut res = [u16::default(); N];
+    for i in res.iter_mut() {
+        *i = rand::thread_rng().gen_range(0..M) as u16;
     }
-    array
+    res
 }
