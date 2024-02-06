@@ -26,11 +26,6 @@ where
     /// the `mem_stream` instruction where it is called 8 times in a row for each call to
     /// `mem_stream`.
     ///
-    /// The instruction is used in the context of STARK proof verification in order to compute
-    /// the queries of the DEEP composition polynomial for FRI. It works in combination with
-    /// the `mem_stream` instruction where it is called 8 times in a row for each call to
-    /// `mem_stream`.
-    ///
     /// The stack transition of the instruction can be visualized as follows:
     ///
     /// Input:
