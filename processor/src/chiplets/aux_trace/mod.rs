@@ -77,61 +77,61 @@ pub struct BusColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder {
     /// Constructs the requests made by the VM-components to the chiplets at row i.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E
     where
         E: FieldElement<BaseField = Felt>,
     {
-        let op_code_felt = main_trace.get_op_code(i);
+        let op_code_felt = main_trace.get_op_code(row);
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
             JOIN | SPLIT | LOOP | DYN | CALL => {
-                build_control_block_request(main_trace, op_code_felt, alphas, i)
+                build_control_block_request(main_trace, op_code_felt, alphas, row)
             }
-            SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, i),
-            SPAN => build_span_block_request(main_trace, alphas, i),
-            RESPAN => build_respan_block_request(main_trace, alphas, i),
-            END => build_end_block_request(main_trace, alphas, i),
-            AND => build_bitwise_request(main_trace, ZERO, alphas, i),
-            XOR => build_bitwise_request(main_trace, ONE, alphas, i),
-            MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, i),
-            MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, i),
-            MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, i),
-            MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, i),
-            MSTREAM => build_mstream_request(main_trace, alphas, i),
-            RCOMBBASE => build_rcomb_base_request(main_trace, alphas, i),
-            HPERM => build_hperm_request(main_trace, alphas, i),
-            MPVERIFY => build_mpverify_request(main_trace, alphas, i),
-            MRUPDATE => build_mrupdate_request(main_trace, alphas, i),
+            SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
+            SPAN => build_span_block_request(main_trace, alphas, row),
+            RESPAN => build_respan_block_request(main_trace, alphas, row),
+            END => build_end_block_request(main_trace, alphas, row),
+            AND => build_bitwise_request(main_trace, ZERO, alphas, row),
+            XOR => build_bitwise_request(main_trace, ONE, alphas, row),
+            MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, row),
+            MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, row),
+            MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, row),
+            MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, row),
+            MSTREAM => build_mstream_request(main_trace, alphas, row),
+            RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row),
+            HPERM => build_hperm_request(main_trace, alphas, row),
+            MPVERIFY => build_mpverify_request(main_trace, alphas, row),
+            MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
             _ => E::ONE,
         }
     }
 
     /// Constructs the responses from the chiplets to the other VM-components at row i.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E
     where
         E: FieldElement<BaseField = Felt>,
     {
-        let selector0 = main_trace.chiplet_selector_0(i);
-        let selector1 = main_trace.chiplet_selector_1(i);
-        let selector2 = main_trace.chiplet_selector_2(i);
-        let selector3 = main_trace.chiplet_selector_3(i);
-        let selector4 = main_trace.chiplet_selector_4(i);
+        let selector0 = main_trace.chiplet_selector_0(row);
+        let selector1 = main_trace.chiplet_selector_1(row);
+        let selector2 = main_trace.chiplet_selector_2(row);
+        let selector3 = main_trace.chiplet_selector_3(row);
+        let selector4 = main_trace.chiplet_selector_4(row);
 
         if selector0 == ZERO {
-            build_hasher_chiplet_responses(main_trace, i, alphas, selector1, selector2, selector3)
+            build_hasher_chiplet_responses(main_trace, row, alphas, selector1, selector2, selector3)
         } else if selector1 == ZERO {
             debug_assert_eq!(selector0, ONE);
-            build_bitwise_chiplet_responses(main_trace, i, selector2, alphas)
+            build_bitwise_chiplet_responses(main_trace, row, selector2, alphas)
         } else if selector2 == ZERO {
             debug_assert_eq!(selector0, ONE);
             debug_assert_eq!(selector1, ONE);
-            build_memory_chiplet_responses(main_trace, i, selector3, alphas)
+            build_memory_chiplet_responses(main_trace, row, selector3, alphas)
         } else if selector3 == ZERO && selector4 == ONE {
             debug_assert_eq!(selector0, ONE);
             debug_assert_eq!(selector1, ONE);
             debug_assert_eq!(selector2, ONE);
-            build_kernel_chiplet_responses(main_trace, i, alphas)
+            build_kernel_chiplet_responses(main_trace, row, alphas)
         } else {
             debug_assert_eq!(selector0, ONE);
             debug_assert_eq!(selector1, ONE);
@@ -151,13 +151,13 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
 pub struct ChipletsVTableColBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableColBuilder {
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        chiplets_vtable_remove_sibling(main_trace, alphas, i)
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
+        chiplets_vtable_remove_sibling(main_trace, alphas, row)
     }
 
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        chiplets_vtable_add_sibling(main_trace, alphas, i)
-            * chiplets_kernel_table_include(main_trace, alphas, i)
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
+        chiplets_vtable_add_sibling(main_trace, alphas, row)
+            * chiplets_kernel_table_include(main_trace, alphas, row)
     }
 }
 
@@ -166,22 +166,22 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableCo
 
 /// Constructs the inclusions to the table when the hasher absorbs a new sibling node while
 /// computing the old Merkle root.
-fn chiplets_vtable_add_sibling<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+fn chiplets_vtable_add_sibling<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let f_mv: bool = main_trace.f_mv(i);
-    let f_mva: bool = if i == 0 { false } else { main_trace.f_mva(i - 1) };
+    let f_mv: bool = main_trace.f_mv(row);
+    let f_mva: bool = if row == 0 { false } else { main_trace.f_mva(row - 1) };
 
     if f_mv || f_mva {
         let index = if f_mva {
-            main_trace.chiplet_node_index(i - 1)
+            main_trace.chiplet_node_index(row - 1)
         } else {
-            main_trace.chiplet_node_index(i)
+            main_trace.chiplet_node_index(row)
         };
         let lsb = index.as_int() & 1;
         if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE.end..];
+            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[12].mul_base(sibling[0])
@@ -189,7 +189,7 @@ where
                 + alphas[14].mul_base(sibling[2])
                 + alphas[15].mul_base(sibling[3])
         } else {
-            let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE];
+            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
@@ -204,22 +204,22 @@ where
 
 /// Constructs the removals from the table when the hasher absorbs a new sibling node while
 /// computing the new Merkle root.
-fn chiplets_vtable_remove_sibling<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+fn chiplets_vtable_remove_sibling<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let f_mu: bool = main_trace.f_mu(i);
-    let f_mua: bool = if i == 0 { false } else { main_trace.f_mua(i - 1) };
+    let f_mu: bool = main_trace.f_mu(row);
+    let f_mua: bool = if row == 0 { false } else { main_trace.f_mua(row - 1) };
 
     if f_mu || f_mua {
         let index = if f_mua {
-            main_trace.chiplet_node_index(i - 1)
+            main_trace.chiplet_node_index(row - 1)
         } else {
-            main_trace.chiplet_node_index(i)
+            main_trace.chiplet_node_index(row)
         };
         let lsb = index.as_int() & 1;
         if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE.end..];
+            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[12].mul_base(sibling[0])
@@ -227,7 +227,7 @@ where
                 + alphas[14].mul_base(sibling[2])
                 + alphas[15].mul_base(sibling[3])
         } else {
-            let sibling = &main_trace.chiplet_hasher_state(i)[DIGEST_RANGE];
+            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
             alphas[0]
                 + alphas[3].mul_base(index)
                 + alphas[8].mul_base(sibling[0])
@@ -241,17 +241,17 @@ where
 }
 
 /// Constructs the inclusions to the kernel table.
-fn chiplets_kernel_table_include<E>(main_trace: &MainTrace, alphas: &[E], i: usize) -> E
+fn chiplets_kernel_table_include<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    if main_trace.is_kernel_row(i) && main_trace.is_addr_change(i) {
+    if main_trace.is_kernel_row(row) && main_trace.is_addr_change(row) {
         alphas[0]
-            + alphas[1].mul_base(main_trace.addr(i))
-            + alphas[2].mul_base(main_trace.chiplet_kernel_root_0(i))
-            + alphas[3].mul_base(main_trace.chiplet_kernel_root_1(i))
-            + alphas[4].mul_base(main_trace.chiplet_kernel_root_2(i))
-            + alphas[5].mul_base(main_trace.chiplet_kernel_root_3(i))
+            + alphas[1].mul_base(main_trace.addr(row))
+            + alphas[2].mul_base(main_trace.chiplet_kernel_root_0(row))
+            + alphas[3].mul_base(main_trace.chiplet_kernel_root_1(row))
+            + alphas[4].mul_base(main_trace.chiplet_kernel_root_2(row))
+            + alphas[5].mul_base(main_trace.chiplet_kernel_root_3(row))
     } else {
         E::ONE
     }
@@ -265,17 +265,17 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(i + 1);
+    let addr_nxt = main_trace.addr(row + 1);
     let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
-    let state = main_trace.decoder_hasher_state(i);
+    let state = main_trace.decoder_hasher_state(row);
 
     header + build_value(&alphas[8..16], &state) + alphas[5].mul_base(op_code_felt)
 }
@@ -285,12 +285,12 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_code_felt: Felt,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
-    let factor1 = build_control_block_request(main_trace, op_code_felt, alphas, i);
+    let factor1 = build_control_block_request(main_trace, op_code_felt, alphas, row);
 
     let op_label = KERNEL_PROC_LABEL;
-    let state = main_trace.decoder_hasher_state(i);
+    let state = main_trace.decoder_hasher_state(row);
     let factor2 = alphas[0]
         + alphas[1].mul_base(op_label)
         + alphas[2].mul_base(state[0])
@@ -305,17 +305,17 @@ fn build_syscall_block_request<E: FieldElement<BaseField = Felt>>(
 fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(i + 1);
+    let addr_nxt = main_trace.addr(row + 1);
     let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
 
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
-    let state = main_trace.decoder_hasher_state(i);
+    let state = main_trace.decoder_hasher_state(row);
 
     header + build_value(&alphas[8..16], &state)
 }
@@ -324,10 +324,10 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
 fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let op_label = LINEAR_HASH_LABEL;
-    let addr_nxt = main_trace.addr(i + 1);
+    let addr_nxt = main_trace.addr(row + 1);
 
     let first_cycle_row = addr_to_row_index(addr_nxt - ONE) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
@@ -337,8 +337,8 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
         + alphas[2].mul_base(addr_nxt - ONE)
         + alphas[3].mul_base(ZERO);
 
-    let state = &main_trace.chiplet_hasher_state(i - 2)[CAPACITY_LEN..];
-    let state_nxt = &main_trace.chiplet_hasher_state(i - 1)[CAPACITY_LEN..];
+    let state = &main_trace.chiplet_hasher_state(row - 2)[CAPACITY_LEN..];
+    let state_nxt = &main_trace.chiplet_hasher_state(row - 1)[CAPACITY_LEN..];
 
     header + build_value(&alphas[8..16], state_nxt) - build_value(&alphas[8..16], state)
 }
@@ -347,10 +347,10 @@ fn build_respan_block_request<E: FieldElement<BaseField = Felt>>(
 fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let op_label = RETURN_HASH_LABEL;
-    let addr = main_trace.addr(i) + Felt::from(NUM_ROUNDS as u8);
+    let addr = main_trace.addr(row) + Felt::from(NUM_ROUNDS as u8);
 
     let first_cycle_row = addr_to_row_index(addr) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
@@ -358,7 +358,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     let header =
         alphas[0] + alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
 
-    let state = main_trace.decoder_hasher_state(i);
+    let state = main_trace.decoder_hasher_state(row);
     let digest = &state[..4];
 
     header + build_value(&alphas[8..12], digest)
@@ -370,12 +370,12 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     is_xor: Felt,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
-    let a = main_trace.stack_element(1, i);
-    let b = main_trace.stack_element(0, i);
-    let z = main_trace.stack_element(0, i + 1);
+    let a = main_trace.stack_element(1, row);
+    let b = main_trace.stack_element(0, row);
+    let z = main_trace.stack_element(0, row + 1);
 
     alphas[0]
         + alphas[1].mul_base(op_label)
@@ -389,17 +389,17 @@ fn build_mem_request_element<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_label: u8,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let word = [
-        main_trace.stack_element(0, i + 1),
-        main_trace.helper_register(2, i),
-        main_trace.helper_register(1, i),
-        main_trace.helper_register(0, i),
+        main_trace.stack_element(0, row + 1),
+        main_trace.helper_register(2, row),
+        main_trace.helper_register(1, row),
+        main_trace.helper_register(0, row),
     ];
-    let addr = main_trace.stack_element(0, i);
+    let addr = main_trace.stack_element(0, row);
 
-    compute_memory_request(main_trace, op_label, alphas, i, addr, word)
+    compute_memory_request(main_trace, op_label, alphas, row, addr, word)
 }
 
 /// Builds `MLOADW` and `MSTOREW` requests made to the memory chiplet.
@@ -407,42 +407,42 @@ fn build_mem_request_word<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_label: u8,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let word = [
-        main_trace.stack_element(3, i + 1),
-        main_trace.stack_element(2, i + 1),
-        main_trace.stack_element(1, i + 1),
-        main_trace.stack_element(0, i + 1),
+        main_trace.stack_element(3, row + 1),
+        main_trace.stack_element(2, row + 1),
+        main_trace.stack_element(1, row + 1),
+        main_trace.stack_element(0, row + 1),
     ];
-    let addr = main_trace.stack_element(0, i);
+    let addr = main_trace.stack_element(0, row);
 
-    compute_memory_request(main_trace, op_label, alphas, i, addr, word)
+    compute_memory_request(main_trace, op_label, alphas, row, addr, word)
 }
 
 /// Builds `MSTREAM` requests made to the memory chiplet.
 fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
     let word1 = [
-        main_trace.stack_element(7, i + 1),
-        main_trace.stack_element(6, i + 1),
-        main_trace.stack_element(5, i + 1),
-        main_trace.stack_element(4, i + 1),
+        main_trace.stack_element(7, row + 1),
+        main_trace.stack_element(6, row + 1),
+        main_trace.stack_element(5, row + 1),
+        main_trace.stack_element(4, row + 1),
     ];
     let word2 = [
-        main_trace.stack_element(3, i + 1),
-        main_trace.stack_element(2, i + 1),
-        main_trace.stack_element(1, i + 1),
-        main_trace.stack_element(0, i + 1),
+        main_trace.stack_element(3, row + 1),
+        main_trace.stack_element(2, row + 1),
+        main_trace.stack_element(1, row + 1),
+        main_trace.stack_element(0, row + 1),
     ];
-    let addr = main_trace.stack_element(12, i);
+    let addr = main_trace.stack_element(12, row);
     let op_label = MEMORY_READ_LABEL;
 
-    let factor1 = compute_memory_request(main_trace, op_label, alphas, i, addr, word1);
-    let factor2 = compute_memory_request(main_trace, op_label, alphas, i, addr + ONE, word2);
+    let factor1 = compute_memory_request(main_trace, op_label, alphas, row, addr, word1);
+    let factor2 = compute_memory_request(main_trace, op_label, alphas, row, addr + ONE, word2);
 
     factor1 * factor2
 }
@@ -451,22 +451,22 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
 fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
-    let tz0 = main_trace.helper_register(0, i);
-    let tz1 = main_trace.helper_register(1, i);
-    let tzg0 = main_trace.helper_register(2, i);
-    let tzg1 = main_trace.helper_register(3, i);
-    let a0 = main_trace.helper_register(4, i);
-    let a1 = main_trace.helper_register(5, i);
-    let z_ptr = main_trace.stack_element(13, i);
-    let a_ptr = main_trace.stack_element(14, i);
+    let tz0 = main_trace.helper_register(0, row);
+    let tz1 = main_trace.helper_register(1, row);
+    let tzg0 = main_trace.helper_register(2, row);
+    let tzg1 = main_trace.helper_register(3, row);
+    let a0 = main_trace.helper_register(4, row);
+    let a1 = main_trace.helper_register(5, row);
+    let z_ptr = main_trace.stack_element(13, row);
+    let a_ptr = main_trace.stack_element(14, row);
     let op_label = MEMORY_READ_LABEL;
 
     let factor1 =
-        compute_memory_request(main_trace, op_label, alphas, i, z_ptr, [tz0, tz1, tzg0, tzg1]);
+        compute_memory_request(main_trace, op_label, alphas, row, z_ptr, [tz0, tz1, tzg0, tzg1]);
     let factor2 =
-        compute_memory_request(main_trace, op_label, alphas, i, a_ptr, [a0, a1, ZERO, ZERO]);
+        compute_memory_request(main_trace, op_label, alphas, row, a_ptr, [a0, a1, ZERO, ZERO]);
 
     factor1 * factor2
 }
@@ -475,38 +475,38 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
 fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
-    let helper_0 = main_trace.helper_register(0, i);
+    let helper_0 = main_trace.helper_register(0, row);
 
     let s0_s12_cur = [
-        main_trace.stack_element(0, i),
-        main_trace.stack_element(1, i),
-        main_trace.stack_element(2, i),
-        main_trace.stack_element(3, i),
-        main_trace.stack_element(4, i),
-        main_trace.stack_element(5, i),
-        main_trace.stack_element(6, i),
-        main_trace.stack_element(7, i),
-        main_trace.stack_element(8, i),
-        main_trace.stack_element(9, i),
-        main_trace.stack_element(10, i),
-        main_trace.stack_element(11, i),
+        main_trace.stack_element(0, row),
+        main_trace.stack_element(1, row),
+        main_trace.stack_element(2, row),
+        main_trace.stack_element(3, row),
+        main_trace.stack_element(4, row),
+        main_trace.stack_element(5, row),
+        main_trace.stack_element(6, row),
+        main_trace.stack_element(7, row),
+        main_trace.stack_element(8, row),
+        main_trace.stack_element(9, row),
+        main_trace.stack_element(10, row),
+        main_trace.stack_element(11, row),
     ];
 
     let s0_s12_nxt = [
-        main_trace.stack_element(0, i + 1),
-        main_trace.stack_element(1, i + 1),
-        main_trace.stack_element(2, i + 1),
-        main_trace.stack_element(3, i + 1),
-        main_trace.stack_element(4, i + 1),
-        main_trace.stack_element(5, i + 1),
-        main_trace.stack_element(6, i + 1),
-        main_trace.stack_element(7, i + 1),
-        main_trace.stack_element(8, i + 1),
-        main_trace.stack_element(9, i + 1),
-        main_trace.stack_element(10, i + 1),
-        main_trace.stack_element(11, i + 1),
+        main_trace.stack_element(0, row + 1),
+        main_trace.stack_element(1, row + 1),
+        main_trace.stack_element(2, row + 1),
+        main_trace.stack_element(3, row + 1),
+        main_trace.stack_element(4, row + 1),
+        main_trace.stack_element(5, row + 1),
+        main_trace.stack_element(6, row + 1),
+        main_trace.stack_element(7, row + 1),
+        main_trace.stack_element(8, row + 1),
+        main_trace.stack_element(9, row + 1),
+        main_trace.stack_element(10, row + 1),
+        main_trace.stack_element(11, row + 1),
     ];
 
     let op_label = LINEAR_HASH_LABEL;
@@ -550,23 +550,23 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
 fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
-    let helper_0 = main_trace.helper_register(0, i);
+    let helper_0 = main_trace.helper_register(0, row);
 
     let s0_s3 = [
-        main_trace.stack_element(0, i),
-        main_trace.stack_element(1, i),
-        main_trace.stack_element(2, i),
-        main_trace.stack_element(3, i),
+        main_trace.stack_element(0, row),
+        main_trace.stack_element(1, row),
+        main_trace.stack_element(2, row),
+        main_trace.stack_element(3, row),
     ];
-    let s4 = main_trace.stack_element(4, i);
-    let s5 = main_trace.stack_element(5, i);
+    let s4 = main_trace.stack_element(4, row);
+    let s5 = main_trace.stack_element(5, row);
     let s6_s9 = [
-        main_trace.stack_element(6, i),
-        main_trace.stack_element(7, i),
-        main_trace.stack_element(8, i),
-        main_trace.stack_element(9, i),
+        main_trace.stack_element(6, row),
+        main_trace.stack_element(7, row),
+        main_trace.stack_element(8, row),
+        main_trace.stack_element(9, row),
     ];
 
     let op_label = MP_VERIFY_LABEL;
@@ -612,35 +612,35 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
 fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     alphas: &[E],
-    i: usize,
+    row: usize,
 ) -> E {
-    let helper_0 = main_trace.helper_register(0, i);
+    let helper_0 = main_trace.helper_register(0, row);
 
     let s0_s3 = [
-        main_trace.stack_element(0, i),
-        main_trace.stack_element(1, i),
-        main_trace.stack_element(2, i),
-        main_trace.stack_element(3, i),
+        main_trace.stack_element(0, row),
+        main_trace.stack_element(1, row),
+        main_trace.stack_element(2, row),
+        main_trace.stack_element(3, row),
     ];
     let s0_s3_nxt = [
-        main_trace.stack_element(0, i + 1),
-        main_trace.stack_element(1, i + 1),
-        main_trace.stack_element(2, i + 1),
-        main_trace.stack_element(3, i + 1),
+        main_trace.stack_element(0, row + 1),
+        main_trace.stack_element(1, row + 1),
+        main_trace.stack_element(2, row + 1),
+        main_trace.stack_element(3, row + 1),
     ];
-    let s4 = main_trace.stack_element(4, i);
-    let s5 = main_trace.stack_element(5, i);
+    let s4 = main_trace.stack_element(4, row);
+    let s5 = main_trace.stack_element(5, row);
     let s6_s9 = [
-        main_trace.stack_element(6, i),
-        main_trace.stack_element(7, i),
-        main_trace.stack_element(8, i),
-        main_trace.stack_element(9, i),
+        main_trace.stack_element(6, row),
+        main_trace.stack_element(7, row),
+        main_trace.stack_element(8, row),
+        main_trace.stack_element(9, row),
     ];
     let s10_s13 = [
-        main_trace.stack_element(10, i),
-        main_trace.stack_element(11, i),
-        main_trace.stack_element(12, i),
-        main_trace.stack_element(13, i),
+        main_trace.stack_element(10, row),
+        main_trace.stack_element(11, row),
+        main_trace.stack_element(12, row),
+        main_trace.stack_element(13, row),
     ];
 
     let op_label = MR_UPDATE_OLD_LABEL;
@@ -721,7 +721,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 /// Builds the response from the hasher chiplet at row `i`.
 fn build_hasher_chiplet_responses<E>(
     main_trace: &MainTrace,
-    i: usize,
+    row: usize,
     alphas: &[E],
     selector1: Felt,
     selector2: Felt,
@@ -731,14 +731,14 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let mut multiplicand = E::ONE;
-    let selector0 = main_trace.chiplet_selector_0(i);
+    let selector0 = main_trace.chiplet_selector_0(row);
     let op_label = get_op_label(selector0, selector1, selector2, selector3);
 
     // f_bp, f_mp, f_mv or f_mu == 1
-    if i % HASH_CYCLE_LEN == 0 {
-        let state = main_trace.chiplet_hasher_state(i);
+    if row % HASH_CYCLE_LEN == 0 {
+        let state = main_trace.chiplet_hasher_state(row);
         let alphas_state = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
-        let node_index = main_trace.chiplet_node_index(i);
+        let node_index = main_trace.chiplet_node_index(row);
         let transition_label = op_label + Felt::from(16_u8);
 
         // f_bp == 1
@@ -746,7 +746,7 @@ where
         if selector1 == ONE && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u64))
                 + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(alphas_state, &state);
@@ -757,7 +757,7 @@ where
         if selector1 == ONE && !(selector2 == ZERO && selector3 == ZERO) {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u64))
                 + alphas[3].mul_base(node_index);
 
             let bit = node_index.as_int() & 1;
@@ -769,10 +769,10 @@ where
     }
 
     // f_hout, f_sout, f_abp == 1
-    if i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1 {
-        let state = main_trace.chiplet_hasher_state(i);
+    if row % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1 {
+        let state = main_trace.chiplet_hasher_state(row);
         let alphas_state = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
-        let node_index = main_trace.chiplet_node_index(i);
+        let node_index = main_trace.chiplet_node_index(row);
         let transition_label = op_label + Felt::from(32_u8);
 
         // f_hout == 1
@@ -780,7 +780,7 @@ where
         if selector1 == ZERO && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u64))
                 + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE]);
@@ -791,7 +791,7 @@ where
         if selector1 == ZERO && selector2 == ZERO && selector3 == ONE {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u64))
                 + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(alphas_state, &state);
@@ -802,10 +802,10 @@ where
         if selector1 == ONE && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((i + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u64))
                 + alphas[3].mul_base(node_index);
 
-            let state_nxt = main_trace.chiplet_hasher_state(i + 1);
+            let state_nxt = main_trace.chiplet_hasher_state(row + 1);
 
             // build the value from the difference of the hasher state's just before and right
             // after the absorption of new elements.
@@ -822,19 +822,19 @@ where
 /// Builds the response from the bitwise chiplet at row `i`.
 fn build_bitwise_chiplet_responses<E>(
     main_trace: &MainTrace,
-    i: usize,
+    row: usize,
     is_xor: Felt,
     alphas: &[E],
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    if i % BITWISE_OP_CYCLE_LEN == BITWISE_OP_CYCLE_LEN - 1 {
+    if row % BITWISE_OP_CYCLE_LEN == BITWISE_OP_CYCLE_LEN - 1 {
         let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
 
-        let a = main_trace.chiplet_bitwise_a(i);
-        let b = main_trace.chiplet_bitwise_b(i);
-        let z = main_trace.chiplet_bitwise_z(i);
+        let a = main_trace.chiplet_bitwise_a(row);
+        let b = main_trace.chiplet_bitwise_b(row);
+        let z = main_trace.chiplet_bitwise_z(row);
 
         alphas[0]
             + alphas[1].mul_base(op_label)
@@ -849,7 +849,7 @@ where
 /// Builds the response from the memory chiplet at row `i`.
 fn build_memory_chiplet_responses<E>(
     main_trace: &MainTrace,
-    i: usize,
+    row: usize,
     is_read: Felt,
     alphas: &[E],
 ) -> E
@@ -858,13 +858,13 @@ where
 {
     let op_label = get_op_label(ONE, ONE, ZERO, is_read);
 
-    let ctx = main_trace.chiplet_memory_ctx(i);
-    let clk = main_trace.chiplet_memory_clk(i);
-    let addr = main_trace.chiplet_memory_addr(i);
-    let value0 = main_trace.chiplet_memory_value_0(i);
-    let value1 = main_trace.chiplet_memory_value_1(i);
-    let value2 = main_trace.chiplet_memory_value_2(i);
-    let value3 = main_trace.chiplet_memory_value_3(i);
+    let ctx = main_trace.chiplet_memory_ctx(row);
+    let clk = main_trace.chiplet_memory_clk(row);
+    let addr = main_trace.chiplet_memory_addr(row);
+    let value0 = main_trace.chiplet_memory_value_0(row);
+    let value1 = main_trace.chiplet_memory_value_1(row);
+    let value2 = main_trace.chiplet_memory_value_2(row);
+    let value3 = main_trace.chiplet_memory_value_3(row);
 
     alphas[0]
         + alphas[1].mul_base(op_label)
@@ -878,16 +878,16 @@ where
 }
 
 /// Builds the response from the kernel chiplet at row `i`.
-fn build_kernel_chiplet_responses<E>(main_trace: &MainTrace, i: usize, alphas: &[E]) -> E
+fn build_kernel_chiplet_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
     let op_label = KERNEL_PROC_LABEL;
 
-    let root0 = main_trace.chiplet_kernel_root_0(i);
-    let root1 = main_trace.chiplet_kernel_root_1(i);
-    let root2 = main_trace.chiplet_kernel_root_2(i);
-    let root3 = main_trace.chiplet_kernel_root_3(i);
+    let root0 = main_trace.chiplet_kernel_root_0(row);
+    let root1 = main_trace.chiplet_kernel_root_1(row);
+    let root2 = main_trace.chiplet_kernel_root_2(row);
+    let root3 = main_trace.chiplet_kernel_root_3(row);
 
     alphas[0]
         + alphas[1].mul_base(op_label)
