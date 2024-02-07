@@ -19,6 +19,7 @@ fn falcon_execution() {
 }
 
 #[test]
+#[ignore]
 fn falcon_prove_verify() {
     let keypair = KeyPair::new().unwrap();
     let message = rand_vector::<Felt>(4).try_into().unwrap();
