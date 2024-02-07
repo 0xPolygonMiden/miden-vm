@@ -23,7 +23,7 @@ use vm_core::{
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     utils::{collections::Vec, range},
-    StarkField, Word,
+    Word,
 };
 
 // CONSTANTS
@@ -663,7 +663,7 @@ fn b_chip_mrupdate() {
         MR_UPDATE_NEW_LABEL,
         mp_state,
         [ZERO; STATE_WIDTH],
-        Felt::from(mp_old_verify_complete as u64 + 1),
+        Felt::new(mp_old_verify_complete as u64 + 1),
         Felt::new(index as u64),
     );
 

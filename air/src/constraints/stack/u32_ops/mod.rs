@@ -3,7 +3,7 @@ use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, is_binary},
 };
-use vm_core::FieldElement;
+use vm_core::{Felt, FieldElement};
 use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
@@ -16,16 +16,16 @@ pub mod tests;
 pub const NUM_CONSTRAINTS: usize = 13;
 
 // The co-efficient of the most significant 16-bit limb in the helper register during aggregation.
-pub const TWO_48: u64 = 2u64.pow(48);
+pub const TWO_48: Felt = Felt::new(2u64.pow(48));
 
 // The co-efficient of the 2nd most significant 16-bit limb in the helper register during aggregation.
-pub const TWO_32: u64 = 2u64.pow(32);
+pub const TWO_32: Felt = Felt::new(2u64.pow(32));
 
 // The co-efficient of the 3rd significant 16-bit limb in the helper register during aggregation.
-pub const TWO_16: u64 = 2u64.pow(16);
+pub const TWO_16: Felt = Felt::new(2u64.pow(16));
 
 // The co-efficient of the least significant 16-bit bit in the helper register during aggregation.
-pub const TWO_0: u64 = 1;
+pub const TWO_0: Felt = Felt::new(1);
 
 /// The degrees of constraints in individual u32 operations.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
@@ -59,7 +59,7 @@ pub fn get_transition_constraint_count() -> usize {
 }
 
 /// Enforces constraints for the u32 operations.
-pub fn enforce_constraints<E: FieldElement>(
+pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: &OpFlags<E>,
@@ -103,7 +103,7 @@ pub fn enforce_constraints<E: FieldElement>(
 /// Enforces constraints of the U32SPLIT operation. The U32SPLIT operation splits the top element into
 /// two 32-bit numbers. Therefore, the following constraints are enforced:
 /// - The aggregation of limbs from the helper registers forms the top element in the stack.
-pub fn enforce_u32split_constraints<E: FieldElement>(
+pub fn enforce_u32split_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -120,7 +120,7 @@ pub fn enforce_u32split_constraints<E: FieldElement>(
 /// enforced:
 /// - The aggregation of limbs from the helper registers is equal to the sum of the top two
 /// element in the stack.
-pub fn enforce_u32add_constraints<E: FieldElement>(
+pub fn enforce_u32add_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -141,7 +141,7 @@ pub fn enforce_u32add_constraints<E: FieldElement>(
 /// enforced:
 /// - The aggregation of limbs from the helper registers is equal to the sum of the top three
 /// elements in the stack.
-pub fn enforce_u32add3_constraints<E: FieldElement>(
+pub fn enforce_u32add3_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -164,7 +164,7 @@ pub fn enforce_u32add3_constraints<E: FieldElement>(
 /// - The aggregation of limbs from helper registers is equal to the difference of the top
 ///   two elements in the stack.
 /// - The first element in the next trace should be a binary.
-pub fn enforce_u32sub_constraints<E: FieldElement>(
+pub fn enforce_u32sub_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -191,7 +191,7 @@ pub fn enforce_u32sub_constraints<E: FieldElement>(
 /// enforced:
 /// - The aggregation of all the limbs in the helper registers is equal to the product of the
 ///   top two elements in the stack.
-pub fn enforce_u32mul_constraints<E: FieldElement>(
+pub fn enforce_u32mul_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -212,7 +212,7 @@ pub fn enforce_u32mul_constraints<E: FieldElement>(
 /// following constraints are enforced:
 /// - The aggregation of all the limbs in the helper registers is equal to the sum of the
 ///   third element with the product of the first two elements in the current trace.
-pub fn enforce_u32madd_constraints<E: FieldElement>(
+pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -238,7 +238,7 @@ pub fn enforce_u32madd_constraints<E: FieldElement>(
 ///   aggregation of the lower 16-bits limbs.
 /// - The difference between the second elements in the current and next trace and one should be equal
 ///   to the aggregation of the upper 16-bits limbs.
-pub fn enforce_u32div_constraints<E: FieldElement>(
+pub fn enforce_u32div_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: E,
@@ -266,7 +266,7 @@ pub fn enforce_u32div_constraints<E: FieldElement>(
 
 /// The constraint checks if the top four element in the trace on aggregating forms a valid field element.
 /// no not. This constraint is applicable in `U32SPLIT`, `U32MADD` and `U32MUL`.
-pub fn enforce_check_element_validity<E: FieldElement>(
+pub fn enforce_check_element_validity<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: &OpFlags<E>,
@@ -291,7 +291,7 @@ pub fn enforce_check_element_validity<E: FieldElement>(
 /// element in the next row.
 /// - The aggregation of lower two upper 16-bits limbs in the helper registers is equal to the first
 /// element in the next row.
-pub fn enforce_limbs_agg<E: FieldElement>(
+pub fn enforce_limbs_agg<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: &OpFlags<E>,
@@ -324,7 +324,7 @@ pub struct LimbCompositions<E: FieldElement> {
     v64: E,
 }
 
-impl<E: FieldElement> LimbCompositions<E> {
+impl<E: FieldElement<BaseField = Felt>> LimbCompositions<E> {
     // Returns a new instance of [LimbCompositions] instantiated with all the intermediate limbs values.
     pub fn new(frame: &EvaluationFrame<E>) -> Self {
         let v_lo =

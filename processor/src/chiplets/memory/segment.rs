@@ -2,7 +2,7 @@ use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE,
 };
 
-use super::{BTreeMap, Felt, StarkField, Vec, Word, INIT_MEM_VALUE};
+use super::{BTreeMap, Felt, Vec, Word, INIT_MEM_VALUE};
 
 // MEMORY SEGMENT TRACE
 // ================================================================================================

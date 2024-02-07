@@ -1,4 +1,4 @@
-use test_utils::{build_op_test, rand::rand_value, FieldElement, QuadFelt, StarkField};
+use test_utils::{build_op_test, rand::rand_value, FieldElement, QuadFelt};
 
 // EXT2 OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================

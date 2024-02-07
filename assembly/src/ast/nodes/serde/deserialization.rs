@@ -14,11 +14,11 @@ impl Deserializable for Node {
             source.read_u8()?;
 
             let if_block_len = source.read_u16()? as usize;
-            let nodes = Deserializable::read_batch_from(source, if_block_len)?;
+            let nodes = source.read_many::<Node>(if_block_len)?;
             let true_case = CodeBody::new(nodes);
 
             let else_block_len = source.read_u16()? as usize;
-            let nodes = Deserializable::read_batch_from(source, else_block_len)?;
+            let nodes = source.read_many::<Node>(else_block_len)?;
             let false_case = CodeBody::new(nodes);
 
             Ok(Node::IfElse {
@@ -31,7 +31,7 @@ impl Deserializable for Node {
             let times = source.read_u32()?;
 
             let nodes_len = source.read_u16()? as usize;
-            let nodes = Deserializable::read_batch_from(source, nodes_len)?;
+            let nodes = source.read_many::<Node>(nodes_len)?;
             let body = CodeBody::new(nodes);
 
             Ok(Node::Repeat { times, body })
@@ -39,7 +39,7 @@ impl Deserializable for Node {
             source.read_u8()?;
 
             let nodes_len = source.read_u16()? as usize;
-            let nodes = Deserializable::read_batch_from(source, nodes_len)?;
+            let nodes = source.read_many::<Node>(nodes_len)?;
             let body = CodeBody::new(nodes);
 
             Ok(Node::While { body })

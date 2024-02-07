@@ -3,7 +3,7 @@ use super::{
         system::{FMP_MAX, FMP_MIN},
         ONE,
     },
-    ExecutionError, Felt, Host, Process, StarkField,
+    ExecutionError, Felt, Host, Process,
 };
 
 // SYSTEM OPERATIONS

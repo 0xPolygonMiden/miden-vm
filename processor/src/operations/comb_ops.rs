@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation, StarkField, ONE, ZERO};
+use vm_core::{Felt, Operation, ONE, ZERO};
 
 use crate::{ExecutionError, Host, Process, QuadFelt};
 
@@ -172,7 +172,7 @@ where
 #[cfg(test)]
 mod tests {
     use test_utils::rand::rand_array;
-    use vm_core::{Felt, FieldElement, Operation, StackInputs, StarkField, ONE, ZERO};
+    use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
     use crate::{ContextId, Process, QuadFelt};
 

@@ -1,4 +1,4 @@
-use super::{ExecutionError, Host, Process, StarkField, STACK_TOP_SIZE};
+use super::{ExecutionError, Host, Process, STACK_TOP_SIZE};
 use crate::ZERO;
 
 impl<H> Process<H>

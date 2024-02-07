@@ -14,9 +14,6 @@ use miden_air::trace::{
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 
-#[cfg(feature = "std")]
-use vm_core::StarkField;
-
 mod utils;
 pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
 

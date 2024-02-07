@@ -5,7 +5,7 @@ use super::super::{
 };
 use crate::decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
 use crate::utils::{are_equal, is_binary};
-use vm_core::{stack::STACK_TOP_SIZE, utils::collections::Vec, StackOutputs, StarkField};
+use vm_core::{stack::STACK_TOP_SIZE, utils::collections::Vec, StackOutputs};
 
 pub mod field_ops;
 pub mod io_ops;
@@ -107,7 +107,7 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
 }
 
 /// Enforces unique constraints of all the stack ops.
-pub fn enforce_unique_constraints<E: FieldElement>(
+pub fn enforce_unique_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     op_flag: &op_flags::OpFlags<E>,
@@ -275,7 +275,7 @@ where
 {
     let mut value = E::ONE;
     let mut prev_clk = ZERO;
-    let mut clk = Felt::from(Felt::MODULUS - init_values.len() as u64);
+    let mut clk = -Felt::from(init_values.len() as u32);
 
     // the values are in the overflow table in reverse order, since the deepest stack
     // value is added to the overflow table first.

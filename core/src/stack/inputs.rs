@@ -31,7 +31,11 @@ impl StackInputs {
     where
         I: IntoIterator<Item = u64>,
     {
-        let values: Vec<Felt> = iter.into_iter().map(Felt::from).collect();
+        let values = iter
+            .into_iter()
+            .map(|v| Felt::try_from(v).map_err(|e| InputError::NotFieldElement(v, e)))
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(Self::new(values))
     }
 
@@ -79,7 +83,7 @@ impl Serializable for StackInputs {
 
         debug_assert!(self.values.len() <= u32::MAX as usize);
         target.write_u32(self.values.len() as u32);
-        self.values.write_into(target);
+        target.write_many(&self.values);
     }
 }
 
@@ -87,10 +91,7 @@ impl Deserializable for StackInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let count = source.read_u32()?;
 
-        let mut values = Vec::with_capacity(count as usize);
-        for _ in 0..count {
-            values.push(Felt::read_from(source)?);
-        }
+        let values = source.read_many::<Felt>(count as usize)?;
         Ok(StackInputs { values })
     }
 }

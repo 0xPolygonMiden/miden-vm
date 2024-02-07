@@ -24,4 +24,4 @@ std = ["air/std", "tracing/attributes", "vm-core/std", "winter-verifier/std"]
 air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
 tracing = { version = "0.1", default-features = false, optional = true }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
-winter-verifier = { package = "winter-verifier", version = "0.7", default-features = false }
+winter-verifier = { package = "winter-verifier", version = "0.8", default-features = false }

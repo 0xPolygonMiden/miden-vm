@@ -1,6 +1,6 @@
 use crate::build_test;
 use processor::ExecutionError;
-use test_utils::{build_expected_hash, build_expected_perm, StarkField, TestError};
+use test_utils::{build_expected_hash, build_expected_perm, TestError};
 
 #[test]
 fn test_invalid_end_addr() {

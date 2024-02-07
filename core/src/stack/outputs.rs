@@ -98,7 +98,9 @@ impl StackOutputs {
     /// Returns the element located at the specified position on the stack or `None` if out of
     /// bounds.
     pub fn get_stack_item(&self, idx: usize) -> Option<Felt> {
-        self.stack.get(idx).map(|&felt| felt.into())
+        self.stack.get(idx).map(|&felt| {
+            felt.try_into().expect("value is greater than or equal to the field modulus")
+        })
     }
 
     /// Returns the word located starting at the specified Felt position on the stack or `None` if
@@ -218,25 +220,23 @@ impl ToElements<Felt> for StackOutputs {
 
 impl Serializable for StackOutputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        debug_assert!(self.stack.len() <= u32::MAX as usize);
+        target.write_u32(self.stack.len() as u32);
+        target.write_many(&self.stack);
+
         debug_assert!(self.overflow_addrs.len() <= u32::MAX as usize);
         target.write_u32(self.overflow_addrs.len() as u32);
-        self.overflow_addrs.write_into(target);
+        target.write_many(&self.overflow_addrs);
     }
 }
 
 impl Deserializable for StackOutputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let count = source.read_u32()?.try_into().expect("u32 must fit in a usize");
-        let mut stack = Vec::with_capacity(count);
-        for _ in 0..count {
-            stack.push(source.read_u64()?);
-        }
+        let stack = source.read_many::<u64>(count)?;
 
         let count = source.read_u32()?.try_into().expect("u32 must fit in a usize");
-        let mut overflow_addrs = Vec::with_capacity(count);
-        for _ in 0..count {
-            overflow_addrs.push(source.read_u64()?);
-        }
+        let overflow_addrs = source.read_many::<u64>(count)?;
 
         Ok(Self {
             stack,

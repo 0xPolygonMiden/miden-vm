@@ -9,7 +9,7 @@ use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    FieldElement, StarkField,
+    FieldElement,
 };
 
 // SIBLING TABLE TESTS
