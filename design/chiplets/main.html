@@ -196,7 +196,7 @@
 <p>Additionally, a padding segment is added to the end of the Chiplets module's trace so that the number of rows in the table always matches the overall trace length of the other VM processors, regardless of the length of the chiplet traces. The padding will simply contain zeroes.</p>
 <h3 id="chiplets-order"><a class="header" href="#chiplets-order">Chiplets order</a></h3>
 <p>The order in which the chiplets are stacked is determined by the requirements of each chiplet, including the width of its execution trace and the degree of its constraints.</p>
-<p>For simplicity, all of the &quot;cyclic&quot; chiplets which operate in multi-row cycles and require starting at particular row increments should come before any non-cyclic chiplets, and these should be ordered from longest-cycle to shortest-cycle. This avoids any additional alignment padding between chiplets.</p>
+<p>For simplicity, all of the "cyclic" chiplets which operate in multi-row cycles and require starting at particular row increments should come before any non-cyclic chiplets, and these should be ordered from longest-cycle to shortest-cycle. This avoids any additional alignment padding between chiplets.</p>
 <p>After that, chiplets are ordered by degree of constraints so that higher-degree chiplets get lower-degree chiplet selector flags.</p>
 <p>The resulting order is as follows:</p>
 <div class="table-wrapper"><table><thead><tr><th>Chiplet</th><th style="text-align: center">Cycle Length</th><th style="text-align: center">Internal Degree</th><th style="text-align: center">Chiplet Selector Degree</th><th style="text-align: center">Total Degree</th><th style="text-align: center">Columns</th><th>Chiplet Selector Flag</th></tr></thead><tbody>

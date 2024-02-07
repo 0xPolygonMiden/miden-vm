@@ -219,7 +219,7 @@ end
 <p>This causes the VM to do the following:</p>
 <ol>
 <li>Read the top 4 elements of the stack to get the hash of the dynamic target (leaving the stack unchanged).</li>
-<li>Execute the code block which hashes to the specified target. The VM must know the specified code block and hash: they must be in the CodeBlockTable of the executing Program. Hashes can be put into the CodeBlockTable manually, or by executing <code>call</code>, <code>syscall</code>, or <code>procref</code> instructions. </li>
+<li>Execute the code block which hashes to the specified target. The VM must know the specified code block and hash: they must be in the CodeBlockTable of the executing Program. Hashes can be put into the CodeBlockTable manually, or by executing <code>call</code>, <code>syscall</code>, or <code>procref</code> instructions.</li>
 </ol>
 <p>Dynamic code execution in a new context can be achieved similarly by setting the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> elements of the stack to the hash of the dynamic code block and then executing the following instruction:</p>
 <pre><code>dyncall

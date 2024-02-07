@@ -188,7 +188,7 @@
 <p>When a procedure is invoked via a <code>call</code> or a <code>syscall</code> instruction, the following happens:</p>
 <ul>
 <li>Execution moves into a different context. In case of a <code>call</code> instruction, a new user context is created. In case of a <code>syscall</code> instruction, the execution moves back into the root context.</li>
-<li>All stack items beyond the 16th item get &quot;hidden&quot; from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.</li>
+<li>All stack items beyond the 16th item get "hidden" from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.</li>
 </ul>
 <p>When a procedure returns from a <code>call</code> or a <code>syscall</code>, the following happens:</p>
 <ul>
