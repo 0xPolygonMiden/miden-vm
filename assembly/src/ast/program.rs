@@ -123,7 +123,7 @@ impl ProgramAst {
     /// Parses the provided source into a [ProgramAst].
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
-    #[cfg_attr(feature = "std", instrument(name = "Parsing program", skip_all))]
+    #[cfg_attr(feature = "std", instrument(name = "parse_program", skip_all))]
     pub fn parse(source: &str) -> Result<ProgramAst, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
         let mut import_info = ModuleImports::parse(&mut tokens)?;

@@ -141,7 +141,7 @@ impl Assembler {
     ///
     /// # Errors
     /// Returns an error if the compilation of the specified program fails.
-    #[cfg_attr(feature = "std", instrument("Compile AST", skip_all))]
+    #[cfg_attr(feature = "std", instrument("compile_ast", skip_all))]
     pub fn compile_ast(&self, program: &ProgramAst) -> Result<Program, AssemblyError> {
         // compile the program
         let mut context = AssemblyContext::for_program(Some(program));
@@ -198,7 +198,7 @@ impl Assembler {
     ///   [AssemblyContext].
     /// - If a lock to the [ProcedureCache] can not be attained.
     #[cfg_attr(feature = "std", instrument(level = "trace", 
-                 name = "Compiling module", 
+                 name = "compile_module", 
                  fields(module = path.unwrap_or(&LibraryPath::anon_path()).path()), skip_all))]
     pub fn compile_module(
         &self,

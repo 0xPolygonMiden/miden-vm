@@ -97,7 +97,7 @@ impl RunCmd {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-#[instrument(name = "Running program", skip_all)]
+#[instrument(name = "run_program", skip_all)]
 fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), String> {
     // load libraries from files
     let libraries = Libraries::new(&params.library_paths)?;
