@@ -265,8 +265,7 @@ fn build_control_block_request<E: FieldElement<BaseField = Felt>>(
     let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
 
-    let header =
-        alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
+    let header = alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
     let state = main_trace.decoder_hasher_state(i);
 
@@ -306,8 +305,7 @@ fn build_span_block_request<E: FieldElement<BaseField = Felt>>(
     let first_cycle_row = addr_to_row_index(addr_nxt) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
 
-    let header =
-        alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
+    let header = alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr_nxt);
 
     let state = main_trace.decoder_hasher_state(i);
 
@@ -348,8 +346,7 @@ fn build_end_block_request<E: FieldElement<BaseField = Felt>>(
     let first_cycle_row = addr_to_row_index(addr) % HASH_CYCLE_LEN == 0;
     let transition_label = if first_cycle_row { op_label + 16 } else { op_label + 32 };
 
-    let header =
-        alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
+    let header = alphas[1].mul_base(Felt::from(transition_label)) + alphas[2].mul_base(addr);
 
     let state = main_trace.decoder_hasher_state(i);
     let digest = &state[..4];
@@ -510,9 +507,8 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
         .rev()
         .enumerate()
         .fold(E::ZERO, |acc, (i, x)| acc + x.mul_base(s0_s12_cur[i]));
-    let v_input = alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(helper_0)
-        + sum_input;
+    let v_input =
+        alphas[1].mul_base(Felt::from(op_label)) + alphas[2].mul_base(helper_0) + sum_input;
 
     let op_label = RETURN_STATE_LABEL;
     let op_label = if addr_to_hash_cycle(helper_0 + Felt::new(7)) == 0 {
@@ -706,10 +702,21 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     let a3 = a2 * alphas[0];
     let a4 = a3 * alphas[0];
 
-    let difference = a4 + (a3 * r3) + (a3 * r4) + (a2 * r3 * r4) +
-        (a3 * r1) + (a2 * r1 * r3) + (a2 * r1 * r4) + (a1 * r1 * r3 * r4) +
-        (a3 * r2) + (a2 * r2 * r3) + (a2 * r2 * r4) + (a1 * r2 * r3 * r4) +
-        (a2 * r1 * r2) + (a1 * r1 * r2 * r3) + (a1 * r1 * r2 * r4);
+    let difference = a4
+        + (a3 * r3)
+        + (a3 * r4)
+        + (a2 * r3 * r4)
+        + (a3 * r1)
+        + (a2 * r1 * r3)
+        + (a2 * r1 * r4)
+        + (a1 * r1 * r3 * r4)
+        + (a3 * r2)
+        + (a2 * r2 * r3)
+        + (a2 * r2 * r4)
+        + (a1 * r2 * r3 * r4)
+        + (a2 * r1 * r2)
+        + (a1 * r1 * r2 * r3)
+        + (a1 * r1 * r2 * r4);
 
     (v_input_new * v_input_old * v_output_new * v_output_old) + difference - alphas[0]
 }

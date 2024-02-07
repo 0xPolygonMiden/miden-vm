@@ -46,7 +46,7 @@ impl AuxTraceBuilder {
         let op_group_table_column_builder = OpGroupTableColumnBuilder::default();
 
         let p1 = block_stack_column_builder.build_aux_column(main_trace, rand_elements, true);
-        let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements, false);
+        let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements, true);
         let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements, false);
 
         vec![p1, p2, p3]
@@ -341,20 +341,19 @@ fn get_block_hash_table_inclusion_multiplicand_join<E: FieldElement<BaseField = 
 ) -> E {
     let a_prime = main_trace.addr(i + 1);
     let state = main_trace.decoder_hasher_state(i);
-    let ch1 = alphas[0]
-        + alphas[1].mul_base(a_prime)
+    let ch1 = alphas[1].mul_base(a_prime)
         + alphas[2].mul_base(state[0])
         + alphas[3].mul_base(state[1])
         + alphas[4].mul_base(state[2])
         + alphas[5].mul_base(state[3]);
-    let ch2 = alphas[0]
-        + alphas[1].mul_base(a_prime)
+    let ch2 = alphas[1].mul_base(a_prime)
         + alphas[2].mul_base(state[4])
         + alphas[3].mul_base(state[5])
         + alphas[4].mul_base(state[6])
         + alphas[5].mul_base(state[7]);
 
-    (ch1 + alphas[6]) * ch2
+    let difference = (alphas[0] * alphas[0]) + (alphas[0] * (ch1 + alphas[6])) + (alphas[0] * ch2);
+    (ch1 + alphas[6]) * ch2 + difference - alphas[0]
 }
 
 /// Computes the multiplicand representing the inclusion of a new row representing a SPLIT block
@@ -369,15 +368,13 @@ fn get_block_hash_table_inclusion_multiplicand_split<E: FieldElement<BaseField =
     let state = main_trace.decoder_hasher_state(i);
 
     if s0 == ONE {
-        alphas[0]
-            + alphas[1].mul_base(a_prime)
+        alphas[1].mul_base(a_prime)
             + alphas[2].mul_base(state[0])
             + alphas[3].mul_base(state[1])
             + alphas[4].mul_base(state[2])
             + alphas[5].mul_base(state[3])
     } else {
-        alphas[0]
-            + alphas[1].mul_base(a_prime)
+        alphas[1].mul_base(a_prime)
             + alphas[2].mul_base(state[4])
             + alphas[3].mul_base(state[5])
             + alphas[4].mul_base(state[6])
@@ -397,8 +394,7 @@ fn get_block_hash_table_inclusion_multiplicand_loop<E: FieldElement<BaseField = 
     if s0 == ONE {
         let a_prime = main_trace.addr(i + 1);
         let state = main_trace.decoder_hasher_state(i);
-        alphas[0]
-            + alphas[1].mul_base(a_prime)
+        alphas[1].mul_base(a_prime)
             + alphas[2].mul_base(state[0])
             + alphas[3].mul_base(state[1])
             + alphas[4].mul_base(state[2])
@@ -419,8 +415,7 @@ fn get_block_hash_table_inclusion_multiplicand_repeat<E: FieldElement<BaseField 
     let a_prime = main_trace.addr(i + 1);
     let state = main_trace.decoder_hasher_state_first_half(i);
 
-    alphas[0]
-        + alphas[1].mul_base(a_prime)
+    alphas[1].mul_base(a_prime)
         + alphas[2].mul_base(state[0])
         + alphas[3].mul_base(state[1])
         + alphas[4].mul_base(state[2])
@@ -441,8 +436,7 @@ fn get_block_hash_table_inclusion_multiplicand_dyn<E: FieldElement<BaseField = F
     let s2 = main_trace.stack_element(2, i);
     let s3 = main_trace.stack_element(3, i);
 
-    alphas[0]
-        + alphas[1].mul_base(a_prime)
+    alphas[1].mul_base(a_prime)
         + alphas[2].mul_base(s3)
         + alphas[3].mul_base(s2)
         + alphas[4].mul_base(s1)
@@ -466,8 +460,7 @@ fn get_block_hash_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
             alphas[6]
         };
 
-    alphas[0]
-        + alphas[1].mul_base(a)
+    alphas[1].mul_base(a)
         + alphas[2].mul_base(digest[0])
         + alphas[3].mul_base(digest[1])
         + alphas[4].mul_base(digest[2])
