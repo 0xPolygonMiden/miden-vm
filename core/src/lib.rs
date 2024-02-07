@@ -13,7 +13,8 @@ pub mod crypto {
         pub use miden_crypto::merkle::{
             DefaultMerkleStore, EmptySubtreeRoots, InnerNodeInfo, LeafIndex, MerkleError,
             MerklePath, MerkleStore, MerkleTree, Mmr, MmrPeaks, NodeIndex, PartialMerkleTree,
-            RecordingMerkleStore, SimpleSmt, StoreNode, TieredSmt,
+            RecordingMerkleStore, SimpleSmt, Smt, SmtProof, SmtProofError, StoreNode, TieredSmt,
+            SMT_DEPTH,
         };
     }
 
