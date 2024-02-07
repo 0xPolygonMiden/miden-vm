@@ -73,8 +73,10 @@ fn test_falcon512_powers_of_tau() {
     let tau = rand_value::<QuadFelt>();
     let tau_ptr = 0_u32;
     let (tau_0, tau_1) = ext_element_to_ints(tau);
+    println!("tau_0 is {}, tau_1 is: {}", tau_0, tau_1);
 
     let expected_memory = powers_of_tau(tau);
+    println!("The expected memory length is: {}", expected_memory.len());
 
     let stack_init = [tau_ptr.into(), tau_0, tau_1];
 
@@ -91,6 +93,7 @@ fn test_falcon512_probabilistic_product() {
     use.std::crypto::dsa::rpo_falcon512
 
     begin
+        exec.rpo_falcon512::load_h_s2_and_product
         exec.rpo_falcon512::probablistic_product
     end
     ";
@@ -100,6 +103,7 @@ fn test_falcon512_probabilistic_product() {
     // Create an array of the powers of a random quadratic extension field element from 0 to N.
     let tau = rand_value::<QuadFelt>();
     let powers_of_tau = powers_of_tau(tau);
+    println!("The length of powers of tau is: {}", powers_of_tau.len());
 
     // Create zeros array.
     let zeros_ptr: Vec<u64> = vec![2048];
@@ -114,6 +118,11 @@ fn test_falcon512_probabilistic_product() {
     let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
     let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
 
+    println!("The length of h is is: {}", h_64.len());
+    println!("The length of s2 is: {}", s2_64.len());
+    println!("The length of pi is: {}", pi_64.len());
+
+
     h_64.extend(s2_64);
     h_64.extend(pi_64);
     h_64.extend(zeros_ptr);
@@ -121,9 +130,13 @@ fn test_falcon512_probabilistic_product() {
 
     // Stack should be empty.
 
+    // let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
+
+
     let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
 
-    let test = build_test!(source, &stack_init);
+
+    let test = build_test!(source, &stack_init, &h_64);
 
     let expected_stack = &[];
 
@@ -155,7 +168,11 @@ fn test_falcon512_probabilistic_product_failure() {
 
     let pi = unsafe { Polynomial::new(random_coefficients()) };
 
+    let pi_elements: Vec<u64> = pi.to_elements().iter().map(|&e| e.into()).collect();
+
     let pi_test = Polynomial::mul_modulo_p(&h, &s2);
+
+    assert_ne!(pi_elements, pi_test);
 
     let mut h_64: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
     let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
@@ -171,7 +188,7 @@ fn test_falcon512_probabilistic_product_failure() {
     let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
     let expected_error = TestError::ExecutionError(ExecutionError::FailedAssertion {clk: 0, err_code: 0, err_msg: Option::from(String::from("")) });
 
-    build_test!(source, &stack_init).expect_error(expected_error);
+    build_test!(source, &stack_init, &h_64).expect_error(expected_error);
 }
 
 
