@@ -1,0 +1,8 @@
+use.logger_lib::module1
+
+export.module1::foo
+
+export.bar
+    push.10.20
+    u32wrapping_add
+end

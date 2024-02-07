@@ -1,0 +1,8 @@
+use.logger_lib1::module2
+use.logger_lib2::module1
+
+begin 
+    push.3.4
+    u32wrapping_add
+    exec.module1::foo
+end

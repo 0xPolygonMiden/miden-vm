@@ -128,7 +128,12 @@ pub fn build_prover_channel(
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {
     let mut p = (0..trace_length as u32)
         .map(|i| (i, i))
-        .map(|(i, j)| QuadExt::new(i.into(), j.into()))
+        .map(|(i, j)| {
+            QuadExt::new(
+                i.try_into().expect("value is greater than or equal to the field modulus"),
+                j.try_into().expect("value is greater than or equal to the field modulus"),
+            )
+        })
         .collect::<Vec<_>>();
     let domain_size = trace_length * lde_blowup;
     p.resize(domain_size, QuadExt::ZERO);
