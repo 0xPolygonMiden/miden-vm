@@ -1,7 +1,7 @@
 use super::{
-    super::{trace::chiplets::memory::MEMORY_READ_LABEL, ColMatrix},
+    super::ColMatrix,
     chiplets::{
-        hasher::{DIGEST_LEN, STATE_WIDTH},
+        hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
         HASHER_STATE_COL_RANGE, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
         MEMORY_V_COL_RANGE,
@@ -19,7 +19,7 @@ use super::{
 use core::ops::{Deref, Range};
 #[cfg(any(test, feature = "internals"))]
 use vm_core::utils::collections::Vec;
-use vm_core::{utils::range, Felt, FieldElement, Word, ONE, ZERO};
+use vm_core::{utils::range, Felt, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -93,7 +93,7 @@ impl MainTrace {
     }
 
     /// The i-th decoder helper register at `row`.
-    pub fn helper(&self, i: usize, row: usize) -> Felt {
+    pub fn helper_register(&self, i: usize, row: usize) -> Felt {
         self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[row]
     }
 
@@ -357,30 +357,6 @@ impl MainTrace {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
     }
 
-    /// Computes a memory read request at `row` given randomness `alphas`, memory address `addr`
-    /// and value `value`.
-    pub fn compute_memory_read_request<E: FieldElement<BaseField = Felt>>(
-        &self,
-        alphas: &[E],
-        row: usize,
-        addr: Felt,
-        value: Word,
-    ) -> E {
-        let op_label = MEMORY_READ_LABEL;
-        let ctx = self.ctx(row);
-        let clk = self.clk(row);
-
-        alphas[0]
-            + alphas[1].mul_base(Felt::from(op_label))
-            + alphas[2].mul_base(ctx)
-            + alphas[3].mul_base(addr)
-            + alphas[4].mul_base(clk)
-            + alphas[5].mul_base(value[0])
-            + alphas[6].mul_base(value[1])
-            + alphas[7].mul_base(value[2])
-            + alphas[8].mul_base(value[3])
-    }
-
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_0(&self, i: usize) -> Felt {
@@ -419,7 +395,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
     pub fn f_mv(&self, i: usize) -> bool {
-        (i % 8 == 0)
+        (i % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -429,7 +405,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
     pub fn f_mva(&self, i: usize) -> bool {
-        (i % 8 == 7)
+        (i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -439,7 +415,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
     pub fn f_mu(&self, i: usize) -> bool {
-        (i % 8 == 0)
+        (i % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -449,7 +425,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
     pub fn f_mua(&self, i: usize) -> bool {
-        (i % 8 == 7)
+        (i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE

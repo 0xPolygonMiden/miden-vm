@@ -14,7 +14,7 @@ use miden_air::trace::{
     main_trace::MainTrace,
 };
 
-use vm_core::{Operation, ONE, ZERO};
+use vm_core::{Operation, Word, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -94,10 +94,10 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             END => build_end_block_request(main_trace, alphas, i),
             AND => build_bitwise_request(main_trace, ZERO, alphas, i),
             XOR => build_bitwise_request(main_trace, ONE, alphas, i),
-            MLOADW => build_mem_request(main_trace, MEMORY_READ_LABEL, true, alphas, i),
-            MSTOREW => build_mem_request(main_trace, MEMORY_WRITE_LABEL, true, alphas, i),
-            MLOAD => build_mem_request(main_trace, MEMORY_READ_LABEL, false, alphas, i),
-            MSTORE => build_mem_request(main_trace, MEMORY_WRITE_LABEL, false, alphas, i),
+            MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, i),
+            MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, i),
+            MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, i),
+            MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, i),
             MSTREAM => build_mstream_request(main_trace, alphas, i),
             RCOMBBASE => build_rcomb_base_request(main_trace, alphas, i),
             HPERM => build_hperm_request(main_trace, alphas, i),
@@ -384,44 +384,40 @@ fn build_bitwise_request<E: FieldElement<BaseField = Felt>>(
         + alphas[4].mul_base(z)
 }
 
-/// Builds `MLOAD*` and `MSTORE*` requests made to the memory chiplet.
-fn build_mem_request<E: FieldElement<BaseField = Felt>>(
+/// Builds `MLOAD` and `MSTORE` requests made to the memory chiplet.
+fn build_mem_request_element<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_label: u8,
-    word: bool,
     alphas: &[E],
     i: usize,
 ) -> E {
-    let ctx = main_trace.ctx(i);
-    let clk = main_trace.clk(i);
+    let word = [
+        main_trace.stack_element(0, i + 1),
+        main_trace.helper_register(2, i),
+        main_trace.helper_register(1, i),
+        main_trace.helper_register(0, i),
+    ];
+    let addr = main_trace.stack_element(0, i);
 
-    let (v0, v1, v2, v3) = if word {
-        (
-            main_trace.stack_element(0, i + 1),
-            main_trace.stack_element(1, i + 1),
-            main_trace.stack_element(2, i + 1),
-            main_trace.stack_element(3, i + 1),
-        )
-    } else {
-        (
-            main_trace.helper(0, i),
-            main_trace.helper(1, i),
-            main_trace.helper(2, i),
-            main_trace.stack_element(0, i + 1),
-        )
-    };
+    compute_memory_request(main_trace, op_label, alphas, i, addr, word)
+}
 
-    let s0_cur = main_trace.stack_element(0, i);
+/// Builds `MLOADW` and `MSTOREW` requests made to the memory chiplet.
+fn build_mem_request_word<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    op_label: u8,
+    alphas: &[E],
+    i: usize,
+) -> E {
+    let word = [
+        main_trace.stack_element(3, i + 1),
+        main_trace.stack_element(2, i + 1),
+        main_trace.stack_element(1, i + 1),
+        main_trace.stack_element(0, i + 1),
+    ];
+    let addr = main_trace.stack_element(0, i);
 
-    alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(s0_cur)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(v3)
-        + alphas[6].mul_base(v2)
-        + alphas[7].mul_base(v1)
-        + alphas[8].mul_base(v0)
+    compute_memory_request(main_trace, op_label, alphas, i, addr, word)
 }
 
 /// Builds `MSTREAM` requests made to the memory chiplet.
@@ -430,41 +426,24 @@ fn build_mstream_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let ctx = main_trace.ctx(i);
-    let clk = main_trace.clk(i);
-
-    let s0_nxt = main_trace.stack_element(0, i + 1);
-    let s1_nxt = main_trace.stack_element(1, i + 1);
-    let s2_nxt = main_trace.stack_element(2, i + 1);
-    let s3_nxt = main_trace.stack_element(3, i + 1);
-    let s4_nxt = main_trace.stack_element(4, i + 1);
-    let s5_nxt = main_trace.stack_element(5, i + 1);
-    let s6_nxt = main_trace.stack_element(6, i + 1);
-    let s7_nxt = main_trace.stack_element(7, i + 1);
-
-    let s12_cur = main_trace.stack_element(12, i);
-
+    let word1 = [
+        main_trace.stack_element(7, i + 1),
+        main_trace.stack_element(6, i + 1),
+        main_trace.stack_element(5, i + 1),
+        main_trace.stack_element(4, i + 1),
+    ];
+    let word2 = [
+        main_trace.stack_element(3, i + 1),
+        main_trace.stack_element(2, i + 1),
+        main_trace.stack_element(1, i + 1),
+        main_trace.stack_element(0, i + 1),
+    ];
+    let addr = main_trace.stack_element(12, i);
     let op_label = MEMORY_READ_LABEL;
 
-    let factor1 = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(s12_cur)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(s7_nxt)
-        + alphas[6].mul_base(s6_nxt)
-        + alphas[7].mul_base(s5_nxt)
-        + alphas[8].mul_base(s4_nxt);
+    let factor1 = compute_memory_request(main_trace, op_label, alphas, i, addr, word1);
+    let factor2 = compute_memory_request(main_trace, op_label, alphas, i, addr + ONE, word2);
 
-    let factor2 = alphas[0]
-        + alphas[1].mul_base(Felt::from(op_label))
-        + alphas[2].mul_base(ctx)
-        + alphas[3].mul_base(s12_cur + ONE)
-        + alphas[4].mul_base(clk)
-        + alphas[5].mul_base(s3_nxt)
-        + alphas[6].mul_base(s2_nxt)
-        + alphas[7].mul_base(s1_nxt)
-        + alphas[8].mul_base(s0_nxt);
     factor1 * factor2
 }
 
@@ -474,17 +453,20 @@ fn build_rcomb_base_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let tz0 = main_trace.helper(0, i);
-    let tz1 = main_trace.helper(1, i);
-    let tzg0 = main_trace.helper(2, i);
-    let tzg1 = main_trace.helper(3, i);
-    let a0 = main_trace.helper(4, i);
-    let a1 = main_trace.helper(5, i);
+    let tz0 = main_trace.helper_register(0, i);
+    let tz1 = main_trace.helper_register(1, i);
+    let tzg0 = main_trace.helper_register(2, i);
+    let tzg1 = main_trace.helper_register(3, i);
+    let a0 = main_trace.helper_register(4, i);
+    let a1 = main_trace.helper_register(5, i);
     let z_ptr = main_trace.stack_element(13, i);
     let a_ptr = main_trace.stack_element(14, i);
+    let op_label = MEMORY_READ_LABEL;
 
-    let factor1 = main_trace.compute_memory_read_request(alphas, i, z_ptr, [tz0, tz1, tzg0, tzg1]);
-    let factor2 = main_trace.compute_memory_read_request(alphas, i, a_ptr, [a0, a1, ZERO, ZERO]);
+    let factor1 =
+        compute_memory_request(main_trace, op_label, alphas, i, z_ptr, [tz0, tz1, tzg0, tzg1]);
+    let factor2 =
+        compute_memory_request(main_trace, op_label, alphas, i, a_ptr, [a0, a1, ZERO, ZERO]);
 
     factor1 * factor2
 }
@@ -495,7 +477,7 @@ fn build_hperm_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let helper_0 = main_trace.helper(0, i);
+    let helper_0 = main_trace.helper_register(0, i);
 
     let s0_s12_cur = [
         main_trace.stack_element(0, i),
@@ -570,7 +552,7 @@ fn build_mpverify_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let helper_0 = main_trace.helper(0, i);
+    let helper_0 = main_trace.helper_register(0, i);
 
     let s0_s3 = [
         main_trace.stack_element(0, i),
@@ -632,7 +614,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
     alphas: &[E],
     i: usize,
 ) -> E {
-    let helper_0 = main_trace.helper(0, i);
+    let helper_0 = main_trace.helper_register(0, i);
 
     let s0_s3 = [
         main_trace.stack_element(0, i),
@@ -915,6 +897,9 @@ where
         + alphas[5].mul_base(root3)
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
 /// Reduces a slice of elements to a single field element in the field specified by E using a slice
 /// of alphas of matching length. This can be used to build the value for a single word or for an
 /// entire [HasherState].
@@ -944,4 +929,28 @@ fn addr_to_hash_cycle(addr: Felt) -> usize {
 /// Convenience method to convert from addresses to rows.
 fn addr_to_row_index(addr: Felt) -> usize {
     (addr.as_int() - 1) as usize
+}
+
+/// Computes a memory read or write request at `row` given randomness `alphas`, memory address
+/// `addr` and value `value`.
+pub fn compute_memory_request<E: FieldElement<BaseField = Felt>>(
+    main_trace: &MainTrace,
+    op_label: u8,
+    alphas: &[E],
+    row: usize,
+    addr: Felt,
+    value: Word,
+) -> E {
+    let ctx = main_trace.ctx(row);
+    let clk = main_trace.clk(row);
+
+    alphas[0]
+        + alphas[1].mul_base(Felt::from(op_label))
+        + alphas[2].mul_base(ctx)
+        + alphas[3].mul_base(addr)
+        + alphas[4].mul_base(clk)
+        + alphas[5].mul_base(value[0])
+        + alphas[6].mul_base(value[1])
+        + alphas[7].mul_base(value[2])
+        + alphas[8].mul_base(value[3])
 }
