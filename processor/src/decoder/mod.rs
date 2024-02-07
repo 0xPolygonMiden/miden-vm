@@ -14,8 +14,8 @@ use vm_core::{code_blocks::get_span_op_group_count, stack::STACK_TOP_SIZE, Assem
 mod trace;
 use trace::DecoderTrace;
 
-mod auxiliary;
-pub use auxiliary::AuxTraceBuilder;
+mod aux_trace;
+pub use aux_trace::AuxTraceBuilder;
 
 mod block_stack;
 use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
