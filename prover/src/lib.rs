@@ -9,7 +9,6 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
-#[cfg(feature = "std")]
 use tracing::{event, instrument, Level};
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
@@ -18,9 +17,7 @@ use winter_prover::{
 };
 
 #[cfg(feature = "std")]
-use std::time::Instant;
-#[cfg(feature = "std")]
-use winter_prover::Trace;
+use {std::time::Instant, winter_prover::Trace};
 
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 mod gpu;
@@ -47,7 +44,7 @@ pub use winter_prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-#[cfg_attr(feature = "std", instrument("prove_program", skip_all))]
+#[instrument("prove_program", skip_all)]
 pub fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,

@@ -1,8 +1,9 @@
 use clap::Parser;
 use core::fmt;
 use miden::{AssemblyError, ExecutionError};
+#[cfg(feature = "tracing-forest")]
 use tracing_forest::ForestLayer;
-use tracing_subscriber::{prelude::*, EnvFilter};
+use tracing_subscriber::{fmt::format::FmtSpan, prelude::*, EnvFilter};
 
 mod cli;
 mod examples;
@@ -60,11 +61,24 @@ pub fn main() {
     if std::env::var("MIDEN_LOG").is_err() {
         std::env::set_var("MIDEN_LOG", "warn");
     }
+    let registry =
+        tracing_subscriber::registry::Registry::default().with(EnvFilter::from_env("MIDEN_LOG"));
 
-    tracing_subscriber::registry::Registry::default()
-        .with(EnvFilter::from_env("MIDEN_LOG"))
-        .with(ForestLayer::default())
-        .init();
+    #[cfg(feature = "tracing-forest")]
+    registry.with(ForestLayer::default()).init();
+
+    #[cfg(not(feature = "tracing-forest"))]
+    {
+        let format = tracing_subscriber::fmt::layer()
+            .with_level(false)
+            .with_target(false)
+            .with_thread_names(false)
+            .with_span_events(FmtSpan::CLOSE)
+            .with_ansi(false)
+            .compact();
+
+        registry.with(format).init();
+    }
 
     // execute cli action
     if let Err(error) = cli.execute() {

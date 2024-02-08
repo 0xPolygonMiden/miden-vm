@@ -1,4 +1,3 @@
-#[cfg(feature = "std")]
 use super::super::ast::instrument;
 use super::{
     super::BTreeSet, AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError,

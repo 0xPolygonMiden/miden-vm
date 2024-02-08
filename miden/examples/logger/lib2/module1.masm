@@ -1,4 +1,0 @@
-export.foo
-    push.3.4
-    u32wrapping_add
-end
