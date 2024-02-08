@@ -933,7 +933,7 @@ fn addr_to_row_index(addr: Felt) -> usize {
 
 /// Computes a memory read or write request at `row` given randomness `alphas`, memory address
 /// `addr` and value `value`.
-pub fn compute_memory_request<E: FieldElement<BaseField = Felt>>(
+fn compute_memory_request<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
     op_label: u8,
     alphas: &[E],
