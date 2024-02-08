@@ -20,7 +20,6 @@ pub mod u32_ops;
 
 const B0_COL_IDX: usize = STACK_TRACE_OFFSET + STACK_TOP_SIZE;
 const B1_COL_IDX: usize = B0_COL_IDX + 1;
-#[cfg(test)]
 const H0_COL_IDX: usize = B1_COL_IDX + 1;
 
 // --- Main constraints ---------------------------------------------------------------------------
@@ -337,8 +336,16 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Returns the value of the bookkeeping column `b1` at the next step.
     fn stack_overflow_addr_next(&self) -> E;
 
+    /// Returns the current value of stack helper column `h0`.
+    #[allow(dead_code)]
+    fn stack_helper(&self) -> E;
+
     /// Gets the current element of the clk register in the trace.
     fn clk(&self) -> E;
+
+    /// Gets the next element of the clk register in the trace.
+    #[allow(dead_code)]
+    fn clk_next(&self) -> E;
 
     /// Gets the current element of the fmp register in the trace.
     fn fmp(&self) -> E;
@@ -389,8 +396,18 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline(always)]
+    fn stack_helper(&self) -> E {
+        self.current()[H0_COL_IDX]
+    }
+
+    #[inline(always)]
     fn clk(&self) -> E {
         self.current()[CLK_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn clk_next(&self) -> E {
+        self.next()[CLK_COL_IDX]
     }
 
     #[inline(always)]

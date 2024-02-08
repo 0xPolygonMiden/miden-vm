@@ -343,6 +343,13 @@ trait EvaluationFrameExt<E: FieldElement> {
 
     // --- Flags ----------------------------------------------------------------------------------
 
+    /// Set to 1 on the first 7 steps of every 8-step cycle. This flag is degree 1.
+    #[allow(dead_code)]
+    fn f_rpr(&self, k: &[E]) -> E;
+    /// Set to 1 when selector flags are (1,0,0) on rows which are multiples of 8. This flag is
+    /// degree 4.
+    #[allow(dead_code)]
+    fn f_bp(&self, k: &[E]) -> E;
     /// Set to 1 when selector flags are (1,0,1) on rows which are multiples of 8. This flag is
     /// degree 4.
     fn f_mp(&self, k: &[E]) -> E;
@@ -352,6 +359,14 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Set to 1 when selector flags are (1,1,1) on rows which are multiples of 8. This flag is
     /// degree 4.
     fn f_mu(&self, k: &[E]) -> E;
+    /// Set to 1 when selector flags are (0,0,0) on rows which are 1 less than a multiple of 8. This
+    /// flag is degree 4.
+    #[allow(dead_code)]
+    fn f_hout(&self, k: &[E]) -> E;
+    /// Set to 1 when selector flags are (0,0,1) on rows which are 1 less than a multiple of 8. This
+    /// flag is degree 4.
+    #[allow(dead_code)]
+    fn f_sout(&self, k: &[E]) -> E;
     /// This flag will be set to 1 when either f_hout=1 or f_sout=1 in the current row. This flag is
     /// degree 3.
     fn f_out(&self, k: &[E]) -> E;
@@ -432,6 +447,16 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Flags ----------------------------------------------------------------------------------
 
     #[inline(always)]
+    fn f_rpr(&self, k: &[E]) -> E {
+        binary_not(k[0])
+    }
+
+    #[inline(always)]
+    fn f_bp(&self, k: &[E]) -> E {
+        k[2] * self.s(0) * binary_not(self.s(1)) * binary_not(self.s(2))
+    }
+
+    #[inline(always)]
     fn f_mp(&self, k: &[E]) -> E {
         k[2] * self.s(0) * binary_not(self.s(1)) * self.s(2)
     }
@@ -444,6 +469,16 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn f_mu(&self, k: &[E]) -> E {
         k[2] * self.s(0) * self.s(1) * self.s(2)
+    }
+
+    #[inline(always)]
+    fn f_hout(&self, k: &[E]) -> E {
+        k[0] * binary_not(self.s(0)) * binary_not(self.s(1)) * binary_not(self.s(2))
+    }
+
+    #[inline(always)]
+    fn f_sout(&self, k: &[E]) -> E {
+        k[0] * binary_not(self.s(0)) * binary_not(self.s(1)) * self.s(2)
     }
 
     #[inline(always)]
