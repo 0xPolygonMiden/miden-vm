@@ -94,19 +94,19 @@ fn test_falcon512_probabilistic_product() {
 
     begin
         exec.rpo_falcon512::load_h_s2_and_product
+        exec.rpo_falcon512::powers_of_tau
+        exec.rpo_falcon512::set_to_zero
+
+        locaddr.512     # tau_ptr
+        locaddr.1025    # z_ptr
+        locaddr.0       # h ptr
+        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
+
         exec.rpo_falcon512::probablistic_product
     end
     ";
 
     let h_ptr = 0_u32;
-
-    // Create an array of the powers of a random quadratic extension field element from 0 to N.
-    let tau = rand_value::<QuadFelt>();
-    let powers_of_tau = powers_of_tau(tau);
-    println!("The length of powers of tau is: {}", powers_of_tau.len());
-
-    // Create zeros array.
-    let zeros_ptr: Vec<u64> = vec![2048];
 
     let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
 
@@ -118,25 +118,18 @@ fn test_falcon512_probabilistic_product() {
     let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
     let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
 
-    println!("The length of h is is: {}", h_64.len());
-    println!("The length of s2 is: {}", s2_64.len());
-    println!("The length of pi is: {}", pi_64.len());
-
+    let stack_inputs = [1, 2, 3, 4];
+    let adv_map = [(
+        key_to_bytes(stack_inputs),
+        vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
+    )];
 
     h_64.extend(s2_64);
     h_64.extend(pi_64);
-    h_64.extend(zeros_ptr);
-    h_64.extend(powers_of_tau);
 
-    // Stack should be empty.
+    let stack_init = [h_ptr, ];
 
-    // let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
-
-
-    let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
-
-
-    let test = build_test!(source, &stack_init, &h_64);
+    let test = test_utils::build_test!(source, &stack_init, [], MerkleStore::default(), adv_map);
 
     let expected_stack = &[];
 
@@ -264,4 +257,15 @@ fn random_coefficients() -> [u16; N] {
         *i = rand::thread_rng().gen_range(0..M) as u16;
     }
     res
+}
+
+fn key_to_bytes(key: [u64; 4]) -> [u8; 32] {
+    let mut result = [0; 32];
+
+    result[..8].copy_from_slice(&key[0].to_le_bytes());
+    result[8..16].copy_from_slice(&key[1].to_le_bytes());
+    result[16..24].copy_from_slice(&key[2].to_le_bytes());
+    result[24..].copy_from_slice(&key[3].to_le_bytes());
+
+    result
 }
