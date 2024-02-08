@@ -1,7 +1,7 @@
-use super::super::ColMatrix;
 use super::{
+    super::ColMatrix,
     chiplets::{
-        hasher::{DIGEST_LEN, STATE_WIDTH},
+        hasher::{DIGEST_LEN, HASH_CYCLE_LEN, STATE_WIDTH},
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, HASHER_NODE_INDEX_COL_IDX,
         HASHER_STATE_COL_RANGE, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
         MEMORY_V_COL_RANGE,
@@ -92,19 +92,9 @@ impl MainTrace {
         self.addr(i) != self.addr(i + 1)
     }
 
-    /// First decoder helper register at row i.
-    pub fn helper_0(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET)[i]
-    }
-
-    /// Second decoder helper register at row i.
-    pub fn helper_1(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1)[i]
-    }
-
-    /// Third decoder helper register at row i.
-    pub fn helper_2(&self, i: usize) -> Felt {
-        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2)[i]
+    /// The i-th decoder helper register at `row`.
+    pub fn helper_register(&self, i: usize, row: usize) -> Felt {
+        self.columns.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[row]
     }
 
     /// Returns the hasher state at row i.
@@ -405,7 +395,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
     pub fn f_mv(&self, i: usize) -> bool {
-        (i % 8 == 0)
+        (i % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -415,7 +405,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to an old node during Merkle root update procedure (MRUPDATE).
     pub fn f_mva(&self, i: usize) -> bool {
-        (i % 8 == 7)
+        (i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -425,7 +415,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the initialization of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
     pub fn f_mu(&self, i: usize) -> bool {
-        (i % 8 == 0)
+        (i % HASH_CYCLE_LEN == 0)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
@@ -435,7 +425,7 @@ impl MainTrace {
     /// Returns `true` if the hasher chiplet flags indicate the continuation of verifying
     /// a Merkle path to a new node during Merkle root update procedure (MRUPDATE).
     pub fn f_mua(&self, i: usize) -> bool {
-        (i % 8 == 7)
+        (i % HASH_CYCLE_LEN == HASH_CYCLE_LEN - 1)
             && self.chiplet_selector_0(i) == ZERO
             && self.chiplet_selector_1(i) == ONE
             && self.chiplet_selector_2(i) == ONE
