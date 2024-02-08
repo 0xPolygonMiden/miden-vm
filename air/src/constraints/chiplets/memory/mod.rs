@@ -173,14 +173,6 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn selector(&self, idx: usize) -> E;
     /// Gets the value of the specified selector column in the next row.
     fn selector_next(&self, idx: usize) -> E;
-    /// The current context value.
-    fn ctx(&self) -> E;
-    /// The current address.
-    fn addr(&self) -> E;
-    /// The current clock cycle.
-    fn clk(&self) -> E;
-    /// The next clock cycle.
-    fn clk_next(&self) -> E;
     /// The value from the specified index of the values (0, 1, 2, 3) in the current row.
     fn v(&self, index: usize) -> E;
     /// The value from the specified index of the values (0, 1, 2, 3) in the next row.
@@ -244,26 +236,6 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn selector_next(&self, idx: usize) -> E {
         self.next()[MEMORY_TRACE_OFFSET + idx]
-    }
-
-    #[inline(always)]
-    fn ctx(&self) -> E {
-        self.current()[MEMORY_CTX_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn addr(&self) -> E {
-        self.next()[MEMORY_ADDR_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn clk(&self) -> E {
-        self.current()[MEMORY_CLK_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn clk_next(&self) -> E {
-        self.next()[MEMORY_CLK_COL_IDX]
     }
 
     #[inline(always)]
