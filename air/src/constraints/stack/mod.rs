@@ -337,12 +337,14 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn stack_overflow_addr_next(&self) -> E;
 
     /// Returns the current value of stack helper column `h0`.
+    #[allow(dead_code)]
     fn stack_helper(&self) -> E;
 
     /// Gets the current element of the clk register in the trace.
     fn clk(&self) -> E;
 
     /// Gets the next element of the clk register in the trace.
+    #[allow(dead_code)]
     fn clk_next(&self) -> E;
 
     /// Gets the current element of the fmp register in the trace.
