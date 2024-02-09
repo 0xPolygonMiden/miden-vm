@@ -79,7 +79,7 @@ export.hash_to_point.2
     movdn.12
 
     # Store MSG for later absorption
-    Fw.1 dropw
+    loc_storew.1 dropw
 
     # Absorb the nonce
     padw movdnw.2
