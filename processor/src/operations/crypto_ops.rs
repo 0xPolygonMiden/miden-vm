@@ -84,9 +84,15 @@ where
         // helper registers.
         self.decoder.set_user_op_helpers(Operation::MpVerify, &[addr]);
 
-        // Asserting the computed root of the Merkle path from the advice provider is consistent with
-        // the input root.
-        assert_eq!(root, computed_root, "inconsistent Merkle tree root");
+        if root != computed_root {
+            // If the hasher chiplet doesn't compute the same root (using the same path),
+            // then it means that `node` is not the value currently in the tree at `index`
+            return Err(ExecutionError::MerklePathVerificationFailed {
+                value: node,
+                index,
+                root: root.into(),
+            });
+        }
 
         // The same state is copied over to the next clock cycle with no changes.
         self.stack.copy_state(0);

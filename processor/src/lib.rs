@@ -12,9 +12,9 @@ use miden_air::trace::{
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
-    chiplets::hasher::Digest, errors::InputError, utils::DeserializationError, AdviceInjector,
-    AssemblyOp, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs, StackOutputs,
-    Word, EMPTY_WORD, ONE, ZERO,
+    chiplets::hasher::Digest, crypto::merkle::SMT_DEPTH, errors::InputError,
+    utils::DeserializationError, AdviceInjector, AssemblyOp, Kernel, Operation, Program,
+    ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     code_blocks::{

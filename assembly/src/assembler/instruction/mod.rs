@@ -280,6 +280,7 @@ impl Assembler {
 
             // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => span.add_op(FriE2F4),
+            Instruction::RCombBase => span.add_op(RCombBase),
 
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::ExecLocal(idx) => self.exec_local(*idx, ctx),

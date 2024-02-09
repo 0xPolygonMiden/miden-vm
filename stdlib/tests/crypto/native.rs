@@ -17,7 +17,7 @@ fn test_invalid_end_addr() {
     ";
     build_test!(empty_range, &[]).expect_error(TestError::ExecutionError(
         ExecutionError::FailedAssertion {
-            clk: 20,
+            clk: 18,
             err_code: 0,
             err_msg: None,
         },
@@ -36,7 +36,7 @@ fn test_invalid_end_addr() {
     ";
     build_test!(empty_range, &[]).expect_error(TestError::ExecutionError(
         ExecutionError::FailedAssertion {
-            clk: 20,
+            clk: 18,
             err_code: 0,
             err_msg: None,
         },

@@ -20,3 +20,6 @@ stdlib/assets/std.masl
 
 # File present in Intellij IDE's.
 .idea/
+
+# VS Code
+.vscode/

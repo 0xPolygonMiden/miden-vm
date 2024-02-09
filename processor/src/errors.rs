@@ -19,7 +19,6 @@ use std::error::Error;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
-    AdviceMapValueInvalidLength(Word, usize, usize),
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
     CodeBlockNotFound(Digest),
@@ -50,12 +49,19 @@ pub enum ExecutionError {
         value: Felt,
     },
     MemoryAddressOutOfBounds(u64),
+    MerklePathVerificationFailed {
+        value: Word,
+        index: Felt,
+        root: Digest,
+    },
     MerkleStoreMergeFailed(MerkleError),
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
     ProverError(ProverError),
+    SmtNodeNotFound(Word),
+    SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
     MalformedSignatureKey(&'static str),
@@ -70,13 +76,6 @@ impl Display for ExecutionError {
             AdviceMapKeyNotFound(key) => {
                 let hex = to_hex(Felt::elements_as_bytes(key))?;
                 write!(f, "Value for key {hex} not present in the advice map")
-            }
-            AdviceMapValueInvalidLength(key, expected, actual) => {
-                let hex = to_hex(Felt::elements_as_bytes(key))?;
-                write!(
-                    f,
-                    "Expected value for key {hex} to contain {expected} elements, but was {actual}"
-                )
             }
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
             CallerNotInSyscall => {
@@ -146,6 +145,11 @@ impl Display for ExecutionError {
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
             }
+            MerklePathVerificationFailed { value, index, root } => {
+                let value = to_hex(Felt::elements_as_bytes(value))?;
+                let root = to_hex(&root.as_bytes())?;
+                write!(f, "Merkle path verification failed for value {value} at index {index}, in the Merkle tree with root {root}")
+            }
             MerkleStoreLookupFailed(reason) => {
                 write!(f, "Advice provider Merkle store backend lookup failed: {reason}")
             }
@@ -163,6 +167,14 @@ impl Display for ExecutionError {
                     f,
                     "An operation expected a u32 value, but received {v} (error code: {err_code})"
                 )
+            }
+            SmtNodeNotFound(node) => {
+                let node_hex = to_hex(Felt::elements_as_bytes(node))?;
+                write!(f, "Smt node {node_hex} not found")
+            }
+            SmtNodePreImageNotValid(node, preimage_len) => {
+                let node_hex = to_hex(Felt::elements_as_bytes(node))?;
+                write!(f, "Invalid pre-image for node {node_hex}. Expected pre-image length to be a multiple of 8, but was {preimage_len}")
             }
             ProverError(error) => write!(f, "Proof generation failed: {error}"),
             SyscallTargetNotInKernel(proc) => {
