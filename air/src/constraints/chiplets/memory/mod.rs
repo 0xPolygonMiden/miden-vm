@@ -174,12 +174,16 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Gets the value of the specified selector column in the next row.
     fn selector_next(&self, idx: usize) -> E;
     /// The current context value.
+    #[allow(dead_code)]
     fn ctx(&self) -> E;
     /// The current address.
+    #[allow(dead_code)]
     fn addr(&self) -> E;
     /// The current clock cycle.
+    #[allow(dead_code)]
     fn clk(&self) -> E;
     /// The next clock cycle.
+    #[allow(dead_code)]
     fn clk_next(&self) -> E;
     /// The value from the specified index of the values (0, 1, 2, 3) in the current row.
     fn v(&self, index: usize) -> E;

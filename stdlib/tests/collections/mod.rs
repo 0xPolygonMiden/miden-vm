@@ -1,5 +1,5 @@
 use test_utils::{
-    crypto::{LeafIndex, MerkleStore, SimpleSmt},
+    crypto::{LeafIndex, MerkleStore, RpoDigest, SimpleSmt, Smt},
     Felt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO,
 };
 
