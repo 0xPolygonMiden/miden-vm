@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ModuleAst, ProgramAst},
+    ast::{AstSerdeOptions, ModuleAst, ProgramAst},
     Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath, MaslLibrary,
     Module, ProcedureName, Version,
 };
@@ -310,7 +310,7 @@ fn get_proc_name_of_unknown_module() {
     let masl_lib = MaslLibrary::new(
         LibraryNamespace::new("module").unwrap(),
         Version::default(),
-        false,
+        AstSerdeOptions::new(true, false),
         vec![module1],
         vec![],
     )

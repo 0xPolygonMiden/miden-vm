@@ -139,14 +139,6 @@ impl ModuleAst {
         &self.import_info
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Clears the source locations from this module.
-    pub fn clear_locations(&mut self) {
-        self.local_procs.iter_mut().for_each(|p| p.clear_locations())
-    }
-
     // SERIALIZATION / DESERIALIZATION
     // --------------------------------------------------------------------------------------------
 
@@ -185,6 +177,11 @@ impl ModuleAst {
         self.reexported_procs.write_into(target);
         target.write_u16(self.local_procs.len() as u16);
         self.local_procs.write_into(target);
+
+        // serialize source locations if required
+        if options.serialize_source_locations {
+            self.write_source_locations(target);
+        }
     }
 
     /// Returns a [ModuleAst] struct deserialized from the provided source.
@@ -220,10 +217,16 @@ impl ModuleAst {
         let num_local_procs = source.read_u16()? as usize;
         let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
 
-        match Self::new(local_procs, reexported_procs, docs) {
-            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => Ok(res.with_import_info(import_info)),
+        let mut module_ast = Self::new(local_procs, reexported_procs, docs)
+            .map_err(|err| DeserializationError::UnknownError(err.message().clone()))?
+            .with_import_info(import_info);
+
+        // deserialize source locations if required
+        if options.serialize_source_locations {
+            module_ast.load_source_locations(source)?;
         }
+
+        Ok(module_ast)
     }
 
     /// Returns byte representation of this [ModuleAst].
@@ -277,6 +280,17 @@ impl ModuleAst {
     /// Clear import info from the module
     pub fn clear_imports(&mut self) {
         self.import_info.clear();
+    }
+
+    /// Clears the source locations from this module.
+    pub fn clear_locations(&mut self) {
+        self.local_procs.iter_mut().for_each(|p| p.clear_locations())
+    }
+
+    /// Clears import info and source locations from this module.
+    pub fn minify(&mut self) {
+        self.clear_imports();
+        self.clear_locations();
     }
 }
 
