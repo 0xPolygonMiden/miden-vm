@@ -144,63 +144,10 @@ pub enum AdviceInjector {
     ///   degree coefficients are located at the top of the advice stack.
     Ext2Intt,
 
-    /// Pushes values onto the advice stack which are required for successful retrieval of a
-    /// value from a Sparse Merkle Tree data structure.
-    ///
-    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
-    /// The depth flags define the tier on which the leaf is located.
-    ///
-    /// Inputs:
-    ///   Operand stack: [KEY, ROOT, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Outputs:
-    ///   Operand stack: [KEY, ROOT, ...]
-    ///   Advice stack: [f0, f1, K, V, f2]
-    ///
-    /// Where:
-    /// - f0 is a boolean flag set to `1` if the depth is `16` or `48`.
-    /// - f1 is a boolean flag set to `1` if the depth is `16` or `32`.
-    /// - K is the remaining key word; will be zeroed if the tree don't contain a mapped value
-    ///   for the key.
-    /// - V is the value word; will be zeroed if the tree don't contain a mapped value for the key.
-    /// - f2 is a boolean flag set to `1` if a remaining key is not zero.
+    /// Currently unimplemented
     SmtGet,
 
-    /// Pushes values onto the advice stack which are required for successful insertion of a
-    /// key-value pair into a Sparse Merkle Tree data structure.
-    ///
-    /// The Sparse Merkle Tree is tiered, meaning it will have leaf depths in `{16, 32, 48, 64}`.
-    ///
-    /// Inputs:
-    ///   Operand stack: [VALUE, KEY, ROOT, ...]
-    ///   Advice stack: [...]
-    ///
-    /// Outputs:
-    ///   Operand stack: [OLD_VALUE, NEW_ROOT, ...]
-    ///   Advice stack depends on the type of insert operation as follows:
-    ///   - Update of an existing leaf: [ZERO (padding), d0, d1, ONE (is_update), OLD_VALUE]
-    ///   - Simple insert at depth 16: [d0, d1, ONE (is_simple_insert), ZERO (is_update)]
-    ///   - Simple insert at depth 32 or 48: [d0, d1, ONE (is_simple_insert), ZERO (is_update), P_NODE]
-    ///   - Complex insert: [f0, f1, ZERO (is_simple_insert), ZERO (is_update), E_KEY, E_VALUE]
-    ///   - Delete against an empty subtree: [d0, d1, ZERO (is_leaf), ONE (key_not_set)]
-    ///   - Delete against another leaf: [d0, d1, ONE (is_leaf), ONE (key_not_set), KEY, VALUE]
-    ///   - Delete against own leaf: [ZERO, ZERO, ZERO, ZERO (key_not_set), NEW_ROOT, OLD_VALUE]
-    ///
-    /// Where:
-    /// - ROOT and NEW_ROOT are the roots of the TSMT before and after the insert respectively.
-    /// - VALUE is the value to be inserted.
-    /// - OLD_VALUE is the value previously associated with the specified KEY.
-    /// - d0 is a boolean flag set to `1` if the depth is `16` or `48`.
-    /// - d1 is a boolean flag set to `1` if the depth is `16` or `32`.
-    /// - P_NODE is an internal node located at the tier above the insert tier.
-    /// - f0 and f1 are boolean flags a combination of which determines the source and the target
-    ///   tiers as follows:
-    ///   - (0, 0): depth 16 -> 32
-    ///   - (0, 1): depth 16 -> 48
-    ///   - (1, 0): depth 32 -> 48
-    ///   - (1, 1): depth 16, 32, or 48 -> 64
-    /// - E_KEY and E_VALUE are the key-value pair for a leaf which is to be replaced by a subtree.
+    /// Currently unimplemented
     SmtSet,
 
     /// Pushes onto the advice stack the value associated with the specified key in a Sparse

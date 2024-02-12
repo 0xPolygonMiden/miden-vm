@@ -12,13 +12,6 @@ use vm_core::{
 // SMT INJECTORS
 // ================================================================================================
 
-pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
-    _advice_provider: &mut A,
-    _process: &S,
-) -> Result<HostResponse, ExecutionError> {
-    unimplemented!()
-}
-
 /// Pushes onto the advice stack the value associated with the specified key in a Sparse
 /// Merkle Tree defined by the specified root.
 ///
@@ -72,6 +65,15 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
     Ok(HostResponse::None)
 }
 
+/// Currently unimplemented
+pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
+    _advice_provider: &mut A,
+    _process: &S,
+) -> Result<HostResponse, ExecutionError> {
+    unimplemented!()
+}
+
+/// Currently unimplemented
 pub(crate) fn push_smtset_inputs<S: ProcessState, A: AdviceProvider>(
     _advice_provider: &mut A,
     _process: &S,
