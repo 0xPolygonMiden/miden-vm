@@ -33,4 +33,4 @@ logtest = { version = "2.0", default-features = false  }
 miden-assembly = { package = "miden-assembly", path = "../assembly", version = "0.7", default-features = false }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-fri = { package = "winter-fri", version = "0.6" }
-winter-utils = { package = "winter-utils", version = "0.6" }
+winter-utils = { package = "winter-utils", version = "0.8" }
