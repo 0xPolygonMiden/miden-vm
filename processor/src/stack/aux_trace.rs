@@ -23,7 +23,7 @@ impl AuxTraceBuilder {
         main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
-        let p1 = self.build_aux_column(main_trace, rand_elements, true);
+        let p1 = self.build_aux_column(main_trace, rand_elements);
         vec![p1]
     }
 }

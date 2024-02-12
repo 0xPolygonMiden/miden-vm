@@ -47,8 +47,7 @@ mod tests {
         let multiset_tester = MultisetTester::new(multiplicands, divisors);
         let aux_column = multiset_tester.build_aux_column(
             &main_trace_with_n_rows(4),
-            multiset_tester.alphas.as_slice(),
-            true,
+            multiset_tester.alphas.as_slice()
         );
         assert_eq!(aux_column.first().unwrap(), aux_column.last().unwrap());
     }
@@ -61,7 +60,6 @@ mod tests {
         let aux_column = multiset_tester.build_aux_column(
             &main_trace_with_n_rows(4),
             multiset_tester.alphas.as_slice(),
-            true,
         );
         assert_ne!(aux_column.first().unwrap(), aux_column.last().unwrap());
     }
@@ -77,7 +75,6 @@ mod tests {
         let aux_column = multiset_tester.build_aux_column(
             &main_trace_with_n_rows(4),
             multiset_tester.alphas.as_slice(),
-            true,
         );
         assert_ne!(aux_column.first().unwrap(), aux_column.last().unwrap());
     }

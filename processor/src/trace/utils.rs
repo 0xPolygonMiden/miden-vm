@@ -220,7 +220,7 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
     }
 
     /// Builds the chiplets bus auxiliary trace column.
-    fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E], shift: bool) -> Vec<E> {
+    fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E> {
         let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
         let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
 
@@ -233,13 +233,13 @@ pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
             let request = self.get_requests_at(main_trace, alphas, row_idx);
 
             // shift response and request
-            let shifted_response = if response != E::ONE && shift {
+            let shifted_response = if response != E::ONE {
                 response + alphas[0]
             } else {
                 response
             };
 
-            let shifted_request = if request != E::ONE && shift {
+            let shifted_request = if request != E::ONE {
                 request + alphas[0]
             } else {
                 request

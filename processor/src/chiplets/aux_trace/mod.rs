@@ -61,8 +61,8 @@ impl AuxTraceBuilder {
     ) -> Vec<Vec<E>> {
         let v_table_col_builder = ChipletsVTableColBuilder::default();
         let bus_col_builder = BusColumnBuilder::default();
-        let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements, true);
-        let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements, true);
+        let t_chip = v_table_col_builder.build_aux_column(main_trace, rand_elements);
+        let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
         vec![t_chip, b_chip]
     }
 }
