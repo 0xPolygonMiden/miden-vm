@@ -1,15 +1,15 @@
 use assembly::utils::Serializable;
 use miden_air::{Felt, StarkField};
-use processor::{Digest, ExecutionError, ONE, ZERO};
+use processor::{Digest, ExecutionError};
 use rand::Rng;
 
 use std::vec;
-use processor::math::fft;
 use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, QuadFelt, rand::rand_vector, Test, TestError, Word, WORD_SIZE};
 use test_utils::crypto::rpo_falcon512::Polynomial;
-use test_utils::math::{polynom, QuadExtension};
+use miden_crypto::hash::rpo::Rpo256;
 use test_utils::rand::rand_value;
 
+// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
 const Q: u64 = (M - 1) / 2;
 const N: usize = 512;
@@ -106,30 +106,31 @@ fn test_falcon512_probabilistic_product() {
     end
     ";
 
+    // Set the pointer to where h, s2 and pi = h * s2 will be stored.
     let h_ptr = 0_u32;
 
+    // Create two polynomials and compute their product.
     let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-
     let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-
     let pi = Polynomial::mul_modulo_p(&h, &s2);
 
-    let mut h_64: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
+    // Lay the polynomials in the advice stack.
+    let mut advice_stack: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
     let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
     let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
 
-    let stack_inputs = [1, 2, 3, 4];
-    let adv_map = [(
-        key_to_bytes(stack_inputs),
-        vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
-    )];
+    // advice_stack.extend(s2_64);
+    // advice_stack.extend(pi_64);
 
-    h_64.extend(s2_64);
-    h_64.extend(pi_64);
+    // TODO: Computer hash of h and set it as second stack elements.
+    let h_rpo_hash: Word = Rpo256::hash(&*advice_stack.clone().to_bytes()).into();
 
-    let stack_init = [h_ptr, ];
+    advice_stack.extend(s2_64);
+    advice_stack.extend(pi_64);
 
-    let test = test_utils::build_test!(source, &stack_init, [], MerkleStore::default(), adv_map);
+    let stack_init: Vec<u64> = vec![h_ptr.into(), h_rpo_hash.into()];
+
+    let test = test_utils::build_test!(source, &stack_init, &advice_stack);
 
     let expected_stack = &[];
 
@@ -142,46 +143,42 @@ fn test_falcon512_probabilistic_product_failure() {
     use.std::crypto::dsa::rpo_falcon512
 
     begin
+        exec.rpo_falcon512::load_h_s2_and_product
+        exec.rpo_falcon512::powers_of_tau
+        exec.rpo_falcon512::set_to_zero
+
+        locaddr.512     # tau_ptr
+        locaddr.1025    # z_ptr
+        locaddr.0       # h ptr
+        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
+
         exec.rpo_falcon512::probablistic_product
     end
     ";
 
+    // Set the pointer to where h, s2 and pi = h * s2 will be stored.
     let h_ptr = 0_u32;
 
-    // Create an array of the powers of a random quadratic extension field element from 0 to N.
-    let tau = rand_value::<QuadFelt>();
-    let powers_of_tau = powers_of_tau(tau);
-
-    // Create zeros array.
-    let zeros_ptr: Vec<u64> = vec![2048];
-
+    // Create three polynomials where pi != h * s2.
     let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-
     let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-
     let pi = unsafe { Polynomial::new(random_coefficients()) };
 
-    let pi_elements: Vec<u64> = pi.to_elements().iter().map(|&e| e.into()).collect();
-
-    let pi_test = Polynomial::mul_modulo_p(&h, &s2);
-
-    assert_ne!(pi_elements, pi_test);
-
-    let mut h_64: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
+    // Lay the polynomials in the advice stack.
+    let mut advice_stack: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
     let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
-    let pi_64: Vec<u64> = pi.to_elements().iter().map(|&e| e.into()).collect();
+    let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
 
-    h_64.extend(s2_64);
-    h_64.extend(pi_64);
-    h_64.extend(zeros_ptr);
-    h_64.extend(powers_of_tau);
+    advice_stack.extend(s2_64);
+    advice_stack.extend(pi_64);
 
-    // Equality assertion should throw exception.
+    // TODO: Computer hash of h and set it as second stack element.
 
-    let stack_init = [<u32 as Into<u64>>::into(h_ptr) + (N as u64 * 7), <u32 as Into<u64>>::into(h_ptr) + (N as u64 * 6), h_ptr.into()];
+    let stack_init = [h_ptr, ];
+
     let expected_error = TestError::ExecutionError(ExecutionError::FailedAssertion {clk: 0, err_code: 0, err_msg: Option::from(String::from("")) });
 
-    build_test!(source, &stack_init, &h_64).expect_error(expected_error);
+    build_test!(source, &stack_init, &advice_stack).expect_error(expected_error);
 }
 
 
