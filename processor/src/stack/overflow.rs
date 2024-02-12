@@ -250,8 +250,7 @@ impl OverflowTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 4 alpha values.
     pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
-        alphas[0]
-            + alphas[1].mul_base(self.clk)
+        alphas[1].mul_base(self.clk)
             + alphas[2].mul_base(self.val)
             + alphas[3].mul_base(self.prev)
     }

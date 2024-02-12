@@ -23,7 +23,7 @@ impl AuxTraceBuilder {
         main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
-        let p1 = self.build_aux_column(main_trace, rand_elements, false);
+        let p1 = self.build_aux_column(main_trace, rand_elements, true);
         vec![p1]
     }
 }
@@ -33,7 +33,10 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for AuxTraceBuilder 
     fn init_responses(&self, _main_trace: &MainTrace, alphas: &[E]) -> E {
         let mut initial_column_value = E::ONE;
         for row in self.overflow_table_rows.iter().take(self.num_init_rows) {
-            let value = (*row).to_value(alphas);
+            // TODO: are we supposed to shift the initial value?
+            //  this can also be fixed from the air side, by preventing the addition of
+            //  alphas[0] to the initial value
+            let value = (*row).to_value(alphas) + alphas[0];
             initial_column_value *= value;
         }
         initial_column_value
