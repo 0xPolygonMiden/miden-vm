@@ -22,7 +22,7 @@ prover = { package = "miden-prover", path = "../prover", version = "0.7", defaul
 test-case = "3.2"
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.7", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.7", default-features = false }
-winter-prover = { package = "winter-prover", version = "0.6", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.8", default-features = false }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 proptest = { version = "1.3"  }
