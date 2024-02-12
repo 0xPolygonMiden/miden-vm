@@ -47,7 +47,7 @@ impl AuxTraceBuilder {
 
         let p1 = block_stack_column_builder.build_aux_column(main_trace, rand_elements, true);
         let p2 = block_hash_column_builder.build_aux_column(main_trace, rand_elements, true);
-        let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements, false);
+        let p3 = op_group_table_column_builder.build_aux_column(main_trace, rand_elements, true);
 
         vec![p1, p2, p3]
     }
@@ -469,6 +469,15 @@ fn get_block_hash_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
         + next_end_or_repeat
 }
 
+// TODO: move this to the tests
+fn get_difference<E: FieldElement>(alpha: E, rest: Vec<E>) -> E {
+    // computes
+    // (alpha + rest_0) * (alpha + rest_1) * ... * (alpha + rest_n) - (rest_1 * rest_2 * ... * rest_n)
+    let sum_product = rest.iter().fold(E::ONE, |acc, rest_i| acc * (alpha + *rest_i));
+    let rest_product = rest.iter().fold(E::ONE, |acc, rest_i| *rest_i * acc);
+    sum_product - rest_product
+}
+
 /// Computes the multiplicand representing the inclusion of a new row to the op group table.
 pub fn get_op_group_table_inclusion_multiplicand<E: FieldElement<BaseField = Felt>>(
     main_trace: &MainTrace,
@@ -481,24 +490,37 @@ pub fn get_op_group_table_inclusion_multiplicand<E: FieldElement<BaseField = Fel
 
     if op_batch_flag == OP_BATCH_8_GROUPS {
         let h = main_trace.decoder_hasher_state(i);
-        (1..8_usize).fold(E::ONE, |acc, k| {
-            acc * (alphas[0]
-                + alphas[1].mul_base(block_id)
+        let actual = (1..8_usize).fold(E::ONE, |acc, k| {
+            acc * (alphas[1].mul_base(block_id)
                 + alphas[2].mul_base(group_count - Felt::from(k as u64))
                 + alphas[3].mul_base(h[k]))
-        })
+        });
+        let rest = (1..8_usize)
+            .map(|k| {
+                alphas[1].mul_base(block_id)
+                    + alphas[2].mul_base(group_count - Felt::from(k as u64))
+                    + alphas[3].mul_base(h[k])
+            })
+            .collect::<Vec<E>>();
+        actual + get_difference(alphas[0], rest) - alphas[0]
     } else if op_batch_flag == OP_BATCH_4_GROUPS {
         let h = main_trace.decoder_hasher_state_first_half(i);
-        (1..4_usize).fold(E::ONE, |acc, k| {
-            acc * (alphas[0]
-                + alphas[1].mul_base(block_id)
+        let actual = (1..4_usize).fold(E::ONE, |acc, k| {
+            acc * (alphas[1].mul_base(block_id)
                 + alphas[2].mul_base(group_count - Felt::from(k as u64))
                 + alphas[3].mul_base(h[k]))
-        })
+        });
+        let rest = (1..4_usize)
+            .map(|k| {
+                alphas[1].mul_base(block_id)
+                    + alphas[2].mul_base(group_count - Felt::from(k as u64))
+                    + alphas[3].mul_base(h[k])
+            })
+            .collect::<Vec<E>>();
+        actual + get_difference(alphas[0], rest) - alphas[0]
     } else if op_batch_flag == OP_BATCH_2_GROUPS {
         let h = main_trace.decoder_hasher_state_first_half(i);
-        alphas[0]
-            + alphas[1].mul_base(block_id)
+        alphas[1].mul_base(block_id)
             + alphas[2].mul_base(group_count - ONE)
             + alphas[3].mul_base(h[1])
     } else {
@@ -524,8 +546,7 @@ pub fn get_op_group_table_removal_multiplicand<E: FieldElement<BaseField = Felt>
         let op_prime = main_trace.get_op_code(i + 1);
         h0.mul_small(1 << 7) + op_prime
     };
-    alphas[0]
-        + alphas[1].mul_base(block_id)
+    alphas[1].mul_base(block_id)
         + alphas[2].mul_base(group_count)
         + alphas[3].mul_base(tmp)
 }
