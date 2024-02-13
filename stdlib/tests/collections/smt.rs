@@ -280,7 +280,7 @@ fn build_advice_inputs(smt: &Smt) -> (MerkleStore, Vec<(RpoDigest, Vec<Felt>)>) 
         .leaves()
         .map(|(_, leaf)| {
             let leaf_hash = leaf.hash();
-            (RpoDigest::try_from(leaf_hash.as_bytes()).unwrap(), leaf.to_elements())
+            (leaf_hash, leaf.to_elements())
         })
         .collect::<Vec<_>>();
 
