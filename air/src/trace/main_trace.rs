@@ -357,6 +357,11 @@ impl MainTrace {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
     }
 
+    /// Returns the i-th row of the kernel chiplet `addr` column.
+    pub fn chiplet_kernel_addr(&self, i: usize) -> Felt {
+        self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
+    }
+
     /// Returns the i-th row of the chiplet column containing the zeroth element of the kernel
     /// procedure root.
     pub fn chiplet_kernel_root_0(&self, i: usize) -> Felt {
