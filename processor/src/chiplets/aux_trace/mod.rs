@@ -127,11 +127,12 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
             debug_assert_eq!(selector0, ONE);
             debug_assert_eq!(selector1, ONE);
             build_memory_chiplet_responses(main_trace, row, selector3, alphas)
-        } else if selector3 == ZERO && selector4 == ONE {
+        } else if selector3 == ZERO {
             debug_assert_eq!(selector0, ONE);
             debug_assert_eq!(selector1, ONE);
             debug_assert_eq!(selector2, ONE);
-            build_kernel_chiplet_responses(main_trace, row, alphas)
+            build_kernel_chiplet_responses(main_trace, row, selector4, alphas)
+                * build_kernel_procedure_table_responses(main_trace, row, alphas)
         } else {
             debug_assert_eq!(selector0, ONE);
             debug_assert_eq!(selector1, ONE);
@@ -240,7 +241,7 @@ where
     }
 }
 
-/// Constructs the inclusions to the kernel table.
+/// Constructs the inclusions to the kernel procedure table.
 fn chiplets_kernel_table_include<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -718,7 +719,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 // CHIPLETS RESPONSES
 // ================================================================================================
 
-/// Builds the response from the hasher chiplet at row `i`.
+/// Builds the response from the hasher chiplet at `row`.
 fn build_hasher_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: usize,
@@ -819,7 +820,7 @@ where
     multiplicand
 }
 
-/// Builds the response from the bitwise chiplet at row `i`.
+/// Builds the response from the bitwise chiplet at `row`.
 fn build_bitwise_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: usize,
@@ -846,7 +847,7 @@ where
     }
 }
 
-/// Builds the response from the memory chiplet at row `i`.
+/// Builds the response from the memory chiplet at `row`.
 fn build_memory_chiplet_responses<E>(
     main_trace: &MainTrace,
     row: usize,
@@ -877,8 +878,13 @@ where
         + alphas[8].mul_base(value3)
 }
 
-/// Builds the response from the kernel chiplet at row `i`.
-fn build_kernel_chiplet_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
+/// Builds the response from the kernel chiplet at `row`.
+fn build_kernel_chiplet_responses<E>(
+    main_trace: &MainTrace,
+    row: usize,
+    kernel_chiplet_selector: Felt,
+    alphas: &[E],
+) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -889,12 +895,37 @@ where
     let root2 = main_trace.chiplet_kernel_root_2(row);
     let root3 = main_trace.chiplet_kernel_root_3(row);
 
-    alphas[0]
+    let v = alphas[0]
         + alphas[1].mul_base(op_label)
         + alphas[2].mul_base(root0)
         + alphas[3].mul_base(root1)
         + alphas[4].mul_base(root2)
-        + alphas[5].mul_base(root3)
+        + alphas[5].mul_base(root3);
+
+    v.mul_base(kernel_chiplet_selector) + E::from(ONE - kernel_chiplet_selector)
+}
+
+/// Builds the response from the kernel procedure table at `row`.
+fn build_kernel_procedure_table_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    let addr = main_trace.chiplet_kernel_addr(row);
+    let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
+    let addr_delta = addr_nxt - addr;
+    let root0 = main_trace.chiplet_kernel_root_0(row);
+    let root1 = main_trace.chiplet_kernel_root_1(row);
+    let root2 = main_trace.chiplet_kernel_root_2(row);
+    let root3 = main_trace.chiplet_kernel_root_3(row);
+
+    let v = alphas[0]
+        + alphas[1].mul_base(addr)
+        + alphas[2].mul_base(root0)
+        + alphas[3].mul_base(root1)
+        + alphas[4].mul_base(root2)
+        + alphas[5].mul_base(root3);
+
+    v.mul_base(addr_delta) + E::from(ONE - addr_delta)
 }
 
 // HELPER FUNCTIONS
