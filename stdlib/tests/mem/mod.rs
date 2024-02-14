@@ -211,7 +211,7 @@ fn test_pipe_preimage_to_memory_invalid_preimage() {
     let data = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     let mut advice_stack = stack_to_ints(&build_expected_hash(data));
     advice_stack.reverse();
-    advice_stack[0] = advice_stack[0] + 1; // corrupt the expected hash
+    advice_stack[0] += 1; // corrupt the expected hash
     advice_stack.extend(data);
     let res = build_test!(three_words, operand_stack, &advice_stack).execute();
     assert!(res.is_err());

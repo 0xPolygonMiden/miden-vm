@@ -718,7 +718,7 @@ fn decoder_p3_trace_two_batches() {
 // ================================================================================================
 
 /// Describes a single entry in the block stack table.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockStackTableRow {
     block_id: Felt,
     parent_id: Felt,
@@ -770,7 +770,7 @@ impl BlockStackTableRow {
 
 /// Describes a single entry in the block hash table. An entry in the block hash table is a tuple
 /// (parent_id, block_hash, is_first_child, is_loop_body).
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockHashTableRow {
     parent_id: Felt,
     block_hash: Word,
@@ -815,7 +815,7 @@ impl BlockHashTableRow {
 
 /// Describes a single entry in the op group table. An entry in the op group table is a tuple
 /// (batch_id, group_pos, group_value).
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpGroupTableRow {
     batch_id: Felt,
     group_pos: Felt,
