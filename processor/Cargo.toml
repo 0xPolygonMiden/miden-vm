@@ -20,10 +20,10 @@ doctest = false
 concurrent = ["std", "winter-prover/concurrent"]
 default = ["std"]
 internals = ["miden-air/internals"]
-std = ["tracing/attributes", "vm-core/std", "winter-prover/std"]
+std = ["vm-core/std", "winter-prover/std"]
 
 [dependencies]
-tracing = { version = "0.1", default-features = false, optional = true }
+tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 miden-air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.8", default-features = false }
