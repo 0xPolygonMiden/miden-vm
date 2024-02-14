@@ -3,7 +3,9 @@ use core::fmt;
 use miden::{AssemblyError, ExecutionError};
 #[cfg(feature = "tracing-forest")]
 use tracing_forest::ForestLayer;
-use tracing_subscriber::{fmt::format::FmtSpan, prelude::*, EnvFilter};
+#[cfg(not(feature = "tracing-forest"))]
+use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::{prelude::*, EnvFilter};
 
 mod cli;
 mod examples;
