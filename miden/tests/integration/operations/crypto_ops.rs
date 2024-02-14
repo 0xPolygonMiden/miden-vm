@@ -2,7 +2,7 @@ use test_utils::{
     build_expected_hash, build_expected_perm, build_op_test,
     crypto::{init_merkle_leaf, init_merkle_store, MerkleTree, NodeIndex},
     rand::rand_vector,
-    Felt, StarkField,
+    Felt,
 };
 
 // TESTS

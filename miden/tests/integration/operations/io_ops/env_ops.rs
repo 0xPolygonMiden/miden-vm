@@ -1,6 +1,6 @@
 use processor::FMP_MIN;
 use test_utils::{
-    build_op_test, build_test, AdviceInputs, StackInputs, StarkField, Test, Word, STACK_TOP_SIZE,
+    build_op_test, build_test, AdviceInputs, StackInputs, Test, Word, STACK_TOP_SIZE,
 };
 use vm_core::{code_blocks::CodeBlock, Operation};
 

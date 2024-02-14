@@ -1,4 +1,4 @@
-use super::{Felt, LocalConstMap, ParsingError, StarkField, String, Token, Vec};
+use super::{Felt, LocalConstMap, ParsingError, String, Token, Vec};
 use core::fmt::Display;
 
 // CONSTANT VALUE EXPRESSIONS

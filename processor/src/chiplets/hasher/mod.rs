@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment,
-    Vec, Word, ONE, ZERO,
+    BTreeMap, Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Vec, Word,
+    ONE, ZERO,
 };
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,

@@ -1,6 +1,6 @@
 use super::{ExecutionError, Host, Operation, Process};
 use crate::crypto::MerklePath;
-use vm_core::{AdviceInjector, StarkField};
+use vm_core::AdviceInjector;
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -181,7 +181,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, Operation, StarkField},
+        super::{Felt, Operation},
         Process,
     };
     use crate::{AdviceInputs, StackInputs, Word, ZERO};

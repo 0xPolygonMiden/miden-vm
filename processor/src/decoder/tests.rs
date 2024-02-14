@@ -19,7 +19,7 @@ use test_utils::rand::rand_value;
 use vm_core::{
     code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
-    CodeBlockTable, StarkField, EMPTY_WORD, ONE, ZERO,
+    CodeBlockTable, EMPTY_WORD, ONE, ZERO,
 };
 
 // CONSTANTS
@@ -31,7 +31,7 @@ const EIGHT: Felt = Felt::new(8);
 
 const INIT_ADDR: Felt = ONE;
 const FMP_MIN: Felt = Felt::new(crate::FMP_MIN);
-const SYSCALL_FMP_MIN: Felt = Felt::new(crate::SYSCALL_FMP_MIN);
+const SYSCALL_FMP_MIN: Felt = Felt::new(crate::SYSCALL_FMP_MIN as u64);
 
 // TYPE ALIASES
 // ================================================================================================

@@ -12,7 +12,7 @@ use vm_core::{
     chiplets::hasher,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
-    Operation, StarkField, ONE, ZERO,
+    Operation, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS

@@ -1,5 +1,5 @@
 use assembly::utils::Serializable;
-use miden_air::{Felt, StarkField};
+use miden_air::Felt;
 use processor::Digest;
 
 use std::vec;

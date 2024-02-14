@@ -20,7 +20,7 @@ fn add() {
     test.expect_stack(&[13]);
 
     // --- test overflow --------------------------------------------------------------------------
-    let test = build_op_test!(asm_op, &[Felt::MODULUS, 8]);
+    let test = build_op_test!(asm_op, &[Felt::MODULUS - 1, 9]);
     test.expect_stack(&[8]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
@@ -47,7 +47,7 @@ fn add_b() {
     test.expect_stack(&[13]);
 
     // --- test overflow --------------------------------------------------------------------------
-    let test = build_op_test!(build_asm_op(8), &[Felt::MODULUS]);
+    let test = build_op_test!(build_asm_op(9), &[Felt::MODULUS - 1]);
     test.expect_stack(&[8]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
@@ -485,12 +485,6 @@ fn eq() {
     // --- test when two elements are unequal ----------------------------------------------------
     let test = build_op_test!(asm_op, &[25, 100]);
     test.expect_stack(&[0]);
-
-    // --- test when two u64s are unequal but their felts are equal ------------------------------
-    let a = Felt::MODULUS + 1;
-    let b = 1;
-    let test = build_op_test!(asm_op, &[a, b]);
-    test.expect_stack(&[1]);
 }
 
 #[test]
@@ -806,10 +800,6 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
     // element with high bits bigger than "smaller" and low bits equal
     let hi_gt_lo_eq = hi_gt_lo_lt + low_bit;
 
-    // unequal integers expected to be equal as field elements
-    let a = Felt::MODULUS + 1;
-    let a_mod = 1_u64;
-
     // --- a < b ----------------------------------------------------------------------------------
     // a is smaller in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
@@ -823,17 +813,9 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
     test.expect_stack(&[expect_if_lt]);
 
-    // compare values above and below the field modulus
-    let test = build_op_test!(asm_op, &[a_mod, a + 1]);
-    test.expect_stack(&[expect_if_lt]);
-
     // --- a = b ----------------------------------------------------------------------------------
     // high and low bits are both set
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
-    test.expect_stack(&[expect_if_eq]);
-
-    // compare values above and below the field modulus
-    let test = build_op_test!(asm_op, &[a_mod, a]);
     test.expect_stack(&[expect_if_eq]);
 
     // --- a > b ----------------------------------------------------------------------------------
@@ -847,9 +829,5 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
 
     // a is bigger in the high bits but smaller in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
-    test.expect_stack(&[expect_if_gt]);
-
-    // compare values above and below the field modulus
-    let test = build_op_test!(asm_op, &[a_mod + 1, a]);
     test.expect_stack(&[expect_if_gt]);
 }

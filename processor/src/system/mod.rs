@@ -1,6 +1,4 @@
-use super::{
-    ExecutionError, Felt, FieldElement, StarkField, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO,
-};
+use super::{ExecutionError, Felt, FieldElement, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO};
 use core::fmt::{self, Display};
 
 #[cfg(test)]
@@ -21,7 +19,7 @@ mod tests;
 /// Memory addresses for procedure locals start at 2^30.
 pub const FMP_MIN: u64 = 2_u64.pow(30);
 /// Memory address for procedure locals within a SYSCALL starts at 2^31.
-pub const SYSCALL_FMP_MIN: u64 = 2_u64.pow(31);
+pub const SYSCALL_FMP_MIN: u32 = 2_u32.pow(31);
 /// Value of FMP register should not exceed 3 * 2^30 - 1.
 pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 
@@ -59,7 +57,7 @@ impl System {
     /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
     pub fn new(init_trace_capacity: usize) -> Self {
         // set the first value of the fmp trace to 2^30.
-        let fmp = Felt::from(FMP_MIN);
+        let fmp = Felt::new(FMP_MIN);
         let mut fmp_trace = Felt::zeroed_vector(init_trace_capacity);
         fmp_trace[0] = fmp;
 
@@ -180,7 +178,7 @@ impl System {
     pub fn start_call(&mut self, fn_hash: Word) {
         debug_assert!(!self.in_syscall, "call in syscall");
         self.ctx = (self.clk + 1).into();
-        self.fmp = Felt::from(FMP_MIN);
+        self.fmp = Felt::new(FMP_MIN);
         self.fn_hash = fn_hash;
     }
 
@@ -324,8 +322,8 @@ impl From<u32> for ContextId {
 }
 
 impl From<ContextId> for u32 {
-    fn from(value: ContextId) -> Self {
-        value.0
+    fn from(context_id: ContextId) -> Self {
+        context_id.0
     }
 }
 
@@ -337,7 +335,7 @@ impl From<ContextId> for u64 {
 
 impl From<ContextId> for Felt {
     fn from(context_id: ContextId) -> Self {
-        u64::from(context_id).into()
+        context_id.0.into()
     }
 }
 

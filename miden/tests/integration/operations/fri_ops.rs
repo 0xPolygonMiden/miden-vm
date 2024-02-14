@@ -1,4 +1,4 @@
-use test_utils::{build_test, rand::rand_array, Felt, FieldElement, StarkField};
+use test_utils::{build_test, rand::rand_array, Felt, FieldElement};
 
 // FRI_EXT2FOLD4
 // ================================================================================================

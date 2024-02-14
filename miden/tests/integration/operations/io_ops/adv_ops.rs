@@ -1,7 +1,7 @@
 use super::{build_op_test, build_test, TestError};
 use processor::ExecutionError;
 use processor::ExecutionError::AdviceStackReadFailed;
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
+use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
