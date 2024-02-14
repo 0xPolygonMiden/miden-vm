@@ -24,7 +24,7 @@ use vm_core::{
     CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
 };
 
-use winter_prover::matrix::ColMatrix;
+pub use winter_prover::matrix::ColMatrix;
 
 mod operations;
 
@@ -93,7 +93,7 @@ type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 
 pub struct DecoderTrace {
     trace: [Vec<Felt>; DECODER_TRACE_WIDTH],
-    aux_trace_hints: decoder::AuxTraceHints,
+    aux_builder: decoder::AuxTraceBuilder,
 }
 
 pub struct StackTrace {

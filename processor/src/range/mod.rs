@@ -1,6 +1,6 @@
 use super::{
-    trace::NUM_RAND_ROWS, utils::uninit_vector, BTreeMap, ColMatrix, Felt, FieldElement,
-    RangeCheckTrace, Vec, ZERO,
+    trace::NUM_RAND_ROWS, utils::uninit_vector, BTreeMap, Felt, FieldElement, RangeCheckTrace, Vec,
+    ZERO,
 };
 
 mod aux_trace;

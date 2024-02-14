@@ -63,17 +63,12 @@ where
     let trace =
         processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
     #[cfg(feature = "std")]
-    let padding_percentage = (trace.trace_len_summary().padded_trace_len()
-        - trace.trace_len_summary().trace_len())
-        * 100
-        / trace.trace_len_summary().padded_trace_len();
-    #[cfg(feature = "std")]
     event!(
         Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
         trace.layout().main_trace_width(),
         trace.trace_len_summary().padded_trace_len(),
-        padding_percentage,
+        trace.trace_len_summary().padding_percentage(),
         now.elapsed().as_millis()
     );
 

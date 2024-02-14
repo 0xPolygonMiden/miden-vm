@@ -1,6 +1,6 @@
 use super::{
-    build_trace_from_ops, rand_array, Felt, FieldElement, LookupTableRow, Operation, Trace, Vec,
-    NUM_RAND_ROWS, ONE, ZERO,
+    build_trace_from_ops, rand_array, Felt, FieldElement, Operation, Trace, Vec, NUM_RAND_ROWS,
+    ONE, ZERO,
 };
 use crate::stack::OverflowTableRow;
 use miden_air::trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
@@ -37,10 +37,10 @@ fn p1_trace() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        OverflowTableRow::new(2, ONE, ZERO).to_value(&trace.main_trace, &alphas),
-        OverflowTableRow::new(3, TWO, TWO).to_value(&trace.main_trace, &alphas),
-        OverflowTableRow::new(6, TWO, TWO).to_value(&trace.main_trace, &alphas),
-        OverflowTableRow::new(10, ZERO, ZERO).to_value(&trace.main_trace, &alphas),
+        OverflowTableRow::new(Felt::new(2), ONE, ZERO).to_value(&alphas),
+        OverflowTableRow::new(Felt::new(3), TWO, TWO).to_value(&alphas),
+        OverflowTableRow::new(Felt::new(6), TWO, TWO).to_value(&alphas),
+        OverflowTableRow::new(Felt::new(10), ZERO, ZERO).to_value(&alphas),
     ];
 
     // make sure the first entry is ONE

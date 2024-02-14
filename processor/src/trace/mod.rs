@@ -1,10 +1,11 @@
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
-    decoder::AuxTraceHints as DecoderAuxTraceHints,
+    decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState, Vec,
 };
+use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
@@ -17,12 +18,7 @@ use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{
-    build_lookup_table_row_values, AuxColumnBuilder, ChipletsLengths, LookupTableRow,
-    TraceFragment, TraceLenSummary,
-};
-
-mod decoder;
+pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
 
 #[cfg(test)]
 mod tests;
@@ -38,8 +34,8 @@ pub const NUM_RAND_ROWS: usize = 1;
 // VM EXECUTION TRACE
 // ================================================================================================
 
-pub struct AuxTraceHints {
-    pub(crate) decoder: DecoderAuxTraceHints,
+pub struct AuxTraceBuilders {
+    pub(crate) decoder: DecoderAuxTraceBuilder,
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
@@ -55,8 +51,8 @@ pub struct AuxTraceHints {
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
-    main_trace: ColMatrix<Felt>,
-    aux_trace_hints: AuxTraceHints,
+    main_trace: MainTrace,
+    aux_trace_builders: AuxTraceBuilders,
     program_info: ProgramInfo,
     stack_outputs: StackOutputs,
     trace_len_summary: TraceLenSummary,
@@ -91,8 +87,8 @@ impl ExecutionTrace {
         Self {
             meta: Vec::new(),
             layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
-            main_trace: ColMatrix::new(main_trace),
-            aux_trace_hints,
+            aux_trace_builders: aux_trace_hints,
+            main_trace,
             program_info,
             stack_outputs,
             trace_len_summary,
@@ -178,7 +174,7 @@ impl ExecutionTrace {
     #[cfg(test)]
     pub fn test_finalize_trace<H>(
         process: Process<H>,
-    ) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
+    ) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
     where
         H: Host,
     {
@@ -222,23 +218,24 @@ impl Trace for ExecutionTrace {
         // TODO: build auxiliary columns in multiple threads
 
         // add decoder's running product columns
-        let decoder_aux_columns = decoder::build_aux_columns(
-            &self.main_trace,
-            &self.aux_trace_hints.decoder,
-            rand_elements,
-        );
+        let decoder_aux_columns = self
+            .aux_trace_builders
+            .decoder
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // add stack's running product columns
         let stack_aux_columns =
-            self.aux_trace_hints.stack.build_aux_columns(&self.main_trace, rand_elements);
+            self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
 
         // add the range checker's running product columns
         let range_aux_columns =
-            self.aux_trace_hints.range.build_aux_columns(&self.main_trace, rand_elements);
+            self.aux_trace_builders.range.build_aux_columns(&self.main_trace, rand_elements);
 
         // add the running product columns for the chiplets
-        let chiplets =
-            self.aux_trace_hints.chiplets.build_aux_columns(&self.main_trace, rand_elements);
+        let chiplets = self
+            .aux_trace_builders
+            .chiplets
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
@@ -280,7 +277,7 @@ impl Trace for ExecutionTrace {
 fn finalize_trace<H>(
     process: Process<H>,
     mut rng: RpoRandomCoin,
-) -> (Vec<Vec<Felt>>, AuxTraceHints, TraceLenSummary)
+) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
 where
     H: Host,
 {
@@ -338,12 +335,14 @@ where
         }
     }
 
-    let aux_trace_hints = AuxTraceHints {
-        decoder: decoder_trace.aux_trace_hints,
+    let aux_trace_hints = AuxTraceBuilders {
+        decoder: decoder_trace.aux_builder,
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };
 
-    (trace, aux_trace_hints, trace_len_summary)
+    let main_trace = MainTrace::new(ColMatrix::new(trace));
+
+    (main_trace, aux_trace_hints, trace_len_summary)
 }

@@ -1,18 +1,11 @@
 use super::{
-    trace::LookupTableRow, BTreeMap, ChipletsVTableTraceBuilder, ColMatrix, Felt, FieldElement,
-    HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment, Vec, Word, ONE,
-    ZERO,
+    BTreeMap, Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, StarkField, TraceFragment,
+    Vec, Word, ONE, ZERO,
 };
 use miden_air::trace::chiplets::hasher::{
-    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL,
-    MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD,
-    MR_UPDATE_OLD_LABEL, RATE_LEN, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
-    RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+    Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
+    MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
 };
-
-mod lookups;
-pub use lookups::HasherLookup;
-use lookups::HasherLookupContext;
 
 mod trace;
 use trace::HasherTrace;
@@ -55,9 +48,6 @@ mod tests;
 /// In addition to the execution trace, the hash chiplet also maintains:
 /// - an auxiliary trace builder, which can be used to construct a running product column describing
 ///   the state of the sibling table (used in Merkle root update operations).
-/// - a vector of [HasherLookup]s, each of which specifies the data for one of the lookup rows which
-///   are required for verification of the communication between the stack/decoder and the Hash
-///   Chiplet via the Chiplets Bus.
 /// - a map of memoized execution trace, which keeps track of start and end rows of the sections of
 ///   the trace of a control or span block that can be copied to be used later for program blocks
 ///   encountered with the same digest instead of building it from scratch everytime. The hash of
@@ -65,7 +55,6 @@ mod tests;
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
-    aux_trace: ChipletsVTableTraceBuilder,
     memoized_trace_map: BTreeMap<[u8; 32], (usize, usize)>,
 }
 
@@ -78,51 +67,25 @@ impl Hasher {
         self.trace.trace_len()
     }
 
-    /// Returns the [HasherLookup] from the provided label, index and context inputs.
-    #[inline(always)]
-    fn get_lookup(&self, label: u8, index: Felt, context: HasherLookupContext) -> HasherLookup {
-        let addr = match context {
-            // when starting a new hash operation, lookups are added before the operation begins.
-            HasherLookupContext::Start => self.trace.next_row_addr().as_int() as u32,
-            // in all other cases, they are added after the hash operation has completed.
-            _ => self.trace_len() as u32,
-        };
-        HasherLookup::new(label, addr, index, context)
-    }
-
     // HASHING METHODS
     // --------------------------------------------------------------------------------------------
 
     /// Applies a single permutation of the hash function to the provided state and records the
-    /// execution trace of this computation as well as the lookups required for verifying the
-    /// correctness of the permutation so that they can be provided to the Chiplets Bus.
+    /// execution trace of this computation.
     ///
     /// The returned tuple contains the hasher state after the permutation and the row address of
     /// the execution trace at which the permutation started.
-    pub(super) fn permute(
-        &mut self,
-        mut state: HasherState,
-        lookups: &mut Vec<HasherLookup>,
-    ) -> (Felt, HasherState) {
+    pub(super) fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
         let addr = self.trace.next_row_addr();
-
-        // add the lookup for the hash initialization.
-        let lookup = self.get_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
-        lookups.push(lookup);
 
         // perform the hash.
         self.trace.append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
-
-        // add the lookup for the hash result.
-        let lookup = self.get_lookup(RETURN_STATE_LABEL, ZERO, HasherLookupContext::Return);
-        lookups.push(lookup);
 
         (addr, state)
     }
 
     /// Computes the hash of the control block by computing hash(h1, h2) and returns the result.
-    /// It also records the execution trace of this computation as well as the lookups required for
-    /// verifying its correctness so that they can be provided to the Chiplets Bus.
+    /// It also records the execution trace of this computation.
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
@@ -132,14 +95,9 @@ impl Hasher {
         h2: Word,
         domain: Felt,
         expected_hash: Digest,
-        lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
         let addr = self.trace.next_row_addr();
         let mut state = init_state_from_words_with_domain(&h1, &h2, domain);
-
-        // add the lookup for the hash initialization.
-        let lookup = self.get_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
-        lookups.push(lookup);
 
         if let Some((start_row, end_row)) = self.get_memoized_trace(expected_hash) {
             // copy the trace of a block with same hash instead of building it again.
@@ -151,18 +109,13 @@ impl Hasher {
             self.insert_to_memoized_trace_map(addr, expected_hash);
         };
 
-        // add the lookup for the hash result.
-        let lookup = self.get_lookup(RETURN_HASH_LABEL, ZERO, HasherLookupContext::Return);
-        lookups.push(lookup);
-
         let result = get_digest(&state);
 
         (addr, result)
     }
 
     /// Computes a sequential hash of all operation batches in the list and returns the result. It
-    /// also records the execution trace of this computation, as well as the lookups required for
-    /// verifying its correctness so that they can be provided to the Chiplets Bus.
+    /// also records the execution trace of this computation.
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
@@ -170,17 +123,13 @@ impl Hasher {
         &mut self,
         op_batches: &[OpBatch],
         expected_hash: Digest,
-        lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
         const START: Selectors = LINEAR_HASH;
-        const START_LABEL: u8 = LINEAR_HASH_LABEL;
         const RETURN: Selectors = RETURN_HASH;
-        const RETURN_LABEL: u8 = RETURN_HASH_LABEL;
         // absorb selectors are the same as linear hash selectors, but absorb selectors are
         // applied on the last row of a permutation cycle, while linear hash selectors are
         // applied on the first row of a permutation cycle.
         const ABSORB: Selectors = LINEAR_HASH;
-        const ABSORB_LABEL: u8 = LINEAR_HASH_LABEL;
         // to continue linear hash we need retain the 2nd and 3rd selector flags and set the
         // 1st flag to ZERO.
         const CONTINUE: Selectors = [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]];
@@ -189,10 +138,6 @@ impl Hasher {
 
         // initialize the state and absorb the first operation batch into it
         let mut state = init_state(op_batches[0].groups(), ZERO);
-
-        // add the lookup for the hash initialization.
-        let lookup = self.get_lookup(START_LABEL, ZERO, HasherLookupContext::Start);
-        lookups.push(lookup);
 
         // check if a span block with same hash has been encountered before in which case we can
         // directly copy it's trace.
@@ -226,53 +171,24 @@ impl Hasher {
                 for batch in op_batches.iter().take(num_batches - 1).skip(1) {
                     absorb_into_state(&mut state, batch.groups());
 
-                    // add the lookup for absorbing the next operation batch.
-                    let lookup = self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
-                    lookups.push(lookup);
-
                     self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
                 }
 
                 absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
 
-                // add the lookup for absorbing the final operation batch.
-                let lookup = self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
-                lookups.push(lookup);
-
                 self.trace.append_permutation(&mut state, CONTINUE, RETURN);
             }
             self.insert_to_memoized_trace_map(addr, expected_hash);
-        } else if num_batches == 1 {
-            self.trace.copy_trace(&mut state, start_row..end_row);
         } else {
-            for i in 1..num_batches {
-                // add the lookup for absorbing the next operation batch. Here we add the
-                // lookups before actually copying the memoized trace.
-                let lookup_addr = self.trace_len() + i * HASH_CYCLE_LEN;
-                let lookup = HasherLookup::new(
-                    ABSORB_LABEL,
-                    lookup_addr as u32,
-                    ZERO,
-                    HasherLookupContext::Absorb,
-                );
-                lookups.push(lookup);
-            }
-
             self.trace.copy_trace(&mut state, start_row..end_row);
         }
-
-        // add the lookup for the hash result.
-        let lookup = self.get_lookup(RETURN_LABEL, ZERO, HasherLookupContext::Return);
-        lookups.push(lookup);
 
         let result = get_digest(&state);
 
         (addr, result)
     }
 
-    /// Performs Merkle path verification computation and records its execution trace, as well as
-    /// the lookups required for verifying its correctness so that they can be provided to the
-    /// Chiplets Bus.
+    /// Performs Merkle path verification computation and records its execution trace.
     ///
     /// The computation consists of computing a Merkle root of the specified path for a node with
     /// the specified value, located at the specified index.
@@ -289,24 +205,16 @@ impl Hasher {
         value: Word,
         path: &MerklePath,
         index: Felt,
-        lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
         let addr = self.trace.next_row_addr();
 
-        let root = self.verify_merkle_path(
-            value,
-            path,
-            index.as_int(),
-            MerklePathContext::MpVerify,
-            lookups,
-        );
+        let root =
+            self.verify_merkle_path(value, path, index.as_int(), MerklePathContext::MpVerify);
 
         (addr, root)
     }
 
-    /// Performs Merkle root update computation and records its execution trace, as well as the
-    /// lookups required for verifying its correctness so that they can be provided to the Chiplets
-    /// Bus.
+    /// Performs Merkle root update computation and records its execution trace.
     ///
     /// The computation consists of two Merkle path verifications, one for the old value of the
     /// node (value before the update), and another for the new value (value after the update).
@@ -321,25 +229,14 @@ impl Hasher {
         new_value: Word,
         path: &MerklePath,
         index: Felt,
-        lookups: &mut Vec<HasherLookup>,
     ) -> MerkleRootUpdate {
         let address = self.trace.next_row_addr();
         let index = index.as_int();
 
-        let old_root = self.verify_merkle_path(
-            old_value,
-            path,
-            index,
-            MerklePathContext::MrUpdateOld,
-            lookups,
-        );
-        let new_root = self.verify_merkle_path(
-            new_value,
-            path,
-            index,
-            MerklePathContext::MrUpdateNew,
-            lookups,
-        );
+        let old_root =
+            self.verify_merkle_path(old_value, path, index, MerklePathContext::MrUpdateOld);
+        let new_root =
+            self.verify_merkle_path(new_value, path, index, MerklePathContext::MrUpdateNew);
 
         MerkleRootUpdate {
             address,
@@ -353,10 +250,8 @@ impl Hasher {
 
     /// Fills the provided trace fragment with trace data from this hasher trace instance. This
     /// also returns the trace builder for hasher-related auxiliary trace columns.
-    pub(super) fn fill_trace(self, trace: &mut TraceFragment) -> ChipletsVTableTraceBuilder {
-        self.trace.fill_trace(trace);
-
-        self.aux_trace
+    pub(super) fn fill_trace(self, trace: &mut TraceFragment) {
+        self.trace.fill_trace(trace)
     }
 
     // HELPER METHODS
@@ -365,8 +260,7 @@ impl Hasher {
     /// Computes a root of the provided Merkle path in the specified context. The path is assumed
     /// to be for a node with the specified value at the specified index.
     ///
-    /// This also records the execution trace of the Merkle path computation and all lookups
-    /// required for verifying its correctness.
+    /// This also records the execution trace of the Merkle path computation.
     ///
     /// # Panics
     /// Panics if:
@@ -378,7 +272,6 @@ impl Hasher {
         path: &MerklePath,
         mut index: u64,
         context: MerklePathContext,
-        lookups: &mut Vec<HasherLookup>,
     ) -> Word {
         assert!(!path.is_empty(), "path is empty");
         assert!(
@@ -386,7 +279,6 @@ impl Hasher {
             "invalid index for the path"
         );
         let mut root = value;
-        let mut depth = path.len() - 1;
 
         // determine selectors for the specified context
         let main_selectors = context.main_selectors();
@@ -395,41 +287,22 @@ impl Hasher {
         if path.len() == 1 {
             // handle path of length 1 separately because pattern for init and final selectors
             // is different from other cases
-            self.update_sibling_hints(context, index, path[0], depth);
-            self.verify_mp_leg(root, path[0], &mut index, main_selectors, RETURN_HASH, lookups)
+            self.verify_mp_leg(root, path[0], &mut index, main_selectors, RETURN_HASH)
         } else {
             // process the first node of the path; for this node, init and final selectors are
             // the same
             let sibling = path[0];
-            self.update_sibling_hints(context, index, sibling, depth);
-            root = self.verify_mp_leg(
-                root,
-                sibling,
-                &mut index,
-                main_selectors,
-                main_selectors,
-                lookups,
-            );
-            depth -= 1;
+            root = self.verify_mp_leg(root, sibling, &mut index, main_selectors, main_selectors);
 
             // process all other nodes, except for the last one
             for &sibling in &path[1..path.len() - 1] {
-                self.update_sibling_hints(context, index, sibling, depth);
-                root = self.verify_mp_leg(
-                    root,
-                    sibling,
-                    &mut index,
-                    part_selectors,
-                    main_selectors,
-                    lookups,
-                );
-                depth -= 1;
+                root =
+                    self.verify_mp_leg(root, sibling, &mut index, part_selectors, main_selectors);
             }
 
             // process the last node
             let sibling = path[path.len() - 1];
-            self.update_sibling_hints(context, index, sibling, depth);
-            self.verify_mp_leg(root, sibling, &mut index, part_selectors, RETURN_HASH, lookups)
+            self.verify_mp_leg(root, sibling, &mut index, part_selectors, RETURN_HASH)
         }
     }
 
@@ -437,11 +310,7 @@ impl Hasher {
     ///
     /// This function does the following:
     /// - Builds the initial hasher state based on the least significant bit of the index.
-    /// - Records the lookup required for verification of the hash initialization if the
-    ///   `init_selectors` indicate that it is the beginning of the Merkle path verification.
     /// - Applies a permutation to this state and records the resulting trace.
-    /// - Records the lookup required for verification of the hash result if the `final_selectors`
-    ///   indicate that it is the end of the Merkle path verification.
     /// - Returns the result of the permutation and updates the index by removing its least
     ///   significant bit.
     fn verify_mp_leg(
@@ -451,18 +320,10 @@ impl Hasher {
         index: &mut u64,
         init_selectors: Selectors,
         final_selectors: Selectors,
-        lookups: &mut Vec<HasherLookup>,
     ) -> Word {
         // build the hasher state based on the value of the least significant bit of the index
         let index_bit = *index & 1;
         let mut state = build_merge_state(&root, &sibling, index_bit);
-
-        // add the lookup for the hash initialization if this is the beginning.
-        let context = HasherLookupContext::Start;
-        if let Some(label) = get_selector_context_label(init_selectors, context) {
-            let lookup = self.get_lookup(label, Felt::new(*index), context);
-            lookups.push(lookup);
-        }
 
         // determine values for the node index column for this permutation. if the first selector
         // of init_selectors is not ZERO (i.e., we are processing the first leg of the Merkle
@@ -486,42 +347,7 @@ impl Hasher {
         // remove the least significant bit from the index and return hash result
         *index >>= 1;
 
-        // add the lookup for the hash result if this is the end.
-        let context = HasherLookupContext::Return;
-        if let Some(label) = get_selector_context_label(final_selectors, context) {
-            let lookup = self.get_lookup(label, Felt::new(*index), context);
-            lookups.push(lookup);
-        }
-
         get_digest(&state)
-    }
-
-    /// Records an update hint in the auxiliary trace builder to indicate whether the sibling was
-    /// consumed as a part of computing the new or the old Merkle root. This is relevant only for
-    /// the Merkle root update computation.
-    fn update_sibling_hints(
-        &mut self,
-        context: MerklePathContext,
-        index: u64,
-        sibling: Digest,
-        depth: usize,
-    ) {
-        let step = self.trace.trace_len() as u32;
-        match context {
-            MerklePathContext::MrUpdateOld => {
-                self.aux_trace.sibling_added(step, Felt::new(index), sibling.into());
-            }
-            MerklePathContext::MrUpdateNew => {
-                // we use node depth as row offset here because siblings are added to the table
-                // in reverse order of their depth (i.e., the sibling with the greatest depth is
-                // added first). thus, when removing siblings from the table, we can find the right
-                // entry by looking at the n-th entry from the end of the table, where n is the
-                // node's depth (e.g., an entry for the sibling with depth 2, would be in the
-                // second entry from the end of the table).
-                self.aux_trace.sibling_removed(step, depth);
-            }
-            _ => (),
-        }
     }
 
     /// Checks if a trace for a program block already exists and returns the start and end rows
@@ -587,44 +413,6 @@ fn build_merge_state(a: &Word, b: &Word, index_bit: u64) -> HasherState {
         0 => init_state_from_words(a, b),
         1 => init_state_from_words(b, a),
         _ => panic!("index bit is not a binary value"),
-    }
-}
-
-/// Gets the label for the hash operation from the provided selectors and the specified context.
-pub fn get_selector_context_label(
-    selectors: Selectors,
-    context: HasherLookupContext,
-) -> Option<u8> {
-    match context {
-        HasherLookupContext::Start => {
-            if selectors == LINEAR_HASH {
-                Some(LINEAR_HASH_LABEL)
-            } else if selectors == MP_VERIFY {
-                Some(MP_VERIFY_LABEL)
-            } else if selectors == MR_UPDATE_OLD {
-                Some(MR_UPDATE_OLD_LABEL)
-            } else if selectors == MR_UPDATE_NEW {
-                Some(MR_UPDATE_NEW_LABEL)
-            } else {
-                None
-            }
-        }
-        HasherLookupContext::Return => {
-            if selectors == RETURN_HASH {
-                Some(RETURN_HASH_LABEL)
-            } else if selectors == RETURN_STATE {
-                Some(RETURN_STATE_LABEL)
-            } else {
-                None
-            }
-        }
-        _ => {
-            if selectors == LINEAR_HASH {
-                Some(LINEAR_HASH_LABEL)
-            } else {
-                None
-            }
-        }
     }
 }
 
