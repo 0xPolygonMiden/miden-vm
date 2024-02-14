@@ -32,7 +32,6 @@ num = "0.4.1"
 [dev-dependencies]
 blake3 = "1.5"
 miden-air = { package = "miden-air", path = "../air", version = "0.8", default-features = false }
-miden-crypto = { package = "miden-crypto", git = "https://github.com/0xPolygonMiden/crypto", branch = "next", default-features = false }
 num-bigint = "0.4"
 processor = { package = "miden-processor", path = "../processor", version = "0.8", features = ["internals"], default-features = false }
 serde_json = "1.0"
