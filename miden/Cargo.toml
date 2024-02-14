@@ -40,9 +40,9 @@ path = "tests/integration/main.rs"
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["dep:hex", "hex?/std", "std", "dep:serde", "serde?/std", "dep:serde_derive", "dep:serde_json", "serde_json?/std", "dep:clap", "dep:rustyline"]
+executable = ["dep:hex", "hex?/std", "std", "dep:serde", "serde?/std", "dep:serde_derive", "dep:serde_json", "serde_json?/std", "dep:clap", "dep:rustyline", "dep:tracing-subscriber"]
 metal = ["prover/metal", "std"]
-std = ["assembly/std", "processor/std", "prover/std", "tracing/attributes", "verifier/std"]
+std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
@@ -56,9 +56,9 @@ serde = {version = "1.0", optional = true }
 serde_derive = {version = "1.0", optional = true }
 serde_json = {version = "1.0", optional = true }
 stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.8", default-features = false }
-tracing = { version = "0.1", default-features = false, optional = true }
-tracing-subscriber = { version = "0.3", features = ["std", "env-filter"] }
-tracing-forest = { version = "0.1", features = ["ansi", "smallvec"] }
+tracing = { version = "0.1", default-features = false, features = ["attributes"] }
+tracing-subscriber = { version = "0.3", features = ["std", "env-filter"], optional = true }
+tracing-forest = { version = "0.1", features = ["ansi", "smallvec"], optional = true }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.8", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 
