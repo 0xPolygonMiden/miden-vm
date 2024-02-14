@@ -350,7 +350,7 @@ impl OutputFile {
     #[instrument(name = "Writing data to output file", fields(path = %path.display()), skip_all)]
     pub fn write(stack_outputs: &StackOutputs, path: &PathBuf) -> Result<(), String> {
         // if path provided, create output file
-        let file = fs::File::create(&path).map_err(|err| {
+        let file = fs::File::create(path).map_err(|err| {
             format!("Failed to create output file `{}` - {}", path.display(), err)
         })?;
 
@@ -388,7 +388,7 @@ impl ProgramFile {
     #[instrument(name = "Reading program file", fields(path = %path.display()))]
     pub fn read(path: &PathBuf) -> Result<Self, String> {
         // read program file to string
-        let source = fs::read_to_string(&path).map_err(|err| {
+        let source = fs::read_to_string(path).map_err(|err| {
             format!("Failed to open program file `{}` - {}\n", path.display(), err)
         })?;
 

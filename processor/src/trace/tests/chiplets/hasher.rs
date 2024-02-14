@@ -545,7 +545,7 @@ fn b_chip_mpverify() {
 fn b_chip_mrupdate() {
     let index = 5usize;
     let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    let mut tree = MerkleTree::new(leaves.to_vec()).unwrap();
+    let mut tree = MerkleTree::new(&leaves).unwrap();
 
     let old_root = tree.root();
     let old_leaf_value = leaves[index];
@@ -785,7 +785,7 @@ fn build_expected(
                 || label == MR_UPDATE_NEW_LABEL
                 || label == MR_UPDATE_OLD_LABEL
         );
-        let bit = (index.as_int() >> 0) & 1;
+        let bit = index.as_int() & 1;
         let left_word = build_value(&alphas[8..12], &state[DIGEST_RANGE]);
         let right_word = build_value(&alphas[8..12], &state[DIGEST_RANGE.end..]);
 
