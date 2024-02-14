@@ -21,7 +21,7 @@ use vm_core::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
+    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState,
 };
 
 pub use winter_prover::matrix::ColMatrix;

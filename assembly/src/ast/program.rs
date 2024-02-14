@@ -214,12 +214,12 @@ impl ProgramAst {
         // serialize procedures
         assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
-        self.local_procs.write_into(target);
+        target.write_many(&self.local_procs);
 
         // serialize program body
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
-        self.body.nodes().write_into(target);
+        target.write_many(self.body.nodes());
     }
 
     /// Returns byte representation of this [ProgramAst].
@@ -247,12 +247,12 @@ impl ProgramAst {
         };
 
         // deserialize local procs
-        let num_local_procs = source.read_u16()?;
-        let local_procs = Deserializable::read_batch_from(source, num_local_procs as usize)?;
+        let num_local_procs = source.read_u16()?.into();
+        let local_procs = source.read_many::<ProcedureAst>(num_local_procs)?;
 
         // deserialize program body
         let body_len = source.read_u16()? as usize;
-        let nodes = Deserializable::read_batch_from(source, body_len)?;
+        let nodes = source.read_many::<Node>(body_len)?;
 
         match Self::new(nodes, local_procs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),

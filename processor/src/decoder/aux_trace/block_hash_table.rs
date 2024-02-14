@@ -1,6 +1,5 @@
 use super::{
-    AuxColumnBuilder, Felt, FieldElement, MainTrace, StarkField, DYN, END, HALT, JOIN, LOOP, ONE,
-    REPEAT, SPLIT,
+    AuxColumnBuilder, Felt, FieldElement, MainTrace, DYN, END, HALT, JOIN, LOOP, ONE, REPEAT, SPLIT,
 };
 
 // BLOCK HASH TABLE COLUMN BUILDER

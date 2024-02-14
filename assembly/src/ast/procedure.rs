@@ -127,7 +127,7 @@ impl Serializable for ProcedureAst {
         target.write_u16(self.num_locals);
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
-        self.body.nodes().write_into(target);
+        target.write_many(self.body.nodes());
     }
 }
 
@@ -147,7 +147,7 @@ impl Deserializable for ProcedureAst {
         let is_export = source.read_bool()?;
         let num_locals = source.read_u16()?;
         let body_len = source.read_u16()? as usize;
-        let nodes = Deserializable::read_batch_from(source, body_len)?;
+        let nodes = source.read_many::<Node>(body_len)?;
         let body = CodeBody::new(nodes);
         let start = SourceLocation::default();
         Ok(Self {

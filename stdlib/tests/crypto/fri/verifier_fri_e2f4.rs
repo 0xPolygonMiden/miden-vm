@@ -126,7 +126,7 @@ pub fn build_prover_channel(
 }
 
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {
-    let mut p = (0..trace_length as u64)
+    let mut p = (0..trace_length as u32)
         .map(|i| (i, i))
         .map(|(i, j)| QuadExt::new(i.into(), j.into()))
         .collect::<Vec<_>>();

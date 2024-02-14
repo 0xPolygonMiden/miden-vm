@@ -21,11 +21,11 @@ impl Serializable for Node {
 
                 assert!(true_case.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(true_case.nodes().len() as u16);
-                true_case.nodes().write_into(target);
+                target.write_many(true_case.nodes());
 
                 assert!(false_case.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(false_case.nodes().len() as u16);
-                false_case.nodes().write_into(target);
+                target.write_many(false_case.nodes());
             }
             Self::Repeat { times, body } => {
                 OpCode::Repeat.write_into(target);
@@ -33,14 +33,14 @@ impl Serializable for Node {
 
                 assert!(body.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(body.nodes().len() as u16);
-                body.nodes().write_into(target);
+                target.write_many(body.nodes());
             }
             Self::While { body } => {
                 OpCode::While.write_into(target);
 
                 assert!(body.nodes().len() <= MAX_BODY_LEN, "too many body nodes");
                 target.write_u16(body.nodes().len() as u16);
-                body.nodes().write_into(target);
+                target.write_many(body.nodes());
             }
         }
     }

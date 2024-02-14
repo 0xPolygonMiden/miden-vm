@@ -38,13 +38,13 @@ fn test_ast_parsing_program_push() {
         Node::Instruction(Instruction::PushU8(10)),
         Node::Instruction(Instruction::PushU16(500)),
         Node::Instruction(Instruction::PushU32(70000)),
-        Node::Instruction(Instruction::PushFelt(Felt::from(5000000000_u64))),
+        Node::Instruction(Instruction::PushFelt(Felt::new(5000000000_u64))),
         Node::Instruction(Instruction::PushWord(
             vec![
-                Felt::from(5000000000_u64),
-                Felt::from(7000000000_u64),
-                Felt::from(9000000000_u64),
-                Felt::from(11000000000_u64),
+                Felt::new(5000000000_u64),
+                Felt::new(7000000000_u64),
+                Felt::new(9000000000_u64),
+                Felt::new(11000000000_u64),
             ]
             .try_into()
             .unwrap(),
@@ -53,8 +53,8 @@ fn test_ast_parsing_program_push() {
         Node::Instruction(Instruction::PushU16List(vec![500, 700])),
         Node::Instruction(Instruction::PushU32List(vec![70000, 90000])),
         Node::Instruction(Instruction::PushFeltList(vec![
-            Felt::from(5000000000_u64),
-            Felt::from(7000000000_u64),
+            Felt::new(5000000000_u64),
+            Felt::new(7000000000_u64),
         ])),
         Node::Instruction(Instruction::PushU8List(vec![0, 1, 2, 3])),
     ];

@@ -256,7 +256,9 @@ fn init_helper_columns(
 
     // if the overflow table is not empty, set h0 to (init_depth - 16)
     let mut h0 = Felt::zeroed_vector(init_trace_capacity);
-    h0[0] = Felt::from((init_depth - STACK_TOP_SIZE) as u64);
+    // TODO: change type of `init_depth` to `u32`
+    h0[0] = Felt::try_from((init_depth - STACK_TOP_SIZE) as u64)
+        .expect("value is greater than or equal to the field modulus");
 
     [b0, b1, h0]
 }

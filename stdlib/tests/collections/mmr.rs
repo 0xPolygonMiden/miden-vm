@@ -377,7 +377,7 @@ fn test_mmr_unpack() {
     let store = MerkleStore::new();
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.extend_from_slice(&[number_of_leaves.into(), ZERO, ZERO, ZERO]);
+    map_data.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
@@ -501,7 +501,7 @@ fn test_mmr_unpack_large_mmr() {
     let store = MerkleStore::new();
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
-    map_data.extend_from_slice(&[number_of_leaves.into(), ZERO, ZERO, ZERO]);
+    map_data.extend_from_slice(&[number_of_leaves.try_into().unwrap(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&hash_data.as_slice().concat());
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[
@@ -762,7 +762,7 @@ fn test_mmr_large_add_roundtrip() {
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     let num_leaves = old_accumulator.num_leaves() as u64;
-    map_data.extend_from_slice(&[Felt::from(num_leaves), ZERO, ZERO, ZERO]);
+    map_data.extend_from_slice(&[Felt::try_from(num_leaves).unwrap(), ZERO, ZERO, ZERO]);
     map_data.extend_from_slice(&digests_to_elements(&hash_data));
 
     let advice_map: &[([u8; 32], Vec<Felt>)] = &[

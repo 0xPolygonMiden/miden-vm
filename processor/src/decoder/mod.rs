@@ -1,6 +1,6 @@
 use super::{
     Call, Dyn, ExecutionError, Felt, Host, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,

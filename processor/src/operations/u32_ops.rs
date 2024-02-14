@@ -1,6 +1,6 @@
 use super::{
     super::utils::{split_element, split_u32_into_u16},
-    ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField,
+    ExecutionError, Felt, FieldElement, Host, Operation, Process,
 };
 use crate::ZERO;
 

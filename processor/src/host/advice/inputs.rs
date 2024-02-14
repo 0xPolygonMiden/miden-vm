@@ -32,8 +32,12 @@ impl AdviceInputs {
     where
         I: IntoIterator<Item = u64>,
     {
-        let stack = iter.into_iter().map(Felt::from);
-        self.stack.extend(stack);
+        let stack = iter
+            .into_iter()
+            .map(|v| Felt::try_from(v).map_err(|e| InputError::NotFieldElement(v, e)))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.stack.extend(stack.iter());
         Ok(self)
     }
 

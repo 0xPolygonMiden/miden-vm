@@ -1,4 +1,4 @@
-use super::super::{ExecutionError, Felt, StarkField, Vec, Word};
+use super::super::{ExecutionError, Felt, Vec, Word};
 use vm_core::{
     crypto::dsa::rpo_falcon512::{KeyPair, Polynomial},
     utils::Deserializable,

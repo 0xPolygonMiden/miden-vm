@@ -1,5 +1,5 @@
 use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Host, Process};
-use vm_core::{Operation, StarkField, ONE, ZERO};
+use vm_core::{Operation, ONE, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -221,7 +221,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Operation, StarkField, STACK_TOP_SIZE},
+        super::{Felt, FieldElement, Operation, STACK_TOP_SIZE},
         Process,
     };
     use crate::{AdviceInputs, StackInputs};

@@ -1,7 +1,6 @@
 use super::{
     utils::{split_element_u32_into_u16, split_u32_into_u16},
-    BTreeMap, Felt, FieldElement, RangeChecker, StarkField, TraceFragment, Vec, Word, EMPTY_WORD,
-    ONE,
+    BTreeMap, Felt, FieldElement, RangeChecker, TraceFragment, Vec, Word, EMPTY_WORD, ONE,
 };
 use crate::system::ContextId;
 use miden_air::trace::chiplets::memory::{

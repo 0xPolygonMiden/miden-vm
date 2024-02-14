@@ -1,6 +1,4 @@
-use super::{
-    Felt, LeafIndex, MerkleStore, SimpleSmt, StarkField, TestError, Word, EMPTY_WORD, ONE, ZERO,
-};
+use super::{Felt, LeafIndex, MerkleStore, SimpleSmt, TestError, Word, EMPTY_WORD, ONE, ZERO};
 use crate::build_test;
 use processor::ExecutionError;
 
