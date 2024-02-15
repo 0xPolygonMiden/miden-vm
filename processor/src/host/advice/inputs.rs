@@ -1,6 +1,6 @@
 use vm_core::crypto::hash::RpoDigest;
 
-use super::{map::AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
+use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
 
 // ADVICE INPUTS
 // ================================================================================================

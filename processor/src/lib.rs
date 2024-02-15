@@ -44,7 +44,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     advice::{
-        AdviceExtractor, AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider,
+        AdviceExtractor, AdviceInputs, AdviceMap, AdviceProvider, AdviceSource, MemAdviceProvider,
         RecAdviceProvider,
     },
     DefaultHost, Host, HostResponse,
