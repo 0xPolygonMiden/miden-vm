@@ -151,7 +151,7 @@ impl InputFile {
             .iter()
             .map(|v| {
                 v.parse::<u64>()
-                    .map_err(|e| format!("failed to parse advice stack value `{v}` - {e}"))
+                    .map_err(|e| format!("failed to parse advice stack value '{v}': {e}"))
             })
             .collect::<Result<Vec<_>, _>>()
     }
@@ -167,15 +167,15 @@ impl InputFile {
             .iter()
             .map(|(k, v)| {
                 // Convert key to RpoDigest
-                let mut key = RpoDigest::try_from(k)
-                    .map_err(|e| format!("failed to decode advice map key `{k}` - {e}"))?;
+                let key = RpoDigest::try_from(k)
+                    .map_err(|e| format!("failed to decode advice map key '{k}': {e}"))?;
 
                 // convert values to Felt
                 let values = v
                     .iter()
                     .map(|v| {
                         Felt::try_from(*v).map_err(|e| {
-                            format!("failed to convert advice map value `{v}` to Felt - {e}")
+                            format!("failed to convert advice map value '{v}' to Felt: {e}")
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?;
