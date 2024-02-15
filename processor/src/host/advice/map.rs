@@ -34,6 +34,12 @@ impl AdviceMap {
     }
 }
 
+impl From<BTreeMap<RpoDigest, Vec<Felt>>> for AdviceMap {
+    fn from(value: BTreeMap<RpoDigest, Vec<Felt>>) -> Self {
+        Self(value)
+    }
+}
+
 impl IntoIterator for AdviceMap {
     type Item = (RpoDigest, Vec<Felt>);
     type IntoIter = IntoIter<RpoDigest, Vec<Felt>>;
