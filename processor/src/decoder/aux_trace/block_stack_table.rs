@@ -1,6 +1,6 @@
 use super::{
-    AuxColumnBuilder, Felt, FieldElement, MainTrace, StarkField, CALL, DYN, END, JOIN, LOOP, ONE,
-    RESPAN, SPAN, SPLIT, SYSCALL, ZERO,
+    AuxColumnBuilder, Felt, FieldElement, MainTrace, CALL, DYN, END, JOIN, LOOP, ONE, RESPAN, SPAN,
+    SPLIT, SYSCALL, ZERO,
 };
 
 // BLOCK STACK TABLE COLUMN BUILDER

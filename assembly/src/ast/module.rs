@@ -1,4 +1,3 @@
-#[cfg(feature = "std")]
 use super::check_unused_imports;
 use super::{
     format::*,
@@ -110,7 +109,6 @@ impl ModuleAst {
         // get module docs and make sure the size is within the limit
         let docs = tokens.take_module_comments();
 
-        #[cfg(feature = "std")]
         check_unused_imports(context.import_info);
 
         Ok(Self::new(local_procs, reexported_procs, docs)?.with_import_info(import_info))
@@ -182,9 +180,9 @@ impl ModuleAst {
             "too many re-exported procs"
         );
         target.write_u16((self.reexported_procs.len()) as u16);
-        self.reexported_procs.write_into(target);
+        target.write_many(&self.reexported_procs);
         target.write_u16(self.local_procs.len() as u16);
-        self.local_procs.write_into(target);
+        target.write_many(&self.local_procs);
     }
 
     /// Returns a [ModuleAst] struct deserialized from the provided source.
@@ -214,11 +212,11 @@ impl ModuleAst {
 
         // deserialize re-exports
         let num_reexported_procs = source.read_u16()? as usize;
-        let reexported_procs = Deserializable::read_batch_from(source, num_reexported_procs)?;
+        let reexported_procs = source.read_many::<ProcReExport>(num_reexported_procs)?;
 
         // deserialize local procs
         let num_local_procs = source.read_u16()? as usize;
-        let local_procs = Deserializable::read_batch_from(source, num_local_procs)?;
+        let local_procs = source.read_many::<ProcedureAst>(num_local_procs)?;
 
         match Self::new(local_procs, reexported_procs, docs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),

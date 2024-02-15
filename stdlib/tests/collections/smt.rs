@@ -46,7 +46,7 @@ fn test_smt_get() {
 
     // Get an empty leaf
     expect_value_from_get(
-        RpoDigest::new([42_u64.into(), 42_u64.into(), 42_u64.into(), 42_u64.into()]),
+        RpoDigest::new([42_u32.into(), 42_u32.into(), 42_u32.into(), 42_u32.into()]),
         EMPTY_WORD,
         &smt,
     );
@@ -109,7 +109,7 @@ fn test_smt_set_same_key() {
     ";
 
     let key = LEAVES[0].0;
-    let value = [42323_u64.into(); 4];
+    let value = [42323_u32.into(); 4];
     let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
     build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
 }
@@ -127,7 +127,7 @@ fn test_smt_set_empty_value_to_empty_leaf() {
     end
     ";
 
-    let key = RpoDigest::new([41_u64.into(), 42_u64.into(), 43_u64.into(), 44_u64.into()]);
+    let key = RpoDigest::new([41_u32.into(), 42_u32.into(), 43_u32.into(), 44_u32.into()]);
     let value = EMPTY_WORD;
     let (init_stack, final_stack, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
     build_test!(source, &init_stack, &[], store, advice_map).expect_stack(&final_stack);
@@ -170,8 +170,8 @@ fn test_set_advice_map_empty_key() {
     end
     ";
 
-    let key = RpoDigest::new([41_u64.into(), 42_u64.into(), 43_u64.into(), 44_u64.into()]);
-    let value: [Felt; 4] = [42323_u64.into(); 4];
+    let key = RpoDigest::new([41_u32.into(), 42_u32.into(), 43_u32.into(), 44_u32.into()]);
+    let value: [Felt; 4] = [42323_u32.into(); 4];
     let (init_stack, _, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
 
     // assert is checked in MASM
@@ -214,7 +214,7 @@ fn test_set_advice_map_single_key() {
     ";
 
     let key = LEAVES[0].0;
-    let value: [Felt; 4] = [42323_u64.into(); 4];
+    let value: [Felt; 4] = [42323_u32.into(); 4];
     let (init_stack, _, store, advice_map) = prepare_insert_or_set(key, value, &mut smt);
 
     // assert is checked in MASM
@@ -257,7 +257,7 @@ fn prepare_insert_or_set(
     key: RpoDigest,
     value: Word,
     smt: &mut Smt,
-) -> (Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+) -> (Vec<u64>, Vec<u64>, MerkleStore, Vec<(RpoDigest, Vec<Felt>)>) {
     // set initial state of the stack to be [VALUE, KEY, ROOT, ...]
     let mut initial_stack = Vec::new();
     append_word_to_vec(&mut initial_stack, smt.root().into());
@@ -274,13 +274,13 @@ fn prepare_insert_or_set(
     (initial_stack, expected_output, store, advice_map)
 }
 
-fn build_advice_inputs(smt: &Smt) -> (MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+fn build_advice_inputs(smt: &Smt) -> (MerkleStore, Vec<(RpoDigest, Vec<Felt>)>) {
     let store = MerkleStore::from(smt);
     let advice_map = smt
         .leaves()
         .map(|(_, leaf)| {
             let leaf_hash = leaf.hash();
-            (leaf_hash.as_bytes(), leaf.to_elements())
+            (leaf_hash, leaf.to_elements())
         })
         .collect::<Vec<_>>();
 

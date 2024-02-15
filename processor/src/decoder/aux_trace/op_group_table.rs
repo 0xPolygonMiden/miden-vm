@@ -1,4 +1,4 @@
-use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, StarkField, ONE, PUSH, RESPAN, SPAN};
+use super::{AuxColumnBuilder, Felt, FieldElement, MainTrace, ONE, PUSH, RESPAN, SPAN};
 use miden_air::trace::decoder::{OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS};
 
 // OP GROUP TABLE COLUMN

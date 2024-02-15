@@ -1,6 +1,6 @@
 use super::{
-    validate_param, AssemblyError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder,
-    StarkField, ONE, ZERO,
+    validate_param, AssemblyError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder, ONE,
+    ZERO,
 };
 use crate::MAX_EXP_BITS;
 

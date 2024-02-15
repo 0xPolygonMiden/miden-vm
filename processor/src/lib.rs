@@ -21,7 +21,7 @@ use vm_core::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState, StarkField,
+    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState,
 };
 
 pub use winter_prover::matrix::ColMatrix;
@@ -44,7 +44,7 @@ use range::RangeChecker;
 mod host;
 pub use host::{
     advice::{
-        AdviceExtractor, AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider,
+        AdviceExtractor, AdviceInputs, AdviceMap, AdviceProvider, AdviceSource, MemAdviceProvider,
         RecAdviceProvider,
     },
     DefaultHost, Host, HostResponse,
@@ -116,7 +116,7 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-#[cfg_attr(feature = "std", tracing::instrument("Executing program", skip_all))]
+#[tracing::instrument("execute_program", skip_all)]
 pub fn execute<H>(
     program: &Program,
     stack_inputs: StackInputs,

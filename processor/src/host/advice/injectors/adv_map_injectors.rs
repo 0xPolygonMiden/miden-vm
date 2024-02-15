@@ -1,4 +1,4 @@
-use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse, StarkField};
+use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse};
 use crate::ProcessState;
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},

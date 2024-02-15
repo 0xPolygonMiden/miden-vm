@@ -189,7 +189,9 @@ impl Stack {
         self.trace.copy_stack_state_at(
             self.clk,
             start_pos,
-            Felt::from(self.active_depth as u64),
+            // TODO: change type of `active_depth` to `u32`
+            Felt::try_from(self.active_depth as u64)
+                .expect("value is greater than or equal to the field modulus"),
             self.overflow.last_row_addr(),
         );
     }

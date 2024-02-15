@@ -4,7 +4,7 @@ use super::{
 };
 use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
 use crate::trace::decoder::USER_OP_HELPERS_OFFSET;
-use vm_core::{Felt, FieldElement, Operation, StarkField, ZERO};
+use vm_core::{Felt, FieldElement, Operation, ZERO};
 
 use proptest::prelude::*;
 

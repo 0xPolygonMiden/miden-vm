@@ -9,7 +9,7 @@ use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    FieldElement, StarkField,
+    FieldElement,
 };
 
 // SIBLING TABLE TESTS
@@ -174,7 +174,7 @@ fn append_word(target: &mut Vec<u64>, word: Word) {
 /// index is the index of the node at its depth. For example, assume a leaf has index n. For the
 /// leaf's parent the index will be n << 1. For the parent of the parent, the index will be
 /// n << 2 etc.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SiblingTableRow {
     index: Felt,
     sibling: Word,

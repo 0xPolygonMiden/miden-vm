@@ -2,7 +2,7 @@ use test_utils::{
     build_op_test,
     crypto::{init_merkle_leaf, init_merkle_store, MerkleStore, MerkleTree, Rpo256},
     rand::rand_vector,
-    StarkField, Word,
+    Word,
 };
 
 #[test]

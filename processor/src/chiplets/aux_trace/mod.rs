@@ -1,4 +1,4 @@
-use super::{super::trace::AuxColumnBuilder, Felt, FieldElement, StarkField, Vec};
+use super::{super::trace::AuxColumnBuilder, Felt, FieldElement, Vec};
 
 use miden_air::trace::{
     chiplets::{
@@ -722,6 +722,7 @@ fn build_mrupdate_request<E: FieldElement<BaseField = Felt>>(
 /// Builds the response from the hasher chiplet at `row`.
 fn build_hasher_chiplet_responses<E>(
     main_trace: &MainTrace,
+    // TODO: change type of the `row` variable to `u32`
     row: usize,
     alphas: &[E],
     selector1: Felt,
@@ -747,7 +748,7 @@ where
         if selector1 == ONE && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((row + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u32))
                 + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(alphas_state, &state);
@@ -758,10 +759,10 @@ where
         if selector1 == ONE && !(selector2 == ZERO && selector3 == ZERO) {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((row + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u32))
                 + alphas[3].mul_base(node_index);
 
-            let bit = node_index.as_int() & 1;
+            let bit = (node_index.as_int() & 1) as u8;
             let left_word = build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE]);
             let right_word = build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE.end..]);
 
@@ -781,7 +782,7 @@ where
         if selector1 == ZERO && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((row + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u32))
                 + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(&alphas_state[DIGEST_RANGE], &state[DIGEST_RANGE]);
@@ -792,7 +793,7 @@ where
         if selector1 == ZERO && selector2 == ZERO && selector3 == ONE {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((row + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u32))
                 + alphas[3].mul_base(node_index);
 
             multiplicand = header + build_value(alphas_state, &state);
@@ -803,7 +804,7 @@ where
         if selector1 == ONE && selector2 == ZERO && selector3 == ZERO {
             let header = alphas[0]
                 + alphas[1].mul_base(transition_label)
-                + alphas[2].mul_base(Felt::from((row + 1) as u64))
+                + alphas[2].mul_base(Felt::from((row + 1) as u32))
                 + alphas[3].mul_base(node_index);
 
             let state_nxt = main_trace.chiplet_hasher_state(row + 1);

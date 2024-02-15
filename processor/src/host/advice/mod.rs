@@ -1,15 +1,12 @@
 use super::HostResponse;
-use crate::{ExecutionError, Felt, InputError, ProcessState, StarkField, Word};
+use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
 use core::borrow::Borrow;
 use vm_core::{
     crypto::{
         hash::RpoDigest,
         merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
     },
-    utils::{
-        collections::{BTreeMap, KvMap, RecordingMap, Vec},
-        IntoBytes,
-    },
+    utils::collections::{BTreeMap, KvMap, RecordingMap, Vec},
     AdviceInjector, SignatureKind,
 };
 
@@ -26,6 +23,9 @@ pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;
+
+mod map;
+pub use map::AdviceMap;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -528,7 +528,7 @@ pub trait AdviceProvider: Sized {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]>;
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]>;
 
     /// Inserts the provided value into the advice map under the specified key.
     ///
@@ -685,7 +685,7 @@ where
         T::get_signature(self, kind, pub_key, msg)
     }
 
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         T::get_mapped_values(self, key)
     }
 

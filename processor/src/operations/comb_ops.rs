@@ -1,4 +1,4 @@
-use vm_core::{Felt, Operation, StarkField, ONE, ZERO};
+use vm_core::{Felt, Operation, ONE, ZERO};
 
 use crate::{ExecutionError, Host, Process, QuadFelt};
 
@@ -171,8 +171,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use test_utils::rand::rand_array;
-    use vm_core::{Felt, FieldElement, Operation, StackInputs, StarkField, ONE, ZERO};
+    use crate::Vec;
+    use test_utils::{build_test, rand::rand_array};
+    use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
     use crate::{ContextId, Process, QuadFelt};
 
@@ -266,5 +267,101 @@ mod tests {
         // --- check that the helper registers were updated correctly -----------------------------
         let helper_reg_expected = [tz0, tz1, tgz0, tgz1, a0, a1];
         assert_eq!(helper_reg_expected, process.decoder.get_user_op_helpers());
+    }
+
+    #[test]
+    fn prove_verify() {
+        let source = "  begin
+                            # I) Prepare memory and stack
+
+                            # 1) Load T_i(x) for i=0,..,7
+                            push.0 padw
+                            adv_pipe
+
+                            # 2) Load [T_i(z), T_i(gz)] for i=0,..,7
+                            repeat.4
+                                adv_pipe
+                            end
+
+                            # 3) Load [a0, a1, 0, 0] for i=0,..,7
+                            repeat.4
+                                adv_pipe
+                            end
+
+                            # 4) Clean up stack
+                            dropw dropw dropw drop
+
+                            # 5) Prepare stack
+
+                            ## a) Push pointers
+                            push.10     # a_ptr
+                            push.2      # z_ptr
+                            push.0      # x_ptr
+
+                            ## b) Push accumulators
+                            padw
+
+                            ## c) Add padding for mem_stream
+                            padw padw
+
+                            # II) Execute `rcomb_base` op
+                            mem_stream
+                            repeat.8
+                                rcomb_base
+                            end
+                        end
+                        ";
+
+        // generate the data
+        let tx: [Felt; 8] = rand_array();
+        let tz_tgz: [QuadFelt; 16] = rand_array();
+        let a: [QuadFelt; 8] = rand_array();
+
+        // compute the expected values of the accumulators
+        let mut p = QuadFelt::ZERO;
+        let mut r = QuadFelt::ZERO;
+        let tz: Vec<QuadFelt> = tz_tgz.iter().step_by(2).map(|e| e.to_owned()).collect();
+        let tgz: Vec<QuadFelt> = tz_tgz.iter().skip(1).step_by(2).map(|e| e.to_owned()).collect();
+        for i in 0..8 {
+            p += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
+            r += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+        }
+
+        // prepare the advice stack with the generated data
+        let mut adv_stack = Vec::new();
+        let tz_tgz: Vec<Felt> = tz_tgz.iter().flat_map(|e| e.to_base_elements()).collect();
+        let a: Vec<Felt> = a
+            .iter()
+            .flat_map(|e| {
+                let element = e.to_base_elements();
+                [element[0], element[1], ZERO, ZERO]
+            })
+            .collect();
+        adv_stack.extend_from_slice(&tx);
+        adv_stack.extend_from_slice(&tz_tgz);
+        adv_stack.extend_from_slice(&a);
+        let adv_stack: Vec<u64> = adv_stack.iter().map(|e| e.as_int()).collect();
+
+        // create the expected operand stack
+        let mut expected = Vec::new();
+        // updated pointers
+        expected.extend_from_slice(&[ZERO, Felt::from(18_u8), Felt::from(10_u8), Felt::from(2_u8)]);
+        // updated accumulators
+        expected.extend_from_slice(&[
+            r.to_base_elements()[0],
+            r.to_base_elements()[1],
+            p.to_base_elements()[0],
+            p.to_base_elements()[1],
+        ]);
+        // the top 8 stack elements should equal tx since 8 calls to `rcomb_base` implies 8 circular
+        // shifts of the top 8 elements i.e., the identity map on the top 8 element.
+        expected.extend_from_slice(&tx);
+        let expected: Vec<u64> = expected.iter().rev().map(|e| e.as_int()).collect();
+
+        let test = build_test!(source, &[], &adv_stack);
+        test.expect_stack(&expected);
+
+        let pub_inputs: Vec<u64> = Vec::new();
+        test.prove_and_verify(pub_inputs, false);
     }
 }

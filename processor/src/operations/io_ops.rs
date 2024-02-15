@@ -1,6 +1,5 @@
 use super::{ExecutionError, Felt, Host, Operation, Process};
 use crate::Word;
-use vm_core::StarkField;
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -335,7 +334,7 @@ mod tests {
         assert_eq!(word, process.chiplets.get_mem_value(ContextId::root(), 1).unwrap());
 
         // --- calling MLOADW with address greater than u32::MAX leads to an error ----------------
-        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2))).unwrap();
         assert!(process.execute_op(Operation::MLoadW).is_err());
 
         // --- calling MLOADW with a stack of minimum depth is ok ----------------
@@ -364,7 +363,7 @@ mod tests {
         assert_eq!(word, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // --- calling MLOAD with address greater than u32::MAX leads to an error -----------------
-        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2))).unwrap();
         assert!(process.execute_op(Operation::MLoad).is_err());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
@@ -449,7 +448,7 @@ mod tests {
         assert_eq!(word2, process.chiplets.get_mem_value(ContextId::root(), 3).unwrap());
 
         // --- calling MSTOREW with address greater than u32::MAX leads to an error ----------------
-        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2))).unwrap();
         assert!(process.execute_op(Operation::MStoreW).is_err());
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
@@ -494,7 +493,7 @@ mod tests {
         assert_eq!(mem_2, process.chiplets.get_mem_value(ContextId::root(), 2).unwrap());
 
         // --- calling MSTORE with address greater than u32::MAX leads to an error ----------------
-        process.execute_op(Operation::Push(Felt::from(u64::MAX / 2))).unwrap();
+        process.execute_op(Operation::Push(Felt::new(u64::MAX / 2))).unwrap();
         assert!(process.execute_op(Operation::MStore).is_err());
 
         // --- calling MSTORE with a stack of minimum depth is ok ----------------

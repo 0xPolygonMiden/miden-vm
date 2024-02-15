@@ -8,7 +8,7 @@ use test_utils::{
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_vector_elements,
     math::fft,
-    Felt, FieldElement, IntoBytes, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
+    Felt, FieldElement, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
@@ -19,7 +19,7 @@ pub struct FriResult {
     pub partial_trees: Vec<PartialMerkleTree>,
 
     /// used to unhash Merkle nodes to a sequence of field elements representing the query-values.
-    pub advice_maps: Vec<([u8; 32], Vec<Felt>)>,
+    pub advice_maps: Vec<(RpoDigest, Vec<Felt>)>,
 
     /// A vector of consecutive quadruples of the form (poe, p, e1, e0) where p is index of the
     /// query at the first layer and (e1, e0) is its corresponding evaluation and poe is g^p with g
@@ -126,7 +126,7 @@ pub fn build_prover_channel(
 }
 
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {
-    let mut p = (0..trace_length as u64)
+    let mut p = (0..trace_length as u32)
         .map(|i| (i, i))
         .map(|(i, j)| QuadExt::new(i.into(), j.into()))
         .collect::<Vec<_>>();
@@ -147,8 +147,10 @@ fn verify_proof(
     domain_size: usize,
     positions: &[usize],
     options: &FriOptions,
-) -> Result<((Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>), VerifierError>
-{
+) -> Result<
+    ((Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>), Vec<u64>, Vec<u64>),
+    VerifierError,
+> {
     let mut channel = MidenFriVerifierChannel::<QuadExt, MidenHasher>::new(
         proof,
         commitments.clone(),
@@ -246,7 +248,7 @@ impl FriVerifierFold4Ext2 {
         evaluations: &[QuadExt],
         positions: &[usize],
     ) -> Result<
-        ((Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>), Vec<u64>, Vec<u64>),
+        ((Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>), Vec<u64>, Vec<u64>),
         VerifierError,
     > {
         // 1 ----- verify the recursive components of the FRI proof -----------------------------------
@@ -296,7 +298,7 @@ impl FriVerifierFold4Ext2 {
 fn iterate_query_fold_4_quad_ext(
     layer_alphas: &Vec<QuadExt>,
     partial_trees: &Vec<PartialMerkleTree>,
-    key_val_map: &Vec<([u8; 32], Vec<Felt>)>,
+    key_val_map: &Vec<(RpoDigest, Vec<Felt>)>,
     position: usize,
     number_of_layers: usize,
     initial_domain_size: usize,
@@ -334,7 +336,7 @@ fn iterate_query_fold_4_quad_ext(
             .unwrap();
         let query_values = &key_val_map
             .iter()
-            .filter(|(k, _)| *k == query_nodes.into_bytes())
+            .filter(|(k, _)| *k == query_nodes)
             .next()
             .expect("must contain the leaf values")
             .1;
@@ -399,7 +401,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
         positions_: &[usize],
         domain_size: usize,
         layer_commitments: Vec<MidenDigest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>) {
+    ) -> (Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>) {
         let queries = self.layer_queries().clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
@@ -448,7 +450,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
                 .map(|(a, b)| {
                     let mut value = QuadExt::slice_as_base_elements(b).to_owned();
                     value.extend(EMPTY_WORD);
-                    adv_key_map.push((a.to_owned().into_bytes(), value));
+                    adv_key_map.push((a.to_owned().into(), value));
                 })
                 .collect();
 

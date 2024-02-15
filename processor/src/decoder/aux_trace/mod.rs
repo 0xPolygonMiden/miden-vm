@@ -1,4 +1,4 @@
-use super::{Felt, StarkField, Vec, ONE, ZERO};
+use super::{Felt, Vec, ONE, ZERO};
 use crate::trace::AuxColumnBuilder;
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{FieldElement, Operation};

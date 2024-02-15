@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process, StarkField};
+use super::{ExecutionError, Felt, FieldElement, Host, Operation, Process};
 use vm_core::stack::STACK_TOP_SIZE;
 
 mod comb_ops;

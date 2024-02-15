@@ -1,7 +1,7 @@
 use super::{BTreeMap, Felt, RangeChecker, Vec, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
 use test_utils::rand::rand_array;
-use vm_core::{utils::ToElements, StarkField};
+use vm_core::utils::ToElements;
 
 #[test]
 fn range_checks() {
@@ -67,8 +67,8 @@ fn range_checks_rand() {
 // ================================================================================================
 
 fn validate_row(trace: &[Vec<Felt>], row_idx: &mut usize, value: u64, num_lookups: u64) {
-    assert_eq!(trace[0][*row_idx], Felt::from(num_lookups));
-    assert_eq!(trace[1][*row_idx], Felt::from(value));
+    assert_eq!(trace[0][*row_idx], Felt::try_from(num_lookups).unwrap());
+    assert_eq!(trace[1][*row_idx], Felt::try_from(value).unwrap());
     *row_idx += 1;
 }
 

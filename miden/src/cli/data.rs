@@ -8,7 +8,7 @@ use miden::{
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -85,7 +85,7 @@ pub struct InputFile {
 
 /// Helper methods to interact with the input file
 impl InputFile {
-    #[instrument(name = "Reading input file", skip_all)]
+    #[instrument(name = "read_input_file", skip_all)]
     pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // if file not specified explicitly and corresponding file with same name as program_path
         // with '.inputs' extension does't exist, set operand_stack to empty vector
@@ -151,13 +151,13 @@ impl InputFile {
             .iter()
             .map(|v| {
                 v.parse::<u64>()
-                    .map_err(|e| format!("failed to parse advice stack value `{v}` - {e}"))
+                    .map_err(|e| format!("failed to parse advice stack value '{v}': {e}"))
             })
             .collect::<Result<Vec<_>, _>>()
     }
 
     /// Parse advice map data from the input file.
-    fn parse_advice_map(&self) -> Result<Option<HashMap<[u8; 32], Vec<Felt>>>, String> {
+    fn parse_advice_map(&self) -> Result<Option<BTreeMap<RpoDigest, Vec<Felt>>>, String> {
         let advice_map = match &self.advice_map {
             Some(advice_map) => advice_map,
             None => return Ok(None),
@@ -166,23 +166,22 @@ impl InputFile {
         let map = advice_map
             .iter()
             .map(|(k, v)| {
-                // decode hex key
-                let mut key = [0u8; 32];
-                hex::decode_to_slice(k, &mut key)
-                    .map_err(|e| format!("failed to decode advice map key `{k}` - {e}"))?;
+                // Convert key to RpoDigest
+                let key = RpoDigest::try_from(k)
+                    .map_err(|e| format!("failed to decode advice map key '{k}': {e}"))?;
 
                 // convert values to Felt
                 let values = v
                     .iter()
                     .map(|v| {
                         Felt::try_from(*v).map_err(|e| {
-                            format!("failed to convert advice map value `{v}` to Felt - {e}")
+                            format!("failed to convert advice map value '{v}' to Felt: {e}")
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok((key, values))
             })
-            .collect::<Result<HashMap<[u8; 32], Vec<Felt>>, String>>()?;
+            .collect::<Result<BTreeMap<RpoDigest, Vec<Felt>>, String>>()?;
 
         Ok(Some(map))
     }
@@ -325,7 +324,7 @@ impl OutputFile {
     }
 
     /// Read the output file
-    #[instrument(name = "Reading output file", 
+    #[instrument(name = "read_output_file", 
         fields(path = %outputs_path.clone().unwrap_or(program_path.with_extension("outputs")).display()), skip_all)]
     pub fn read(outputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // If outputs_path has been provided then use this as path.  Alternatively we will
@@ -347,10 +346,10 @@ impl OutputFile {
     }
 
     /// Write the output file
-    #[instrument(name = "Writing data to output file", fields(path = %path.display()), skip_all)]
+    #[instrument(name = "write_data_to_output_file", fields(path = %path.display()), skip_all)]
     pub fn write(stack_outputs: &StackOutputs, path: &PathBuf) -> Result<(), String> {
         // if path provided, create output file
-        let file = fs::File::create(&path).map_err(|err| {
+        let file = fs::File::create(path).map_err(|err| {
             format!("Failed to create output file `{}` - {}", path.display(), err)
         })?;
 
@@ -385,10 +384,10 @@ pub struct ProgramFile {
 /// Helper methods to interact with masm program file.
 impl ProgramFile {
     /// Reads the masm file at the specified path and parses it into a [ProgramAst].
-    #[instrument(name = "Reading program file", fields(path = %path.display()))]
+    #[instrument(name = "read_program_file", fields(path = %path.display()))]
     pub fn read(path: &PathBuf) -> Result<Self, String> {
         // read program file to string
-        let source = fs::read_to_string(&path).map_err(|err| {
+        let source = fs::read_to_string(path).map_err(|err| {
             format!("Failed to open program file `{}` - {}\n", path.display(), err)
         })?;
 
@@ -404,7 +403,7 @@ impl ProgramFile {
     }
 
     /// Compiles this program file into a [Program].
-    #[instrument(name = "Compiling program", skip_all)]
+    #[instrument(name = "compile_program", skip_all)]
     pub fn compile<I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, String>
     where
         I: IntoIterator<Item = L>,
@@ -450,7 +449,7 @@ pub struct ProofFile;
 /// Helper methods to interact with proof file
 impl ProofFile {
     /// Read stark proof from file
-    #[instrument(name = "Reading proof file", 
+    #[instrument(name = "read_proof_file", 
         fields(path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display()), skip_all)]
     pub fn read(
         proof_path: &Option<PathBuf>,
@@ -473,7 +472,7 @@ impl ProofFile {
     }
 
     /// Write stark proof to file
-    #[instrument(name = "Writing data to proof file", 
+    #[instrument(name = "write_data_to_proof_file", 
                  fields(
                     path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display(), 
                     size = format!("{} KB", proof.to_bytes().len() / 1024)), skip_all)]
@@ -509,7 +508,7 @@ pub struct ProgramHash;
 
 /// Helper method to parse program hash from hex
 impl ProgramHash {
-    #[instrument(name = "Reading program hash", skip_all)]
+    #[instrument(name = "read_program_hash", skip_all)]
     pub fn read(hash_hex_string: &String) -> Result<Digest, String> {
         // decode hex to bytes
         let program_hash_bytes = hex::decode(hash_hex_string)
@@ -534,7 +533,7 @@ pub struct Libraries {
 
 impl Libraries {
     /// Creates a new instance of [Libraries] from a list of library paths.
-    #[instrument(name = "Reading library files", skip_all)]
+    #[instrument(name = "read_library_files", skip_all)]
     pub fn new<P, I>(paths: I) -> Result<Self, String>
     where
         P: AsRef<Path>,

@@ -1,4 +1,3 @@
-#[cfg(feature = "std")]
 use super::ast::instrument;
 use super::{
     ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
@@ -141,7 +140,7 @@ impl Assembler {
     ///
     /// # Errors
     /// Returns an error if the compilation of the specified program fails.
-    #[cfg_attr(feature = "std", instrument("Compile AST", skip_all))]
+    #[instrument("compile_ast", skip_all)]
     pub fn compile_ast(&self, program: &ProgramAst) -> Result<Program, AssemblyError> {
         // compile the program
         let mut context = AssemblyContext::for_program(Some(program));
@@ -197,9 +196,9 @@ impl Assembler {
     /// - If a module with the same path already exists in the module stack of the
     ///   [AssemblyContext].
     /// - If a lock to the [ProcedureCache] can not be attained.
-    #[cfg_attr(feature = "std", instrument(level = "trace", 
-                 name = "Compiling module", 
-                 fields(module = path.unwrap_or(&LibraryPath::anon_path()).path()), skip_all))]
+    #[instrument(level = "trace", 
+                 name = "compile_module", 
+                 fields(module = path.unwrap_or(&LibraryPath::anon_path()).path()), skip_all)]
     pub fn compile_module(
         &self,
         module: &ModuleAst,

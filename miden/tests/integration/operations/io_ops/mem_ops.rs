@@ -1,4 +1,4 @@
-use super::{apply_permutation, build_op_test, build_test, Felt, StarkField, ToElements};
+use super::{apply_permutation, build_op_test, build_test, Felt, ToElements};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================

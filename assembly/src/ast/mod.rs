@@ -10,7 +10,6 @@ use super::{
 };
 use vm_core::utils::bound_into_included_u64;
 
-#[cfg(feature = "std")]
 pub use tracing::{event, info_span, instrument, Level};
 
 pub use super::tokens::SourceLocation;
@@ -95,7 +94,6 @@ fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
 }
 
 /// Logging a warning message for every imported but unused module.
-#[cfg(feature = "std")]
 fn check_unused_imports(import_info: &ModuleImports) {
     let import_lib_paths = import_info.import_paths();
     let invoked_procs_paths: Vec<&LibraryPath> =

@@ -1,4 +1,3 @@
-#[cfg(feature = "std")]
 use super::super::ast::instrument;
 use super::{
     super::BTreeSet, AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError,
@@ -186,7 +185,7 @@ mod use_std {
         }
 
         /// Read a library from a file.
-        #[instrument(name = "Reading library file", fields(path = %path.as_ref().display()))]
+        #[instrument(name = "read_library_file", fields(path = %path.as_ref().display()))]
         pub fn read_from_file<P>(path: P) -> Result<MaslLibrary, LibraryError>
         where
             P: AsRef<Path>,

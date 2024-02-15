@@ -12,7 +12,7 @@ use vm_core::{
     chiplets::hasher,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
-    Operation, StarkField, ONE, ZERO,
+    Operation, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS
@@ -501,7 +501,7 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>> {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    let _aux_trace_builder = hasher.fill_trace(&mut fragment);
+    hasher.fill_trace(&mut fragment);
     trace
 }
 

@@ -2,8 +2,10 @@ use crate::ast::MAX_BODY_LEN;
 
 use super::{
     super::tokens::SourceLocation,
+    check_unused_imports,
     code_body::CodeBody,
     imports::ModuleImports,
+    instrument,
     nodes::Node,
     parsers::{parse_constants, ParserContext},
     serde::AstSerdeOptions,
@@ -19,10 +21,7 @@ use super::{
 
 use core::{fmt, iter};
 #[cfg(feature = "std")]
-use {
-    super::{check_unused_imports, instrument},
-    std::{fs, io, path::Path},
-};
+use std::{fs, io, path::Path};
 // PROGRAM AST
 // ================================================================================================
 
@@ -123,7 +122,7 @@ impl ProgramAst {
     /// Parses the provided source into a [ProgramAst].
     ///
     /// A program consist of a body and a set of internal (i.e., not exported) procedures.
-    #[cfg_attr(feature = "std", instrument(name = "Parsing program", skip_all))]
+    #[instrument(name = "parse_program", skip_all)]
     pub fn parse(source: &str) -> Result<ProgramAst, ParsingError> {
         let mut tokens = TokenStream::new(source)?;
         let mut import_info = ModuleImports::parse(&mut tokens)?;
@@ -182,7 +181,6 @@ impl ProgramAst {
             return Err(ParsingError::dangling_ops_after_program(token));
         }
 
-        #[cfg(feature = "std")]
         check_unused_imports(context.import_info);
 
         let local_procs = sort_procs_into_vec(context.local_procs);
@@ -214,12 +212,12 @@ impl ProgramAst {
         // serialize procedures
         assert!(self.local_procs.len() <= MAX_LOCAL_PROCS, "too many local procs");
         target.write_u16(self.local_procs.len() as u16);
-        self.local_procs.write_into(target);
+        target.write_many(&self.local_procs);
 
         // serialize program body
         assert!(self.body.nodes().len() <= MAX_BODY_LEN, "too many body instructions");
         target.write_u16(self.body.nodes().len() as u16);
-        self.body.nodes().write_into(target);
+        target.write_many(self.body.nodes());
     }
 
     /// Returns byte representation of this [ProgramAst].
@@ -247,12 +245,12 @@ impl ProgramAst {
         };
 
         // deserialize local procs
-        let num_local_procs = source.read_u16()?;
-        let local_procs = Deserializable::read_batch_from(source, num_local_procs as usize)?;
+        let num_local_procs = source.read_u16()?.into();
+        let local_procs = source.read_many::<ProcedureAst>(num_local_procs)?;
 
         // deserialize program body
         let body_len = source.read_u16()? as usize;
-        let nodes = Deserializable::read_batch_from(source, body_len)?;
+        let nodes = source.read_many::<Node>(body_len)?;
 
         match Self::new(nodes, local_procs) {
             Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),

@@ -232,7 +232,7 @@ pub fn bitwise_and<E: FieldElement>(decomposed_values: &[E]) -> E {
     for idx in 0..NUM_DECOMP_BITS {
         let a = decomposed_values[idx];
         let b = decomposed_values[idx + NUM_DECOMP_BITS];
-        result += E::from(2_u64.pow(idx as u32)) * a * b
+        result += E::from(2_u32.pow(idx as u32)) * a * b
     }
     result
 }
@@ -245,7 +245,7 @@ pub fn bitwise_xor<E: FieldElement>(decomposed_values: &[E]) -> E {
     for idx in 0..NUM_DECOMP_BITS {
         let a = decomposed_values[idx];
         let b = decomposed_values[idx + NUM_DECOMP_BITS];
-        result += E::from(2_u64.pow(idx as u32)) * (a + b - E::from(2_u8) * a * b)
+        result += E::from(2_u32.pow(idx as u32)) * (a + b - E::from(2_u8) * a * b)
     }
     result
 }
@@ -407,7 +407,7 @@ pub fn agg_bits<E: FieldElement>(row: &[E], start_idx: usize) -> E {
     // thus, in theory, we could just aggregate results in a 128-bit integer and perform only a
     // single reduction in the end. This works only when we are in the base field."
     for bit_idx in 0..NUM_DECOMP_BITS {
-        result += E::from(2_u64.pow(bit_idx as u32)) * row[start_idx + bit_idx];
+        result += E::from(2_u32.pow(bit_idx as u32)) * row[start_idx + bit_idx];
     }
     result
 }

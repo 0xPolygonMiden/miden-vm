@@ -4,7 +4,7 @@ use super::{
 };
 use crate::utils::bound_into_included_u64;
 use core::ops::RangeBounds;
-use vm_core::{Decorator, FieldElement, StarkField};
+use vm_core::{Decorator, FieldElement};
 
 mod adv_ops;
 mod crypto_ops;
