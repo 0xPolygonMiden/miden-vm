@@ -257,7 +257,7 @@ fn prepare_insert_or_set(
     key: RpoDigest,
     value: Word,
     smt: &mut Smt,
-) -> (Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+) -> (Vec<u64>, Vec<u64>, MerkleStore, Vec<(RpoDigest, Vec<Felt>)>) {
     // set initial state of the stack to be [VALUE, KEY, ROOT, ...]
     let mut initial_stack = Vec::new();
     append_word_to_vec(&mut initial_stack, smt.root().into());
@@ -274,13 +274,13 @@ fn prepare_insert_or_set(
     (initial_stack, expected_output, store, advice_map)
 }
 
-fn build_advice_inputs(smt: &Smt) -> (MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+fn build_advice_inputs(smt: &Smt) -> (MerkleStore, Vec<(RpoDigest, Vec<Felt>)>) {
     let store = MerkleStore::from(smt);
     let advice_map = smt
         .leaves()
         .map(|(_, leaf)| {
             let leaf_hash = leaf.hash();
-            (leaf_hash.as_bytes(), leaf.to_elements())
+            (leaf_hash, leaf.to_elements())
         })
         .collect::<Vec<_>>();
 

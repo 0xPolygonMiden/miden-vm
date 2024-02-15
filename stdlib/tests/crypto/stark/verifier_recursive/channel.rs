@@ -7,7 +7,7 @@ use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
     group_vector_elements,
     math::{FieldElement, QuadExtension, StarkField},
-    Felt, IntoBytes, VerifierError, EMPTY_WORD,
+    Felt, VerifierError, EMPTY_WORD,
 };
 use winter_air::{
     proof::{Queries, StarkProof, Table},
@@ -162,7 +162,7 @@ impl VerifierChannel {
     pub fn read_queried_trace_states(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, Vec<PartialMerkleTree>), VerifierError> {
+    ) -> Result<(Vec<(RpoDigest, Vec<Felt>)>, Vec<PartialMerkleTree>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
         let mut trees = Vec::new();
 
@@ -192,7 +192,7 @@ impl VerifierChannel {
     pub fn read_constraint_evaluations(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<([u8; 32], Vec<Felt>)>, PartialMerkleTree), VerifierError> {
+    ) -> Result<(Vec<(RpoDigest, Vec<Felt>)>, PartialMerkleTree), VerifierError> {
         let queries = self.constraint_queries.take().expect("already read");
         let proof = queries.query_proofs;
 
@@ -226,7 +226,7 @@ impl VerifierChannel {
         positions_: &[usize],
         domain_size: usize,
         layer_commitments: Vec<RpoDigest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>) {
+    ) -> (Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>) {
         let queries = self.fri_layer_queries.clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
@@ -276,7 +276,7 @@ impl VerifierChannel {
                     let mut value = QuadExt::slice_as_base_elements(b).to_owned();
                     value.extend(EMPTY_WORD);
 
-                    adv_key_map.push((a.to_owned().into_bytes(), value));
+                    adv_key_map.push((a.to_owned().into(), value));
                 })
                 .collect();
 
@@ -484,7 +484,7 @@ pub fn unbatch_to_partial_mt(
     mut positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
-) -> (PartialMerkleTree, Vec<([u8; 32], Vec<Felt>)>) {
+) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
     let mut unbatched_proof = proof.into_paths(&positions).unwrap();
     let mut adv_key_map = Vec::new();
     let nodes: Vec<[Felt; 4]> = unbatched_proof
@@ -512,7 +512,7 @@ pub fn unbatch_to_partial_mt(
         .zip(queries.iter())
         .map(|(a, b)| {
             let data = b.to_owned();
-            adv_key_map.push((a.to_owned().into_bytes(), data));
+            adv_key_map.push((a.to_owned().into(), data));
         })
         .collect();
 

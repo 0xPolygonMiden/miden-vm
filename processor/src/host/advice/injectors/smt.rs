@@ -88,7 +88,7 @@ fn get_smt_leaf_preimage<A: AdviceProvider>(
     advice_provider: &A,
     node: Word,
 ) -> Result<Vec<(Word, Word)>, ExecutionError> {
-    let node_bytes = RpoDigest::from(node).as_bytes();
+    let node_bytes = RpoDigest::from(node);
 
     let kv_pairs = advice_provider
         .get_mapped_values(&node_bytes)
