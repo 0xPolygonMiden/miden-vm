@@ -3,7 +3,6 @@ use miden::ModuleAst;
 use processor::ExecutionError;
 use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
-use vm_core::StarkField;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================

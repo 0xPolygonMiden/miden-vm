@@ -1,4 +1,4 @@
-use super::super::{AdviceSource, ExecutionError, Felt, HostResponse, StarkField};
+use super::super::{AdviceSource, ExecutionError, Felt, HostResponse};
 use crate::{AdviceProvider, Ext2InttError, FieldElement, ProcessState, Vec};
 use vm_core::{QuadExtension, SignatureKind};
 use winter_prover::math::fft;

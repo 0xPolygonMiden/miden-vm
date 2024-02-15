@@ -1,6 +1,6 @@
 use super::{
     injectors, AdviceInputs, AdviceProvider, AdviceSource, BTreeMap, ExecutionError, Felt, KvMap,
-    MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StarkField, StoreNode, Vec, Word,
+    MerklePath, MerkleStore, NodeIndex, RecordingMap, RpoDigest, StoreNode, Vec, Word,
 };
 use crate::ProcessState;
 use vm_core::SignatureKind;
@@ -96,7 +96,8 @@ where
 
                 self.stack.extend(values.iter().rev());
                 if include_len {
-                    self.stack.push(Felt::from(values.len() as u64));
+                    self.stack
+                        .push(Felt::try_from(values.len() as u64).expect("value length too big"));
                 }
             }
         }

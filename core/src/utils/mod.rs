@@ -1,4 +1,4 @@
-use super::{Felt, StarkField};
+use super::Felt;
 use core::fmt::{self, Write};
 use core::{
     fmt::Debug,

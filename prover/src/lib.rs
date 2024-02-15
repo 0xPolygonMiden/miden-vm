@@ -9,7 +9,6 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
-#[cfg(feature = "std")]
 use tracing::{event, instrument, Level};
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
@@ -18,9 +17,7 @@ use winter_prover::{
 };
 
 #[cfg(feature = "std")]
-use std::time::Instant;
-#[cfg(feature = "std")]
-use winter_prover::Trace;
+use {std::time::Instant, winter_prover::Trace};
 
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 mod gpu;
@@ -47,7 +44,7 @@ pub use winter_prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-#[cfg_attr(feature = "std", instrument("Proving program", skip_all))]
+#[instrument("prove_program", skip_all)]
 pub fn prove<H>(
     program: &Program,
     stack_inputs: StackInputs,
@@ -63,17 +60,12 @@ where
     let trace =
         processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
     #[cfg(feature = "std")]
-    let padding_percentage = (trace.trace_len_summary().padded_trace_len()
-        - trace.trace_len_summary().trace_len())
-        * 100
-        / trace.trace_len_summary().padded_trace_len();
-    #[cfg(feature = "std")]
     event!(
         Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
         trace.layout().main_trace_width(),
         trace.trace_len_summary().padded_trace_len(),
-        padding_percentage,
+        trace.trace_len_summary().padding_percentage(),
         now.elapsed().as_millis()
     );
 

@@ -6,7 +6,7 @@ use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
 use crate::trace::decoder::USER_OP_HELPERS_OFFSET;
 use core::ops::Neg;
 use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, Operation, StarkField, ONE, ZERO};
+use vm_core::{Felt, FieldElement, Operation, ONE, ZERO};
 
 use proptest::prelude::*;
 

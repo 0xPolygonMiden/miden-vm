@@ -1,11 +1,12 @@
 use core::fmt;
+use winter_utils::string::String;
 
 // INPUT ERROR
 // ================================================================================================
 
 #[derive(Clone, Debug)]
 pub enum InputError {
-    NotFieldElement(u64, &'static str),
+    NotFieldElement(u64, String),
     DuplicateAdviceRoot([u8; 32]),
 }
 

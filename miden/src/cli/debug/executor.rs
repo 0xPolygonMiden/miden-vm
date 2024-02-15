@@ -1,7 +1,6 @@
 use super::DebugCommand;
 use miden::{
-    math::{Felt, StarkField},
-    DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
+    math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
 };
 
 /// Holds debugger state and iterator used for debugging.

@@ -1,4 +1,4 @@
-use test_utils::{build_op_test, build_test, Felt, StarkField, TestError, ToElements};
+use test_utils::{build_op_test, build_test, Felt, TestError, ToElements};
 use vm_core::chiplets::hasher::apply_permutation;
 
 mod adv_ops;

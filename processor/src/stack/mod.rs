@@ -1,6 +1,5 @@
 use super::{
-    BTreeMap, ColMatrix, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE,
-    STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
@@ -10,7 +9,7 @@ use trace::StackTrace;
 
 mod overflow;
 use overflow::OverflowTable;
-pub use overflow::{OverflowTableRow, OverflowTableUpdate};
+pub use overflow::OverflowTableRow;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -190,7 +189,9 @@ impl Stack {
         self.trace.copy_stack_state_at(
             self.clk,
             start_pos,
-            Felt::from(self.active_depth as u64),
+            // TODO: change type of `active_depth` to `u32`
+            Felt::try_from(self.active_depth as u64)
+                .expect("value is greater than or equal to the field modulus"),
             self.overflow.last_row_addr(),
         );
     }
@@ -240,7 +241,7 @@ impl Stack {
 
         // Update the overflow table.
         let to_overflow = self.trace.get_stack_value_at(self.clk, MAX_TOP_IDX);
-        self.overflow.push(to_overflow, self.clk as u64);
+        self.overflow.push(to_overflow, Felt::from(self.clk));
 
         // Stack depth always increases on right shift.
         self.active_depth += 1;

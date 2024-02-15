@@ -1,5 +1,5 @@
 use super::{BTreeMap, Felt, Vec};
-use vm_core::{utils::collections::btree_map::IntoIter, crypto::hash::RpoDigest};
+use vm_core::{crypto::hash::RpoDigest, utils::collections::btree_map::IntoIter};
 
 // ADVICE MAP
 // ================================================================================================
@@ -8,7 +8,7 @@ use vm_core::{utils::collections::btree_map::IntoIter, crypto::hash::RpoDigest};
 ///
 /// Each key maps to one or more field element. To access the elements, the VM can move the values
 /// associated with a given key onto the advice stack using `adv.push_mapval` instruction. The VM
-/// can also insert new values into the advice map during execution. 
+/// can also insert new values into the advice map during execution.
 #[derive(Debug, Clone, Default)]
 pub struct AdviceMap(BTreeMap<RpoDigest, Vec<Felt>>);
 

@@ -1,7 +1,11 @@
-use super::{ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
+use super::{Felt, Vec, NUM_RAND_ROWS};
 use crate::chiplets::Chiplets;
 use core::slice;
-use vm_core::utils::uninit_vector;
+use miden_air::trace::main_trace::MainTrace;
+use vm_core::{utils::uninit_vector, FieldElement};
+
+#[cfg(test)]
+use vm_core::{utils::ToElements, Operation};
 
 // TRACE FRAGMENT
 // ================================================================================================
@@ -68,176 +72,6 @@ impl<'a> TraceFragment<'a> {
     }
 }
 
-// LOOKUP TABLES
-// ================================================================================================
-
-/// Defines a single row in a lookup table defined via multiset checks.
-pub trait LookupTableRow {
-    /// Returns a single element representing the row in the field defined by E. The value is
-    /// computed using the provided random values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(
-        &self,
-        main_trace: &ColMatrix<Felt>,
-        rand_values: &[E],
-    ) -> E;
-}
-
-/// Computes values as well as inverse value for all specified lookup table rows.
-///
-/// To compute the inverses of row values we use a modified version of batch inversion algorithm.
-/// The main modification is that we don't need to check for ZERO values, because, assuming
-/// random values are drawn from a large enough field, coming across a ZERO value should be
-/// computationally infeasible.
-pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
-    rows: &[R],
-    main_trace: &ColMatrix<Felt>,
-    rand_values: &[E],
-) -> (Vec<E>, Vec<E>) {
-    let mut row_values = unsafe { uninit_vector(rows.len()) };
-    let mut inv_row_values = unsafe { uninit_vector(rows.len()) };
-
-    // compute row values and compute their product
-    let mut acc = E::ONE;
-    for ((row, value), inv_value) in
-        rows.iter().zip(row_values.iter_mut()).zip(inv_row_values.iter_mut())
-    {
-        *inv_value = acc;
-        *value = row.to_value(main_trace, rand_values);
-        debug_assert_ne!(*value, E::ZERO, "row value cannot be ZERO");
-
-        acc *= *value;
-    }
-
-    // invert the accumulated product
-    acc = acc.inv();
-
-    // multiply the accumulated value by original values to compute inverses
-    for i in (0..row_values.len()).rev() {
-        inv_row_values[i] *= acc;
-        acc *= row_values[i];
-    }
-
-    (row_values, inv_row_values)
-}
-
-// AUX COLUMN BUILDER
-// ================================================================================================
-
-/// Defines a builder responsible for building a single column in an auxiliary segment of the
-/// execution trace.
-pub trait AuxColumnBuilder<H: Clone, R: LookupTableRow, U: HintCycle> {
-    // REQUIRED METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns an exhaustive list of rows which are present in the table.
-    fn get_table_rows(&self) -> &[R];
-
-    /// Returns a sequence of hints which indicate how the table was updated. Each hint consists
-    /// of a clock cycle at which the update happened as well as the hint describing the update.
-    fn get_table_hints(&self) -> &[(U, H)];
-
-    /// Returns a value by which the current value of the column should be multiplied to get the
-    /// next value. It is expected that this value should never be ZERO in practice.
-    fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
-        &self,
-        hint: H,
-        row_values: &[E],
-        inv_row_values: &[E],
-    ) -> E;
-
-    // PROVIDED METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Builds and returns the auxiliary trace column managed by this builder.
-    fn build_aux_column<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> Vec<E>
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
-        // compute row values and their inverses for all rows that were added to the table
-        let (row_values, inv_row_values) = self.build_row_values(main_trace, alphas);
-
-        // allocate memory for the running product column and set its initial value
-        let mut result = unsafe { uninit_vector(main_trace.num_rows()) };
-        result[0] = self.init_column_value(&row_values);
-
-        // keep track of the last updated row in the running product column
-        let mut result_idx = 0_usize;
-
-        // iterate through the list of updates and apply them one by one
-        for (clk, hint) in self.get_table_hints() {
-            let clk = clk.as_index();
-
-            // if we skipped some cycles since the last update was processed, values in the last
-            // updated row should by copied over until the current cycle.
-            if result_idx < clk {
-                let last_value = result[result_idx];
-                result[(result_idx + 1)..=clk].fill(last_value);
-            }
-
-            // move the result pointer to the next row
-            result_idx = clk + 1;
-
-            // apply the relevant updates to the column; since the multiplicand value should be
-            // generated by "mixing-in" random values from a large field, the probability that we
-            // get a ZERO should be negligible (i.e., it should never come up in practice).
-            let multiplicand = self.get_multiplicand(hint.clone(), &row_values, &inv_row_values);
-            debug_assert_ne!(E::ZERO, multiplicand);
-            result[result_idx] = result[clk] * multiplicand;
-        }
-
-        // after all updates have been processed, the table should not change; we make sure that
-        // the last value in the column is equal to the expected value, and fill in all the
-        // remaining column values with the last value
-        let last_value = result[result_idx];
-        assert_eq!(last_value, self.final_column_value(&row_values));
-        if result_idx < result.len() - 1 {
-            result[(result_idx + 1)..].fill(last_value);
-        }
-
-        result
-    }
-
-    /// Builds and returns row values and their inverses for all rows which were added to the
-    /// lookup table managed by this column builder.
-    fn build_row_values<E>(&self, main_trace: &ColMatrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
-        build_lookup_table_row_values(self.get_table_rows(), main_trace, alphas)
-    }
-
-    /// Returns the initial value in the auxiliary column. Default implementation of this method
-    /// returns ONE.
-    fn init_column_value<E: FieldElement<BaseField = Felt>>(&self, _row_values: &[E]) -> E {
-        E::ONE
-    }
-
-    /// Returns the final value in the auxiliary column. Default implementation of this method
-    /// returns ONE.
-    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, _row_values: &[E]) -> E {
-        E::ONE
-    }
-}
-
-/// Defines a simple trait to recognize the possible types of clock cycles associated with auxiliary
-/// column update hints.
-pub trait HintCycle {
-    /// Returns the cycle as a `usize` for indexing.
-    fn as_index(&self) -> usize;
-}
-
-impl HintCycle for u32 {
-    fn as_index(&self) -> usize {
-        *self as usize
-    }
-}
-
-impl HintCycle for u64 {
-    fn as_index(&self) -> usize {
-        *self as usize
-    }
-}
-
 // TRACE LENGTH SUMMARY
 // ================================================================================================
 
@@ -267,12 +101,12 @@ impl TraceLenSummary {
         }
     }
 
-    /// Returns length of the main trace
+    /// Returns length of the main trace.
     pub fn main_trace_len(&self) -> usize {
         self.main_trace_len
     }
 
-    /// Returns length of the range table
+    /// Returns length of the range checker trace.
     pub fn range_trace_len(&self) -> usize {
         self.range_trace_len
     }
@@ -292,6 +126,12 @@ impl TraceLenSummary {
     /// Returns `trace_len` rounded up to the next power of two.
     pub fn padded_trace_len(&self) -> usize {
         (self.trace_len() + NUM_RAND_ROWS).next_power_of_two()
+    }
+
+    /// Returns the percent (0 - 100) of the steps that were added to the trace to pad it to the
+    /// next power of tow.
+    pub fn padding_percentage(&self) -> usize {
+        (self.padded_trace_len() - self.trace_len()) * 100 / self.padded_trace_len()
     }
 }
 
@@ -361,10 +201,59 @@ impl ChipletsLengths {
     }
 }
 
+// AUXILIARY COLUMN BUILDER
+// ================================================================================================
+
+/// Defines a builder responsible for building a single column in an auxiliary segment of the
+/// execution trace.
+pub trait AuxColumnBuilder<E: FieldElement<BaseField = Felt>> {
+    // REQUIRED METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row_idx: usize) -> E;
+
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row_idx: usize) -> E;
+
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn init_requests(&self, _main_trace: &MainTrace, _alphas: &[E]) -> E {
+        E::ONE
+    }
+
+    fn init_responses(&self, _main_trace: &MainTrace, _alphas: &[E]) -> E {
+        E::ONE
+    }
+
+    /// Builds the chiplets bus auxiliary trace column.
+    fn build_aux_column(&self, main_trace: &MainTrace, alphas: &[E]) -> Vec<E> {
+        let mut responses_prod: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+        let mut requests: Vec<E> = unsafe { uninit_vector(main_trace.num_rows()) };
+
+        responses_prod[0] = self.init_responses(main_trace, alphas);
+        requests[0] = self.init_requests(main_trace, alphas);
+
+        let mut requests_running_prod = E::ONE;
+        for row_idx in 0..main_trace.num_rows() - 1 {
+            responses_prod[row_idx + 1] =
+                responses_prod[row_idx] * self.get_responses_at(main_trace, alphas, row_idx);
+            requests[row_idx + 1] = self.get_requests_at(main_trace, alphas, row_idx);
+            requests_running_prod *= requests[row_idx + 1];
+        }
+
+        let mut requests_running_divisor = requests_running_prod.inv();
+        let mut result_aux_column = responses_prod;
+        for i in (0..main_trace.num_rows()).rev() {
+            result_aux_column[i] *= requests_running_divisor;
+            requests_running_divisor *= requests[i];
+        }
+        result_aux_column
+    }
+}
+
 // TEST HELPERS
 // ================================================================================================
-#[cfg(test)]
-use vm_core::{utils::ToElements, Operation};
+
 #[cfg(test)]
 pub fn build_span_with_respan_ops() -> (Vec<Operation>, Vec<Felt>) {
     let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();

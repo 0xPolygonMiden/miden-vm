@@ -113,26 +113,26 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
-    let before = CodeBlock::new_span(vec![Operation::Push(2u64.into())]);
+    let before = CodeBlock::new_span(vec![Operation::Push(2u32.into())]);
 
-    let r#true = CodeBlock::new_span(vec![Operation::Push(3u64.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(5u64.into())]);
+    let r#true = CodeBlock::new_span(vec![Operation::Push(3u32.into())]);
+    let r#false = CodeBlock::new_span(vec![Operation::Push(5u32.into())]);
     let r#if = CodeBlock::new_split(r#true, r#false);
 
-    let r#true = CodeBlock::new_span(vec![Operation::Push(7u64.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(11u64.into())]);
+    let r#true = CodeBlock::new_span(vec![Operation::Push(7u32.into())]);
+    let r#false = CodeBlock::new_span(vec![Operation::Push(11u32.into())]);
     let r#true = CodeBlock::new_split(r#true, r#false);
     let r#while = CodeBlock::new_span(vec![
-        Operation::Push(17u64.into()),
-        Operation::Push(19u64.into()),
-        Operation::Push(23u64.into()),
+        Operation::Push(17u32.into()),
+        Operation::Push(19u32.into()),
+        Operation::Push(23u32.into()),
     ]);
     let r#while = CodeBlock::new_loop(r#while);
-    let span = CodeBlock::new_span(vec![Operation::Push(13u64.into())]);
+    let span = CodeBlock::new_span(vec![Operation::Push(13u32.into())]);
     let r#false = CodeBlock::new_join([span, r#while]);
     let nested = CodeBlock::new_split(r#true, r#false);
 
-    let exec = CodeBlock::new_span(vec![Operation::Push(29u64.into())]);
+    let exec = CodeBlock::new_span(vec![Operation::Push(29u32.into())]);
 
     let combined = combine_blocks(vec![before, r#if, nested, exec, syscall]);
     let program = assembler.compile(program).unwrap();

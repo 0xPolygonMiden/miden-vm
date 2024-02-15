@@ -2,7 +2,7 @@ use crate::build_test;
 use crate::math::ecgfp5::base_field::Ext5;
 use crate::math::ecgfp5::group::ECExt5;
 use std::ops::Add;
-use test_utils::{rand::rand_array, Felt, FieldElement, StarkField};
+use test_utils::{rand::rand_array, Felt, FieldElement};
 
 fn gen_random_private_key() -> [u32; 10] {
     rand_array::<u32, 10>()

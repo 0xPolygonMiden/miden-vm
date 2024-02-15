@@ -1,5 +1,5 @@
 use super::HostResponse;
-use crate::{ExecutionError, Felt, InputError, ProcessState, StarkField, Word};
+use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
 use core::borrow::Borrow;
 use vm_core::{
     crypto::{

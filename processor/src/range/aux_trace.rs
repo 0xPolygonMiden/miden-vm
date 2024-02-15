@@ -1,6 +1,6 @@
-use super::{uninit_vector, BTreeMap, ColMatrix, Felt, FieldElement, Vec, NUM_RAND_ROWS};
+use super::{uninit_vector, BTreeMap, Felt, FieldElement, Vec, NUM_RAND_ROWS};
+use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
-use vm_core::StarkField;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -42,7 +42,7 @@ impl AuxTraceBuilder {
     ///   requested by the Stack and Memory processors.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
         let b_range = self.build_aux_col_b_range(main_trace, rand_elements);
@@ -53,7 +53,7 @@ impl AuxTraceBuilder {
     /// check lookups performed by user operations match those executed by the Range Checker.
     fn build_aux_col_b_range<E: FieldElement<BaseField = Felt>>(
         &self,
-        main_trace: &ColMatrix<Felt>,
+        main_trace: &MainTrace,
         rand_elements: &[E],
     ) -> Vec<E> {
         // run batch inversion on the lookup values
