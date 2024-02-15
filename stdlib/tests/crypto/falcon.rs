@@ -50,7 +50,7 @@ fn falcon_prove_verify() {
 fn generate_test(
     keypair: KeyPair,
     message: Word,
-) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<([u8; 32], Vec<Felt>)>) {
+) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
     let source = "
     use.std::crypto::dsa::rpo_falcon512
 
