@@ -6,10 +6,7 @@ use vm_core::{
         hash::RpoDigest,
         merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
     },
-    utils::{
-        collections::{BTreeMap, KvMap, RecordingMap, Vec},
-        IntoBytes,
-    },
+    utils::collections::{BTreeMap, KvMap, RecordingMap, Vec},
     AdviceInjector, SignatureKind,
 };
 
@@ -26,6 +23,8 @@ pub use providers::{MemAdviceProvider, RecAdviceProvider};
 
 mod source;
 pub use source::AdviceSource;
+
+mod map;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -528,7 +527,7 @@ pub trait AdviceProvider: Sized {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the value(s) associated with the specified key in the advice map.
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]>;
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]>;
 
     /// Inserts the provided value into the advice map under the specified key.
     ///
@@ -685,7 +684,7 @@ where
         T::get_signature(self, kind, pub_key, msg)
     }
 
-    fn get_mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
+    fn get_mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
         T::get_mapped_values(self, key)
     }
 

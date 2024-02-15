@@ -8,7 +8,7 @@ use miden::{
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -157,7 +157,7 @@ impl InputFile {
     }
 
     /// Parse advice map data from the input file.
-    fn parse_advice_map(&self) -> Result<Option<HashMap<[u8; 32], Vec<Felt>>>, String> {
+    fn parse_advice_map(&self) -> Result<Option<BTreeMap<RpoDigest, Vec<Felt>>>, String> {
         let advice_map = match &self.advice_map {
             Some(advice_map) => advice_map,
             None => return Ok(None),
@@ -166,9 +166,8 @@ impl InputFile {
         let map = advice_map
             .iter()
             .map(|(k, v)| {
-                // decode hex key
-                let mut key = [0u8; 32];
-                hex::decode_to_slice(k, &mut key)
+                // Convert key to RpoDigest
+                let mut key = RpoDigest::try_from(k)
                     .map_err(|e| format!("failed to decode advice map key `{k}` - {e}"))?;
 
                 // convert values to Felt
@@ -182,7 +181,7 @@ impl InputFile {
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok((key, values))
             })
-            .collect::<Result<HashMap<[u8; 32], Vec<Felt>>, String>>()?;
+            .collect::<Result<BTreeMap<RpoDigest, Vec<Felt>>, String>>()?;
 
         Ok(Some(map))
     }

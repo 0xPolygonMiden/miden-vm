@@ -1,3 +1,4 @@
+use processor::Digest;
 use test_utils::{
     crypto::{BatchMerkleProof, ElementHasher, Hasher as HasherTrait, PartialMerkleTree},
     math::fft,
@@ -12,7 +13,7 @@ pub trait UnBatch<E: FieldElement, H: ElementHasher> {
         positions: &[usize],
         domain_size: usize,
         layer_commitments: Vec<<H as HasherTrait>::Digest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<([u8; 32], Vec<Felt>)>);
+    ) -> (Vec<PartialMerkleTree>, Vec<(Digest, Vec<Felt>)>);
 }
 
 pub struct MidenFriVerifierChannel<E: FieldElement, H: ElementHasher<BaseField = E::BaseField>> {

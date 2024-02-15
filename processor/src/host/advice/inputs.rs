@@ -1,4 +1,6 @@
-use super::{BTreeMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
+use vm_core::crypto::hash::RpoDigest;
+
+use super::{map::AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
 
 // ADVICE INPUTS
 // ================================================================================================
@@ -18,7 +20,7 @@ use super::{BTreeMap, Felt, InnerNodeInfo, InputError, MerkleStore, Vec};
 #[derive(Clone, Debug, Default)]
 pub struct AdviceInputs {
     stack: Vec<Felt>,
-    map: BTreeMap<[u8; 32], Vec<Felt>>,
+    map: AdviceMap,
     store: MerkleStore,
 }
 
@@ -53,7 +55,7 @@ impl AdviceInputs {
     /// Extends the map of values with the given argument, replacing previously inserted items.
     pub fn with_map<I>(mut self, iter: I) -> Self
     where
-        I: IntoIterator<Item = ([u8; 32], Vec<Felt>)>,
+        I: IntoIterator<Item = (RpoDigest, Vec<Felt>)>,
     {
         self.map.extend(iter);
         self
@@ -79,7 +81,7 @@ impl AdviceInputs {
     /// Extends the map of values with the given argument, replacing previously inserted items.
     pub fn extend_map<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = ([u8; 32], Vec<Felt>)>,
+        I: IntoIterator<Item = (RpoDigest, Vec<Felt>)>,
     {
         self.map.extend(iter);
     }
@@ -108,8 +110,8 @@ impl AdviceInputs {
     }
 
     /// Fetch a values set mapped by the given key.
-    pub fn mapped_values(&self, key: &[u8; 32]) -> Option<&[Felt]> {
-        self.map.get(key).map(Vec::as_slice)
+    pub fn mapped_values(&self, key: &RpoDigest) -> Option<&[Felt]> {
+        self.map.get(key)
     }
 
     /// Returns the underlying [MerkleStore].
@@ -122,7 +124,7 @@ impl AdviceInputs {
 
     /// Decomposes these `[Self]` into their raw components.
     #[allow(clippy::type_complexity)]
-    pub(crate) fn into_parts(self) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, MerkleStore) {
+    pub(crate) fn into_parts(self) -> (Vec<Felt>, AdviceMap, MerkleStore) {
         let Self { stack, map, store } = self;
         (stack, map, store)
     }
@@ -135,6 +137,6 @@ impl AdviceInputs {
 #[derive(Clone, Debug, Default)]
 pub struct AdviceInputs {
     pub stack: Vec<Felt>,
-    pub map: BTreeMap<[u8; 32], Vec<Felt>>,
+    pub map: AdviceMap,
     pub store: MerkleStore,
 }

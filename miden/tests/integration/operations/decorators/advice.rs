@@ -1,4 +1,9 @@
-use test_utils::{build_test, crypto::MerkleStore, rand::rand_value, Felt};
+use test_utils::{
+    build_test,
+    crypto::{MerkleStore, RpoDigest},
+    rand::rand_value,
+    Felt,
+};
 
 // ADVICE INJECTION
 // ================================================================================================
@@ -191,7 +196,7 @@ fn advice_push_mapval() {
 
     let stack_inputs = [1, 2, 3, 4];
     let adv_map = [(
-        key_to_bytes(stack_inputs),
+        RpoDigest::try_from(stack_inputs).unwrap(),
         vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
     )];
 
@@ -216,7 +221,7 @@ fn advice_push_mapval() {
 
     let stack_inputs = [1, 2, 3, 4];
     let adv_map = [(
-        key_to_bytes(stack_inputs),
+        RpoDigest::try_from(stack_inputs).unwrap(),
         vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
     )];
 
@@ -239,7 +244,7 @@ fn advice_push_mapval() {
 
     let stack_inputs = [1, 2, 3, 4];
     let adv_map = [(
-        key_to_bytes(stack_inputs),
+        RpoDigest::try_from(stack_inputs).unwrap(),
         vec![Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)],
     )];
 
@@ -265,7 +270,7 @@ fn advice_push_mapval() {
 
     let stack_inputs = [1, 2, 3, 4];
     let adv_map = [(
-        key_to_bytes(stack_inputs),
+        RpoDigest::try_from(stack_inputs).unwrap(),
         vec![Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)],
     )];
 
@@ -323,18 +328,4 @@ fn advice_insert_hdword() {
     let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn key_to_bytes(key: [u64; 4]) -> [u8; 32] {
-    let mut result = [0; 32];
-
-    result[..8].copy_from_slice(&key[0].to_le_bytes());
-    result[8..16].copy_from_slice(&key[1].to_le_bytes());
-    result[16..24].copy_from_slice(&key[2].to_le_bytes());
-    result[24..].copy_from_slice(&key[3].to_le_bytes());
-
-    result
 }
