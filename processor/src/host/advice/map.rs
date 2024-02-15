@@ -1,7 +1,5 @@
 use super::{BTreeMap, Felt, Vec};
-use vm_core::utils::collections::btree_map::IntoIter;
-
-use vm_core::crypto::hash::RpoDigest;
+use vm_core::{utils::collections::btree_map::IntoIter, crypto::hash::RpoDigest};
 
 // ADVICE MAP
 // ================================================================================================
