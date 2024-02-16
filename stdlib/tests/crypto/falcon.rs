@@ -104,40 +104,40 @@ fn test_falcon512_load_h_s2_and_product() {
     // Set the pointer to where h, s2 and pi = h * s2 will be stored.
     let h_ptr = 0_u32;
 
-    // Create two polynomials and compute their product.
-    let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
+    // Create random keypair and message.
+    let keypair = KeyPair::new().unwrap();
+    let message = rand_vector::<Felt>(4).try_into().unwrap();
+
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+
+    // Sign message.
+    let sig = keypair
+        .sign(message).unwrap();
+
+    // Create pi = h * s2.
+    let s2: Polynomial = sig.sig_poly();
+    let h: Polynomial = sig.pub_key_poly();
     let pi = Polynomial::mul_modulo_p(&h, &s2);
 
     // Lay the polynomials in the advice stack.
-    let mut advice_stack: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
-    let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
-    let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
+    let mut h_array = h.to_elements();
+    h_array.extend(s2.to_elements());
+    h_array.extend(pi.iter().map(|a| Felt::new(*a)));
+    let mut advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h.
-    let h_rpo_hash : Word = Rpo256::hash_elements(&*h.to_elements()).into();
-    let h_array: Vec<u64> = h_rpo_hash.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    let h_hash: Vec<u64> =pk.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
 
-    advice_stack.extend(s2_64);
-    advice_stack.extend(pi_64);
-    println!("The advice stack is: {:?}", advice_stack.len());
-    println!("The length oh h hash is: {:?}", h_array.len());
-
-    // Compute hash of h, s2 and pi = h * s2.
-    let mut byte_vec: Vec<u8> = Vec::new();
-    for num in &advice_stack {
-        byte_vec.extend_from_slice(&num.to_be_bytes());
-    }
-    let byte_slice: &[u8] = &byte_vec;
-    let h_s2_pi_hash : Word = Rpo256::hash(byte_slice).into();
+    // Compute hash of h, s2 and pi.
+    let h_s2_pi_hash : Word = Rpo256::hash_elements(&*h_array).into();
     let h_s2_pi: Vec<u64> = h_s2_pi_hash.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
 
-    let stack_init = [h_array[0],  h_array[1],  h_array[2],  h_array[3]];
-    println!("stack initial is: {:?}", stack_init);
+    let stack_init = [h_hash[0],  h_hash[1],  h_hash[2],  h_hash[3]];
 
     let test = build_test!(source, &stack_init, &advice_stack);
 
-    let expected_stack = &[h_s2_pi[0], h_s2_pi[1], h_ptr as u64 + N as u64];
+    let expected_stack = &[h_s2_pi[1], h_s2_pi[0], h_ptr as u64 + N as u64];
 
     test.expect_stack(expected_stack);
 }
@@ -164,30 +164,32 @@ fn test_falcon512_probabilistic_product() {
     // Set the pointer to where h, s2 and pi = h * s2 will be stored.
     let h_ptr = 0_u32;
 
-    // Create two polynomials and compute their product.
-    let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
+    // Create random keypair and message.
+    let keypair = KeyPair::new().unwrap();
+    let message = rand_vector::<Felt>(4).try_into().unwrap();
+
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+
+    // Sign message.
+    let sig = keypair
+        .sign(message).unwrap();
+
+    // Create pi = h * s2.
+    let s2: Polynomial = sig.sig_poly();
+    let h: Polynomial = sig.pub_key_poly();
     let pi = Polynomial::mul_modulo_p(&h, &s2);
 
     // Lay the polynomials in the advice stack.
-    let mut advice_stack: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
-    let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
-    let pi_64: Vec<u64> = pi.iter().map(|&e| e.into()).collect();
+    let mut h_array = h.to_elements();
+    h_array.extend(s2.to_elements());
+    h_array.extend(pi.iter().map(|a| Felt::new(*a)));
+    let advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h.
-    let h_rpo_hash : Word = Rpo256::hash_elements(&*h.to_elements()).into();
-    let h_array: Vec<u64> = h_rpo_hash.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    let h_hash: Vec<u64> =pk.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
 
-    advice_stack.extend(s2_64);
-    advice_stack.extend(pi_64);
-    println!("The advice stack is: {:?}", advice_stack.len());
-    println!("The length oh h hash is: {:?}", h_array.len());
-
-    let stack_init = [h_ptr.into(), h_array[0],  h_array[1],  h_array[2],  h_array[3]];
-    println!("stack initial is: {:?}", stack_init);
-
-    // let adv_stack = vec![];
-    // let store = MerkleStore::new();
+    let stack_init = [h_hash[0],  h_hash[1],  h_hash[2],  h_hash[3]];
 
     let test = build_test!(source, &stack_init, &advice_stack);
 
@@ -198,46 +200,7 @@ fn test_falcon512_probabilistic_product() {
 
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
-    // let source = "
-    // use.std::crypto::dsa::rpo_falcon512
-    //
-    // begin
-    //     exec.rpo_falcon512::load_h_s2_and_product
-    //     exec.rpo_falcon512::powers_of_tau
-    //     exec.rpo_falcon512::set_to_zero
-    //
-    //     locaddr.512     # tau_ptr
-    //     locaddr.1025    # z_ptr
-    //     locaddr.0       # h ptr
-    //     #=> [h_ptr, zeros_ptr, tau_ptr, ...]
-    //
-    //     exec.rpo_falcon512::probablistic_product
-    // end
-    // ";
-    //
-    // // Set the pointer to where h, s2 and pi = h * s2 will be stored.
-    // let h_ptr = 0_u32;
-    //
-    // // Create three polynomials where pi != h * s2.
-    // let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    // let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    // let pi = unsafe { Polynomial::new(random_coefficients()) };
-    //
-    // // Lay the polynomials in the advice stack.
-    // let mut advice_stack: Vec<u64> = h.to_elements().iter().map(|&e| e.into()).collect();
-    // let s2_64: Vec<u64> = s2.to_elements().iter().map(|&e| e.into()).collect();
-    // let pi_64: Vec<u64> = pi.to_elements().iter().map(|&e| e.into()).collect();
-    //
-    // advice_stack.extend(s2_64);
-    // advice_stack.extend(pi_64);
-    //
-    // // TODO: Computer hash of h and set it as second stack element.
-    //
-    // let stack_init = [h_ptr, ];
-    //
-    // let expected_error = TestError::ExecutionError(ExecutionError::FailedAssertion {clk: 0, err_code: 0, err_msg: Option::from(String::from("")) });
-    //
-    // build_test!(source, &stack_init, &advice_stack).expect_error(expected_error);
+
 }
 
 #[test]
