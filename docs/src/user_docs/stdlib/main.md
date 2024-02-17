@@ -27,7 +27,6 @@ Currently, Miden standard library contains just a few modules, which are listed 
 | Module | Description |
 | ------ | ----------- |
 | [std::collections::mmr](./collections.md#merkle-mountain-range) | Contains procedures for manipulating [Merkle Mountain Ranges](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md). |
-| [std::collections::smt64](./collections.md#sparse-merkle-tree-64) | Contains procedures for manipulating key-value maps with single-element keys and 4-element values. |
 | [std::crypto::fri::frie2f4](./crypto/fri.md#fri-extension-2-fold-4) | Contains procedures for verifying FRI proofs (field extension = 2, folding factor = 4). |
 | [std::crypto::hashes::blake3](./crypto/hashes.md#blake3) | Contains procedures for computing hashes using BLAKE3 hash function. |
 | [std::crypto::hashes::sha256](./crypto/hashes.md#sha256) | Contains procedures for computing hashes using SHA256 hash function. |

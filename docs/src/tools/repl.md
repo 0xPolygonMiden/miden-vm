@@ -130,7 +130,6 @@ If the stdlib was added to the available libraries list `!use` command will prin
 Modules available for importing:
 std::collections::mmr
 std::collections::smt
-std::collections::smt64
 ...
 std::mem
 std::sys
