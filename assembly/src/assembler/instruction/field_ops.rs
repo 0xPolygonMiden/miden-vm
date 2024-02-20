@@ -111,8 +111,8 @@ pub fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> 
 ///
 /// VM cycles: 16 cycles
 pub fn append_pow2_op(span: &mut SpanBuilder) {
-    // push base 2 onto the stack: [exp, ...] -> [2, exp, ...]
-    span.push_op(Push(2_u8.into()));
+    // push 2 onto the stack: [exp, ...] -> [2, exp, ...]
+    span.push_ops([Pad, Incr, Incr]);
     // introduce initial value of acc onto the stack: [2, exp, ...] -> [1, 2, exp, ...]
     span.push_ops([Pad, Incr]);
     // arrange the top of the stack for EXPACC operation: [1, 2, exp, ...] -> [0, 2, 1, exp, ...]
