@@ -569,7 +569,6 @@ Memory at address 87 is empty
 Modules available for importing:
 std::collections::mmr
 std::collections::smt
-std::collections::smt64
 ...
 std::mem
 std::sys
@@ -1230,7 +1229,6 @@ trace.2
 <p>Currently, Miden standard library contains just a few modules, which are listed below. Over time, we plan to add many more modules which will include various cryptographic primitives, additional numeric data types and operations, and many others.</p>
 <div class="table-wrapper"><table><thead><tr><th>Module</th><th>Description</th></tr></thead><tbody>
 <tr><td><a href="user_docs/stdlib/./collections.html#merkle-mountain-range">std::collections::mmr</a></td><td>Contains procedures for manipulating <a href="https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md">Merkle Mountain Ranges</a>.</td></tr>
-<tr><td><a href="user_docs/stdlib/./collections.html#sparse-merkle-tree-64">std::collections::smt64</a></td><td>Contains procedures for manipulating key-value maps with single-element keys and 4-element values.</td></tr>
 <tr><td><a href="user_docs/stdlib/./crypto/fri.html#fri-extension-2-fold-4">std::crypto::fri::frie2f4</a></td><td>Contains procedures for verifying FRI proofs (field extension = 2, folding factor = 4).</td></tr>
 <tr><td><a href="user_docs/stdlib/./crypto/hashes.html#blake3">std::crypto::hashes::blake3</a></td><td>Contains procedures for computing hashes using BLAKE3 hash function.</td></tr>
 <tr><td><a href="user_docs/stdlib/./crypto/hashes.html#sha256">std::crypto::hashes::sha256</a></td><td>Contains procedures for computing hashes using SHA256 hash function.</td></tr>
@@ -1256,16 +1254,7 @@ trace.2
 <tr><td>unpack</td><td>Load the MMR peak data based on its hash.<br /><br />Inputs: <code>[HASH, mmr_ptr, ...]</code><br />Outputs: <code>[...]</code><br /><br />Where:<br />- <code>HASH</code>: is the MMR peak hash, the hash is expected to be padded to an even length and to have a minimum size of 16 elements.<br />- The advice map must contain a key with <code>HASH</code>, and its value is <code>num_leaves || hash_data</code>, and hash_data is the data used to computed <code>HASH</code><br />- <code>mmt_ptr</code>: the memory location where the MMR data will be written, starting with the MMR forest (the total count of its leaves) followed by its peaks.</td></tr>
 </tbody></table>
 </div>
-<h2 id="sparse-merkle-tree-64-bit-key"><a class="header" href="#sparse-merkle-tree-64-bit-key">Sparse Merkle Tree (64-bit key)</a></h2>
-<p>Module <code>std::collections::smt64</code> contains procedures for manipulating key-value maps with single-element keys and 4-element values. The current implementation is a thin wrapper over a simple Sparse Merkle Tree of depth 64. In the future, this will be replaced with a compact Sparse Merkle Tree implementation.</p>
-<p>The following procedures are available to read data from and make updates to a Sparse Merkle Tree.</p>
-<div class="table-wrapper"><table><thead><tr><th>Procedure</th><th>Description</th></tr></thead><tbody>
-<tr><td>get</td><td>Returns the value located under the specified key in the Sparse Merkle Tree defined by the specified root.<br /><br />If no values had been previously inserted under the specified key, an empty word is returned.<br /><br />Inputs: <code>[key, ROOT, ...]</code><br />Outputs: <code>[VALUE, ROOT, ...]</code><br /><br />Fails if the tree with the specified root does not exist in the VM's advice provider.</td></tr>
-<tr><td>set</td><td>Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the specified root. If the insert is successful, the old value located under the specified key is returned via the stack.<br /><br />If <code>VALUE</code> is an empty word, the new state of the tree is guaranteed to be equivalent to the state as if the updated value was never inserted.<br /><br />Inputs: <code>[VALUE, key, ROOT, ...]</code><br />Outputs: <code>[OLD_VALUE, NEW_ROOT, ...]</code><br /><br />Fails if the tree with the specified root does not exits in the VM's advice provider.</td></tr>
-<tr><td>insert</td><td>Inserts the specified value under the specified key in a Sparse Merkle Tree defined by the specified root. If the insert is successful, the old value located under the specified key is returned via the stack.<br /><br />This procedure requires that <code>VALUE</code> be a non-empty word.<br /><br />Inputs: <code>[VALUE, key, ROOT, ...]</code><br />Outputs: <code>[OLD_VALUE, NEW_ROOT, ...]</code><br /><br />Fails if:<br />- The tree with the specified root does not exits in the VM's advice provider.<br />- The provided value is an empty word.</td></tr>
-</tbody></table>
-</div>
-<h2 id="sparse-merkle-tree-256-bit-key"><a class="header" href="#sparse-merkle-tree-256-bit-key">Sparse Merkle Tree (256-bit key)</a></h2>
+<h2 id="sparse-merkle-tree"><a class="header" href="#sparse-merkle-tree">Sparse Merkle Tree</a></h2>
 <p>Module <code>std::collections::smt</code> contains procedures for manipulating key-value maps with 4-element keys and 4-element values. The underlying implementation is a Sparse Merkle Tree where leaves can exist only at depth 64. Initially, when a tree is empty, it is equivalent to an empty Sparse Merkle Tree of depth 64 (i.e., leaves at depth 64 are set and hash to [ZERO; 4]). When inserting non-empty values into the tree, the most significant element of the key is used to identify the corresponding leaf. All key-value pairs that map to a given leaf are inserted (ordered) in the leaf.</p>
 <p>The following procedures are available to read data from and make updates to a Sparse Merkle Tree.</p>
 <div class="table-wrapper"><table><thead><tr><th>Procedure</th><th>Description</th></tr></thead><tbody>
