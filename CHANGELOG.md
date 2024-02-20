@@ -15,6 +15,7 @@
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
 - Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
+- Removed `std::collections::smt64` (#1249)
 
 #### VM Internals
 - Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
