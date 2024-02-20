@@ -8,7 +8,7 @@ use miden_stdlib::StdLibrary;
 use processor::{AdviceInputs, DefaultHost, Digest, MemAdviceProvider, StackInputs};
 
 use std::vec;
-use test_utils::{crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, ProgramInfo, QuadFelt, rand::rand_vector, Test, TestError, Word, WORD_SIZE};
+use test_utils::{build_debug_test, crypto::{rpo_falcon512::KeyPair, MerkleStore}, FieldElement, ProgramInfo, QuadFelt, rand::rand_vector, Test, TestError, Word, WORD_SIZE};
 use test_utils::crypto::rpo_falcon512::Polynomial;
 use test_utils::crypto::{Rpo256, RpoDigest};
 use test_utils::rand::rand_value;
@@ -169,11 +169,12 @@ fn test_falcon512_probabilistic_product() {
         #=> [c_ptr, ...]
 
         drop
+        # exec.rpo_falcon512::hash_to_point
         #=> [...]
 
-        mem_load.512    # tau_ptr
-        mem_load.1025   # z_ptr
-        mem_load.0      # h ptr
+        push.512    # tau_ptr
+        push.1025   # z_ptr
+        push.0      # h ptr
 
         #=> [h_ptr, zeros_ptr, tau_ptr, ...]
 
@@ -191,6 +192,9 @@ fn test_falcon512_probabilistic_product() {
     let sig = keypair
         .sign(message).unwrap();
 
+    let mut nonce: Vec<u64> = sig.nonce().into_iter().map(|felt| felt.into()).collect();
+    nonce.reverse();
+
     // Create polynomials h and s2 from the public key and signature and then multiply them to get pi.
     let h: Polynomial = sig.pub_key_poly();
     let s2: Polynomial = sig.sig_poly();
@@ -203,8 +207,10 @@ fn test_falcon512_probabilistic_product() {
     let mut advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h and place it on the stack.
-    let h_hash: Vec<u64> =pk.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
-    let stack_init = [h_hash[0],  h_hash[1],  h_hash[2],  h_hash[3]];
+    let mut h_hash: Vec<u64> =pk.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    // h_hash.reverse();
+    let mut stack_init = vec![h_hash[0], h_hash[1], h_hash[2], h_hash[3]];
+    // stack_init.extend(nonce);
 
     let test = build_test!(source, &stack_init, &advice_stack);
 
@@ -215,7 +221,72 @@ fn test_falcon512_probabilistic_product() {
 
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
+    let source = "
+    use.std::crypto::dsa::rpo_falcon512
 
+    begin
+        #=> [PK, ...]
+        mem_load.0
+        #=> [h_ptr, PK, ...]
+
+        exec.rpo_falcon512::load_h_s2_and_product
+        #=> [tau1, tau0, tau_ptr, ...]
+
+        exec.rpo_falcon512::powers_of_tau
+        #=> [zeros_ptr, ...]
+
+        exec.rpo_falcon512::set_to_zero
+        #=> [c_ptr, ...]
+
+        drop
+        # exec.rpo_falcon512::hash_to_point
+        #=> [...]
+
+        push.512    # tau_ptr
+        push.1025   # z_ptr
+        push.0      # h ptr
+
+        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
+
+        exec.rpo_falcon512::probablistic_product
+    end
+    ";
+
+    // Create random keypair and message.
+    let keypair = KeyPair::new().unwrap();
+    let message = rand_vector::<Felt>(4).try_into().unwrap();
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+
+    // Sign message.
+    let sig = keypair
+        .sign(message).unwrap();
+
+    let mut nonce: Vec<u64> = sig.nonce().into_iter().map(|felt| felt.into()).collect();
+    nonce.reverse();
+
+    // Create polynomials h and s2 from the public key and signature and then multiply them to get pi.
+    let h: Polynomial = sig.pub_key_poly();
+    let s2: Polynomial = sig.sig_poly();
+    let pi = Polynomial::mul_modulo_p(&h, &s2);
+
+    // Lay the polynomials in the advice stack, h then s2 then pi = h * s2.
+    let mut h_array = h.to_elements();
+    h_array.extend(s2.to_elements());
+    h_array.extend(pi.iter().map(|a| Felt::new(*a)));
+    let mut advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
+
+    // Compute hash of h and place it on the stack.
+    let mut h_hash: Vec<u64> =pk.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    // h_hash.reverse();
+    let mut stack_init = vec![h_hash[0], h_hash[1], h_hash[2], h_hash[3]];
+    // stack_init.extend(nonce);
+
+    let test = build_test!(source, &stack_init, &advice_stack);
+
+    let expected_stack = &[];
+
+    test.expect_stack(expected_stack);
 }
 
 #[test]
