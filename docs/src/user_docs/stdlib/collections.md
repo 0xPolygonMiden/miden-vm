@@ -17,7 +17,7 @@ The following procedures are available to read data from and make updates to a M
 | pack        | Computes a commitment to the given MMR and copies the MMR to the Advice Map using the commitment as a key.<br /><br />Inputs: `[mmr_ptr, ...]`<br />Outputs: `[HASH, ...]`<br /><br /> |
 | unpack      | Load the MMR peak data based on its hash.<br /><br />Inputs: `[HASH, mmr_ptr, ...]`<br />Outputs: `[...]`<br /><br />Where:<br />- `HASH`: is the MMR peak hash, the hash is expected to be padded to an even length and to have a minimum size of 16 elements.<br />- The advice map must contain a key with `HASH`, and its value is `num_leaves \|\| hash_data`, and hash_data is the data used to computed `HASH`<br />- `mmt_ptr`: the memory location where the MMR data will be written, starting with the MMR forest (the total count of its leaves) followed by its peaks. |
 
-## Sparse Merkle Tree (256-bit key)
+## Sparse Merkle Tree
 
 Module `std::collections::smt` contains procedures for manipulating key-value maps with 4-element keys and 4-element values. The underlying implementation is a Sparse Merkle Tree where leaves can exist only at depth 64. Initially, when a tree is empty, it is equivalent to an empty Sparse Merkle Tree of depth 64 (i.e., leaves at depth 64 are set and hash to [ZERO; 4]). When inserting non-empty values into the tree, the most significant element of the key is used to identify the corresponding leaf. All key-value pairs that map to a given leaf are inserted (ordered) in the leaf.
 
