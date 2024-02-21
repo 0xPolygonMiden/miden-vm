@@ -6,7 +6,7 @@ use super::{
     ParsingError, Token, Vec, CONSTANT_LABEL_PARSER, HEX_CHUNK_SIZE,
 };
 use crate::{StarkField, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
-use core::{convert::TryFrom, ops::RangeBounds};
+use core::ops::RangeBounds;
 use vm_core::WORD_SIZE;
 
 // CONSTANTS
