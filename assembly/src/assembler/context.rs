@@ -3,7 +3,7 @@ use super::{
     NamedProcedure, Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString,
     Vec,
 };
-use crate::ast::{ModuleAst, ProgramAst};
+use crate::ast::{event, Level, ModuleAst, ProgramAst};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -428,7 +428,7 @@ impl ModuleContext {
         if self.compiled_procs.iter().any(|p| p.name() == name)
             || self.proc_stack.iter().any(|p| &p.name == name)
         {
-            return Err(AssemblyError::duplicate_proc_name(name, &self.path));
+            event!(Level::WARN, "duplicate proc name '{}' in module {}", name, &self.path);
         }
 
         self.proc_stack.push(ProcedureContext::new(name.clone(), is_export, num_locals));
