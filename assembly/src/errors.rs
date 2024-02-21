@@ -17,7 +17,6 @@ pub enum AssemblyError {
     ConflictingNumLocals(String),
     DivisionByZero,
     DuplicateProcId(ProcedureId),
-    DuplicateProcName(String, String),
     ExportedProcInProgram(String),
     ImportedProcModuleNotFound(ProcedureId, String),
     ImportedProcNotFoundInModule(ProcedureId, String),
@@ -58,10 +57,6 @@ impl AssemblyError {
 
     pub fn division_by_zero() -> Self {
         Self::DivisionByZero
-    }
-
-    pub fn duplicate_proc_name(proc_name: &str, module_path: &str) -> Self {
-        Self::DuplicateProcName(proc_name.to_string(), module_path.to_string())
     }
 
     pub fn duplicate_proc_id(proc_id: &ProcedureId) -> Self {
@@ -141,7 +136,6 @@ impl fmt::Display for AssemblyError {
             ConflictingNumLocals(proc_name) => write!(f, "procedure `{proc_name}` has the same MAST as another procedure but different number of locals"),
             DivisionByZero => write!(f, "division by zero"),
             DuplicateProcId(proc_id) => write!(f, "duplicate proc id {proc_id}"),
-            DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
             ImportedProcModuleNotFound(proc_id, proc_name) => write!(f, "module for imported procedure `{proc_name}` with ID {proc_id} not found"),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
