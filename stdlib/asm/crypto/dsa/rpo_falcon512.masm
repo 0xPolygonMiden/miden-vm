@@ -88,7 +88,7 @@ export.hash_to_point.2
     # Absorb the message
     swapw loc_loadw.1 swapw hperm
 
-    # Squeeze the coefficents and save them
+    # Squeeze the coefficients and save them
     repeat.63
         swapw dup.12
         mem_storew
@@ -212,7 +212,7 @@ export.load_h_s2_and_product.1
     movup.2 assert_eq
     assert_eq
 
-    # 4) Load s2 (Due to the final norm test we do not need to range check the s2 coefficents)
+    # 4) Load s2 (Due to the final norm test we do not need to range check the s2 coefficients)
     padw padw
     repeat.64
         adv_pipe hperm
@@ -242,7 +242,7 @@ end
 #! Output: [...]
 #!
 #! Cycles: 2504
-export.probablistic_product.4
+export.probabilistic_product.4
     # 1) Save the pointers
     push.0 movdn.3
     loc_storew.0
@@ -473,7 +473,7 @@ end
 #! All of the above implies that we can compute s1_i with only one modular reduction at the end,
 #! in addition to one modular reduction applied to c_i.
 #! Moreover, since we are only interested in the square norm of s1_i, we do not have to store
-#! s1_i and then load it at a later point, and instead we can immediatly follow the computation
+#! s1_i and then load it at a later point, and instead we can immediately follow the computation
 #! of s1_i with computing its square norm.
 #! After computing the square norm of s1_i, we can accumulate into an accumulator to compute the
 #! sum of the square norms of all the coefficients of polynomial c. Using the overflow stack, this
@@ -515,7 +515,7 @@ export.compute_s1_norm_sq
         exec.norm_sq
         #=> [norm(e)^2, ...]
 
-        # Move the result out of the way so that we can process the remaining coefficents
+        # Move the result out of the way so that we can process the remaining coefficients
         movdn.10
 
         # 3) Compute the squared norm of (i + 1)-th coefficient of s1
@@ -599,16 +599,18 @@ export.verify.1665
 
     # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements
     padw adv_loadw padw adv_loadw
-    #=> [PK, MSG, NONCE1, NONCE0, ...]
+    #=> [NONCE1, NONCE0, PK, MSG...]
 
     # 3) Load the public key polynomial h and the signature polynomial s2 and the product of
     # the two polynomials pi := h * s2 in Z_Q[x]. This also checks that h hashes to the provided
     # digest PK. While loading the polynomials, the hash of the three polynomials is computed
     # and the first half of the digest is kept on the stack for later use by the
-    # `probablistic_product` procedure.
+    # `probabilistic_product` procedure.
 
     swapdw
+    #=> [PK, MSG, NONCE1, NONCE0...]
     locaddr.0
+    #=> [h_ptr, PK, MSG, NONCE1, NONCE0...]
     exec.load_h_s2_and_product
     #=> [tau1, tau0, tau_ptr, MSG, NONCE1, NONCE1, ...]      (Cycles: 5050)
 
@@ -632,7 +634,7 @@ export.verify.1665
     locaddr.0       # h ptr
     #=> [h_ptr, zeros_ptr, tau_ptr, ...]
 
-    exec.probablistic_product
+    exec.probabilistic_product
     #=> [...]                                       (Cycles: 2504)
 
     # 6) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
