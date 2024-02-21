@@ -290,9 +290,9 @@ fn ext_element_to_ints(ext_elem: QuadFelt) -> (u64, u64) {
 
 /*
 For an element `tau := (tau0, tau1)` in the quadratic extension field, computes all its powers
-`tau^i` for `i = 0,..., 512` and store them in a vector of length 2048 (word size * N).  The first two
-quadratic field elements of the word i are the elements of tau^i, and the second quadratic field
-elements of the same word i, are the elements tau^(i - 1).  Used to test powers of tau procedure.
+`tau^i` for `i = 0,..., 512` and store them in a vector of length 2048 (word size * 512).  The first two
+field elements of the ith word are the elements of tau^i, and the second two field elements are the
+previous power of tau, tau^(i - 1).  Used to test powers of tau procedure.
 Ex:
 [1, 0, 0, 0, tau_0, tau_1, 1, 0, (tau^2)_0, (tau^2)_1, tau_0, tau_1, (tau^3)_0, (tau^3)_1, (tau^2)_0,
 (tau^2)_1, ...]
