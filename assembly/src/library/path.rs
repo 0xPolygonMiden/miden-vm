@@ -1,7 +1,8 @@
 use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable, String,
-    ToString, MAX_LABEL_LEN,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable,
+    MAX_LABEL_LEN,
 };
+use crate::utils::string::*;
 use core::{fmt, ops::Deref, str::from_utf8};
 
 // CONSTANTS

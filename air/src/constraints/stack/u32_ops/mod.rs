@@ -1,4 +1,5 @@
-use super::{op_flags::OpFlags, EvaluationFrame, Vec};
+use super::{op_flags::OpFlags, EvaluationFrame};
+use crate::utils::collections::*;
 use crate::{
     stack::EvaluationFrameExt,
     utils::{are_equal, is_binary},

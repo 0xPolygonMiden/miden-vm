@@ -1,8 +1,9 @@
 use super::{
     crypto::hash::{Blake3_160, RpoDigest},
-    BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
-    LibraryPath, Serializable, String, ToString, PROCEDURE_LABEL_PARSER,
+    ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
+    LibraryPath, Serializable, PROCEDURE_LABEL_PARSER,
 };
+use crate::utils::{collections::*, string::*};
 use core::{
     fmt,
     ops::{self, Deref},

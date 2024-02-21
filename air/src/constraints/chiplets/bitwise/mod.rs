@@ -1,11 +1,11 @@
-use super::{EvaluationFrame, Felt, FieldElement, Vec};
+use super::{EvaluationFrame, Felt, FieldElement};
 use crate::{
     trace::chiplets::{
         bitwise::{NUM_DECOMP_BITS, NUM_SELECTORS, OP_CYCLE_LEN},
         BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE,
         BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX,
     },
-    utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult},
+    utils::{are_equal, binary_not, collections::*, is_binary, is_zero, EvaluationResult},
     ONE, ZERO,
 };
 use winter_air::TransitionConstraintDegree;

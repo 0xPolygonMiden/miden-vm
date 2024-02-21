@@ -1,4 +1,5 @@
-use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest, ToString};
+use super::{CodeBody, Felt, Instruction, Node, ProcedureId, RpoDigest};
+use crate::utils::string::*;
 use crate::MAX_PUSH_INPUTS;
 use num_enum::TryFromPrimitive;
 use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};

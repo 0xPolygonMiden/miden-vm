@@ -2,10 +2,7 @@ use super::{
     errors::{InputError, OutputError},
     Felt, StackTopState, StarkField, ToElements,
 };
-use winter_utils::{
-    collections::{vec, Vec},
-    ByteWriter, Serializable,
-};
+use crate::utils::{ByteWriter, Serializable};
 
 mod inputs;
 pub use inputs::StackInputs;

@@ -15,9 +15,10 @@ use super::{
     },
     {
         ByteReader, ByteWriter, Deserializable, DeserializationError, ParsingError, Serializable,
-        SliceReader, Token, TokenStream, Vec,
+        SliceReader, Token, TokenStream,
     },
 };
+use crate::utils::collections::*;
 
 use core::{fmt, iter};
 #[cfg(feature = "std")]

@@ -1,7 +1,8 @@
 use super::{
     super::AdviceInjectorNode, debug, ByteReader, CodeBody, Deserializable, DeserializationError,
-    Felt, Instruction, Node, OpCode, ProcedureId, RpoDigest, ToString, MAX_PUSH_INPUTS,
+    Felt, Instruction, Node, OpCode, ProcedureId, RpoDigest, MAX_PUSH_INPUTS,
 };
+use crate::utils::string::*;
 
 // NODE DESERIALIZATION
 // ================================================================================================

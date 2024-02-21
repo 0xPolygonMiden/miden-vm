@@ -3,8 +3,9 @@ use super::{
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
-    Process, StackTopState, Vec,
+    Process, StackTopState,
 };
+use crate::utils::collections::*;
 use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},

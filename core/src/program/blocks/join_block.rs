@@ -1,4 +1,5 @@
-use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
+use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
+pub use crate::utils::boxed::*;
 
 // JOIN BLOCKS
 // ================================================================================================

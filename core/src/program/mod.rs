@@ -1,14 +1,11 @@
 use super::{
     chiplets::hasher::{self, Digest},
-    errors,
-    utils::{
-        collections::{BTreeMap, Vec},
-        Box,
-    },
-    Felt, Operation,
+    errors, Felt, Operation,
+};
+use crate::utils::{
+    collections::*, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 use core::fmt;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 pub mod blocks;
 use blocks::CodeBlock;

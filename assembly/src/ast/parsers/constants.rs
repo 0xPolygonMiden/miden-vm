@@ -1,4 +1,5 @@
-use super::{Felt, LocalConstMap, ParsingError, String, Token, Vec};
+use super::{Felt, LocalConstMap, ParsingError, Token};
+use crate::utils::{collections::*, string::*};
 use core::fmt::Display;
 
 // CONSTANT VALUE EXPRESSIONS

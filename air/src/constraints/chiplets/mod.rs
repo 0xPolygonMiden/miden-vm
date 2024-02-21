@@ -1,7 +1,7 @@
 use super::super::{
-    EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec, CHIPLETS_OFFSET,
+    EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, CHIPLETS_OFFSET,
 };
-use crate::utils::{are_equal, binary_not, is_binary};
+use crate::utils::{are_equal, binary_not, collections::*, is_binary};
 
 mod bitwise;
 mod hasher;

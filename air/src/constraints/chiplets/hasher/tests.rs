@@ -2,12 +2,13 @@ use super::{
     enforce_constraints, Hasher, HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE,
     HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS, ONE, ZERO,
 };
+use crate::utils::collections::*;
 use crate::{
     trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
     Felt, TRACE_WIDTH,
 };
 use rand_utils::rand_array;
-use vm_core::{chiplets::hasher::apply_round, utils::collections::Vec};
+use vm_core::chiplets::hasher::apply_round;
 use winter_air::EvaluationFrame;
 
 // UNIT TESTS

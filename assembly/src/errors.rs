@@ -1,7 +1,8 @@
 use super::{
     ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, KernelError,
-    LibraryNamespace, ProcedureId, ProcedureName, String, ToString, Token, Vec,
+    LibraryNamespace, ProcedureId, ProcedureName, Token,
 };
+use crate::utils::{collections::*, string::*};
 use core::fmt;
 
 // ASSEMBLY ERROR

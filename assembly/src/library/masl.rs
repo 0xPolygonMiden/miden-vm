@@ -1,9 +1,9 @@
-use super::super::ast::instrument;
 use super::{
-    super::BTreeSet, AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError,
-    Library, LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Vec,
-    Version, MAX_DEPENDENCIES, MAX_MODULES,
+    AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError, Library,
+    LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Version,
+    MAX_DEPENDENCIES, MAX_MODULES,
 };
+use crate::utils::collections::*;
 use core::slice::Iter;
 
 // CONSTANT DEFINITIONS
@@ -119,8 +119,7 @@ impl MaslLibrary {
 
 #[cfg(feature = "std")]
 mod use_std {
-    use super::*;
-    use crate::{ast::ModuleAst, BTreeMap};
+    use super::{super::super::ast::instrument, *};
     use std::{fs, io, path::Path};
 
     impl MaslLibrary {

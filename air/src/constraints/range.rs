@@ -3,9 +3,10 @@ use crate::{
     constraints::MainFrameExt,
     trace::range::{B_RANGE_COL_IDX, M_COL_IDX, V_COL_IDX},
     utils::are_equal,
+    utils::collections::*,
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
-use vm_core::{utils::collections::Vec, ExtensionOf, ZERO};
+use vm_core::{ExtensionOf, ZERO};
 use winter_air::AuxTraceRandElements;
 
 // CONSTANTS

@@ -1,6 +1,7 @@
-use super::{op_flags::OpFlags, EvaluationFrame, Vec};
+use super::{op_flags::OpFlags, EvaluationFrame};
 use crate::{
     stack::EvaluationFrameExt,
+    utils::collections::*,
     utils::{are_equal, is_binary},
 };
 use vm_core::FieldElement;

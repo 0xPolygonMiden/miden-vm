@@ -1,4 +1,5 @@
-use super::{fmt, hasher, Digest, Felt, Operation, Vec};
+use super::{fmt, hasher, Digest, Felt, Operation};
+pub use crate::utils::collections::*;
 use crate::{DecoratorIterator, DecoratorList, ZERO};
 use winter_utils::flatten_slice_elements;
 

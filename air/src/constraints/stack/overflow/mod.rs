@@ -1,5 +1,6 @@
-use super::{op_flags::OpFlags, EvaluationFrame, Vec};
+use super::{op_flags::OpFlags, EvaluationFrame};
 use crate::stack::EvaluationFrameExt;
+use crate::utils::collections::*;
 use vm_core::FieldElement;
 use winter_air::TransitionConstraintDegree;
 

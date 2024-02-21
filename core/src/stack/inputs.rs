@@ -1,6 +1,6 @@
-use winter_utils::{ByteReader, Deserializable, DeserializationError};
+use crate::utils::{collections::*, ByteReader, Deserializable, DeserializationError};
 
-use super::{vec, ByteWriter, Felt, InputError, Serializable, ToElements, Vec};
+use super::{ByteWriter, Felt, InputError, Serializable, ToElements};
 use core::slice;
 
 // STACK INPUTS

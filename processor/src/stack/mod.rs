@@ -1,6 +1,5 @@
-use super::{
-    BTreeMap, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
-};
+use super::{Felt, FieldElement, StackInputs, StackOutputs, ONE, STACK_TRACE_WIDTH, ZERO};
+use crate::utils::collections::*;
 use core::cmp;
 use vm_core::{stack::STACK_TOP_SIZE, Word, WORD_SIZE};
 

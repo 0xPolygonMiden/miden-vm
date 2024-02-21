@@ -1,7 +1,7 @@
 use super::{
-    trace::NUM_RAND_ROWS, utils::uninit_vector, BTreeMap, Felt, FieldElement, RangeCheckTrace, Vec,
-    ZERO,
+    trace::NUM_RAND_ROWS, utils::uninit_vector, Felt, FieldElement, RangeCheckTrace, ZERO,
 };
+use crate::utils::collections::*;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;

@@ -1,5 +1,5 @@
-use super::String;
 use crate::trace::MIN_TRACE_LEN;
+use crate::utils::string::*;
 use core::fmt::{Display, Formatter};
 
 // EXECUTION ERROR

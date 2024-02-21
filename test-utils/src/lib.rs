@@ -10,12 +10,13 @@ extern crate alloc;
 use proptest::prelude::{Arbitrary, Strategy};
 
 use vm_core::chiplets::hasher::apply_permutation;
-use vm_core::utils::{collections::Vec, string::String};
+use vm_core::utils::{collections::*, string::*};
 
 // EXPORTS
 // ================================================================================================
 
 pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
+pub use vm_core::utils;
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{

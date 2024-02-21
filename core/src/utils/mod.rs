@@ -1,10 +1,10 @@
 use super::Felt;
+use crate::utils::{collections::*, string::*};
 use core::fmt::{self, Write};
 use core::{
     fmt::Debug,
     ops::{Bound, Range},
 };
-use winter_utils::{collections::Vec, string::String};
 
 // RE-EXPORTS
 // ================================================================================================
@@ -14,7 +14,7 @@ pub use winter_utils::{
     ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
-pub use miden_crypto::utils::{collections, vec};
+pub use miden_crypto::utils::{boxed, collections, vec};
 
 pub mod math {
     pub use math::{batch_inversion, log2};

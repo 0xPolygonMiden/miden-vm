@@ -9,9 +9,9 @@ use crate::trace::{
     },
     TRACE_WIDTH,
 };
+use crate::utils::collections::*;
 use crate::{chiplets::memory, Felt, FieldElement, ONE, ZERO};
 use rand_utils::rand_value;
-use vm_core::utils::collections::Vec;
 
 // UNIT TESTS
 // ================================================================================================
