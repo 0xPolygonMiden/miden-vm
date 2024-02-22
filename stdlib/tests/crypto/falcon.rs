@@ -23,6 +23,36 @@ const Q: u64 = (M - 1) / 2;
 const N: usize = 512;
 const J: u64 = (N * M as usize * M as usize) as u64;
 
+const PROBABILISTIC_PRODUCT_SOURCE: &str = "
+    use.std::crypto::dsa::rpo_falcon512
+
+    begin
+        #=> [PK, ...]
+        mem_load.0
+        #=> [h_ptr, PK, ...]
+
+        exec.rpo_falcon512::load_h_s2_and_product
+        #=> [tau1, tau0, tau_ptr, ...]
+
+        exec.rpo_falcon512::powers_of_tau
+        #=> [zeros_ptr, ...]
+
+        exec.rpo_falcon512::set_to_zero
+        #=> [c_ptr, ...]
+
+        drop
+        #=> [...]
+
+        push.512    # tau_ptr
+        push.1025   # z_ptr
+        push.0      # h ptr
+
+        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
+
+        exec.rpo_falcon512::probabilistic_product
+    end
+    ";
+
 #[test]
 fn test_falcon512_norm_sq() {
     let source = "
@@ -33,17 +63,13 @@ fn test_falcon512_norm_sq() {
     end
     ";
 
-    let num1 = rand::thread_rng().gen_range(Q..M);
+    let upper = rand::thread_rng().gen_range(Q..M);
+    let test_upper = build_test!(source, &[upper]);
+    test_upper.expect_stack(&[(M - upper) * (M - upper)]);
 
-    let test1 = build_test!(source, &[num1]);
-
-    test1.expect_stack(&[(M - num1) * (M - num1)]);
-
-    let num2 = rand::thread_rng().gen_range(0..Q);
-
-    let test2 = build_test!(source, &[num2]);
-
-    test2.expect_stack(&[num2 * num2])
+    let lower = rand::thread_rng().gen_range(0..Q);
+    let test_lower = build_test!(source, &[lower]);
+    test_lower.expect_stack(&[lower * lower])
 }
 
 #[test]
@@ -62,7 +88,6 @@ fn test_falcon512_diff_mod_q() {
 
     let test1 = build_test!(source, &[u, v, w]);
     let expected_answer = (v + w + J - u).rem_euclid(M);
-
     test1.expect_stack(&[expected_answer]);
 }
 
@@ -76,53 +101,21 @@ fn test_falcon512_powers_of_tau() {
     end
     ";
 
+    // Compute powers of quadratic field element from 0 to 512.
     let tau = rand_value::<QuadFelt>();
     let tau_ptr = 0_u32;
     let (tau_0, tau_1) = ext_element_to_ints(tau);
 
     let expected_memory = powers_of_tau(tau);
-
     let stack_init = [tau_ptr.into(), tau_0, tau_1];
 
     let test = build_test!(source, &stack_init);
-
     let expected_stack = &[<u32 as Into<u64>>::into(tau_ptr) + N as u64 + 1];
-
     test.expect_stack_and_memory(expected_stack, tau_ptr, &expected_memory);
 }
 
 #[test]
 fn test_falcon512_probabilistic_product() {
-    let source = "
-    use.std::crypto::dsa::rpo_falcon512
-
-    begin
-        #=> [PK, ...]
-        mem_load.0
-        #=> [h_ptr, PK, ...]
-
-        exec.rpo_falcon512::load_h_s2_and_product
-        #=> [tau1, tau0, tau_ptr, ...]
-
-        exec.rpo_falcon512::powers_of_tau
-        #=> [zeros_ptr, ...]
-
-        exec.rpo_falcon512::set_to_zero
-        #=> [c_ptr, ...]
-
-        drop
-        #=> [...]
-
-        push.512    # tau_ptr
-        push.1025   # z_ptr
-        push.0      # h ptr
-
-        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
-
-        exec.rpo_falcon512::probabilistic_product
-    end
-    ";
-
     // Create two random polynomials and multiply them.
     let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
     let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
@@ -140,46 +133,13 @@ fn test_falcon512_probabilistic_product() {
     let h_hash_copy: Vec<u64> = h_hash.into_iter().map(|felt| (*felt).into()).collect();
 
     let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
-
-    let test = build_test!(source, &stack_init, &advice_stack);
-
+    let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
     let expected_stack = &[];
-
     test.expect_stack(expected_stack);
 }
 
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
-    let source = "
-    use.std::crypto::dsa::rpo_falcon512
-
-    begin
-        #=> [PK, ...]
-        mem_load.0
-        #=> [h_ptr, PK, ...]
-
-        exec.rpo_falcon512::load_h_s2_and_product
-        #=> [tau1, tau0, tau_ptr, ...]
-
-        exec.rpo_falcon512::powers_of_tau
-        #=> [zeros_ptr, ...]
-
-        exec.rpo_falcon512::set_to_zero
-        #=> [c_ptr, ...]
-
-        drop
-        #=> [...]
-
-        push.512    # tau_ptr
-        push.1025   # z_ptr
-        push.0      # h ptr
-
-        #=> [h_ptr, zeros_ptr, tau_ptr, ...]
-
-        exec.rpo_falcon512::probabilistic_product
-    end
-    ";
-
     // Create a polynomial pi that is not equal to h * s2.
     let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
     let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
@@ -187,7 +147,7 @@ fn test_falcon512_probabilistic_product_failure() {
 
     let pi = Polynomial::mul_modulo_p(&h_wrong, &s2);
 
-    // Lay the polynomials in the advice stack, h then s2 then pi = h * s2.
+    // Lay the polynomials in the advice stack, h then s2 then pi.
     let mut h_array = h.to_elements();
     h_array.extend(s2.to_elements());
     h_array.extend(pi.iter().map(|a| Felt::new(*a)));
@@ -199,9 +159,7 @@ fn test_falcon512_probabilistic_product_failure() {
     let h_hash_copy: Vec<u64> = h_hash.into_iter().map(|felt| (*felt).into()).collect();
 
     let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
-
-    let test = build_test!(source, &stack_init, &advice_stack);
-
+    let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
     test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion {
         clk: 17472,
         err_code: 0,
@@ -314,7 +272,7 @@ fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
     expected_memory
 }
 
-// Create random coefficients in the range
+// Create random coefficients in the range of a polynomial in M.
 fn random_coefficients() -> [u16; N] {
     let mut res = [u16::default(); N];
     for i in res.iter_mut() {
