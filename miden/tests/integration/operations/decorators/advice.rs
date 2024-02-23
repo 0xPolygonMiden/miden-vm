@@ -1,13 +1,14 @@
 use miden::{Digest, Word};
+use processor::ExecutionError;
+use test_utils::crypto::rpo_falcon512::KeyPair;
+use test_utils::rand::rand_vector;
+use test_utils::serde::Serializable;
 use test_utils::{
     build_test,
     crypto::{MerkleStore, RpoDigest},
     rand::rand_value,
-    Felt,
+    Felt, TestError,
 };
-use test_utils::crypto::rpo_falcon512::KeyPair;
-use test_utils::rand::rand_vector;
-use test_utils::serde::Serializable;
 
 // ADVICE INJECTION
 // ================================================================================================
@@ -338,8 +339,48 @@ fn advice_insert_hdword() {
 fn advice_push_sig_rpo_falcon_512() {
     let source: &str = "
     begin
+        push.0
+        drop
+
+        # => [PK, MSG, ...]
+        adv.push_sig.rpo_falcon512
+        # => [PK, MSG, ...]
+    end
+    ";
+
+    // Generate random public key and message to sign.
+    let keypair = KeyPair::new().unwrap();
+    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+    let pk_sk_bytes = keypair.to_bytes();
+
+    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
+
+    let mut op_stack = vec![];
+    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    op_stack.extend_from_slice(&message);
+    op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
+    let adv_stack = vec![];
+    let store = MerkleStore::new();
+
+    let mut expected_stack = op_stack.clone();
+    expected_stack.reverse();
+
+    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.expect_stack(&expected_stack);
+}
+
+#[test]
+fn advice_push_sig_rpo_falcon_512_bad_key() {
+    let source: &str = "
+    begin
         # => Operational Stack: [PK, MSG, ...]
 
+        push.0
+        drop
         adv.push_sig.rpo_falcon512
 
         # => Operational Stack: [PK, MSG, ...]
@@ -355,7 +396,9 @@ fn advice_push_sig_rpo_falcon_512() {
 
     let pk_sk_bytes = keypair.to_bytes();
 
-    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+    let mut to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+    to_adv_map.pop();
+    to_adv_map.push(Felt::new(257));
 
     let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map.into())];
 
@@ -365,48 +408,11 @@ fn advice_push_sig_rpo_falcon_512() {
     let mut stack_inputs = vec![];
     let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
     stack_inputs.extend_from_slice(&message);
-    stack_inputs.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
-    println!("Stack inputs: {:?}", stack_inputs);
+    stack_inputs
+        .extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
 
     let test = build_test!(source, &stack_inputs, &advice_stack, store, advice_map.into_iter());
-    test.expect_stack(&[]);
-}
-
-#[test]
-fn falcon_execution() {
-    let keypair = KeyPair::new().unwrap();
-    let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, adv_stack, store, advice_map) = generate_test(keypair, message);
-
-    let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
-    test.expect_stack(&[])
-}
-
-fn generate_test(
-    keypair: KeyPair,
-    message: Word,
-) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
-    let source = "
-    begin
-        adv.push_sig.rpo_falcon512
-    end
-    ";
-
-    let pk: Word = keypair.public_key().into();
-    let pk: Digest = pk.into();
-    let pk_sk_bytes = keypair.to_bytes();
-
-    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
-
-    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map.into())];
-
-    let mut op_stack = vec![];
-    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
-    op_stack.extend_from_slice(&message);
-    op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
-
-    let adv_stack = vec![];
-    let store = MerkleStore::new();
-
-    (source, op_stack, adv_stack, store, advice_map)
+    test.expect_error(TestError::ExecutionError(ExecutionError::MalformedSignatureKey(
+        "RPO Falcon512",
+    )));
 }

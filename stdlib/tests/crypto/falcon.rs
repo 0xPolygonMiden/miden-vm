@@ -101,7 +101,7 @@ fn test_falcon512_powers_of_tau() {
     end
     ";
 
-    // Compute powers of quadratic field element from 0 to 512.
+    // Compute powers of a quadratic field element from 0 to 512.
     let tau = rand_value::<QuadFelt>();
     let tau_ptr = 0_u32;
     let (tau_0, tau_1) = ext_element_to_ints(tau);
@@ -230,7 +230,6 @@ fn generate_test(
     let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
     op_stack.extend_from_slice(&message);
     op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
-
     let adv_stack = vec![];
     let store = MerkleStore::new();
 
