@@ -2,9 +2,9 @@ use super::{
     enforce_constraints, Hasher, HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE,
     HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS, ONE, ZERO,
 };
-use crate::utils::collections::*;
 use crate::{
     trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
+    utils::collections::*,
     Felt, TRACE_WIDTH,
 };
 use rand_utils::rand_array;

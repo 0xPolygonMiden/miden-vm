@@ -1,11 +1,8 @@
-use super::{op_flags::OpFlags, EvaluationFrame};
-use crate::utils::collections::*;
+use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
 use crate::{
     stack::EvaluationFrameExt,
-    utils::{are_equal, binary_not},
+    utils::{are_equal, binary_not, collections::*},
 };
-use vm_core::FieldElement;
-use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
 pub mod tests;
