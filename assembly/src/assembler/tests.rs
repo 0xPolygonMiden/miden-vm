@@ -1,8 +1,8 @@
+use alloc::{string::ToString, vec::Vec};
+use core::slice::Iter;
+
 use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
 use crate::{ast::ModuleAst, LibraryNamespace, LibraryPath, Version};
-use alloc::string::ToString;
-use alloc::vec::Vec;
-use core::slice::Iter;
 
 // TESTS
 // ================================================================================================
