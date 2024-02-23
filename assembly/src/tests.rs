@@ -1,10 +1,11 @@
+use alloc::{string::ToString, vec::Vec};
+use core::slice::Iter;
+
 use crate::{
     ast::{ModuleAst, ProgramAst},
     Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath, MaslLibrary,
     Module, ProcedureName, Version,
 };
-use alloc::{string::ToString, vec::Vec};
-use core::slice::Iter;
 
 // SIMPLE PROGRAMS
 // ================================================================================================
@@ -273,12 +274,12 @@ fn procref_call() {
     let program_source = ProgramAst::parse(
         "
         use.module::path::two
-            
+
         proc.baz.4
             push.3.4
         end
-        
-        begin 
+
+        begin
             procref.two::bar
             procref.two::foo
             procref.baz
@@ -325,7 +326,7 @@ fn get_proc_name_of_unknown_module() {
         "
         use.module::path::one
 
-        begin 
+        begin
             procref.one::foo
         end",
     )

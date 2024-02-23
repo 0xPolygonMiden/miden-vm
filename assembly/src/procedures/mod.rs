@@ -368,6 +368,8 @@ impl ops::Deref for CallSet {
 
 #[cfg(test)]
 mod test {
+    use alloc::borrow::ToOwned;
+
     use super::{super::MAX_LABEL_LEN, LabelError, ProcedureName};
     use alloc::borrow::ToOwned;
 
