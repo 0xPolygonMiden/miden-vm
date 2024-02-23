@@ -47,7 +47,7 @@ impl RunCmd {
 
         let now = Instant::now();
 
-        let (trace, program_hash) = run_program(&self)?;
+        let (trace, program_hash) = run_program(self)?;
 
         println!(
             "Executed the program with hash {} in {} ms",

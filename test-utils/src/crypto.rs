@@ -1,5 +1,4 @@
-use super::{Felt, Word, ZERO};
-use crate::utils::collections::*;
+use super::{collections::*, Felt, Word, ZERO};
 
 // RE-EXPORTS
 // ================================================================================================

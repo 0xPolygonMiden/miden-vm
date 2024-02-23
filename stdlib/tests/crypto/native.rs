@@ -1,4 +1,3 @@
-use crate::build_test;
 use processor::ExecutionError;
 use test_utils::{build_expected_hash, build_expected_perm, TestError};
 

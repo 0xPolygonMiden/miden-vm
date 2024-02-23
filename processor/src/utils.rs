@@ -1,5 +1,5 @@
 use super::Felt;
-use vm_core::utils::collections::*;
+use collections::*;
 
 // RE-EXPORTS
 // ================================================================================================

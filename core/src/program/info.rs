@@ -3,7 +3,7 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel, Program,
     Serializable,
 };
-pub use crate::utils::collections::*;
+use crate::utils::collections::*;
 
 // PROGRAM INFO
 // ================================================================================================

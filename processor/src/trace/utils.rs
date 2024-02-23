@@ -1,8 +1,10 @@
-use super::{Felt, NUM_RAND_ROWS};
-use crate::{chiplets::Chiplets, utils::collections::*};
+use super::{Felt, FieldElement, NUM_RAND_ROWS};
+use crate::{
+    chiplets::Chiplets,
+    utils::{collections::*, uninit_vector},
+};
 use core::slice;
 use miden_air::trace::main_trace::MainTrace;
-use vm_core::{utils::uninit_vector, FieldElement};
 
 #[cfg(test)]
 use vm_core::{utils::ToElements, Operation};

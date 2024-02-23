@@ -84,7 +84,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
         .layer_commitments()
         .to_vec()
         .iter()
-        .map(|digest| digest.as_elements().into_iter().map(|e| e.as_int()))
+        .map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
         .flatten()
         .collect();
 
@@ -100,18 +100,16 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
         .collect();
 
     match result {
-        Ok(((partial_trees, advice_maps), all_position_evaluation, alphas)) => {
-            return Ok(FriResult {
-                partial_trees,
-                advice_maps,
-                positions: all_position_evaluation,
-                alphas,
-                commitments,
-                remainder,
-                num_queries: positions.len(),
-            });
-        }
-        Err(err) => return Err(err),
+        Ok(((partial_trees, advice_maps), all_position_evaluation, alphas)) => Ok(FriResult {
+            partial_trees,
+            advice_maps,
+            positions: all_position_evaluation,
+            alphas,
+            commitments,
+            remainder,
+            num_queries: positions.len(),
+        }),
+        Err(err) => Err(err),
     }
 }
 
@@ -166,7 +164,7 @@ fn verify_proof(
     let queried_evaluations = positions.iter().map(|&p| evaluations[p]).collect::<Vec<_>>();
 
     let result =
-        miden_verifier.verify_fold_4_ext_2(&mut channel, &queried_evaluations, &positions)?;
+        miden_verifier.verify_fold_4_ext_2(&mut channel, &queried_evaluations, positions)?;
 
     Ok(result)
 }
@@ -296,9 +294,9 @@ impl FriVerifierFold4Ext2 {
 }
 
 fn iterate_query_fold_4_quad_ext(
-    layer_alphas: &Vec<QuadExt>,
-    partial_trees: &Vec<PartialMerkleTree>,
-    key_val_map: &Vec<(RpoDigest, Vec<Felt>)>,
+    layer_alphas: &[QuadExt],
+    partial_trees: &[PartialMerkleTree],
+    key_val_map: &[(RpoDigest, Vec<Felt>)],
     position: usize,
     number_of_layers: usize,
     initial_domain_size: usize,
@@ -312,13 +310,13 @@ fn iterate_query_fold_4_quad_ext(
 
     let initial_domain_generator = *domain_generator;
     let norm_cst = Felt::get_root_of_unity(2).inv();
-    let mut init_exp = initial_domain_generator.exp((position as u64).into());
+    let mut init_exp = initial_domain_generator.exp(position as u64);
 
     let arr = vec![evaluation];
     let a = QuadExt::slice_as_base_elements(&arr);
 
     let position_evaluation =
-        vec![a[0].as_int(), a[1].as_int(), (position as u64).into(), init_exp.as_int()];
+        vec![a[0].as_int(), a[1].as_int(), position as u64, init_exp.as_int()];
 
     let mut alphas = vec![];
     for depth in 0..number_of_layers {
@@ -387,7 +385,7 @@ fn iterate_query_fold_4_quad_ext(
         alphas.push(0);
         alphas.push(0);
 
-        *domain_generator = (*domain_generator).exp((4 as u32).into());
+        *domain_generator = (*domain_generator).exp((4_u32).into());
         cur_pos = folded_pos;
         domain_size /= 4;
     }

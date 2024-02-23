@@ -1,6 +1,5 @@
-use super::ast::instrument;
 use super::{
-    ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
+    ast::{instrument, Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
     btree_map,
     crypto::hash::RpoDigest,
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
