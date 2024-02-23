@@ -1,4 +1,5 @@
-use super::{super::trace::AuxColumnBuilder, Felt, FieldElement, Vec};
+use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
+use crate::utils::collections::*;
 
 use miden_air::trace::{
     chiplets::{

@@ -1,5 +1,5 @@
 use test_utils::{
-    collections::Vec,
+    collections::*,
     crypto::{
         init_merkle_leaf, init_merkle_leaves, MerkleError, MerkleStore, MerkleTree, Mmr, NodeIndex,
         RpoDigest,
@@ -551,7 +551,7 @@ fn test_mmr_pack_roundtrip() {
     let hash = accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&hash.as_elements());
+    let mut stack = stack_to_ints(hash.as_elements());
     let mmr_ptr = 1000;
     stack.insert(0, mmr_ptr); // first value is used by unpack, to load data to memory
     stack.insert(0, mmr_ptr); // second is used by pack, to load data from memory
@@ -587,7 +587,7 @@ fn test_mmr_pack_roundtrip() {
     // first the number of leaves
     expect_memory.extend_from_slice(&[accumulator.num_leaves() as u64, 0, 0, 0]);
     // followed by the peaks
-    expect_memory.extend(digests_to_ints(&accumulator.peaks()));
+    expect_memory.extend(digests_to_ints(accumulator.peaks()));
     // followed by padding data
     let size = 4 + 16 * 4;
     expect_memory.resize(size, 0);
@@ -724,7 +724,7 @@ fn test_mmr_large() {
 
     let num_leaves = accumulator.num_leaves() as u64;
     let mut expected_memory = vec![num_leaves, 0, 0, 0];
-    expected_memory.extend(digests_to_ints(&accumulator.peaks()));
+    expected_memory.extend(digests_to_ints(accumulator.peaks()));
 
     let expect_stack: Vec<u64> =
         accumulator.hash_peaks().iter().rev().map(|v| v.as_int()).collect();
@@ -749,7 +749,7 @@ fn test_mmr_large_add_roundtrip() {
     let hash = old_accumulator.hash_peaks();
 
     // Set up the VM stack with the MMR hash, and its target address
-    let mut stack = stack_to_ints(&hash.as_elements());
+    let mut stack = stack_to_ints(hash.as_elements());
     stack.insert(0, mmr_ptr as u64);
 
     // both the advice stack and merkle store start empty (data is available in

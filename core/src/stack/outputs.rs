@@ -1,10 +1,8 @@
+use crate::utils::{collections::*, range, ByteReader, Deserializable, DeserializationError};
 use miden_crypto::Word;
-use winter_utils::{ByteReader, Deserializable, DeserializationError};
-
-use crate::utils::range;
 
 use super::{
-    ByteWriter, Felt, OutputError, Serializable, StackTopState, StarkField, ToElements, Vec,
+    ByteWriter, Felt, OutputError, Serializable, StackTopState, StarkField, ToElements,
     STACK_TOP_SIZE,
 };
 

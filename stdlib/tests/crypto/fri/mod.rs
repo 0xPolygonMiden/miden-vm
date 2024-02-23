@@ -1,4 +1,3 @@
-use crate::build_test;
 use processor::Digest;
 use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
 

@@ -6,7 +6,7 @@ use vm_core::{
         hash::RpoDigest,
         merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
     },
-    utils::collections::{BTreeMap, KvMap, RecordingMap, Vec},
+    utils::collections::*,
     AdviceInjector, SignatureKind,
 };
 

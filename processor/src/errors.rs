@@ -3,11 +3,9 @@ use super::{
     system::{FMP_MAX, FMP_MIN},
     CodeBlock, Digest, Felt, QuadFelt, Word,
 };
+use crate::utils::string::*;
 use core::fmt::{Display, Formatter};
-use vm_core::{
-    stack::STACK_TOP_SIZE,
-    utils::{string::String, to_hex},
-};
+use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]

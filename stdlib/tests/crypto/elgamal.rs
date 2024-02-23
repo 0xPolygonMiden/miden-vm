@@ -1,6 +1,4 @@
-use crate::build_test;
-use crate::math::ecgfp5::base_field::Ext5;
-use crate::math::ecgfp5::group::ECExt5;
+use crate::math::ecgfp5::{base_field::Ext5, group::ECExt5};
 use std::ops::Add;
 use test_utils::{rand::rand_array, Felt, FieldElement};
 

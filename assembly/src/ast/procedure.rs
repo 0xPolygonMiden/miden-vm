@@ -3,8 +3,8 @@ use crate::ast::{MAX_BODY_LEN, MAX_DOCS_LEN};
 use super::{
     super::tokens::SourceLocation, code_body::CodeBody, nodes::Node, ByteReader, ByteWriter,
     Deserializable, DeserializationError, LibraryPath, ProcedureId, ProcedureName, Serializable,
-    String, ToString, Vec,
 };
+use crate::utils::{collections::*, string::*};
 use core::{iter, str::from_utf8};
 
 // PROCEDURE AST

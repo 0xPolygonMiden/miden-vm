@@ -1,4 +1,5 @@
-use super::{BTreeMap, Felt, Vec};
+use super::Felt;
+use crate::utils::collections::*;
 use vm_core::{crypto::hash::RpoDigest, utils::collections::btree_map::IntoIter};
 
 // ADVICE MAP

@@ -1,4 +1,5 @@
-use super::{ExecutionError, Felt, FieldElement, SysTrace, Vec, Word, EMPTY_WORD, ONE, ZERO};
+use super::{ExecutionError, Felt, FieldElement, SysTrace, Word, EMPTY_WORD, ONE, ZERO};
+use crate::utils::collections::*;
 use core::fmt::{self, Display};
 
 #[cfg(test)]

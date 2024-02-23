@@ -1,7 +1,8 @@
 use super::{
     AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
-    Instruction, Operation, ToString, Vec,
+    Instruction, Operation,
 };
+use crate::utils::{collections::*, string::*};
 use vm_core::{AdviceInjector, AssemblyOp};
 
 // SPAN BUILDER

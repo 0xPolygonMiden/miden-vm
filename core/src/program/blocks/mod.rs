@@ -1,4 +1,5 @@
-use super::{hasher, Box, Digest, Felt, Operation, Vec};
+use super::{hasher, Digest, Felt, Operation};
+use crate::utils::collections::*;
 use crate::DecoratorList;
 use core::fmt;
 

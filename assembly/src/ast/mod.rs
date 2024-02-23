@@ -3,11 +3,11 @@
 //! Structs in this module (specifically [ProgramAst] and [ModuleAst]) can be used to parse source
 //! code into relevant ASTs. This can be done via their `parse()` methods.
 use super::{
-    crypto::hash::RpoDigest, BTreeMap, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Felt, LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName,
-    Serializable, SliceReader, StarkField, String, ToString, Token, TokenStream, Vec,
-    MAX_LABEL_LEN,
+    crypto::hash::RpoDigest, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
+    LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader,
+    StarkField, Token, TokenStream, MAX_LABEL_LEN,
 };
+use crate::utils::{collections::*, string::*};
 use vm_core::utils::bound_into_included_u64;
 
 pub use tracing::{event, info_span, instrument, Level};

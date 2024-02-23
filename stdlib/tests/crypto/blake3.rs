@@ -1,4 +1,3 @@
-use crate::build_test;
 use test_utils::{group_slice_elements, rand::rand_array, Felt, IntoBytes};
 
 #[test]

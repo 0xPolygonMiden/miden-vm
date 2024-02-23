@@ -1,4 +1,5 @@
-use super::{SourceLocation, Token, Vec};
+use super::{SourceLocation, Token};
+use crate::utils::collections::*;
 use core::{iter, str::Lines};
 
 // LINES STREAM

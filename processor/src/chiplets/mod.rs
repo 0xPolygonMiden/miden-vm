@@ -1,9 +1,10 @@
 use crate::system::ContextId;
 
 use super::{
-    crypto::MerklePath, utils, BTreeMap, ChipletsTrace, ExecutionError, Felt, FieldElement,
-    RangeChecker, TraceFragment, Vec, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
+    crypto::MerklePath, utils, ChipletsTrace, ExecutionError, Felt, FieldElement, RangeChecker,
+    TraceFragment, Word, CHIPLETS_WIDTH, EMPTY_WORD, ONE, ZERO,
 };
+use crate::utils::collections::*;
 use miden_air::trace::chiplets::hasher::{Digest, HasherState};
 use vm_core::{code_blocks::OpBatch, Kernel};
 

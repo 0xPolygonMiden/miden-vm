@@ -1,6 +1,5 @@
-use super::{
-    AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest, ToString, Vec,
-};
+use super::{AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest};
+use crate::utils::collections::*;
 use core::fmt;
 use vm_core::DebugOptions;
 

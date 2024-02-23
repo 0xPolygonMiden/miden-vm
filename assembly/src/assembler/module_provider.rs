@@ -1,4 +1,5 @@
-use super::{BTreeMap, Library, LibraryError, Module, ProcedureId, Vec};
+use super::{Library, LibraryError, Module, ProcedureId};
+use crate::utils::collections::*;
 
 // MODULE PROVIDER
 // ================================================================================================

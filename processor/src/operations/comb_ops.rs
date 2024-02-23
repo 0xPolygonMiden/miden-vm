@@ -171,7 +171,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::Vec;
+    use crate::utils::collections::*;
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 

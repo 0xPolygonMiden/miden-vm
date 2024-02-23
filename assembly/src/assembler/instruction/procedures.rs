@@ -1,7 +1,8 @@
 use super::{
-    super::Vec, Assembler, AssemblyContext, AssemblyError, CodeBlock, Operation, ProcedureId,
-    RpoDigest, SpanBuilder,
+    Assembler, AssemblyContext, AssemblyError, CodeBlock, Operation, ProcedureId, RpoDigest,
+    SpanBuilder,
 };
+use crate::utils::collections::*;
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================

@@ -4,7 +4,7 @@ use super::{
     ModuleImports, Node, ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap,
     Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
-use vm_core::utils::{collections::Vec, string::ToString};
+use crate::utils::{collections::*, string::*};
 
 // PARSER CONTEXT
 // ================================================================================================

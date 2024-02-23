@@ -1,7 +1,7 @@
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    collections::Vec,
+    collections::*,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
     Felt, VerifierError,
@@ -55,7 +55,7 @@ pub fn generate_advice_inputs(
 
     // reseed the coin with the commitment to the main trace segment
     public_coin.reseed(trace_commitments[0]);
-    tape.extend_from_slice(&digest_to_int_vec(&trace_commitments));
+    tape.extend_from_slice(&digest_to_int_vec(trace_commitments));
 
     // process auxiliary trace segments, to build a set of random elements for each segment
     let mut aux_trace_rand_elements = AuxTraceRandElements::<QuadExt>::new();
@@ -81,7 +81,7 @@ pub fn generate_advice_inputs(
     let _ood_main_trace_frame = ood_trace_frame.main_frame();
     let _ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
-    tape.extend_from_slice(&to_int_vec(&ood_trace_frame.values()));
+    tape.extend_from_slice(&to_int_vec(ood_trace_frame.values()));
     public_coin.reseed(Rpo256::hash_elements(ood_trace_frame.values()));
 
     // read evaluations of composition polynomial columns
@@ -151,14 +151,11 @@ pub fn generate_advice_inputs(
 pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
     digest
         .iter()
-        .map(|digest| digest.as_elements().into_iter().map(|e| e.as_int()))
+        .map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
         .flatten()
         .collect()
 }
 
 pub fn to_int_vec(ext_felts: &[QuadExt]) -> Vec<u64> {
-    QuadExt::slice_as_base_elements(ext_felts)
-        .into_iter()
-        .map(|e| e.as_int())
-        .collect()
+    QuadExt::slice_as_base_elements(ext_felts).iter().map(|e| e.as_int()).collect()
 }

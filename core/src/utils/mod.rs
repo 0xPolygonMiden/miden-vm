@@ -1,20 +1,19 @@
-use super::Felt;
-use core::fmt::{self, Write};
+use crate::Felt;
 use core::{
-    fmt::Debug,
+    fmt::{self, Debug, Write},
     ops::{Bound, Range},
 };
-use winter_utils::{collections::Vec, string::String};
+use {collections::*, string::*};
 
 // RE-EXPORTS
 // ================================================================================================
 
-pub use winter_utils::{
-    group_slice_elements, group_vector_elements, string, uninit_vector, Box, ByteReader,
-    ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
-};
+pub use winter_utils::{group_slice_elements, group_vector_elements};
 
-pub use miden_crypto::utils::{collections, vec};
+pub use miden_crypto::utils::{
+    boxed, collections, string, uninit_vector, vec, Box, ByteReader, ByteWriter, Deserializable,
+    DeserializationError, Serializable, SliceReader,
+};
 
 pub mod math {
     pub use math::{batch_inversion, log2};
