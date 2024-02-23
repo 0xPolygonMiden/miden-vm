@@ -16,6 +16,15 @@ use vm_core::{
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
 
+mod assembler;
+pub use assembler::{Assembler, AssemblyContext};
+
+pub mod ast;
+use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
+
+mod errors;
+pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, PathError};
+
 mod library;
 pub use library::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, Version};
 
@@ -23,17 +32,8 @@ mod procedures;
 use procedures::{CallSet, NamedProcedure, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
-pub mod ast;
-use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
-
 mod tokens;
 use tokens::{Token, TokenStream};
-
-mod errors;
-pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, PathError};
-
-mod assembler;
-pub use assembler::{Assembler, AssemblyContext};
 
 #[cfg(test)]
 mod tests;
