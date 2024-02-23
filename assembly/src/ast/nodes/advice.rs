@@ -1,10 +1,11 @@
 use super::{
     super::{
-        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, ToString,
+        ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         MAX_STACK_WORD_OFFSET,
     },
     serde::signatures,
 };
+use crate::utils::string::*;
 use core::fmt;
 use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
 

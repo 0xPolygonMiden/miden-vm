@@ -20,7 +20,7 @@ use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
-    utils::collections::{BTreeMap, Vec},
+    utils::collections::*,
     CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState,
 };
 

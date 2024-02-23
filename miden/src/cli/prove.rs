@@ -70,7 +70,7 @@ impl ProveCmd {
         println!("Prove program: {}", self.assembly_file.display());
         println!("-------------------------------------------------------------------------------");
 
-        let (program, input_data) = load_data(&self)?;
+        let (program, input_data) = load_data(self)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Proving program with hash {}...", hex::encode(program_hash));

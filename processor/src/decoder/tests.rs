@@ -18,7 +18,7 @@ use miden_air::trace::{
 use test_utils::rand::rand_value;
 use vm_core::{
     code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
-    utils::collections::Vec,
+    utils::collections::*,
     CodeBlockTable, EMPTY_WORD, ONE, ZERO,
 };
 

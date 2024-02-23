@@ -1,9 +1,11 @@
 use super::{
-    AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath,
-    NamedProcedure, Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest, ToString,
-    Vec,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, NamedProcedure,
+    Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest,
 };
-use crate::ast::{ModuleAst, ProgramAst};
+use crate::{
+    ast::{ModuleAst, ProgramAst},
+    utils::{collections::*, string::*},
+};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================

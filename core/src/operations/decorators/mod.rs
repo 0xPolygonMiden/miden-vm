@@ -1,4 +1,4 @@
-use crate::utils::collections::Vec;
+use crate::utils::collections::*;
 use core::fmt;
 
 mod advice;

@@ -1,8 +1,8 @@
 use super::{
-    AstSerdeOptions, BTreeMap, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node,
-    ParsingError, ProcedureAst, ProcedureId, ProcedureName, ProgramAst, SourceLocation, String,
-    ToString, Token,
+    AstSerdeOptions, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node, ParsingError,
+    ProcedureAst, ProcedureId, ProcedureName, ProgramAst, SourceLocation, Token,
 };
+use crate::utils::{collections::*, string::*};
 use vm_core::utils::SliceReader;
 
 // UNIT TESTS

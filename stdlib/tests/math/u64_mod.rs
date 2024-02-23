@@ -1,4 +1,3 @@
-use crate::build_test;
 use core::cmp;
 use processor::ExecutionError;
 use test_utils::{proptest::prelude::*, rand::rand_value, Felt, TestError, U32_BOUND, ZERO};

@@ -86,7 +86,7 @@ fn mtree_merge() {
     let tree_b = MerkleTree::new(leaves_b.clone()).unwrap();
     let root_a = tree_a.root();
     let root_b = tree_b.root();
-    let root_merged = Rpo256::merge(&[root_a.into(), root_b.into()]);
+    let root_merged = Rpo256::merge(&[root_a, root_b]);
     let mut store = MerkleStore::default();
     store.extend(tree_a.inner_nodes());
     store.extend(tree_b.inner_nodes());

@@ -28,7 +28,7 @@ fn falcon_prove_verify() {
     let program = Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib")
-        .compile(&source)
+        .compile(source)
         .expect("failed to compile test source");
 
     let stack_inputs =
@@ -65,10 +65,10 @@ fn generate_test(
 
     let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
-    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map.into())];
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
 
     let mut op_stack = vec![];
-    let message = message.into_iter().map(|a| a.as_int() as u64).collect::<Vec<u64>>();
+    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
     op_stack.extend_from_slice(&message);
     op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
 

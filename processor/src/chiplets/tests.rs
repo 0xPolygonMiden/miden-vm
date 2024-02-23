@@ -1,6 +1,6 @@
 use crate::{
-    CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
-    StackInputs, Vec,
+    utils::collections::*, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
+    Operation, Process, StackInputs,
 };
 use miden_air::trace::{
     chiplets::{

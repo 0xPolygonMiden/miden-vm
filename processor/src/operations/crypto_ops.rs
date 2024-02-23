@@ -189,7 +189,7 @@ mod tests {
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-        utils::collections::Vec,
+        utils::collections::*,
     };
 
     #[test]

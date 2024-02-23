@@ -182,7 +182,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     memory = mem;
                 }
                 Err(e) => {
-                    println!("{}", format!("Error running program: {:?}", e));
+                    println!("Error running program: {:?}", e);
                     program_lines.pop();
                 }
             }
@@ -201,7 +201,7 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                     should_print_stack = false;
                 } else if line == "!mem" {
                     should_print_stack = false;
-                    if memory.len() == 0 {
+                    if memory.is_empty() {
                         println!("The memory has not been initialized yet");
                         continue;
                     }
@@ -284,13 +284,13 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 /// Processor to be executed.
 fn execute(
     program: String,
-    provided_libraries: &Vec<MaslLibrary>,
+    provided_libraries: &[MaslLibrary],
 ) -> Result<(Vec<(u64, Word)>, Vec<Felt>), String> {
     // compile program
     let mut assembler = Assembler::default();
 
     assembler = assembler
-        .with_libraries(provided_libraries.clone().into_iter())
+        .with_libraries(provided_libraries.iter())
         .map_err(|err| format!("{err}"))?;
 
     let program = assembler.compile(program).map_err(|err| format!("{err}"))?;

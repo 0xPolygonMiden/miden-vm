@@ -2,10 +2,13 @@ use super::{
     bound_into_included_u64, AdviceInjectorNode, CodeBody, Deserializable, Felt, Instruction,
     InvocationTarget, LabelError, LibraryPath, LocalConstMap, LocalProcMap, ModuleImports, Node,
     ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap, RpoDigest,
-    SliceReader, StarkField, String, ToString, Token, TokenStream, Vec, MAX_BODY_LEN, MAX_DOCS_LEN,
-    MAX_LABEL_LEN, MAX_STACK_WORD_OFFSET,
+    SliceReader, StarkField, Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN, MAX_LABEL_LEN,
+    MAX_STACK_WORD_OFFSET,
 };
-use crate::HEX_CHUNK_SIZE;
+use crate::{
+    utils::{collections::*, string::*},
+    HEX_CHUNK_SIZE,
+};
 use core::{fmt::Display, ops::RangeBounds};
 
 mod adv_ops;

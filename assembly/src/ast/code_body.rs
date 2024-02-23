@@ -1,7 +1,8 @@
 use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Node, Serializable,
-    SourceLocation, Vec, MAX_BODY_LEN,
+    SourceLocation, MAX_BODY_LEN,
 };
+use crate::utils::collections::*;
 use core::{iter, slice};
 
 // CODE BODY

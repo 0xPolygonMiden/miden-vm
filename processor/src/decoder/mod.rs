@@ -1,7 +1,8 @@
 use super::{
     Call, Dyn, ExecutionError, Felt, Host, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    Vec, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    Word, EMPTY_WORD, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
+use crate::utils::collections::*;
 use miden_air::trace::{
     chiplets::hasher::DIGEST_LEN,
     decoder::{

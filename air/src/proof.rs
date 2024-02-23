@@ -1,7 +1,8 @@
-use super::DeserializationError;
 use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
-    utils::{collections::Vec, ByteReader, ByteWriter, Deserializable, Serializable},
+    utils::{
+        collections::*, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
+    },
 };
 use winter_air::proof::StarkProof;
 

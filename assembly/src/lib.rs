@@ -9,8 +9,7 @@ use vm_core::{
     crypto,
     errors::KernelError,
     utils::{
-        collections::{btree_map, BTreeMap, BTreeSet, Vec},
-        string::{String, ToString},
+        collections::{btree_map, BTreeMap},
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,

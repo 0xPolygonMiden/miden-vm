@@ -1,8 +1,9 @@
 use super::{
     super::{ToElements, WORD_SIZE},
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel, Program,
-    Serializable, Vec,
+    Serializable,
 };
+use crate::utils::collections::*;
 
 // PROGRAM INFO
 // ================================================================================================

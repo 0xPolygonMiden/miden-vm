@@ -8,9 +8,10 @@ use super::{
     MAX_LOCAL_PROCS, MAX_REEXPORTED_PROCS,
     {
         ByteReader, ByteWriter, Deserializable, DeserializationError, ParsingError, SliceReader,
-        String, ToString, Token, TokenStream, Vec,
+        Token, TokenStream,
     },
 };
+use crate::utils::{collections::*, string::*};
 
 use core::{fmt, str::from_utf8};
 use vm_core::utils::Serializable;

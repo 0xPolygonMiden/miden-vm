@@ -5,9 +5,7 @@
 extern crate alloc;
 
 use vm_core::{
-    utils::{
-        collections::Vec, string::String, ByteReader, ByteWriter, Deserializable, Serializable,
-    },
+    utils::{collections::*, ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
@@ -30,7 +28,7 @@ mod proof;
 mod utils;
 use utils::TransitionConstraintRange;
 
-// EXPORTS
+// RE-EXPORTS
 // ================================================================================================
 
 pub use errors::ExecutionOptionsError;

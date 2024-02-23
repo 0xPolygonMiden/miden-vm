@@ -22,7 +22,7 @@ use vm_core::{
     chiplets::hasher::apply_permutation,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    utils::{collections::Vec, range},
+    utils::{collections::*, range},
     Word,
 };
 

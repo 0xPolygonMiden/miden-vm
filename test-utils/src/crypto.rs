@@ -1,4 +1,4 @@
-use super::{Felt, Vec, Word, ZERO};
+use super::{collections::*, Felt, Word, ZERO};
 
 // RE-EXPORTS
 // ================================================================================================

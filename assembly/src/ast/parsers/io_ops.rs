@@ -3,9 +3,9 @@ use super::{
     Instruction::*,
     LocalConstMap,
     Node::{self, Instruction},
-    ParsingError, Token, Vec, CONSTANT_LABEL_PARSER, HEX_CHUNK_SIZE,
+    ParsingError, Token, CONSTANT_LABEL_PARSER, HEX_CHUNK_SIZE,
 };
-use crate::{StarkField, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
+use crate::{utils::collections::*, StarkField, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
 use core::ops::RangeBounds;
 use vm_core::WORD_SIZE;
 

@@ -3,7 +3,7 @@
 
 use miden_air::ProcessorAir;
 use test_utils::{
-    collections::Vec,
+    collections::*,
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
     group_vector_elements,
     math::{FieldElement, QuadExtension, StarkField},
