@@ -1,6 +1,5 @@
-use super::{
-    BTreeMap, LineTokenizer, LinesStream, ParsingError, SourceLocation, String, Token, Vec,
-};
+use super::{LineTokenizer, LinesStream, ParsingError, SourceLocation, Token};
+use crate::utils::{collections::*, string::*};
 use core::fmt;
 
 // TOKEN STREAM

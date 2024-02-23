@@ -1,8 +1,9 @@
 use super::{
     ast::{AstSerdeOptions, ModuleAst},
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, PathError,
-    Serializable, String, ToString, Vec, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
+    Serializable, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
 };
+use crate::utils::string::*;
 use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};
 
 mod masl;

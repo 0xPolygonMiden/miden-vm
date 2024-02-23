@@ -1,7 +1,8 @@
 use super::{
     CodeBody, FormattableNode, InvokedProcsMap, LibraryPath, ProcedureAst, ProcedureId,
-    ProcedureName, Vec,
+    ProcedureName,
 };
+use crate::utils::collections::*;
 use core::fmt;
 
 const INDENT_STRING: &str = "    ";

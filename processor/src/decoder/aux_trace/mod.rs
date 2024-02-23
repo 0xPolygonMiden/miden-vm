@@ -1,5 +1,5 @@
-use super::{Felt, Vec, ONE, ZERO};
-use crate::trace::AuxColumnBuilder;
+use super::{Felt, ONE, ZERO};
+use crate::{trace::AuxColumnBuilder, utils::collections::*};
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{FieldElement, Operation};
 

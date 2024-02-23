@@ -1,8 +1,9 @@
 use super::{
-    BTreeMap, ByteReader, ByteWriter, Deserializable, DeserializationError, InvokedProcsMap,
-    LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, String, ToString, Token,
-    TokenStream, Vec, MAX_IMPORTS, MAX_INVOKED_IMPORTED_PROCS,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, InvokedProcsMap, LibraryPath,
+    ParsingError, ProcedureId, ProcedureName, Serializable, Token, TokenStream, MAX_IMPORTS,
+    MAX_INVOKED_IMPORTED_PROCS,
 };
+use crate::utils::{collections::*, string::*};
 
 // TYPE ALIASES
 // ================================================================================================

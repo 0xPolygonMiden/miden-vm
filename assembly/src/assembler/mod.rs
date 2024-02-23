@@ -1,12 +1,12 @@
-use super::ast::instrument;
 use super::{
-    ast::{Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
+    ast::{instrument, Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
     btree_map,
     crypto::hash::RpoDigest,
     AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
     LibraryError, LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId,
-    ProcedureName, Program, ToString, Vec, ONE, ZERO,
+    ProcedureName, Program, ONE, ZERO,
 };
+use crate::utils::collections::*;
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
@@ -196,8 +196,8 @@ impl Assembler {
     /// - If a module with the same path already exists in the module stack of the
     ///   [AssemblyContext].
     /// - If a lock to the [ProcedureCache] can not be attained.
-    #[instrument(level = "trace", 
-                 name = "compile_module", 
+    #[instrument(level = "trace",
+                 name = "compile_module",
                  fields(module = path.unwrap_or(&LibraryPath::anon_path()).path()), skip_all)]
     pub fn compile_module(
         &self,

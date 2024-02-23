@@ -9,13 +9,13 @@ extern crate alloc;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
-use vm_core::chiplets::hasher::apply_permutation;
-use vm_core::utils::{collections::Vec, string::String};
+use vm_core::{
+    chiplets::hasher::apply_permutation,
+    utils::{collections::*, string::*},
+};
 
 // EXPORTS
 // ================================================================================================
-
-pub use vm_core::chiplets::hasher::{hash_elements, STATE_WIDTH};
 
 pub use assembly::{Library, MaslLibrary};
 pub use processor::{
@@ -26,6 +26,7 @@ pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
 pub use vm_core::{
+    chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
     Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,

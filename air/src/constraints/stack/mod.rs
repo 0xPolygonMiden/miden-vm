@@ -4,8 +4,8 @@ use super::super::{
     STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
 };
 use crate::decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
-use crate::utils::{are_equal, is_binary};
-use vm_core::{stack::STACK_TOP_SIZE, utils::collections::Vec, StackOutputs};
+use crate::utils::{are_equal, collections::*, is_binary};
+use vm_core::{stack::STACK_TOP_SIZE, StackOutputs};
 
 pub mod field_ops;
 pub mod io_ops;

@@ -1,4 +1,3 @@
-use crate::build_test;
 use sha2::{Digest, Sha256};
 use test_utils::{
     group_slice_elements,

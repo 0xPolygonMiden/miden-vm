@@ -1,7 +1,7 @@
-use super::{BTreeMap, Felt, RangeChecker, Vec, ZERO};
+use super::{Felt, RangeChecker, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
 use test_utils::rand::rand_array;
-use vm_core::utils::ToElements;
+use vm_core::utils::{collections::*, ToElements};
 
 #[test]
 fn range_checks() {

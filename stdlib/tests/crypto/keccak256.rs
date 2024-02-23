@@ -1,4 +1,3 @@
-use crate::build_test;
 use sha3::{Digest, Keccak256};
 use test_utils::{
     rand::{rand_array, rand_value},

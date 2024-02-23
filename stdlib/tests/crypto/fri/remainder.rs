@@ -1,4 +1,3 @@
-use crate::build_test;
 use test_utils::{
     math::fft, rand::rand_vector, test_case, Felt, FieldElement, QuadFelt, StarkField, ONE,
 };

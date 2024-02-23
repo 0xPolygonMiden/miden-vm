@@ -1,12 +1,12 @@
 use super::{
     super::{Trace, NUM_RAND_ROWS},
-    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Vec, Word, ONE,
-    ZERO,
+    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Word, ONE, ZERO,
 };
 
-use crate::StackInputs;
-use miden_air::trace::main_trace::MainTrace;
-use miden_air::trace::{chiplets::hasher::P1_COL_IDX, AUX_TRACE_RAND_ELEMENTS};
+use crate::{utils::collections::*, StackInputs};
+use miden_air::trace::{
+    chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS,
+};
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     FieldElement,

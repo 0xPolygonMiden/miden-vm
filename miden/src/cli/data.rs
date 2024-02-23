@@ -581,7 +581,7 @@ mod test {
                 }
             ]
         }";
-        let inputs: InputFile = serde_json::from_str(&program_with_pmt).unwrap();
+        let inputs: InputFile = serde_json::from_str(program_with_pmt).unwrap();
         let merkle_store = inputs.parse_merkle_store().unwrap();
         assert!(merkle_store.is_some());
 
@@ -607,7 +607,7 @@ mod test {
               }
             ]
           }";
-        let inputs: InputFile = serde_json::from_str(&program_with_smt).unwrap();
+        let inputs: InputFile = serde_json::from_str(program_with_smt).unwrap();
         let merkle_store = inputs.parse_merkle_store().unwrap();
         assert!(merkle_store.is_some());
 
@@ -625,7 +625,7 @@ mod test {
                 }
             ]
         }";
-        let inputs: InputFile = serde_json::from_str(&program_with_merkle_tree).unwrap();
+        let inputs: InputFile = serde_json::from_str(program_with_merkle_tree).unwrap();
         let merkle_store = inputs.parse_merkle_store().unwrap();
         assert!(merkle_store.is_some());
     }

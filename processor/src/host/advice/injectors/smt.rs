@@ -1,11 +1,10 @@
 use super::super::{AdviceSource, ExecutionError, Felt, HostResponse, Word};
-use crate::{AdviceProvider, ProcessState};
+use crate::{utils::collections::*, AdviceProvider, ProcessState};
 use vm_core::{
     crypto::{
         hash::RpoDigest,
         merkle::{EmptySubtreeRoots, Smt, SMT_DEPTH},
     },
-    utils::collections::Vec,
     WORD_SIZE,
 };
 
