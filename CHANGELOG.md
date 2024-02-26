@@ -16,6 +16,7 @@
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
 - Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
+- Introduced `clz`, `ctz`, `clo` and `cto` instructions in the `std::math::u64` module (#1179).
 - Removed `std::collections::smt64` (#1249)
 
 #### VM Internals

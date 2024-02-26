@@ -702,7 +702,6 @@ proptest! {
         let test = build_op_test!(asm_op, &[a]);
         test.prop_expect_stack(&[expected as u64])?;
     }
-
 }
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS
