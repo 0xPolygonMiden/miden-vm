@@ -23,7 +23,7 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
 
     let injector = match op.parts()[1] {
         "push_u64div" => match op.num_parts() {
-            2 => AdvInject(PushU64div),
+            2 => AdvInject(PushU64Div),
             _ => return Err(ParsingError::extra_param(op)),
         },
         "push_ext2intt" => match op.num_parts() {
