@@ -477,6 +477,7 @@ impl ParserContext<'_> {
 
             "pow2" => simple_instruction(op, Pow2),
             "exp" => field_ops::parse_exp(op),
+            "ilog2" => simple_instruction(op, ILog2),
 
             "not" => simple_instruction(op, Not),
             "and" => simple_instruction(op, And),
@@ -542,6 +543,10 @@ impl ParserContext<'_> {
             "u32rotl" => u32_ops::parse_u32_rotl(op),
 
             "u32popcnt" => simple_instruction(op, U32Popcnt),
+            "u32clz" => simple_instruction(op, U32Clz),
+            "u32ctz" => simple_instruction(op, U32Ctz),
+            "u32clo" => simple_instruction(op, U32Clo),
+            "u32cto" => simple_instruction(op, U32Cto),
 
             "u32lt" => simple_instruction(op, U32Lt),
             "u32lte" => simple_instruction(op, U32Lte),

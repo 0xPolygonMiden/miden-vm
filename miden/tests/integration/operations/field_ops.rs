@@ -352,6 +352,23 @@ fn exp_small_pow() {
     test.expect_stack(&[expected.as_int()]);
 }
 
+#[test]
+fn ilog2() {
+    let asm_op = "ilog2";
+    build_op_test!(asm_op, &[1]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[8]).expect_stack(&[3]);
+    build_op_test!(asm_op, &[15]).expect_stack(&[3]);
+    build_op_test!(asm_op, &[Felt::MODULUS - 1]).expect_stack(&[63]);
+}
+
+#[test]
+fn ilog2_fail() {
+    let asm_op = "ilog2";
+
+    build_op_test!(asm_op, &[0])
+        .expect_error(TestError::ExecutionError(ExecutionError::LogArgumentZero(1)));
+}
+
 // FIELD OPS BOOLEAN - MANUAL TESTS
 // ================================================================================================
 
@@ -652,32 +669,38 @@ proptest! {
         let asm_op = "pow2";
         let expected = 2_u64.wrapping_pow(b);
 
-        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected])?;
+        let test = build_op_test!(asm_op, &[b as u64]);
+        test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
     fn exp_proptest(a in any::<u64>(), b in any::<u64>()) {
-
-        //---------------------- exp with no parameter -------------------------------------
-
+        // --- exp with no parameter --------------------------------------------------------------
         let asm_op = "exp";
         let base = a;
         let pow = b;
         let expected = Felt::new(base).exp(pow);
 
         let test = build_op_test!(asm_op, &[base, pow]);
-        test.expect_stack(&[expected.as_int()]);
+        test.prop_expect_stack(&[expected.as_int()])?;
 
-        //----------------------- exp with parameter containing pow ----------------
-
+        // --- exp with parameter containing pow --------------------------------------------------
         let build_asm_op = |param: u64| format!("exp.{param}");
         let base = a;
         let pow = b;
         let expected = Felt::new(base).exp(pow);
 
         let test = build_op_test!(build_asm_op(pow), &[base]);
-        test.expect_stack(&[expected.as_int()]);
+        test.prop_expect_stack(&[expected.as_int()])?;
+    }
 
+    #[test]
+    fn ilog2_proptest(a in 1..Felt::MODULUS) {
+        let asm_op = "ilog2";
+        let expected = a.ilog2();
+
+        let test = build_op_test!(asm_op, &[a]);
+        test.prop_expect_stack(&[expected as u64])?;
     }
 
 }

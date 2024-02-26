@@ -19,7 +19,7 @@ use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
 /// - Insert new data into the advice map.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AdviceInjectorNode {
-    PushU64div,
+    PushU64Div,
     PushExt2intt,
     PushSmtGet,
     PushSmtSet,
@@ -40,7 +40,7 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
     fn from(value: &AdviceInjectorNode) -> Self {
         use AdviceInjectorNode::*;
         match value {
-            PushU64div => Self::DivU64,
+            PushU64Div => Self::U64Div,
             PushExt2intt => Self::Ext2Intt,
             PushSmtGet => Self::SmtGet,
             PushSmtSet => Self::SmtSet,
@@ -77,7 +77,7 @@ impl fmt::Display for AdviceInjectorNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AdviceInjectorNode::*;
         match self {
-            PushU64div => write!(f, "push_u64div"),
+            PushU64Div => write!(f, "push_u64div"),
             PushExt2intt => write!(f, "push_ext2intt"),
             PushSmtGet => write!(f, "push_smtget"),
             PushSmtSet => write!(f, "push_smtset"),
@@ -119,7 +119,7 @@ impl Serializable for AdviceInjectorNode {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         use AdviceInjectorNode::*;
         match self {
-            PushU64div => target.write_u8(PUSH_U64DIV),
+            PushU64Div => target.write_u8(PUSH_U64DIV),
             PushExt2intt => target.write_u8(PUSH_EXT2INTT),
             PushSmtGet => target.write_u8(PUSH_SMTGET),
             PushSmtSet => target.write_u8(PUSH_SMTSET),
@@ -153,7 +153,7 @@ impl Serializable for AdviceInjectorNode {
 impl Deserializable for AdviceInjectorNode {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
-            PUSH_U64DIV => Ok(AdviceInjectorNode::PushU64div),
+            PUSH_U64DIV => Ok(AdviceInjectorNode::PushU64Div),
             PUSH_EXT2INTT => Ok(AdviceInjectorNode::PushExt2intt),
             PUSH_SMTGET => Ok(AdviceInjectorNode::PushSmtGet),
             PUSH_SMTSET => Ok(AdviceInjectorNode::PushSmtSet),

@@ -5,6 +5,7 @@ use super::{
     SpanBuilder, ZERO,
 };
 use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};
+use vm_core::AdviceInjector::{U32Clo, U32Clz, U32Cto, U32Ctz};
 
 // ENUMS
 // ================================================================================================
@@ -167,6 +168,53 @@ pub fn u32divmod(
     handle_division(span, imm)
 }
 
+// ARITHMETIC OPERATIONS - HELPERS
+// ================================================================================================
+
+/// Handles U32ADD, U32SUB, and U32MUL operations in wrapping, and overflowing modes, including
+/// handling of immediate parameters.
+///
+/// Specifically handles these specific inputs per the spec.
+/// - Wrapping: does not check if the inputs are u32 values; overflow or underflow bits are
+///   discarded.
+/// - Overflowing: does not check if the inputs are u32 values; overflow or underflow bits are
+///   pushed onto the stack.
+fn handle_arithmetic_operation(
+    span: &mut SpanBuilder,
+    op: Operation,
+    op_mode: U32OpMode,
+    imm: Option<u32>,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    if let Some(imm) = imm {
+        push_u32_value(span, imm);
+    }
+
+    span.push_op(op);
+
+    // in the wrapping mode, drop high 32 bits
+    if matches!(op_mode, U32OpMode::Wrapping) {
+        span.add_op(Drop)
+    } else {
+        Ok(None)
+    }
+}
+
+/// Handles common parts of u32div, u32mod, and u32divmod operations, including handling of
+/// immediate parameters.
+fn handle_division(
+    span: &mut SpanBuilder,
+    imm: Option<u32>,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    if let Some(imm) = imm {
+        if imm == 0 {
+            return Err(AssemblyError::division_by_zero());
+        }
+        push_u32_value(span, imm);
+    }
+
+    span.add_op(U32div)
+}
+
 // BITWISE OPERATIONS
 // ================================================================================================
 
@@ -310,48 +358,52 @@ pub fn u32popcnt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     span.add_ops(ops)
 }
 
-/// Handles U32ADD, U32SUB, and U32MUL operations in wrapping, and overflowing modes, including
-/// handling of immediate parameters.
+/// Translates `u32clz` assembly instruction to VM operations. `u32clz` counts the number of
+/// leading zeros of the value using non-deterministic technique (i.e. it takes help of advice
+/// provider).
 ///
-/// Specifically handles these specific inputs per the spec.
-/// - Wrapping: does not check if the inputs are u32 values; overflow or underflow bits are
-///   discarded.
-/// - Overflowing: does not check if the inputs are u32 values; overflow or underflow bits are
-///   pushed onto the stack.
-fn handle_arithmetic_operation(
-    span: &mut SpanBuilder,
-    op: Operation,
-    op_mode: U32OpMode,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    if let Some(imm) = imm {
-        push_u32_value(span, imm);
-    }
+/// This operation takes 37 VM cycles.
+pub fn u32clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.push_advice_injector(U32Clz);
+    span.push_op(AdvPop); // [clz, n, ...]
 
-    span.push_op(op);
-
-    // in the wrapping mode, drop high 32 bits
-    if matches!(op_mode, U32OpMode::Wrapping) {
-        span.add_op(Drop)
-    } else {
-        Ok(None)
-    }
+    calculate_clz(span)
 }
 
-/// Handles common parts of u32div, u32mod, and u32divmod operations, including handling of
-/// immediate parameters.
-fn handle_division(
-    span: &mut SpanBuilder,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    if let Some(imm) = imm {
-        if imm == 0 {
-            return Err(AssemblyError::division_by_zero());
-        }
-        push_u32_value(span, imm);
-    }
+/// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
+/// trailing zeros of the value using non-deterministic technique (i.e. it takes help of advice
+/// provider).
+///
+/// This operation takes 34 VM cycles.
+pub fn u32ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.push_advice_injector(U32Ctz);
+    span.push_op(AdvPop); // [ctz, n, ...]
 
-    span.add_op(U32div)
+    calculate_ctz(span)
+}
+
+/// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
+/// leading ones of the value using non-deterministic technique (i.e. it takes help of advice
+/// provider).
+///
+/// This operation takes 36 VM cycles.
+pub fn u32clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.push_advice_injector(U32Clo);
+    span.push_op(AdvPop); // [clo, n, ...]
+
+    calculate_clo(span)
+}
+
+/// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
+/// trailing ones of the value using non-deterministic technique (i.e. it takes help of advice
+/// provider).
+///
+/// This operation takes 33 VM cycles.
+pub fn u32cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.push_advice_injector(U32Cto);
+    span.push_op(AdvPop); // [cto, n, ...]
+
+    calculate_cto(span)
 }
 
 // BITWISE OPERATIONS - HELPERS
@@ -377,6 +429,304 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
         }
     }
     Ok(())
+}
+
+/// Appends relevant operations to the span block for the correctness check of the `U32Clz`
+/// injector.
+/// The idea is to compare the actual value with a bitmask consisting of `clz` leading ones to
+/// check that every bit in `clz` leading bits is zero and `1` additional one to check that
+/// `clz + 1`'th leading bit is one:
+/// ```text
+/// 000000000...000100...10 <-- actual value
+/// └─ clz zeros ─┘
+///
+/// 1111111111...11100...00 <-- bitmask
+/// └─  clz ones ─┘│
+///                └─ additional one
+/// ```
+/// After applying a `u32and` bit operation on this values the result's leading `clz` bits should
+/// be zeros, otherwise there were some ones in initial value's `clz` leading bits, and therefore
+/// `clz` value is incorrect. `clz + 1`'th leading bit of the result should be one, otherwise this
+/// bit in the initial value wasn't one and `clz` value is incorrect:
+/// ```text
+///  0000...00|1|10...10
+/// &
+///  1111...11|1|00...00
+///  ↓↓↓↓   ↓↓ ↓
+///  0000...00|1|00...00
+/// ```
+///
+/// ---
+/// The stack is expected to be arranged as follows (from the top):
+/// - number of the leading zeros (`clz`), 1 element
+/// - value for which we count the number of leading zeros (`n`), 1 element
+///
+/// After the operations are executed, the stack will be arranged as follows:
+/// - number of the leading zeros (`clz`), 1 element
+///
+/// `[clz, n, ... ] -> [clz, ... ]`
+///
+/// VM cycles: 36
+fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // [clz, n, ...]
+    #[rustfmt::skip]
+    let ops_group_1 = [
+        Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clz, n, clz, ...]
+    ];
+    span.push_ops(ops_group_1);
+
+    append_pow2_op(span); // [pow2(32 - clz), n, clz, ...]
+
+    #[rustfmt::skip]
+    let ops_group_2 = [
+        Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
+
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...] 
+                        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz` 
+                        // zeros:
+                        // 1111111111...1110000...0
+                        // └─ `clz` ones ─┘
+
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...] 
+                                              // pow2(32 - clz) / 2 is equal to `clz` leading 
+                                              // zeros, `1` one and all other zeros.
+
+        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...] 
+                         // 1111111111...111000...0 <-- bitmask
+                         // └─  clz ones ─┘│
+                         //                └─ additional one
+
+        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz] 
+                        // If calcualtion of `clz` is correct, m should be equal to 
+                        // pow2(32 - clz) / 2
+
+        Eq, Assert(0) // [clz, ...]
+    ];
+
+    span.add_ops(ops_group_2)
+}
+
+/// Appends relevant operations to the span block for the correctness check of the `U32Clo`
+/// injector.
+/// The idea is to compare the actual value with a bitmask consisting of `clo` leading ones to
+/// check that every bit in `clo` leading bits is one and `1` additional one to check that
+/// `clo + 1`'th leading bit is zero:
+/// ```text
+/// 11111111...111010...10 <-- actual value
+/// └─ clo ones ─┘
+///
+/// 111111111...11100...00 <-- bitmask
+/// └─ clo ones ─┘│
+///               └─ additional one
+/// ```
+/// After applying a `u32and` bit operation on this values the result's leading `clo` bits should
+/// be ones, otherwise there were some zeros in initial value's `clo` leading bits, and therefore
+/// `clo` value is incorrect. `clo + 1`'th leading bit of the result should be zero, otherwise this
+/// bit in the initial value wasn't zero and `clo` value is incorrect:
+/// ```text
+///  1111...11|0|10...10
+/// &
+///  1111...11|1|00...00
+///  ↓↓↓↓   ↓↓ ↓
+///  1111...11|0|00...00
+/// ```
+///
+/// ---
+/// The stack is expected to be arranged as follows (from the top):
+/// - number of the leading ones (`clo`), 1 element
+/// - value for which we count the number of leading ones (`n`), 1 element
+///
+/// After the operations are executed, the stack will be arranged as follows:
+/// - number of the leading ones (`clo`), 1 element
+///
+/// `[clo, n, ... ] -> [clo, ... ]`
+///
+/// VM cycles: 35
+fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // [clo, n, ...]
+    #[rustfmt::skip]
+    let ops_group_1 = [
+        Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clo, n, clo, ...]
+    ];
+    span.push_ops(ops_group_1);
+
+    append_pow2_op(span); // [pow2(32 - clo), n, clo, ...]
+
+    #[rustfmt::skip]
+    let ops_group_2 = [
+        Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
+
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...] 
+                        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo` 
+                        // zeros:
+                        // 11111111...1110000...0
+                        // └─ clo ones ─┘
+
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...] 
+                                              // pow2(32 - clo) / 2 is equal to `clo` leading 
+                                              // zeros, `1` one and all other zeros.
+
+        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...] 
+                   // 111111111...111000...0 <-- bitmask
+                   // └─ clo ones ─┘│
+                   //               └─ additional one
+
+        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo] 
+                        // If calcualtion of `clo` is correct, m should be equal to 
+                        // 2^32 - pow2(32 - clo)
+
+        Eq, Assert(0) // [clo, ...]
+    ];
+
+    span.add_ops(ops_group_2)
+}
+
+/// Appends relevant operations to the span block for the correctness check of the `U32Ctz`
+/// injector.
+/// The idea is to compare the actual value with a bitmask consisting of `ctz` trailing ones to
+/// check that every bit in `ctz` trailing bits is zero and `1` additional one to check that
+/// `ctz + 1`'th trailing bit is one:
+/// ```text
+/// 10..001000000000000000 <-- actual value
+///        └─ ctz zeros ─┘
+///
+/// 00..0011111111111...11 <-- bitmask
+///       │└─  ctz ones ─┘
+///       └─ additional one
+/// ```
+/// After applying a `u32and` bit operation on this values the result's trailing `ctz` bits should
+/// be zeros, otherwise there were some ones in initial value's `ctz` trailing bits, and therefore
+/// `ctz` value is incorrect. `ctz + 1`'th trailing bit of the result should be one, otherwise this
+/// bit in the initial value wasn't one and `ctz` value is incorrect:
+/// ```text
+///  10...10|1|00...00
+/// &
+///  00...00|1|11...11
+/// =        ↓ ↓↓   ↓↓
+///  00...00|1|00...00
+/// ```
+///
+/// ---
+/// The stack is expected to be arranged as follows (from the top):
+/// - number of the trailing zeros (`ctz`), 1 element
+/// - value for which we count the number of trailing zeros (`n`), 1 element
+///
+/// After the operations are executed, the stack will be arranged as follows:
+/// - number of the trailing zeros (`ctz`), 1 element
+///
+/// `[ctz, n, ... ] -> [ctz, ... ]`
+///
+/// VM cycles: 33
+fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // [ctz, n, ...]
+    #[rustfmt::skip]
+    let ops_group_1 = [
+        Swap, Dup1, // [ctz, n, ctz, ...]
+    ];
+    span.push_ops(ops_group_1);
+
+    append_pow2_op(span); // [pow2(ctz), n, ctz, ...]
+
+    #[rustfmt::skip]
+    let ops_group_2 = [
+        Dup0, // [pow2(ctz), pow2(ctz), n, ctz, ...]
+              // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
+
+        Pad, Incr, Neg, Add, // [pow2(ctz) - 1, pow2(ctz), n, ctz, ...]
+
+        Swap, U32split, Drop, // [pow2(ctz), pow2(ctz) - 1, n, ctz, ...]
+                              // We need to drop the high bits of `pow2(ctz)` because if `ctz` 
+                              // equals 32 `pow2(ctz)` will exceed the u32. Also in that case there
+                              // is no need to check the dividing one, since it is absent (value is
+                              // all 0's). 
+
+        Dup0, MovUp2, Add, // [bit_mask, pow2(ctz), n, ctz]
+                           // 00..001111111111...11 <-- bitmask
+                           //       │└─ ctz ones ─┘
+                           //       └─ additional one
+                           
+        MovUp2, U32and, // [m, pow2(ctz), ctz]
+                        // If calcualtion of `ctz` is correct, m should be equal to 
+                        // pow2(ctz)
+
+        Eq, Assert(0), // [ctz, ...]
+    ];
+
+    span.add_ops(ops_group_2)
+}
+
+/// Appends relevant operations to the span block for the correctness check of the `U32Cto`
+/// injector.
+/// The idea is to compare the actual value with a bitmask consisting of `cto` trailing ones to
+/// check that every bit in `cto` trailing bits is one and `1` additional one to check that
+/// `cto + 1`'th trailing bit is zero:
+/// ```text
+/// 10..01011111111111111 <-- actual value
+///        └─ cto ones ─┘
+///
+/// 00..001111111111...11 <-- bitmask
+///       │└─ cto ones ─┘
+///       └─ additional one
+/// ```
+/// After applying a `u32and` bit operation on this values the result's trailing `cto` bits should
+/// be ones, otherwise there were some zeros in initial value's `cto` trailing bits, and therefore
+/// `cto` value is incorrect. `cto + 1`'th trailing bit of the result should be zero, otherwise
+/// this bit in the initial value wasn't zero and `cto` value is incorrect:
+/// ```text
+///  10...11|0|11...11
+/// &
+///  00...00|1|11...11
+/// =        ↓ ↓↓   ↓↓
+///  00...00|0|11...11
+/// ```
+///
+/// ---
+/// The stack is expected to be arranged as follows (from the top):
+/// - number of the trailing ones (`cto`), 1 element
+/// - value for which we count the number of trailing zeros (`n`), 1 element
+///
+/// After the operations are executed, the stack will be arranged as follows:
+/// - number of the trailing zeros (`cto`), 1 element
+///
+/// `[cto, n, ... ] -> [cto, ... ]`
+///
+/// VM cycles: 32
+fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    // [cto, n, ...]
+    #[rustfmt::skip]
+    let ops_group_1 = [
+        Swap, Dup1, // [cto, n, cto, ...]
+    ];
+    span.push_ops(ops_group_1);
+
+    append_pow2_op(span); // [pow2(cto), n, cto, ...]
+
+    #[rustfmt::skip]
+    let ops_group_2 = [
+        Dup0, // [pow2(cto), pow2(cto), n, cto, ...]
+              // pow2(cto) is equal to all zeros with only one on the `cto`'th trailing position
+
+        Pad, Incr, Neg, Add, // [pow2(cto) - 1, pow2(cto), n, cto, ...]
+
+        Swap, U32split, Drop, // [pow2(cto), pow2(cto) - 1, n, cto, ...]
+                              // We need to drop the high bits of `pow2(cto)` because if `cto` 
+                              // equals 32 `pow2(cto)` will exceed the u32. Also in that case there
+                              // is no need to check the dividing zero, since it is absent (value 
+                              // is all 1's). 
+
+        Dup1, Add, // [bit_mask, pow2(cto) - 1, n, cto]
+                   // 00..001111111111...11 <-- bitmask
+                   //       │└─ cto ones ─┘
+                   //       └─ additional one
+                           
+        MovUp2, U32and, // [m, pow2(cto) - 1, cto]
+                        // If calcualtion of `cto` is correct, m should be equal to 
+                        // pow2(cto) - 1
+
+        Eq, Assert(0), // [cto, ...]
+    ];
+
+    span.add_ops(ops_group_2)
 }
 
 // COMPARISON OPERATIONS

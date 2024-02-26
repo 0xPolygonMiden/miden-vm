@@ -8,6 +8,7 @@
 - Introduced the `procref.<proc_name>` assembly instruction (#1113).
 - Added the ability to use constants as counters in `repeat` loops (#1124). 
 - All `checked` versions of the u32 instructions were removed. All `unchecked` versions were renamed: this mode specification was removed from their titles (#1115).
+- Introduced the `u32clz`, `u32ctz`, `u32clo`, `u32cto` and `ilog2` assembly instructions (#1176).
 - Added support for hexadecimal values in constants (#1199).
 - Added the `RCombBase` instruction (#1216).
 

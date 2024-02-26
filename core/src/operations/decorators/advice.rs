@@ -103,7 +103,7 @@ pub enum AdviceInjector {
     /// respectively (with a0 representing the 32 lest significant bits and a1 representing the
     /// 32 most significant bits). Similarly, (q0, q1) and (r0, r1) represent the quotient and
     /// the remainder respectively.
-    DivU64,
+    U64Div,
 
     /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
     /// computes its multiplicative inverse and push the result onto the advice stack.
@@ -164,6 +164,60 @@ pub enum AdviceInjector {
     ///   Operand stack: [KEY, ROOT, ...]
     ///   Advice stack: [VALUE, ...]
     SmtPeek,
+
+    /// Pushes the number of the leading zeros of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [leading_zeros, ...]
+    U32Clz,
+
+    /// Pushes the number of the trailing zeros of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [trailing_zeros, ...]
+    U32Ctz,
+
+    /// Pushes the number of the leading ones of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [leading_ones, ...]
+    U32Clo,
+
+    /// Pushes the number of the trailing ones of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [trailing_ones, ...]
+    U32Cto,
+
+    /// Pushes the base 2 logarithm of the top stack element, rounded down.
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [ilog2(n), ...]
+    ILog2,
 
     // ADVICE MAP INJECTORS
     // --------------------------------------------------------------------------------------------
@@ -245,12 +299,17 @@ impl fmt::Display for AdviceInjector {
                     write!(f, "map_value_to_stack.{key_offset}")
                 }
             }
-            Self::DivU64 => write!(f, "div_u64"),
+            Self::U64Div => write!(f, "div_u64"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtGet => write!(f, "smt_get"),
             Self::SmtSet => write!(f, "smt_set"),
             Self::SmtPeek => write!(f, "smt_peek"),
+            Self::U32Clz => write!(f, "u32clz"),
+            Self::U32Ctz => write!(f, "u32ctz"),
+            Self::U32Clo => write!(f, "u32clo"),
+            Self::U32Cto => write!(f, "u32cto"),
+            Self::ILog2 => write!(f, "ilog2"),
             Self::MemToMap => write!(f, "mem_to_map"),
             Self::HdwordToMap { domain } => write!(f, "hdword_to_map.{domain}"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
