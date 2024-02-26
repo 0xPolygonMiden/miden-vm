@@ -12,7 +12,7 @@ const.SQUARE_NORM_BOUND=34034726
 #!
 #! Expected stack state
 #!
-#! [a, ...]F
+#! [a, ...]
 #!
 #! Output stack state looks like
 #!
