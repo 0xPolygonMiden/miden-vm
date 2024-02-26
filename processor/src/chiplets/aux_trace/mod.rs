@@ -69,82 +69,7 @@ impl AuxTraceBuilder {
     }
 }
 
-// BUS TRACE BUILDER
-// ================================================================================================
-
-/// Describes how to construct the execution trace of the chiplets bus auxiliary trace column.
-#[derive(Default)]
-pub struct BusColumnBuilder {}
-
-impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder {
-    /// Constructs the requests made by the VM-components to the chiplets at row i.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
-        let op_code_felt = main_trace.get_op_code(row);
-        let op_code = op_code_felt.as_int() as u8;
-
-        match op_code {
-            JOIN | SPLIT | LOOP | DYN | CALL => {
-                build_control_block_request(main_trace, op_code_felt, alphas, row)
-            }
-            SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
-            SPAN => build_span_block_request(main_trace, alphas, row),
-            RESPAN => build_respan_block_request(main_trace, alphas, row),
-            END => build_end_block_request(main_trace, alphas, row),
-            AND => build_bitwise_request(main_trace, ZERO, alphas, row),
-            XOR => build_bitwise_request(main_trace, ONE, alphas, row),
-            MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, row),
-            MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, row),
-            MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, row),
-            MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, row),
-            MSTREAM => build_mstream_request(main_trace, alphas, row),
-            RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row),
-            HPERM => build_hperm_request(main_trace, alphas, row),
-            MPVERIFY => build_mpverify_request(main_trace, alphas, row),
-            MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
-            _ => E::ONE,
-        }
-    }
-
-    /// Constructs the responses from the chiplets to the other VM-components at row i.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E
-    where
-        E: FieldElement<BaseField = Felt>,
-    {
-        let selector0 = main_trace.chiplet_selector_0(row);
-        let selector1 = main_trace.chiplet_selector_1(row);
-        let selector2 = main_trace.chiplet_selector_2(row);
-        let selector3 = main_trace.chiplet_selector_3(row);
-        let selector4 = main_trace.chiplet_selector_4(row);
-
-        if selector0 == ZERO {
-            build_hasher_chiplet_responses(main_trace, row, alphas, selector1, selector2, selector3)
-        } else if selector1 == ZERO {
-            debug_assert_eq!(selector0, ONE);
-            build_bitwise_chiplet_responses(main_trace, row, selector2, alphas)
-        } else if selector2 == ZERO {
-            debug_assert_eq!(selector0, ONE);
-            debug_assert_eq!(selector1, ONE);
-            build_memory_chiplet_responses(main_trace, row, selector3, alphas)
-        } else if selector3 == ZERO {
-            debug_assert_eq!(selector0, ONE);
-            debug_assert_eq!(selector1, ONE);
-            debug_assert_eq!(selector2, ONE);
-            build_kernel_chiplet_responses(main_trace, row, selector4, alphas)
-                * build_kernel_procedure_table_responses(main_trace, row, alphas)
-        } else {
-            debug_assert_eq!(selector0, ONE);
-            debug_assert_eq!(selector1, ONE);
-            debug_assert_eq!(selector2, ONE);
-            debug_assert_eq!(selector3, ONE);
-            E::ONE
-        }
-    }
-}
-
-// VIRTUAL TABLE TRACE BUILDER
+// VIRTUAL TABLE COLUMN BUILDER
 // ================================================================================================
 
 /// Describes how to construct the execution trace of the chiplets virtual table auxiliary trace
@@ -159,11 +84,52 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for ChipletsVTableCo
 
     fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
         chiplets_vtable_add_sibling(main_trace, alphas, row)
-            * chiplets_kernel_table_include(main_trace, alphas, row)
+            * build_kernel_procedure_table_inclusions(main_trace, alphas, row)
     }
 }
 
-// CHIPLETS VIRTUAL TABLE REQUESTS
+// VIRTUAL TABLE REQUESTS
+// ================================================================================================
+
+/// Constructs the removals from the table when the hasher absorbs a new sibling node while
+/// computing the new Merkle root.
+fn chiplets_vtable_remove_sibling<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    let f_mu: bool = main_trace.f_mu(row);
+    let f_mua: bool = if row == 0 { false } else { main_trace.f_mua(row - 1) };
+
+    if f_mu || f_mua {
+        let index = if f_mua {
+            main_trace.chiplet_node_index(row - 1)
+        } else {
+            main_trace.chiplet_node_index(row)
+        };
+        let lsb = index.as_int() & 1;
+        if lsb == 0 {
+            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[12].mul_base(sibling[0])
+                + alphas[13].mul_base(sibling[1])
+                + alphas[14].mul_base(sibling[2])
+                + alphas[15].mul_base(sibling[3])
+        } else {
+            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
+            alphas[0]
+                + alphas[3].mul_base(index)
+                + alphas[8].mul_base(sibling[0])
+                + alphas[9].mul_base(sibling[1])
+                + alphas[10].mul_base(sibling[2])
+                + alphas[11].mul_base(sibling[3])
+        }
+    } else {
+        E::ONE
+    }
+}
+
+// VIRTUAL TABLE RESPONSES
 // ================================================================================================
 
 /// Constructs the inclusions to the table when the hasher absorbs a new sibling node while
@@ -204,58 +170,108 @@ where
     }
 }
 
-/// Constructs the removals from the table when the hasher absorbs a new sibling node while
-/// computing the new Merkle root.
-fn chiplets_vtable_remove_sibling<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
+/// Builds the inclusions to the kernel procedure table at `row`.
+fn build_kernel_procedure_table_inclusions<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let f_mu: bool = main_trace.f_mu(row);
-    let f_mua: bool = if row == 0 { false } else { main_trace.f_mua(row - 1) };
+    let selector0 = main_trace.chiplet_selector_0(row);
+    let selector1 = main_trace.chiplet_selector_1(row);
+    let selector2 = main_trace.chiplet_selector_2(row);
 
-    if f_mu || f_mua {
-        let index = if f_mua {
-            main_trace.chiplet_node_index(row - 1)
-        } else {
-            main_trace.chiplet_node_index(row)
-        };
-        let lsb = index.as_int() & 1;
-        if lsb == 0 {
-            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE.end..];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[12].mul_base(sibling[0])
-                + alphas[13].mul_base(sibling[1])
-                + alphas[14].mul_base(sibling[2])
-                + alphas[15].mul_base(sibling[3])
-        } else {
-            let sibling = &main_trace.chiplet_hasher_state(row)[DIGEST_RANGE];
-            alphas[0]
-                + alphas[3].mul_base(index)
-                + alphas[8].mul_base(sibling[0])
-                + alphas[9].mul_base(sibling[1])
-                + alphas[10].mul_base(sibling[2])
-                + alphas[11].mul_base(sibling[3])
-        }
+    if selector0 == ONE && selector1 == ONE && selector2 == ONE {
+        let addr = main_trace.chiplet_kernel_addr(row);
+        let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
+        let addr_delta = addr_nxt - addr;
+        let root0 = main_trace.chiplet_kernel_root_0(row);
+        let root1 = main_trace.chiplet_kernel_root_1(row);
+        let root2 = main_trace.chiplet_kernel_root_2(row);
+        let root3 = main_trace.chiplet_kernel_root_3(row);
+
+        let v = alphas[0]
+            + alphas[1].mul_base(addr)
+            + alphas[2].mul_base(root0)
+            + alphas[3].mul_base(root1)
+            + alphas[4].mul_base(root2)
+            + alphas[5].mul_base(root3);
+
+        v.mul_base(addr_delta) + E::from(ONE - addr_delta)
     } else {
         E::ONE
     }
 }
 
-/// Constructs the inclusions to the kernel procedure table.
-fn chiplets_kernel_table_include<E>(main_trace: &MainTrace, alphas: &[E], row: usize) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    if main_trace.is_kernel_row(row) && main_trace.is_addr_change(row) {
-        alphas[0]
-            + alphas[1].mul_base(main_trace.addr(row))
-            + alphas[2].mul_base(main_trace.chiplet_kernel_root_0(row))
-            + alphas[3].mul_base(main_trace.chiplet_kernel_root_1(row))
-            + alphas[4].mul_base(main_trace.chiplet_kernel_root_2(row))
-            + alphas[5].mul_base(main_trace.chiplet_kernel_root_3(row))
-    } else {
-        E::ONE
+// BUS COLUMN BUILDER
+// ================================================================================================
+
+/// Describes how to construct the execution trace of the chiplets bus auxiliary trace column.
+#[derive(Default)]
+pub struct BusColumnBuilder {}
+
+impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder {
+    /// Constructs the requests made by the VM-components to the chiplets at `row`.
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        let op_code_felt = main_trace.get_op_code(row);
+        let op_code = op_code_felt.as_int() as u8;
+
+        match op_code {
+            JOIN | SPLIT | LOOP | DYN | CALL => {
+                build_control_block_request(main_trace, op_code_felt, alphas, row)
+            }
+            SYSCALL => build_syscall_block_request(main_trace, op_code_felt, alphas, row),
+            SPAN => build_span_block_request(main_trace, alphas, row),
+            RESPAN => build_respan_block_request(main_trace, alphas, row),
+            END => build_end_block_request(main_trace, alphas, row),
+            AND => build_bitwise_request(main_trace, ZERO, alphas, row),
+            XOR => build_bitwise_request(main_trace, ONE, alphas, row),
+            MLOADW => build_mem_request_word(main_trace, MEMORY_READ_LABEL, alphas, row),
+            MSTOREW => build_mem_request_word(main_trace, MEMORY_WRITE_LABEL, alphas, row),
+            MLOAD => build_mem_request_element(main_trace, MEMORY_READ_LABEL, alphas, row),
+            MSTORE => build_mem_request_element(main_trace, MEMORY_WRITE_LABEL, alphas, row),
+            MSTREAM => build_mstream_request(main_trace, alphas, row),
+            RCOMBBASE => build_rcomb_base_request(main_trace, alphas, row),
+            HPERM => build_hperm_request(main_trace, alphas, row),
+            MPVERIFY => build_mpverify_request(main_trace, alphas, row),
+            MRUPDATE => build_mrupdate_request(main_trace, alphas, row),
+            _ => E::ONE,
+        }
+    }
+
+    /// Constructs the responses from the chiplets to the other VM-components at `row`.
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        let selector0 = main_trace.chiplet_selector_0(row);
+        let selector1 = main_trace.chiplet_selector_1(row);
+        let selector2 = main_trace.chiplet_selector_2(row);
+        let selector3 = main_trace.chiplet_selector_3(row);
+        let selector4 = main_trace.chiplet_selector_4(row);
+
+        if selector0 == ZERO {
+            build_hasher_chiplet_responses(main_trace, row, alphas, selector1, selector2, selector3)
+        } else if selector1 == ZERO {
+            debug_assert_eq!(selector0, ONE);
+            build_bitwise_chiplet_responses(main_trace, row, selector2, alphas)
+        } else if selector2 == ZERO {
+            debug_assert_eq!(selector0, ONE);
+            debug_assert_eq!(selector1, ONE);
+            build_memory_chiplet_responses(main_trace, row, selector3, alphas)
+        } else if selector3 == ZERO {
+            debug_assert_eq!(selector0, ONE);
+            debug_assert_eq!(selector1, ONE);
+            debug_assert_eq!(selector2, ONE);
+            build_kernel_chiplet_responses(main_trace, row, selector4, alphas)
+        } else {
+            debug_assert_eq!(selector0, ONE);
+            debug_assert_eq!(selector1, ONE);
+            debug_assert_eq!(selector2, ONE);
+            debug_assert_eq!(selector3, ONE);
+            E::ONE
+        }
     }
 }
 
@@ -905,29 +921,6 @@ where
         + alphas[5].mul_base(root3);
 
     v.mul_base(kernel_chiplet_selector) + E::from(ONE - kernel_chiplet_selector)
-}
-
-/// Builds the response from the kernel procedure table at `row`.
-fn build_kernel_procedure_table_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let addr = main_trace.chiplet_kernel_addr(row);
-    let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
-    let addr_delta = addr_nxt - addr;
-    let root0 = main_trace.chiplet_kernel_root_0(row);
-    let root1 = main_trace.chiplet_kernel_root_1(row);
-    let root2 = main_trace.chiplet_kernel_root_2(row);
-    let root3 = main_trace.chiplet_kernel_root_3(row);
-
-    let v = alphas[0]
-        + alphas[1].mul_base(addr)
-        + alphas[2].mul_base(root0)
-        + alphas[3].mul_base(root1)
-        + alphas[4].mul_base(root2)
-        + alphas[5].mul_base(root3);
-
-    v.mul_base(addr_delta) + E::from(ONE - addr_delta)
 }
 
 // HELPER FUNCTIONS
