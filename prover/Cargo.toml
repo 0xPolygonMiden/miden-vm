@@ -10,7 +10,7 @@ documentation = "https://docs.rs/miden-prover/0.8.0"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.75"
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]

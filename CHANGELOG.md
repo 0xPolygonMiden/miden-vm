@@ -1,13 +1,13 @@
 # Changelog
 
-## 0.8.0 (TBD)
+## 0.8.0 (02-26-2024)
 
 #### Assembly
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations (#1103).
 - Introduced the `emit.<event_id>` assembly instruction (#1119).
 - Introduced the `procref.<proc_name>` assembly instruction (#1113).
 - Added the ability to use constants as counters in `repeat` loops (#1124). 
-- All `checked` versions of the u32 instructions were removed. All `unchecked` versions were renamed: this mode specification was removed from their titles (#1115).
+- [BREAKING] Removed all `checked` versions of the u32 instructions. Renamed all `unchecked` versions (#1115).
 - Introduced the `u32clz`, `u32ctz`, `u32clo`, `u32cto` and `ilog2` assembly instructions (#1176).
 - Added support for hexadecimal values in constants (#1199).
 - Added the `RCombBase` instruction (#1216).
@@ -15,17 +15,21 @@
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
-- Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
+- [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
 - Introduced `clz`, `ctz`, `clo` and `cto` instructions in the `std::math::u64` module (#1179).
-- Removed `std::collections::smt64` (#1249)
+- [BREAKING] Refactored `std::collections::smt` to use `SimpleSmt`-based implementation (#1215).
+- [BREAKING] Removed `std::collections::smt64` (#1249)
 
 #### VM Internals
 - Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
-- Updated Winterfell dependency to v0.7 (#1121).
 - Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
 - Added [Tracing](https://crates.io/crates/tracing) logger to the VM (#1139).
+- Refactored auxiliary trace construction (#1140).
+- [BREAKING] Optimized `u32lt` instruction (#1193)
 - Added `on_assert_failed()` method to the Host trait (#1197).
 - Added support for handling `trace` instruction in the `Host` interface (#1198).
+- Updated Winterfell dependency to v0.8 (#1234).
+- Increased min version of `rustc` to 1.75.
 
 #### CLI
 - Introduced the `!use` command for the Miden REPL (#1162).
