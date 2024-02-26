@@ -1,5 +1,7 @@
 use super::super::{AdviceSource, ExecutionError, Felt, HostResponse};
-use crate::{utils::collections::*, AdviceProvider, Ext2InttError, FieldElement, ProcessState};
+use crate::{
+    utils::collections::*, AdviceProvider, Ext2InttError, FieldElement, ProcessState, ZERO,
+};
 use vm_core::{QuadExtension, SignatureKind};
 use winter_prover::math::fft;
 
@@ -310,7 +312,7 @@ pub(crate) fn push_leading_zeros<S: ProcessState, A: AdviceProvider>(
     process: &S,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::new(stack_top.leading_zeros().into())
+        Felt::from(stack_top.leading_zeros())
     })
 }
 
@@ -328,7 +330,7 @@ pub(crate) fn push_trailing_zeros<S: ProcessState, A: AdviceProvider>(
     process: &S,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::new(stack_top.trailing_zeros().into())
+        Felt::from(stack_top.trailing_zeros())
     })
 }
 
@@ -346,7 +348,7 @@ pub(crate) fn push_leading_ones<S: ProcessState, A: AdviceProvider>(
     process: &S,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::new(stack_top.leading_ones().into())
+        Felt::from(stack_top.leading_ones())
     })
 }
 
@@ -364,7 +366,7 @@ pub(crate) fn push_trailing_ones<S: ProcessState, A: AdviceProvider>(
     process: &S,
 ) -> Result<HostResponse, ExecutionError> {
     push_transformed_stack_top(advice_provider, process, |stack_top| {
-        Felt::new(stack_top.trailing_ones().into())
+        Felt::from(stack_top.trailing_ones())
     })
 }
 
@@ -387,8 +389,7 @@ pub(crate) fn push_ilog2<S: ProcessState, A: AdviceProvider>(
     if n == 0 {
         return Err(ExecutionError::LogArgumentZero(process.clk()));
     }
-    let log_val = n.ilog2();
-    let ilog2 = Felt::new(log_val.into());
+    let ilog2 = Felt::from(n.ilog2());
     advice_provider.push_stack(AdviceSource::Value(ilog2))?;
     Ok(HostResponse::None)
 }
@@ -397,8 +398,8 @@ pub(crate) fn push_ilog2<S: ProcessState, A: AdviceProvider>(
 // ================================================================================================
 
 fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
-    let hi = Felt::new(value >> 32);
-    let lo = Felt::new((value as u32) as u64);
+    let hi = Felt::from((value >> 32) as u32);
+    let lo = Felt::from(value as u32);
     (hi, lo)
 }
 
@@ -413,7 +414,7 @@ fn push_transformed_stack_top<S: ProcessState, A: AdviceProvider>(
     let stack_top: u32 = stack_top
         .as_int()
         .try_into()
-        .map_err(|_| ExecutionError::NotU32Value(stack_top, Felt::new(0)))?;
+        .map_err(|_| ExecutionError::NotU32Value(stack_top, ZERO))?;
     let transformed_stack_top = f(stack_top);
     advice_provider.push_stack(AdviceSource::Value(transformed_stack_top))?;
     Ok(HostResponse::None)
