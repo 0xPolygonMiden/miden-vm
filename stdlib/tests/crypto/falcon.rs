@@ -63,6 +63,7 @@ fn test_falcon512_norm_sq() {
     end
     ";
 
+    // normalize(e) = e^2 - phi * (2*q*e - q^2) where phi := (e > (q - 1)/2)
     let upper = rand::thread_rng().gen_range(Q..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
@@ -87,8 +88,15 @@ fn test_falcon512_diff_mod_q() {
     let w = rand::thread_rng().gen_range(0..J);
 
     let test1 = build_test!(source, &[u, v, w]);
-    let expected_answer = (v + w + J - u).rem_euclid(M);
-    test1.expect_stack(&[expected_answer]);
+
+    // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
+    let expanded_answer = (v as i64
+        - (u as i64 + -1 * (w as i64).rem_euclid(M as i64)).rem_euclid(M as i64))
+    .rem_euclid(M as i64);
+    let simplified_answer = (v + w + J - u).rem_euclid(M);
+    assert_eq!(expanded_answer, simplified_answer.try_into().unwrap());
+
+    test1.expect_stack(&[simplified_answer]);
 }
 
 #[test]
@@ -238,20 +246,22 @@ fn generate_test(
 
 // HELPER FUNCTIONS
 // ================================================================================================
-/// Helper function to convert a quadratic extension field element into a tuple of elements in the
-/// underlying base field and convert them into integers.
+// Helper function to convert a quadratic extension field element into a tuple of elements in the
+// underlying base field and convert them into integers.
 fn ext_element_to_ints(ext_elem: QuadFelt) -> (u64, u64) {
     let base_elements = ext_elem.to_base_elements();
     (base_elements[0].as_int(), base_elements[1].as_int())
 }
 
-/// For an element `tau := (tau0, tau1)` in the quadratic extension field, computes all its powers
-/// `tau^i` for `i = 0,..., 512` and stores them in a vector of length 2048 (word size * 512).  The
-/// first two field elements of the ith word are the elements of tau^i, and the second two field
-/// elements are the previous power of tau, tau^(i - 1).  Used to test powers of tau procedure.
-/// Example:
-/// [1, 0, 0, 0, tau_0, tau_1, 1, 0, (tau^2)_0, (tau^2)_1, tau_0, tau_1, (tau^3)_0, (tau^3)_1,
-/// (tau^2)_0, (tau^2)_1, ...]
+/*
+    For an element `tau := (tau0, tau1)` in the quadratic extension field, computes all its powers
+    `tau^i` for `i = 0,..., 512` and stores them in a vector of length 2048 (word size * 512).  The
+    first two field elements of the ith word are the elements of tau^i, and the second two field
+    elements are the previous power of tau, tau^(i - 1).  Used to test powers of tau procedure.
+    Example:
+    [1, 0, 0, 0, tau_0, tau_1, 1, 0, (tau^2)_0, (tau^2)_1, tau_0, tau_1, (tau^3)_0, (tau^3)_1,
+    (tau^2)_0, (tau^2)_1, ...]
+*/
 
 fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
     let mut tau_power: QuadFelt;
@@ -271,7 +281,7 @@ fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
     expected_memory
 }
 
-/// Create random coefficients in the range of a polynomial in M.
+// Create random coefficients in the range of a polynomial in M.
 fn random_coefficients() -> [u16; N] {
     let mut res = [u16::default(); N];
     for i in res.iter_mut() {
