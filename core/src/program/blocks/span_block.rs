@@ -205,130 +205,170 @@ impl OpBatch {
 }
 
 /// An accumulator used in construction of operation batches.
+#[derive(Clone, Debug)]
 struct OpBatchAccumulator {
-    /// A list of operations in this batch, including decorators.
-    ops: Vec<Operation>,
-    /// Values of operation groups, including immediate values.
-    groups: [Felt; BATCH_SIZE],
-    /// Number of non-decorator operations in each operation group. Operation count for groups
-    /// with immediate values is set to 0.
-    op_counts: [usize; BATCH_SIZE],
-    /// Value of the currently active op group.
-    group: u64,
-    /// Index of the next opcode in the current group.
-    op_idx: usize,
-    /// index of the current group in the batch.
-    group_idx: usize,
-    // Index of the next free group in the batch.
-    next_group_idx: usize,
+    /// All groups that contain operations. New operations are appended to the last group.
+    op_groups: Vec<OpGroup>,
 }
 
 impl OpBatchAccumulator {
-    /// Returns a blank [OpBatchAccumulator].
     pub fn new() -> Self {
-        Self {
-            ops: Vec::new(),
-            groups: [ZERO; BATCH_SIZE],
-            op_counts: [0; BATCH_SIZE],
-            group: 0,
-            op_idx: 0,
-            group_idx: 0,
-            next_group_idx: 1,
-        }
+        let mut op_groups = Vec::with_capacity(BATCH_SIZE);
+        op_groups.push(OpGroup::new());
+
+        Self { op_groups }
     }
 
     /// Returns true if this accumulator does not contain any operations.
     pub fn is_empty(&self) -> bool {
-        self.ops.is_empty()
+        self.op_groups.len() == 1 && self.op_groups[0].is_empty()
     }
 
-    /// Returns true if this accumulator can accept the specified operation.
-    ///
-    /// An accumulator may not be able accept an operation for the following reasons:
-    /// - There is no more space in the underlying batch (e.g., the 8th group of the batch
-    ///   already contains 9 operations).
-    /// - There is no space for the immediate value carried by the operation (e.g., the 8th
-    ///   group is only partially full, but we are trying to add a PUSH operation).
-    /// - The alignment rules require that the operation overflows into the next group, and
-    ///   if this happens, there will be no space for the operation or its immediate value.
+    /// A batch can accept a new operation if the batch doesn't exceed capacity as a result
     pub fn can_accept_op(&self, op: Operation) -> bool {
-        if op.imm_value().is_some() {
-            // an operation carrying an immediate value cannot be the last one in a group; so, we
-            // check if we need to move the operation to the next group. in either case, we need
-            // to make sure there is enough space for the immediate value as well.
-            if self.op_idx < GROUP_SIZE - 1 {
-                self.next_group_idx < BATCH_SIZE
-            } else {
-                self.next_group_idx + 1 < BATCH_SIZE
-            }
-        } else {
-            // check if there is space for the operation in the current group, or if there isn't,
-            // whether we can add another group
-            self.op_idx < GROUP_SIZE || self.next_group_idx < BATCH_SIZE
-        }
+        let total_groups_after_accepting_op = {
+            // number of op groups after accepting op
+            let new_op_groups_len = {
+                // if current_group is full, we'll need another group for the new opcode
+                let new_op_groups_count: usize = if self.current_op_group().can_accept_op(op) {
+                    0
+                } else {
+                    1
+                };
+
+                self.op_groups.len() + new_op_groups_count
+            };
+
+            // current number of immediate values
+            let current_num_imm_values: usize =
+                self.op_groups.iter().map(OpGroup::num_immediate_values).sum::<usize>();
+
+            // number of immediate values added (0 or 1)
+            let num_new_imm_values: usize = op.imm_value().is_some().into();
+
+            new_op_groups_len + current_num_imm_values + num_new_imm_values
+        };
+
+        total_groups_after_accepting_op <= BATCH_SIZE
     }
 
-    /// Adds the specified operation to this accumulator. It is expected that the specified
-    /// operation is not a decorator and that (can_accept_op())[OpBatchAccumulator::can_accept_op]
-    /// is called before this function to make sure that the specified operation can be added to
-    /// the accumulator.
     pub fn add_op(&mut self, op: Operation) {
-        // if the group is full, finalize it and start a new group
-        if self.op_idx == GROUP_SIZE {
-            self.finalize_op_group();
+        if !self.current_op_group().can_accept_op(op) {
+            self.op_groups.push(OpGroup::new());
         }
 
-        // for operations with immediate values, we need to do a few more things
-        if let Some(imm) = op.imm_value() {
-            // since an operation with an immediate value cannot be the last one in a group, if
-            // the operation would be the last one in the group, we need to start a new group
-            if self.op_idx == GROUP_SIZE - 1 {
-                self.finalize_op_group();
-            }
-
-            // save the immediate value at the next group index and advance the next group pointer
-            self.groups[self.next_group_idx] = imm;
-            self.next_group_idx += 1;
-        }
-
-        // add the opcode to the group and increment the op index pointer
-        let opcode = op.op_code() as u64;
-        self.group |= opcode << (Operation::OP_BITS * self.op_idx);
-        self.ops.push(op);
-        self.op_idx += 1;
+        self.current_op_group_mut().add_op(op);
     }
 
-    /// Convert the accumulator into an [OpBatch].
-    pub fn into_batch(mut self) -> OpBatch {
-        // make sure the last group gets added to the group array; we also check the op_idx to
-        // handle the case when a group contains a single NOOP operation.
-        if self.group != 0 || self.op_idx != 0 {
-            self.groups[self.group_idx] = Felt::new(self.group);
-            self.op_counts[self.group_idx] = self.op_idx;
-        }
+    // HELPERS
+    // ---------------------------------------------------------------------------------------------
+    fn current_op_group(&self) -> &OpGroup {
+        self.op_groups.last().expect("op_groups is never empty")
+    }
+
+    fn current_op_group_mut(&mut self) -> &mut OpGroup {
+        self.op_groups.last_mut().expect("op_groups is never empty")
+    }
+}
+
+impl From<OpBatchAccumulator> for OpBatch {
+    fn from(acc: OpBatchAccumulator) -> Self {
+        let ops: Vec<Operation> = acc
+            .op_groups
+            .clone()
+            .into_iter()
+            .flat_map(|op_group| op_group.operations)
+            .collect();
+
+        let (groups, op_counts, num_groups): ([Felt; BATCH_SIZE], [usize; BATCH_SIZE], usize) = {
+            let mut batch_groups: Vec<Felt> = Vec::with_capacity(BATCH_SIZE);
+            let mut op_counts: Vec<usize> = Vec::with_capacity(BATCH_SIZE);
+
+            for op_group in acc.op_groups {
+                let immediate_values =
+                    op_group.operations.clone().into_iter().filter_map(|op| op.imm_value());
+
+                let op_count = op_group.operations.len();
+
+                batch_groups.push(op_group.into());
+                batch_groups.extend(immediate_values.clone());
+
+                op_counts.push(op_count);
+                // All immediate values form a new group which contain no operations
+                op_counts.extend(immediate_values.map(|_| 0));
+            }
+
+            let num_groups = batch_groups.len();
+
+            // padding
+            op_counts.extend((batch_groups.len()..BATCH_SIZE).map(|_| 0));
+            batch_groups.extend((batch_groups.len()..BATCH_SIZE).map(|_| ZERO));
+
+            (
+                batch_groups.try_into().expect(
+                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
+                op_counts.try_into().expect(
+                "`OpBatchAccumulator::can_accept_op()` accepted an operation it wasn't supposed to"),
+                num_groups
+            )
+        };
 
         OpBatch {
-            ops: self.ops,
-            groups: self.groups,
-            op_counts: self.op_counts,
-            num_groups: self.next_group_idx,
+            ops,
+            groups,
+            op_counts,
+            num_groups,
+        }
+    }
+}
+
+/// A group that contains operations (i.e. no immediate values)
+#[derive(Clone, Debug)]
+struct OpGroup {
+    operations: Vec<Operation>,
+}
+
+impl OpGroup {
+    fn new() -> Self {
+        Self {
+            operations: Vec::with_capacity(GROUP_SIZE),
         }
     }
 
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
+    fn is_empty(&self) -> bool {
+        self.operations.is_empty()
+    }
 
-    /// Saves the current group into the group array, advances current and next group pointers,
-    /// and resets group content.
-    fn finalize_op_group(&mut self) {
-        self.groups[self.group_idx] = Felt::new(self.group);
-        self.op_counts[self.group_idx] = self.op_idx;
+    fn num_immediate_values(&self) -> usize {
+        self.operations.iter().filter_map(|op| op.imm_value()).count()
+    }
 
-        self.group_idx = self.next_group_idx;
-        self.next_group_idx = self.group_idx + 1;
+    fn can_accept_op(&self, op: Operation) -> bool {
+        let op_has_imm_value = op.imm_value().is_some();
 
-        self.op_idx = 0;
-        self.group = 0;
+        if op_has_imm_value {
+            // an operation carrying an immediate value cannot be the last one in a group
+            self.operations.len() < GROUP_SIZE - 1
+        } else {
+            self.operations.len() < GROUP_SIZE
+        }
+    }
+
+    fn add_op(&mut self, op: Operation) {
+        self.operations.push(op)
+    }
+}
+
+impl From<OpGroup> for Felt {
+    fn from(op_group: OpGroup) -> Self {
+        let mut group: u64 = 0;
+
+        for (op_idx, op) in op_group.operations.into_iter().enumerate() {
+            let opcode = op.op_code() as u64;
+            group |= opcode << (Operation::OP_BITS * op_idx);
+        }
+
+        group.into()
     }
 }
 
@@ -348,7 +388,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
         // if the operation cannot be accepted into the current accumulator, add the contents of
         // the accumulator to the list of batches and start a new accumulator
         if !batch_acc.can_accept_op(op) {
-            let batch = batch_acc.into_batch();
+            let batch: OpBatch = batch_acc.into();
             batch_acc = OpBatchAccumulator::new();
 
             batch_groups.push(*batch.groups());
@@ -361,7 +401,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 
     // make sure we finished processing the last batch
     if !batch_acc.is_empty() {
-        let batch = batch_acc.into_batch();
+        let batch: OpBatch = batch_acc.into();
         batch_groups.push(*batch.groups());
         batches.push(batch);
     }
@@ -413,10 +453,19 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
 mod tests {
     use super::{hasher, Felt, Operation, BATCH_SIZE, ZERO};
     use crate::ONE;
+    use miden_crypto::hash::rpo::RpoDigest;
 
     #[test]
-    fn batch_ops() {
-        // --- one operation ----------------------------------------------------------------------
+    fn batch_ops_zero_operations() {
+        let ops = Vec::new();
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(0, batches.len());
+
+        assert_eq!(RpoDigest::from([ZERO, ZERO, ZERO, ZERO]), hash);
+    }
+
+    #[test]
+    fn batch_ops_one_operation() {
         let ops = vec![Operation::Add];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
@@ -431,8 +480,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- two operations ---------------------------------------------------------------------
+    #[test]
+    fn batch_ops_two_operations() {
         let ops = vec![Operation::Add, Operation::Mul];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
@@ -447,8 +498,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- one group with one immediate value -------------------------------------------------
+    #[test]
+    fn batch_ops_one_group_with_imm_value() {
         let ops = vec![Operation::Add, Operation::Push(Felt::new(12345678))];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
@@ -464,8 +517,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- one group with 7 immediate values --------------------------------------------------
+    #[test]
+    fn batch_ops_one_group_with_7_imm_values() {
         let ops = vec![
             Operation::Push(ONE),
             Operation::Push(Felt::new(2)),
@@ -497,8 +552,11 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
-        // --- two groups with 7 immediate values; the last push overflows to the second batch ----
+    #[test]
+    fn batch_ops_two_groups_with_7_imm_values_v1() {
+        // --- the last push overflows to the second batch. first group full before push ----
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -545,8 +603,62 @@ mod tests {
 
         let all_groups = [batch0_groups, batch1_groups].concat();
         assert_eq!(hasher::hash_elements(&all_groups), hash);
+    }
 
-        // --- immediate values in-between groups -------------------------------------------------
+    #[test]
+    fn batch_ops_two_groups_with_7_imm_values_v2() {
+        // --- the last push overflows to the second batch; first group NOT full before push ----
+        let ops = vec![
+            // batch 1
+            Operation::Add,
+            Operation::Mul,
+            Operation::Push(ONE),
+            Operation::Push(Felt::new(2)),
+            Operation::Push(Felt::new(3)),
+            Operation::Push(Felt::new(4)),
+            Operation::Push(Felt::new(5)),
+            Operation::Push(Felt::new(6)),
+            // batch 2
+            Operation::Push(Felt::new(7)),
+        ];
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(2, batches.len());
+
+        let batch0 = &batches[0];
+        assert_eq!(ops[..8], batch0.ops);
+        assert_eq!(7, batch0.num_groups());
+
+        let batch0_groups = [
+            build_group(&ops[..8]),
+            ONE,
+            Felt::new(2),
+            Felt::new(3),
+            Felt::new(4),
+            Felt::new(5),
+            Felt::new(6),
+            ZERO,
+        ];
+
+        assert_eq!(batch0_groups, batch0.groups);
+        assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch0.op_counts);
+
+        let batch1 = &batches[1];
+        assert_eq!(vec![ops[8]], batch1.ops);
+        assert_eq!(2, batch1.num_groups());
+
+        let mut batch1_groups = [ZERO; BATCH_SIZE];
+        batch1_groups[0] = build_group(&[ops[8]]);
+        batch1_groups[1] = Felt::new(7);
+
+        assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
+        assert_eq!(batch1_groups, batch1.groups);
+
+        let all_groups = [batch0_groups, batch1_groups].concat();
+        assert_eq!(hasher::hash_elements(&all_groups), hash);
+    }
+
+    #[test]
+    fn batch_ops_imm_values_in_between_groups() {
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -581,7 +693,10 @@ mod tests {
         assert_eq!([9_usize, 0, 0, 1, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(batch_groups, batch.groups);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
+    #[test]
+    fn batch_ops_push_end_of_group_v1() {
         // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
             Operation::Add,
@@ -615,7 +730,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 1, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
+    #[test]
+    fn batch_ops_push_end_of_group_v2() {
         // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
             Operation::Add,
@@ -649,7 +767,10 @@ mod tests {
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 0, 1, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+    }
 
+    #[test]
+    fn batch_ops_push_end_of_7th_group() {
         // --- push at the end of the 7th group overflows to the next batch -----------------------
         let ops = vec![
             Operation::Add,
