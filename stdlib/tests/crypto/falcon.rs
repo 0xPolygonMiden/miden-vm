@@ -17,7 +17,7 @@ use test_utils::{
     FieldElement, ProgramInfo, QuadFelt, TestError, Word, WORD_SIZE,
 };
 
-// Modulus used for rpo falcon 512.
+/// Modulus used for rpo falcon 512.
 const M: u64 = 12289;
 const Q: u64 = (M - 1) / 2;
 const N: usize = 512;
@@ -271,7 +271,7 @@ fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
     expected_memory
 }
 
-// Create random coefficients in the range of a polynomial in M.
+/// Create random coefficients in the range of a polynomial in M.
 fn random_coefficients() -> [u16; N] {
     let mut res = [u16::default(); N];
     for i in res.iter_mut() {
