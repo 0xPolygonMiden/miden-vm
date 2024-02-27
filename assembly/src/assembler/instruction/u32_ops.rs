@@ -27,17 +27,17 @@ pub enum U32OpMode {
 pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-    // Test the fourth element
-    Dup3, U32split, Swap, Drop, Eqz,
+        // Test the fourth element
+        Dup3, U32split, Swap, Drop, Eqz,
 
-    // Test the third element
-    Dup3, U32split, Swap, Drop, Eqz, And,
+        // Test the third element
+        Dup3, U32split, Swap, Drop, Eqz, And,
 
-    // Test the second element
-    Dup2, U32split, Swap, Drop, Eqz, And,
+        // Test the second element
+        Dup2, U32split, Swap, Drop, Eqz, And,
 
-    // Test the first element
-    Dup1, U32split, Swap, Drop, Eqz, And,
+        // Test the first element
+        Dup1, U32split, Swap, Drop, Eqz, And,
     ];
     span.add_ops(ops)
 }
