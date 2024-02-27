@@ -27,7 +27,7 @@ pub enum U32OpMode {
 pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-         // Test the fourth element
+        // Test the fourth element
         Dup3, U32split, Swap, Drop, Eqz,
 
         // Test the third element
@@ -830,4 +830,3 @@ fn compute_max_and_min(span: &mut SpanBuilder) {
         Eqz, CSwap,
     ]);
 }
-
