@@ -15,18 +15,6 @@
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
-<<<<<<< HEAD
-- Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
-- Removed `std::collections::smt64` (#1249)
-
-#### VM Internals
-- Introduced the `Event` decorator and an associated `on_event` handler on the `Host` trait (#1119).
-- Updated Winterfell dependency to v0.7 (#1121).
-- Added methods `StackOutputs::get_stack_item()` and `StackOutputs::get_stack_word()` (#1155).
-- Added [Tracing](https://crates.io/crates/tracing) logger to the VM (#1139).
-- Added `on_assert_failed()` method to the Host trait (#1197).
-- Added support for handling `trace` instruction in the `Host` interface (#1198).
-=======
 - [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
 - Introduced `clz`, `ctz`, `clo` and `cto` instructions in the `std::math::u64` module (#1179).
 - [BREAKING] Refactored `std::collections::smt` to use `SimpleSmt`-based implementation (#1215).
@@ -42,7 +30,6 @@
 - Added support for handling `trace` instruction in the `Host` interface (#1198).
 - Updated Winterfell dependency to v0.8 (#1234).
 - Increased min version of `rustc` to 1.75.
->>>>>>> upstream/next
 
 #### CLI
 - Introduced the `!use` command for the Miden REPL (#1162).

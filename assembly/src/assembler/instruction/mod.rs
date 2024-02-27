@@ -150,6 +150,7 @@ impl Assembler {
             Instruction::U32Ctz => u32_ops::u32ctz(span),
             Instruction::U32Clo => u32_ops::u32clo(span),
             Instruction::U32Cto => u32_ops::u32cto(span),
+
             Instruction::U32Lt => u32_ops::u32lt(span),
             Instruction::U32Lte => u32_ops::u32lte(span),
             Instruction::U32Gt => u32_ops::u32gt(span),

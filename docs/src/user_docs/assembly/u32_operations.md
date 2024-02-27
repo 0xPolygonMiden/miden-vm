@@ -60,6 +60,7 @@ If the error code is omitted, the default value of $0$ is assumed.
 | u32clo <br> - *(36 cycles)*                                                     | [a, ...]    | [b, ...]      | Computes $b$ as a number of leading ones of $a$. <br> Undefined if $a \ge 2^{32}$               |
 | u32cto <br> - *(33 cycles)*                                                     | [a, ...]    | [b, ...]      | Computes $b$ as a number of trailing ones of $a$. <br> Undefined if $a \ge 2^{32}$               |
 
+
 ### Comparison operations
 
 | Instruction                                                                      | Stack input  | Stack output    | Notes                                                                                                                                                                                                                  |
