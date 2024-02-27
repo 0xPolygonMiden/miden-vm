@@ -27,13 +27,13 @@ pub enum U32OpMode {
 pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        // Test the fourth element
+         // Test the fourth element
         Dup3, U32split, Swap, Drop, Eqz,
 
         // Test the third element
         Dup3, U32split, Swap, Drop, Eqz, And,
 
-        // Test the second element
+         // Test the second element
         Dup2, U32split, Swap, Drop, Eqz, And,
 
         // Test the first element
@@ -51,7 +51,7 @@ pub fn u32assertw(
     err_code: Felt,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
-        let ops = [
+    let ops = [
         // Test the first and the second elements
         U32assert2(err_code),
 
@@ -226,7 +226,7 @@ fn handle_division(
 /// This takes 5 VM cycles.
 pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
-        let ops = [
+    let ops = [
         // Perform the operation
         Push(Felt::from(u32::MAX)),
         U32assert2(ZERO),
@@ -328,7 +328,7 @@ pub fn u32rotr(
 /// This operation takes 33 cycles.
 pub fn u32popcnt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
-        let ops = [
+    let ops = [
         // i = i - ((i >> 1) & 0x55555555);
         Dup0,
         Push(Felt::new(1 << 1)), U32div, Drop,
@@ -470,7 +470,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [clz, n, ...]
     #[rustfmt::skip]
-        let ops_group_1 = [
+    let ops_group_1 = [
         Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clz, n, clz, ...]
     ];
     span.push_ops(ops_group_1);
@@ -478,7 +478,7 @@ fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     append_pow2_op(span); // [pow2(32 - clz), n, clz, ...]
 
     #[rustfmt::skip]
-        let ops_group_2 = [
+    let ops_group_2 = [
         Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
 
         Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...]
@@ -545,7 +545,7 @@ fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [clo, n, ...]
     #[rustfmt::skip]
-        let ops_group_1 = [
+    let ops_group_1 = [
         Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clo, n, clo, ...]
     ];
     span.push_ops(ops_group_1);
@@ -553,7 +553,7 @@ fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     append_pow2_op(span); // [pow2(32 - clo), n, clo, ...]
 
     #[rustfmt::skip]
-        let ops_group_2 = [
+    let ops_group_2 = [
         Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
 
         Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...]
@@ -620,7 +620,7 @@ fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [ctz, n, ...]
     #[rustfmt::skip]
-        let ops_group_1 = [
+    let ops_group_1 = [
         Swap, Dup1, // [ctz, n, ctz, ...]
     ];
     span.push_ops(ops_group_1);
@@ -628,7 +628,7 @@ fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     append_pow2_op(span); // [pow2(ctz), n, ctz, ...]
 
     #[rustfmt::skip]
-        let ops_group_2 = [
+    let ops_group_2 = [
         Dup0, // [pow2(ctz), pow2(ctz), n, ctz, ...]
         // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
 
@@ -694,7 +694,7 @@ fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [cto, n, ...]
     #[rustfmt::skip]
-        let ops_group_1 = [
+    let ops_group_1 = [
         Swap, Dup1, // [cto, n, cto, ...]
     ];
     span.push_ops(ops_group_1);
@@ -702,7 +702,7 @@ fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     append_pow2_op(span); // [pow2(cto), n, cto, ...]
 
     #[rustfmt::skip]
-        let ops_group_2 = [
+    let ops_group_2 = [
         Dup0, // [pow2(cto), pow2(cto), n, cto, ...]
         // pow2(cto) is equal to all zeros with only one on the `cto`'th trailing position
 
@@ -830,3 +830,4 @@ fn compute_max_and_min(span: &mut SpanBuilder) {
         Eqz, CSwap,
     ]);
 }
+
