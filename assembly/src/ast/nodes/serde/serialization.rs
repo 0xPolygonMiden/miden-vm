@@ -105,6 +105,7 @@ impl Serializable for Instruction {
                 OpCode::ExpBitLength.write_into(target);
                 target.write_u8(*v);
             }
+            Self::ILog2 => OpCode::ILog2.write_into(target),
             Self::Not => OpCode::Not.write_into(target),
             Self::And => OpCode::And.write_into(target),
             Self::Or => OpCode::Or.write_into(target),
@@ -228,6 +229,10 @@ impl Serializable for Instruction {
                 target.write_u8(*v);
             }
             Self::U32Popcnt => OpCode::U32Popcnt.write_into(target),
+            Self::U32Clz => OpCode::U32Clz.write_into(target),
+            Self::U32Ctz => OpCode::U32Ctz.write_into(target),
+            Self::U32Clo => OpCode::U32Clo.write_into(target),
+            Self::U32Cto => OpCode::U32Cto.write_into(target),
             Self::U32Lt => OpCode::U32Lt.write_into(target),
             Self::U32Lte => OpCode::U32Lte.write_into(target),
             Self::U32Gt => OpCode::U32Gt.write_into(target),

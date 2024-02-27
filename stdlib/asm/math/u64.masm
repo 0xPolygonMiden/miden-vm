@@ -604,3 +604,85 @@ export.rotr
     not
     cswap
 end
+
+#! Counts the number of leading zeros of one unsigned 64-bit integer.
+#! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [n_hi, n_lo, ...] -> [clz, ...], where clz is a number of leading zeros of value n.
+#! This takes 43 cycles.
+export.clz
+    dup.0
+    eq.0
+
+    if.true    # if n_hi == 0
+        drop
+        u32clz
+        add.32 # clz(n_lo) + 32
+    else 
+        swap
+        drop
+        u32clz # clz(n_hi)
+    end
+end
+
+#! Counts the number of trailing zeros of one unsigned 64-bit integer.
+#! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [n_hi, n_lo, ...] -> [ctz, ...], where ctz is a number of trailing zeros of value n.
+#! This takes 41 cycles.
+export.ctz
+    swap
+    dup.0
+    eq.0
+
+    if.true    # if n_lo == 0
+        drop
+        u32ctz
+        add.32 # ctz(n_hi) + 32
+    else 
+        swap
+        drop
+        u32ctz # ctz(n_lo)
+    end
+end
+
+#! Counts the number of leading ones of one unsigned 64-bit integer.
+#! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [n_hi, n_lo, ...] -> [clo, ...], where clo is a number of leading ones of value n.
+#! This takes 42 cycles.
+export.clo
+    dup.0
+    eq.4294967295
+
+    if.true    # if n_hi == 11111111111111111111111111111111
+        drop
+        u32clo
+        add.32 # clo(n_lo) + 32
+    else 
+        swap
+        drop
+        u32clo # clo(n_hi)
+    end
+end
+
+#! Counts the number of trailing ones of one unsigned 64-bit integer.
+#! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [n_hi, n_lo, ...] -> [cto, ...], where cto is a number of trailing ones of value n.
+#! This takes 40 cycles.
+export.cto
+    swap
+    dup.0
+    eq.4294967295
+
+    if.true    # if n_lo == 11111111111111111111111111111111
+        drop
+        u32cto
+        add.32 # cto(n_hi) + 32
+    else 
+        swap
+        drop
+        u32cto # ctz(n_lo)
+    end
+end
