@@ -51,18 +51,18 @@ pub fn u32assertw(
     err_code: Felt,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
-    let ops = [
-    // Test the first and the second elements
-    U32assert2(err_code),
+        let ops = [
+        // Test the first and the second elements
+        U32assert2(err_code),
 
-    // Move 3 and 4 to the top of the stack
-    MovUp3, MovUp3,
+        // Move 3 and 4 to the top of the stack
+        MovUp3, MovUp3,
 
-    // Test them
-    U32assert2(err_code),
+        // Test them
+        U32assert2(err_code),
 
-    // Move the elements back into place
-    MovUp3, MovUp3,
+        // Move the elements back into place
+        MovUp3, MovUp3,
     ];
     span.add_ops(ops)
 }
@@ -226,15 +226,15 @@ fn handle_division(
 /// This takes 5 VM cycles.
 pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
-    let ops = [
-    // Perform the operation
-    Push(Felt::from(u32::MAX)),
-    U32assert2(ZERO),
-    Swap,
-    U32sub,
+        let ops = [
+        // Perform the operation
+        Push(Felt::from(u32::MAX)),
+        U32assert2(ZERO),
+        Swap,
+        U32sub,
 
-    // Drop the underflow flag
-    Drop,
+        // Drop the underflow flag
+        Drop,
     ];
     span.add_ops(ops)
 }
@@ -470,37 +470,37 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [clz, n, ...]
     #[rustfmt::skip]
-    let ops_group_1 = [
-    Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clz, n, clz, ...]
+        let ops_group_1 = [
+        Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clz, n, clz, ...]
     ];
     span.push_ops(ops_group_1);
 
     append_pow2_op(span); // [pow2(32 - clz), n, clz, ...]
 
     #[rustfmt::skip]
-    let ops_group_2 = [
-    Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
+        let ops_group_2 = [
+        Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
 
-    Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...]
-    // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz`
-    // zeros:
-    // 1111111111...1110000...0
-    // └─ `clz` ones ─┘
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...]
+        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz`
+        // zeros:
+        // 1111111111...1110000...0
+        // └─ `clz` ones ─┘
 
-    Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...]
-    // pow2(32 - clz) / 2 is equal to `clz` leading
-    // zeros, `1` one and all other zeros.
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...]
+        // pow2(32 - clz) / 2 is equal to `clz` leading
+        // zeros, `1` one and all other zeros.
 
-    Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...]
-    // 1111111111...111000...0 <-- bitmask
-    // └─  clz ones ─┘│
-    //                └─ additional one
+        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...]
+        // 1111111111...111000...0 <-- bitmask
+        // └─  clz ones ─┘│
+        //                └─ additional one
 
-    MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz]
-    // If calcualtion of `clz` is correct, m should be equal to
-    // pow2(32 - clz) / 2
+        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz]
+        // If calcualtion of `clz` is correct, m should be equal to
+        // pow2(32 - clz) / 2
 
-    Eq, Assert(0) // [clz, ...]
+        Eq, Assert(0) // [clz, ...]
     ];
 
     span.add_ops(ops_group_2)
@@ -545,37 +545,37 @@ fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [clo, n, ...]
     #[rustfmt::skip]
-    let ops_group_1 = [
-    Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clo, n, clo, ...]
+        let ops_group_1 = [
+        Swap, Push(32u8.into()), Dup2, Neg, Add // [32 - clo, n, clo, ...]
     ];
     span.push_ops(ops_group_1);
 
     append_pow2_op(span); // [pow2(32 - clo), n, clo, ...]
 
     #[rustfmt::skip]
-    let ops_group_2 = [
-    Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
+        let ops_group_2 = [
+        Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
 
-    Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...]
-    // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo`
-    // zeros:
-    // 11111111...1110000...0
-    // └─ clo ones ─┘
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...]
+        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo`
+        // zeros:
+        // 11111111...1110000...0
+        // └─ clo ones ─┘
 
-    Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...]
-    // pow2(32 - clo) / 2 is equal to `clo` leading
-    // zeros, `1` one and all other zeros.
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...]
+        // pow2(32 - clo) / 2 is equal to `clo` leading
+        // zeros, `1` one and all other zeros.
 
-    Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...]
-    // 111111111...111000...0 <-- bitmask
-    // └─ clo ones ─┘│
-    //               └─ additional one
+        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...]
+        // 111111111...111000...0 <-- bitmask
+        // └─ clo ones ─┘│
+        //               └─ additional one
 
-    MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo]
-    // If calcualtion of `clo` is correct, m should be equal to
-    // 2^32 - pow2(32 - clo)
+        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo]
+        // If calcualtion of `clo` is correct, m should be equal to
+        // 2^32 - pow2(32 - clo)
 
-    Eq, Assert(0) // [clo, ...]
+        Eq, Assert(0) // [clo, ...]
     ];
 
     span.add_ops(ops_group_2)
@@ -620,36 +620,36 @@ fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [ctz, n, ...]
     #[rustfmt::skip]
-    let ops_group_1 = [
-    Swap, Dup1, // [ctz, n, ctz, ...]
+        let ops_group_1 = [
+        Swap, Dup1, // [ctz, n, ctz, ...]
     ];
     span.push_ops(ops_group_1);
 
     append_pow2_op(span); // [pow2(ctz), n, ctz, ...]
 
     #[rustfmt::skip]
-    let ops_group_2 = [
-    Dup0, // [pow2(ctz), pow2(ctz), n, ctz, ...]
-    // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
+        let ops_group_2 = [
+        Dup0, // [pow2(ctz), pow2(ctz), n, ctz, ...]
+        // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
 
-    Pad, Incr, Neg, Add, // [pow2(ctz) - 1, pow2(ctz), n, ctz, ...]
+        Pad, Incr, Neg, Add, // [pow2(ctz) - 1, pow2(ctz), n, ctz, ...]
 
-    Swap, U32split, Drop, // [pow2(ctz), pow2(ctz) - 1, n, ctz, ...]
-    // We need to drop the high bits of `pow2(ctz)` because if `ctz`
-    // equals 32 `pow2(ctz)` will exceed the u32. Also in that case there
-    // is no need to check the dividing one, since it is absent (value is
-    // all 0's).
+        Swap, U32split, Drop, // [pow2(ctz), pow2(ctz) - 1, n, ctz, ...]
+        // We need to drop the high bits of `pow2(ctz)` because if `ctz`
+        // equals 32 `pow2(ctz)` will exceed the u32. Also in that case there
+        // is no need to check the dividing one, since it is absent (value is
+        // all 0's).
 
-    Dup0, MovUp2, Add, // [bit_mask, pow2(ctz), n, ctz]
-    // 00..001111111111...11 <-- bitmask
-    //       │└─ ctz ones ─┘
-    //       └─ additional one
+        Dup0, MovUp2, Add, // [bit_mask, pow2(ctz), n, ctz]
+        // 00..001111111111...11 <-- bitmask
+        //       │└─ ctz ones ─┘
+        //       └─ additional one
 
-    MovUp2, U32and, // [m, pow2(ctz), ctz]
-    // If calcualtion of `ctz` is correct, m should be equal to
-    // pow2(ctz)
+        MovUp2, U32and, // [m, pow2(ctz), ctz]
+        // If calcualtion of `ctz` is correct, m should be equal to
+        // pow2(ctz)
 
-    Eq, Assert(0), // [ctz, ...]
+        Eq, Assert(0), // [ctz, ...]
     ];
 
     span.add_ops(ops_group_2)
@@ -694,36 +694,36 @@ fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // [cto, n, ...]
     #[rustfmt::skip]
-    let ops_group_1 = [
-    Swap, Dup1, // [cto, n, cto, ...]
+        let ops_group_1 = [
+        Swap, Dup1, // [cto, n, cto, ...]
     ];
     span.push_ops(ops_group_1);
 
     append_pow2_op(span); // [pow2(cto), n, cto, ...]
 
     #[rustfmt::skip]
-    let ops_group_2 = [
-    Dup0, // [pow2(cto), pow2(cto), n, cto, ...]
-    // pow2(cto) is equal to all zeros with only one on the `cto`'th trailing position
+        let ops_group_2 = [
+        Dup0, // [pow2(cto), pow2(cto), n, cto, ...]
+        // pow2(cto) is equal to all zeros with only one on the `cto`'th trailing position
 
-    Pad, Incr, Neg, Add, // [pow2(cto) - 1, pow2(cto), n, cto, ...]
+        Pad, Incr, Neg, Add, // [pow2(cto) - 1, pow2(cto), n, cto, ...]
 
-    Swap, U32split, Drop, // [pow2(cto), pow2(cto) - 1, n, cto, ...]
-    // We need to drop the high bits of `pow2(cto)` because if `cto`
-    // equals 32 `pow2(cto)` will exceed the u32. Also in that case there
-    // is no need to check the dividing zero, since it is absent (value
-    // is all 1's).
+        Swap, U32split, Drop, // [pow2(cto), pow2(cto) - 1, n, cto, ...]
+        // We need to drop the high bits of `pow2(cto)` because if `cto`
+        // equals 32 `pow2(cto)` will exceed the u32. Also in that case there
+        // is no need to check the dividing zero, since it is absent (value
+        // is all 1's).
 
-    Dup1, Add, // [bit_mask, pow2(cto) - 1, n, cto]
-    // 00..001111111111...11 <-- bitmask
-    //       │└─ cto ones ─┘
-    //       └─ additional one
+        Dup1, Add, // [bit_mask, pow2(cto) - 1, n, cto]
+        // 00..001111111111...11 <-- bitmask
+        //       │└─ cto ones ─┘
+        //       └─ additional one
 
-    MovUp2, U32and, // [m, pow2(cto) - 1, cto]
-    // If calcualtion of `cto` is correct, m should be equal to
-    // pow2(cto) - 1
+        MovUp2, U32and, // [m, pow2(cto) - 1, cto]
+        // If calcualtion of `cto` is correct, m should be equal to
+        // pow2(cto) - 1
 
-    Eq, Assert(0), // [cto, ...]
+        Eq, Assert(0), // [cto, ...]
     ];
 
     span.add_ops(ops_group_2)
