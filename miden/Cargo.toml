@@ -10,7 +10,7 @@ documentation = "https://docs.rs/miden-vm/0.8.0"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "stark", "virtual-machine", "zkp"]
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.75"
 
 [[bin]]
 name = "miden"

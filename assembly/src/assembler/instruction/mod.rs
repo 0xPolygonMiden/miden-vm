@@ -62,6 +62,7 @@ impl Assembler {
             Instruction::Exp => field_ops::exp(span, 64),
             Instruction::ExpImm(pow) => field_ops::exp_imm(span, *pow),
             Instruction::ExpBitLength(num_pow_bits) => field_ops::exp(span, *num_pow_bits),
+            Instruction::ILog2 => field_ops::ilog2(span),
 
             Instruction::Not => span.add_op(Not),
             Instruction::And => span.add_op(And),
@@ -145,7 +146,10 @@ impl Assembler {
             Instruction::U32Rotr => u32_ops::u32rotr(span, None),
             Instruction::U32RotrImm(v) => u32_ops::u32rotr(span, Some(*v)),
             Instruction::U32Popcnt => u32_ops::u32popcnt(span),
-
+            Instruction::U32Clz => u32_ops::u32clz(span),
+            Instruction::U32Ctz => u32_ops::u32ctz(span),
+            Instruction::U32Clo => u32_ops::u32clo(span),
+            Instruction::U32Cto => u32_ops::u32cto(span),
             Instruction::U32Lt => u32_ops::u32lt(span),
             Instruction::U32Lte => u32_ops::u32lte(span),
             Instruction::U32Gt => u32_ops::u32gt(span),

@@ -63,12 +63,18 @@ pub trait AdviceProvider: Sized {
                 key_offset,
             } => self.copy_map_value_to_adv_stack(process, *include_len, *key_offset),
             AdviceInjector::UpdateMerkleNode => self.update_operand_stack_merkle_node(process),
-            AdviceInjector::DivU64 => self.push_u64_div_result(process),
+            AdviceInjector::U64Div => self.push_u64_div_result(process),
             AdviceInjector::Ext2Inv => self.push_ext2_inv_result(process),
             AdviceInjector::Ext2Intt => self.push_ext2_intt_result(process),
             AdviceInjector::SmtGet => self.push_smtget_inputs(process),
             AdviceInjector::SmtSet => self.push_smtset_inputs(process),
             AdviceInjector::SmtPeek => self.push_smtpeek_result(process),
+            AdviceInjector::U32Clz => self.push_leading_zeros(process),
+            AdviceInjector::U32Ctz => self.push_trailing_zeros(process),
+            AdviceInjector::U32Clo => self.push_leading_ones(process),
+            AdviceInjector::U32Cto => self.push_trailing_ones(process),
+            AdviceInjector::ILog2 => self.push_ilog2(process),
+
             AdviceInjector::MemToMap => self.insert_mem_values_into_adv_map(process),
             AdviceInjector::HdwordToMap { domain } => {
                 self.insert_hdword_into_adv_map(process, *domain)
@@ -360,6 +366,85 @@ pub trait AdviceProvider: Sized {
         kind: SignatureKind,
     ) -> Result<HostResponse, ExecutionError> {
         injectors::adv_stack_injectors::push_signature(self, process, kind)
+    }
+
+    /// Pushes the number of the leading zeros of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [leading_zeros, ...]
+    fn push_leading_zeros<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<HostResponse, ExecutionError> {
+        injectors::adv_stack_injectors::push_leading_zeros(self, process)
+    }
+
+    /// Pushes the number of the trailing zeros of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [trailing_zeros, ...]
+    fn push_trailing_zeros<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<HostResponse, ExecutionError> {
+        injectors::adv_stack_injectors::push_trailing_zeros(self, process)
+    }
+
+    /// Pushes the number of the leading ones of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [leading_ones, ...]
+    fn push_leading_ones<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<HostResponse, ExecutionError> {
+        injectors::adv_stack_injectors::push_leading_ones(self, process)
+    }
+
+    /// Pushes the number of the trailing ones of the top stack element onto the advice stack.
+    ///
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [trailing_ones, ...]
+    fn push_trailing_ones<S: ProcessState>(
+        &mut self,
+        process: &S,
+    ) -> Result<HostResponse, ExecutionError> {
+        injectors::adv_stack_injectors::push_trailing_ones(self, process)
+    }
+
+    /// Pushes the base 2 logarithm of the top stack element, rounded down.
+    /// Inputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [n, ...]
+    ///   Advice stack: [ilog2(n), ...]
+    ///
+    /// # Errors
+    /// Returns an error if the logarithm argument (top stack element) equals ZERO.
+    fn push_ilog2<S: ProcessState>(&mut self, process: &S) -> Result<HostResponse, ExecutionError> {
+        injectors::adv_stack_injectors::push_ilog2(self, process)
     }
 
     // DEFAULT MERKLE STORE INJECTORS

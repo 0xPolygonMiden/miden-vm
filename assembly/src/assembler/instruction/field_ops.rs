@@ -3,6 +3,7 @@ use super::{
     ZERO,
 };
 use crate::MAX_EXP_BITS;
+use vm_core::AdviceInjector::ILog2;
 
 /// Field element representing TWO in the base field of the VM.
 const TWO: Felt = Felt::new(2);
@@ -233,6 +234,49 @@ fn perform_exp_for_small_power(span: &mut SpanBuilder, pow: u64) {
         }
         _ => unreachable!("pow must be less than 8"),
     }
+}
+
+// LOGARITHMIC OPERATIONS
+// ================================================================================================
+
+/// Appends a sequence of operations to calculate the base 2 integer logarithm of the stack top
+/// element, using non-deterministic technique (i.e. it takes help of advice provider).
+///
+/// This operation takes 44 VM cycles.
+///
+/// # Errors
+/// Returns an error if the logarithm argument (top stack element) equals ZERO.
+pub fn ilog2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.push_advice_injector(ILog2);
+    span.push_op(AdvPop); // [ilog2, n, ...]
+
+    // compute the power-of-two for the value given in the advice tape (17 cycles)
+    span.push_op(Dup0);
+    append_pow2_op(span);
+    // => [pow2, ilog2, n, ...]
+
+    #[rustfmt::skip]
+    let ops = [
+        // split the words into u32 halves to use the bitwise operations (4 cycles)
+        MovUp2, U32split, MovUp2, U32split,
+        // => [pow2_high, pow2_low, n_high, n_low, ilog2, ...]
+
+        // only one of the two halves in pow2 has a bit set, drop the other (9 cycles)
+        Dup1, Eqz, Dup0, MovDn3,
+        // => [drop_low, pow2_high, pow2_low, drop_low, n_high, n_low, ilog2, ...]
+        CSwap, Drop, MovDn3, CSwap, Drop,
+        // => [n_half, pow2_half, ilog2, ...]
+
+        // set all bits to 1 lower than pow2_half (00010000 -> 00011111)
+        Swap, Pad, Incr, Incr, Mul, Pad, Incr, Neg, Add, 
+        // => [pow2_half * 2 - 1, n_half, ilog2, ...]
+        Dup1, U32and, 
+        // => [m, n_half, ilog2, ...] if ilog2 calculation was correct, m should be equal to n_half
+        Eq, Assert(0),
+        // => [ilog2, ...]
+    ];
+
+    span.add_ops(ops)
 }
 
 // COMPARISON OPERATIONS

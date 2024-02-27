@@ -442,6 +442,46 @@ fn u32popcnt() {
     build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
 }
 
+#[test]
+fn u32clz() {
+    let asm_op = "u32clz";
+    build_op_test!(asm_op, &[0]).expect_stack(&[32]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[31]);
+    // bit representation of the 67123567 is 00000100000000000011100101101111
+    build_op_test!(asm_op, &[67123567]).expect_stack(&[5]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[0]);
+}
+
+#[test]
+fn u32ctz() {
+    let asm_op = "u32ctz";
+    build_op_test!(asm_op, &[0]).expect_stack(&[32]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[0]);
+    // bit representaion of the 14688 is 00000000000000000011100101100000
+    build_op_test!(asm_op, &[14688]).expect_stack(&[5]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[0]);
+}
+
+#[test]
+fn u32clo() {
+    let asm_op = "u32clo";
+    build_op_test!(asm_op, &[0]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[0]);
+    // bit representation of the 4185032762 is 11111001011100101000100000111010
+    build_op_test!(asm_op, &[4185032762]).expect_stack(&[5]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
+}
+
+#[test]
+fn u32cto() {
+    let asm_op = "u32cto";
+    build_op_test!(asm_op, &[0]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[1]);
+    // bit representation of the 4185032735 is 11111001011100101000100000011111
+    build_op_test!(asm_op, &[4185032735]).expect_stack(&[5]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
+}
+
 // U32 OPERATIONS TESTS - RANDOMIZED - BITWISE OPERATIONS
 // ================================================================================================
 
@@ -550,6 +590,38 @@ proptest! {
     fn u32popcount_proptest(a in any::<u32>()) {
         let asm_opcode = "u32popcnt";
         let expected = a.count_ones();
+        let test = build_op_test!(asm_opcode, &[a as u64]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn u32clz_proptest(a in any::<u32>()) {
+        let asm_opcode = "u32clz";
+        let expected = a.leading_zeros();
+        let test = build_op_test!(asm_opcode, &[a as u64]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn u32ctz_proptest(a in any::<u32>()) {
+        let asm_opcode = "u32ctz";
+        let expected = a.trailing_zeros();
+        let test = build_op_test!(asm_opcode, &[a as u64]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn u32clo_proptest(a in any::<u32>()) {
+        let asm_opcode = "u32clo";
+        let expected = a.leading_ones();
+        let test = build_op_test!(asm_opcode, &[a as u64]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn u32cto_proptest(a in any::<u32>()) {
+        let asm_opcode = "u32cto";
+        let expected = a.trailing_ones();
         let test = build_op_test!(asm_opcode, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }

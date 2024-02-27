@@ -20,9 +20,9 @@ pub enum ExecutionError {
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
     CodeBlockNotFound(Digest),
-    DynamicCodeBlockNotFound(Digest),
     CycleLimitExceeded(u32),
     DivideByZero(u32),
+    DynamicCodeBlockNotFound(Digest),
     EventError(String),
     Ext2InttError(Ext2InttError),
     FailedAssertion {
@@ -30,6 +30,7 @@ pub enum ExecutionError {
         err_code: u32,
         err_msg: Option<String>,
     },
+    FailedSignatureGeneration(&'static str),
     InvalidFmpValue(Felt, Felt),
     InvalidFriDomainSegment(u64),
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
@@ -46,14 +47,16 @@ pub enum ExecutionError {
         depth: Felt,
         value: Felt,
     },
+    LogArgumentZero(u32),
+    MalformedSignatureKey(&'static str),
     MemoryAddressOutOfBounds(u64),
     MerklePathVerificationFailed {
         value: Word,
         index: Felt,
         root: Digest,
     },
-    MerkleStoreMergeFailed(MerkleError),
     MerkleStoreLookupFailed(MerkleError),
+    MerkleStoreMergeFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
@@ -62,8 +65,6 @@ pub enum ExecutionError {
     SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
-    MalformedSignatureKey(&'static str),
-    FailedSignatureGeneration(&'static str),
 }
 
 impl Display for ExecutionError {
@@ -86,6 +87,10 @@ impl Display for ExecutionError {
                     "Failed to execute code block with root {hex}; the block could not be found"
                 )
             }
+            CycleLimitExceeded(max_cycles) => {
+                write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
+            }
+            DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             DynamicCodeBlockNotFound(digest) => {
                 let hex = to_hex(&digest.as_bytes())?;
                 write!(
@@ -93,10 +98,6 @@ impl Display for ExecutionError {
                     "Failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found"
                 )
             }
-            CycleLimitExceeded(max_cycles) => {
-                write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
-            }
-            DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             EventError(error) => write!(f, "Failed to process event - {error}"),
             Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),
             FailedAssertion {
@@ -112,6 +113,9 @@ impl Display for ExecutionError {
                 } else {
                     write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
                 }
+            }
+            FailedSignatureGeneration(signature) => {
+                write!(f, "Failed to generate signature: {signature}")
             }
             InvalidFmpValue(old, new) => {
                 write!(f, "Updating FMP register from {old} to {new} failed because {new} is outside of {FMP_MIN}..{FMP_MAX}")
@@ -140,6 +144,13 @@ impl Display for ExecutionError {
             InvalidTreeNodeIndex { depth, value } => {
                 write!(f, "The provided index {value} is out of bounds for a node at depth {depth}")
             }
+            LogArgumentZero(clk) => {
+                write!(
+                    f,
+                    "Calculating of the integer logarithm with zero argument at clock cycle {clk}"
+                )
+            }
+            MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
             }
@@ -181,10 +192,6 @@ impl Display for ExecutionError {
             }
             UnexecutableCodeBlock(block) => {
                 write!(f, "Execution reached unexecutable code block {block:?}")
-            }
-            MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
-            FailedSignatureGeneration(signature) => {
-                write!(f, "Failed to generate signature: {signature}")
             }
         }
     }
