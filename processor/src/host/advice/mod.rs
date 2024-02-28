@@ -183,9 +183,7 @@ pub trait AdviceProvider: Sized {
     /// After the operation, both the original trees and the new tree remains in the advice
     /// provider (i.e., the input trees are not removed).
     ///
-    /// # Errors
-    /// Return an error if a Merkle tree for either of the specified roots cannot be found in this
-    /// advice provider.
+    /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
     fn merge_merkle_nodes<S: ProcessState>(
         &mut self,
         process: &S,
@@ -719,9 +717,8 @@ pub trait AdviceProvider: Sized {
     /// After the operation, both the original trees and the new tree remains in the advice
     /// provider (i.e., the input trees are not removed).
     ///
-    /// # Errors
-    /// Returns an error if a Merkle tree for either of the specified roots cannot be found in this
-    /// advice provider.
+    /// It is not checked whether a Merkle tree for either of the specified roots can be found in
+    /// this advice provider.
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
 
     /// Returns a subset of this Merkle store such that the returned Merkle store contains all
