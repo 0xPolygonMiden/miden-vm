@@ -1,10 +1,9 @@
-use super::{
-    AstSerdeOptions, ByteReader, ByteWriter, Deserializable, DeserializationError, Library,
-    LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Version,
-    MAX_DEPENDENCIES, MAX_MODULES,
+use super::{Library, LibraryNamespace, Version, MAX_DEPENDENCIES, MAX_MODULES};
+use crate::{
+    ast::{self, AstSerdeOptions},
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, Serializable,
 };
-use alloc::{collections::BTreeSet, vec::Vec};
-use core::slice::Iter;
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 // CONSTANT DEFINITIONS
 // ================================================================================================
@@ -14,6 +13,7 @@ use core::slice::Iter;
 /// part of the ModuleAst serialization by default.
 const AST_DEFAULT_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions {
     serialize_imports: true,
+    debug_info: true,
 };
 
 // LIBRARY IMPLEMENTATION FOR MASL FILES
@@ -30,17 +30,13 @@ pub struct MaslLibrary {
     namespace: LibraryNamespace,
     /// Version of the library.
     version: Version,
-    /// Flag defining if locations are serialized with the library.
-    has_source_locations: bool,
     /// Available modules.
-    modules: Vec<Module>,
+    modules: Vec<Arc<ast::Module>>,
     /// Dependencies of the library.
     dependencies: Vec<LibraryNamespace>,
 }
 
 impl Library for MaslLibrary {
-    type ModuleIterator<'a> = Iter<'a, Module>;
-
     fn root_ns(&self) -> &LibraryNamespace {
         &self.namespace
     }
@@ -49,8 +45,8 @@ impl Library for MaslLibrary {
         &self.version
     }
 
-    fn modules(&self) -> Self::ModuleIterator<'_> {
-        self.modules.iter()
+    fn modules(&self) -> impl ExactSizeIterator<Item = &ast::Module> + '_ {
+        self.modules.iter().map(|m| m.as_ref())
     }
 
     fn dependencies(&self) -> &[LibraryNamespace] {
@@ -66,63 +62,67 @@ impl MaslLibrary {
     /// Name of the root module.
     pub const MOD: &'static str = "mod";
 
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-
     /// Returns a new [Library] instantiated from the specified parameters.
     ///
     /// # Errors
     /// Returns an error if the provided `modules` vector is empty or contains more than
     /// [u16::MAX] elements.
-    pub fn new(
+    pub fn new<I, M>(
         namespace: LibraryNamespace,
         version: Version,
-        has_source_locations: bool,
-        modules: Vec<Module>,
+        modules: I,
         dependencies: Vec<LibraryNamespace>,
-    ) -> Result<Self, LibraryError> {
-        if modules.is_empty() {
-            return Err(LibraryError::no_modules_in_library(namespace));
-        } else if modules.len() > MAX_MODULES {
-            return Err(LibraryError::too_many_modules_in_library(
-                namespace,
-                modules.len(),
-                MAX_MODULES,
-            ));
-        }
-
-        if dependencies.len() > MAX_DEPENDENCIES {
-            return Err(LibraryError::too_many_dependencies_in_library(
-                namespace,
-                dependencies.len(),
-                MAX_DEPENDENCIES,
-            ));
-        }
-
-        Ok(Self {
+    ) -> Result<Self, LibraryError>
+    where
+        I: IntoIterator<Item = M>,
+        Arc<ast::Module>: From<M>,
+    {
+        let modules = modules.into_iter().map(Arc::from).collect::<Vec<_>>();
+        let library = Self {
             namespace,
             version,
-            has_source_locations,
             modules,
             dependencies,
-        })
+        };
+
+        library.validate()?;
+
+        Ok(library)
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
+    fn validate(&self) -> Result<(), LibraryError> {
+        if self.modules.is_empty() {
+            return Err(LibraryError::Empty(self.namespace.clone()));
+        }
+        if self.modules.len() > MAX_MODULES {
+            return Err(LibraryError::TooManyModulesInLibrary {
+                name: self.namespace.clone(),
+                count: self.modules.len(),
+                max: MAX_MODULES,
+            });
+        }
 
-    /// Clears the source locations from this bundle.
-    pub fn clear_locations(&mut self) {
-        self.modules.iter_mut().for_each(|m| m.clear_locations())
+        if self.dependencies.len() > MAX_DEPENDENCIES {
+            return Err(LibraryError::TooManyDependenciesInLibrary {
+                name: self.namespace.clone(),
+                count: self.dependencies.len(),
+                max: MAX_DEPENDENCIES,
+            });
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(feature = "std")]
 mod use_std {
-    use std::{collections::BTreeMap, fs, io, path::Path, string::ToString};
+    use std::{collections::BTreeMap, fs, io, path::Path};
 
     use super::*;
-    use crate::ast::{instrument, ModuleAst};
+    use crate::{
+        ast::{instrument, ModuleKind},
+        diagnostics::{IntoDiagnostic, Report},
+    };
 
     impl MaslLibrary {
         /// Read a directory and recursively create modules from its `masm` files.
@@ -140,67 +140,50 @@ mod use_std {
         pub fn read_from_dir<P>(
             path: P,
             namespace: LibraryNamespace,
-            with_source_locations: bool,
             version: Version,
-        ) -> io::Result<Self>
+        ) -> Result<Self, Report>
         where
             P: AsRef<Path>,
         {
-            if !path.as_ref().is_dir() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!(
-                        "the provided path '{}' isn't a valid directory",
-                        path.as_ref().display()
-                    ),
-                ));
+            let path = path.as_ref();
+            if !path.is_dir() {
+                return Err(Report::msg(format!(
+                    "the provided path '{}' is not a valid directory",
+                    path.display()
+                )));
             }
-
-            let mut dependencies_set = BTreeSet::new();
-            let module_path = LibraryPath::new(&namespace)
-                .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
 
             // mod.masm is not allowed in the root directory
-            if path.as_ref().join("mod.masm").exists() {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "mod.masm is not allowed in the root directory",
-                ));
+            if path.join("mod.masm").exists() {
+                return Err(Report::msg("mod.masm is not allowed in the root directory"));
             }
 
-            let modules = read_from_dir_helper(
-                Default::default(),
-                path,
-                &module_path,
-                &mut dependencies_set,
-            )?
-            .into_iter()
-            .map(|(path, ast)| Module { path, ast })
-            .collect();
-
-            let dependencies =
-                dependencies_set.into_iter().filter(|dep| dep != &namespace).collect();
-
-            Self::new(namespace, version, with_source_locations, modules, dependencies)
-                .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))
+            let library = Self {
+                namespace,
+                version,
+                modules: Default::default(),
+                dependencies: Default::default(),
+            };
+            library.load_modules_from_dir(path)
         }
 
         /// Read a library from a file.
         #[instrument(name = "read_library_file", fields(path = %path.as_ref().display()))]
-        pub fn read_from_file<P>(path: P) -> Result<MaslLibrary, LibraryError>
+        pub fn read_from_file<P>(path: P) -> Result<Self, LibraryError>
         where
             P: AsRef<Path>,
         {
-            // convert path to str
-            let path_str = path.as_ref().to_str().unwrap_or("path contains invalid unicode");
+            use vm_core::utils::ReadAdapter;
 
-            // read bytes from file
-            let contents =
-                fs::read(&path).map_err(|e| LibraryError::file_error(path_str, &e.to_string()))?;
-
-            // read library from bytes
-            Self::read_from_bytes(&contents)
-                .map_err(|e| LibraryError::deserialization_error(path_str, &e.to_string()))
+            let path = path.as_ref();
+            let mut file = fs::File::open(path)?;
+            let mut adapter = ReadAdapter::new(&mut file);
+            <Self as Deserializable>::read_from(&mut adapter).map_err(|error| {
+                LibraryError::DeserializationFailed {
+                    path: path.to_string_lossy().into_owned(),
+                    error,
+                }
+            })
         }
 
         /// Write the library to a target director, using its namespace as file name and the
@@ -209,100 +192,200 @@ mod use_std {
         where
             P: AsRef<Path>,
         {
+            use vm_core::utils::WriteAdapter;
+
             fs::create_dir_all(&dir_path)?;
-            let mut path = dir_path.as_ref().join(self.namespace.as_str());
+            let mut path = dir_path.as_ref().join(self.namespace.as_ref());
             path.set_extension(Self::LIBRARY_EXTENSION);
 
-            let bytes = self.to_bytes();
-            fs::write(path, bytes)
+            // NOTE: We catch panics due to i/o errors here due to the fact
+            // that the ByteWriter trait does not provide fallible APIs, so
+            // WriteAdapter will panic if the underlying writes fail. This
+            // needs to be addressed in winterfall at some point
+            std::panic::catch_unwind(|| {
+                let mut file = fs::File::create(path)?;
+                let mut adapter = WriteAdapter::new(&mut file);
+                self.write_into(&mut adapter);
+                Ok(())
+            })
+            .map_err(|p| {
+                match p.downcast::<io::Error>() {
+                    // SAFETY: It is guaranteed safe to read Box<std::io::Error>
+                    Ok(err) => unsafe { core::ptr::read(&*err) },
+                    Err(err) => std::panic::resume_unwind(err),
+                }
+            })?
         }
-    }
 
-    // HELPER FUNCTIONS
-    // --------------------------------------------------------------------------------------------
+        /// Read the contents (modules) of this library from `dir`, returning any errors
+        /// that occur while traversing the file system.
+        ///
+        /// Errors may also be returned if traversal discovers issues with the library,
+        /// such as invalid names, etc.
+        ///
+        /// Returns the set of modules that were parsed
+        fn load_modules_from_dir(mut self, dir: &Path) -> Result<Self, Report> {
+            use crate::diagnostics::WrapErr;
+            use alloc::collections::btree_map::Entry;
 
-    /// Read a directory and recursively feed the state map with path->ast tuples.
-    ///
-    /// Helper for [`Self::read_from_dir`].
-    fn read_from_dir_helper<P>(
-        mut state: BTreeMap<LibraryPath, ModuleAst>,
-        dir: P,
-        module_path: &LibraryPath,
-        deps: &mut BTreeSet<LibraryNamespace>,
-    ) -> io::Result<BTreeMap<LibraryPath, ModuleAst>>
-    where
-        P: AsRef<Path>,
-    {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let ty = entry.file_type()?;
+            let mut modules = BTreeMap::default();
+            let mut dependencies = BTreeSet::default();
 
-            // if dir, concatenate its name and perform recursion
-            if ty.is_dir() {
-                let path = entry.path();
-                let name = path.file_name().and_then(|s| s.to_str()).ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::Other, "invalid directory entry!")
-                })?;
-                let module_path = module_path
-                    .append(name)
-                    .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?;
-                state = read_from_dir_helper(state, path, &module_path, deps)?;
-            // if file, check if `masm`, parse & append; skip otherwise
-            } else if ty.is_file() {
-                let path = entry.path();
-
-                // extension is optional for the OS
-                let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-                if extension == MaslLibrary::MODULE_EXTENSION {
-                    // the file has extension so it must have stem
-                    let name = path.file_stem().and_then(|s| s.to_str()).ok_or_else(|| {
-                        io::Error::new(io::ErrorKind::Other, "invalid directory entry!")
-                    })?;
-
-                    // check if a directory with the same name exists in the directory
-                    if path.with_file_name(name).is_dir() {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!(
-                                "file and directory with the same name '{}' are not allowed",
-                                name
-                            ),
-                        ));
+            let walker = WalkLibrary::new(self.namespace.clone(), dir)
+                .into_diagnostic()
+                .wrap_err_with(|| format!("failed to load library from '{}'", dir.display()))?;
+            for entry in walker {
+                let LibraryEntry {
+                    mut name,
+                    source_path,
+                } = entry?;
+                if name.last() == MaslLibrary::MOD {
+                    name.pop();
+                }
+                // Parse module at the given path
+                let ast = ast::Module::parse_file(name.clone(), ModuleKind::Library, &source_path)?;
+                // Add dependencies of this module to the global set
+                for path in ast.import_paths() {
+                    let ns = path.namespace();
+                    if ns != &self.namespace {
+                        dependencies.insert(ns.clone());
                     }
-
-                    // read & parse file
-                    let contents = fs::read_to_string(&path)?;
-                    let ast = ModuleAst::parse(&contents)?;
-
-                    // add dependencies of this module to the dependencies of this library
-                    for path in ast.import_info().import_paths() {
-                        let ns = LibraryNamespace::new(path.first())?;
-                        deps.insert(ns);
+                }
+                match modules.entry(name) {
+                    Entry::Occupied(ref entry) => {
+                        return Err(LibraryError::DuplicateModulePath(entry.key().clone()))
+                            .into_diagnostic();
                     }
-
-                    // build module path and add it to the map of modules
-                    let module = if name == MaslLibrary::MOD {
-                        module_path.clone()
-                    } else {
-                        module_path
-                            .append(name)
-                            .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{err}")))?
-                    };
-
-                    if state.insert(module, ast).is_some() {
-                        unreachable!(
-                            "the filesystem is inconsistent as it produced duplicated module paths"
-                        );
+                    Entry::Vacant(entry) => {
+                        entry.insert(Arc::from(ast));
                     }
                 }
             }
+
+            self.modules.extend(modules.into_values());
+            self.dependencies.extend(dependencies);
+
+            self.validate()?;
+
+            Ok(self)
         }
-        Ok(state)
+    }
+}
+
+#[cfg(feature = "std")]
+struct LibraryEntry {
+    name: super::LibraryPath,
+    source_path: std::path::PathBuf,
+}
+
+#[cfg(feature = "std")]
+struct WalkLibrary<'a> {
+    namespace: LibraryNamespace,
+    root: &'a std::path::Path,
+    stack: alloc::collections::VecDeque<std::io::Result<std::fs::DirEntry>>,
+}
+#[cfg(feature = "std")]
+impl<'a> WalkLibrary<'a> {
+    fn new(namespace: LibraryNamespace, path: &'a std::path::Path) -> std::io::Result<Self> {
+        use alloc::collections::VecDeque;
+
+        let stack = VecDeque::from_iter(std::fs::read_dir(path)?);
+
+        Ok(Self {
+            namespace,
+            root: path,
+            stack,
+        })
+    }
+
+    fn next_entry(
+        &mut self,
+        entry: &std::fs::DirEntry,
+        ty: &std::fs::FileType,
+    ) -> Result<Option<LibraryEntry>, crate::diagnostics::Report> {
+        use crate::{
+            diagnostics::{IntoDiagnostic, Report},
+            LibraryPath,
+        };
+        use std::{ffi::OsStr, fs};
+
+        if ty.is_dir() {
+            let dir = entry.path();
+            self.stack.extend(fs::read_dir(dir).into_diagnostic()?);
+            return Ok(None);
+        }
+
+        let mut file_path = entry.path();
+        let is_module = file_path
+            .extension()
+            .map(|ext| ext == AsRef::<OsStr>::as_ref(MaslLibrary::MODULE_EXTENSION))
+            .unwrap_or(false);
+        if !is_module {
+            return Ok(None);
+        }
+
+        // Remove the file extension, and the root prefix, leaving us
+        // with a namespace-relative path
+        file_path.set_extension("");
+        if file_path.is_dir() {
+            return Err(Report::msg(format!(
+                "file and directory with same name are not allowed: {}",
+                file_path.display()
+            )));
+        }
+        let relative_path = file_path
+            .strip_prefix(self.root)
+            .expect("expected path to be a child of the root directory");
+
+        // Construct a [LibraryPath] from the path components, after validating them
+        let mut libpath = LibraryPath::from(self.namespace.clone());
+        for component in relative_path.iter() {
+            let component = component.to_str().ok_or_else(|| {
+                let p = entry.path();
+                Report::msg(format!("{} is an invalid directory entry", p.display()))
+            })?;
+            libpath.push(component).into_diagnostic()?;
+        }
+        Ok(Some(LibraryEntry {
+            name: libpath,
+            source_path: entry.path(),
+        }))
+    }
+}
+#[cfg(feature = "std")]
+impl<'a> Iterator for WalkLibrary<'a> {
+    type Item = Result<LibraryEntry, crate::diagnostics::Report>;
+    fn next(&mut self) -> Option<Self::Item> {
+        use crate::diagnostics::IntoDiagnostic;
+        loop {
+            let entry = self
+                .stack
+                .pop_front()?
+                .and_then(|entry| entry.file_type().map(|ft| (entry, ft)))
+                .into_diagnostic();
+
+            match entry {
+                Ok((ref entry, ref file_type)) => {
+                    match self.next_entry(entry, file_type).transpose() {
+                        None => continue,
+                        result => break result,
+                    }
+                }
+                Err(err) => break Some(Err(err)),
+            }
+        }
     }
 }
 
 impl Serializable for MaslLibrary {
+    #[inline]
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.write_into_with_options(target, AST_DEFAULT_SERDE_OPTIONS)
+    }
+}
+
+impl MaslLibrary {
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         self.namespace.write_into(target);
         self.version.write_into(target);
 
@@ -317,18 +400,8 @@ impl Serializable for MaslLibrary {
 
         target.write_u16(modules.len() as u16);
         modules.for_each(|module| {
-            LibraryPath::strip_first(&module.path)
-                .expect("module path consists of a single component")
-                .write_into(target);
-            module.ast.write_into(target, AST_DEFAULT_SERDE_OPTIONS);
+            module.write_into_with_options(target, options);
         });
-
-        // optionally write the locations into the target. given the modules count is already
-        // written, we can safely dump the locations structs
-        target.write_bool(self.has_source_locations);
-        if self.has_source_locations {
-            self.modules.iter().for_each(|m| m.write_source_locations(target));
-        }
     }
 }
 
@@ -348,21 +421,12 @@ impl Deserializable for MaslLibrary {
         let num_modules = source.read_u16()? as usize;
         let mut modules = Vec::with_capacity(num_modules);
         for _ in 0..num_modules {
-            let path = LibraryPath::read_from(source)?
-                .prepend(&namespace)
-                .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))?;
-            let ast = ModuleAst::read_from(source, AST_DEFAULT_SERDE_OPTIONS)?;
-            modules.push(Module { path, ast });
-        }
-
-        // for each module, load its locations
-        let has_source_locations = source.read_bool()?;
-        if has_source_locations {
-            modules.iter_mut().try_for_each(|m| m.load_source_locations(source))?;
+            let ast = ast::Module::read_from(source)?;
+            modules.push(ast);
         }
 
         let deps = deps_set.into_iter().collect();
-        Self::new(namespace, version, has_source_locations, modules, deps)
+        Self::new(namespace, version, modules, deps)
             .map_err(|err| DeserializationError::InvalidValue(format!("{err}")))
     }
 }
