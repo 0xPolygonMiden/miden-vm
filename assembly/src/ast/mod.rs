@@ -1,109 +1,61 @@
 //! Abstract syntax tree (AST) components of Miden programs, modules, and procedures.
-//!
-//! Structs in this module (specifically [ProgramAst] and [ModuleAst]) can be used to parse source
-//! code into relevant ASTs. This can be done via their `parse()` methods.
-use super::{
-    crypto::hash::RpoDigest, ByteReader, ByteWriter, Deserializable, DeserializationError, Felt,
-    LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader,
-    StarkField, Token, TokenStream, MAX_LABEL_LEN,
-};
-use alloc::collections::BTreeMap;
-use alloc::string::String;
-use alloc::vec::Vec;
-use vm_core::utils::bound_into_included_u64;
 
 pub use tracing::{event, info_span, instrument, Level};
 
-pub use super::tokens::SourceLocation;
-
-mod nodes;
-use nodes::FormattableNode;
-pub use nodes::{AdviceInjectorNode, Instruction, Node};
-
-mod code_body;
-pub use code_body::CodeBody;
-
-mod format;
-use format::*;
-
+mod block;
+mod constants;
+mod form;
+mod ident;
+mod immediate;
 mod imports;
-pub use imports::ModuleImports;
-
+mod instruction;
 mod invocation_target;
-pub use invocation_target::InvocationTarget;
-
-mod parsers;
-
 mod module;
-pub use module::ModuleAst;
-
+mod op;
 mod procedure;
-pub use procedure::{ProcReExport, ProcedureAst};
-
-mod program;
-pub use program::ProgramAst;
-
-pub(crate) use parsers::{
-    parse_param_with_constant_lookup, NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER,
-};
-
 mod serde;
-pub use serde::AstSerdeOptions;
-
 #[cfg(test)]
-pub mod tests;
+mod tests;
+pub mod visit;
+
+pub use self::block::Block;
+pub use self::constants::{Constant, ConstantExpr, ConstantOp};
+pub use self::form::Form;
+pub use self::ident::{CaseKindError, Ident, IdentError};
+pub use self::immediate::{ErrorCode, ImmFelt, ImmU16, ImmU32, ImmU8, Immediate};
+pub use self::imports::Import;
+pub use self::instruction::{
+    advice::SignatureKind, AdviceInjectorNode, DebugOptions, Instruction, OpCode,
+};
+pub use self::invocation_target::{InvocationTarget, Invoke, InvokeKind};
+pub use self::module::{Module, ModuleKind};
+pub use self::op::Op;
+pub use self::procedure::*;
+pub use self::serde::AstSerdeOptions;
+pub use self::visit::{Visit, VisitMut};
+
+pub(crate) type SmallOpsVec = smallvec::SmallVec<[Op; 1]>;
 
 // CONSTANTS
 // ================================================================================================
 
 /// Maximum number of procedures in a module.
-const MAX_LOCAL_PROCS: usize = u16::MAX as usize;
+pub const MAX_LOCAL_PROCS: usize = u16::MAX as usize;
 
 /// Maximum number of re-exported procedures in a module.
-const MAX_REEXPORTED_PROCS: usize = u16::MAX as usize;
+pub const MAX_REEXPORTED_PROCS: usize = u16::MAX as usize;
 
 /// Maximum number of bytes for a single documentation comment.
-const MAX_DOCS_LEN: usize = u16::MAX as usize;
+pub const MAX_DOCS_LEN: usize = u16::MAX as usize;
 
 /// Maximum number of nodes in statement body (e.g., procedure body, loop body etc.).
-const MAX_BODY_LEN: usize = u16::MAX as usize;
+pub const MAX_BODY_LEN: usize = u16::MAX as usize;
 
 /// Maximum number of imported libraries in a module or a program
-const MAX_IMPORTS: usize = u16::MAX as usize;
+pub const MAX_IMPORTS: usize = u16::MAX as usize;
 
 /// Maximum number of imported procedures used in a module or a program
-const MAX_INVOKED_IMPORTED_PROCS: usize = u16::MAX as usize;
+pub const MAX_INVOKED_IMPORTED_PROCS: usize = u16::MAX as usize;
 
 /// Maximum stack index at which a full word can start.
-const MAX_STACK_WORD_OFFSET: u8 = 12;
-
-// TYPE ALIASES
-// ================================================================================================
-type LocalProcMap = BTreeMap<ProcedureName, (u16, ProcedureAst)>;
-type LocalConstMap = BTreeMap<String, u64>;
-type ReExportedProcMap = BTreeMap<ProcedureName, ProcReExport>;
-type InvokedProcsMap = BTreeMap<ProcedureId, (ProcedureName, LibraryPath)>;
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Sort a map of procedures into a vec, respecting the order set in the map
-fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
-    let mut procedures: Vec<_> = proc_map.into_values().collect();
-    procedures.sort_by_key(|(idx, _proc)| *idx);
-
-    procedures.into_iter().map(|(_idx, proc)| proc).collect()
-}
-
-/// Logging a warning message for every imported but unused module.
-fn check_unused_imports(import_info: &ModuleImports) {
-    let import_lib_paths = import_info.import_paths();
-    let invoked_procs_paths: Vec<&LibraryPath> =
-        import_info.invoked_procs().iter().map(|(_id, (_name, path))| path).collect();
-
-    for lib in import_lib_paths {
-        if !invoked_procs_paths.contains(&lib) {
-            event!(Level::WARN, "unused import: \"{}\"", lib);
-        }
-    }
-}
+pub const MAX_STACK_WORD_OFFSET: u8 = 12;
