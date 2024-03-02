@@ -1,300 +1,407 @@
-use super::{
-    ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable,
-    MAX_LABEL_LEN,
+use crate::{
+    ast::{Ident, IdentError},
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, Serializable,
+    Span,
 };
-use alloc::string::{String, ToString};
-use core::{fmt, ops::Deref, str::from_utf8};
+use alloc::{
+    borrow::Cow,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
+use core::{
+    fmt,
+    str::{self, FromStr},
+};
+use smallvec::smallvec;
 
-// CONSTANTS
-// ================================================================================================
+/// Represents errors that can occur when creating, parsing, or manipulating [LibraryPath]s
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+pub enum PathError {
+    #[error("invalid library path: cannot be empty")]
+    Empty,
+    #[error("invalid library path component: cannot be empty")]
+    EmptyComponent,
+    #[error("invalid library path component: {0}")]
+    InvalidComponent(#[from] crate::ast::IdentError),
+    #[error(transparent)]
+    InvalidNamespace(#[from] crate::library::LibraryNamespaceError),
+    #[error("cannot join a path with reserved name to other paths")]
+    UnsupportedJoin,
+}
 
-const MAX_PATH_LEN: usize = 1023;
+/// Represents a component of a [LibraryPath] in [LibraryPath::components]
+pub enum LibraryPathComponent<'a> {
+    /// The first component of the path, and the namespace of the path
+    Namespace(&'a LibraryNamespace),
+    /// A non-namespace component of the path
+    Normal(&'a Ident),
+}
+impl<'a> Eq for LibraryPathComponent<'a> {}
+impl<'a> PartialEq for LibraryPathComponent<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Namespace(a), Self::Namespace(b)) => a == b,
+            (Self::Normal(a), Self::Normal(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+impl<'a> PartialEq<str> for LibraryPathComponent<'a> {
+    fn eq(&self, other: &str) -> bool {
+        self.as_ref().eq(other)
+    }
+}
+impl<'a> AsRef<str> for LibraryPathComponent<'a> {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Namespace(ns) => ns.as_str(),
+            Self::Normal(ident) => ident.as_str(),
+        }
+    }
+}
+impl<'a> fmt::Display for LibraryPathComponent<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
 
-// LIBRARY PATH
-// ================================================================================================
+/// This is a convenience type alias for a smallvec of [Ident]
+type Components = smallvec::SmallVec<[Ident; 1]>;
 
 /// Path to a module or a procedure.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LibraryPath {
-    path: String,
-    num_components: usize,
+    inner: Arc<LibraryPathInner>,
+}
+
+/// The data of a [LibraryPath] is allocated on the
+/// heap to make a [LibraryPath] the size of a pointer,
+/// rather than the size of 4 pointers. This makes them
+/// cheap to clone and move around
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct LibraryPathInner {
+    /// The namespace of this library path
+    ns: LibraryNamespace,
+    /// The individual components of the path, i.e. the parts delimited by `::`
+    components: Components,
 }
 
 impl LibraryPath {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    /// Path delimiter.
-    pub const PATH_DELIM: &'static str = "::";
-
-    /// Base kernel path.
-    pub const KERNEL_PATH: &'static str = "#sys";
-
-    /// Path for an executable module.
-    pub const EXEC_PATH: &'static str = "#exec";
-
-    /// Path for a module without library path.
-    pub const ANON_PATH: &'static str = "#anon";
-
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
     /// Returns a new path created from the provided source.
     ///
     /// A path consists of at list of components separated by `::` delimiter. A path must contain
     /// at least one component.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// - The path is empty.
-    /// - The path requires more than 1KB to serialize.
-    /// - Any of the path's components is empty, requires more than 255 bytes to serialize, does
-    ///   not start with a letter, or contains non-alphanumeric characters.
-    pub fn new<S>(source: S) -> Result<Self, PathError>
-    where
-        S: AsRef<str>,
-    {
-        Ok(Self {
-            path: source.as_ref().to_string(),
-            num_components: Self::validate(source)?,
-        })
-    }
-
-    /// Returns a path for a kernel module.
-    pub fn kernel_path() -> Self {
-        Self {
-            path: Self::KERNEL_PATH.into(),
-            num_components: 1,
-        }
-    }
-
-    /// Returns a path for an executable module.
-    pub fn exec_path() -> Self {
-        Self {
-            path: Self::EXEC_PATH.into(),
-            num_components: 1,
-        }
-    }
-
-    /// Returns a path for a module without library path.
-    pub fn anon_path() -> Self {
-        Self {
-            path: Self::ANON_PATH.into(),
-            num_components: 1,
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the full path of the Library
-    pub fn path(&self) -> &str {
-        &self.path
-    }
-
-    /// Returns the first component of the path.
     ///
-    /// The first component is the leftmost token separated by `::`.
-    pub fn first(&self) -> &str {
-        self.path
-            .split_once(Self::PATH_DELIM)
-            .expect("a valid library path must always have at least one component")
-            .0
+    /// Returns an error if:
+    ///
+    /// * The path is empty.
+    /// * The path prefix represents an invalid namespace, see [LibraryNamespace] for details.
+    /// * Any component of the path is empty.
+    /// * Any component is not a valid bare identifier in Miden Assembly syntax,
+    ///   i.e. lowercase alphanumeric with underscores allowed, starts with alphabetic
+    ///   character.
+    pub fn new(source: impl AsRef<str>) -> Result<Self, PathError> {
+        let source = source.as_ref();
+        if source.is_empty() {
+            return Err(PathError::Empty);
+        }
+
+        // Parse namespace
+        let mut parts = source.split("::");
+        let ns = parts
+            .next()
+            .ok_or(PathError::Empty)
+            .and_then(|part| LibraryNamespace::new(part).map_err(PathError::InvalidNamespace))?;
+
+        // Parse components
+        let mut components = Components::default();
+        parts.map(Ident::new).try_for_each(|part| {
+            part.map_err(PathError::InvalidComponent).map(|c| components.push(c))
+        })?;
+
+        Ok(Self::make(ns, components))
+    }
+
+    /// Create a [LibraryPath] from pre-validated components
+    pub fn new_from_components<I>(ns: LibraryNamespace, components: I) -> Self
+    where
+        I: IntoIterator<Item = Ident>,
+    {
+        Self::make(ns, components.into_iter().collect())
+    }
+
+    #[inline]
+    fn make(ns: LibraryNamespace, components: Components) -> Self {
+        Self {
+            inner: Arc::new(LibraryPathInner { ns, components }),
+        }
+    }
+}
+
+/// Path metadata
+impl LibraryPath {
+    /// Return the size of this path in [char]s when displayed as a string
+    #[allow(clippy::len_without_is_empty)]
+    pub fn len(&self) -> usize {
+        self.inner.components.iter().map(|c| c.len()).sum::<usize>()
+            + self.inner.ns.as_str().len()
+            + (self.inner.components.len() * 2)
+    }
+
+    /// Return the size in bytes of this path when displayed as a string
+    pub fn byte_len(&self) -> usize {
+        self.inner.components.iter().map(|c| c.as_bytes().len()).sum::<usize>()
+            + self.inner.ns.as_str().as_bytes().len()
+            + (self.inner.components.len() * 2)
+    }
+
+    /// Returns the full path of the Library as a string
+    pub fn path(&self) -> Cow<'_, str> {
+        if self.inner.components.is_empty() {
+            Cow::Borrowed(self.inner.ns.as_str())
+        } else {
+            Cow::Owned(self.to_string())
+        }
+    }
+
+    /// Return the namespace component of this path
+    pub fn namespace(&self) -> &LibraryNamespace {
+        &self.inner.ns
     }
 
     /// Returns the last component of the path.
-    ///
-    /// The last component is the rightmost token separated by `::`.
     pub fn last(&self) -> &str {
-        self.path
-            .rsplit_once(Self::PATH_DELIM)
-            .expect("a valid library path must always have at least one component")
-            .1
+        self.inner
+            .components
+            .last()
+            .map(|component| component.as_str())
+            .unwrap_or_else(|| self.inner.ns.as_str())
     }
 
     /// Returns the number of components in the path.
     ///
     /// This is guaranteed to return at least 1.
     pub fn num_components(&self) -> usize {
-        self.num_components
+        self.inner.components.len() + 1
     }
 
     /// Returns an iterator over all components of the path.
-    pub fn components(&self) -> core::str::Split<&str> {
-        self.path.split(Self::PATH_DELIM)
+    pub fn components(&self) -> impl Iterator<Item = LibraryPathComponent> + '_ {
+        core::iter::once(LibraryPathComponent::Namespace(&self.inner.ns))
+            .chain(self.inner.components.iter().map(LibraryPathComponent::Normal))
     }
 
     /// Returns true if this path is for a kernel module.
     pub fn is_kernel_path(&self) -> bool {
-        self.path == Self::KERNEL_PATH
+        matches!(self.inner.ns, LibraryNamespace::Kernel)
     }
 
     /// Returns true if this path is for an executable module.
     pub fn is_exec_path(&self) -> bool {
-        self.path == Self::EXEC_PATH
+        matches!(self.inner.ns, LibraryNamespace::Exec)
     }
 
-    // TYPE-SAFE TRANSFORMATION
-    // --------------------------------------------------------------------------------------------
+    /// Returns true if this path is for an anonymous module.
+    pub fn is_anon_path(&self) -> bool {
+        matches!(self.inner.ns, LibraryNamespace::Anon)
+    }
 
+    /// Returns true if `self` starts with `other`
+    pub fn starts_with(&self, other: &LibraryPath) -> bool {
+        let mut a = self.components();
+        let mut b = other.components();
+        loop {
+            match (a.next(), b.next()) {
+                // If we reach the end of `other`, it's a match
+                (_, None) => break true,
+                // If we reach the end of `self` first, it can't start with `other`
+                (None, _) => break false,
+                (Some(a), Some(b)) => {
+                    // If the two components do not match, we have our answer
+                    if a != b {
+                        break false;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Mutation
+impl LibraryPath {
     /// Appends the provided path to this path and returns the result.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// - The joined path is either for a kernel or an executable module.
-    /// - The resulting path requires more than 1KB to serialize.
+    ///
+    /// Returns an error if the join would produce an invalid path.
+    /// For example, paths with reserved namespaces may not be
+    /// joined to other paths.
     pub fn join(&self, other: &Self) -> Result<Self, PathError> {
-        if other.path.starts_with(Self::KERNEL_PATH) || other.starts_with(Self::EXEC_PATH) {
-            return Err(PathError::component_invalid_char(&other.path));
+        if other.inner.ns.is_reserved() {
+            return Err(PathError::UnsupportedJoin);
         }
 
-        let new_path = format!("{}{}{}", self.path, Self::PATH_DELIM, other.path);
-        validate_path_len(&new_path)?;
-        Ok(Self {
-            path: new_path,
-            num_components: self.num_components + other.num_components,
-        })
+        let mut path = self.clone();
+        {
+            let inner = Arc::make_mut(&mut path.inner);
+            inner.components.push(other.inner.ns.to_ident());
+            inner.components.extend(other.inner.components.iter().cloned());
+        }
+
+        Ok(path)
     }
 
-    /// Adds the provided component to the end of this path and returns the result.
+    /// Append the given component to this path.
     ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The resulting path is over 1000 characters long.
-    /// - The component is empty, requires more than 255 bytes to serialize, does not start with
-    ///   a letter, or contains non-alphanumeric characters.
+    /// Returns an error if the component is not valid.
+    pub fn push(&mut self, component: impl AsRef<str>) -> Result<(), PathError> {
+        let component = component.as_ref().parse::<Ident>().map_err(PathError::InvalidComponent)?;
+        self.push_ident(component);
+        Ok(())
+    }
+
+    /// Append an [Ident] as a component to this path
+    pub fn push_ident(&mut self, component: Ident) {
+        let inner = Arc::make_mut(&mut self.inner);
+        inner.components.push(component);
+    }
+
+    /// Appends the provided component to the end of this path and returns the result.
+    ///
+    /// Returns an error if the input string is not a valid component.
     pub fn append<S>(&self, component: S) -> Result<Self, PathError>
     where
         S: AsRef<str>,
     {
-        let new_path = format!("{}{}{}", self.path, Self::PATH_DELIM, component.as_ref());
-        Self::new(new_path)
+        let mut path = self.clone();
+        path.push(component)?;
+        Ok(path)
+    }
+
+    /// Appends the provided component to the end of this path and returns the result.
+    ///
+    /// Returns an error if the input string is not a valid component.
+    pub fn append_ident(&self, component: Ident) -> Result<Self, PathError> {
+        let mut path = self.clone();
+        path.push_ident(component);
+        Ok(path)
     }
 
     /// Adds the provided component to the front of this path and returns the result.
     ///
     /// # Errors
+    ///
     /// Returns an error if:
-    /// - The resulting path is over 1000 characters long.
-    /// - The component is empty, requires more than 255 bytes to serialize, does not start with
-    ///   a letter, or contains non-alphanumeric characters.
+    ///
+    /// * The input string is not a valid [LibraryNamespace]
+    /// * The current namespace is a reserved identifier and therefore not a valid path component
     pub fn prepend<S>(&self, component: S) -> Result<Self, PathError>
     where
         S: AsRef<str>,
     {
-        let new_path = format!("{}{}{}", component.as_ref(), Self::PATH_DELIM, self.path);
-        Self::new(new_path)
+        let ns = component
+            .as_ref()
+            .parse::<LibraryNamespace>()
+            .map_err(PathError::InvalidNamespace)?;
+        let component = self.inner.ns.to_ident();
+        let mut components = smallvec![component];
+        components.extend(self.inner.components.iter().cloned());
+        Ok(Self::make(ns, components))
     }
 
-    /// Returns the path with the first component removed.
-    ///
-    /// # Errors
-    /// Returns an error if the path consists of only one component.
-    pub fn strip_first(&self) -> Result<Self, PathError> {
-        if self.num_components == 1 {
-            return Err(PathError::too_few_components(&self.path, 2));
+    /// Pops the last non-namespace component in this path
+    pub fn pop(&mut self) -> Option<Ident> {
+        let inner = Arc::make_mut(&mut self.inner);
+        inner.components.pop()
+    }
+
+    /// Returns a new path, representing the current one with the last non-namespace component removed.
+    pub fn strip_last(&self) -> Option<Self> {
+        match self.inner.components.len() {
+            0 => None,
+            1 => Some(Self::make(self.inner.ns.clone(), smallvec![])),
+            _ => {
+                let ns = self.inner.ns.clone();
+                let mut components = self.inner.components.clone();
+                components.pop();
+                Some(Self::make(ns, components))
+            }
         }
-
-        let rem = self
-            .path
-            .split_once(Self::PATH_DELIM)
-            .expect("failed to split path on module delimiter")
-            .1;
-
-        Ok(Self {
-            path: rem.to_string(),
-            num_components: self.num_components - 1,
-        })
     }
 
-    /// Returns the path with the last component removed.
+    /// Checks if the given input string is a valid [LibraryPath], returning the number of components in the path.
     ///
-    /// # Errors
-    /// Returns an error if the path consists of only one component.
-    pub fn strip_last(&self) -> Result<Self, PathError> {
-        if self.num_components == 1 {
-            return Err(PathError::too_few_components(&self.path, 2));
-        }
-
-        let rem = self
-            .path
-            .rsplit_once(Self::PATH_DELIM)
-            .expect("failed to split path on module delimiter")
-            .0;
-
-        Ok(Self {
-            path: rem.to_string(),
-            num_components: self.num_components - 1,
-        })
-    }
-
-    // UTILITY FUNCTIONS
-    // --------------------------------------------------------------------------------------------
-
-    /// Validates the specified path and returns the number of components in the path.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The path is empty.
-    /// - The path requires more than 1KB to serialize.
-    /// - Any of the path's components is empty, requires more than 255 bytes to serialize, does
-    ///   not start with a letter, or contains non-alphanumeric characters.
+    /// See the documentation of [LibraryPath::new] for details on what constitutes a valid path.
     pub fn validate<S>(source: S) -> Result<usize, PathError>
     where
         S: AsRef<str>,
     {
-        // make sure the path is not empty and is not over max length of 255 bytes
-        if source.as_ref().is_empty() {
-            return Err(PathError::EmptyPath);
-        }
-        validate_path_len(source.as_ref())?;
+        let source = source.as_ref();
 
-        // special handling of the first component as it may contain non-alphanumeric characters
-        let (path, mut num_components) = if source.as_ref().starts_with(Self::KERNEL_PATH) {
-            let split_at = Self::KERNEL_PATH.len() + Self::PATH_DELIM.len();
-            (source.as_ref().split_at(split_at).1, 1)
-        } else if source.as_ref().starts_with(Self::EXEC_PATH) {
-            let split_at = Self::EXEC_PATH.len() + Self::PATH_DELIM.len();
-            (source.as_ref().split_at(split_at).1, 1)
-        } else {
-            (source.as_ref(), 0)
-        };
+        let mut count = 0;
+        let mut components = source.split("::");
 
-        // count the number of components in the path and make sure each component is valid
-        for component in path.split(Self::PATH_DELIM) {
+        let ns = components.next().ok_or(PathError::Empty)?;
+        LibraryNamespace::validate(ns).map_err(PathError::InvalidNamespace)?;
+        count += 1;
+
+        for component in components {
             validate_component(component)?;
-            num_components += 1;
+            count += 1;
         }
 
-        Ok(num_components)
+        Ok(count)
     }
 
-    /// Appends the specified component to the end of this path and returns the resulting string
-    /// representation of the path.
+    /// Returns a new [LibraryPath] with the given component appended without any validation.
     ///
-    /// This does not check whether the component or the resulting path are valid.
-    pub fn append_unchecked<S>(&self, component: S) -> String
+    /// The caller is expected to uphold the validity invariants of [LibraryPath].
+    pub fn append_unchecked<S>(&self, component: S) -> Self
     where
         S: AsRef<str>,
     {
-        format!("{}{}{}", self.path, Self::PATH_DELIM, component.as_ref())
+        let component = component.as_ref().to_string().into_boxed_str();
+        let component = Ident::new_unchecked(Span::unknown(Arc::from(component)));
+        let mut path = self.clone();
+        path.push_ident(component);
+        path
     }
 }
-
-impl Deref for LibraryPath {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.path
+impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
+    type Error = PathError;
+    fn try_from(iter: Vec<LibraryPathComponent<'a>>) -> Result<Self, Self::Error> {
+        let mut iter = iter.into_iter();
+        let ns = match iter.next() {
+            None => return Err(PathError::Empty),
+            Some(LibraryPathComponent::Namespace(ns)) => ns.clone(),
+            Some(LibraryPathComponent::Normal(ident)) => LibraryNamespace::try_from(ident.clone())?,
+        };
+        let mut components = Components::default();
+        for component in iter {
+            match component {
+                LibraryPathComponent::Normal(ident) => components.push(ident.clone()),
+                LibraryPathComponent::Namespace(LibraryNamespace::User(name)) => {
+                    components.push(Ident::new_unchecked(Span::unknown(name.clone())));
+                }
+                LibraryPathComponent::Namespace(_) => return Err(PathError::UnsupportedJoin),
+            }
+        }
+        Ok(Self::make(ns, components))
     }
 }
-
-impl AsRef<str> for LibraryPath {
-    fn as_ref(&self) -> &str {
-        &self.path
+impl From<LibraryNamespace> for LibraryPath {
+    fn from(ns: LibraryNamespace) -> Self {
+        Self::make(ns, smallvec![])
     }
 }
-
+impl From<LibraryPath> for String {
+    fn from(path: LibraryPath) -> Self {
+        path.to_string()
+    }
+}
 impl TryFrom<String> for LibraryPath {
     type Error = PathError;
 
@@ -302,61 +409,56 @@ impl TryFrom<String> for LibraryPath {
         Self::new(value)
     }
 }
+impl FromStr for LibraryPath {
+    type Err = PathError;
 
-impl TryFrom<&str> for LibraryPath {
-    type Error = PathError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         Self::new(value)
     }
 }
 
 impl Serializable for LibraryPath {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.path.len() < MAX_PATH_LEN, "path too long");
-        target.write_u16(self.path.len() as u16);
-        target.write_bytes(self.path.as_bytes());
+        let len = self.byte_len();
+
+        target.write_u16(len as u16);
+        target.write_bytes(self.inner.ns.as_str().as_bytes());
+        for component in self.inner.components.iter() {
+            target.write_bytes(b"::");
+            target.write_bytes(component.as_str().as_bytes());
+        }
     }
 }
 
 impl Deserializable for LibraryPath {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let path_len = source.read_u16()? as usize;
-        let path = source.read_vec(path_len)?;
+        let len = source.read_u16()? as usize;
+        let path = source.read_slice(len)?;
         let path =
-            from_utf8(&path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+            str::from_utf8(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
         Self::new(path).map_err(|e| DeserializationError::InvalidValue(e.to_string()))
     }
 }
 
 impl fmt::Display for LibraryPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.path)
-    }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn validate_path_len(path: &str) -> Result<(), PathError> {
-    if path.len() > MAX_PATH_LEN {
-        Err(PathError::path_too_long(path, MAX_PATH_LEN))
-    } else {
+        write!(f, "{}", self.inner.ns)?;
+        for component in self.inner.components.iter() {
+            write!(f, "::{component}")?;
+        }
         Ok(())
     }
 }
 
-fn validate_component(component: &str) -> Result<(), PathError> {
+pub(super) fn validate_component(component: &str) -> Result<(), PathError> {
     if component.is_empty() {
         Err(PathError::EmptyComponent)
-    } else if component.len() > MAX_LABEL_LEN {
-        Err(PathError::component_too_long(component, MAX_LABEL_LEN))
-    } else if !component.chars().next().unwrap().is_ascii_alphabetic() {
-        Err(PathError::component_invalid_first_char(component))
-    } else if !component.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        Err(PathError::component_invalid_char(component))
+    } else if component.len() > LibraryNamespace::MAX_LENGTH {
+        Err(PathError::InvalidComponent(IdentError::InvalidLength {
+            max: LibraryNamespace::MAX_LENGTH,
+        }))
     } else {
-        Ok(())
+        Ident::validate(component).map_err(PathError::InvalidComponent)
     }
 }
 
@@ -365,7 +467,8 @@ fn validate_component(component: &str) -> Result<(), PathError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{LibraryPath, PathError};
+    use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};
+    use vm_core::assert_matches;
 
     #[test]
     fn new_path() {
@@ -388,24 +491,27 @@ mod tests {
     #[test]
     fn new_path_fail() {
         let path = LibraryPath::new("");
-        assert!(matches!(path, Err(PathError::EmptyPath)));
+        assert_matches!(path, Err(PathError::Empty));
 
         let path = LibraryPath::new("::");
-        assert!(matches!(path, Err(PathError::EmptyComponent)));
+        assert_matches!(path, Err(PathError::InvalidNamespace(LibraryNamespaceError::Empty)));
 
         let path = LibraryPath::new("foo::");
-        assert!(matches!(path, Err(PathError::EmptyComponent)));
+        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::Empty)));
 
         let path = LibraryPath::new("::foo");
-        assert!(matches!(path, Err(PathError::EmptyComponent)));
+        assert_matches!(path, Err(PathError::InvalidNamespace(LibraryNamespaceError::Empty)));
 
         let path = LibraryPath::new("foo::1bar");
-        assert!(matches!(path, Err(PathError::ComponentInvalidFirstChar { component: _ })));
+        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidStart)));
 
         let path = LibraryPath::new("foo::b@r");
-        assert!(matches!(path, Err(PathError::ComponentInvalidChar { component: _ })));
+        assert_matches!(path, Err(PathError::InvalidComponent(IdentError::InvalidChars)));
 
         let path = LibraryPath::new("#foo::bar");
-        assert!(matches!(path, Err(PathError::ComponentInvalidFirstChar { component: _ })));
+        assert_matches!(
+            path,
+            Err(PathError::InvalidNamespace(LibraryNamespaceError::InvalidStart))
+        );
     }
 }
