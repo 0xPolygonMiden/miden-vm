@@ -1,0 +1,125 @@
+use core::fmt;
+
+use crate::{ast::Ident, Felt, SourceSpan, Span, Spanned};
+
+/// An 8-bit unsigned immediate
+pub type ImmU8 = Immediate<u8>;
+/// A 16-bit unsigned immediate
+pub type ImmU16 = Immediate<u16>;
+/// A 32-bit unsigned immediate
+pub type ImmU32 = Immediate<u32>;
+/// A field element immediate
+pub type ImmFelt = Immediate<Felt>;
+
+/// Represents the 32-bit immediate used for assertion error codes
+pub type ErrorCode = Immediate<u32>;
+
+/// Represents an instruction immediate, e.g. `add.1` or `add.CONST`
+pub enum Immediate<T> {
+    /// A literal integer value, either decimal or hex-encoded
+    Value(Span<T>),
+    /// A constant identifier
+    ///
+    /// This must refer to a constant definition in the current module.
+    ///
+    /// All immediates of this type are folded to `Value` during
+    /// semantic analysis, once all constant definitions are evaluated.
+    Constant(Ident),
+}
+
+/// All immediates
+impl<T> Immediate<T> {
+    pub fn is_literal(&self) -> bool {
+        matches!(self, Self::Value(_))
+    }
+}
+
+/// Copy-able immediates (in practice, all of them)
+impl<T: Copy> Immediate<T> {
+    pub fn expect_value(&self) -> T {
+        match self {
+            Self::Value(value) => value.into_inner(),
+            Self::Constant(name) => panic!("tried to unwrap unresolved constant: '{name}'"),
+        }
+    }
+
+    pub fn expect_spanned_value(&self) -> Span<T> {
+        match self {
+            Self::Value(value) => *value,
+            Self::Constant(name) => panic!("tried to unwrap unresolved constant: '{name}'"),
+        }
+    }
+}
+
+impl<T> Spanned for Immediate<T> {
+    fn span(&self) -> SourceSpan {
+        match self {
+            Self::Value(spanned) => spanned.span(),
+            Self::Constant(spanned) => spanned.span(),
+        }
+    }
+}
+impl<T> From<T> for Immediate<T> {
+    fn from(value: T) -> Self {
+        Self::Value(Span::unknown(value))
+    }
+}
+impl<T> From<Span<T>> for Immediate<T> {
+    fn from(value: Span<T>) -> Self {
+        Self::Value(value)
+    }
+}
+impl<T: Clone> Clone for Immediate<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Value(ref value) => Self::Value(value.clone()),
+            Self::Constant(ref name) => Self::Constant(name.clone()),
+        }
+    }
+}
+impl<T: Eq> Eq for Immediate<T> {}
+impl<T: PartialEq> PartialEq for Immediate<T> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Value(l), Self::Value(r)) => l == r,
+            (Self::Constant(l), Self::Constant(r)) => l == r,
+            _ => false,
+        }
+    }
+}
+impl<T: PartialEq> PartialEq<T> for Immediate<T> {
+    fn eq(&self, other: &T) -> bool {
+        match self {
+            Self::Value(l) => l == other,
+            _ => false,
+        }
+    }
+}
+impl<T: fmt::Debug> fmt::Debug for Immediate<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Value(value) if f.alternate() => write!(f, "Value({value:#?})"),
+            Self::Value(value) => write!(f, "Value({value:?})"),
+            Self::Constant(name) => write!(f, "Constant({name})"),
+        }
+    }
+}
+impl<T: fmt::Display> fmt::Display for Immediate<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Value(value) => write!(f, "{value}"),
+            Self::Constant(name) => write!(f, "{name}"),
+        }
+    }
+}
+#[cfg(feature = "formatter")]
+impl<T: crate::prettier::PrettyPrint> crate::prettier::PrettyPrint for Immediate<T> {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        match self {
+            Self::Value(ref value) => value.render(),
+            Self::Constant(ref name) => text(name),
+        }
+    }
+}
