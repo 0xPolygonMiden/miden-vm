@@ -17,20 +17,48 @@ bench = false
 doctest = false
 
 [features]
-default = ["std"]
-std = ["vm-core/std", "miette/fancy"]
+default = ["std", "formatter"]
+formatter = ["vm-core/formatter"]
+std = [
+    "vm-core/std",
+    "logos/std",
+    "miette/fancy",
+    "thiserror/std",
+    "miette/std",
+]
+nightly = ["thiserror/nightly", "miette/nightly"]
+testing = ["dep:regex"]
 
 [dependencies]
-num_enum = "0.7"
+lalrpop-util = { version = "0.20", default-features = false }
+logos = { version = "0.14", default-features = false, features = [
+    "export_derive",
+] }
+miette = { version = "7.1.0", default-features = false, features = [
+    "fancy-no-syscall",
+    "derive",
+] }
+regex = { version = "1.10", optional = true, default-features = false, features = [
+    "unicode",
+    "perf",
+] }
+smallvec = { version = "1.13", features = [
+    "union",
+    "const_generics",
+    "const_new",
+] }
 tracing = { version = "0.1", default-features = false, features = [
     "attributes",
 ] }
+thiserror = { version = "1.0", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-miette = { git = "https://github.com/zkat/miette", rev = "328bf37", features = [
-    "fancy-no-syscall",
+[dev-dependencies]
+pretty_assertions = "1.4"
+regex = { version = "1.10", default-features = false, features = [
+    "unicode",
+    "perf",
 ] }
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-miette = { git = "https://github.com/zkat/miette", rev = "328bf37" }
+[build-dependencies]
+lalrpop = { version = "0.20", default-features = false }
