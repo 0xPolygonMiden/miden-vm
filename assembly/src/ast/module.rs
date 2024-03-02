@@ -1,322 +1,636 @@
-use super::check_unused_imports;
-use super::{
-    format::*,
-    imports::ModuleImports,
-    parsers::{parse_constants, ParserContext},
-    serde::AstSerdeOptions,
-    sort_procs_into_vec, LocalProcMap, ProcReExport, ProcedureAst, ReExportedProcMap, MAX_DOCS_LEN,
-    MAX_LOCAL_PROCS, MAX_REEXPORTED_PROCS,
-    {
-        ByteReader, ByteWriter, Deserializable, DeserializationError, ParsingError, SliceReader,
-        Token, TokenStream,
-    },
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
+use core::fmt;
+
+use super::{Export, Import, LocalNameResolver, ProcedureIndex, ProcedureName, ResolvedProcedure};
+use crate::{
+    ast::{AstSerdeOptions, Ident},
+    diagnostics::{Report, SourceFile},
+    sema::SemanticAnalysisError,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
+    Serializable, SourceSpan, Span, Spanned,
 };
 
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use core::{fmt, str::from_utf8};
-use vm_core::utils::Serializable;
-
-// MODULE AST
-// ================================================================================================
-
-/// An abstract syntax tree of a Miden module.
+/// Represents the kind of a [Module].
 ///
-/// A module AST consists of a list of procedure ASTs, a list of re-exported procedures, a list of
-/// imports, and module documentation. Local procedures could be internal or exported.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModuleAst {
-    pub(super) local_procs: Vec<ProcedureAst>,
-    pub(super) reexported_procs: Vec<ProcReExport>,
-    pub(super) import_info: ModuleImports,
-    pub(super) docs: Option<String>,
+/// The three different kinds have slightly different
+/// rules on what syntax is allowed, as well as what
+/// operations can be performed in the body of procedures
+/// defined in the module. See the documentation for each
+/// variant for a summary of these differences.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum ModuleKind {
+    /// A library is a simple container of code that must be
+    /// included into an executable module to form a complete program.
+    ///
+    /// Library modules cannot use the `begin`..`end` syntax, which
+    /// is used to define the entrypoint procedure for an executable.
+    /// Aside from this, they are free to use all other MASM syntax.
+    #[default]
+    Library = 0,
+    /// An executable is the root module of a program, and provides
+    /// the entrypoint for executing that program.
+    ///
+    /// As the executable module is the root module, it may not export
+    /// procedures for other modules to depend on, it may only import
+    /// and call externally-defined procedures, or private locally-
+    /// defined procedures.
+    ///
+    /// An executable module must contain a `begin`..`end` block.
+    Executable = 1,
+    /// A kernel is like a library module, but is special in a few ways:
+    ///
+    /// * Its code always executes in the root context, so it is stateful
+    /// in a way that normal libraries cannot replicate. This can be used
+    /// to provide core services that would otherwise not be possible to
+    /// implement.
+    ///
+    /// * The procedures exported from the kernel may be the target of
+    /// the `syscall` instruction, and in fact _must_ be called that way.
+    ///
+    /// * Kernels may not use `syscall` or `call` instructions internally
+    Kernel = 2,
+}
+impl fmt::Display for ModuleKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Library => f.write_str("library"),
+            Self::Executable => f.write_str("executable"),
+            Self::Kernel => f.write_str("kernel"),
+        }
+    }
+}
+impl Serializable for ModuleKind {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write_u8(*self as u8)
+    }
+}
+impl Deserializable for ModuleKind {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        match source.read_u8()? {
+            0 => Ok(Self::Library),
+            1 => Ok(Self::Executable),
+            2 => Ok(Self::Kernel),
+            n => Err(DeserializationError::InvalidValue(format!("invalid module kind tag: {n}"))),
+        }
+    }
 }
 
-impl ModuleAst {
-    // AST
-    // --------------------------------------------------------------------------------------------
-    /// Returns a new [ModuleAst].
+/// The abstract syntax tree for a single Miden Assembly module.
+///
+/// All module kinds share this AST representation, as they are
+/// largely identical. However, the [ModuleKind] dictates how the
+/// parsed module is semantically analyzed and validated.
+#[derive(Clone)]
+pub struct Module {
+    /// The span covering the entire definition of this module
+    span: SourceSpan,
+    /// If available/known, the source contents from which this
+    /// module was parsed. This is used to provide rich diagnostics
+    /// output during semantic analysis.
     ///
-    /// A module consists of internal and exported procedures but does not contain a body.
-    pub fn new(
-        local_procs: Vec<ProcedureAst>,
-        reexported_procs: Vec<ProcReExport>,
-        docs: Option<String>,
-    ) -> Result<Self, ParsingError> {
-        if local_procs.len() > MAX_LOCAL_PROCS {
-            return Err(ParsingError::too_many_module_procs(local_procs.len(), MAX_LOCAL_PROCS));
+    /// In cases where this file is not available, diagnostics will
+    /// revert to a simple form with a helpful message, but without
+    /// source code snippets.
+    source_file: Option<Arc<SourceFile>>,
+    /// The documentation associated with this module.
+    ///
+    /// Module documentation is provided in Miden Assembly as a
+    /// documentation comment starting on the first line of the module.
+    /// All other documentation comments are attached to the item
+    /// the precede in the module body.
+    docs: Option<Span<String>>,
+    /// The fully-qualified path representing the name of this module
+    path: LibraryPath,
+    /// The kind of module this represents
+    kind: ModuleKind,
+    /// The imports defined in the module body
+    pub(crate) imports: Vec<Import>,
+    /// The procedures (defined or re-exported) in the module body
+    ///
+    /// NOTE: Despite the name, the procedures in this set are not
+    /// necessarily exported, the individual procedure item must
+    /// be checked to determine visibility
+    pub(crate) procedures: Vec<Export>,
+}
+
+impl Spanned for Module {
+    fn span(&self) -> SourceSpan {
+        self.span
+    }
+}
+
+/// Construction
+impl Module {
+    pub fn new(kind: ModuleKind, path: LibraryPath) -> Self {
+        Self {
+            span: Default::default(),
+            source_file: None,
+            docs: None,
+            path,
+            kind,
+            imports: Default::default(),
+            procedures: Default::default(),
         }
-        if reexported_procs.len() > MAX_REEXPORTED_PROCS {
-            return Err(ParsingError::too_many_module_procs(
-                reexported_procs.len(),
-                MAX_REEXPORTED_PROCS,
-            ));
-        }
-        if let Some(ref docs) = docs {
-            if docs.len() > MAX_DOCS_LEN {
-                return Err(ParsingError::module_docs_too_long(docs.len(), MAX_DOCS_LEN));
-            }
-        }
-        Ok(Self {
-            local_procs,
-            reexported_procs,
-            import_info: Default::default(),
-            docs,
-        })
     }
 
-    /// Adds the provided import information to the module.
-    ///
-    /// # Panics
-    /// Panics if import information has already been added.
-    pub fn with_import_info(mut self, import_info: ModuleImports) -> Self {
-        assert!(self.import_info.is_empty(), "module imports have already been added");
-        self.import_info = import_info;
+    pub fn new_kernel() -> Self {
+        Self::new(ModuleKind::Kernel, LibraryNamespace::Kernel.into())
+    }
+
+    pub fn new_executable() -> Self {
+        Self::new(ModuleKind::Executable, LibraryNamespace::Exec.into())
+    }
+
+    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
+        self.source_file = source_file;
         self
     }
 
-    // PARSER
-    // --------------------------------------------------------------------------------------------
-    /// Parses the provided source into a [ModuleAst].
-    ///
-    /// A module consists of internal and exported procedures but does not contain a body.
-    pub fn parse(source: &str) -> Result<Self, ParsingError> {
-        let mut tokens = TokenStream::new(source)?;
-        let mut import_info = ModuleImports::parse(&mut tokens)?;
-        let local_constants = parse_constants(&mut tokens)?;
-        let mut context = ParserContext {
-            import_info: &mut import_info,
-            local_procs: LocalProcMap::default(),
-            reexported_procs: ReExportedProcMap::default(),
-            local_constants,
-            num_proc_locals: 0,
-        };
-        context.parse_procedures(&mut tokens, true)?;
+    pub fn with_span(mut self, span: SourceSpan) -> Self {
+        self.span = span;
+        self
+    }
 
-        // make sure program body is absent and there are no more instructions.
-        if let Some(token) = tokens.read() {
-            if token.parts()[0] == Token::BEGIN {
-                return Err(ParsingError::not_a_library_module(token));
-            } else {
-                return Err(ParsingError::dangling_ops_after_module(token));
-            }
+    pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
+        self.source_file = Some(source_file);
+    }
+
+    pub fn set_docs(&mut self, docs: Option<Span<String>>) {
+        self.docs = docs;
+    }
+
+    pub fn set_span(&mut self, span: SourceSpan) {
+        self.span = span;
+    }
+
+    /// Define a procedure, raise an error if the procedure conflicts with an existing definition
+    pub fn define_procedure(&mut self, export: Export) -> Result<(), SemanticAnalysisError> {
+        if self.is_kernel() && matches!(export, Export::Alias(_)) {
+            return Err(SemanticAnalysisError::ImportToKernel {
+                span: export.span(),
+            });
         }
-
-        // build a list of local procs sorted by their declaration order
-        let local_procs = sort_procs_into_vec(context.local_procs);
-
-        // build a list of re-exported procedures sorted by procedure name
-        let reexported_procs = context.reexported_procs.into_values().collect();
-
-        // get module docs and make sure the size is within the limit
-        let docs = tokens.take_module_comments();
-
-        check_unused_imports(context.import_info);
-
-        Ok(Self::new(local_procs, reexported_procs, docs)?.with_import_info(import_info))
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a list of procedures in this module.
-    pub fn procs(&self) -> &[ProcedureAst] {
-        &self.local_procs
-    }
-
-    /// Returns a list of re-exported procedures in this module.
-    pub fn reexported_procs(&self) -> &[ProcReExport] {
-        &self.reexported_procs
-    }
-
-    /// Returns doc comments for this module.
-    pub fn docs(&self) -> Option<&String> {
-        self.docs.as_ref()
-    }
-
-    /// Returns a reference to the import information for this module
-    pub fn import_info(&self) -> &ModuleImports {
-        &self.import_info
-    }
-
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Clears the source locations from this module.
-    pub fn clear_locations(&mut self) {
-        self.local_procs.iter_mut().for_each(|p| p.clear_locations())
-    }
-
-    // SERIALIZATION / DESERIALIZATION
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns byte representation of this [ModuleAst].
-    ///
-    /// The serde options are NOT serialized - the caller must keep track of the serialization
-    /// options used.
-    pub fn write_into<R: ByteWriter>(&self, target: &mut R, options: AstSerdeOptions) {
-        // asserts below are OK because we enforce limits on the number of procedure and length of
-        // module docs in the module parser
-
-        // serialize docs
-        match &self.docs {
-            Some(docs) => {
-                assert!(docs.len() <= u16::MAX as usize, "docs too long");
-                target.write_u16(docs.len() as u16);
-                target.write_bytes(docs.as_bytes());
-            }
-            None => {
-                target.write_u16(0);
-            }
-        }
-
-        // serialize imports if required
-        if options.serialize_imports {
-            self.import_info.write_into(target);
-        }
-
-        // serialize procedures
-        assert!(self.local_procs.len() <= u16::MAX as usize, "too many local procs");
-        assert!(
-            self.reexported_procs.len() <= MAX_REEXPORTED_PROCS,
-            "too many re-exported procs"
-        );
-        target.write_u16((self.reexported_procs.len()) as u16);
-        target.write_many(&self.reexported_procs);
-        target.write_u16(self.local_procs.len() as u16);
-        target.write_many(&self.local_procs);
-    }
-
-    /// Returns a [ModuleAst] struct deserialized from the provided source.
-    ///
-    /// The serde options must correspond to the options used for serialization.
-    pub fn read_from<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        // deserialize docs
-        let docs_len = source.read_u16()? as usize;
-        let docs = if docs_len != 0 {
-            let str = source.read_vec(docs_len)?;
-            let str =
-                from_utf8(&str).map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
-            Some(str.to_string())
+        if let Some(prev) = self.resolve(export.name()) {
+            let prev_span = prev.span();
+            Err(SemanticAnalysisError::SymbolConflict {
+                span: export.span(),
+                prev_span,
+            })
         } else {
-            None
-        };
-
-        // deserialize imports if required
-        let import_info = if options.serialize_imports {
-            ModuleImports::read_from(source)?
-        } else {
-            ModuleImports::default()
-        };
-
-        // deserialize re-exports
-        let num_reexported_procs = source.read_u16()? as usize;
-        let reexported_procs = source.read_many::<ProcReExport>(num_reexported_procs)?;
-
-        // deserialize local procs
-        let num_local_procs = source.read_u16()? as usize;
-        let local_procs = source.read_many::<ProcedureAst>(num_local_procs)?;
-
-        match Self::new(local_procs, reexported_procs, docs) {
-            Err(err) => Err(DeserializationError::UnknownError(err.message().clone())),
-            Ok(res) => Ok(res.with_import_info(import_info)),
+            self.procedures.push(export);
+            Ok(())
         }
     }
 
-    /// Returns byte representation of this [ModuleAst].
-    ///
-    /// The serde options are serialized as header information for the purposes of deserialization.
-    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
-        let mut target = Vec::<u8>::default();
+    pub fn define_import(&mut self, import: Import) -> Result<(), SemanticAnalysisError> {
+        if let Some(prev_import) = self.resolve_import(&import.name) {
+            let prev_span = prev_import.span;
+            return Err(SemanticAnalysisError::ImportConflict {
+                span: import.span,
+                prev_span,
+            });
+        }
 
-        // serialize the options, so that deserialization knows what to do
-        options.write_into(&mut target);
+        if let Some(prev_defined) = self.procedures.iter().find(|e| e.name().eq(&import.name)) {
+            let prev_span = prev_defined.span();
+            return Err(SemanticAnalysisError::SymbolConflict {
+                span: import.span,
+                prev_span,
+            });
+        }
 
-        self.write_into(&mut target, options);
-        target
-    }
+        self.imports.push(import);
 
-    /// Returns a [ModuleAst] struct deserialized from the provided bytes.
-    ///
-    /// This function assumes that the byte array contains a serialized [AstSerdeOptions] struct as
-    /// a header.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
-        let mut source = SliceReader::new(bytes);
-
-        // Deserialize the serialization options used when serializing
-        let options = AstSerdeOptions::read_from(&mut source)?;
-
-        Self::read_from(&mut source, options)
-    }
-
-    /// Loads the [SourceLocation] of the procedures via [ProcedureAst::load_source_locations].
-    ///
-    /// The local procedures are expected to have deterministic order from parse. This way, the
-    /// serialization can be simplified into a contiguous sequence of locations.
-    pub fn load_source_locations<R: ByteReader>(
-        &mut self,
-        source: &mut R,
-    ) -> Result<(), DeserializationError> {
-        self.local_procs.iter_mut().try_for_each(|p| p.load_source_locations(source))
-    }
-
-    /// Writes the [SourceLocation] of the procedures via [ProcedureAst::write_source_locations].
-    ///
-    /// The local procedures are expected to have deterministic order from parse. This way, the
-    /// serialization can be simplified into a contiguous sequence of locations.
-    pub fn write_source_locations<W: ByteWriter>(&self, target: &mut W) {
-        self.local_procs.iter().for_each(|p| p.write_source_locations(target))
-    }
-
-    // DESTRUCTURING
-    // --------------------------------------------------------------------------------------------
-
-    /// Clear import info from the module
-    pub fn clear_imports(&mut self) {
-        self.import_info.clear();
+        Ok(())
     }
 }
 
-impl fmt::Display for ModuleAst {
-    /// Writes this [ModuleAst] as formatted MASM code into the formatter.
+/// Parsing
+impl Module {
+    /// Parse a [Module], `name`, of the given [ModuleKind], from `path`.
+    #[cfg(feature = "std")]
+    pub fn parse_file<P>(name: LibraryPath, kind: ModuleKind, path: P) -> Result<Box<Self>, Report>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        use crate::diagnostics::{IntoDiagnostic, WrapErr};
+        let path = path.as_ref();
+        let filename = path.to_string_lossy();
+        let source = std::fs::read_to_string(path)
+            .into_diagnostic()
+            .wrap_err_with(|| format!("failed to parse module from '{filename}'"))?;
+        let source_file = Arc::new(SourceFile::new(filename, source));
+        Self::parse(name, kind, source_file)
+    }
+
+    /// Parse a [Module], `name`, of the given [ModuleKind], from `source`.
+    pub fn parse_str(
+        name: LibraryPath,
+        kind: ModuleKind,
+        source: impl ToString,
+    ) -> Result<Box<Self>, Report> {
+        let source = source.to_string();
+        let source_file = Arc::new(SourceFile::new(name.path(), source));
+        Self::parse(name, kind, source_file)
+    }
+
+    /// Parse a [Module], `name`, of the given [ModuleKind], from `source_file`.
+    pub fn parse(
+        name: LibraryPath,
+        kind: ModuleKind,
+        source_file: Arc<SourceFile>,
+    ) -> Result<Box<Self>, Report> {
+        let mut parser = crate::parser::ModuleParser::new(kind);
+        parser.parse(name, source_file)
+    }
+}
+
+/// Metadata
+impl Module {
+    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
+        self.source_file.clone()
+    }
+
+    pub fn name(&self) -> &str {
+        self.path.last()
+    }
+
+    pub fn docs(&self) -> Option<Span<&str>> {
+        self.docs.as_ref().map(|spanned| spanned.as_deref())
+    }
+
+    pub fn path(&self) -> &LibraryPath {
+        &self.path
+    }
+
+    pub fn kind(&self) -> ModuleKind {
+        self.kind
+    }
+
+    pub fn is_executable(&self) -> bool {
+        matches!(self.kind, ModuleKind::Executable)
+    }
+
+    pub fn is_kernel(&self) -> bool {
+        matches!(self.kind, ModuleKind::Kernel)
+    }
+
+    pub fn has_entrypoint(&self) -> bool {
+        self.index_of(|p| p.is_main()).is_some()
+    }
+
+    pub fn namespace(&self) -> &LibraryNamespace {
+        self.path.namespace()
+    }
+
+    /// Check if the module belongs to the provided namespace.
+    pub fn is_in_namespace(&self, namespace: &LibraryNamespace) -> bool {
+        self.path.namespace() == namespace
+    }
+
+    pub fn procedures(&self) -> core::slice::Iter<'_, Export> {
+        self.procedures.iter()
+    }
+
+    pub fn procedures_mut(&mut self) -> core::slice::IterMut<'_, Export> {
+        self.procedures.iter_mut()
+    }
+
+    pub fn imports(&self) -> core::slice::Iter<'_, Import> {
+        self.imports.iter()
+    }
+
+    pub fn dependencies(&self) -> impl Iterator<Item = &LibraryNamespace> {
+        self.import_paths().map(|import| import.namespace())
+    }
+
+    pub fn get(&self, index: ProcedureIndex) -> Option<&Export> {
+        self.procedures.get(index.as_usize())
+    }
+
+    /// Get the [ProcedureIndex] for which `predicate` returns true in this module
+    pub fn index_of<F>(&self, predicate: F) -> Option<ProcedureIndex>
+    where
+        F: FnMut(&Export) -> bool,
+    {
+        self.procedures.iter().position(predicate).map(ProcedureIndex::new)
+    }
+
+    /// Get the [ProcedureIndex] for corresponding to the procedure `name`
+    /// in this module, _if_ the procedure is exported. Use [index_of] if
+    /// you need more flexibility.
+    pub fn index_of_name(&self, name: &ProcedureName) -> Option<ProcedureIndex> {
+        self.index_of(|p| p.name() == name && p.visibility().is_exported())
+    }
+
+    /// Resolves `name` to a procedure within the context of this module
+    pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
+        let index =
+            self.procedures.iter().position(|p| p.name() == name).map(ProcedureIndex::new)?;
+        match &self.procedures[index.as_usize()] {
+            Export::Procedure(ref proc) => {
+                Some(ResolvedProcedure::Local(Span::new(proc.name().span(), index)))
+            }
+            Export::Alias(ref alias) => Some(ResolvedProcedure::External(alias.target.clone())),
+        }
+    }
+
+    /// Construct a search structure that can resolve procedure names local to this module
+    pub fn resolver(&self) -> LocalNameResolver {
+        LocalNameResolver::from_iter(self.procedures.iter().enumerate().map(|(i, p)| match p {
+            Export::Procedure(ref p) => (
+                p.name().clone(),
+                ResolvedProcedure::Local(Span::new(p.name().span(), ProcedureIndex::new(i))),
+            ),
+            Export::Alias(ref p) => {
+                (p.name().clone(), ResolvedProcedure::External(p.target.clone()))
+            }
+        }))
+        .with_imports(
+            self.imports
+                .iter()
+                .map(|import| (import.name.clone(), Span::new(import.span(), import.path.clone()))),
+        )
+    }
+
+    /// Resolves `module_name` to an [Import] within the context of this module
+    pub fn resolve_import(&self, module_name: &Ident) -> Option<&Import> {
+        self.imports.iter().find(|import| &import.name == module_name)
+    }
+
+    /// Same as [resolve_import], but returns a mutable reference to the [Import]
+    pub fn resolve_import_mut(&mut self, module_name: &Ident) -> Option<&mut Import> {
+        self.imports.iter_mut().find(|import| &import.name == module_name)
+    }
+
+    /// Return an iterator over the paths of all imports in this module
+    pub fn import_paths(&self) -> impl Iterator<Item = &LibraryPath> + '_ {
+        self.imports.iter().map(|import| &import.path)
+    }
+}
+
+impl core::ops::Index<ProcedureIndex> for Module {
+    type Output = Export;
+
+    #[inline]
+    fn index(&self, index: ProcedureIndex) -> &Self::Output {
+        &self.procedures[index.as_usize()]
+    }
+}
+impl core::ops::IndexMut<ProcedureIndex> for Module {
+    #[inline]
+    fn index_mut(&mut self, index: ProcedureIndex) -> &mut Self::Output {
+        &mut self.procedures[index.as_usize()]
+    }
+}
+impl Eq for Module {}
+impl PartialEq for Module {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind
+            && self.path == other.path
+            && self.docs == other.docs
+            && self.imports == other.imports
+            && self.procedures == other.procedures
+    }
+}
+
+/// Serialization
+impl Module {
+    /// Serialization this module to `target`, using `options`.
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+        options.write_into(target);
+        if options.debug_info {
+            self.span.write_into(target);
+            if let Some(source_file) = self.source_file.as_ref() {
+                target.write_u8(1);
+                let source_name = source_file.name();
+                let source_bytes = source_file.inner().as_bytes();
+                target.write_usize(source_name.as_bytes().len());
+                target.write_bytes(source_name.as_bytes());
+                target.write_usize(source_bytes.len());
+                target.write_bytes(source_bytes);
+            } else {
+                target.write_u8(0);
+            }
+        }
+        self.kind.write_into(target);
+        self.path.write_into(target);
+        if options.serialize_imports {
+            target.write_usize(self.imports.len());
+            for import in self.imports.iter() {
+                import.write_into_with_options(target, options);
+            }
+        }
+        target.write_usize(self.procedures.len());
+        for export in self.procedures.iter() {
+            export.write_into_with_options(target, options);
+        }
+    }
+
+    /// Returns byte representation of this [Module].
+    ///
+    /// The serde options are serialized as header information for the purposes of deserialization.
+    pub fn to_bytes(&self, options: AstSerdeOptions) -> Vec<u8> {
+        let mut target = Vec::<u8>::with_capacity(256);
+        self.write_into_with_options(&mut target, options);
+        target
+    }
+
+    /// Returns a [Module] struct deserialized from the provided bytes.
+    ///
+    /// Assumes that the module was encoded using [write_into] or [write_into_with_options]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
+        let mut source = crate::SliceReader::new(bytes);
+        Self::read_from(&mut source)
+    }
+
+    /// Writes this [Module] to the provided file path
+    #[cfg(feature = "std")]
+    pub fn write_to_file<P>(&self, path: P) -> std::io::Result<()>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        use vm_core::utils::WriteAdapter;
+
+        let path = path.as_ref();
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+
+        // NOTE: We're protecting against unwinds here due to i/o
+        // errors that will get turned into panics if writing to
+        // the underlying file fails. This is because ByteWriter does
+        // not have fallible APIs, thus WriteAdapter has to panic
+        // if writes fail. This could be fixed, but that has to happen
+        // upstream in winterfell
+        std::panic::catch_unwind(|| match std::fs::File::create(path) {
+            Ok(ref mut file) => {
+                let options = AstSerdeOptions {
+                    serialize_imports: true,
+                    debug_info: true,
+                };
+                let mut adapter = WriteAdapter::new(file);
+                self.write_into_with_options(&mut adapter, options);
+                Ok(())
+            }
+            Err(err) => Err(err),
+        })
+        .map_err(|p| {
+            match p.downcast::<std::io::Error>() {
+                // SAFETY: It is guaranteed to be safe to read Box<std::io::Error>
+                Ok(err) => unsafe { core::ptr::read(&*err) },
+                // Propagate unknown panics
+                Err(err) => std::panic::resume_unwind(err),
+            }
+        })?
+    }
+}
+impl Serializable for Module {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.write_into_with_options(target, AstSerdeOptions::new(true, true))
+    }
+}
+impl Deserializable for Module {
+    /// Deserialize a [Module] from `source`
+    ///
+    /// Assumes that the module was encoded using [write_into] or [write_into_with_options]
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let options = AstSerdeOptions::read_from(source)?;
+        let (span, source_file) = if options.debug_info {
+            let span = SourceSpan::read_from(source)?;
+            match source.read_u8()? {
+                0 => (span, None),
+                1 => {
+                    let nlen = source.read_usize()?;
+                    let source_name = core::str::from_utf8(source.read_slice(nlen)?)
+                        .map(|s| s.to_string())
+                        .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+                    let clen = source.read_usize()?;
+                    let source_content = core::str::from_utf8(source.read_slice(clen)?)
+                        .map_err(|e| DeserializationError::InvalidValue(e.to_string()))?;
+                    let source_file =
+                        Arc::new(SourceFile::new(source_name, source_content.to_string()));
+                    (span, Some(source_file))
+                }
+                n => {
+                    return Err(DeserializationError::InvalidValue(format!(
+                        "invalid option tag: '{n}'"
+                    )));
+                }
+            }
+        } else {
+            (SourceSpan::default(), None)
+        };
+        let kind = ModuleKind::read_from(source)?;
+        let path = LibraryPath::read_from(source)?;
+        let imports = if options.serialize_imports {
+            let num_imports = source.read_usize()?;
+            let mut imports = Vec::with_capacity(num_imports);
+            for _ in 0..num_imports {
+                let import = Import::read_from_with_options(source, options)?;
+                imports.push(import);
+            }
+            imports
+        } else {
+            Vec::new()
+        };
+        let num_procedures = source.read_usize()?;
+        let mut procedures = Vec::with_capacity(num_procedures);
+        for _ in 0..num_procedures {
+            let export = Export::read_from_with_options(source, options)?;
+            procedures.push(export.with_source_file(source_file.clone()));
+        }
+        Ok(Self {
+            span,
+            source_file,
+            docs: None,
+            path,
+            kind,
+            imports,
+            procedures,
+        })
+    }
+}
+
+/// Debug representation of this module
+impl fmt::Debug for Module {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Module")
+            .field("docs", &self.docs)
+            .field("path", &self.path)
+            .field("kind", &self.kind)
+            .field("imports", &self.imports)
+            .field("procedures", &self.procedures)
+            .finish()
+    }
+}
+
+/// Pretty-printed representation of this module as Miden Assembly text format
+///
+/// NOTE: Delegates to the [PrettyPrint] implementation internally
+#[cfg(feature = "formatter")]
+impl fmt::Display for Module {
+    /// Writes this [Module] as formatted MASM code into the formatter.
     ///
     /// The formatted code puts each instruction on a separate line and preserves correct indentation
     /// for instruction blocks.
-    ///
-    /// # Panics
-    /// Panics if import info is not associated with this module.
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Docs
-        if let Some(ref doc) = self.docs {
-            writeln!(f, "#! {doc}")?;
-            writeln!(f)?;
+        use crate::prettier::PrettyPrint;
+
+        self.pretty_print(f)
+    }
+}
+
+/// The pretty-printer for [Module]
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Module {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        let mut doc = Document::Empty;
+        if let Some(docs) = self.docs.as_ref() {
+            let fragment =
+                docs.lines().map(text).reduce(|acc, line| acc + nl() + text("#! ") + line);
+
+            if let Some(fragment) = fragment {
+                doc += fragment;
+            }
         }
 
-        // Imports
-        let paths = self.import_info.import_paths();
-        for path in paths.iter() {
-            writeln!(f, "use.{path}")?;
-        }
-        if !paths.is_empty() {
-            writeln!(f)?;
+        for (i, import) in self.imports.iter().enumerate() {
+            if i > 0 {
+                doc += nl();
+            }
+            doc += import.render();
         }
 
-        // Re-exports
-        for proc in self.reexported_procs.iter() {
-            writeln!(f, "export.{}", proc.name())?;
-            writeln!(f)?;
+        if !self.imports.is_empty() {
+            doc += nl();
         }
 
-        // Local procedures
-        let invoked_procs = self.import_info.invoked_procs();
-        let context = AstFormatterContext::new(&self.local_procs, invoked_procs);
-
-        for proc in self.local_procs.iter() {
-            writeln!(f, "{}", FormattableProcedureAst::new(proc, &context))?;
+        let mut export_index = 0;
+        for export in self.procedures.iter() {
+            if export.is_main() {
+                continue;
+            }
+            if export_index > 0 {
+                doc += nl();
+            }
+            doc += export.render();
+            export_index += 1;
         }
-        Ok(())
+
+        if let Some(main) = self.procedures().find(|p| p.is_main()) {
+            doc += main.render();
+        }
+
+        doc
     }
 }
