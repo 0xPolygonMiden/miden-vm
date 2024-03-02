@@ -1,5 +1,4 @@
 use super::{fmt, hasher, Digest, Felt, Operation};
-use crate::utils::to_hex;
 
 // CALL BLOCK
 // ================================================================================================
@@ -79,17 +78,38 @@ impl Call {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Call {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        let doc = if self.is_syscall {
+            const_text("syscall")
+        } else {
+            const_text("call")
+        };
+        doc + const_text(".") + self.fn_hash.render()
+    }
+}
+
+#[cfg(feature = "formatter")]
 impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+
+#[cfg(not(feature = "formatter"))]
+impl fmt::Display for Call {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::utils::DisplayHex;
+
         if self.is_syscall {
-            write!(f, "syscall.0x")?;
+            f.write_str("syscall.")?;
         } else {
-            write!(f, "call.0x")?;
+            f.write_str("call.")?;
         }
-
-        let hex = to_hex(&self.fn_hash.as_bytes())?;
-        f.write_str(&hex)?;
-
-        Ok(())
+        write!(f, "{:#}", DisplayHex(self.fn_hash.as_bytes().as_slice()))
     }
 }

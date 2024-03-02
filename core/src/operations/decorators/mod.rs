@@ -36,6 +36,15 @@ pub enum Decorator {
     Trace(u32),
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Decorator {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        display(self)
+    }
+}
+
 impl fmt::Display for Decorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

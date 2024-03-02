@@ -585,6 +585,13 @@ impl Operation {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Operation {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::display(self)
+    }
+}
+
 impl fmt::Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
