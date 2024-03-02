@@ -26,6 +26,7 @@ pub mod diagnostics;
 mod errors;
 pub mod library;
 mod parser;
+pub(crate) mod sema;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 #[cfg(test)]
