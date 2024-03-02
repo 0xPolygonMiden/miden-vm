@@ -60,6 +60,13 @@ impl Default for Dyn {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Dyn {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        const_text("dyn")
+    }
+}
 impl fmt::Display for Dyn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "dyn")?;

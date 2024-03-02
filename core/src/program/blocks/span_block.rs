@@ -152,6 +152,56 @@ impl Span {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Span {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        // e.g. `span a b c end`
+        let single_line = const_text("span")
+            + const_text(" ")
+            + self
+                .op_batches
+                .iter()
+                .flat_map(|batch| batch.ops.iter())
+                .map(|p| p.render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default()
+            + const_text(" ")
+            + const_text("end");
+
+        // e.g. `
+        // span
+        //     a
+        //     b
+        //     c
+        // end
+        // `
+        let multi_line = indent(
+            4,
+            const_text("span")
+                + nl()
+                + self
+                    .op_batches
+                    .iter()
+                    .flat_map(|batch| batch.ops.iter())
+                    .map(|p| p.render())
+                    .reduce(|acc, doc| acc + nl() + doc)
+                    .unwrap_or_default(),
+        ) + nl()
+            + const_text("end");
+
+        single_line | multi_line
+    }
+}
+#[cfg(feature = "formatter")]
+impl fmt::Display for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+#[cfg(not(feature = "formatter"))]
 impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "span")?;

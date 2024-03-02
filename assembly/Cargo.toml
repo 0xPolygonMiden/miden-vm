@@ -51,6 +51,7 @@ tracing = { version = "0.1", default-features = false, features = [
     "attributes",
 ] }
 thiserror = { version = "1.0", default-features = false }
+unicode-width = { version = "0.1", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 
 [dev-dependencies]

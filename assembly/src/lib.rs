@@ -17,6 +17,9 @@ use vm_core::{
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
 
+#[cfg(feature = "formatter")]
+pub use vm_core::{prettier, utils::DisplayHex};
+
 mod assembler;
 pub use assembler::{Assembler, AssemblyContext};
 

@@ -124,7 +124,29 @@ impl CodeBlock {
         }
     }
 }
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for CodeBlock {
+    fn render(&self) -> crate::prettier::Document {
+        match self {
+            Self::Span(block) => block.render(),
+            Self::Join(block) => block.render(),
+            Self::Split(block) => block.render(),
+            Self::Loop(block) => block.render(),
+            Self::Call(block) => block.render(),
+            Self::Dyn(block) => block.render(),
+            Self::Proxy(block) => block.render(),
+        }
+    }
+}
+#[cfg(feature = "formatter")]
+impl fmt::Display for CodeBlock {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
 
+        self.pretty_print(f)
+    }
+}
+#[cfg(not(feature = "formatter"))]
 impl fmt::Display for CodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
