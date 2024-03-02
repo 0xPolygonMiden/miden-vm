@@ -18,9 +18,19 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std"]
+std = ["vm-core/std", "miette/fancy"]
 
 [dependencies]
 num_enum = "0.7"
-tracing = { version = "0.1", default-features = false, features = ["attributes"] }
+tracing = { version = "0.1", default-features = false, features = [
+    "attributes",
+] }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+miette = { git = "https://github.com/zkat/miette", rev = "328bf37", features = [
+    "fancy-no-syscall",
+] }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+miette = { git = "https://github.com/zkat/miette", rev = "328bf37" }

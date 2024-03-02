@@ -22,6 +22,7 @@ pub use assembler::{Assembler, AssemblyContext};
 pub mod ast;
 use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
 
+pub mod diagnostics;
 mod errors;
 pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, PathError};
 
