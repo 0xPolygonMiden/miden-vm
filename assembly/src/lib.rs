@@ -21,31 +21,25 @@ use vm_core::{
 pub use vm_core::{prettier, utils::DisplayHex};
 
 mod assembler;
-pub use assembler::{Assembler, AssemblyContext};
-
 pub mod ast;
-use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
-
 pub mod diagnostics;
 mod errors;
-pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, PathError};
-
-mod library;
-pub use library::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, Version};
-
-mod procedures;
-use procedures::{CallSet, NamedProcedure, Procedure};
-pub use procedures::{ProcedureId, ProcedureName};
-
-mod tokens;
-use tokens::{Token, TokenStream};
-
+pub mod library;
+mod parser;
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
 #[cfg(test)]
 mod tests;
 
-// RE-EXPORTS
-// ================================================================================================
+pub use self::assembler::{Assembler, AssemblyContext};
+pub use self::ast::{Module, ProcedureName};
+pub use self::errors::AssemblyError;
+pub use self::library::{
+    Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,
+};
+pub use self::parser::{SourceLocation, SourceSpan, Span, Spanned};
 
+/// Re-exported for downstream crates
 pub use vm_core::utils;
 
 // CONSTANTS
@@ -66,9 +60,6 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 
 /// The maximum number of bits allowed for the exponent parameter for exponentiation instructions.
 const MAX_EXP_BITS: u8 = 64;
-
-/// The maximum length (in bytes) of a constant, procedure, or library namespace labels.
-const MAX_LABEL_LEN: usize = 255;
 
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` masm operation without period separators.
