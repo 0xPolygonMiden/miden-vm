@@ -30,9 +30,12 @@ pub struct StackOutputs {
     overflow_addrs: Vec<Felt>,
 }
 
-pub const MAX_STACK_OUTPUTS_SIZE: usize = u16::MAX as usize;
-
 impl StackOutputs {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    pub const MAX_LEN: usize = u16::MAX as usize;
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -44,16 +47,14 @@ impl StackOutputs {
     /// `overflow_addrs` does not contain exactly `stack.len() + 1 - STACK_TOP_SIZE` elements.
     pub fn new(mut stack: Vec<Felt>, overflow_addrs: Vec<Felt>) -> Result<Self, OutputError> {
         // validate stack length
-        if stack.len() > MAX_STACK_OUTPUTS_SIZE {
+        if stack.len() > Self::MAX_LEN {
             return Err(OutputError::OutputSizeTooBig(stack.len()));
         }
 
+        // get overflow_addrs length
+        let expected_overflow_addrs_len = get_overflow_addrs_len(stack.len());
+
         // validate overflow_addrs length
-        let expected_overflow_addrs_len = if stack.len() > STACK_TOP_SIZE {
-            stack.len() + 1 - STACK_TOP_SIZE
-        } else {
-            0
-        };
         if overflow_addrs.len() != expected_overflow_addrs_len {
             return Err(OutputError::InvalidOverflowAddressLength(
                 overflow_addrs.len(),
@@ -200,27 +201,41 @@ impl ToElements<Felt> for StackOutputs {
     }
 }
 
+/// Returs the number of overflow addresses based on the lenght of the stack.
+fn get_overflow_addrs_len(stack_len: usize) -> usize {
+    if stack_len > STACK_TOP_SIZE {
+        stack_len + 1 - STACK_TOP_SIZE
+    } else {
+        0
+    }
+}
+
 // SERIALIZATION
 // ================================================================================================
 
 impl Serializable for StackOutputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        debug_assert!(self.stack.len() <= u32::MAX as usize);
-        target.write_u32(self.stack.len() as u32);
+        debug_assert!(self.stack.len() <= Self::MAX_LEN);
+        target.write_usize(self.stack.len());
         target.write_many(&self.stack);
 
-        debug_assert!(self.overflow_addrs.len() <= u32::MAX as usize);
-        target.write_u32(self.overflow_addrs.len() as u32);
         target.write_many(&self.overflow_addrs);
     }
 }
 
 impl Deserializable for StackOutputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let count = source.read_u32()?.try_into().expect("u32 must fit in a usize");
+        let count = source.read_usize()?;
+        if count > Self::MAX_LEN {
+            return Err(DeserializationError::InvalidValue(format!(
+                "Number of values on the output stack can not be more than {}, but {} was found",
+                Self::MAX_LEN,
+                count
+            )));
+        }
         let stack = source.read_many::<Felt>(count)?;
 
-        let count = source.read_u32()?.try_into().expect("u32 must fit in a usize");
+        let count = get_overflow_addrs_len(stack.len());
         let overflow_addrs = source.read_many::<Felt>(count)?;
 
         Ok(Self {

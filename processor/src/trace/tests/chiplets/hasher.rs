@@ -422,7 +422,7 @@ fn b_chip_mpverify() {
         leaves[index][2].as_int(),
         leaves[index][3].as_int(),
     ];
-    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
@@ -568,7 +568,7 @@ fn b_chip_mrupdate() {
         old_leaf_value[2].as_int(),
         old_leaf_value[3].as_int(),
     ];
-    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 

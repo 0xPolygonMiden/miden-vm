@@ -244,7 +244,7 @@ impl Test {
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
-        let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
+        let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let (mut stack_outputs, proof) =

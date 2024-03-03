@@ -295,7 +295,7 @@ impl InputFile {
             .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        StackInputs::try_from_values(stack_inputs).map_err(|e| e.to_string())
+        StackInputs::try_from_ints(stack_inputs).map_err(|e| e.to_string())
     }
 }
 
