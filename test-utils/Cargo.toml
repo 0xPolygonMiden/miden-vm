@@ -13,11 +13,23 @@ rust-version = "1.75"
 
 [features]
 default = ["std"]
-std = ["assembly/std", "processor/std", "prover/std", "verifier/std", "vm-core/std", "winter-prover/std"]
+std = [
+    "assembly/std",
+    "processor/std",
+    "prover/std",
+    "verifier/std",
+    "vm-core/std",
+    "winter-prover/std",
+]
 
 [dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.8", features = ["internals"], default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false, features = [
+    "testing",
+    "formatter",
+] }
+processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false, features = [
+    "internals",
+] }
 prover = { package = "miden-prover", path = "../prover", version = "0.8", default-features = false }
 test-case = "3.2"
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.8", default-features = false }

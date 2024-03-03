@@ -22,7 +22,7 @@ fn test_memcopy() {
     end
     ";
 
-    let assembler = assembly::Assembler::default()
+    let mut assembler = assembly::Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib");
 

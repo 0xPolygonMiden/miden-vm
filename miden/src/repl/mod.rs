@@ -347,7 +347,7 @@ fn handle_use_command(
         1 => {
             println!("Modules available for importing:");
             for lib in provided_libraries {
-                lib.modules().for_each(|module| println!("{}", module.path));
+                lib.modules().for_each(|module| println!("{}", module.path()));
             }
         }
         2 => {

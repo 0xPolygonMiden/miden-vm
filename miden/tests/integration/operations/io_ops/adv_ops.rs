@@ -1,6 +1,8 @@
-use super::{build_op_test, build_test, TestError};
+use super::{build_op_test, build_test};
+use pretty_assertions::assert_eq;
 use processor::ExecutionError;
 use processor::ExecutionError::AdviceStackReadFailed;
+use test_utils::expect_exec_error;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
@@ -31,7 +33,7 @@ fn adv_push() {
 fn adv_push_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    test.expect_error(TestError::ExecutionError(ExecutionError::AdviceStackReadFailed(1)));
+    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(1));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -52,7 +54,7 @@ fn adv_loadw() {
 fn adv_loadw_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    test.expect_error(TestError::ExecutionError(AdviceStackReadFailed(1)));
+    expect_exec_error!(test, AdviceStackReadFailed(1));
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)

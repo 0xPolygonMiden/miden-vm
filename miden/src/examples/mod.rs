@@ -1,3 +1,4 @@
+use assembly::diagnostics::{IntoDiagnostic, Report};
 use clap::Parser;
 use miden_vm::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, Felt, ONE, ZERO};
@@ -81,10 +82,10 @@ impl ExampleOptions {
         .with_execution_options(exec_options))
     }
 
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
 
-        let proof_options = self.get_proof_options().map_err(|err| format!("{err}"))?;
+        let proof_options = self.get_proof_options().into_diagnostic()?;
 
         // instantiate and prepare the example
         let example = match self.example {

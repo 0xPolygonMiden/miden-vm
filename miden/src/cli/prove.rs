@@ -1,4 +1,5 @@
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
@@ -65,7 +66,7 @@ impl ProveCmd {
         .with_execution_options(exec_options))
     }
 
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("===============================================================================");
         println!("Prove program: {}", self.assembly_file.display());
         println!("-------------------------------------------------------------------------------");
@@ -77,15 +78,16 @@ impl ProveCmd {
         let now = Instant::now();
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.parse_stack_inputs()?;
-        let host = DefaultHost::new(input_data.parse_advice_provider()?);
+        let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
+        let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
-        let proving_options = self.get_proof_options().map_err(|err| format!("{err}"))?;
+        let proving_options =
+            self.get_proof_options().map_err(|err| Report::msg(format!("{err}")))?;
 
         // execute program and generate proof
-        let (stack_outputs, proof) =
-            prover::prove(&program, stack_inputs, host, proving_options)
-                .map_err(|err| format!("Failed to prove program - {:?}", err))?;
+        let (stack_outputs, proof) = prover::prove(&program, stack_inputs, host, proving_options)
+            .into_diagnostic()
+            .wrap_err("Failed to prove program")?;
 
         println!(
             "Program with hash {} proved in {} ms",
@@ -94,18 +96,19 @@ impl ProveCmd {
         );
 
         // write proof to file
-        ProofFile::write(proof, &self.proof_file, &self.assembly_file)?;
+        ProofFile::write(proof, &self.proof_file, &self.assembly_file).map_err(Report::msg)?;
 
         // provide outputs
         if let Some(output_path) = &self.output_file {
             // write all outputs to specified file.
-            OutputFile::write(&stack_outputs, output_path)?;
+            OutputFile::write(&stack_outputs, output_path).map_err(Report::msg)?;
         } else {
             // if no output path was provided, get the stack outputs for printing to the screen.
             let stack = stack_outputs.stack_truncated(self.num_outputs).to_vec();
 
             // write all outputs to default location if none was provided
-            OutputFile::write(&stack_outputs, &self.assembly_file.with_extension("outputs"))?;
+            OutputFile::write(&stack_outputs, &self.assembly_file.with_extension("outputs"))
+                .map_err(Report::msg)?;
 
             // print stack outputs to screen.
             println!("Output: {:?}", stack);
@@ -119,7 +122,7 @@ impl ProveCmd {
 // ================================================================================================
 
 #[instrument(skip_all)]
-fn load_data(params: &ProveCmd) -> Result<(Program, InputFile), String> {
+fn load_data(params: &ProveCmd) -> Result<(Program, InputFile), Report> {
     // load libraries from files
     let libraries = Libraries::new(&params.library_paths)?;
 

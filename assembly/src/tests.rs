@@ -1356,7 +1356,7 @@ fn program_with_invalid_mast_root_chars() {
     assert_assembler_diagnostic!(
         context,
         source,
-        "invalid literal: expected number of hex digits to be a multiple of 2",
+        "invalid literal: expected 2, 4, 8, 16, or 64 hex digits",
         regex!(r#",-\[test[\d]+:1:12\]"#),
         "1 | begin call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a21xyzb end",
         "  :            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",

@@ -12,12 +12,19 @@ use alloc::{string::String, vec::Vec};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
-use vm_core::chiplets::hasher::apply_permutation;
+use alloc::sync::Arc;
+use vm_core::{
+    chiplets::hasher::apply_permutation,
+    utils::{collections::*, string::*},
+};
 
 // EXPORTS
 // ================================================================================================
 
-pub use assembly::{Library, MaslLibrary};
+pub use assembly::{
+    diagnostics::{Report, SourceFile},
+    Library, LibraryPath, MaslLibrary,
+};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
@@ -51,7 +58,6 @@ pub mod rand;
 
 mod test_builders;
 
-use assembly::AssemblyError;
 #[cfg(not(target_family = "wasm"))]
 pub use proptest;
 
@@ -69,14 +75,84 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 // TEST HANDLER
 // ================================================================================================
 
-/// This is used to specify the expected error type when using Test to test errors.
-/// `Test::expect_error` will try to either compile or execute the test data, according to the
-/// provided TestError variant. Then it will validate that the resulting error contains the
-/// TestError variant's string slice.
-#[derive(Debug, PartialEq)]
-pub enum TestError {
-    AssemblyError(AssemblyError),
-    ExecutionError(ExecutionError),
+/// Asserts that running the given assembler test will result in the expected error.
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[macro_export]
+macro_rules! expect_assembly_error {
+    ($test:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )? $(,)?) => {
+        let error = $test.compile().expect_err("expected assembly to fail");
+        match error.downcast::<assembly::AssemblyError>() {
+            Ok(error) => {
+                ::vm_core::assert_matches!(error, $( $pattern )|+ $( if $guard )?);
+            }
+            Err(report) => {
+                panic!(r#"
+assertion failed (expected assembly error, but got a different type):
+    left: `{:?}`,
+    right: `{}`"#, report, stringify!($($pattern)|+ $(if $guard)?));
+            }
+        }
+    };
+}
+
+/// Asserts that running the given execution test will result in the expected error.
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[macro_export]
+macro_rules! expect_exec_error_matches {
+    ($test:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )? $(,)?) => {
+        match $test.execute() {
+            Ok(_) => panic!("expected execution to fail @ {}:{}", file!(), line!()),
+            Err(error) => ::vm_core::assert_matches!(error, $( $pattern )|+ $( if $guard )?),
+        }
+    };
+}
+
+/// Asserts that running the given execution test will result in the expected error.
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[macro_export]
+macro_rules! expect_exec_error {
+    ($test:expr, $expected:expr) => {
+        match $test.execute() {
+            Ok(_) => panic!("expected execution to fail @ {}:{}", file!(), line!()),
+            Err(error) => assert_eq!(error, $expected),
+        }
+    };
+}
+
+/// Like [assert_diagnostic], but matches each non-empty line of the rendered output
+/// to a corresponding pattern. So if the output has 3 lines, the second of which is
+/// empty, and you provide 2 patterns, the assertion passes if the first line matches
+/// the first pattern, and the third line matches the second pattern - the second
+/// line is ignored because it is empty.
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[macro_export]
+macro_rules! assert_diagnostic_lines {
+    ($diagnostic:expr, $($expected:expr),+) => {{
+        use assembly::testing::Pattern;
+        let actual = format!("{}", assembly::diagnostics::reporting::PrintDiagnostic::new_without_color($diagnostic));
+        let lines = actual.lines().filter(|l| !l.trim().is_empty()).zip([$(Pattern::from($expected)),*].into_iter());
+        for (actual_line, expected) in lines {
+            expected.assert_match_with_context(actual_line, &actual);
+        }
+    }};
+}
+
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
+#[macro_export]
+macro_rules! assert_assembler_diagnostic {
+    ($test:ident, $($expected:literal),+) => {{
+        let error = $test
+            .compile()
+            .expect_err("expected diagnostic to be raised, but compilation succeeded");
+        assert_diagnostic_lines!(error, $($expected),*);
+    }};
+
+    ($test:ident, $($expected:expr),+) => {{
+        let error = $test
+            .compile()
+            .expect_err("expected diagnostic to be raised, but compilation succeeded");
+        assert_diagnostic_lines!(error, $($expected),*);
+    }};
 }
 
 /// This is a container for the data required to run tests, which allows for running several
@@ -93,12 +169,13 @@ pub enum TestError {
 /// - Execution error test: check that running a program compiled from the given source causes
 ///   an ExecutionError which contains the specified substring.
 pub struct Test {
-    pub source: String,
+    pub source: Arc<SourceFile>,
     pub kernel: Option<String>,
     pub stack_inputs: StackInputs,
     pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
     pub libraries: Vec<MaslLibrary>,
+    pub add_modules: Vec<(LibraryPath, String)>,
 }
 
 impl Test {
@@ -106,37 +183,29 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Creates the simplest possible new test, with only a source string and no inputs.
-    pub fn new(source: &str, in_debug_mode: bool) -> Self {
+    pub fn new(name: &str, source: &str, in_debug_mode: bool) -> Self {
         Test {
-            source: String::from(source),
+            source: Arc::new(SourceFile::new(name, source.to_string())),
             kernel: None,
             stack_inputs: StackInputs::default(),
             advice_inputs: AdviceInputs::default(),
             in_debug_mode,
             libraries: Vec::default(),
+            add_modules: Vec::default(),
         }
+    }
+
+    /// Add an extra module to link in during assembly
+    pub fn add_module(&mut self, path: assembly::LibraryPath, source: impl ToString) {
+        self.add_modules.push((path, source.to_string()));
     }
 
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Asserts that running the test will result in the expected error.
-    #[cfg(all(feature = "std", not(target_family = "wasm")))]
-    pub fn expect_error(&self, expected_error: TestError) {
-        match expected_error {
-            TestError::AssemblyError(assembly_error) => {
-                let actual_error = self.compile().err().unwrap();
-                assert_eq!(assembly_error, actual_error);
-            }
-            TestError::ExecutionError(execution_error) => {
-                let actual_error = self.execute().err().unwrap();
-                assert_eq!(execution_error, actual_error);
-            }
-        };
-    }
-
     /// Builds a final stack from the provided stack-ordered array and asserts that executing the
     /// test will result in the expected final stack state.
+    #[track_caller]
     pub fn expect_stack(&self, final_stack: &[u64]) {
         let result = stack_to_ints(&self.get_last_stack_state());
         let expected = stack_top_to_ints(final_stack);
@@ -202,21 +271,30 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Compiles a test's source and returns the resulting Program or Assembly error.
-    pub fn compile(&self) -> Result<Program, AssemblyError> {
-        let assembler = assembly::Assembler::default()
+    pub fn compile(&self) -> Result<Program, Report> {
+        let assembler = self
+            .add_modules
+            .iter()
+            .fold(assembly::Assembler::default(), |assembler, (path, source)| {
+                assembler
+                    .with_module_from_source(path.clone(), source.clone())
+                    .expect("invalid masm source code")
+            })
             .with_debug_mode(self.in_debug_mode)
             .with_libraries(self.libraries.iter())
             .expect("failed to load stdlib");
 
-        match self.kernel.as_ref() {
-            Some(kernel) => assembler.with_kernel(kernel).expect("kernel compilation failed"),
-            None => assembler,
-        }
-        .compile(&self.source)
+        let mut assembler = if let Some(kernel) = self.kernel.as_ref() {
+            assembler.with_kernel_from_source(kernel).expect("invalid kernel")
+        } else {
+            assembler
+        };
+        assembler.compile_source(self.source.clone())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
+    #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
@@ -270,6 +348,7 @@ impl Test {
     }
 
     /// Returns the last state of the stack after executing a test.
+    #[track_caller]
     pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
         let trace = self.execute().unwrap();
 
