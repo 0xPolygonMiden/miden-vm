@@ -1,5 +1,8 @@
-use assembly::{ast::ModuleAst, Library, LibraryNamespace, MaslLibrary, Version};
-use std::{collections::BTreeMap, env, fs, io, path::Path};
+use assembly::{
+    diagnostics::{IntoDiagnostic, Result},
+    LibraryNamespace, MaslLibrary, Version,
+};
+use std::{env, fs, io, path::Path};
 
 mod md_renderer;
 use md_renderer::MarkdownRenderer;
@@ -11,38 +14,30 @@ const ASM_DIR_PATH: &str = "./asm";
 const ASL_DIR_PATH: &str = "./assets";
 const DOC_DIR_PATH: &str = "./docs";
 
-// TYPE ALIASES and HELPER STRUCTS
-// ================================================================================================
-
-type ModuleMap = BTreeMap<String, ModuleAst>;
-
 // PRE-PROCESSING
 // ================================================================================================
 
 /// Read and parse the contents from `./asm` into a `LibraryContents` struct, serializing it into
 /// `assets` folder under `std` namespace.
 #[cfg(not(feature = "docs-rs"))]
-fn main() -> io::Result<()> {
+fn main() -> Result<()> {
     // re-build the `[OUT_DIR]/assets/std.masl` file iff something in the `./asm` directory
     // or its builder changed:
     println!("cargo:rerun-if-changed=asm");
     println!("cargo:rerun-if-changed=../assembly/src");
 
-    let namespace = LibraryNamespace::try_from("std".to_string()).expect("invalid base namespace");
-    let version = Version::try_from(env!("CARGO_PKG_VERSION")).expect("invalid cargo version");
-    let locations = true; // store & load locations by default
-    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, locations, version)?;
-    let docs = stdlib
-        .modules()
-        .map(|module| (module.path.to_string(), module.ast.clone()))
-        .collect();
+    let namespace = "std".parse::<LibraryNamespace>().expect("invalid base namespace");
+    let version = env!("CARGO_PKG_VERSION").parse::<Version>().expect("invalid cargo version");
+    let stdlib = MaslLibrary::read_from_dir(ASM_DIR_PATH, namespace, version)?;
 
     // write the masl output
     let build_dir = env::var("OUT_DIR").unwrap();
-    stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
+    stdlib
+        .write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))
+        .into_diagnostic()?;
 
     // updates the documentation of these modules
-    build_stdlib_docs(&docs, DOC_DIR_PATH)?;
+    build_stdlib_docs(&stdlib, DOC_DIR_PATH).into_diagnostic()?;
 
     Ok(())
 }
@@ -53,11 +48,11 @@ fn main() -> io::Result<()> {
 /// A renderer renders a ModuleSourceMap into a particular doc format and index (e.g: markdown, etc)
 trait Renderer {
     // Render writes out the document files into the output directory
-    fn render(stdlib: &ModuleMap, output_dir: &str);
+    fn render(stdlib: &MaslLibrary, output_dir: &str);
 }
 
 /// Writes Miden standard library modules documentation markdown files based on the available modules and comments.
-pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) -> io::Result<()> {
+pub fn build_stdlib_docs(library: &MaslLibrary, output_dir: &str) -> io::Result<()> {
     // Clean the output folder. This only deletes the folder's content, and not the folder itself,
     // because removing the folder fails on docs.rs
     for entry in fs::read_dir(output_dir)? {
@@ -72,9 +67,9 @@ pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) -> io::Result
         }
     }
 
-    // Render the stdlib struct into markdown
+    // Render the stdlib modules into markdown
     // TODO: Make the renderer choice pluggable.
-    MarkdownRenderer::render(module_map, output_dir);
+    MarkdownRenderer::render(library, output_dir);
 
     Ok(())
 }

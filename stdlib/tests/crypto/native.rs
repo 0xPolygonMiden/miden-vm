@@ -1,5 +1,6 @@
+use pretty_assertions::assert_eq;
 use processor::ExecutionError;
-use test_utils::{build_expected_hash, build_expected_perm, TestError};
+use test_utils::{build_expected_hash, build_expected_perm, expect_exec_error};
 
 #[test]
 fn test_invalid_end_addr() {
@@ -14,13 +15,15 @@ fn test_invalid_end_addr() {
         exec.native::hash_memory
     end
     ";
-    build_test!(empty_range, &[]).expect_error(TestError::ExecutionError(
+    let test = build_test!(empty_range, &[]);
+    expect_exec_error!(
+        test,
         ExecutionError::FailedAssertion {
             clk: 18,
             err_code: 0,
             err_msg: None,
-        },
-    ));
+        }
+    );
 
     // address range can not contain zero elements
     let empty_range = "
@@ -33,13 +36,15 @@ fn test_invalid_end_addr() {
         exec.native::hash_memory
     end
     ";
-    build_test!(empty_range, &[]).expect_error(TestError::ExecutionError(
+    let test = build_test!(empty_range, &[]);
+    expect_exec_error!(
+        test,
         ExecutionError::FailedAssertion {
             clk: 18,
             err_code: 0,
             err_msg: None,
-        },
-    ));
+        }
+    );
 }
 
 #[test]
@@ -82,8 +87,6 @@ fn test_hash_empty() {
 fn test_single_iteration() {
     // computes the hash of 1 using mem_stream
     let one_memstream = "
-    use.std::crypto::hashes::native
-
     begin
         # insert 1 to memory
         push.1.1000 mem_store

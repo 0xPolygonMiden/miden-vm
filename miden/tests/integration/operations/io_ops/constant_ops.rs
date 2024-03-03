@@ -66,13 +66,11 @@ fn push_many() {
 #[test]
 fn push_without_separator() {
     // --- push the maximum allowed number of hexadecimal values without separators (4) ------------------
-    let asm_op = format!(
-        "push.0x\
+    let asm_op = "push.0x\
     0000000000000000\
     0100000000000000\
     0200000000000000\
-    0300000000000000"
-    );
+    0300000000000000";
     let expected = vec![3, 2, 1, 0];
 
     let test = build_op_test!(asm_op);

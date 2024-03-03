@@ -1,10 +1,14 @@
-use assembly::{Library, MaslLibrary};
+use assembly::{
+    ast::ModuleKind,
+    diagnostics::{IntoDiagnostic, Report, WrapErr},
+    Assembler, Library, LibraryNamespace, MaslLibrary, Module,
+};
 use miden_vm::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
     math::Felt,
     utils::{Deserializable, SliceReader},
-    AdviceInputs, Assembler, Digest, ExecutionProof, MemAdviceProvider, Program, ProgramAst,
-    StackInputs, StackOutputs, Word,
+    AdviceInputs, Digest, ExecutionProof, MemAdviceProvider, Program, StackInputs, StackOutputs,
+    Word,
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
@@ -86,7 +90,7 @@ pub struct InputFile {
 /// Helper methods to interact with the input file
 impl InputFile {
     #[instrument(name = "read_input_file", skip_all)]
-    pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
+    pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, Report> {
         // if file not specified explicitly and corresponding file with same name as program_path
         // with '.inputs' extension does't exist, set operand_stack to empty vector
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
@@ -107,11 +111,13 @@ impl InputFile {
 
         // read input file to string
         let inputs_file = fs::read_to_string(&path)
-            .map_err(|err| format!("Failed to open input file `{}` - {}", path.display(), err))?;
+            .into_diagnostic()
+            .wrap_err_with(|| format!("Failed to open input file `{}`", path.display()))?;
 
         // deserialize input data
         let inputs: InputFile = serde_json::from_str(&inputs_file)
-            .map_err(|err| format!("Failed to deserialize input data - {}", err))?;
+            .into_diagnostic()
+            .wrap_err("Failed to deserialize input data")?;
 
         Ok(inputs)
     }
@@ -377,7 +383,7 @@ impl OutputFile {
 // ================================================================================================
 
 pub struct ProgramFile {
-    ast: ProgramAst,
+    ast: Box<Module>,
     path: PathBuf,
 }
 
@@ -385,16 +391,10 @@ pub struct ProgramFile {
 impl ProgramFile {
     /// Reads the masm file at the specified path and parses it into a [ProgramAst].
     #[instrument(name = "read_program_file", fields(path = %path.display()))]
-    pub fn read(path: &PathBuf) -> Result<Self, String> {
-        // read program file to string
-        let source = fs::read_to_string(path).map_err(|err| {
-            format!("Failed to open program file `{}` - {}\n", path.display(), err)
-        })?;
-
+    pub fn read(path: &PathBuf) -> Result<Self, Report> {
         // parse the program into an AST
-        let ast = ProgramAst::parse(&source).map_err(|err| {
-            format!("Failed to parse program file `{}` - {}\n", path.display(), err)
-        })?;
+        let ast = Module::parse_file(LibraryNamespace::Exec.into(), ModuleKind::Executable, path)
+            .wrap_err_with(|| format!("Failed to parse program file `{}`", path.display()))?;
 
         Ok(Self {
             ast,
@@ -404,7 +404,7 @@ impl ProgramFile {
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, String>
+    pub fn compile<I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
     where
         I: IntoIterator<Item = L>,
         L: Library,
@@ -413,22 +413,21 @@ impl ProgramFile {
         let mut assembler = Assembler::default()
             .with_debug_mode(debug.is_on())
             .with_library(&StdLibrary::default())
-            .map_err(|err| format!("Failed to load stdlib - {}", err))?;
+            .wrap_err("Failed to load stdlib")?;
 
         assembler = assembler
             .with_libraries(libraries.into_iter())
-            .map_err(|err| format!("Failed to load libraries `{}`", err))?;
+            .wrap_err("Failed to load libraries")?;
 
-        let program = assembler
-            .compile_ast(&self.ast)
-            .map_err(|err| format!("Failed to compile program - {}", err))?;
+        let program =
+            assembler.compile_ast(self.ast.clone()).wrap_err("Failed to compile program")?;
 
         Ok(program)
     }
 
     /// Writes this file into the specified path, if one is provided. If the path is not provided,
     /// writes the file into the same directory as the source file, but with `.masb` extension.
-    pub fn write(&self, out_path: Option<PathBuf>) -> Result<(), String> {
+    pub fn write(&self, out_path: Option<PathBuf>) -> Result<(), Report> {
         let out_path = out_path.unwrap_or_else(|| {
             let mut out_file = self.path.clone();
             out_file.set_extension("masb");
@@ -437,7 +436,8 @@ impl ProgramFile {
 
         self.ast
             .write_to_file(out_path)
-            .map_err(|err| format!("Failed to write the compiled file: {err}"))
+            .into_diagnostic()
+            .wrap_err("Failed to write the compiled file")
     }
 }
 
@@ -534,7 +534,7 @@ pub struct Libraries {
 impl Libraries {
     /// Creates a new instance of [Libraries] from a list of library paths.
     #[instrument(name = "read_library_files", skip_all)]
-    pub fn new<P, I>(paths: I) -> Result<Self, String>
+    pub fn new<P, I>(paths: I) -> Result<Self, Report>
     where
         P: AsRef<Path>,
         I: IntoIterator<Item = P>,
@@ -542,8 +542,7 @@ impl Libraries {
         let mut libraries = Vec::new();
 
         for path in paths {
-            let library = MaslLibrary::read_from_file(path)
-                .map_err(|e| format!("Failed to read library: {e}"))?;
+            let library = MaslLibrary::read_from_file(path)?;
             libraries.push(library);
         }
 

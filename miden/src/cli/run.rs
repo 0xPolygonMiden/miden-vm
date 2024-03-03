@@ -1,4 +1,5 @@
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile};
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
 use std::{path::PathBuf, time::Instant};
@@ -40,7 +41,7 @@ pub struct RunCmd {
 }
 
 impl RunCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("===============================================================================");
         println!("Run program: {}", self.assembly_file.display());
         println!("-------------------------------------------------------------------------------");
@@ -57,7 +58,7 @@ impl RunCmd {
 
         if let Some(output_path) = &self.output_file {
             // write outputs to file if one was specified
-            OutputFile::write(trace.stack_outputs(), output_path)?;
+            OutputFile::write(trace.stack_outputs(), output_path).map_err(Report::msg)?;
         } else {
             // write the stack outputs to the screen.
             println!("Output: {:?}", trace.stack_outputs().stack_truncated(self.num_outputs));
@@ -98,7 +99,7 @@ impl RunCmd {
 // ================================================================================================
 
 #[instrument(name = "run_program", skip_all)]
-fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), String> {
+fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     // load libraries from files
     let libraries = Libraries::new(&params.library_paths)?;
 
@@ -112,17 +113,18 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), String> {
     // get execution options
     let execution_options =
         ExecutionOptions::new(Some(params.max_cycles), params.expected_cycles, params.tracing)
-            .map_err(|err| format!("{err}"))?;
+            .into_diagnostic()?;
 
     // fetch the stack and program inputs from the arguments
-    let stack_inputs = input_data.parse_stack_inputs()?;
-    let host = DefaultHost::new(input_data.parse_advice_provider()?);
+    let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
+    let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
     let program_hash: [u8; 32] = program.hash().into();
 
     // execute program and generate outputs
     let trace = processor::execute(&program, stack_inputs, host, execution_options)
-        .map_err(|err| format!("Failed to generate execution trace = {:?}", err))?;
+        .into_diagnostic()
+        .wrap_err("Failed to generate execution trace")?;
 
     Ok((trace, program_hash))
 }

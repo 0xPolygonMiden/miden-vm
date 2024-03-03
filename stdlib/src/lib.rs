@@ -1,7 +1,7 @@
 #![no_std]
 
 use assembly::{
-    ast::ModuleAst, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
+    ast::Module, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
     Version,
 };
 
@@ -26,8 +26,6 @@ impl Default for StdLibrary {
 }
 
 impl Library for StdLibrary {
-    type ModuleIterator<'a> = <MaslLibrary as Library>::ModuleIterator<'a>;
-
     fn root_ns(&self) -> &LibraryNamespace {
         self.0.root_ns()
     }
@@ -36,7 +34,7 @@ impl Library for StdLibrary {
         self.0.version()
     }
 
-    fn modules(&self) -> Self::ModuleIterator<'_> {
+    fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
         self.0.modules()
     }
 
@@ -44,21 +42,19 @@ impl Library for StdLibrary {
         self.0.dependencies()
     }
 
-    fn get_module_ast(&self, path: &LibraryPath) -> Option<&ModuleAst> {
-        self.0.get_module_ast(path)
+    fn get_module(&self, path: &LibraryPath) -> Option<&Module> {
+        self.0.get_module(path)
     }
 }
 
 #[test]
 fn test_compile() {
-    let path = "std::math::u64::overflowing_add";
+    let path = "std::math::u64::overflowing_add".parse::<LibraryPath>().unwrap();
     let stdlib = StdLibrary::default();
     let exists = stdlib.modules().any(|module| {
         module
-            .ast
-            .procs()
-            .iter()
-            .any(|proc| module.path.append(&proc.name).unwrap().as_str() == path)
+            .procedures()
+            .any(|proc| module.path().clone().append(proc.name()).unwrap() == path)
     });
 
     assert!(exists);

@@ -1,4 +1,5 @@
 use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use assembly::diagnostics::Report;
 use clap::Parser;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
 use std::path::PathBuf;
@@ -27,7 +28,7 @@ pub struct DebugCmd {
 }
 
 impl DebugCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Debug program");
         println!("============================================================");
@@ -46,11 +47,12 @@ impl DebugCmd {
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.parse_stack_inputs()?;
-        let advice_provider = input_data.parse_advice_provider()?;
+        let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
+        let advice_provider = input_data.parse_advice_provider().map_err(Report::msg)?;
 
         // Instantiate DebugExecutor
-        let mut debug_executor = DebugExecutor::new(program, stack_inputs, advice_provider)?;
+        let mut debug_executor =
+            DebugExecutor::new(program, stack_inputs, advice_provider).map_err(Report::msg)?;
 
         // build readline config
         let mut rl_config = Config::builder().auto_add_history(true);

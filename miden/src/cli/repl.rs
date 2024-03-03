@@ -1,3 +1,4 @@
+use assembly::diagnostics::Report;
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -16,7 +17,7 @@ pub struct ReplCmd {
 }
 
 impl ReplCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         // initiates repl tool.
         start_repl(&self.library_paths, self.use_stdlib);
         Ok(())

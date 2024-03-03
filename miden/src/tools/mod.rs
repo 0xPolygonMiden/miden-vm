@@ -1,4 +1,5 @@
-use super::{cli::InputFile, ProgramError};
+use super::cli::InputFile;
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use core::fmt;
 use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
@@ -23,16 +24,18 @@ pub struct Analyze {
 
 /// Implements CLI execution logic
 impl Analyze {
-    pub fn execute(&self) -> Result<(), String> {
-        let program = fs::read_to_string(&self.assembly_file)
-            .map_err(|e| format!("could not read masm file: {e}"))?;
+    pub fn execute(&self) -> Result<(), Report> {
+        let program =
+            fs::read_to_string(&self.assembly_file).into_diagnostic().wrap_err_with(|| {
+                format!("could not read masm file: {}", self.assembly_file.display())
+            })?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.parse_stack_inputs()?;
-        let host = DefaultHost::new(input_data.parse_advice_provider()?);
+        let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
+        let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
         let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
             .expect("Could not retrieve execution details");
@@ -206,23 +209,21 @@ pub fn analyze<H>(
     program: &str,
     stack_inputs: StackInputs,
     host: H,
-) -> Result<ExecutionDetails, ProgramError>
+) -> Result<ExecutionDetails, Report>
 where
     H: Host,
 {
     let program = Assembler::default()
         .with_debug_mode(true)
-        .with_library(&StdLibrary::default())
-        .map_err(ProgramError::AssemblyError)?
-        .compile(program)
-        .map_err(ProgramError::AssemblyError)?;
+        .with_library(&StdLibrary::default())?
+        .compile(program)?;
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);
     execution_details.set_trace_len_summary(vm_state_iterator.trace_len_summary());
 
     for state in vm_state_iterator {
-        let vm_state = state.map_err(ProgramError::ExecutionError)?;
+        let vm_state = state.into_diagnostic().wrap_err("execution error")?;
         if matches!(vm_state.op, Some(Operation::Noop)) {
             execution_details.incr_noop_count();
         }

@@ -1,6 +1,7 @@
 use clap::Parser;
 
 use super::data::{Debug, Libraries, ProgramFile};
+use assembly::diagnostics::Report;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Parser)]
@@ -18,7 +19,7 @@ pub struct CompileCmd {
 }
 
 impl CompileCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Compile program");
         println!("============================================================");

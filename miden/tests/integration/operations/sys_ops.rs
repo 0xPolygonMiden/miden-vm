@@ -1,5 +1,6 @@
+use pretty_assertions::assert_eq;
 use processor::ExecutionError;
-use test_utils::{build_op_test, TestError};
+use test_utils::{build_op_test, expect_exec_error};
 
 // SYSTEM OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================
@@ -21,11 +22,14 @@ fn assert_with_code() {
 
     // triggered assertion captures both the VM cycle and error code
     let test = build_op_test!(asm_op, &[0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion {
-        clk: 1,
-        err_code: 123,
-        err_msg: None,
-    }));
+    expect_exec_error!(
+        test,
+        ExecutionError::FailedAssertion {
+            clk: 1,
+            err_code: 123,
+            err_msg: None,
+        }
+    );
 }
 
 #[test]
@@ -33,11 +37,14 @@ fn assert_fail() {
     let asm_op = "assert";
 
     let test = build_op_test!(asm_op, &[2]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion {
-        clk: 1,
-        err_code: 0,
-        err_msg: None,
-    }));
+    expect_exec_error!(
+        test,
+        ExecutionError::FailedAssertion {
+            clk: 1,
+            err_code: 0,
+            err_msg: None,
+        }
+    );
 }
 
 #[test]
@@ -56,16 +63,22 @@ fn assert_eq_fail() {
     let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[2, 1]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion {
-        clk: 2,
-        err_code: 0,
-        err_msg: None,
-    }));
+    expect_exec_error!(
+        test,
+        ExecutionError::FailedAssertion {
+            clk: 2,
+            err_code: 0,
+            err_msg: None,
+        }
+    );
 
     let test = build_op_test!(asm_op, &[1, 4]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion {
-        clk: 2,
-        err_code: 0,
-        err_msg: None,
-    }));
+    expect_exec_error!(
+        test,
+        ExecutionError::FailedAssertion {
+            clk: 2,
+            err_code: 0,
+            err_msg: None,
+        }
+    );
 }
