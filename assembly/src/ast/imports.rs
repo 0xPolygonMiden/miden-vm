@@ -90,7 +90,7 @@ impl ModuleImports {
 
     /// Look up the path of the imported module with the given name.
     pub fn get_module_path(&self, module_name: &str) -> Option<&LibraryPath> {
-        self.imports.get(&module_name.to_string())
+        self.imports.get(module_name)
     }
 
     /// Look up the actual procedure name and module path associated with the given [ProcedureId],
