@@ -4,6 +4,7 @@
 
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
+- Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
 
 ## 0.8.0 (02-26-2024)
 

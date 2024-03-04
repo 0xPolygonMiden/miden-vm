@@ -368,7 +368,7 @@ impl OutputFile {
             .map(|v| v.parse::<u64>().unwrap())
             .collect::<Vec<u64>>();
 
-        StackOutputs::new(stack, overflow_addrs)
+        StackOutputs::try_from_ints(stack, overflow_addrs)
             .map_err(|e| format!("Construct stack outputs failed {e}"))
     }
 }

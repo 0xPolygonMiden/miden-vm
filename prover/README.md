@@ -36,7 +36,7 @@ let (outputs, proof) = prove(
 .unwrap();
 
 // the output should be 8
-assert_eq!(Some(&8), outputs.stack().first());
+assert_eq!(8, outputs.stack().first().unwrap().as_int());
 ```
 
 ## Crate features

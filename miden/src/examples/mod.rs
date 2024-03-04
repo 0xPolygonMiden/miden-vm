@@ -1,6 +1,6 @@
 use clap::Parser;
 use miden_vm::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
-use processor::{ExecutionOptions, ExecutionOptionsError, ONE, ZERO};
+use processor::{ExecutionOptions, ExecutionOptionsError, Felt, ONE, ZERO};
 
 use std::time::Instant;
 
@@ -18,7 +18,7 @@ where
     pub stack_inputs: StackInputs,
     pub host: H,
     pub num_outputs: usize,
-    pub expected_result: Vec<u64>,
+    pub expected_result: Vec<Felt>,
 }
 
 // EXAMPLE OPTIONS
@@ -170,7 +170,7 @@ where
     let program_info = ProgramInfo::new(program.hash(), kernel);
 
     if fail {
-        outputs.stack_mut()[0] += 1;
+        outputs.stack_mut()[0] += ONE;
         assert!(miden_vm::verify(program_info, stack_inputs, outputs, proof).is_err())
     } else {
         assert!(miden_vm::verify(program_info, stack_inputs, outputs, proof).is_ok());

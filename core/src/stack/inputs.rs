@@ -19,7 +19,7 @@ impl StackInputs {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns `[StackInputs]` from a list of values, reversing them into a stack.
+    /// Returns [StackInputs] from a list of values, reversing them into a stack.
     pub fn new(mut values: Vec<Felt>) -> Self {
         values.reverse();
         Self { values }

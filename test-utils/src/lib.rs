@@ -252,7 +252,7 @@ impl Test {
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
-            stack_outputs.stack_mut()[0] += 1;
+            stack_outputs.stack_mut()[0] += ONE;
             assert!(verifier::verify(program_info, stack_inputs, stack_outputs, proof).is_err());
         } else {
             let result = verifier::verify(program_info, stack_inputs, stack_outputs, proof);
