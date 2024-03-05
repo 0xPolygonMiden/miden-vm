@@ -32,9 +32,9 @@ impl std::error::Error for InputError {}
 
 #[derive(Clone, Debug)]
 pub enum OutputError {
-    InvalidOverflowAddress(u64),
+    InvalidOverflowAddress(String),
     InvalidOverflowAddressLength(usize, usize),
-    InvalidStackElement(u64),
+    InvalidStackElement(String),
     OutputSizeTooBig(usize),
 }
 
@@ -42,14 +42,14 @@ impl fmt::Display for OutputError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use OutputError::*;
         match self {
-            InvalidOverflowAddress(address) => {
-                write!(f, "overflow addresses contains {address} that is not a valid field element")
+            InvalidOverflowAddress(description) => {
+                write!(f, "overflow addresses contains invalid field element: {description}")
             }
             InvalidOverflowAddressLength(actual, expected) => {
                 write!(f, "overflow addresses length is {actual}, but expected {expected}")
             }
-            InvalidStackElement(element) => {
-                write!(f, "stack contains {element} that is not a valid field element")
+            InvalidStackElement(description) => {
+                write!(f, "stack contains an invalid field element: {description}")
             }
             OutputSizeTooBig(size) => {
                 write!(f, "too many elements for output stack, {size} elements")

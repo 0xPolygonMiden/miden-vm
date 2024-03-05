@@ -106,7 +106,7 @@ let (outputs, proof) = prove(
 .unwrap();
 
 // the output should be 8
-assert_eq!(Some(&8), outputs.stack().first());
+assert_eq!(8, outputs.stack().first().unwrap().as_int());
 ```
 
 ### Verifying program execution
@@ -196,7 +196,7 @@ let (outputs, proof) = miden_vm::prove(
 let stack = outputs.stack_truncated(1);
 
 // the output should be the 50th Fibonacci number
-assert_eq!(&[12586269025], stack);
+assert_eq!(12586269025, stack[0].as_int());
 ```
 Above, we used public inputs to initialize the stack rather than using `push` operations. This makes the program a bit simpler, and also allows us to run the program from arbitrary starting points without changing program hash.
 

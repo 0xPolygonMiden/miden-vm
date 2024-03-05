@@ -7,7 +7,7 @@ use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, S
 pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
-    let expected_result = vec![compute_fibonacci(n).as_int()];
+    let expected_result = vec![compute_fibonacci(n)];
     println!(
         "Generated a program to compute {}-th Fibonacci term; expected result: {}",
         n, expected_result[0]

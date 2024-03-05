@@ -1,9 +1,8 @@
 use crate::utils::{collections::*, range, ByteReader, Deserializable, DeserializationError};
-use miden_crypto::Word;
+use miden_crypto::{Word, ZERO};
 
 use super::{
-    ByteWriter, Felt, OutputError, Serializable, StackTopState, StarkField, ToElements,
-    STACK_TOP_SIZE,
+    ByteWriter, Felt, OutputError, Serializable, StackTopState, ToElements, STACK_TOP_SIZE,
 };
 
 // STACK OUTPUTS
@@ -26,42 +25,27 @@ use super::{
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StackOutputs {
     /// The elements on the stack at the end of execution.
-    stack: Vec<u64>,
+    stack: Vec<Felt>,
     /// The overflow table row addresses required to reconstruct the final state of the table.
-    overflow_addrs: Vec<u64>,
+    overflow_addrs: Vec<Felt>,
 }
 
 pub const MAX_STACK_OUTPUTS_SIZE: usize = u16::MAX as usize;
 
 impl StackOutputs {
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
+
     /// Constructs a new [StackOutputs] struct from the provided stack elements and overflow
     /// addresses.
     ///
     /// # Errors
-    /// - If any of the provided stack elements are invalid field elements.
-    /// - If any of the provided overflow addresses are invalid field elements.
-    /// - If the number of stack elements is greater than `STACK_TOP_SIZE` (16) and `overflow_addrs`
-    ///   does not contain exactly `stack.len() + 1 - STACK_TOP_SIZE` elements.
-    pub fn new(mut stack: Vec<u64>, overflow_addrs: Vec<u64>) -> Result<Self, OutputError> {
+    ///  Returns an error if the number of stack elements is greater than `STACK_TOP_SIZE` (16) and
+    /// `overflow_addrs` does not contain exactly `stack.len() + 1 - STACK_TOP_SIZE` elements.
+    pub fn new(mut stack: Vec<Felt>, overflow_addrs: Vec<Felt>) -> Result<Self, OutputError> {
+        // validate stack length
         if stack.len() > MAX_STACK_OUTPUTS_SIZE {
             return Err(OutputError::OutputSizeTooBig(stack.len()));
-        }
-
-        // Validate stack elements
-        if let Some(element) = find_invalid_elements(&stack) {
-            return Err(OutputError::InvalidStackElement(element));
-        }
-
-        // Validate overflow address elements
-        if let Some(element) = find_invalid_elements(&overflow_addrs) {
-            return Err(OutputError::InvalidOverflowAddress(element));
-        }
-
-        // pad stack to the `STACK_TOP_SIZE`
-        if stack.len() < STACK_TOP_SIZE {
-            stack.resize(STACK_TOP_SIZE, 0);
         }
 
         // validate overflow_addrs length
@@ -77,15 +61,38 @@ impl StackOutputs {
             ));
         }
 
+        // pad stack to the `STACK_TOP_SIZE`
+        if stack.len() < STACK_TOP_SIZE {
+            stack.resize(STACK_TOP_SIZE, ZERO);
+        }
+
         Ok(Self {
             stack,
             overflow_addrs,
         })
     }
 
-    pub fn from_elements(stack: Vec<Felt>, overflow_addrs: Vec<Felt>) -> Result<Self, OutputError> {
-        let stack = stack.iter().map(|&v| v.as_int()).collect::<Vec<_>>();
-        let overflow_addrs = overflow_addrs.iter().map(|&v| v.as_int()).collect::<Vec<_>>();
+    /// Attempts to create [StackOutputs] struct from the provided stack elements and overflow
+    /// addresses represented as vectors of `u64` values.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Any of the provided stack elements are invalid field elements.
+    /// - Any of the provided overflow addresses are invalid field elements.
+    pub fn try_from_ints(stack: Vec<u64>, overflow_addrs: Vec<u64>) -> Result<Self, OutputError> {
+        // Validate stack elements
+        let stack = stack
+            .iter()
+            .map(|v| Felt::try_from(*v))
+            .collect::<Result<Vec<Felt>, _>>()
+            .map_err(OutputError::InvalidStackElement)?;
+
+        // Validate overflow address elements
+        let overflow_addrs = overflow_addrs
+            .iter()
+            .map(|v| Felt::try_from(*v))
+            .collect::<Result<Vec<Felt>, _>>()
+            .map_err(OutputError::InvalidOverflowAddress)?;
 
         Self::new(stack, overflow_addrs)
     }
@@ -96,9 +103,7 @@ impl StackOutputs {
     /// Returns the element located at the specified position on the stack or `None` if out of
     /// bounds.
     pub fn get_stack_item(&self, idx: usize) -> Option<Felt> {
-        self.stack.get(idx).map(|&felt| {
-            felt.try_into().expect("value is greater than or equal to the field modulus")
-        })
+        self.stack.get(idx).cloned()
     }
 
     /// Returns the word located starting at the specified Felt position on the stack or `None` if
@@ -121,13 +126,13 @@ impl StackOutputs {
 
     /// Returns the stack outputs, which is state of the stack at the end of execution converted to
     /// integers.
-    pub fn stack(&self) -> &[u64] {
+    pub fn stack(&self) -> &[Felt] {
         &self.stack
     }
 
     /// Returns the number of requested stack outputs or returns the full stack if fewer than the
     /// requested number of stack values exist.
-    pub fn stack_truncated(&self, num_outputs: usize) -> &[u64] {
+    pub fn stack_truncated(&self, num_outputs: usize) -> &[Felt] {
         let len = self.stack.len().min(num_outputs);
         &self.stack[..len]
     }
@@ -137,7 +142,7 @@ impl StackOutputs {
         self.stack
             .iter()
             .take(STACK_TOP_SIZE)
-            .map(|v| Felt::new(*v))
+            .cloned()
             .collect::<Vec<_>>()
             .try_into()
             .expect("failed to convert vector to array")
@@ -145,7 +150,7 @@ impl StackOutputs {
 
     /// Returns the overflow address outputs, which are the addresses required to reconstruct the
     /// overflow table (when combined with the stack overflow values) converted to integers.
-    pub fn overflow_addrs(&self) -> &[u64] {
+    pub fn overflow_addrs(&self) -> &[Felt] {
         &self.overflow_addrs
     }
 
@@ -156,7 +161,7 @@ impl StackOutputs {
 
     /// Returns the previous address `prev` for the first row in the stack overflow table
     pub fn overflow_prev(&self) -> Felt {
-        Felt::new(self.overflow_addrs[0])
+        self.overflow_addrs[0]
     }
 
     /// Returns (address, value) for all rows which were on the overflow table at the end of
@@ -169,7 +174,7 @@ impl StackOutputs {
             .skip(1)
             .zip(self.stack.iter().skip(STACK_TOP_SIZE).rev())
         {
-            overflow.push((Felt::new(*addr), Felt::new(*val)));
+            overflow.push((*addr, *val));
         }
 
         overflow
@@ -181,7 +186,7 @@ impl StackOutputs {
     /// Returns mutable access to the stack outputs, to be used for testing or running examples.
     /// TODO: this should be marked with #[cfg(test)] attribute, but that currently won't work with
     /// the integration test handler util.
-    pub fn stack_mut(&mut self) -> &mut [u64] {
+    pub fn stack_mut(&mut self) -> &mut [Felt] {
         &mut self.stack
     }
 }
@@ -189,27 +194,9 @@ impl StackOutputs {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Find and return the first invalid field element in the provided vector of elements.
-fn find_invalid_elements(outputs: &[u64]) -> Option<u64> {
-    for val in outputs {
-        if *val >= Felt::MODULUS {
-            return Some(*val);
-        }
-    }
-    None
-}
-
 impl ToElements<Felt> for StackOutputs {
     fn to_elements(&self) -> Vec<Felt> {
-        // infallible conversion from u64 to Felt is OK here because we check validity of u64
-        // values in the constructor
-        // TODO: change internal data types of self.stack and self.overflow_addrs to Felt?
-        self.stack
-            .iter()
-            .chain(self.overflow_addrs.iter())
-            .cloned()
-            .map(Felt::new)
-            .collect()
+        self.stack.iter().chain(self.overflow_addrs.iter()).cloned().collect()
     }
 }
 
@@ -231,10 +218,10 @@ impl Serializable for StackOutputs {
 impl Deserializable for StackOutputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let count = source.read_u32()?.try_into().expect("u32 must fit in a usize");
-        let stack = source.read_many::<u64>(count)?;
+        let stack = source.read_many::<Felt>(count)?;
 
         let count = source.read_u32()?.try_into().expect("u32 must fit in a usize");
-        let overflow_addrs = source.read_many::<u64>(count)?;
+        let overflow_addrs = source.read_many::<Felt>(count)?;
 
         Ok(Self {
             stack,
