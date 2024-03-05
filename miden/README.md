@@ -42,7 +42,7 @@ The `execute_iter()` function takes similar arguments (but without the `options`
 
 For example:
 ```rust
-use miden::{Assembler, execute, execute_iter, DefaultHost, StackInputs};
+use miden_vm::{Assembler, execute, execute_iter, DefaultHost, StackInputs};
 use processor::ExecutionOptions;
 
 // instantiate the assembler
@@ -88,7 +88,7 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 #### Proof generation example
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 ```rust
-use miden::{Assembler, DefaultHost, ProvingOptions, prove, StackInputs};
+use miden_vm::{Assembler, DefaultHost, ProvingOptions, prove, StackInputs};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -136,7 +136,7 @@ let program =   /* value from previous example */;
 let proof =     /* value from previous example */;
 
 // let's verify program execution
-match miden::verify(program.hash(), StackInputs::default(), &[8], proof) {
+match miden_vm::verify(program.hash(), StackInputs::default(), &[8], proof) {
     Ok(_) => println!("Execution verified!"),
     Err(msg) => println!("Something went terribly wrong: {}", msg),
 }
@@ -160,7 +160,7 @@ add         // stack state: 3 2
 ```
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
 ```rust
-use miden::{Assembler, DefaultHost, ProvingOptions, StackInputs};
+use miden_vm::{Assembler, DefaultHost, ProvingOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -184,7 +184,7 @@ let host = DefaultHost::default();
 let stack_inputs = StackInputs::try_from_values([0, 1]).unwrap();
 
 // execute the program
-let (outputs, proof) = miden::prove(
+let (outputs, proof) = miden_vm::prove(
     &program,
     stack_inputs,
     host,

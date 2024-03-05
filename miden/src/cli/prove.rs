@@ -1,6 +1,6 @@
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile, ProofFile};
 use clap::Parser;
-use miden::ProvingOptions;
+use miden_vm::ProvingOptions;
 use processor::{DefaultHost, ExecutionOptions, ExecutionOptionsError, Program};
 
 use std::{path::PathBuf, time::Instant};

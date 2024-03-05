@@ -1,5 +1,5 @@
 use assembly::{Assembler, AssemblyContext, LibraryPath};
-use miden::ModuleAst;
+use miden_vm::ModuleAst;
 use processor::ExecutionError;
 use stdlib::StdLibrary;
 use test_utils::{build_test, AdviceInputs, StackInputs, Test, TestError};
@@ -295,7 +295,7 @@ fn dynexec_with_procref() {
 
     begin
         procref.foo
-        dynexec 
+        dynexec
 
         procref.u64::wrapping_add
         dynexec
