@@ -2,6 +2,9 @@
 
 ## 0.9.0
 
+#### Packaging
+- [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
+
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
 
@@ -11,7 +14,7 @@
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations (#1103).
 - Introduced the `emit.<event_id>` assembly instruction (#1119).
 - Introduced the `procref.<proc_name>` assembly instruction (#1113).
-- Added the ability to use constants as counters in `repeat` loops (#1124). 
+- Added the ability to use constants as counters in `repeat` loops (#1124).
 - [BREAKING] Removed all `checked` versions of the u32 instructions. Renamed all `unchecked` versions (#1115).
 - Introduced the `u32clz`, `u32ctz`, `u32clo`, `u32cto` and `ilog2` assembly instructions (#1176).
 - Added support for hexadecimal values in constants (#1199).
@@ -20,7 +23,7 @@
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
-- [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
+- [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142).
 - Introduced `clz`, `ctz`, `clo` and `cto` instructions in the `std::math::u64` module (#1179).
 - [BREAKING] Refactored `std::collections::smt` to use `SimpleSmt`-based implementation (#1215).
 - [BREAKING] Removed `std::collections::smt64` (#1249)
