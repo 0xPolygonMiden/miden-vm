@@ -1,6 +1,6 @@
 use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
 use clap::Parser;
-use miden::{Kernel, ProgramInfo};
+use miden_vm::{Kernel, ProgramInfo};
 use std::{path::PathBuf, time::Instant};
 
 #[derive(Debug, Clone, Parser)]
