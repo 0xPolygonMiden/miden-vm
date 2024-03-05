@@ -1,5 +1,5 @@
 use assembly::{Library, MaslLibrary};
-use miden::{
+use miden_vm::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},
     math::Felt,
     utils::{Deserializable, SliceReader},
@@ -324,7 +324,7 @@ impl OutputFile {
     }
 
     /// Read the output file
-    #[instrument(name = "read_output_file", 
+    #[instrument(name = "read_output_file",
         fields(path = %outputs_path.clone().unwrap_or(program_path.with_extension("outputs")).display()), skip_all)]
     pub fn read(outputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // If outputs_path has been provided then use this as path.  Alternatively we will
@@ -449,7 +449,7 @@ pub struct ProofFile;
 /// Helper methods to interact with proof file
 impl ProofFile {
     /// Read stark proof from file
-    #[instrument(name = "read_proof_file", 
+    #[instrument(name = "read_proof_file",
         fields(path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display()), skip_all)]
     pub fn read(
         proof_path: &Option<PathBuf>,
@@ -472,9 +472,9 @@ impl ProofFile {
     }
 
     /// Write stark proof to file
-    #[instrument(name = "write_data_to_proof_file", 
+    #[instrument(name = "write_data_to_proof_file",
                  fields(
-                    path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display(), 
+                    path = %proof_path.clone().unwrap_or(program_path.with_extension("proof")).display(),
                     size = format!("{} KB", proof.to_bytes().len() / 1024)), skip_all)]
     pub fn write(
         proof: ExecutionProof,

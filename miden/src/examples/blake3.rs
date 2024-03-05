@@ -1,5 +1,5 @@
 use super::Example;
-use miden::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+use miden_vm::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
 use stdlib::StdLibrary;
 use vm_core::utils::group_slice_elements;
 
@@ -35,7 +35,7 @@ fn generate_blake3_program(n: usize) -> Program {
     let program = format!(
         "
         use.std::crypto::hashes::blake3
-        
+
         begin
             repeat.{}
                 exec.blake3::hash_1to1
