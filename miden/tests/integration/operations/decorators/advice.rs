@@ -23,7 +23,6 @@ const ADVICE_PUSH_SIG: &str = "
         adv.push_sig.rpo_falcon512
 
         # => [PK, MSG, ...]
-        # => [PK, MSG, ...]
     end";
 
 // ADVICE INJECTION
