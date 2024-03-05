@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0
+
+#### VM Internals
+- Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
+
 ## 0.8.0 (02-26-2024)
 
 #### Assembly
