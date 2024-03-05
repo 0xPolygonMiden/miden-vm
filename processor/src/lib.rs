@@ -13,7 +13,7 @@ use miden_air::trace::{
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
     chiplets::hasher::Digest, crypto::merkle::SMT_DEPTH, errors::InputError,
-    utils::DeserializationError, AdviceInjector, AssemblyOp, Kernel, Operation, Program,
+    utils::DeserializationError, AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program,
     ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
@@ -21,7 +21,7 @@ use vm_core::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::*,
-    CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, StackTopState,
+    CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 
 pub use winter_prover::matrix::ColMatrix;
