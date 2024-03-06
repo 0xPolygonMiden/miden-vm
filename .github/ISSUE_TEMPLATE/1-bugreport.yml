@@ -1,0 +1,55 @@
+name: "Bug Report"
+description: "File a bug report"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this bug report!
+  - type: input
+    id: version
+    attributes:
+      label: "Version"
+      description: "Which node version are you running?"
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: other-version
+    attributes:
+      label: "Other packages versions"
+      description: "Let us know of the versions of any other packages used. For example, which version of the client are you using?"
+      placeholder: "miden-client: v0.1.0"
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: "What happened?"
+      description: "Describe the behaviour you are experiencing."
+      placeholder: "Tell us what you see!"
+    validations:
+      required: true
+  - type: textarea
+    id: expected-to-happen
+    attributes:
+      label: "What should have happened?"
+      description: "Describe the behaviour you expected to see."
+      placeholder: "Tell us what should have happened!"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: "How can this be reproduced?"
+      description: "If possible, describe how to replicate the unexpected behaviour that you see."
+      placeholder: "Steps!"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This is automatically formatted as code, no need for backticks.
+      render: shell

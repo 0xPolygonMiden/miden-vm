@@ -1,0 +1,44 @@
+name: "Feature request"
+description: "Request new goodies"
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill a feature request!
+  - type: dropdown
+    id: target-group
+    attributes:
+      label: "To whom is this feature for?"
+      description: "Let us know who will use this new goodie!"
+      options:
+        - End user
+        - App developer
+        - Rollup operator
+    validations:
+      required: true
+  - type: textarea
+    id: scenario-why
+    attributes:
+      label: "Why is is this feature needed?"
+      description: "Context why a user needs this feature :)"
+      placeholder: "Alice loves Miden and wants to organize a small gather up for her local community. She wants to give proof of attendance as NFTs to everyone! We should have a default contract for that :)"
+    validations:
+      required: true
+  - type: textarea
+    id: scenario-how
+    attributes:
+      label: "How is this feature used?"
+      description: "Context on how the feature is used!"
+      placeholder: "Alice uses a wallet and deploy a standard attendance contract before the meetup. Once the meetup ends, she just runs a transaction to generate the NFTs!"
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: "Anything else?"
+      description: "Anything else in your mind and you wnat to share with us?"
+      placeholder: "Here is why I think this is awesome!"
+    validations:
+      required: false

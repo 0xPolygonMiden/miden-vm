@@ -1,0 +1,48 @@
+name: "Task"
+description: "Work item"
+title: "[Task]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A task should be less than a week worth of work!
+  - type: checkboxes
+    id: component
+    attributes:
+      label: "Node's components affected by this task"
+      options:
+        - label: "RPC"
+        - label: "Block producer"
+        - label: "Store"
+        - label: "Protobuf messages"
+        - label: "Testing"
+    validations:
+      required: true
+  - type: textarea
+    id: task-what
+    attributes:
+      label: "What should be done?"
+      placeholder: "Add healthchecking to the servers"
+    validations:
+      required: true
+  - type: textarea
+    id: task-how
+    attributes:
+      label: "How should it be done?"
+      placeholder: "Add a /health endpoint to each of the servers, that returns a small JSON reponse and `200` while the service is healthy"
+    validations:
+      required: true
+  - type: textarea
+    id: task-done
+    attributes:
+      label: "When is this task done?"
+      placeholder: "The task is done when the services are deployed with healthcheck"
+    validations:
+      required: true
+  - type: textarea
+    id: task-related
+    attributes:
+      label: "Additional context"
+      description: "Add context to the tasks. E.g. other related tasks or relevant dicussions on PRs/chats."
+    validations:
+      required: false
