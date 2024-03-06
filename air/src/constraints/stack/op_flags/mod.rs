@@ -864,7 +864,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of MPVERIFY operation.
     #[inline(always)]
     pub fn mpverify(&self) -> E {
-        self.degree5_op_flags[get_op_index(Operation::MpVerify.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::MpVerify(0).op_code())]
     }
 
     /// Operation Flag of SPLIT operation.

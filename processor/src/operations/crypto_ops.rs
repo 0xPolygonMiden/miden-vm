@@ -67,7 +67,7 @@ where
     ///
     /// # Panics
     /// Panics if the computed root does not match the root provided via the stack.
-    pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mpverify(&mut self, err_code: u32) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
         let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let index = self.stack.get(5);
@@ -82,7 +82,7 @@ where
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder.set_user_op_helpers(Operation::MpVerify, &[addr]);
+        self.decoder.set_user_op_helpers(Operation::MpVerify(err_code), &[addr]);
 
         if root != computed_root {
             // If the hasher chiplet doesn't compute the same root (using the same path),
@@ -91,6 +91,7 @@ where
                 value: node,
                 index,
                 root: root.into(),
+                err_code,
             });
         }
 
@@ -264,7 +265,7 @@ mod tests {
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
-        process.execute_op(Operation::MpVerify).unwrap();
+        process.execute_op(Operation::MpVerify(0)).unwrap();
         let expected_stack = build_expected(&[
             node[3], node[2], node[1], node[0], depth, index, root[3], root[2], root[1], root[0],
         ]);

@@ -38,7 +38,7 @@ const MSTORE: u8 = Operation::MStore.op_code();
 const MSTREAM: u8 = Operation::MStream.op_code();
 const RCOMBBASE: u8 = Operation::RCombBase.op_code();
 const HPERM: u8 = Operation::HPerm.op_code();
-const MPVERIFY: u8 = Operation::MpVerify.op_code();
+const MPVERIFY: u8 = Operation::MpVerify(0).op_code();
 const MRUPDATE: u8 = Operation::MrUpdate.op_code();
 const NUM_HEADER_ALPHAS: usize = 4;
 
