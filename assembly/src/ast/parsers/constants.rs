@@ -64,7 +64,7 @@ fn build_postfix_expression(
             Operation::Value(_) => postfix_expression.push(operation),
             // if we get `(` push it on the stack
             Operation::LPar => stack.push(Operation::LPar),
-            // if we get `)` push operators from the stack to the postfix expression untill we
+            // if we get `)` push operators from the stack to the postfix expression until we
             // get `(` on stack
             Operation::RPar => {
                 while stack.last() != Some(&Operation::LPar) {
