@@ -1,5 +1,5 @@
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(error_in_core))]
+#![cfg_attr(all(nightly, not(feature = "std")), feature(error_in_core))]
 
 #[macro_use]
 extern crate alloc;
@@ -8,13 +8,12 @@ extern crate alloc;
 extern crate std;
 
 use vm_core::{
-    code_blocks::CodeBlock,
-    crypto,
+    crypto::hash::RpoDigest,
     errors::KernelError,
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
-    CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
+    Felt, ONE, ZERO,
 };
 
 #[cfg(feature = "formatter")]
@@ -32,7 +31,7 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-pub use self::assembler::{Assembler, AssemblyContext};
+pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
 pub use self::ast::{Module, ProcedureName};
 pub use self::errors::AssemblyError;
 pub use self::library::{
@@ -61,7 +60,3 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 
 /// The maximum number of bits allowed for the exponent parameter for exponentiation instructions.
 const MAX_EXP_BITS: u8 = 64;
-
-/// The required length of the hexadecimal representation for an input value when more than one hex
-/// input is provided to `push` masm operation without period separators.
-const HEX_CHUNK_SIZE: usize = 16;

@@ -1,16 +1,17 @@
-use alloc::{string::ToString, vec::Vec};
-use core::slice::Iter;
+use alloc::{boxed::Box, vec::Vec};
 
-use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
-use crate::{ast::ModuleAst, LibraryNamespace, LibraryPath, Version};
+use super::{combine_blocks, Assembler, CodeBlock, Library, Operation};
+use crate::{
+    ast::{Module, ModuleKind},
+    LibraryNamespace, Version,
+};
 
 // TESTS
 // ================================================================================================
 
 #[test]
 fn nested_blocks() {
-    const NAMESPACE: &str = "foo";
-    const MODULE: &str = "bar";
+    const MODULE: &str = "foo::bar";
     const KERNEL: &str = r#"
         export.foo
             add
@@ -22,37 +23,36 @@ fn nested_blocks() {
 
     pub struct DummyLibrary {
         namespace: LibraryNamespace,
-        modules: Vec<Module>,
+        #[allow(clippy::vec_box)]
+        modules: Vec<Box<Module>>,
         dependencies: Vec<LibraryNamespace>,
     }
 
     impl Default for DummyLibrary {
         fn default() -> Self {
-            let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
-            let path =
-                LibraryPath::try_from(MODULE.to_string()).unwrap().prepend(&namespace).unwrap();
-            let ast = ModuleAst::parse(PROCEDURE).unwrap();
+            let ast =
+                Module::parse_str(MODULE.parse().unwrap(), ModuleKind::Library, PROCEDURE).unwrap();
+            let namespace = ast.namespace().clone();
             Self {
                 namespace,
-                modules: vec![Module { path, ast }],
+                modules: vec![ast],
                 dependencies: Vec::new(),
             }
         }
     }
 
     impl Library for DummyLibrary {
-        type ModuleIterator<'a> = Iter<'a, Module>;
-
         fn root_ns(&self) -> &LibraryNamespace {
             &self.namespace
         }
 
         fn version(&self) -> &Version {
-            &Version::MIN
+            const MIN: Version = Version::min();
+            &MIN
         }
 
-        fn modules(&self) -> Self::ModuleIterator<'_> {
-            self.modules.iter()
+        fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
+            self.modules.iter().map(|m| m.as_ref())
         }
 
         fn dependencies(&self) -> &[LibraryNamespace] {
@@ -60,21 +60,20 @@ fn nested_blocks() {
         }
     }
 
-    let assembler = Assembler::default()
-        .with_kernel(KERNEL)
+    let mut assembler = Assembler::new()
+        .with_kernel_from_source(KERNEL)
         .unwrap()
         .with_library(&DummyLibrary::default())
         .unwrap();
 
     // the assembler should have a single kernel proc in its cache before the compilation of the
     // source
-    assert_eq!(assembler.proc_cache.borrow().len(), 1);
+    assert_eq!(assembler.procedure_cache().len(), 1);
 
     // fetch the kernel digest and store into a syscall block
     let syscall = assembler
-        .proc_cache
-        .borrow()
-        .values()
+        .procedure_cache()
+        .entries()
         .next()
         .map(|p| CodeBlock::new_syscall(p.mast_root()))
         .unwrap();
@@ -115,6 +114,20 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
+    let program = assembler.compile(program).unwrap();
+
+    let exec_bar = assembler
+        .procedure_cache()
+        .get_by_name(&"#exec::bar".parse().unwrap())
+        .map(|p| CodeBlock::new_proxy(p.code().hash()))
+        .unwrap();
+
+    let exec_foo_bar_baz = assembler
+        .procedure_cache()
+        .get_by_name(&"foo::bar::baz".parse().unwrap())
+        .map(|p| CodeBlock::new_proxy(p.code().hash()))
+        .unwrap();
+
     let before = CodeBlock::new_span(vec![Operation::Push(2u32.into())]);
 
     let r#true = CodeBlock::new_span(vec![Operation::Push(3u32.into())]);
@@ -124,20 +137,17 @@ fn nested_blocks() {
     let r#true = CodeBlock::new_span(vec![Operation::Push(7u32.into())]);
     let r#false = CodeBlock::new_span(vec![Operation::Push(11u32.into())]);
     let r#true = CodeBlock::new_split(r#true, r#false);
-    let r#while = CodeBlock::new_span(vec![
-        Operation::Push(17u32.into()),
-        Operation::Push(19u32.into()),
-        Operation::Push(23u32.into()),
-    ]);
+
+    let r#while =
+        CodeBlock::new_join([exec_bar, CodeBlock::new_span(vec![Operation::Push(23u32.into())])]);
     let r#while = CodeBlock::new_loop(r#while);
     let span = CodeBlock::new_span(vec![Operation::Push(13u32.into())]);
     let r#false = CodeBlock::new_join([span, r#while]);
     let nested = CodeBlock::new_split(r#true, r#false);
 
-    let exec = CodeBlock::new_span(vec![Operation::Push(29u32.into())]);
+    //let exec = CodeBlock::new_span(vec![Operation::Push(29u32.into())]);
 
-    let combined = combine_blocks(vec![before, r#if, nested, exec, syscall]);
-    let program = assembler.compile(program).unwrap();
+    let combined = combine_blocks(vec![before, r#if, nested, exec_foo_bar_baz, syscall]);
 
     assert_eq!(combined.hash(), program.hash());
 }

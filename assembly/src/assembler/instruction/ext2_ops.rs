@@ -1,12 +1,12 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::AdviceInjector::Ext2Inv;
+use super::SpanBuilder;
+use vm_core::{AdviceInjector::Ext2Inv, Operation::*};
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
 ///
 /// This operation takes 5 VM cycles.
-pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn ext2_add(span: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         Swap,           // [b0, b1, a1, a0, ...]
@@ -15,7 +15,7 @@ pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         MovDn2,         // [b1, a1, a0+b0, ...]
         Add             // [b1+a1, a0+b0, ...]
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
@@ -23,7 +23,7 @@ pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// operations outputs the result c = (c1, c0) where c1 = a1 - b1 and c0 = a0 - b0.
 ///
 /// This operation takes 7 VM cycles.
-pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn ext2_sub(span: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         Neg,        // [-b1, b0, a1, a0, ...]
@@ -34,7 +34,7 @@ pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         MovDn2,     // [-b1, a1, a0-b0, ...]
         Add         // [a1-b1, a0-b0, ...]
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 /// Given a stack with initial configuration given by [b1, b0, a1, a0, ...] where a = (a0, a1) and
@@ -42,8 +42,8 @@ pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// outputs the product c = (c1, c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 ///
 /// This operation takes 3 VM cycles.
-pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_ops([Ext2Mul, Drop, Drop])
+pub fn ext2_mul(span: &mut SpanBuilder) {
+    span.add_ops([Ext2Mul, Drop, Drop]);
 }
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
@@ -51,7 +51,7 @@ pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// operations outputs the result c = (c1, c0) where c = a * b^-1.
 ///
 /// This operation takes 11 VM cycles.
-pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn ext2_div(span: &mut SpanBuilder) {
     span.push_advice_injector(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
@@ -67,7 +67,7 @@ pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         Drop,           // [b0', a1*b1', a0*b0'...]
         Drop            // [a1*b1', a0*b0'...]
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 /// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0, a1) represents
@@ -75,7 +75,7 @@ pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// [-a1, -a0, ...]
 ///
 /// This operation takes 4 VM cycles.
-pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn ext2_neg(span: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         Neg,            // [a1, a0, ...]
@@ -83,7 +83,7 @@ pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         Neg,            // [-a0, -a1, ...]
         Swap            // [-a1, -a0, ...]
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 /// Given an invertible quadratic extension field element on the stack, this routine computes
@@ -111,7 +111,7 @@ pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
 /// This operation takes 8 VM cycles.
-pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn ext2_inv(span: &mut SpanBuilder) {
     span.push_advice_injector(Ext2Inv);
     #[rustfmt::skip]
     let ops = [
@@ -124,5 +124,5 @@ pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         MovUp2,         // [1, a1', a0', ...]
         Assert(0),      // [a1', a0', ...]
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
