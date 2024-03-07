@@ -247,7 +247,10 @@ where
             CodeBlock::Call(block) => self.execute_call_block(block, cb_table),
             CodeBlock::Dyn(block) => self.execute_dyn_block(block, cb_table),
             CodeBlock::Span(block) => self.execute_span_block(block),
-            CodeBlock::Proxy(_) => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
+            CodeBlock::Proxy(proxy) => match cb_table.get(proxy.hash()) {
+                Some(block) => self.execute_code_block(block, cb_table),
+                None => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
+            },
         }
     }
 

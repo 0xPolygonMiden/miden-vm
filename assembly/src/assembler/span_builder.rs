@@ -1,10 +1,6 @@
-use super::{
-    AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
-    Instruction, Operation,
-};
-use alloc::string::ToString;
-use alloc::vec::Vec;
-use vm_core::{AdviceInjector, AssemblyOp};
+use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction};
+use alloc::{borrow::Borrow, string::ToString, vec::Vec};
+use vm_core::{code_blocks::CodeBlock, AdviceInjector, AssemblyOp, Operation};
 
 // SPAN BUILDER
 // ================================================================================================
@@ -48,19 +44,17 @@ impl SpanBuilder {
     // --------------------------------------------------------------------------------------------
 
     /// Adds the specified operation to the list of span operations and returns Ok(None).
-    pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblyError> {
+    pub fn add_op(&mut self, op: Operation) {
         self.ops.push(op);
-        Ok(None)
     }
 
     /// Adds the specified sequence operations to the list of span operations and returns Ok(None).
-    pub fn add_ops<I, O>(&mut self, ops: I) -> Result<Option<CodeBlock>, AssemblyError>
+    pub fn add_ops<I, O>(&mut self, ops: I)
     where
         I: IntoIterator<Item = O>,
         O: Borrow<Operation>,
     {
         self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
-        Ok(None)
     }
 
     /// Adds the specified operation to the list of span operations.
@@ -101,7 +95,7 @@ impl SpanBuilder {
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
     pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &AssemblyContext) {
-        let context_name = ctx.current_context_name().to_string();
+        let context_name = ctx.unwrap_current_procedure().name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();
         let should_break = instruction.should_break();

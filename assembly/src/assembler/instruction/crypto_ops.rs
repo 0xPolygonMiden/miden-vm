@@ -1,5 +1,5 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::AdviceInjector;
+use super::SpanBuilder;
+use vm_core::{AdviceInjector, Operation::*};
 
 // HASHING
 // ================================================================================================
@@ -23,7 +23,7 @@ use vm_core::AdviceInjector;
 /// 3. Drop D and B to achieve our result [C, ...]
 ///
 /// This operation takes 20 VM cycles.
-pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn hash(span: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
@@ -47,7 +47,7 @@ pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembly
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 /// Appends HPERM and stack manipulation operations to the span block as required to compute a
@@ -70,7 +70,7 @@ pub(super) fn hash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembly
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn hmerge(span: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         // Add 4 elements to the stack to prepare the capacity portion for the RPO permutation
@@ -93,7 +93,7 @@ pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 // MERKLE TREES
@@ -111,7 +111,7 @@ pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
 /// - root of the tree, 4 elements.
 ///
 /// This operation takes 9 VM cycles.
-pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn mtree_get(span: &mut SpanBuilder) {
     // stack: [d, i, R, ...]
     // pops the value of the node we are looking for from the advice stack
     read_mtree_node(span);
@@ -125,7 +125,7 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
         // no longer needed => [V, R, ...]
         MovUp4, Drop, MovUp4, Drop,
     ];
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block
@@ -141,11 +141,11 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 29 VM cycles.
-pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn mtree_set(span: &mut SpanBuilder) {
     // stack: [d, i, R_old, V_new, ...]
 
     // stack: [V_old, R_new, ...] (29 cycles)
-    update_mtree(span)
+    update_mtree(span);
 }
 
 /// Creates a new Merkle tree in the advice provider by combining trees with the specified roots.
@@ -161,7 +161,7 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn mtree_merge(span: &mut SpanBuilder) {
     // stack input:  [R_rhs, R_lhs, ...]
     // stack output: [R_merged, ...]
 
@@ -170,7 +170,7 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, A
     span.push_advice_injector(AdviceInjector::MerkleNodeMerge);
 
     // perform the `hmerge`, updating the operand stack
-    hmerge(span)
+    hmerge(span);
 }
 
 /// Verifies if the node value `V`, on depth `d` and index `i` opens to the root `R` of a Merkle
@@ -184,8 +184,8 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, A
 /// After the operation is executed, the stack remains unchanged.
 ///
 /// This operation takes 1 VM cycle.
-pub(super) fn mtree_verify(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_op(MpVerify)
+pub(super) fn mtree_verify(span: &mut SpanBuilder) {
+    span.add_op(MpVerify);
 }
 
 // MERKLE TREES - HELPERS
@@ -226,7 +226,7 @@ fn read_mtree_node(span: &mut SpanBuilder) {
 /// and perform the mutation on the copied tree.
 ///
 /// This operation takes 29 VM cycles.
-fn update_mtree(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+fn update_mtree(span: &mut SpanBuilder) {
     // stack: [d, i, R_old, V_new, ...]
     // output: [R_new, R_old, V_new, V_old, ...]
 
@@ -294,5 +294,5 @@ fn update_mtree(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
     ];
 
     // stack: [V_old, R_new, ...] (25 cycles)
-    span.add_ops(ops)
+    span.add_ops(ops);
 }
