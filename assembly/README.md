@@ -1,42 +1,79 @@
-# Miden assembly
+# Miden Assembly
+
 This crate contains Miden assembler.
 
 The purpose of the assembler is to compile [Miden assembly](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) source code into a Miden VM program (represented by `Program` struct). The program can then be executed on Miden VM [processor](../processor).
 
-## Compiling assembly code
-To compile Miden assembly source code into a program for Miden VM, you first need to instantiate the assembler, and then call its `compile()` method. This method takes the following arguments:
+## Compiling Miden Assembly
 
-* `source: &str` - a reference to a string containing Miden assembly source code.
+To compile Miden assembly source code into a program for Miden VM, you first need to instantiate the assembler, and then call one of its provided compiler
+methods, e.g. `compile`.
 
-The `compile()` function returns `Result<Program, AssemblyError>` which will contain the compiled program if the compilation was successful, or if the source code contained errors, description of the first encountered error.
+The `compile` method takes the source code of an executable module as a string,
+and either compiles it to a `Program`, or returns an error if the program is
+invalid in some way. The error type returned can be pretty-printed to show
+rich diagnostics about the source code from which an error is derived, when
+applicable, much like the Rust compiler.
 
-For example:
-```Rust
+### Example
+
+```rust
 use miden_assembly::Assembler;
 
-// instantiate a default assembler
+// Instantiate a default, empty assembler
 let assembler = Assembler::default();
 
-// compile a program which pushes values 3 and 5 onto the stack and adds them
+// Compile a program which pushes values 3 and 5 onto the stack and adds them
 let program = assembler.compile("begin push.3 push.5 add end").unwrap();
+
+// Compile a program from some source code on disk (requires the `std` feature)
+let program = assembler.compile_file("./example.masm").unwrap();
 ```
 
-## Assembler options
-By default, the assembler is instantiated in the most minimal form. To extend the capabilities of the assembler, you can apply a chain of `with_*` methods to the default instance in a builder pattern. The set of currently available options is described below.
+> [!NOTE]
+> The default assembler provides no kernel or standard libraries, you must
+> explicitly add those using the various builder methods of `Assembler`, as
+> described in the next section.
+
+## Assembler Options
+
+As noted above, the default assembler is instantiated with nothing in it but
+the source code you provide. If you want to support more complex programs, you
+will want to factor code into libraries and modules, and then link all of them
+together at once. This can be acheived using a set of builder methods of the
+`Assembler` struct, e.g. `with_kernel_from_source`, `with_library`, etc.
+
+We'll look at a few of these in more detail below. See the module documentation
+for the full set of APIs and how to use them.
 
 ### Libraries
-To enable calls to procedures from external modules, the assembler must be supplied with libraries containing these modules. This can be done via `with_library()` or `with_libraries()` methods.
 
- A library can be anything that implements the `Library` trait. We have implemented this trait for the Miden [standard library](../stdlib). Thus, for example, to make Miden stdlib available to programs during compilation, the assembler can be instantiated as follows:
+The first use case that you are likely to encounter is the desire to factor out
+some shared code into a _library_. A library is a set of modules which belong
+to a common namespace, and which are packaged together. The
+[standard library](../stdlib) is an example of this.
 
-```Rust
+To call code in this library from your program entrypoint, you must add the
+library to the instance of the assembler you will compile the program with,
+using the `with_library` or `with_libraries` methods.
+
+To be a bit more precise, a library can be anything that implements the `Library` trait, allowing for some flexibility in how they are managed.
+The standard library referenced above implements this trait, so if we
+wanted to make use of the Miden standard library in our own program,
+we would add it like so:
+
+```rust
 use miden_assembly::Assembler;
-use miden_stdlib::StdLibrary;
 
-// instantiate the assembler with access to Miden stdlib
-let assembler = Assembler::default().with_library(&StdLibrary::default()).unwrap();
+let assembler = Assembler::default()
+    .with_library(&miden_stdlib::StdLibrary::default())
+    .unwrap();
 ```
-Programs compiled with this assembler can invoke any procedure from Miden `stdlib`. For example, something like this will be possible:
+
+The resulting assembler can now compile code that invokes any of the
+standard library procedures by importing them from the namespace of
+the library, as shown next:
+
 ```
 use.std::math::u64
 
@@ -47,52 +84,94 @@ begin
 end
 ```
 
-We also provide a concrete implementation of the `Library` trait called `MaslLibrary`. This implementation can be used to instantiate libraries from `.masl` files.
+A generic container format for libraries, which implements `Library` and
+can be used for any set of Miden assembly modules belonging to the same
+namespace, is provided by the `MaslLibrary` struct.
 
-### Program kernels
-A *program kernel* defines a set of procedures which can be invoked via `syscall` instructions. Miden programs are always compiled against some kernel, and by default this kernel is empty (i.e., no `syscall`'s are possible).
+A `MaslLibrary` serializes/deserializes to the `.masl` file format, which
+is a binary format containing the parsed, but uncompiled, Miden Assembly
+code in the form of its abstract syntax tree. You can construct and load
+`.masl` files using the `MaslLibrary` interface.
 
-Instantiating the assembler with a non-empty kernel can be done like so:
-```Rust
+### Program Kernels
+
+A _program kernel_ defines a set of procedures which can be invoked via
+`syscall` instructions. Miden programs are always compiled against some kernel, and by default this kernel is empty, and so no `syscall` instructions are
+allowed.
+
+You can provide a kernel in one of two ways: a precompiled `Kernel` struct,
+or by compiling a kernel module from source, as shown below:
+
+```rust
 use miden_assembly::Assembler;
 
-// define a kernel with a single exported procedure
-let kernel_source = "export.foo add end";
-
-// instantiate the assembler with a kernel
-let assembler = Assembler::default().with_kernel(kernel_source).unwrap();
-```
-
-Programs compiled with this assembler will be able to make calls to `foo` procedure by executing `syscall.foo` instruction.
-
-### Debug mode
-The assembler can be instantiated in debug mode. Compiling a program with such an assembler retains source mappings between assembly instructions and VM operations. Thus, when such a program is executed using the `execute_iter()` function of the [processor](../processor), is it possible to tell exactly which assembly instruction is being executed at a specific VM cycle.
-
-Instantiating the assembler in debug mode can be done like so:
-```Rust
-use miden_assembly::Assembler;
-
-// instantiate the assembler in debug mode
-let assembler = Assembler::default().with_debug_mode(true);
-```
-
-### Instantiating assembler with multiple options
-As mentioned previously, a builder pattern can be used to chain multiple `with_*` method together. For example, an assembler can be instantiated with all available options like so:
-
-```Rust
-use miden_assembly::Assembler;
-use miden_stdlib::StdLibrary;
-
-// source code of the kernel module
-let kernel_source = "export.foo add end";
-
-// instantiate the assembler
 let assembler = Assembler::default()
-    .with_debug_mode(true)
-    .with_library(&StdLibrary::default())
-    .and_then(|a| a.with_kernel(kernel_source))
+    .with_kernel_from_source("export.foo add end")
     .unwrap();
 ```
 
+Programs compiled with this assembler will be able to make calls to the
+`foo` procedure by executing the `syscall` instruction, like so:
+
+```rust
+assembler.compile("
+begin
+    syscall.foo
+end
+").unwrap();
+```
+
+> [!NOTE]
+> An unqualified `syscall` target is assumed to be defined in the kernel module.
+> This is unlike the `exec` and `call` instructions, which require that callees
+> resolve to a local procedure; a procedure defined in an explicitly imported
+> module; or the hash of a MAST root corresponding to the compiled procedure.
+>
+> These options are also available to `syscall`, with the caveat that whatever
+> method is used, it _must_ resolve to a procedure in the kernel specified to
+> the assembler, or compilation will fail with an error.
+
+### Debug Mode
+
+The assembler can be instantiated in debug mode. Compiling a program with such an assembler retains source mappings between assembly instructions and VM operations. Thus, when such a program is executed using the `execute_iter()` function of the [processor](../processor), it is possible to correlate each
+instruction with the source code that it is derived from. You can do this as
+shown below:
+
+```rust
+use miden_assembly::Assembler;
+
+// Instantiate the assembler in debug mode
+let assembler = Assembler::default().with_debug_mode(true);
+```
+
+## Putting it all together
+
+To help illustrate how all of the topics we discussed above can be combined
+together, let's look at one last example:
+
+```rust
+use miden_assembly::Assembler;
+use miden_stdlib::StdLibrary;
+
+// Source code of the kernel module
+let kernel = "export.foo add end";
+
+// Instantiate the assembler with multiple options at once
+let assembler = Assembler::default()
+    .with_debug_mode(true)
+    .with_library(&StdLibrary::default())
+    .and_then(|a| a.with_kernel_from_source(kernel))
+    .unwrap();
+
+// Compile our program
+assembler.compile("
+begin
+    push.1.2
+    syscall.foo
+end
+");
+```
+
 ## License
+
 This project is [MIT licensed](../LICENSE).
