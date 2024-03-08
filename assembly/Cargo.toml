@@ -26,7 +26,6 @@ std = [
     "thiserror/std",
     "miette/std",
 ]
-nightly = ["thiserror/nightly", "miette/nightly"]
 testing = ["dep:regex"]
 
 [dependencies]
@@ -34,7 +33,7 @@ lalrpop-util = { version = "0.20", default-features = false }
 logos = { version = "0.14", default-features = false, features = [
     "export_derive",
 ] }
-miette = { version = "7.1.0", default-features = false, features = [
+miette = { version = "7.1.0", git = "https://github.com/bitwalker/miette", branch = "no-std", default-features = false, features = [
     "fancy-no-syscall",
     "derive",
 ] }
@@ -50,7 +49,7 @@ smallvec = { version = "1.13", features = [
 tracing = { version = "0.1", default-features = false, features = [
     "attributes",
 ] }
-thiserror = { version = "1.0", default-features = false }
+thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
 unicode-width = { version = "0.1", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 
@@ -63,3 +62,4 @@ regex = { version = "1.10", default-features = false, features = [
 
 [build-dependencies]
 lalrpop = { version = "0.20", default-features = false }
+rustc_version = "0.2"

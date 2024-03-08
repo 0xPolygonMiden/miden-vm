@@ -24,7 +24,7 @@ std = ["miden-crypto/std", "math/std", "winter-utils/std", "thiserror/std"]
 [dependencies]
 math = { package = "winter-math", version = "0.8", default-features = false }
 miden-crypto = { version = "0.9", default-features = false }
-thiserror = { version = "1.0", default-features = false }
+thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
 unicode-width = { version = "0.1", features = ["no_std"], optional = true }
 winter-utils = { package = "winter-utils", version = "0.8", default-features = false }
 
