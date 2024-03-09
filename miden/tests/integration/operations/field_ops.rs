@@ -245,13 +245,13 @@ fn neg_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin neg.1 end",
         "  :          |",
-        "  :          `-- lexed a . here",
+        "  :          `-- found a . here",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -287,13 +287,13 @@ fn inv_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin inv.1 end",
         "  :          |",
-        "  :          `-- lexed a . here",
+        "  :          `-- found a . here",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
