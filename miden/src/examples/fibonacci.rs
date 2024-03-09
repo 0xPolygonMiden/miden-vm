@@ -15,7 +15,7 @@ pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
 
     Example {
         program,
-        stack_inputs: StackInputs::try_from_values([0, 1]).unwrap(),
+        stack_inputs: StackInputs::try_from_ints([0, 1]).unwrap(),
         host: DefaultHost::default(),
         expected_result,
         num_outputs: 1,

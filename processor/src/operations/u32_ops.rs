@@ -247,7 +247,7 @@ mod tests {
     fn op_u32split() {
         // --- test a random value ---------------------------------------------
         let a: u64 = rand_value();
-        let stack = StackInputs::try_from_values([a]).unwrap();
+        let stack = StackInputs::try_from_ints([a]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let hi = a >> 32;
         let lo = (a as u32) as u64;
@@ -260,7 +260,7 @@ mod tests {
 
         // --- test the rest of the stack is not modified -----------------------
         let b: u64 = rand_value();
-        let stack = StackInputs::try_from_values([a, b]).unwrap();
+        let stack = StackInputs::try_from_ints([a, b]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let hi = b >> 32;
         let lo = (b as u32) as u64;
@@ -277,7 +277,7 @@ mod tests {
     fn op_u32assert2() {
         // --- test random values ensuring other elements are still values are still intact ----------
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         process.execute_op(Operation::U32assert2(ZERO)).unwrap();
@@ -292,7 +292,7 @@ mod tests {
     fn op_u32add() {
         // --- test random values ---------------------------------------------
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, over) = a.overflowing_add(b);
 
@@ -304,7 +304,7 @@ mod tests {
         let a = u32::MAX - 1;
         let b = 2u32;
 
-        let stack = StackInputs::try_from_values([a as u64, b as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([a as u64, b as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, over) = a.overflowing_add(b);
         let (b1, b0) = split_u32_into_u16(result.into());
@@ -325,7 +325,7 @@ mod tests {
         let c = rand_value::<u32>() as u64;
         let d = rand_value::<u32>() as u64;
 
-        let stack = StackInputs::try_from_values([d, c, b, a]).unwrap();
+        let stack = StackInputs::try_from_ints([d, c, b, a]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         let result = a + b + c;
@@ -346,7 +346,7 @@ mod tests {
     fn op_u32sub() {
         // --- test random values ---------------------------------------------
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, under) = b.overflowing_sub(a);
 
@@ -358,7 +358,7 @@ mod tests {
         let a = 10u32;
         let b = 11u32;
 
-        let stack = StackInputs::try_from_values([a as u64, b as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([a as u64, b as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, under) = a.overflowing_sub(b);
 
@@ -370,7 +370,7 @@ mod tests {
     #[test]
     fn op_u32mul() {
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let result = (a as u64) * (b as u64);
         let hi = (result >> 32) as u32;
@@ -384,7 +384,7 @@ mod tests {
     #[test]
     fn op_u32madd() {
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let result = (a as u64) * (b as u64) + (c as u64);
         let hi = (result >> 32) as u32;
@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn op_u32div() {
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let q = b / a;
         let r = b % a;
@@ -418,7 +418,7 @@ mod tests {
     #[test]
     fn op_u32and() {
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         process.execute_op(Operation::U32and).unwrap();
@@ -433,7 +433,7 @@ mod tests {
     #[test]
     fn op_u32xor() {
         let (a, b, c, d) = get_rand_values();
-        let stack = StackInputs::try_from_values([d as u64, c as u64, b as u64, a as u64]).unwrap();
+        let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         process.execute_op(Operation::U32xor).unwrap();

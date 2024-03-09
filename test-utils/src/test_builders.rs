@@ -82,7 +82,7 @@ macro_rules! build_test_by_mode {
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let advice_inputs = $crate::AdviceInputs::default();
 
         $crate::Test {
@@ -98,7 +98,7 @@ macro_rules! build_test_by_mode {
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr
     ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
         let store = $crate::crypto::MerkleStore::new();
         let advice_inputs = $crate::AdviceInputs::default()
@@ -119,7 +119,7 @@ macro_rules! build_test_by_mode {
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr
     ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
         let advice_inputs = $crate::AdviceInputs::default()
             .with_stack_values(stack_values)
@@ -137,7 +137,7 @@ macro_rules! build_test_by_mode {
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
-        let stack_inputs = $crate::StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let stack_values: Vec<u64> = $advice_stack.to_vec();
         let advice_inputs = $crate::AdviceInputs::default()
             .with_stack_values(stack_values)
