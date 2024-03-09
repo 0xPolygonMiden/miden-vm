@@ -281,9 +281,10 @@ fn simple_dyn_exec() {
 #[test]
 fn dynexec_with_procref() {
     let program_source = "
-    use.std::math::u64
+    use.external::module
 
     proc.foo
+        dropw
         push.1.2
         u32wrapping_add
     end
@@ -292,22 +293,27 @@ fn dynexec_with_procref() {
         procref.foo
         dynexec
 
-        procref.u64::wrapping_add
+        procref.module::func
         dynexec
+
+        dup
+        push.4
+        assert_eq.err=101
     end";
 
     let mut test = build_test!(program_source, &[]);
     test.libraries = vec![StdLibrary::default().into()];
+    test.add_module(
+        "external::module".parse().unwrap(),
+        "\
+        export.func
+            dropw
+            u32wrapping_add.1
+        end
+        ",
+    );
 
-    test.expect_stack(&[
-        1719755471,
-        1057995821,
-        3,
-        12973202366681443424,
-        7933716460165146367,
-        14382661273226268231,
-        15818904913409383971,
-    ]);
+    test.expect_stack(&[4]);
 }
 
 #[test]
