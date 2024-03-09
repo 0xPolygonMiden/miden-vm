@@ -330,7 +330,7 @@ impl AdviceProvider for MemAdviceProvider {
 impl MemAdviceProvider {
     // FINALIZATION
     // --------------------------------------------------------------------------------------------
-    /// Consumes the [MemAdviceProvider] and returns a (Vec<Felt>, SimpleAdviceMap, MerkleStore),
+    /// Consumes the [MemAdviceProvider] and returns a `(Vec<Felt>, SimpleAdviceMap, MerkleStore)`,
     /// containing the stack, map, store respectively, of the advice provider.
     pub fn into_parts(self) -> (Vec<Felt>, SimpleAdviceMap, MerkleStore) {
         let BaseAdviceProvider { stack, map, store } = self.provider;
@@ -451,14 +451,14 @@ impl RecAdviceProvider {
     // FINALIZATION
     // --------------------------------------------------------------------------------------------
 
-    /// Consumes the advice provider and returns an (AdviceInputs, Vec<Felt>, SimpleAdviceMap,
-    /// MerkleStore) tuple.
+    /// Consumes the advice provider and returns an `(AdviceInputs, Vec<Felt>, SimpleAdviceMap,
+    /// MerkleStore)` tuple.
     ///
     /// The [AdviceInputs] can be used to re-execute the program. The returned [AdviceInputs]
     /// instance will contain only the non-deterministic inputs which were requested during program
     /// execution.
     ///
-    /// The Vec<Felt>, SimpleAdviceMap, MerkleStore represent the stack, map, and Merkle store of
+    /// The `Vec<Felt>`, `SimpleAdviceMap`, and `MerkleStore` represent the stack, map, and Merkle store of
     /// the advice provider at the time of finalization.
     pub fn finalize(self) -> (AdviceInputs, Vec<Felt>, SimpleAdviceMap, MerkleStore) {
         let Self {

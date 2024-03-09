@@ -88,7 +88,8 @@ impl fmt::Display for FullyQualifiedProcedureName {
 
 /// Serialization
 impl FullyQualifiedProcedureName {
-    pub fn write_into<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+    /// Serialize to `target` using `options`
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         if options.debug_info {
             self.span.write_into(target);
         }
@@ -96,7 +97,8 @@ impl FullyQualifiedProcedureName {
         self.name.write_into_with_options(target, options);
     }
 
-    pub fn read_from<R: ByteReader>(
+    /// Deserialize from `source` using `options`
+    pub fn read_from_with_options<R: ByteReader>(
         source: &mut R,
         options: AstSerdeOptions,
     ) -> Result<Self, DeserializationError> {
@@ -150,9 +152,6 @@ impl FullyQualifiedProcedureName {
 ///   ...
 /// end
 /// ```
-///
-/// ## Type-safety
-/// Any instance of this type can be created only via the checked [`Self::try_from`].
 #[derive(Debug, Clone)]
 pub struct ProcedureName(Ident);
 impl ProcedureName {

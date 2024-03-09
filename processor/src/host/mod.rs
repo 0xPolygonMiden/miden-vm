@@ -214,7 +214,7 @@ where
 // HOST RESPONSE
 // ================================================================================================
 
-/// Response returned by the host upon successful execution of a [HostFunction].
+/// Response returned by the host upon successful execution of a [Host] function.
 #[derive(Debug)]
 pub enum HostResponse {
     MerklePath(MerklePath),

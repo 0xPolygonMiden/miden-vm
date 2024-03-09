@@ -14,7 +14,7 @@ const LOCAL_INTERVAL: u8 = 4;
 const LOCAL_RANGE_FROM: u8 = 5;
 const LOCAL_ALL: u8 = 6;
 
-/// A proxy for [vm_core::DebugOptions], but with [Immediate] values.
+/// A proxy for [vm_core::DebugOptions], but with [super::Immediate] values.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub enum DebugOptions {

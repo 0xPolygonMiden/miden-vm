@@ -350,7 +350,7 @@ pub trait AdviceProvider: Sized {
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [DATA]
+    ///   Advice stack: \[DATA\]
     ///
     /// Where:
     /// - PK is the digest of an expanded public.
@@ -460,7 +460,7 @@ pub trait AdviceProvider: Sized {
     ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
     ///  Advice stack: [...]
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     fn update_operand_stack_merkle_node<S: ProcessState>(
         &mut self,
         process: &S,
@@ -488,7 +488,7 @@ pub trait AdviceProvider: Sized {
     ///  Advice stack: [...]
     ///  Advice map: {...}
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     fn get_operand_stack_merkle_path<S: ProcessState>(
         &mut self,
         process: &S,
