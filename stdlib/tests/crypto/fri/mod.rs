@@ -140,7 +140,7 @@ fn prepare_advice_stack(
     stack.push(remainder_length as u64 / 2);
     for i in 0..remainder_length / 2 {
         let mut remainder_4 = vec![0; 4];
-        remainder_4[0] = remainder[4 * i + 0];
+        remainder_4[0] = remainder[4 * i];
         remainder_4[1] = remainder[4 * i + 1];
         remainder_4[2] = remainder[4 * i + 2];
         remainder_4[3] = remainder[4 * i + 3];

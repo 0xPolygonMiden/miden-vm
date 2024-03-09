@@ -35,8 +35,8 @@ where
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
     ///
     ///
-    /// Output:                                                      
-    ///                                                    
+    /// Output:
+    ///
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
     /// |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+1| - |
     /// +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
@@ -171,9 +171,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{ContextId, Process, QuadFelt};
+    use crate::utils::collections::*;
     use alloc::borrow::ToOwned;
-    use alloc::vec::Vec;
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 

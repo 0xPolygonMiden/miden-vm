@@ -15,6 +15,9 @@ use winter_air::{
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
 
 pub type QuadExt = QuadExtension<Felt>;
+
+type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
+
 /// A view into a [StarkProof] for a computation structured to simulate an "interactive" channel.
 ///
 /// A channel is instantiated for a specific proof, which is parsed into structs over the
@@ -161,7 +164,7 @@ impl VerifierChannel {
     pub fn read_queried_trace_states(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<(RpoDigest, Vec<Felt>)>, Vec<PartialMerkleTree>), VerifierError> {
+    ) -> Result<(AdvMap, Vec<PartialMerkleTree>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
         let mut trees = Vec::new();
 
@@ -191,7 +194,7 @@ impl VerifierChannel {
     pub fn read_constraint_evaluations(
         &mut self,
         positions: &[usize],
-    ) -> Result<(Vec<(RpoDigest, Vec<Felt>)>, PartialMerkleTree), VerifierError> {
+    ) -> Result<(AdvMap, PartialMerkleTree), VerifierError> {
         let queries = self.constraint_queries.take().expect("already read");
         let proof = queries.query_proofs;
 
@@ -234,13 +237,13 @@ impl VerifierChannel {
         let mut adv_key_map = Vec::new();
         let mut partial_trees = Vec::new();
         let mut layer_proofs = self.layer_proofs();
-        for i in 0..depth {
+        for query in queries.iter().take(depth) {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
 
             let layer_proof = layer_proofs.remove(0);
 
             let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_vector_elements::<QuadExt, N>(queries[i].clone());
+            let x = group_vector_elements::<QuadExt, N>(query.clone());
             assert_eq!(x.len(), unbatched_proof.len());
 
             let nodes: Vec<[Felt; 4]> = unbatched_proof
@@ -268,19 +271,15 @@ impl VerifierChannel {
                 PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths");
             partial_trees.push(new_pmt);
 
-            let _empty: () = nodes
-                .into_iter()
-                .zip(x.iter())
-                .map(|(a, b)| {
-                    let mut value = QuadExt::slice_as_base_elements(b).to_owned();
-                    value.extend(EMPTY_WORD);
+            nodes.into_iter().zip(x.iter()).for_each(|(a, b)| {
+                let mut value = QuadExt::slice_as_base_elements(b).to_owned();
+                value.extend(EMPTY_WORD);
 
-                    adv_key_map.push((a.to_owned().into(), value));
-                })
-                .collect();
+                adv_key_map.push((a.to_owned().into(), value));
+            });
 
             core::mem::swap(&mut positions, &mut folded_positions);
-            current_domain_size = current_domain_size / N;
+            current_domain_size /= N;
         }
 
         (partial_trees, adv_key_map)
@@ -506,14 +505,10 @@ pub fn unbatch_to_partial_mt(
         tmp_vec.push((p, RpoDigest::from(*node), path));
     }
 
-    let _empty: () = nodes
-        .into_iter()
-        .zip(queries.iter())
-        .map(|(a, b)| {
-            let data = b.to_owned();
-            adv_key_map.push((a.to_owned().into(), data));
-        })
-        .collect();
+    nodes.into_iter().zip(queries.iter()).for_each(|(a, b)| {
+        let data = b.to_owned();
+        adv_key_map.push((a.to_owned().into(), data));
+    });
 
     (
         PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths"),

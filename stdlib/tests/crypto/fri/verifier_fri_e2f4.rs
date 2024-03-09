@@ -14,12 +14,14 @@ use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
 
+type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
+
 pub struct FriResult {
     /// contains the Merkle authentication paths used to authenticate the queries.
     pub partial_trees: Vec<PartialMerkleTree>,
 
     /// used to unhash Merkle nodes to a sequence of field elements representing the query-values.
-    pub advice_maps: Vec<(RpoDigest, Vec<Felt>)>,
+    pub advice_maps: AdvMap,
 
     /// A vector of consecutive quadruples of the form (poe, p, e1, e0) where p is index of the
     /// query at the first layer and (e1, e0) is its corresponding evaluation and poe is g^p with g
@@ -84,8 +86,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
         .layer_commitments()
         .to_vec()
         .iter()
-        .map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
-        .flatten()
+        .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
         .collect();
 
     let remainder_poly: Vec<QuadExt> =
@@ -137,6 +138,7 @@ pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt>
     p
 }
 
+#[allow(clippy::type_complexity)]
 fn verify_proof(
     proof: FriProof,
     commitments: Vec<<MidenHasher as Hasher>::Digest>,
@@ -145,10 +147,7 @@ fn verify_proof(
     domain_size: usize,
     positions: &[usize],
     options: &FriOptions,
-) -> Result<
-    ((Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>), Vec<u64>, Vec<u64>),
-    VerifierError,
-> {
+) -> Result<((Vec<PartialMerkleTree>, AdvMap), Vec<u64>, Vec<u64>), VerifierError> {
     let mut channel = MidenFriVerifierChannel::<QuadExt, MidenHasher>::new(
         proof,
         commitments.clone(),
@@ -240,15 +239,13 @@ impl FriVerifierFold4Ext2 {
     }
 
     /// Verifier in the setting of (folding_factor, blowup_factor, extension_degree) = (4, (1 << 3), 2)
+    #[allow(clippy::type_complexity)]
     fn verify_fold_4_ext_2(
         &self,
         channel: &mut MidenFriVerifierChannel<QuadExt, MidenHasher>,
         evaluations: &[QuadExt],
         positions: &[usize],
-    ) -> Result<
-        ((Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>), Vec<u64>, Vec<u64>),
-        VerifierError,
-    > {
+    ) -> Result<((Vec<PartialMerkleTree>, AdvMap), Vec<u64>, Vec<u64>), VerifierError> {
         // 1 ----- verify the recursive components of the FRI proof -----------------------------------
         let positions = positions.to_vec();
         let evaluations = evaluations.to_vec();
@@ -293,6 +290,7 @@ impl FriVerifierFold4Ext2 {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn iterate_query_fold_4_quad_ext(
     layer_alphas: &[QuadExt],
     partial_trees: &[PartialMerkleTree],
@@ -334,8 +332,7 @@ fn iterate_query_fold_4_quad_ext(
             .unwrap();
         let query_values = &key_val_map
             .iter()
-            .filter(|(k, _)| *k == query_nodes)
-            .next()
+            .find(|(k, _)| *k == query_nodes)
             .expect("must contain the leaf values")
             .1;
 
@@ -408,13 +405,13 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
         let mut adv_key_map = vec![];
         let mut partial_trees = vec![];
         let mut layer_proofs = self.layer_proofs();
-        for i in 0..depth {
+        for query in queries.iter().take(depth) {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
 
             let layer_proof = layer_proofs.remove(0);
 
             let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_vector_elements::<QuadExt, N>(queries[i].clone());
+            let x = group_vector_elements::<QuadExt, N>(query.clone());
             assert_eq!(x.len(), unbatched_proof.len());
 
             let nodes: Vec<[Felt; 4]> = unbatched_proof
@@ -442,18 +439,14 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
                 PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths");
             partial_trees.push(new_set);
 
-            let _empty: () = nodes
-                .into_iter()
-                .zip(x.iter())
-                .map(|(a, b)| {
-                    let mut value = QuadExt::slice_as_base_elements(b).to_owned();
-                    value.extend(EMPTY_WORD);
-                    adv_key_map.push((a.to_owned().into(), value));
-                })
-                .collect();
+            nodes.into_iter().zip(x.iter()).for_each(|(a, b)| {
+                let mut value = QuadExt::slice_as_base_elements(b).to_owned();
+                value.extend(EMPTY_WORD);
+                adv_key_map.push((a.to_owned().into(), value));
+            });
 
             mem::swap(&mut positions, &mut folded_positions);
-            current_domain_size = current_domain_size / N;
+            current_domain_size /= N;
         }
 
         (partial_trees, adv_key_map)
