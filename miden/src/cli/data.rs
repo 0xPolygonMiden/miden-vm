@@ -404,10 +404,10 @@ impl ProgramFile {
 
     /// Compiles this program file into a [Program].
     #[instrument(name = "compile_program", skip_all)]
-    pub fn compile<I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
+    pub fn compile<'a, I, L>(&self, debug: &Debug, libraries: I) -> Result<Program, Report>
     where
-        I: IntoIterator<Item = L>,
-        L: Library,
+        I: IntoIterator<Item = &'a L>,
+        L: ?Sized + Library + 'static,
     {
         // compile program
         let mut assembler = Assembler::default()

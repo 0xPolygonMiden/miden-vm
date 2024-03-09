@@ -247,7 +247,7 @@ impl TestContext {
     #[track_caller]
     pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
     where
-        L: Library,
+        L: ?Sized + Library + 'static,
     {
         self.assembler.add_library(library)
     }

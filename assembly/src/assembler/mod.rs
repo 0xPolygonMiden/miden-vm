@@ -238,7 +238,7 @@ impl Assembler {
     /// Adds the library to provide modules for the compilation.
     pub fn with_library<L>(mut self, library: &L) -> Result<Self, Report>
     where
-        L: Library,
+        L: ?Sized + Library + 'static,
     {
         self.add_library(library)?;
 
@@ -248,7 +248,7 @@ impl Assembler {
     /// Adds the library to provide modules for the compilation.
     pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
     where
-        L: Library,
+        L: ?Sized + Library + 'static,
     {
         let namespace = library.root_ns();
         library.modules().try_for_each(|module| {
@@ -266,23 +266,23 @@ impl Assembler {
     }
 
     /// Adds a library bundle to provide modules for the compilation.
-    pub fn with_libraries<I, L>(mut self, libraries: I) -> Result<Self, Report>
+    pub fn with_libraries<'a, I, L>(mut self, libraries: I) -> Result<Self, Report>
     where
-        L: Library,
-        I: IntoIterator<Item = L>,
+        L: ?Sized + Library + 'static,
+        I: IntoIterator<Item = &'a L>,
     {
         self.add_libraries(libraries)?;
         Ok(self)
     }
 
     /// Adds a library bundle to provide modules for the compilation.
-    pub fn add_libraries<I, L>(&mut self, libraries: I) -> Result<(), Report>
+    pub fn add_libraries<'a, I, L>(&mut self, libraries: I) -> Result<(), Report>
     where
-        L: Library,
-        I: IntoIterator<Item = L>,
+        L: ?Sized + Library + 'static,
+        I: IntoIterator<Item = &'a L>,
     {
         for library in libraries {
-            self.add_library(&library)?;
+            self.add_library(library)?;
         }
         Ok(())
     }

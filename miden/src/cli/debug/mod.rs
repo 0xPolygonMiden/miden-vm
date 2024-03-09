@@ -38,7 +38,7 @@ impl DebugCmd {
 
         // load program from file and compile
         let program =
-            ProgramFile::read(&self.assembly_file)?.compile(&Debug::On, libraries.libraries)?;
+            ProgramFile::read(&self.assembly_file)?.compile(&Debug::On, &libraries.libraries)?;
 
         let program_hash: [u8; 32] = program.hash().into();
         println!("Debugging program with hash {}...", hex::encode(program_hash));
