@@ -1,5 +1,7 @@
 #![no_std]
 
+extern crate alloc;
+
 use assembly::{
     ast::Module, utils::Deserializable, Library, LibraryNamespace, LibraryPath, MaslLibrary,
     Version,

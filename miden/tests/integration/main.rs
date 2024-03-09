@@ -1,3 +1,5 @@
+extern crate alloc;
+
 use test_utils::build_test;
 
 mod air;

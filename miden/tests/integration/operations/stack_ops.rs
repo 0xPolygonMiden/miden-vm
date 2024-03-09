@@ -61,16 +61,11 @@ fn dupn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `dup.16`: parameter 16 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 0..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin dup.16 end",
+        "  :           ^^",
+        "  `----"
     );
 }
 
@@ -101,16 +96,11 @@ fn dupwn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `dupw.4`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 0..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin dupw.4 end",
+        "  :            ^",
+        "  `----"
     );
 }
 
@@ -141,18 +131,14 @@ fn swapn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `swap.16`: parameter 16 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 1..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin swap.16 end",
+        "  :       ^^^^^^^",
+        "  `----"
     );
 }
+
 #[test]
 fn swapw() {
     let asm_op = "swapw";
@@ -180,16 +166,11 @@ fn swapwn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `swapw.4`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 1..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin swapw.4 end",
+        "  :       ^^^^^^^",
+        "  `----"
     );
 }
 
@@ -217,16 +198,11 @@ fn movup_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.0`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movup.0 end",
+        "  :       ^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movup.1";
@@ -234,16 +210,11 @@ fn movup_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.1`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movup.1 end",
+        "  :       ^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movup.16";
@@ -251,16 +222,11 @@ fn movup_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movup.16 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 }
 
@@ -279,16 +245,11 @@ fn movupw_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movupw.0 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movupw.1";
@@ -296,16 +257,11 @@ fn movupw_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movupw.1 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movupw.4";
@@ -313,16 +269,11 @@ fn movupw_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movupw.4 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 }
 
@@ -341,16 +292,11 @@ fn movdn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdn.0 end",
+        "  :       ^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movdn.1";
@@ -358,16 +304,11 @@ fn movdn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdn.1 end",
+        "  :       ^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movdn.16";
@@ -375,16 +316,11 @@ fn movdn_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdn.16 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 }
 
@@ -403,16 +339,11 @@ fn movdnw_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdnw.0 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movdnw.1";
@@ -420,16 +351,11 @@ fn movdnw_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdnw.1 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 
     let asm_op = "movdnw.4";
@@ -437,16 +363,11 @@ fn movdnw_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "invalid instruction `movup.16`: parameter 4 is invalid",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdnw.4 end",
+        "  :       ^^^^^^^^",
+        "  `----"
     );
 }
 

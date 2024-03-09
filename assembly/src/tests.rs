@@ -2226,12 +2226,12 @@ fn invalid_while() -> TestResult {
         context,
         source,
         "unrecognized token",
-        regex!(r#",-\[test[\d]+:1:18\]"#),
+        regex!(r#",-\[test[\d]+:1:24\]"#),
         "1 | begin push.1 add while mul end end",
-        "  :                  ^^|^^",
-        "  :                    `-- lexed a identifier here",
+        "  :                        ^|^",
+        "  :                         `-- lexed a mul here",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".""#
     );
 
     let source = source_file!("begin push.1 add while.abc mul end end");
@@ -2239,12 +2239,12 @@ fn invalid_while() -> TestResult {
         context,
         source,
         "unrecognized token",
-        regex!(r#",-\[test[\d]+:1:18\]"#),
+        regex!(r#",-\[test[\d]+:1:24\]"#),
         "1 | begin push.1 add while.abc mul end end",
-        "  :                  ^^|^^",
-        "  :                    `-- lexed a identifier here",
+        "  :                        ^|^",
+        "  :                         `-- lexed a identifier here",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected "true""#
     );
 
     let source = source_file!("begin push.1 add while.true mul");

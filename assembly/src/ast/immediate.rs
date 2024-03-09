@@ -32,6 +32,17 @@ impl<T> Immediate<T> {
     pub fn is_literal(&self) -> bool {
         matches!(self, Self::Value(_))
     }
+
+    /// Transform the type of this immediate from T to U, using `map`
+    pub fn map<U, F>(self, map: F) -> Immediate<U>
+    where
+        F: FnMut(T) -> U,
+    {
+        match self {
+            Self::Constant(id) => Immediate::Constant(id),
+            Self::Value(value) => Immediate::Value(value.map(map)),
+        }
+    }
 }
 
 /// Copy-able immediates (in practice, all of them)

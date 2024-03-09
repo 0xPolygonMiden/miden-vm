@@ -20,8 +20,8 @@ doctest = false
 default = ["std", "formatter"]
 formatter = ["vm-core/formatter"]
 std = [
+    "aho-corasick/std",
     "vm-core/std",
-    "logos/std",
     "miette/fancy",
     "thiserror/std",
     "miette/std",
@@ -29,10 +29,8 @@ std = [
 testing = ["dep:regex"]
 
 [dependencies]
+aho-corasick = { version = "1.1", default-features = false }
 lalrpop-util = { version = "0.20", default-features = false }
-logos = { version = "0.14", default-features = false, features = [
-    "export_derive",
-] }
 miette = { version = "7.1.0", git = "https://github.com/bitwalker/miette", branch = "no-std", default-features = false, features = [
     "fancy-no-syscall",
     "derive",
