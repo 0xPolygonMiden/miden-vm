@@ -158,18 +158,18 @@ mod tests {
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // going up to the max fmp value should be OK
-        let stack = StackInputs::try_from_values([MAX_PROC_LOCALS]).unwrap();
+        let stack = StackInputs::try_from_ints([MAX_PROC_LOCALS]).unwrap();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::FmpUpdate).unwrap();
         assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
-        let stack = StackInputs::try_from_values([MAX_PROC_LOCALS + 1]).unwrap();
+        let stack = StackInputs::try_from_ints([MAX_PROC_LOCALS + 1]).unwrap();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // should not affect the rest of the stack state
-        let stack = StackInputs::try_from_values([2, 3]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 3]).unwrap();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::FmpUpdate).unwrap();
 

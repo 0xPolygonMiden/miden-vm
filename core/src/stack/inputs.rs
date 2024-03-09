@@ -16,18 +16,34 @@ pub struct StackInputs {
 }
 
 impl StackInputs {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    pub const MAX_LEN: usize = u16::MAX as usize;
+
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns [StackInputs] from a list of values, reversing them into a stack.
-    pub fn new(mut values: Vec<Felt>) -> Self {
+    ///
+    /// # Errors
+    /// Returns an error if the number of input values exceeds the allowed maximum.
+    pub fn new(mut values: Vec<Felt>) -> Result<Self, InputError> {
+        if values.len() > Self::MAX_LEN {
+            return Err(InputError::InputLengthExceeded(Self::MAX_LEN, values.len()));
+        }
         values.reverse();
-        Self { values }
+
+        Ok(Self { values })
     }
 
-    /// Attempts to create stack inputs from an iterator of numbers, failing if they do not
-    /// represent a valid field element.
-    pub fn try_from_values<I>(iter: I) -> Result<Self, InputError>
+    /// Attempts to create stack inputs from an iterator of integers.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The values do not represent a valid field element.
+    /// - Number of values in the iterator exceeds the allowed maximum number of input values.
+    pub fn try_from_ints<I>(iter: I) -> Result<Self, InputError>
     where
         I: IntoIterator<Item = u64>,
     {
@@ -36,7 +52,7 @@ impl StackInputs {
             .map(|v| Felt::try_from(v).map_err(|e| InputError::NotFieldElement(v, e)))
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Self::new(values))
+        Self::new(values)
     }
 
     // PUBLIC ACCESSORS
@@ -81,17 +97,23 @@ impl Serializable for StackInputs {
         // we must define a common serialization format as we might diverge from the implementation
         // here and the one provided by default from winterfell.
 
-        debug_assert!(self.values.len() <= u32::MAX as usize);
-        target.write_u32(self.values.len() as u32);
+        debug_assert!(self.values.len() <= Self::MAX_LEN);
+        target.write_usize(self.values.len());
         target.write_many(&self.values);
     }
 }
 
 impl Deserializable for StackInputs {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let count = source.read_u32()?;
-
-        let values = source.read_many::<Felt>(count as usize)?;
+        let count = source.read_usize()?;
+        if count > Self::MAX_LEN {
+            return Err(DeserializationError::InvalidValue(format!(
+                "Number of values on the input stack can not be more than {}, but {} was found",
+                Self::MAX_LEN,
+                count
+            )));
+        }
+        let values = source.read_many::<Felt>(count)?;
         Ok(StackInputs { values })
     }
 }

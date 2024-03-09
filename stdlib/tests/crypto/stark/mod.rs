@@ -51,7 +51,7 @@ pub fn generate_recursive_verifier_data(
     stack_inputs: Vec<u64>,
 ) -> Result<VerifierData, VerifierError> {
     let program = Assembler::default().compile(source).unwrap();
-    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let host = DefaultHost::new(advice_provider);

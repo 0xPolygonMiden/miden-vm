@@ -195,7 +195,7 @@ mod tests {
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
-        let stack_inputs = StackInputs::new(inputs.to_vec());
+        let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
 
         // --- setup memory -----------------------------------------------------------------------

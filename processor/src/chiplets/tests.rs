@@ -110,7 +110,7 @@ fn build_trace(
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
     let program = CodeBlock::new_span(operations);

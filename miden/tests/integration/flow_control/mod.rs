@@ -204,7 +204,7 @@ fn simple_syscall() {
     let test = Test {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
-        stack_inputs: StackInputs::try_from_values([1, 2]).unwrap(),
+        stack_inputs: StackInputs::try_from_ints([1, 2]).unwrap(),
         advice_inputs: AdviceInputs::default(),
         in_debug_mode: false,
         libraries: Vec::default(),
@@ -251,7 +251,7 @@ fn simple_dyn_exec() {
     let test = Test {
         source: program_source.to_string(),
         kernel: None,
-        stack_inputs: StackInputs::try_from_values([
+        stack_inputs: StackInputs::try_from_ints([
             3,
             // put the hash of foo on the stack
             16045159387802755434,
@@ -357,7 +357,7 @@ fn simple_dyncall() {
     let test = Test {
         source: program_source.to_string(),
         kernel: None,
-        stack_inputs: StackInputs::try_from_values([
+        stack_inputs: StackInputs::try_from_ints([
             3,
             // put the hash of foo on the stack
             8324248212344458853,

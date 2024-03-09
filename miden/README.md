@@ -181,7 +181,7 @@ let program = Assembler::default().compile(&source).unwrap();
 let host = DefaultHost::default();
 
 // initialize the stack with values 0 and 1
-let stack_inputs = StackInputs::try_from_values([0, 1]).unwrap();
+let stack_inputs = StackInputs::try_from_ints([0, 1]).unwrap();
 
 // execute the program
 let (outputs, proof) = miden_vm::prove(
