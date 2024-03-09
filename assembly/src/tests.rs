@@ -577,11 +577,11 @@ fn constants_must_be_uppercase() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:7\]"#),
         "1 | const.constant_1=12 begin push.constant_1 end",
         "  :       ^^^^^|^^^^",
-        "  :            `-- lexed a identifier here",
+        "  :            `-- found a identifier here",
         "  `----"
     );
 
@@ -628,11 +628,11 @@ fn constant_must_be_valid_felt() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:20\]"#),
         "1 | const.CONSTANT=1122INVALID begin push.CONSTANT end",
         "  :                    ^^^|^^^",
-        "  :                       `-- lexed a constant identifier here",
+        "  :                       `-- found a constant identifier here",
         "  `----",
         " help: expected \"*\", or \"+\", or \"-\", or \"/\", or \"//\", or \"begin\", or \"const\", \
 or \"export\", or \"proc\", or \"use\", or end of file, or doc comment"
@@ -676,15 +676,15 @@ fn constants_defined_in_global_scope() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:2:11\]"#),
         "1 |",
         "2 |     begin const.CONSTANT=12",
         "  :           ^^|^^",
-        "  :             `-- lexed a const here",
+        "  :             `-- found a const here",
         "3 |     push.CONSTANT end",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or control flow opcode (e.g. "if.true")"#
     );
     Ok(())
 }
@@ -1747,12 +1747,12 @@ end"
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:2:37\]"#),
         "1 |",
         "2 |         use.dummy::math::u64->bigint->invalidname",
         "  :                                     ^|",
-        "  :                                      `-- lexed a -> here",
+        "  :                                      `-- found a -> here",
         "3 |",
         "  `----",
         r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
@@ -1976,11 +1976,11 @@ fn invalid_program_unrecognized_token() {
     assert_assembler_diagnostic!(
         context,
         source_file!("none"),
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:1\]"#),
         "1 | none",
         "  : ^^|^",
-        "  :   `-- lexed a identifier here",
+        "  :   `-- found a identifier here",
         "  `----",
         r#" help: expected "begin", or "const", or "export", or "proc", or "use", or doc comment"#
     );
@@ -1996,7 +1996,7 @@ fn invalid_program_unmatched_begin() {
         regex!(r#",-\[test[\d]+:1:10\]"#),
         "1 | begin add",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -2006,11 +2006,11 @@ fn invalid_program_invalid_top_level_token() {
     assert_assembler_diagnostic!(
         context,
         source_file!("begin add end mul"),
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:15\]"#),
         "1 | begin add end mul",
         "  :               ^|^",
-        "  :                `-- lexed a mul here",
+        "  :                `-- found a mul here",
         "  `----",
         r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
@@ -2023,13 +2023,13 @@ fn invalid_proc_missing_end_unexpected_begin() {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:18\]"#),
         "1 | proc.foo add mul begin push.1 end",
         "  :                  ^^|^^",
-        "  :                    `-- lexed a begin here",
+        "  :                    `-- found a begin here",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -2040,13 +2040,13 @@ fn invalid_proc_missing_end_unexpected_proc() {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:18\]"#),
         "1 | proc.foo add mul proc.bar push.3 end begin push.1 end",
         "  :                  ^^|^",
-        "  :                    `-- lexed a proc here",
+        "  :                    `-- found a proc here",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -2075,11 +2075,11 @@ fn invalid_proc_invalid_numeric_name() {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:6\]"#),
         "1 | proc.123 add mul end begin push.1 exec.123 end",
         "  :      ^|^",
-        "  :       `-- lexed a integer here",
+        "  :       `-- found a integer here",
         "  `----",
         " help: expected",
         "identifier, or quoted identifier"
@@ -2116,7 +2116,7 @@ fn invalid_if_missing_end_no_else() {
         regex!(r#",-\[test[\d]+:1:29\]"#),
         "1 | begin push.1 add if.true mul",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "else", or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "else", or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -2127,24 +2127,24 @@ fn invalid_else_with_no_if() {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:18\]"#),
         "1 | begin push.1 add else mul end",
         "  :                  ^^|^",
-        "  :                    `-- lexed a else here",
+        "  :                    `-- found a else here",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 
     let source = source_file!("begin push.1 while.true add else mul end end");
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:29\]"#),
         "1 | begin push.1 while.true add else mul end end",
         "  :                             ^^|^",
-        "  :                               `-- lexed a else here",
+        "  :                               `-- found a else here",
         "  `----",
         r#" help: expected "end""#
     );
@@ -2158,11 +2158,11 @@ fn invalid_unmatched_else_within_if_else() {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:35\]"#),
         "1 | begin push.1 if.true add else mul else push.1 end end end",
         "  :                                   ^^|^",
-        "  :                                     `-- lexed a else here",
+        "  :                                     `-- found a else here",
         "  `----",
         r#" help: expected "end""#
     );
@@ -2180,7 +2180,7 @@ fn invalid_if_else_no_matching_end() {
         regex!(r#",-\[test[\d]+:1:38\]"#),
         "1 | begin push.1 add if.true mul else add",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -2197,7 +2197,7 @@ fn invalid_repeat() -> TestResult {
         regex!(r#",-\[test[\d]+:1:31\]"#),
         "1 | begin push.1 add repeat.10 mul",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 
     // invalid iter count
@@ -2205,13 +2205,13 @@ fn invalid_repeat() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:27\]"#),
         "1 | begin push.1 add repeat.23x3 mul end end",
         "  :                           ^|",
-        "  :                            `-- lexed a identifier here",
+        "  :                            `-- found a identifier here",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or control flow opcode (e.g. "if.true")"#
     );
 
     Ok(())
@@ -2225,11 +2225,11 @@ fn invalid_while() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:24\]"#),
         "1 | begin push.1 add while mul end end",
         "  :                        ^|^",
-        "  :                         `-- lexed a mul here",
+        "  :                         `-- found a mul here",
         "  `----",
         r#" help: expected ".""#
     );
@@ -2238,11 +2238,11 @@ fn invalid_while() -> TestResult {
     assert_assembler_diagnostic!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:24\]"#),
         "1 | begin push.1 add while.abc mul end end",
         "  :                        ^|^",
-        "  :                         `-- lexed a identifier here",
+        "  :                         `-- found a identifier here",
         "  `----",
         r#" help: expected "true""#
     );
@@ -2255,7 +2255,7 @@ fn invalid_while() -> TestResult {
         regex!(r#",-\[test[\d]+:1:32\]"#),
         "1 | begin push.1 add while.true mul",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
     Ok(())
 }

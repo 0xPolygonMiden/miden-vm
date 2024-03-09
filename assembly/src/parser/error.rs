@@ -68,16 +68,16 @@ pub enum ParsingError {
     #[error("parsing failed due to unexpected input")]
     #[diagnostic()]
     Failed = 0,
-    #[error("invalid token")]
+    #[error("invalid syntax")]
     #[diagnostic()]
     InvalidToken {
         #[label("occurs here")]
         span: SourceSpan,
     },
-    #[error("unrecognized token")]
+    #[error("invalid syntax")]
     #[diagnostic(help("expected {}", expected.as_slice().join(", or ")))]
     UnrecognizedToken {
-        #[label("lexed a {token} here")]
+        #[label("found a {token} here")]
         span: SourceSpan,
         token: String,
         expected: Vec<String>,
@@ -174,14 +174,6 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
         count: usize,
-    },
-    #[error("unclosed quoted identifier")]
-    #[diagnostic(help(
-        "parsing reached the end of the line before seeing a closing double-quote"
-    ))]
-    UnclosedQuotedIdentifier {
-        #[label]
-        span: SourceSpan,
     },
     #[error("expected a fully-qualified module path, e.g. `std::u64`")]
     UnqualifiedImport {
@@ -312,7 +304,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                 Some(tok) if tok.is_instruction() => {
                     if !has_instruction {
                         has_instruction = true;
-                        Some("primtive opcode (e.g. \"add\")".to_string())
+                        Some("primitive opcode (e.g. \"add\")".to_string())
                     } else {
                         None
                     }

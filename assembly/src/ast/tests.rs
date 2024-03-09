@@ -636,15 +636,15 @@ fn test_use_in_proc_body() {
 
     assert_parse_diagnostic_lines!(
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:4:9\]"#),
         "3 |         loc_load.0",
         "4 |         use",
         " :         ^|^",
-        "  :          `-- lexed a use here",
+        "  :          `-- found a use here",
         "5 |     end",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -654,13 +654,13 @@ fn test_unterminated_proc() {
 
     assert_parse_diagnostic_lines!(
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:18\]"#),
         "1 | proc.foo add mul begin push.1 end",
         "  :                  ^^|^^",
-        "  :                    `-- lexed a begin here",
+        "  :                    `-- found a begin here",
         "  `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -670,13 +670,13 @@ fn test_unterminated_if() {
 
     assert_parse_diagnostic_lines!(
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:1:32\]"#),
         "1 | proc.foo add mul if.true add.2 begin push.1 end",
         "  :                                ^^|^^",
-        "  :                                  `-- lexed a begin here",
+        "  :                                  `-- found a begin here",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or "else", or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or "else", or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -922,16 +922,16 @@ fn test_ast_parsing_module_docs_fail() {
     assert_module_diagnostic_lines!(
         context,
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:3:9\]"#),
         "2 |     export.foo.1",
         "3 |         #! malformed doc",
         "  :         ^^^^^^^^|^^^^^^^^",
-        "  :                 `-- lexed a doc comment here",
+        "  :                 `-- found a doc comment here",
         "4 |         loc_load.0",
         "5 |     end",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -955,7 +955,7 @@ fn assert_parsing_line_unmatched_begin() {
         "4 |         add",
         "5 |         mul",
         "  `----",
-        r#"help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#"help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -969,15 +969,15 @@ fn assert_parsing_line_extra_param() {
     );
     assert_parse_diagnostic_lines!(
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:2:16\]"#),
         "1 | begin",
         "2 |           add.1.2",
         "  :                |",
-        "  :                `-- lexed a . here",
+        "  :                `-- found a . here",
         "3 |         end",
         "  `----",
-        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -1019,15 +1019,15 @@ fn assert_parsing_line_invalid_op() {
     );
     assert_parse_diagnostic_lines!(
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:28:13\]"#),
         "27 |             push.2",
         "28 |             u32overflowing_mulx",
         "   :             ^^^^^^^^^|^^^^^^^^^",
-        "   :                      `-- lexed a identifier here",
+        "   :                      `-- found a identifier here",
         "29 |         end",
         "   `----",
-        r#" help: expected ".", or primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
+        r#" help: expected ".", or primitive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -1043,12 +1043,12 @@ fn assert_parsing_line_unexpected_token() {
     );
     assert_parse_diagnostic_lines!(
         source,
-        "unrecognized token",
+        "invalid syntax",
         regex!(r#",-\[test[\d]+:5:5\]"#),
         "4 |",
         "5 |     mul",
         "  :     ^|^",
-        "  :      `-- lexed a mul here",
+        "  :      `-- found a mul here",
         "  `----",
         r#" help: expected "begin", or "const", or "export", or "proc", or "use", or end of file, or doc comment"#
     );
