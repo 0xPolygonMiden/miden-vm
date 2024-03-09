@@ -10,7 +10,7 @@ documentation = "https://docs.rs/miden-assembly/0.8.0"
 categories = ["compilers", "no-std"]
 keywords = ["assembler", "assembly", "language", "miden"]
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.76"
 
 [lib]
 bench = false
