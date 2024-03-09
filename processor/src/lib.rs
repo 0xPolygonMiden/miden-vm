@@ -1,10 +1,10 @@
 #![no_std]
 
-#[cfg(feature = "std")]
-extern crate std;
-
 #[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use alloc::vec::Vec;
 use core::cell::RefCell;

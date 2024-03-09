@@ -150,8 +150,7 @@ pub fn generate_advice_inputs(
 pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
     digest
         .iter()
-        .map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
-        .flatten()
+        .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
         .collect()
 }
 
