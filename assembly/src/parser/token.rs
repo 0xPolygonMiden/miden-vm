@@ -1,363 +1,7 @@
 use alloc::string::String;
-use core::{fmt, num::IntErrorKind, str::FromStr};
+use core::fmt;
 
-use logos::{Lexer, Logos};
-use vm_core::{Felt, FieldElement, StarkField};
-
-use super::{HexErrorKind, LiteralErrorKind, ParsingError, SourceSpan};
-
-#[derive(Default, Copy, Clone)]
-pub struct TokenExtra {
-    pub line: usize,
-}
-
-#[derive(Debug, Clone, Logos)]
-#[logos(error = ParsingError)]
-#[logos(extras = TokenExtra)]
-#[logos(skip r"[ \t\r]+")]
-pub enum Token<'input> {
-    #[regex(r"\n", nl)]
-    Newline,
-    #[token("add")]
-    Add,
-    #[token("adv.insert_hdword")]
-    AdvInsertHdword,
-    #[token("adv.insert_hperm")]
-    AdvInsertHperm,
-    #[token("adv.insert_mem")]
-    AdvInsertMem,
-    #[token("adv_loadw")]
-    AdvLoadw,
-    #[token("adv_pipe")]
-    AdvPipe,
-    #[token("adv_push")]
-    AdvPush,
-    #[token("adv.push_ext2intt")]
-    AdvPushExt2intt,
-    #[token("adv.push_mapval")]
-    AdvPushMapval,
-    #[token("adv.push_mapvaln")]
-    AdvPushMapvaln,
-    #[token("adv.push_mtnode")]
-    AdvPushMtnode,
-    #[token("adv.push_sig")]
-    AdvPushSig,
-    #[token("adv.push_smtpeek")]
-    AdvPushSmtpeek,
-    #[token("adv.push_smtset")]
-    AdvPushSmtset,
-    #[token("adv.push_smtget")]
-    AdvPushSmtget,
-    #[token("adv.push_u64div")]
-    AdvPushU64Div,
-    #[token("and")]
-    And,
-    #[token("assert")]
-    Assert,
-    #[token("assertz")]
-    Assertz,
-    #[token("assert_eq")]
-    AssertEq,
-    #[token("assert_eqw")]
-    AssertEqw,
-    #[token("begin")]
-    Begin,
-    #[token("caller")]
-    Caller,
-    #[token("call")]
-    Call,
-    #[token("cdrop")]
-    Cdrop,
-    #[token("cdropw")]
-    Cdropw,
-    #[token("clk")]
-    Clk,
-    #[token("const")]
-    Const,
-    #[token("cswap")]
-    Cswap,
-    #[token("cswapw")]
-    Cswapw,
-    #[token("debug")]
-    Debug,
-    #[token("div")]
-    Div,
-    #[token("drop")]
-    Drop,
-    #[token("dropw")]
-    Dropw,
-    #[token("dup")]
-    Dup,
-    #[token("dupw")]
-    Dupw,
-    #[token("dynexec")]
-    Dynexec,
-    #[token("dyncall")]
-    Dyncall,
-    #[token("else")]
-    Else,
-    #[token("emit")]
-    Emit,
-    #[token("end")]
-    End,
-    #[token("eq")]
-    Eq,
-    #[token("eqw")]
-    Eqw,
-    #[token("ext2add")]
-    Ext2Add,
-    #[token("ext2div")]
-    Ext2Div,
-    #[token("ext2inv")]
-    Ext2Inv,
-    #[token("ext2mul")]
-    Ext2Mul,
-    #[token("ext2neg")]
-    Ext2Neg,
-    #[token("ext2sub")]
-    Ext2Sub,
-    #[token("err")]
-    Err,
-    #[token("exec")]
-    Exec,
-    #[token("exp")]
-    Exp,
-    #[token("exp.u")]
-    ExpU,
-    #[token("export")]
-    Export,
-    #[token("fri_ext2fold4")]
-    FriExt2Fold4,
-    #[token("gt")]
-    Gt,
-    #[token("gte")]
-    Gte,
-    #[token("hash")]
-    Hash,
-    #[token("hperm")]
-    Hperm,
-    #[token("hmerge")]
-    Hmerge,
-    #[token("if.true")]
-    If,
-    #[token("ilog2")]
-    ILog2,
-    #[token("inv")]
-    Inv,
-    #[token("is_odd")]
-    IsOdd,
-    #[token("local")]
-    Local,
-    #[token("locaddr")]
-    Locaddr,
-    #[token("loc_load")]
-    LocLoad,
-    #[token("loc_loadw")]
-    LocLoadw,
-    #[token("loc_store")]
-    LocStore,
-    #[token("loc_storew")]
-    LocStorew,
-    #[token("lt")]
-    Lt,
-    #[token("lte")]
-    Lte,
-    #[token("mem")]
-    Mem,
-    #[token("mem_load")]
-    MemLoad,
-    #[token("mem_loadw")]
-    MemLoadw,
-    #[token("mem_store")]
-    MemStore,
-    #[token("mem_storew")]
-    MemStorew,
-    #[token("mem_stream")]
-    MemStream,
-    #[token("movdn")]
-    Movdn,
-    #[token("movdnw")]
-    Movdnw,
-    #[token("movup")]
-    Movup,
-    #[token("movupw")]
-    Movupw,
-    #[token("mtree_get")]
-    MtreeGet,
-    #[token("mtree_merge")]
-    MtreeMerge,
-    #[token("mtree_set")]
-    MtreeSet,
-    #[token("mtree_verify")]
-    MtreeVerify,
-    #[token("mul")]
-    Mul,
-    #[token("neg")]
-    Neg,
-    #[token("neq")]
-    Neq,
-    #[token("not")]
-    Not,
-    #[token("or")]
-    Or,
-    #[token("padw")]
-    Padw,
-    #[token("pow2")]
-    Pow2,
-    #[token("proc")]
-    Proc,
-    #[token("procref")]
-    Procref,
-    #[token("push")]
-    Push,
-    #[token("rcomb_base")]
-    RCombBase,
-    #[token("repeat")]
-    Repeat,
-    #[token("rpo_falcon512")]
-    RpoFalcon512,
-    #[token("sdepth")]
-    Sdepth,
-    #[token("stack")]
-    Stack,
-    #[token("sub")]
-    Sub,
-    #[token("swap")]
-    Swap,
-    #[token("swapw")]
-    Swapw,
-    #[token("swapdw")]
-    Swapdw,
-    #[token("syscall")]
-    Syscall,
-    #[token("trace")]
-    Trace,
-    #[token("use")]
-    Use,
-    #[token("u32and")]
-    U32And,
-    #[token("u32assert")]
-    U32Assert,
-    #[token("u32assert2")]
-    U32Assert2,
-    #[token("u32assertw")]
-    U32Assertw,
-    #[token("u32cast")]
-    U32Cast,
-    #[token("u32div")]
-    U32Div,
-    #[token("u32divmod")]
-    U32Divmod,
-    #[token("u32gt")]
-    U32Gt,
-    #[token("u32gte")]
-    U32Gte,
-    #[token("u32lt")]
-    U32Lt,
-    #[token("u32lte")]
-    U32Lte,
-    #[token("u32max")]
-    U32Max,
-    #[token("u32min")]
-    U32Min,
-    #[token("u32mod")]
-    U32Mod,
-    #[token("u32not")]
-    U32Not,
-    #[token("u32or")]
-    U32Or,
-    #[token("u32overflowing_add")]
-    U32OverflowingAdd,
-    #[token("u32overflowing_add3")]
-    U32OverflowingAdd3,
-    #[token("u32overflowing_madd")]
-    U32OverflowingMadd,
-    #[token("u32overflowing_mul")]
-    U32OverflowingMul,
-    #[token("u32overflowing_sub")]
-    U32OverflowingSub,
-    #[token("u32popcnt")]
-    U32Popcnt,
-    #[token("u32clz")]
-    U32Clz,
-    #[token("u32ctz")]
-    U32Ctz,
-    #[token("u32clo")]
-    U32Clo,
-    #[token("u32cto")]
-    U32Cto,
-    #[token("u32rotl")]
-    U32Rotl,
-    #[token("u32rotr")]
-    U32Rotr,
-    #[token("u32shl")]
-    U32Shl,
-    #[token("u32shr")]
-    U32Shr,
-    #[token("u32split")]
-    U32Split,
-    #[token("u32test")]
-    U32Test,
-    #[token("u32testw")]
-    U32Testw,
-    #[token("u32wrapping_add")]
-    U32WrappingAdd,
-    #[token("u32wrapping_add3")]
-    U32WrappingAdd3,
-    #[token("u32wrapping_madd")]
-    U32WrappingMadd,
-    #[token("u32wrapping_mul")]
-    U32WrappingMul,
-    #[token("u32wrapping_sub")]
-    U32WrappingSub,
-    #[token("u32xor")]
-    U32Xor,
-    #[token("while.true")]
-    While,
-    #[token("xor")]
-    Xor,
-    #[token("!")]
-    Bang,
-    #[token("::")]
-    ColonColon,
-    #[token(".")]
-    Dot,
-    #[token("=")]
-    Equal,
-    #[token("(")]
-    Lparen,
-    #[token("-")]
-    Minus,
-    #[token("+")]
-    Plus,
-    #[token("//")]
-    SlashSlash,
-    #[token("/")]
-    Slash,
-    #[token("*")]
-    Star,
-    #[token(")")]
-    Rparen,
-    #[token("->")]
-    Rstab,
-    #[regex(r"(#![^\n]*\n)+", parse_docs)]
-    DocComment(DocumentationType),
-    #[regex(r"0x[A-Fa-f0-9]+", parse_hex)]
-    HexValue(HexEncodedValue),
-    #[regex(r"[0-9]+", parse_int)]
-    Int(u64),
-    #[regex(r"[a-z_][a-zA-Z0-9_$]*")]
-    Ident(&'input str),
-    #[regex(r"[A-Z][A-Z0-9_]*")]
-    ConstantIdent(&'input str),
-    #[regex(r#""[A-Za-z_.$][^"\n]*["\n]"#, unquote)]
-    QuotedIdent(&'input str),
-    #[regex(r#"[[:cntrl:]]"#, priority = 0)]
-    Unknown,
-    #[regex(r"#[^\n]*\n?", logos::skip)]
-    #[end]
-    Eof,
-}
+use vm_core::Felt;
 
 #[derive(Debug, Clone)]
 pub enum DocumentationType {
@@ -382,26 +26,218 @@ impl core::ops::Deref for DocumentationType {
     }
 }
 
+/// Represents one of the various types of values
+/// that have a hex-encoded representation in Miden
+/// Assembly source files.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum HexEncodedValue {
+    /// A tiny value
+    U8(u8),
+    /// A small value
+    U16(u16),
+    /// A u32 constant, typically represents a memory address
+    U32(u32),
+    /// A single field element, 8 bytes, encoded as 16 hex digits
+    Felt(Felt),
+    /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
+    Word([Felt; 4]),
+}
+
+#[derive(Debug, Clone)]
+pub enum Token<'input> {
+    Add,
+    Adv,
+    InsertHdword,
+    InsertHperm,
+    InsertMem,
+    AdvLoadw,
+    AdvPipe,
+    AdvPush,
+    PushExt2intt,
+    PushMapval,
+    PushMapvaln,
+    PushMtnode,
+    PushSig,
+    PushSmtpeek,
+    PushSmtset,
+    PushSmtget,
+    PushU64Div,
+    And,
+    Assert,
+    Assertz,
+    AssertEq,
+    AssertEqw,
+    Begin,
+    Caller,
+    Call,
+    Cdrop,
+    Cdropw,
+    Clk,
+    Const,
+    Cswap,
+    Cswapw,
+    Debug,
+    Div,
+    Drop,
+    Dropw,
+    Dup,
+    Dupw,
+    Dynexec,
+    Dyncall,
+    Else,
+    Emit,
+    End,
+    Eq,
+    Eqw,
+    Ext2Add,
+    Ext2Div,
+    Ext2Inv,
+    Ext2Mul,
+    Ext2Neg,
+    Ext2Sub,
+    Err,
+    Exec,
+    Export,
+    Exp,
+    ExpU,
+    FriExt2Fold4,
+    Gt,
+    Gte,
+    Hash,
+    Hperm,
+    Hmerge,
+    If,
+    ILog2,
+    Inv,
+    IsOdd,
+    Local,
+    Locaddr,
+    LocLoad,
+    LocLoadw,
+    LocStore,
+    LocStorew,
+    Lt,
+    Lte,
+    Mem,
+    MemLoad,
+    MemLoadw,
+    MemStore,
+    MemStorew,
+    MemStream,
+    Movdn,
+    Movdnw,
+    Movup,
+    Movupw,
+    MtreeGet,
+    MtreeMerge,
+    MtreeSet,
+    MtreeVerify,
+    Mul,
+    Neg,
+    Neq,
+    Not,
+    Or,
+    Padw,
+    Pow2,
+    Proc,
+    Procref,
+    Push,
+    RCombBase,
+    Repeat,
+    RpoFalcon512,
+    Sdepth,
+    Stack,
+    Sub,
+    Swap,
+    Swapw,
+    Swapdw,
+    Syscall,
+    Trace,
+    True,
+    Use,
+    U32And,
+    U32Assert,
+    U32Assert2,
+    U32Assertw,
+    U32Cast,
+    U32Div,
+    U32Divmod,
+    U32Gt,
+    U32Gte,
+    U32Lt,
+    U32Lte,
+    U32Max,
+    U32Min,
+    U32Mod,
+    U32Not,
+    U32Or,
+    U32OverflowingAdd,
+    U32OverflowingAdd3,
+    U32OverflowingMadd,
+    U32OverflowingMul,
+    U32OverflowingSub,
+    U32Popcnt,
+    U32Clz,
+    U32Ctz,
+    U32Clo,
+    U32Cto,
+    U32Rotl,
+    U32Rotr,
+    U32Shl,
+    U32Shr,
+    U32Split,
+    U32Test,
+    U32Testw,
+    U32WrappingAdd,
+    U32WrappingAdd3,
+    U32WrappingMadd,
+    U32WrappingMul,
+    U32WrappingSub,
+    U32Xor,
+    While,
+    Xor,
+    Bang,
+    ColonColon,
+    Dot,
+    Equal,
+    Lparen,
+    Minus,
+    Plus,
+    SlashSlash,
+    Slash,
+    Star,
+    Rparen,
+    Rstab,
+    DocComment(DocumentationType),
+    HexValue(HexEncodedValue),
+    Int(u64),
+    Ident(&'input str),
+    ConstantIdent(&'input str),
+    QuotedIdent(&'input str),
+    Comment,
+    Eof,
+}
+
 impl<'input> fmt::Display for Token<'input> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Token::Newline => write!(f, "\\n"),
             Token::Add => write!(f, "add"),
-            Token::AdvInsertHdword => write!(f, "adv.insert_hdword"),
-            Token::AdvInsertHperm => write!(f, "adv.insert_hperm"),
-            Token::AdvInsertMem => write!(f, "adv.insert_mem"),
+            Token::Adv => write!(f, "adv"),
+            Token::InsertHdword => write!(f, "insert_hdword"),
+            Token::InsertHperm => write!(f, "insert_hperm"),
+            Token::InsertMem => write!(f, "insert_mem"),
             Token::AdvLoadw => write!(f, "adv_loadw"),
             Token::AdvPipe => write!(f, "adv_pipe"),
             Token::AdvPush => write!(f, "adv_push"),
-            Token::AdvPushExt2intt => write!(f, "adv.push_ext2intt"),
-            Token::AdvPushMapval => write!(f, "adv.push_mapval"),
-            Token::AdvPushMapvaln => write!(f, "adv.push_mapvaln"),
-            Token::AdvPushMtnode => write!(f, "adv.push_mtnode"),
-            Token::AdvPushSig => write!(f, "adv.push_sig"),
-            Token::AdvPushSmtpeek => write!(f, "adv.push_smtpeek"),
-            Token::AdvPushSmtset => write!(f, "adv.push_smtset"),
-            Token::AdvPushSmtget => write!(f, "adv.push_smtget"),
-            Token::AdvPushU64Div => write!(f, "adv.push_u64div"),
+            Token::PushExt2intt => write!(f, "push_ext2intt"),
+            Token::PushMapval => write!(f, "push_mapval"),
+            Token::PushMapvaln => write!(f, "push_mapvaln"),
+            Token::PushMtnode => write!(f, "push_mtnode"),
+            Token::PushSig => write!(f, "push_sig"),
+            Token::PushSmtpeek => write!(f, "push_smtpeek"),
+            Token::PushSmtset => write!(f, "push_smtset"),
+            Token::PushSmtget => write!(f, "push_smtget"),
+            Token::PushU64Div => write!(f, "push_u64div"),
             Token::And => write!(f, "and"),
             Token::Assert => write!(f, "assert"),
             Token::Assertz => write!(f, "assertz"),
@@ -446,7 +282,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Hash => write!(f, "hash"),
             Token::Hperm => write!(f, "hperm"),
             Token::Hmerge => write!(f, "hmerge"),
-            Token::If => write!(f, "if.true"),
+            Token::If => write!(f, "if"),
             Token::ILog2 => write!(f, "ilog2"),
             Token::Inv => write!(f, "inv"),
             Token::IsOdd => write!(f, "is_odd"),
@@ -493,6 +329,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Swapdw => write!(f, "swapdw"),
             Token::Syscall => write!(f, "syscall"),
             Token::Trace => write!(f, "trace"),
+            Token::True => write!(f, "true"),
             Token::Use => write!(f, "use"),
             Token::U32And => write!(f, "u32and"),
             Token::U32Assert => write!(f, "u32assert"),
@@ -533,7 +370,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::U32WrappingMul => write!(f, "u32wrapping_mul"),
             Token::U32WrappingSub => write!(f, "u32wrapping_sub"),
             Token::U32Xor => write!(f, "u32xor"),
-            Token::While => write!(f, "while.true"),
+            Token::While => write!(f, "while"),
             Token::Xor => write!(f, "xor"),
             Token::Bang => write!(f, "!"),
             Token::ColonColon => write!(f, "::"),
@@ -554,201 +391,33 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Ident(_) => f.write_str("identifier"),
             Token::ConstantIdent(_) => f.write_str("constant identifier"),
             Token::QuotedIdent(_) => f.write_str("quoted identifier"),
-            Token::Unknown => f.write_str("invalid character"),
+            Token::Comment => f.write_str("comment"),
             Token::Eof => write!(f, "end of file"),
         }
     }
 }
 
-/// Represents one of the various types of values
-/// that have a hex-encoded representation in Miden
-/// Assembly source files.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HexEncodedValue {
-    /// A tiny value
-    U8(u8),
-    /// A small value
-    U16(u16),
-    /// A u32 constant, typically represents a memory address
-    U32(u32),
-    /// A single field element, 8 bytes, encoded as 16 hex digits
-    Felt(Felt),
-    /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
-    Word([Felt; 4]),
-}
-
-#[inline]
-fn nl<'input>(lexer: &mut Lexer<'input, Token<'input>>) -> logos::Skip {
-    lexer.extras.line += 1;
-    logos::Skip
-}
-
-#[inline]
-fn unquote<'input>(lexer: &mut Lexer<'input, Token<'input>>) -> Result<&'input str, ParsingError> {
-    let span = SourceSpan::try_from(lexer.span()).expect("invalid span: file too large");
-    let tok = &lexer.slice()[1..];
-    if let Some(unquoted) = tok.strip_suffix('"') {
-        Ok(unquoted)
-    } else {
-        // We reached a newline before finding a closing quote, notify user
-        Err(ParsingError::UnclosedQuotedIdentifier { span })
-    }
-}
-
-fn parse_hex<'input>(
-    lexer: &mut Lexer<'input, Token<'input>>,
-) -> Result<HexEncodedValue, ParsingError> {
-    let span = SourceSpan::try_from(lexer.span()).expect("invalid span: file too large");
-    let hex_digits = &lexer.slice()[2..];
-    match hex_digits.len() {
-        n if n <= 16 && n.is_power_of_two() => {
-            let value = u64::from_str_radix(hex_digits, 16).map_err(|error| {
-                ParsingError::InvalidLiteral {
-                    span,
-                    kind: int_error_kind_to_literal_error_kind(
-                        error.kind(),
-                        LiteralErrorKind::FeltOverflow,
-                    ),
-                }
-            })?;
-            if value > Felt::MODULUS {
-                return Err(ParsingError::InvalidLiteral {
-                    span,
-                    kind: LiteralErrorKind::FeltOverflow,
-                });
-            }
-            Ok(shrink_u64(value))
-        }
-        // Word
-        64 => {
-            let mut word = [Felt::ZERO; 4];
-            for (index, element) in word.iter_mut().enumerate() {
-                let offset = index * 16;
-                let mut felt_bytes = [0u8; 8];
-                let digits = &hex_digits[offset..(offset + 16)];
-                for (byte_idx, byte) in felt_bytes.iter_mut().enumerate() {
-                    let byte_str = &digits[(byte_idx * 2)..((byte_idx * 2) + 2)];
-                    *byte = u8::from_str_radix(byte_str, 16).map_err(|error| {
-                        ParsingError::InvalidLiteral {
-                            span,
-                            kind: int_error_kind_to_literal_error_kind(
-                                error.kind(),
-                                LiteralErrorKind::FeltOverflow,
-                            ),
-                        }
-                    })?;
-                }
-                let value = u64::from_le_bytes(felt_bytes);
-                if value > Felt::MODULUS {
-                    return Err(ParsingError::InvalidLiteral {
-                        span,
-                        kind: LiteralErrorKind::FeltOverflow,
-                    });
-                }
-                *element = Felt::new(value);
-            }
-            Ok(HexEncodedValue::Word(word))
-        }
-        // Invalid
-        n if n > 64 => Err(ParsingError::InvalidHexLiteral {
-            span,
-            kind: HexErrorKind::TooLong,
-        }),
-        n if !n.is_power_of_two() && n < 64 => Err(ParsingError::InvalidHexLiteral {
-            span,
-            kind: HexErrorKind::MissingDigits,
-        }),
-        _ => Err(ParsingError::InvalidHexLiteral {
-            span,
-            kind: HexErrorKind::Invalid,
-        }),
-    }
-}
-
-#[inline]
-fn shrink_u64(n: u64) -> HexEncodedValue {
-    if n <= (u8::MAX as u64) {
-        HexEncodedValue::U8(n as u8)
-    } else if n <= (u16::MAX as u64) {
-        HexEncodedValue::U16(n as u16)
-    } else if n <= (u32::MAX as u64) {
-        HexEncodedValue::U32(n as u32)
-    } else {
-        HexEncodedValue::Felt(Felt::new(n))
-    }
-}
-
-/// Parses a sequence of lines starting with `#!` into a single string without the
-/// doc comment prefix, and without extraneous whitespace.
-///
-/// Lines are concatenated together unless an empty `#!` line is encountered, in which
-/// case a newline is inserted for that line. This preserves paragaraphs, but removes
-/// line breaks introduced just to keep the line length to 80 characters (or whatever)
-fn parse_docs<'input>(lexer: &mut Lexer<'input, Token<'input>>) -> Option<DocumentationType> {
-    let is_moduledoc = lexer.extras.line == 0;
-    let raw = lexer.slice();
-    let mut docs = String::with_capacity(raw.len());
-    let mut started = false;
-    for line in raw.lines() {
-        let line = line.strip_prefix("#!").unwrap_or(line).trim();
-        if line.is_empty() && !started {
-            continue;
-        }
-        if !started {
-            started = true;
-        }
-        docs.push_str(line);
-        docs.push('\n');
-        lexer.extras.line += 1;
-    }
-    Some(if is_moduledoc {
-        DocumentationType::Module(docs)
-    } else {
-        DocumentationType::Form(docs)
-    })
-}
-
-/// Parses an unsigned integer in decimal format
-fn parse_int<'input>(lexer: &mut Lexer<'input, Token<'input>>) -> Result<u64, ParsingError> {
-    lexer.slice().parse::<u64>().map_err(|error| ParsingError::InvalidLiteral {
-        span: SourceSpan::try_from(lexer.span()).expect("invalid span: source file too large"),
-        kind: int_error_kind_to_literal_error_kind(error.kind(), LiteralErrorKind::FeltOverflow),
-    })
-}
-
-#[inline]
-fn int_error_kind_to_literal_error_kind(
-    kind: &IntErrorKind,
-    overflow: LiteralErrorKind,
-) -> LiteralErrorKind {
-    match kind {
-        IntErrorKind::Empty => LiteralErrorKind::Empty,
-        IntErrorKind::InvalidDigit => LiteralErrorKind::InvalidDigit,
-        IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => overflow,
-        _ => unreachable!(),
-    }
-}
-
-impl Token<'_> {
+impl<'input> Token<'input> {
     pub fn is_instruction(&self) -> bool {
         matches!(
             self,
             Token::Add
-                | Token::AdvInsertHdword
-                | Token::AdvInsertHperm
-                | Token::AdvInsertMem
+                | Token::Adv
+                | Token::InsertHdword
+                | Token::InsertHperm
+                | Token::InsertMem
                 | Token::AdvLoadw
                 | Token::AdvPipe
                 | Token::AdvPush
-                | Token::AdvPushExt2intt
-                | Token::AdvPushMapval
-                | Token::AdvPushMapvaln
-                | Token::AdvPushMtnode
-                | Token::AdvPushSig
-                | Token::AdvPushSmtpeek
-                | Token::AdvPushSmtset
-                | Token::AdvPushSmtget
-                | Token::AdvPushU64Div
+                | Token::PushExt2intt
+                | Token::PushMapval
+                | Token::PushMapvaln
+                | Token::PushMtnode
+                | Token::PushSig
+                | Token::PushSmtpeek
+                | Token::PushSmtset
+                | Token::PushSmtget
+                | Token::PushU64Div
                 | Token::And
                 | Token::Assert
                 | Token::Assertz
@@ -873,185 +542,225 @@ impl Token<'_> {
                 | Token::Xor
         )
     }
-}
 
-impl<'input> FromStr for Token<'input> {
-    type Err = ();
+    const KEYWORDS: &'static [(&'static str, Token<'static>)] = &[
+        ("add", Token::Add),
+        ("adv", Token::Adv),
+        ("insert_hdword", Token::InsertHdword),
+        ("insert_hperm", Token::InsertHperm),
+        ("insert_mem", Token::InsertMem),
+        ("adv_loadw", Token::AdvLoadw),
+        ("adv_pipe", Token::AdvPipe),
+        ("adv_push", Token::AdvPush),
+        ("push_ext2intt", Token::PushExt2intt),
+        ("push_mapval", Token::PushMapval),
+        ("push_mapvaln", Token::PushMapvaln),
+        ("push_mtnode", Token::PushMtnode),
+        ("push_sig", Token::PushSig),
+        ("push_smtpeek", Token::PushSmtpeek),
+        ("push_smtset", Token::PushSmtset),
+        ("push_smtget", Token::PushSmtget),
+        ("push_u64div", Token::PushU64Div),
+        ("and", Token::And),
+        ("assert", Token::Assert),
+        ("assertz", Token::Assertz),
+        ("assert_eq", Token::AssertEq),
+        ("assert_eqw", Token::AssertEqw),
+        ("begin", Token::Begin),
+        ("caller", Token::Caller),
+        ("call", Token::Call),
+        ("cdrop", Token::Cdrop),
+        ("cdropw", Token::Cdropw),
+        ("clk", Token::Clk),
+        ("const", Token::Const),
+        ("cswap", Token::Cswap),
+        ("cswapw", Token::Cswapw),
+        ("debug", Token::Debug),
+        ("div", Token::Div),
+        ("drop", Token::Drop),
+        ("dropw", Token::Dropw),
+        ("dup", Token::Dup),
+        ("dupw", Token::Dupw),
+        ("dynexec", Token::Dynexec),
+        ("dyncall", Token::Dyncall),
+        ("else", Token::Else),
+        ("emit", Token::Emit),
+        ("end", Token::End),
+        ("eq", Token::Eq),
+        ("eqw", Token::Eqw),
+        ("ext2add", Token::Ext2Add),
+        ("ext2div", Token::Ext2Div),
+        ("ext2inv", Token::Ext2Inv),
+        ("ext2mul", Token::Ext2Mul),
+        ("ext2neg", Token::Ext2Neg),
+        ("ext2sub", Token::Ext2Sub),
+        ("err", Token::Err),
+        ("exec", Token::Exec),
+        ("exp", Token::Exp),
+        ("exp.u", Token::ExpU),
+        ("export", Token::Export),
+        ("fri_ext2fold4", Token::FriExt2Fold4),
+        ("gt", Token::Gt),
+        ("gte", Token::Gte),
+        ("hash", Token::Hash),
+        ("hperm", Token::Hperm),
+        ("hmerge", Token::Hmerge),
+        ("if", Token::If),
+        ("ilog2", Token::ILog2),
+        ("inv", Token::Inv),
+        ("is_odd", Token::IsOdd),
+        ("local", Token::Local),
+        ("locaddr", Token::Locaddr),
+        ("loc_load", Token::LocLoad),
+        ("loc_loadw", Token::LocLoadw),
+        ("loc_store", Token::LocStore),
+        ("loc_storew", Token::LocStorew),
+        ("lt", Token::Lt),
+        ("lte", Token::Lte),
+        ("mem", Token::Mem),
+        ("mem_load", Token::MemLoad),
+        ("mem_loadw", Token::MemLoadw),
+        ("mem_store", Token::MemStore),
+        ("mem_storew", Token::MemStorew),
+        ("mem_stream", Token::MemStream),
+        ("movdn", Token::Movdn),
+        ("movdnw", Token::Movdnw),
+        ("movup", Token::Movup),
+        ("movupw", Token::Movupw),
+        ("mtree_get", Token::MtreeGet),
+        ("mtree_merge", Token::MtreeMerge),
+        ("mtree_set", Token::MtreeSet),
+        ("mtree_verify", Token::MtreeVerify),
+        ("mul", Token::Mul),
+        ("neg", Token::Neg),
+        ("neq", Token::Neq),
+        ("not", Token::Not),
+        ("or", Token::Or),
+        ("padw", Token::Padw),
+        ("pow2", Token::Pow2),
+        ("proc", Token::Proc),
+        ("procref", Token::Procref),
+        ("push", Token::Push),
+        ("rcomb_base", Token::RCombBase),
+        ("repeat", Token::Repeat),
+        ("rpo_falcon512", Token::RpoFalcon512),
+        ("sdepth", Token::Sdepth),
+        ("stack", Token::Stack),
+        ("sub", Token::Sub),
+        ("swap", Token::Swap),
+        ("swapw", Token::Swapw),
+        ("swapdw", Token::Swapdw),
+        ("syscall", Token::Syscall),
+        ("trace", Token::Trace),
+        ("true", Token::True),
+        ("use", Token::Use),
+        ("u32and", Token::U32And),
+        ("u32assert", Token::U32Assert),
+        ("u32assert2", Token::U32Assert2),
+        ("u32assertw", Token::U32Assertw),
+        ("u32cast", Token::U32Cast),
+        ("u32div", Token::U32Div),
+        ("u32divmod", Token::U32Divmod),
+        ("u32gt", Token::U32Gt),
+        ("u32gte", Token::U32Gte),
+        ("u32lt", Token::U32Lt),
+        ("u32lte", Token::U32Lte),
+        ("u32max", Token::U32Max),
+        ("u32min", Token::U32Min),
+        ("u32mod", Token::U32Mod),
+        ("u32not", Token::U32Not),
+        ("u32or", Token::U32Or),
+        ("u32overflowing_add", Token::U32OverflowingAdd),
+        ("u32overflowing_add3", Token::U32OverflowingAdd3),
+        ("u32overflowing_madd", Token::U32OverflowingMadd),
+        ("u32overflowing_mul", Token::U32OverflowingMul),
+        ("u32overflowing_sub", Token::U32OverflowingSub),
+        ("u32popcnt", Token::U32Popcnt),
+        ("u32clz", Token::U32Clz),
+        ("u32ctz", Token::U32Ctz),
+        ("u32clo", Token::U32Clo),
+        ("u32cto", Token::U32Cto),
+        ("u32rotl", Token::U32Rotl),
+        ("u32rotr", Token::U32Rotr),
+        ("u32shl", Token::U32Shl),
+        ("u32shr", Token::U32Shr),
+        ("u32split", Token::U32Split),
+        ("u32test", Token::U32Test),
+        ("u32testw", Token::U32Testw),
+        ("u32wrapping_add", Token::U32WrappingAdd),
+        ("u32wrapping_add3", Token::U32WrappingAdd3),
+        ("u32wrapping_madd", Token::U32WrappingMadd),
+        ("u32wrapping_mul", Token::U32WrappingMul),
+        ("u32wrapping_sub", Token::U32WrappingSub),
+        ("u32xor", Token::U32Xor),
+        ("while", Token::While),
+        ("xor", Token::Xor),
+    ];
 
-    fn from_str(s: &str) -> Result<Self, ()> {
-        match s {
-            "\\n" => Ok(Token::Newline),
-            "add" => Ok(Token::Add),
-            "adv.insert_hdword" => Ok(Token::AdvInsertHdword),
-            "adv.insert_hperm" => Ok(Token::AdvInsertHperm),
-            "adv.insert_mem" => Ok(Token::AdvInsertMem),
-            "adv_loadw" => Ok(Token::AdvLoadw),
-            "adv_pipe" => Ok(Token::AdvPipe),
-            "adv_push" => Ok(Token::AdvPush),
-            "adv.push_ext2intt" => Ok(Token::AdvPushExt2intt),
-            "adv.push_mapval" => Ok(Token::AdvPushMapval),
-            "adv.push_mapvaln" => Ok(Token::AdvPushMapvaln),
-            "adv.push_mtnode" => Ok(Token::AdvPushMtnode),
-            "adv.push_sig" => Ok(Token::AdvPushSig),
-            "adv.push_smtpeek" => Ok(Token::AdvPushSmtpeek),
-            "adv.push_smtset" => Ok(Token::AdvPushSmtset),
-            "adv.push_smtget" => Ok(Token::AdvPushSmtget),
-            "adv.push_u64div" => Ok(Token::AdvPushU64Div),
-            "and" => Ok(Token::And),
-            "assert" => Ok(Token::Assert),
-            "assertz" => Ok(Token::Assertz),
-            "assert_eq" => Ok(Token::AssertEq),
-            "assert_eqw" => Ok(Token::AssertEqw),
-            "begin" => Ok(Token::Begin),
-            "caller" => Ok(Token::Caller),
-            "call" => Ok(Token::Call),
-            "cdrop" => Ok(Token::Cdrop),
-            "cdropw" => Ok(Token::Cdropw),
-            "clk" => Ok(Token::Clk),
-            "const" => Ok(Token::Const),
-            "cswap" => Ok(Token::Cswap),
-            "cswapw" => Ok(Token::Cswapw),
-            "debug" => Ok(Token::Debug),
-            "div" => Ok(Token::Div),
-            "drop" => Ok(Token::Drop),
-            "dropw" => Ok(Token::Dropw),
-            "dup" => Ok(Token::Dup),
-            "dupw" => Ok(Token::Dupw),
-            "dynexec" => Ok(Token::Dynexec),
-            "dyncall" => Ok(Token::Dyncall),
-            "else" => Ok(Token::Else),
-            "emit" => Ok(Token::Emit),
-            "end" => Ok(Token::End),
-            "eq" => Ok(Token::Eq),
-            "eqw" => Ok(Token::Eqw),
-            "ext2add" => Ok(Token::Ext2Add),
-            "ext2div" => Ok(Token::Ext2Div),
-            "ext2inv" => Ok(Token::Ext2Inv),
-            "ext2mul" => Ok(Token::Ext2Mul),
-            "ext2neg" => Ok(Token::Ext2Neg),
-            "ext2sub" => Ok(Token::Ext2Sub),
-            "err" => Ok(Token::Err),
-            "exec" => Ok(Token::Exec),
-            "exp" => Ok(Token::Exp),
-            "exp.u" => Ok(Token::ExpU),
-            "export" => Ok(Token::Export),
-            "fri_ext2fold4" => Ok(Token::FriExt2Fold4),
-            "gt" => Ok(Token::Gt),
-            "gte" => Ok(Token::Gte),
-            "hash" => Ok(Token::Hash),
-            "hperm" => Ok(Token::Hperm),
-            "hmerge" => Ok(Token::Hmerge),
-            "if.true" => Ok(Token::If),
-            "ilog2" => Ok(Token::ILog2),
-            "inv" => Ok(Token::Inv),
-            "is_odd" => Ok(Token::IsOdd),
-            "local" => Ok(Token::Local),
-            "locaddr" => Ok(Token::Locaddr),
-            "loc_load" => Ok(Token::LocLoad),
-            "loc_loadw" => Ok(Token::LocLoadw),
-            "loc_store" => Ok(Token::LocStore),
-            "loc_storew" => Ok(Token::LocStorew),
-            "lt" => Ok(Token::Lt),
-            "lte" => Ok(Token::Lte),
-            "mem" => Ok(Token::Mem),
-            "mem_load" => Ok(Token::MemLoad),
-            "mem_loadw" => Ok(Token::MemLoadw),
-            "mem_store" => Ok(Token::MemStore),
-            "mem_storew" => Ok(Token::MemStorew),
-            "mem_stream" => Ok(Token::MemStream),
-            "movdn" => Ok(Token::Movdn),
-            "movdnw" => Ok(Token::Movdnw),
-            "movup" => Ok(Token::Movup),
-            "movupw" => Ok(Token::Movupw),
-            "mtree_get" => Ok(Token::MtreeGet),
-            "mtree_merge" => Ok(Token::MtreeMerge),
-            "mtree_set" => Ok(Token::MtreeSet),
-            "mtree_verify" => Ok(Token::MtreeVerify),
-            "mul" => Ok(Token::Mul),
-            "neg" => Ok(Token::Neg),
-            "neq" => Ok(Token::Neq),
-            "not" => Ok(Token::Not),
-            "or" => Ok(Token::Or),
-            "padw" => Ok(Token::Padw),
-            "pow2" => Ok(Token::Pow2),
-            "proc" => Ok(Token::Proc),
-            "procref" => Ok(Token::Procref),
-            "push" => Ok(Token::Push),
-            "rcomb_base" => Ok(Token::RCombBase),
-            "repeat" => Ok(Token::Repeat),
-            "rpo_falcon512" => Ok(Token::RpoFalcon512),
-            "sdepth" => Ok(Token::Sdepth),
-            "stack" => Ok(Token::Stack),
-            "sub" => Ok(Token::Sub),
-            "swap" => Ok(Token::Swap),
-            "swapw" => Ok(Token::Swapw),
-            "swapdw" => Ok(Token::Swapdw),
-            "syscall" => Ok(Token::Syscall),
-            "trace" => Ok(Token::Trace),
-            "use" => Ok(Token::Use),
-            "u32and" => Ok(Token::U32And),
-            "u32assert" => Ok(Token::U32Assert),
-            "u32assert2" => Ok(Token::U32Assert2),
-            "u32assertw" => Ok(Token::U32Assertw),
-            "u32cast" => Ok(Token::U32Cast),
-            "u32div" => Ok(Token::U32Div),
-            "u32divmod" => Ok(Token::U32Divmod),
-            "u32gt" => Ok(Token::U32Gt),
-            "u32gte" => Ok(Token::U32Gte),
-            "u32lt" => Ok(Token::U32Lt),
-            "u32lte" => Ok(Token::U32Lte),
-            "u32max" => Ok(Token::U32Max),
-            "u32min" => Ok(Token::U32Min),
-            "u32mod" => Ok(Token::U32Mod),
-            "u32not" => Ok(Token::U32Not),
-            "u32or" => Ok(Token::U32Or),
-            "u32overflowing_add" => Ok(Token::U32OverflowingAdd),
-            "u32overflowing_add3" => Ok(Token::U32OverflowingAdd3),
-            "u32overflowing_madd" => Ok(Token::U32OverflowingMadd),
-            "u32overflowing_mul" => Ok(Token::U32OverflowingMul),
-            "u32overflowing_sub" => Ok(Token::U32OverflowingSub),
-            "u32popcnt" => Ok(Token::U32Popcnt),
-            "u32clz" => Ok(Token::U32Clz),
-            "u32ctz" => Ok(Token::U32Ctz),
-            "u32clo" => Ok(Token::U32Clo),
-            "u32cto" => Ok(Token::U32Cto),
-            "u32rotl" => Ok(Token::U32Rotl),
-            "u32rotr" => Ok(Token::U32Rotr),
-            "u32shl" => Ok(Token::U32Shl),
-            "u32shr" => Ok(Token::U32Shr),
-            "u32split" => Ok(Token::U32Split),
-            "u32test" => Ok(Token::U32Test),
-            "u32testw" => Ok(Token::U32Testw),
-            "u32wrapping_add" => Ok(Token::U32WrappingAdd),
-            "u32wrapping_add3" => Ok(Token::U32WrappingAdd3),
-            "u32wrapping_madd" => Ok(Token::U32WrappingMadd),
-            "u32wrapping_mul" => Ok(Token::U32WrappingMul),
-            "u32wrapping_sub" => Ok(Token::U32WrappingSub),
-            "u32xor" => Ok(Token::U32Xor),
-            "while.true" => Ok(Token::While),
-            "xor" => Ok(Token::Xor),
-            "!" => Ok(Token::Bang),
-            "::" => Ok(Token::ColonColon),
-            "." => Ok(Token::Dot),
-            "=" => Ok(Token::Equal),
-            "(" => Ok(Token::Lparen),
-            "-" => Ok(Token::Minus),
-            "+" => Ok(Token::Plus),
-            "//" => Ok(Token::SlashSlash),
-            "/" => Ok(Token::Slash),
-            "*" => Ok(Token::Star),
-            ")" => Ok(Token::Rparen),
-            "->" => Ok(Token::Rstab),
-            "end of file" => Ok(Token::Eof),
-            "module doc" => Ok(Token::DocComment(DocumentationType::Module(String::new()))),
-            "doc comment" => Ok(Token::DocComment(DocumentationType::Form(String::new()))),
-            "hex-encoded value" => Ok(Token::HexValue(HexEncodedValue::U8(0))),
-            "integer" => Ok(Token::Int(0)),
-            "identifier" => Ok(Token::Ident("")),
-            "constant identifier" => Ok(Token::ConstantIdent("")),
-            "quoted identifier" => Ok(Token::QuotedIdent("")),
-            "invalid character" => Ok(Token::Unknown),
-            _ => Err(()),
+    pub fn keyword_searcher() -> aho_corasick::AhoCorasick {
+        use aho_corasick::AhoCorasick;
+
+        // Execute a search for any of the keywords above,
+        // matching longest first, and requiring the match
+        // to cover the entire input.
+        AhoCorasick::builder()
+            .match_kind(aho_corasick::MatchKind::LeftmostLongest)
+            .start_kind(aho_corasick::StartKind::Anchored)
+            .build(Self::KEYWORDS.iter().map(|(kw, _)| kw).copied())
+            .expect("unable to build aho-corasick searcher for token")
+    }
+
+    pub fn from_keyword_or_ident(s: &'input str) -> Self {
+        let searcher = Self::keyword_searcher();
+        Self::from_keyword_or_ident_with_searcher(s, &searcher)
+    }
+
+    pub fn from_keyword_or_ident_with_searcher(
+        s: &'input str,
+        searcher: &aho_corasick::AhoCorasick,
+    ) -> Self {
+        let input = aho_corasick::Input::new(s).anchored(aho_corasick::Anchored::Yes);
+        match searcher.find(input) {
+            // No match, it's an ident
+            None => Token::Ident(s),
+            // If the match is not exact, it's an ident
+            Some(matched) if matched.len() != s.as_bytes().len() => Token::Ident(s),
+            // Otherwise clone the Token corresponding to the keyword that was matched
+            Some(matched) => Self::KEYWORDS[matched.pattern().as_usize()].1.clone(),
+        }
+    }
+
+    pub fn parse(s: &'input str) -> Result<Token<'input>, ()> {
+        match Token::from_keyword_or_ident(s) {
+            Token::Ident(_) => {
+                // Nope, try again
+                match s {
+                    "!" => Ok(Token::Bang),
+                    "::" => Ok(Token::ColonColon),
+                    "." => Ok(Token::Dot),
+                    "=" => Ok(Token::Equal),
+                    "(" => Ok(Token::Lparen),
+                    "-" => Ok(Token::Minus),
+                    "+" => Ok(Token::Plus),
+                    "//" => Ok(Token::SlashSlash),
+                    "/" => Ok(Token::Slash),
+                    "*" => Ok(Token::Star),
+                    ")" => Ok(Token::Rparen),
+                    "->" => Ok(Token::Rstab),
+                    "end of file" => Ok(Token::Eof),
+                    "module doc" => Ok(Token::DocComment(DocumentationType::Module(String::new()))),
+                    "doc comment" => Ok(Token::DocComment(DocumentationType::Form(String::new()))),
+                    "comment" => Ok(Token::Comment),
+                    "hex-encoded value" => Ok(Token::HexValue(HexEncodedValue::U8(0))),
+                    "integer" => Ok(Token::Int(0)),
+                    "identifier" => Ok(Token::Ident("")),
+                    "constant identifier" => Ok(Token::ConstantIdent("")),
+                    "quoted identifier" => Ok(Token::QuotedIdent("")),
+                    _ => Err(()),
+                }
+            }
+            // We matched a keyword
+            token => Ok(token),
         }
     }
 }

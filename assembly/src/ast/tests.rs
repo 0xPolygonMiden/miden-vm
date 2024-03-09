@@ -700,7 +700,7 @@ fn test_ast_parsing_simple_docs() -> Result<(), Report> {
 }
 
 #[test]
-fn test_ast_parsing_module_docs() {
+fn test_ast_parsing_module_docs_valid() {
     let mut context = TestContext::new();
 
     let source = source_file!(

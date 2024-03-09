@@ -267,19 +267,16 @@ impl FromStr for ProcedureName {
     type Err = IdentError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use crate::parser::Token;
-        use logos::Logos;
+        use crate::parser::{Lexer, Scanner, Token};
 
-        let mut lexer = Token::lexer(s)
-            .spanned()
-            .map(|(t, span)| t.map(|t| (span.start as u32, t, span.end as u32)));
+        let scanner = Scanner::new(s);
+        let mut lexer = Lexer::new(scanner);
         let name = match lexer.next() {
             Some(Ok((_, tok, _))) => match tok {
                 Token::Ident(ident) => Arc::from(ident.to_string().into_boxed_str()),
                 Token::QuotedIdent(ident) => Arc::from(ident.to_string().into_boxed_str()),
                 Token::ConstantIdent(_) => return Err(IdentError::Casing(CaseKindError::Snake)),
-                Token::Newline
-                | Token::Bang
+                Token::Bang
                 | Token::ColonColon
                 | Token::Dot
                 | Token::Equal
@@ -292,8 +289,7 @@ impl FromStr for ProcedureName {
                 | Token::Rparen
                 | Token::Rstab
                 | Token::DocComment(_)
-                | Token::Int(_)
-                | Token::Unknown => return Err(IdentError::InvalidChars),
+                | Token::Int(_) => return Err(IdentError::InvalidChars),
                 Token::Eof => return Err(IdentError::Empty),
                 tok => Arc::from(tok.to_string().into_boxed_str()),
             },

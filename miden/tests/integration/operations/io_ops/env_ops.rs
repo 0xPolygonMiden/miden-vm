@@ -1,7 +1,5 @@
 use processor::FMP_MIN;
-use test_utils::{
-    build_op_test, build_test, AdviceInputs, StackInputs, Test, Word, STACK_TOP_SIZE,
-};
+use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
 use vm_core::{code_blocks::CodeBlock, Operation};
 
 // SDEPTH INSTRUCTION
@@ -144,12 +142,9 @@ fn caller() {
 
     // TODO: update and use macro?
     let test = Test {
-        source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap(),
-        advice_inputs: AdviceInputs::default(),
-        in_debug_mode: false,
-        libraries: Vec::default(),
+        ..Test::new(&format!("test{}", line!()), program_source, false)
     };
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
     // element should remain untouched

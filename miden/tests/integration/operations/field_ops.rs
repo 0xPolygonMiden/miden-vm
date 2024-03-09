@@ -186,16 +186,11 @@ fn div_b() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "division by zero",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid constant expression: division by zero",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin div.0 end",
+        "  :       ^^^^^",
+        "  `----"
     );
 
     let test = build_op_test!(build_asm_op(2), &[4]);
@@ -250,16 +245,13 @@ fn neg_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "division by zero",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
+        "unrecognized token",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin neg.1 end",
+        "  :          |",
+        "  :          `-- lexed a . here",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -295,16 +287,13 @@ fn inv_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "division by zero",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
+        "unrecognized token",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin inv.1 end",
+        "  :          |",
+        "  :          `-- lexed a . here",
         "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        r#" help: expected primtive opcode (e.g. "add"), or "end", or control flow opcode (e.g. "if.true")"#
     );
 }
 
@@ -361,12 +350,13 @@ fn exp_bits_length_fail() {
     let pow = 1021; // pow is a 10 bit number
 
     let test = build_op_test!(build_asm_op(9), &[base, pow]);
+
     expect_exec_error!(
         test,
         ExecutionError::FailedAssertion {
             clk: 18,
             err_code: 0,
-            err_msg: None,
+            err_msg: None
         }
     );
 
@@ -379,16 +369,11 @@ fn exp_bits_length_fail() {
 
     assert_assembler_diagnostic!(
         test,
-        "syntax error",
-        "help: see emitted diagnostics for details",
-        "division by zero",
-        regex!(r#",-\[test[\d]+:8:5\]"#),
-        "7 |",
-        "8 |     #! malformed doc",
-        "  :     ^^^^^^^^^^^^^^^^^",
-        "9 |",
-        "  `----",
-        "help: this docstring is immediately followed by at least one empty line, then another"
+        "invalid literal: expected value to be a valid bit size, e.g. 0..63",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin exp.u65 end",
+        "  :            ^^",
+        "  `----"
     );
 }
 

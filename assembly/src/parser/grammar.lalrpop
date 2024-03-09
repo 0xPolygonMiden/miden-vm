@@ -36,23 +36,25 @@ extern {
         quoted_ident => Token::QuotedIdent(<&'input str>),
         hex_value => Token::HexValue(<HexEncodedValue>),
         doc_comment => Token::DocComment(<DocumentationType>),
+        comment => Token::Comment,
         uint => Token::Int(<u64>),
         "add" => Token::Add,
-        "adv.insert_hdword" => Token::AdvInsertHdword,
-        "adv.insert_hperm" => Token::AdvInsertHperm,
-        "adv.insert_mem" => Token::AdvInsertMem,
+        "adv" => Token::Adv,
+        "insert_hdword" => Token::InsertHdword,
+        "insert_hperm" => Token::InsertHperm,
+        "insert_mem" => Token::InsertMem,
         "adv_loadw" => Token::AdvLoadw,
         "adv_pipe" => Token::AdvPipe,
         "adv_push" => Token::AdvPush,
-        "adv.push_ext2intt" => Token::AdvPushExt2intt,
-        "adv.push_mapval" => Token::AdvPushMapval,
-        "adv.push_mapvaln" => Token::AdvPushMapvaln,
-        "adv.push_mtnode" => Token::AdvPushMtnode,
-        "adv.push_sig" => Token::AdvPushSig,
-        "adv.push_smtpeek" => Token::AdvPushSmtpeek,
-        "adv.push_smtget" => Token::AdvPushSmtget,
-        "adv.push_smtset" => Token::AdvPushSmtset,
-        "adv.push_u64div" => Token::AdvPushU64Div,
+        "push_ext2intt" => Token::PushExt2intt,
+        "push_mapval" => Token::PushMapval,
+        "push_mapvaln" => Token::PushMapvaln,
+        "push_mtnode" => Token::PushMtnode,
+        "push_sig" => Token::PushSig,
+        "push_smtpeek" => Token::PushSmtpeek,
+        "push_smtget" => Token::PushSmtget,
+        "push_smtset" => Token::PushSmtset,
+        "push_u64div" => Token::PushU64Div,
         "and" => Token::And,
         "assert" => Token::Assert,
         "assertz" => Token::Assertz,
@@ -97,7 +99,7 @@ extern {
         "hash" => Token::Hash,
         "hperm" => Token::Hperm,
         "hmerge" => Token::Hmerge,
-        "if.true" => Token::If,
+        "if" => Token::If,
         "ilog2" => Token::ILog2,
         "inv" => Token::Inv,
         "is_odd" => Token::IsOdd,
@@ -144,6 +146,7 @@ extern {
         "swapdw" => Token::Swapdw,
         "syscall" => Token::Syscall,
         "trace" => Token::Trace,
+        "true" => Token::True,
         "use" => Token::Use,
         "u32and" => Token::U32And,
         "u32assert" => Token::U32Assert,
@@ -184,7 +187,7 @@ extern {
         "u32wrapping_mul" => Token::U32WrappingMul,
         "u32wrapping_sub" => Token::U32WrappingSub,
         "u32xor" => Token::U32Xor,
-        "while.true" => Token::While,
+        "while" => Token::While,
         "xor" => Token::Xor,
         "!" => Token::Bang,
         "::" => Token::ColonColon,
@@ -344,17 +347,17 @@ Op: SmallOpsVec = {
 }
 
 IfElse: Op = {
-    <l:@L> "if.true" <then_blk:Block> "else" <else_blk:Block> "end" <r:@R> => {
+    <l:@L> "if" "." "true" <then_blk:Block> "else" <else_blk:Block> "end" <r:@R> => {
         Op::If { span: span!(l, r), then_blk, else_blk }
     },
 
-    <l:@L> "if.true" <then_blk:Block> "end" <r:@R> => {
+    <l:@L> "if" "." "true" <then_blk:Block> "end" <r:@R> => {
         Op::If { span: span!(l, r), then_blk, else_blk: Default::default() }
     }
 }
 
 While: Op = {
-    <l:@L> "while.true" <body:Block> "end" <r:@R> => {
+    <l:@L> "while" "." "true" <body:Block> "end" <r:@R> => {
         Op::While { span: span!(l, r), body }
     }
 }
@@ -397,6 +400,7 @@ Inst: Instruction = {
     Assert,
     Call,
     Debug,
+    InstWithFeltImmediate,
     InstWithU32Immediate,
     InstWithBitSizeImmediate,
     InstWithLocalIndex,
@@ -474,27 +478,27 @@ Inst: Instruction = {
 
 #[inline]
 AdviceInjector: Instruction = {
-    "adv.insert_hdword" <domain:MaybeImm<U8>> => {
+    "adv" "." "insert_hdword" <domain:MaybeImm<U8>> => {
         domain.map(|domain| Instruction::AdvInject(AdviceInjectorNode::InsertHdwordImm { domain }))
               .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::InsertHdword))
     },
-    "adv.insert_hperm" => Instruction::AdvInject(AdviceInjectorNode::InsertHperm),
-    "adv.insert_mem" => Instruction::AdvInject(AdviceInjectorNode::InsertMem),
-    "adv.push_ext2intt" => Instruction::AdvInject(AdviceInjectorNode::PushExt2intt),
-    "adv.push_mapval" <i:MaybeImm<StackWordOffset>> => {
+    "adv" "." "insert_hperm" => Instruction::AdvInject(AdviceInjectorNode::InsertHperm),
+    "adv" "." "insert_mem" => Instruction::AdvInject(AdviceInjectorNode::InsertMem),
+    "adv" "." "push_ext2intt" => Instruction::AdvInject(AdviceInjectorNode::PushExt2intt),
+    "adv" "." "push_mapval" <i:MaybeImm<StackWordOffset>> => {
         i.map(|offset| Instruction::AdvInject(AdviceInjectorNode::PushMapValImm { offset }))
          .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::PushMapVal))
     },
-    "adv.push_mapvaln" <i:MaybeImm<StackWordOffset>> => {
+    "adv" "." "push_mapvaln" <i:MaybeImm<StackWordOffset>> => {
         i.map(|offset| Instruction::AdvInject(AdviceInjectorNode::PushMapValNImm { offset }))
          .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::PushMapValN))
     },
-    "adv.push_mtnode" => Instruction::AdvInject(AdviceInjectorNode::PushMtNode),
-    "adv.push_sig" "." <kind:SignatureKind> => Instruction::AdvInject(AdviceInjectorNode::PushSignature { kind }),
-    "adv.push_smtpeek" => Instruction::AdvInject(AdviceInjectorNode::PushSmtPeek),
-    "adv.push_smtget" => Instruction::AdvInject(AdviceInjectorNode::PushSmtGet),
-    "adv.push_smtset" => Instruction::AdvInject(AdviceInjectorNode::PushSmtSet),
-    "adv.push_u64div" => Instruction::AdvInject(AdviceInjectorNode::PushU64Div),
+    "adv" "." "push_mtnode" => Instruction::AdvInject(AdviceInjectorNode::PushMtNode),
+    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::AdvInject(AdviceInjectorNode::PushSignature { kind }),
+    "adv" "." "push_smtpeek" => Instruction::AdvInject(AdviceInjectorNode::PushSmtPeek),
+    "adv" "." "push_smtget" => Instruction::AdvInject(AdviceInjectorNode::PushSmtGet),
+    "adv" "." "push_smtset" => Instruction::AdvInject(AdviceInjectorNode::PushSmtSet),
+    "adv" "." "push_u64div" => Instruction::AdvInject(AdviceInjectorNode::PushU64Div),
 }
 
 #[inline]
@@ -552,8 +556,8 @@ Debug: Instruction = {
             None => Instruction::Debug(DebugOptions::LocalAll),
         }
     },
-    "emit" "." <id:Imm<U32>> => Instruction::Emit(id),
-    "trace" "." <id:Imm<U32>> => Instruction::Trace(id),
+    "emit" <id:Imm<U32>> => Instruction::Emit(id),
+    "trace" <id:Imm<U32>> => Instruction::Trace(id),
 }
 
 #[inline]
@@ -686,7 +690,6 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
     <l:@L> "u32overflowing_add" <imm:MaybeImm<U32>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) if imm == 0 => smallvec![],
             Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32OverflowingAddImm(imm)))],
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32OverflowingAdd))],
         }
@@ -694,7 +697,6 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
     <l:@L> "u32overflowing_sub" <imm:MaybeImm<U32>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) if imm == 0 => smallvec![],
             Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32OverflowingSubImm(imm)))],
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32OverflowingSub))],
         }
@@ -702,8 +704,6 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
     <l:@L> "u32overflowing_mul" <imm:MaybeImm<U32>> <r:@R> => {
         let span = span!(l, r);
         match imm {
-            Some(imm) if imm == 0 => smallvec![Op::Inst(Span::new(span, Instruction::Drop)), Op::Inst(Span::new(span, Instruction::PushU8(0)))],
-            Some(imm) if imm == 1 => smallvec![],
             Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32OverflowingMulImm(imm)))],
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32OverflowingMul))],
         }
@@ -740,6 +740,11 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32Rotr))],
         }
     },
+}
+
+#[inline]
+InstWithFeltImmediate: Instruction = {
+    "exp" <imm:MaybeImm<Felt>> => imm.map(Instruction::ExpImm).unwrap_or(Instruction::Exp),
 }
 
 #[inline]
@@ -788,8 +793,7 @@ InstWithStackIndex: Instruction = {
         3 => Instruction::DupW3,
         _ => unreachable!(),
     },
-    <l:@L> "movdn" <i:("." <ZeroBasedStackIndex>)> <r:@R> =>? Ok(match i {
-        0..=1 => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..16 }}),
+    <l:@L> "movdn" <i:("." <U8>)> <r:@R> =>? Ok(match i {
         2 => Instruction::MovDn2,
         3 => Instruction::MovDn3,
         4 => Instruction::MovDn4,
@@ -804,16 +808,14 @@ InstWithStackIndex: Instruction = {
         13 => Instruction::MovDn13,
         14 => Instruction::MovDn14,
         15 => Instruction::MovDn15,
-        _ => unreachable!(),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..16 }}),
     }),
-    <l:@L> "movdnw" <i:("." <ZeroBasedWordIndex>)> <r:@R> =>? Ok(match i {
-        0..=1 => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..4 }}),
+    <l:@L> "movdnw" <i:("." <U8>)> <r:@R> =>? Ok(match i {
         2 => Instruction::MovDnW2,
         3 => Instruction::MovDnW3,
-        _ => unreachable!(),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..4 }}),
     }),
-    <l:@L> "movup" <i:("." <ZeroBasedStackIndex>)> <r:@R> =>? Ok(match i {
-        0..=1 => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..16 }}),
+    <l:@L> "movup" <i:("." <U8>)> <r:@R> =>? Ok(match i {
         2 => Instruction::MovUp2,
         3 => Instruction::MovUp3,
         4 => Instruction::MovUp4,
@@ -828,16 +830,14 @@ InstWithStackIndex: Instruction = {
         13 => Instruction::MovUp13,
         14 => Instruction::MovUp14,
         15 => Instruction::MovUp15,
-        _ => unreachable!(),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..16 }}),
     }),
-    <l:@L> "movupw" <i:("." <ZeroBasedWordIndex>)> <r:@R> =>? Ok(match i {
-        0..=1 => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..4 }}),
+    <l:@L> "movupw" <i:("." <U8>)> <r:@R> =>? Ok(match i {
         2 => Instruction::MovUpW2,
         3 => Instruction::MovUpW3,
-        _ => unreachable!(),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..4 }}),
     }),
-    <l:@L> "swap" <i:("." <ZeroBasedStackIndex>)?> <r:@R> =>? Ok(match i.unwrap_or(1) {
-        0 => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..16 }}),
+    <l:@L> "swap" <i:("." <U8>)?> <r:@R> =>? Ok(match i.unwrap_or(1) {
         1 => Instruction::Swap1,
         2 => Instruction::Swap2,
         3 => Instruction::Swap3,
@@ -853,20 +853,19 @@ InstWithStackIndex: Instruction = {
         13 => Instruction::Swap13,
         14 => Instruction::Swap14,
         15 => Instruction::Swap15,
-        _ => unreachable!(),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..16 }}),
     }),
-    <l:@L> "swapw" <i:("." <ZeroBasedWordIndex>)?> <r:@R> =>? Ok(match i.unwrap_or(1) {
-        0 => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..4 }}),
+    <l:@L> "swapw" <i:("." <U8>)?> <r:@R> =>? Ok(match i.unwrap_or(1) {
         1 => Instruction::SwapW1,
         2 => Instruction::SwapW2,
         3 => Instruction::SwapW3,
-        _ => unreachable!(),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..4 }}),
     })
 }
 
 #[inline]
 InstWithBitSizeImmediate: Instruction = {
-    "exp.u" <imm:BitSize> => Instruction::ExpBitLength(imm)
+    "exp.u" <imm:BitSize> => Instruction::ExpBitLength(imm),
 }
 
 Push: SmallOpsVec = {
@@ -1040,10 +1039,10 @@ OneBasedWordIndex: u8 = {
 
 BitSize: u8 = {
     <l:@L> <n:U8> <r:@R> =>? {
-        if n.is_power_of_two() {
+        if n < 64 {
             Ok(n)
         } else {
-            Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::InvalidPowerOfTwo } })
+            Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::InvalidBitSize } })
         }
     }
 }
@@ -1186,6 +1185,7 @@ OpcodeName: Ident = {
 
 Opcode: &'static str = {
     "add" => "add",
+    "adv" => "adv",
     "adv_loadw" => "adv_loadw",
     "adv_pipe" => "adv_pipe",
     "adv_push" => "adv_push",
@@ -1225,6 +1225,7 @@ Opcode: &'static str = {
     "err" => "err",
     "exec" => "exec",
     "exp" => "exp",
+    "exp.u" => "exp.u",
     "export" => "export",
     "gt" => "gt",
     "gte" => "gte",

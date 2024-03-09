@@ -17,8 +17,8 @@ pub enum LiteralErrorKind {
     U32Overflow,
     /// The value overflows `Felt::MODULUS`
     FeltOverflow,
-    /// The value was expected to be a power of two, and was not
-    InvalidPowerOfTwo,
+    /// The value was expected to be a value < 63
+    InvalidBitSize,
 }
 impl fmt::Display for LiteralErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -27,8 +27,8 @@ impl fmt::Display for LiteralErrorKind {
             Self::InvalidDigit => f.write_str("invalid digit"),
             Self::U32Overflow => f.write_str("value overflowed the u32 range"),
             Self::FeltOverflow => f.write_str("value overflowed the field modulus"),
-            Self::InvalidPowerOfTwo => {
-                f.write_str("expected value to be a power of two, but it wasn't")
+            Self::InvalidBitSize => {
+                f.write_str("expected value to be a valid bit size, e.g. 0..63")
             }
         }
     }
@@ -95,6 +95,18 @@ pub enum ParsingError {
         #[label("reached end of file here")]
         span: SourceSpan,
         expected: Vec<String>,
+    },
+    #[error("invalid character in identifier")]
+    #[diagnostic(help("bare identifiers must be lowercase alphanumeric with '_', quoted identifiers can include uppercase, as well as '.' and '$'"))]
+    InvalidIdentCharacter {
+        #[label]
+        span: SourceSpan,
+    },
+    #[error("unclosed quoted identifier")]
+    #[diagnostic()]
+    UnclosedQuote {
+        #[label("no match for quotation mark starting here")]
+        start: SourceSpan,
     },
     #[error("too many instructions in a single code block")]
     #[diagnostic()]
@@ -286,7 +298,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                 "hex_value" => return Some("hex-encoded literal".to_string()),
                 "uint" => return Some("integer literal".to_string()),
                 "EOF" => return Some("end of file".to_string()),
-                other => other[1..].strip_suffix('"').and_then(|t| t.parse::<Token<'_>>().ok()),
+                other => other[1..].strip_suffix('"').and_then(|t| Token::parse(t).ok()),
             };
             match tok {
                 Some(Token::If | Token::While | Token::Repeat) => {
