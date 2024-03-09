@@ -98,7 +98,7 @@ impl ProcedureAlias {
 
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         self.name.write_into_with_options(target, options);
-        self.target.write_into(target, options);
+        self.target.write_into_with_options(target, options);
     }
 
     pub fn read_from_with_options<R: ByteReader>(
@@ -106,7 +106,7 @@ impl ProcedureAlias {
         options: AstSerdeOptions,
     ) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from_with_options(source, options)?;
-        let target = FullyQualifiedProcedureName::read_from(source, options)?;
+        let target = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
         Ok(Self {
             source_file: None,
             docs: None,

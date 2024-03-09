@@ -26,11 +26,13 @@ pub enum Pattern {
     Regex(regex::Regex),
 }
 impl Pattern {
+    /// Construct a [Pattern] representing the given regular expression
     #[track_caller]
     pub fn regex(pattern: impl AsRef<str>) -> Self {
         Self::Regex(regex::Regex::new(pattern.as_ref()).expect("invalid regex"))
     }
 
+    /// Check if this pattern matches `input`
     pub fn is_match(&self, input: impl AsRef<str>) -> bool {
         match self {
             Self::Literal(pattern) => input.as_ref().contains(pattern.as_ref()),
@@ -38,6 +40,12 @@ impl Pattern {
         }
     }
 
+    /// Assert that this pattern matches `input`.
+    ///
+    /// This behaves like `assert_eq!` or `assert_matches!`, i.e. it
+    /// will produce a helpful panic message on failure that renders
+    /// the difference between what the pattern expected, and what
+    /// it actually was matched against.
     #[track_caller]
     pub fn assert_match(&self, input: impl AsRef<str>) {
         let input = input.as_ref();
@@ -53,6 +61,8 @@ matched against: `{actual}`
         }
     }
 
+    /// Like [Pattern::assert_match], but renders additional context
+    /// in the case of failure to aid in troubleshooting.
     #[track_caller]
     pub fn assert_match_with_context(&self, input: impl AsRef<str>, context: impl AsRef<str>) {
         let input = input.as_ref();
@@ -106,7 +116,7 @@ macro_rules! regex {
     };
 }
 
-/// Construct an [Arc<SourceFile>] from a string literal or expression,
+/// Construct an [`Arc<SourceFile>`] from a string literal or expression,
 /// such that emitted diagnostics reference the file and line on which
 /// the source file was constructed.
 #[macro_export]

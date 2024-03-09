@@ -33,6 +33,7 @@ pub(crate) use self::procedure_cache::ProcedureCache;
 use self::span_builder::SpanBuilder;
 use self::{callgraph::CallGraph, context::ProcedureContext};
 
+/// Represents the type of artifact produced by an [Assembler]
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ArtifactKind {
@@ -68,17 +69,19 @@ pub enum ArtifactKind {
 /// and whether or not you want to provide a custom kernel.
 ///
 /// By default, an empty kernel is provided. However, you may provide your
-/// own using [with_kernel] or [with_kernel_module]. NOTE: Programs compiled
-/// with an empty kernel cannot use the `syscall` instruction.
+/// own using [Assembler::with_kernel] or [Assembler::with_kernel_from_source].
+///
+/// <div class="warning">Programs compiled with an empty kernel cannot use the `syscall` instruction.</div>
 ///
 /// * If you have a single executable module you want to compile, just call
-/// [compile] or [compile_ast], depending on whether you have source code in
-/// raw or parsed form.
+/// [Assembler::compile] or [Assembler::compile_ast], depending on whether
+/// you have source code in raw or parsed form.
 ///
 /// * If you want to link your executable to a few other modules that implement
-/// supporting procedures, build the assembler with them first, using [with_module],
-/// [with_library], or [with_libraries]. Then, call [compile] or [compile_ast]
-/// to get your compiled program.
+/// supporting procedures, build the assembler with them first, using the various
+/// builder methods on [Assembler], e.g. [Assembler::with_module],
+/// [Assembler::with_library], etc. Then, call [Assembler::compile] or
+/// [Assembler::compile_ast] to get your compiled program.
 ///
 /// # Assembly Contexts
 ///
@@ -86,7 +89,7 @@ pub enum ArtifactKind {
 /// and cached using a single global context. That works fine if you are creating
 /// the assembler and discarding it after you've compiled your program. However,
 /// if you plan to compile multiple distinct programs, you will want to use
-/// [AssemblyContext]s and [compile_in_context].
+/// [AssemblyContext]s and [Assembler::compile_in_context].
 ///
 /// An [AssemblyContext] is essentially a way to isolate the program-specific
 /// elements of a compilation session in a separate cache, so that you avoid
@@ -102,10 +105,17 @@ pub enum ArtifactKind {
 /// that is quite common.
 ///
 /// Each [AssemblyContext] has its own module graph and procedure cache, which
-/// contains only those modules which you add to it. When you call [compile_in_context]
+/// contains only those modules which you add to it. When you call [Assembler::compile_in_context]
 /// with that context, it is merged with the global context, inter-procedural
 /// analysis is performed, and then the compiled objects are cached in the
 /// provided [AssemblyContext], allowing it to be used multiple times if desired.
+///
+/// <div class="warning">The context isolation described above is not currently how
+/// things are implemented, but I believe represent where we will want to ultimately
+/// take the `AssemblyContext` struct. The main obstacle right now is that we don't
+/// have a clear picture of how an `Assembler` will be used, so we want to make
+/// sure that we design the `Assembler` and `AssemblyContext` relationship in
+/// such a way that it plays well with the most common usage patterns.</div>
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler. All new
     /// [AssemblyContext]s inherit this graph as a baseline.
@@ -345,7 +355,7 @@ impl Assembler {
         self.compile_source(source)
     }
 
-    /// Like [compile], but takes a [SourceFile], allowing the caller to provide their
+    /// Like [Assembler::compile], but takes a [SourceFile], allowing the caller to provide their
     /// own file name to be used in diagnostics.
     pub fn compile_source(&mut self, source: Arc<SourceFile>) -> Result<Program, Report> {
         // parse the program into an AST

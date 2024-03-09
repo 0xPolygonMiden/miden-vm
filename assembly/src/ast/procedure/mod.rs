@@ -18,7 +18,10 @@ use crate::{
 };
 use alloc::{string::String, sync::Arc};
 
-/// Represents an exportable entity from a [Module]
+/// Represents an exportable entity from a [super::Module]
+///
+/// Currently only procedures (either locally-defined or re-exported)
+/// are exportable, but in the future this may be expanded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Export {
@@ -45,6 +48,7 @@ impl Spanned for Export {
     }
 }
 impl Export {
+    /// Add documentation to this export
     pub fn with_docs(self, docs: Option<Span<String>>) -> Self {
         match self {
             Self::Procedure(proc) => Self::Procedure(proc.with_docs(docs)),
@@ -52,6 +56,8 @@ impl Export {
         }
     }
 
+    /// Add the source file in which this export was defined, which will allow diagnostics to
+    /// contain source snippets when emitted.
     pub fn with_source_file(self, source_file: Option<Arc<SourceFile>>) -> Self {
         match self {
             Self::Procedure(proc) => Self::Procedure(proc.with_source_file(source_file)),
@@ -59,6 +65,7 @@ impl Export {
         }
     }
 
+    /// Returns the source file in which this export was defined.
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         match self {
             Self::Procedure(ref proc) => proc.source_file(),
@@ -66,6 +73,7 @@ impl Export {
         }
     }
 
+    /// Return the name of the exported procedure
     pub fn name(&self) -> &ProcedureName {
         match self {
             Self::Procedure(ref proc) => proc.name(),
@@ -73,6 +81,7 @@ impl Export {
         }
     }
 
+    /// Return the documentation for this procedure
     pub fn docs(&self) -> Option<&str> {
         match self {
             Self::Procedure(ref proc) => proc.docs().map(|spanned| spanned.as_deref().into_inner()),
@@ -80,6 +89,9 @@ impl Export {
         }
     }
 
+    /// Return the visibility of this procedure (e.g. public or private)
+    ///
+    /// See [Visibility] for more details on what visibilities are supported.
     pub fn visibility(&self) -> Visibility {
         match self {
             Self::Procedure(ref proc) => proc.visibility(),
@@ -87,6 +99,8 @@ impl Export {
         }
     }
 
+    /// Return the number of automatically-allocated words of memory this function requires
+    /// for the storage of temporaries/local variables.
     pub fn num_locals(&self) -> usize {
         match self {
             Self::Procedure(ref proc) => proc.num_locals() as usize,
@@ -94,10 +108,12 @@ impl Export {
         }
     }
 
+    /// Returns true if this procedure is the program entrypoint
     pub fn is_main(&self) -> bool {
         self.name().is_main()
     }
 
+    /// Unwrap this [Export] as a [Procedure], or panic.
     #[track_caller]
     pub fn unwrap_procedure(&self) -> &Procedure {
         match self {
@@ -106,6 +122,10 @@ impl Export {
         }
     }
 
+    /// Get an iterator over the set of other procedures invoked from this procedure.
+    ///
+    /// NOTE: This only applies to [Procedure]s, other types currently return an empty
+    /// iterator whenever called.
     pub(crate) fn invoked(&self) -> impl Iterator<Item = &Invoke> + '_ {
         match self {
             Self::Procedure(ref proc) => proc.invoked(),

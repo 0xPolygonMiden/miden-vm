@@ -119,7 +119,7 @@ macro_rules! expect_exec_error {
     };
 }
 
-/// Like [assert_diagnostic], but matches each non-empty line of the rendered output
+/// Like [assembly::assert_diagnostic], but matches each non-empty line of the rendered output
 /// to a corresponding pattern. So if the output has 3 lines, the second of which is
 /// empty, and you provide 2 patterns, the assertion passes if the first line matches
 /// the first pattern, and the third line matches the second pattern - the second

@@ -82,7 +82,7 @@ impl LibraryNamespace {
         }
     }
 
-    /// Get an [Arc<str>] representing this namespace
+    /// Get an [`Arc<str>`] representing this namespace
     pub fn as_refcounted_str(&self) -> Arc<str> {
         match self {
             Self::User(ref path) => path.clone(),

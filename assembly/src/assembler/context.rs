@@ -8,27 +8,18 @@ use crate::{
 };
 use vm_core::code_blocks::CodeBlock;
 
-/// An [AssemblyContext] is used to contain compilation-session
-/// specific analysis and compilation artifacts, separate from
-/// those maintained by the [Assembler] in its global cache.
+/// An [AssemblyContext] is used to store configuration and state
+/// pertaining to the current compilation of a module/procedure
+/// by an [crate::Assembler].
 ///
-/// The functionality of the [AssemblyContext] is narrow:
+/// The context specifies context-specific configuration, the type
+/// of artifact being compiled, the current module being compiled,
+/// and the current procedure being compiled.
 ///
-/// * You can add modules/libraries to the context to be
-/// used during compilation. Some analysis is performed
-/// when these are added, but the global interprocedural
-/// analysis is done at compilation time.
-///
-/// * You can compile Miden Assembly sources to MASM syntax
-/// trees, and add them to the module graph of the context.
-///
-/// * You can obtain basic information about the contents
-/// of the context.
-///
-/// However, to actually be useful, you must call
-/// [Assembler::compile_with_context], which will initiate compilation
-/// of the module graph consisting of the merged contents of both your
-/// context and the global [Assembler] context.
+/// To provide a custom context, you must compile by invoking the
+/// [crate::Assembler::compile_in_context] API, which will use
+/// the provided context in place of the default one generated internally
+/// by the other `compile`-like APIs.
 #[derive(Default)]
 pub struct AssemblyContext {
     /// What kind of artifact are we assembling

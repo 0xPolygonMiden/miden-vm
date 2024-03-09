@@ -253,68 +253,111 @@ impl Module {
 
 /// Metadata
 impl Module {
+    /// Get the source code for this module, if available
+    ///
+    /// The source code will not be available in the following
+    /// situations:
+    ///
+    /// * The module was constructed in-memory via AST structures,
+    /// and not derived from source code.
+    /// * The module was serialized without debug info, and then
+    /// deserialized. Without debug info, the source code is lost
+    /// when round-tripping through serialization.
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         self.source_file.clone()
     }
 
+    /// Get the name of this specific module, i.e. the last component
+    /// of the [LibraryPath] that represents the fully-qualified name
+    /// of the module, e.g. `u64` in `std::math::u64`
     pub fn name(&self) -> &str {
         self.path.last()
     }
 
-    pub fn docs(&self) -> Option<Span<&str>> {
-        self.docs.as_ref().map(|spanned| spanned.as_deref())
-    }
-
+    /// Get the fully-qualified name of this module, e.g. `std::math::u64`
     pub fn path(&self) -> &LibraryPath {
         &self.path
     }
 
-    pub fn kind(&self) -> ModuleKind {
-        self.kind
-    }
-
-    pub fn is_executable(&self) -> bool {
-        matches!(self.kind, ModuleKind::Executable)
-    }
-
-    pub fn is_kernel(&self) -> bool {
-        matches!(self.kind, ModuleKind::Kernel)
-    }
-
-    pub fn has_entrypoint(&self) -> bool {
-        self.index_of(|p| p.is_main()).is_some()
-    }
-
+    /// Get the namespace of this module, e.g. `std` in `std::math::u64`
     pub fn namespace(&self) -> &LibraryNamespace {
         self.path.namespace()
     }
 
-    /// Check if the module belongs to the provided namespace.
+    /// Returns true if this module belongs to the provided namespace.
     pub fn is_in_namespace(&self, namespace: &LibraryNamespace) -> bool {
         self.path.namespace() == namespace
     }
 
+    /// Get the module documentation for this module, if it was present
+    /// in the source code the module was parsed from
+    pub fn docs(&self) -> Option<Span<&str>> {
+        self.docs.as_ref().map(|spanned| spanned.as_deref())
+    }
+
+    /// Get the type of module this represents:
+    ///
+    /// See [ModuleKind] for details on the different types of modules.
+    pub fn kind(&self) -> ModuleKind {
+        self.kind
+    }
+
+    /// Returns true if this module is an executable module.
+    pub fn is_executable(&self) -> bool {
+        matches!(self.kind, ModuleKind::Executable)
+    }
+
+    /// Returns true if this module is a kernel module.
+    pub fn is_kernel(&self) -> bool {
+        matches!(self.kind, ModuleKind::Kernel)
+    }
+
+    /// Returns true if this module has an entrypoint procedure defined,
+    /// i.e. a `begin`..`end` block.
+    pub fn has_entrypoint(&self) -> bool {
+        self.index_of(|p| p.is_main()).is_some()
+    }
+
+    /// Get an iterator over the procedures defined in this module.
+    ///
+    /// The entity returned is an [Export], which abstracts over locally-
+    /// defined procedures and re-exported procedures from imported modules.
     pub fn procedures(&self) -> core::slice::Iter<'_, Export> {
         self.procedures.iter()
     }
 
+    /// Same as [Module::procedures], but returns mutable references.
     pub fn procedures_mut(&mut self) -> core::slice::IterMut<'_, Export> {
         self.procedures.iter_mut()
     }
 
+    /// Get an iterator over the imports declared in this module.
+    ///
+    /// See [Import] for details on what information is available for imports.
     pub fn imports(&self) -> core::slice::Iter<'_, Import> {
         self.imports.iter()
     }
 
+    /// Get an iterator over the "dependencies" of a module, i.e. what
+    /// library namespaces we expect to find imported procedures in.
+    ///
+    /// For example, if we have imported `std::math::u64`, then we would
+    /// expect to import that module from a [crate::Library] with the
+    /// namespace `std`.
     pub fn dependencies(&self) -> impl Iterator<Item = &LibraryNamespace> {
         self.import_paths().map(|import| import.namespace())
     }
 
+    /// Get the procedure at `index` in this module's procedure table.
+    ///
+    /// The procedure returned may be either a locally-defined procedure,
+    /// or a re-exported procedure. See [Export] for details.
     pub fn get(&self, index: ProcedureIndex) -> Option<&Export> {
         self.procedures.get(index.as_usize())
     }
 
-    /// Get the [ProcedureIndex] for which `predicate` returns true in this module
+    /// Get the [ProcedureIndex] for the first procedure in this module's
+    /// procedure table which returns true for `predicate`.
     pub fn index_of<F>(&self, predicate: F) -> Option<ProcedureIndex>
     where
         F: FnMut(&Export) -> bool,
@@ -322,14 +365,15 @@ impl Module {
         self.procedures.iter().position(predicate).map(ProcedureIndex::new)
     }
 
-    /// Get the [ProcedureIndex] for corresponding to the procedure `name`
-    /// in this module, _if_ the procedure is exported. Use [index_of] if
-    /// you need more flexibility.
+    /// Get the [ProcedureIndex] for the procedure whose name is `name` in
+    /// this module's procedure table, _if_ that procedure is exported.
+    ///
+    /// Non-exported procedures can be retrieved by using [Module::index_of].
     pub fn index_of_name(&self, name: &ProcedureName) -> Option<ProcedureIndex> {
         self.index_of(|p| p.name() == name && p.visibility().is_exported())
     }
 
-    /// Resolves `name` to a procedure within the context of this module
+    /// Resolves `name` to a procedure within the local scope of this module
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         let index =
             self.procedures.iter().position(|p| p.name() == name).map(ProcedureIndex::new)?;
@@ -364,7 +408,7 @@ impl Module {
         self.imports.iter().find(|import| &import.name == module_name)
     }
 
-    /// Same as [resolve_import], but returns a mutable reference to the [Import]
+    /// Same as [Module::resolve_import], but returns a mutable reference to the [Import]
     pub fn resolve_import_mut(&mut self, module_name: &Ident) -> Option<&mut Import> {
         self.imports.iter_mut().find(|import| &import.name == module_name)
     }
@@ -444,7 +488,7 @@ impl Module {
 
     /// Returns a [Module] struct deserialized from the provided bytes.
     ///
-    /// Assumes that the module was encoded using [write_into] or [write_into_with_options]
+    /// Assumes that the module was encoded using [Module::write_into] or [Module::write_into_with_options]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = crate::SliceReader::new(bytes);
         Self::read_from(&mut source)
@@ -499,7 +543,7 @@ impl Serializable for Module {
 impl Deserializable for Module {
     /// Deserialize a [Module] from `source`
     ///
-    /// Assumes that the module was encoded using [write_into] or [write_into_with_options]
+    /// Assumes that the module was encoded using [Serializable::write_into] or [Module::write_into_with_options]
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let options = AstSerdeOptions::read_from(source)?;
         let (span, source_file) = if options.debug_info {
@@ -573,7 +617,7 @@ impl fmt::Debug for Module {
 
 /// Pretty-printed representation of this module as Miden Assembly text format
 ///
-/// NOTE: Delegates to the [PrettyPrint] implementation internally
+/// NOTE: Delegates to the [crate::prettier::PrettyPrint] implementation internally
 #[cfg(feature = "formatter")]
 impl fmt::Display for Module {
     /// Writes this [Module] as formatted MASM code into the formatter.
