@@ -105,7 +105,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
 
     // load program from file and compile
     let program =
-        ProgramFile::read(&params.assembly_file)?.compile(&Debug::Off, libraries.libraries)?;
+        ProgramFile::read(&params.assembly_file)?.compile(&Debug::Off, &libraries.libraries)?;
 
     // load input data from file
     let input_data = InputFile::read(&params.input_file, &params.assembly_file)?;
