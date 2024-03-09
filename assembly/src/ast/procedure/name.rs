@@ -267,36 +267,42 @@ impl FromStr for ProcedureName {
     type Err = IdentError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use crate::parser::{Lexer, Scanner, Token};
-
-        let scanner = Scanner::new(s);
-        let mut lexer = Lexer::new(scanner);
-        let name = match lexer.next() {
-            Some(Ok((_, tok, _))) => match tok {
-                Token::Ident(ident) => Arc::from(ident.to_string().into_boxed_str()),
-                Token::QuotedIdent(ident) => Arc::from(ident.to_string().into_boxed_str()),
-                Token::ConstantIdent(_) => return Err(IdentError::Casing(CaseKindError::Snake)),
-                Token::Bang
-                | Token::ColonColon
-                | Token::Dot
-                | Token::Equal
-                | Token::Lparen
-                | Token::Minus
-                | Token::Plus
-                | Token::SlashSlash
-                | Token::Slash
-                | Token::Star
-                | Token::Rparen
-                | Token::Rstab
-                | Token::DocComment(_)
-                | Token::Int(_) => return Err(IdentError::InvalidChars),
-                Token::Eof => return Err(IdentError::Empty),
-                tok => Arc::from(tok.to_string().into_boxed_str()),
+        let mut chars = s.char_indices();
+        let raw = match chars.next() {
+            None => Err(IdentError::Empty),
+            Some((_, '"')) => loop {
+                if let Some((pos, c)) = chars.next() {
+                    match c {
+                        '"' => {
+                            if chars.next().is_some() {
+                                break Err(IdentError::InvalidChars);
+                            }
+                            let tok = &s[1..pos];
+                            break Ok(Arc::from(tok.to_string().into_boxed_str()));
+                        }
+                        c if c.is_alphanumeric() => continue,
+                        '_' | '$' | '-' | '!' | '?' => continue,
+                        _ => break Err(IdentError::InvalidChars),
+                    }
+                } else {
+                    break Err(IdentError::InvalidChars);
+                }
             },
-            Some(Err(_)) => return Err(IdentError::InvalidChars),
-            None => return Err(IdentError::Empty),
-        };
-        Ok(Self(Ident::new_unchecked(Span::unknown(name))))
+            Some((_, c)) if c.is_ascii_lowercase() || c == '_' || c == '$' => {
+                if chars.as_str().contains(|c| match c {
+                    c if c.is_ascii_alphanumeric() => false,
+                    '_' | '$' => false,
+                    _ => true,
+                }) {
+                    Err(IdentError::InvalidChars)
+                } else {
+                    Ok(Arc::from(s.to_string().into_boxed_str()))
+                }
+            }
+            Some((_, c)) if c.is_ascii_uppercase() => Err(IdentError::Casing(CaseKindError::Snake)),
+            Some(_) => Err(IdentError::InvalidChars),
+        }?;
+        Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
     }
 }
 
