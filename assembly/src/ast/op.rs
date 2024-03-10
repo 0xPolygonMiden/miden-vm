@@ -8,9 +8,8 @@ use crate::{
 
 /// Represents the Miden Assembly instruction set syntax
 ///
-/// This is separate from [Instruction] in order to distinguish
-/// control flow instructions and instructions with block regions
-/// from the rest.
+/// This is separate from [Instruction] in order to distinguish control flow instructions and
+/// instructions with block regions from the rest.
 #[derive(Clone)]
 #[repr(u8)]
 pub enum Op {
@@ -28,9 +27,8 @@ pub enum Op {
     While { span: SourceSpan, body: Block } = 1,
     /// Represents a counter-controlled loop.
     ///
-    /// NOTE: The iteration count must be known at compile-time,
-    /// so this is _not_ used for general `for`-style loops where
-    /// the iteration count is dynamic.
+    /// NOTE: The iteration count must be known at compile-time, so this is _not_ used for general
+    /// `for`-style loops where the iteration count is dynamic.
     Repeat {
         span: SourceSpan,
         count: u32,
@@ -146,6 +144,7 @@ impl crate::prettier::PrettyPrint for Op {
         }
     }
 }
+
 impl fmt::Debug for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -164,7 +163,9 @@ impl fmt::Debug for Op {
         }
     }
 }
+
 impl Eq for Op {}
+
 impl PartialEq for Op {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -198,6 +199,7 @@ impl PartialEq for Op {
         }
     }
 }
+
 impl Spanned for Op {
     fn span(&self) -> SourceSpan {
         match self {

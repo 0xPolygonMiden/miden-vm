@@ -5,19 +5,12 @@ use crate::{
 };
 use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
-// CONSTANT DEFINITIONS
-// ================================================================================================
-//
-
 /// Serialization options for [ModuleAst]. Imports and information about imported procedures are
 /// part of the ModuleAst serialization by default.
 const AST_DEFAULT_SERDE_OPTIONS: AstSerdeOptions = AstSerdeOptions {
     serialize_imports: true,
     debug_info: true,
 };
-
-// LIBRARY IMPLEMENTATION FOR MASL FILES
-// ================================================================================================
 
 /// A concrete implementation of the Library trait. Contains the minimal attributes of a functional
 /// library.
@@ -57,8 +50,10 @@ impl Library for MaslLibrary {
 impl MaslLibrary {
     /// File extension for the Assembly Library.
     pub const LIBRARY_EXTENSION: &'static str = "masl";
+
     /// File extension for the Assembly Module.
     pub const MODULE_EXTENSION: &'static str = "masm";
+
     /// Name of the root module.
     pub const MOD: &'static str = "mod";
 
@@ -284,6 +279,7 @@ struct WalkLibrary<'a> {
     root: &'a std::path::Path,
     stack: alloc::collections::VecDeque<std::io::Result<std::fs::DirEntry>>,
 }
+
 #[cfg(feature = "std")]
 impl<'a> WalkLibrary<'a> {
     fn new(namespace: LibraryNamespace, path: &'a std::path::Path) -> std::io::Result<Self> {
@@ -352,6 +348,7 @@ impl<'a> WalkLibrary<'a> {
         }))
     }
 }
+
 #[cfg(feature = "std")]
 impl<'a> Iterator for WalkLibrary<'a> {
     type Item = Result<LibraryEntry, crate::diagnostics::Report>;
@@ -384,6 +381,7 @@ impl Serializable for MaslLibrary {
     }
 }
 
+/// Serialization
 impl MaslLibrary {
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         self.namespace.write_into(target);

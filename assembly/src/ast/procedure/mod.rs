@@ -20,8 +20,8 @@ use alloc::{string::String, sync::Arc};
 
 /// Represents an exportable entity from a [super::Module]
 ///
-/// Currently only procedures (either locally-defined or re-exported)
-/// are exportable, but in the future this may be expanded.
+/// Currently only procedures (either locally-defined or re-exported) are exportable, but in the
+/// future this may be expanded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Export {
@@ -30,23 +30,7 @@ pub enum Export {
     /// An alias for an externally-defined procedure, i.e. a re-exported import
     Alias(ProcedureAlias) = 1,
 }
-#[cfg(feature = "formatter")]
-impl crate::prettier::PrettyPrint for Export {
-    fn render(&self) -> crate::prettier::Document {
-        match self {
-            Self::Procedure(ref proc) => proc.render(),
-            Self::Alias(ref proc) => proc.render(),
-        }
-    }
-}
-impl Spanned for Export {
-    fn span(&self) -> SourceSpan {
-        match self {
-            Self::Procedure(ref spanned) => spanned.span(),
-            Self::Alias(ref spanned) => spanned.span(),
-        }
-    }
-}
+
 impl Export {
     /// Add documentation to this export
     pub fn with_docs(self, docs: Option<Span<String>>) -> Self {
@@ -162,5 +146,24 @@ impl Export {
         // primitive representation with #[repr(u8)], with the first
         // field of the underlying union-of-structs the discriminant
         unsafe { *<*const _>::from(self).cast::<u8>() }
+    }
+}
+
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Export {
+    fn render(&self) -> crate::prettier::Document {
+        match self {
+            Self::Procedure(ref proc) => proc.render(),
+            Self::Alias(ref proc) => proc.render(),
+        }
+    }
+}
+
+impl Spanned for Export {
+    fn span(&self) -> SourceSpan {
+        match self {
+            Self::Procedure(ref spanned) => spanned.span(),
+            Self::Alias(ref spanned) => spanned.span(),
+        }
     }
 }

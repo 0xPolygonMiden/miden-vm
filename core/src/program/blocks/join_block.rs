@@ -72,6 +72,7 @@ impl crate::prettier::PrettyPrint for Join {
         ) + nl() + const_text("end")
     }
 }
+
 #[cfg(feature = "formatter")]
 impl fmt::Display for Join {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -79,6 +80,7 @@ impl fmt::Display for Join {
         self.pretty_print(f)
     }
 }
+
 #[cfg(not(feature = "formatter"))]
 impl fmt::Display for Join {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

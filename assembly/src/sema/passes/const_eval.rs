@@ -5,14 +5,17 @@ use crate::{
 };
 use core::ops::ControlFlow;
 
+/// This visitor evaluates all constant expressions and folds them to literals.
 pub struct ConstEvalVisitor<'analyzer> {
     analyzer: &'analyzer mut AnalysisContext,
 }
+
 impl<'analyzer> ConstEvalVisitor<'analyzer> {
     pub fn new(analyzer: &'analyzer mut AnalysisContext) -> Self {
         Self { analyzer }
     }
 }
+
 impl<'analyzer> ConstEvalVisitor<'analyzer> {
     fn eval_const<T>(&mut self, imm: &mut Immediate<T>) -> ControlFlow<()>
     where
@@ -40,6 +43,7 @@ impl<'analyzer> ConstEvalVisitor<'analyzer> {
         }
     }
 }
+
 impl<'analyzer> VisitMut for ConstEvalVisitor<'analyzer> {
     fn visit_mut_immediate_u8(&mut self, imm: &mut Immediate<u8>) -> ControlFlow<()> {
         self.eval_const(imm)

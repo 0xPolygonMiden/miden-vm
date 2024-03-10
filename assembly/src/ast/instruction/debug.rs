@@ -35,12 +35,14 @@ impl DebugOptions {
         unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for DebugOptions {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)
     }
 }
+
 impl TryFrom<DebugOptions> for vm_core::DebugOptions {
     type Error = ();
 
@@ -61,6 +63,7 @@ impl TryFrom<DebugOptions> for vm_core::DebugOptions {
         }
     }
 }
+
 impl fmt::Display for DebugOptions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

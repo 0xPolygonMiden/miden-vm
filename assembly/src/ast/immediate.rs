@@ -4,10 +4,13 @@ use crate::{ast::Ident, Felt, SourceSpan, Span, Spanned};
 
 /// An 8-bit unsigned immediate
 pub type ImmU8 = Immediate<u8>;
+
 /// A 16-bit unsigned immediate
 pub type ImmU16 = Immediate<u16>;
+
 /// A 32-bit unsigned immediate
 pub type ImmU32 = Immediate<u32>;
+
 /// A field element immediate
 pub type ImmFelt = Immediate<Felt>;
 
@@ -70,16 +73,19 @@ impl<T> Spanned for Immediate<T> {
         }
     }
 }
+
 impl<T> From<T> for Immediate<T> {
     fn from(value: T) -> Self {
         Self::Value(Span::unknown(value))
     }
 }
+
 impl<T> From<Span<T>> for Immediate<T> {
     fn from(value: Span<T>) -> Self {
         Self::Value(value)
     }
 }
+
 impl<T: Clone> Clone for Immediate<T> {
     fn clone(&self) -> Self {
         match self {
@@ -88,7 +94,9 @@ impl<T: Clone> Clone for Immediate<T> {
         }
     }
 }
+
 impl<T: Eq> Eq for Immediate<T> {}
+
 impl<T: PartialEq> PartialEq for Immediate<T> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -98,6 +106,7 @@ impl<T: PartialEq> PartialEq for Immediate<T> {
         }
     }
 }
+
 impl<T: PartialEq> PartialEq<T> for Immediate<T> {
     fn eq(&self, other: &T) -> bool {
         match self {
@@ -106,6 +115,7 @@ impl<T: PartialEq> PartialEq<T> for Immediate<T> {
         }
     }
 }
+
 impl<T: fmt::Debug> fmt::Debug for Immediate<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -115,6 +125,7 @@ impl<T: fmt::Debug> fmt::Debug for Immediate<T> {
         }
     }
 }
+
 impl<T: fmt::Display> fmt::Display for Immediate<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -123,6 +134,7 @@ impl<T: fmt::Display> fmt::Display for Immediate<T> {
         }
     }
 }
+
 #[cfg(feature = "formatter")]
 impl<T: crate::prettier::PrettyPrint> crate::prettier::PrettyPrint for Immediate<T> {
     fn render(&self) -> crate::prettier::Document {

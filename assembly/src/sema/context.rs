@@ -17,6 +17,7 @@ pub struct AnalysisContext {
     procedures: BTreeSet<ProcedureName>,
     errors: Vec<SemanticAnalysisError>,
 }
+
 impl AnalysisContext {
     pub fn new(source_code: Arc<SourceFile>, kind: ModuleKind, path: LibraryPath) -> Self {
         let module = Box::new(Module::new(kind, path).with_source_file(Some(source_code.clone())));

@@ -111,6 +111,7 @@ impl<'a> PrettyPrint for alloc::borrow::Cow<'a, str> {
 }
 
 struct Prettier<'a, P: ?Sized + PrettyPrint>(&'a P);
+
 impl<'a, P: ?Sized + PrettyPrint> fmt::Display for Prettier<'a, P> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.pretty_print(f)

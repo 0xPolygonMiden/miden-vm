@@ -194,6 +194,7 @@ impl crate::prettier::PrettyPrint for Span {
         single_line | multi_line
     }
 }
+
 #[cfg(feature = "formatter")]
 impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -201,6 +202,7 @@ impl fmt::Display for Span {
         self.pretty_print(f)
     }
 }
+
 #[cfg(not(feature = "formatter"))]
 impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

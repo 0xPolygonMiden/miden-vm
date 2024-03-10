@@ -268,6 +268,7 @@ pub enum OpCode {
     While,
     // NOTE: If any further variants are added here, make sure you update the `MAX_DISCRIMINANT` constant
 }
+
 impl OpCode {
     const MAX_DISCRIMINANT: u8 = Self::While as u8;
 }

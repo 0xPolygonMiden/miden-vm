@@ -19,11 +19,13 @@ pub struct Invoke {
     pub kind: InvokeKind,
     pub target: InvocationTarget,
 }
+
 impl Spanned for Invoke {
     fn span(&self) -> SourceSpan {
         self.target.span()
     }
 }
+
 impl Invoke {
     pub fn new(kind: InvokeKind, target: InvocationTarget) -> Self {
         Self { kind, target }
@@ -45,25 +47,23 @@ impl Invoke {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum InvocationTarget {
-    /// An absolute procedure reference, but opaque in that
-    /// we do not know where the callee is defined. However,
-    /// it does not actually matter, we consider such references
-    /// to be _a priori_ valid.
+    /// An absolute procedure reference, but opaque in that we do not know where the callee is
+    /// defined. However, it does not actually matter, we consider such references to be _a priori_
+    /// valid.
     MastRoot(Span<RpoDigest>) = 0,
     /// A locally-defined procedure
     ProcedureName(ProcedureName) = 1,
-    /// A context-sensitive procedure path, which
-    /// references the name of an import in the containing
+    /// A context-sensitive procedure path, which references the name of an import in the containing
     /// module.
     ProcedurePath { name: ProcedureName, module: Ident } = 2,
-    /// A fully-resolved procedure path, which refers
-    /// to a specific externally-defined procedure
+    /// A fully-resolved procedure path, which refers to a specific externally-defined procedure
     /// with its full path
     AbsoluteProcedurePath {
         name: ProcedureName,
         path: LibraryPath,
     } = 3,
 }
+
 impl Spanned for InvocationTarget {
     fn span(&self) -> SourceSpan {
         match self {
@@ -75,6 +75,7 @@ impl Spanned for InvocationTarget {
         }
     }
 }
+
 impl InvocationTarget {
     fn tag(&self) -> u8 {
         // SAFETY: This is safe because we have given this enum a
@@ -83,6 +84,7 @@ impl InvocationTarget {
         unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }
+
 impl Serializable for InvocationTarget {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u8(self.tag());
@@ -104,6 +106,7 @@ impl Serializable for InvocationTarget {
         }
     }
 }
+
 impl Deserializable for InvocationTarget {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {

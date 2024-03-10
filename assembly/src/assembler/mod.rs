@@ -39,24 +39,21 @@ use self::{callgraph::CallGraph, context::ProcedureContext};
 pub enum ArtifactKind {
     /// Produce an executable program.
     ///
-    /// This is the default artifact produced by the assembler,
-    /// and is the only artifact that is useful on its own.
+    /// This is the default artifact produced by the assembler, and is the only artifact that is
+    /// useful on its own.
     #[default]
     Executable,
     /// Produce a MAST library
     ///
-    /// The assembler will produce MAST in binary form which can
-    /// be packaged and distributed. These artifacts can then be
-    /// loaded by the VM with an executable program that references
-    /// the contents of the library, without having to compile them
-    /// together.
+    /// The assembler will produce MAST in binary form which can be packaged and distributed.
+    /// These artifacts can then be loaded by the VM with an executable program that references
+    /// the contents of the library, without having to compile them together.
     Library,
     /// Produce a MAST kernel module
     ///
-    /// The assembler will produce MAST for a kernel module, which is
-    /// essentially the same as `Library`, however additional constraints
-    /// are imposed on compilation to ensure that the produced kernel is
-    /// valid.
+    /// The assembler will produce MAST for a kernel module, which is essentially the same as
+    /// [crate::Library], however additional constraints are imposed on compilation to ensure that
+    /// the produced kernel is valid.
     Kernel,
 }
 
@@ -65,57 +62,54 @@ pub enum ArtifactKind {
 ///
 /// # Usage
 ///
-/// Depending on your needs, there are multiple ways of using the assembler,
-/// and whether or not you want to provide a custom kernel.
+/// Depending on your needs, there are multiple ways of using the assembler, and whether or not you
+/// want to provide a custom kernel.
 ///
-/// By default, an empty kernel is provided. However, you may provide your
-/// own using [Assembler::with_kernel] or [Assembler::with_kernel_from_source].
+/// By default, an empty kernel is provided. However, you may provide your own using
+/// [Assembler::with_kernel] or [Assembler::with_kernel_from_source].
 ///
-/// <div class="warning">Programs compiled with an empty kernel cannot use the `syscall` instruction.</div>
+/// <div class="warning">
+/// Programs compiled with an empty kernel cannot use the `syscall` instruction.
+/// </div>
 ///
-/// * If you have a single executable module you want to compile, just call
-/// [Assembler::compile] or [Assembler::compile_ast], depending on whether
-/// you have source code in raw or parsed form.
+/// * If you have a single executable module you want to compile, just call [Assembler::compile] or
+/// [Assembler::compile_ast], depending on whether you have source code in raw or parsed form.
 ///
-/// * If you want to link your executable to a few other modules that implement
-/// supporting procedures, build the assembler with them first, using the various
-/// builder methods on [Assembler], e.g. [Assembler::with_module],
-/// [Assembler::with_library], etc. Then, call [Assembler::compile] or
-/// [Assembler::compile_ast] to get your compiled program.
+/// * If you want to link your executable to a few other modules that implement supporting
+/// procedures, build the assembler with them first, using the various builder methods on
+/// [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
+/// [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
 ///
 /// # Assembly Contexts
 ///
-/// Using the instructions above, all of the code you provide will be compiled
-/// and cached using a single global context. That works fine if you are creating
-/// the assembler and discarding it after you've compiled your program. However,
-/// if you plan to compile multiple distinct programs, you will want to use
-/// [AssemblyContext]s and [Assembler::compile_in_context].
+/// Using the instructions above, all of the code you provide will be compiled and cached using a
+/// single global context. That works fine if you are creating the assembler and discarding it after
+/// you've compiled your program. However, if you plan to compile multiple distinct programs, you
+/// will want to use [AssemblyContext]s and [Assembler::compile_in_context].
 ///
-/// An [AssemblyContext] is essentially a way to isolate the program-specific
-/// elements of a compilation session in a separate cache, so that you avoid
-/// polluting the global cache with a bunch of objects from multiple programs,
-/// causing analysis to become more expensive. By isolating those in a context-
-/// specific cache, you have more fine control over how things are cached.
+/// An [AssemblyContext] is essentially a way to isolate the program-specific elements of a
+/// compilation session in a separate cache, so that you avoid polluting the global cache with a
+/// bunch of objects from multiple programs, causing analysis to become more expensive. By isolating
+/// those in a context-specific cache, you have more fine control over how things are cached.
 ///
-/// More precisely, the [Assembler] has a global module graph and procedure
-/// cache, which it uses to perform analysis during compilation, and to avoid
-/// redundantly compiling the same procedures for every program. Any modules
-/// you add to the global context will be inherited by _all_ contexts. This
-/// is where you will cache the kernel, standard libraries, anything else
-/// that is quite common.
+/// More precisely, the [Assembler] has a global module graph and procedure cache, which it uses to
+/// perform analysis during compilation, and to avoid redundantly compiling the same procedures for
+/// every program. Any modules you add to the global context will be inherited by _all_ contexts.
+/// This is where you will cache the kernel, standard libraries, anything else that is quite common.
 ///
-/// Each [AssemblyContext] has its own module graph and procedure cache, which
-/// contains only those modules which you add to it. When you call [Assembler::compile_in_context]
-/// with that context, it is merged with the global context, inter-procedural
-/// analysis is performed, and then the compiled objects are cached in the
-/// provided [AssemblyContext], allowing it to be used multiple times if desired.
+/// Each [AssemblyContext] has its own module graph and procedure cache, which contains only those
+/// modules which you add to it. When you call [Assembler::compile_in_context] with that context, it
+/// is merged with the global context, inter-procedural analysis is performed, and then the compiled
+/// objects are cached in the provided [AssemblyContext], allowing it to be used multiple times if
+/// desired.
 ///
-/// <div class="warning">The context isolation described above is not currently how
-/// things are implemented, but I believe represent where we will want to ultimately
-/// take the `AssemblyContext` struct. The main obstacle right now is that we don't
-/// have a clear picture of how an `Assembler` will be used, so we want to make
-/// sure that we design the `Assembler` and `AssemblyContext` relationship in
-/// such a way that it plays well with the most common usage patterns.</div>
+/// <div class="warning">
+/// The context isolation described above is not currently how things are implemented, but I believe
+/// represent where we will want to ultimately take the `AssemblyContext` struct. The main obstacle
+/// right now is that we don't have a clear picture of how an `Assembler` will be used, so we want
+/// to make sure that we design the `Assembler` and `AssemblyContext` relationship in such a way
+/// that it plays well with the most common usage patterns.
+/// </div>
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler. All new
     /// [AssemblyContext]s inherit this graph as a baseline.
@@ -127,6 +121,7 @@ pub struct Assembler {
     /// Whether the assembler allows unknown invocation targets in compiled code
     allow_phantom_calls: bool,
 }
+
 impl Default for Assembler {
     fn default() -> Self {
         Self {
@@ -137,6 +132,7 @@ impl Default for Assembler {
         }
     }
 }
+
 impl Assembler {
     /// Start building an [Assembler]
     pub fn new() -> Self {
@@ -155,9 +151,10 @@ impl Assembler {
         self.module_graph.kernel()
     }
 
-    /// Returns the [ModuleIndex] of the kernel module, if the kernel was provided
-    /// in source form to the assembler. This returns None when the kernel was
-    /// provided in precompiled form.
+    /// Returns the [ModuleIndex] of the kernel module, if the kernel was provided in source form
+    /// to the assembler.
+    ///
+    /// This returns None when the kernel was provided in precompiled form.
     fn kernel_index(&self) -> Option<ModuleIndex> {
         self.module_graph.kernel_index()
     }
@@ -450,9 +447,15 @@ impl Assembler {
             )));
         }
         match context.kind() {
-            ArtifactKind::Executable => return Err(Report::msg("invalid context: expected context configured for library or kernel modules")),
-            ArtifactKind::Kernel if !module.is_kernel() => return Err(Report::msg("invalid context: cannot compile a kernel with a context configured for library compilation")),
-            ArtifactKind::Library if module.is_kernel() => return Err(Report::msg("invalid context: cannot compile a library with a context configured for kernel compilation")),
+            ArtifactKind::Executable => return Err(Report::msg(
+                "invalid context: expected context configured for library or kernel modules"
+            )),
+            ArtifactKind::Kernel if !module.is_kernel() => return Err(Report::msg(
+                "invalid context: cannot compile a kernel with a context configured for library compilation"
+            )),
+            ArtifactKind::Library if module.is_kernel() => return Err(Report::msg(
+                "invalid context: cannot compile a library with a context configured for kernel compilation"
+            )),
             ArtifactKind::Kernel | ArtifactKind::Library => (),
         }
 
@@ -526,17 +529,23 @@ impl Assembler {
                     self.module_graph.find(alias.source_file(), alias.target())?
                 }
             };
-            let proc = self.procedure_cache
-                .get(gid)
-                .unwrap_or_else(|| match procedure {
-                    Export::Procedure(ref proc) => {
-                        panic!("compilation apparently succeeded, but did not find a entry in the procedure cache for '{}'", proc.name())
-                    }
-                    Export::Alias(ref alias) => {
-                        panic!("compilation apparently succeeded, but did not find a entry in the procedure cache for alias '{}', i.e. '{}'",
-                            alias.name(), alias.target());
-                    }
-                });
+            let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
+                Export::Procedure(ref proc) => {
+                    panic!(
+                        "compilation apparently succeeded, but did not find a \
+                                entry in the procedure cache for '{}'",
+                        proc.name()
+                    )
+                }
+                Export::Alias(ref alias) => {
+                    panic!(
+                        "compilation apparently succeeded, but did not find a \
+                                entry in the procedure cache for alias '{}', i.e. '{}'",
+                        alias.name(),
+                        alias.target()
+                    );
+                }
+            });
 
             exports.push(proc.code().hash());
         }

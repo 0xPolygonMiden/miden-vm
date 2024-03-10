@@ -5,19 +5,37 @@ use alloc::{
 
 use super::{GlobalProcedureIndex, ModuleIndex};
 
+/// Represents the inability to construct a topological ordering of the nodes in a [CallGraph]
+/// due to a cycle in the graph, which can happen due to recursion.
 #[derive(Debug)]
 pub struct CycleError(BTreeSet<GlobalProcedureIndex>);
+
 impl CycleError {
     pub fn into_node_ids(self) -> impl ExactSizeIterator<Item = GlobalProcedureIndex> {
         self.0.into_iter()
     }
 }
 
+/// A [CallGraph] is a directed, acyclic graph which represents all of the edges between
+/// procedures formed by a caller/callee relationship.
+///
+/// More precisely, this graph can be used to perform the following analyses:
+///
+/// * What is the maximum call stack depth for a program?
+/// * Are there any recursive procedure calls?
+/// * Are there procedures which are unreachable from the program entrypoint?, i.e. dead code
+/// * What is the set of procedures which are reachable from a given procedure, and which of
+/// those are (un)conditionally called?
+///
+/// A [CallGraph] is the actual graph underpinning the [ModuleGraph] data structure, and the
+/// two are intrinsically linked to one another (i.e. a [CallGraph] is meaningless without
+/// the corresponding [ModuleGraph]).
 #[derive(Default, Clone)]
 pub struct CallGraph {
     /// The adjacency matrix for procedures in the call graph
     nodes: BTreeMap<GlobalProcedureIndex, Vec<GlobalProcedureIndex>>,
 }
+
 impl CallGraph {
     /// Get the set of edges from the given caller to its callees in the graph
     pub fn out_edges(&self, gid: GlobalProcedureIndex) -> &[GlobalProcedureIndex] {
@@ -26,8 +44,8 @@ impl CallGraph {
 
     /// Inserts a node in the graph for `id`, if not already present.
     ///
-    /// Returns the set of [ProcedureId] which are the outbound neighbors
-    /// of `id` in the graph, i.e. the callees of a call-like instruction.
+    /// Returns the set of [ProcedureId] which are the outbound neighbors of `id` in the graph,
+    /// i.e. the callees of a call-like instruction.
     pub fn get_or_insert_node(
         &mut self,
         id: GlobalProcedureIndex,
@@ -37,13 +55,12 @@ impl CallGraph {
 
     /// Add an edge in the call graph from `caller` to `callee`.
     ///
-    /// If introducing this edge will cause a cycle in the graph,
-    /// then `Err` is returned, and the edge is not added.
+    /// If introducing this edge will cause a cycle in the graph, then `Err` is returned, and
+    /// the edge is not added.
     ///
-    /// NOTE: This function performs a topological sort of the graph
-    /// to perform the cycle check, which can be expensive. If you need
-    /// to add many edges at once, use [add_edge_unchecked], and then
-    /// when ready, call [toposort] to verify that there are no cycles.
+    /// NOTE: This function performs a topological sort of the graph to perform the cycle check,
+    /// which can be expensive. If you need to add many edges at once, use [add_edge_unchecked], and
+    /// then when ready, call [toposort] to verify that there are no cycles.
     #[allow(unused)]
     pub fn add_edge(
         &mut self,
@@ -69,11 +86,10 @@ impl CallGraph {
 
     /// Add an edge in the call graph from `caller` to `callee`.
     ///
-    /// This version differs from [add_edge], in that no cycle check is performed,
-    /// which is useful when constructing the graph in bulk, and validating at the
-    /// end. However, it is essential that after adding an edge using this API,
-    /// that you at some point prior to compilation, check the validity of the
-    /// graph using [toposort].
+    /// This version differs from [add_edge], in that no cycle check is performed, which is useful
+    /// when constructing the graph in bulk, and validating at the end. However, it is essential
+    /// that after adding an edge using this API, that you at some point prior to compilation,
+    /// check the validity of the graph using [toposort].
     pub fn add_edge_unchecked(
         &mut self,
         caller: GlobalProcedureIndex,
@@ -95,12 +111,10 @@ impl CallGraph {
 
     /// Removes all edges to/from a procedure in `module`
     ///
-    /// NOTE: If a procedure that is removed has predecessors (callers)
-    /// in the graph, this will remove those edges, and the graph will
-    /// be incomplete and not reflect the "true" call graph. In practice,
-    /// we are recomputing the graph after making such modifications, so
-    /// this a temporary state of affairs - still, it is important to be
-    /// aware of this behavior.
+    /// NOTE: If a procedure that is removed has predecessors (callers) in the graph, this will
+    /// remove those edges, and the graph will be incomplete and not reflect the "true" call graph.
+    /// In practice, we are recomputing the graph after making such modifications, so this a
+    /// temporary state of affairs - still, it is important to be aware of this behavior.
     pub fn remove_edges_for_module(&mut self, module: ModuleIndex) {
         for (_, out_edges) in self.nodes.iter_mut() {
             out_edges.retain(|gid| gid.module != module);

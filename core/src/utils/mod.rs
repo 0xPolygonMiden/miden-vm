@@ -38,6 +38,7 @@ use std::{
 pub struct WriteAdapter<'a> {
     writer: std::io::BufWriter<&'a mut dyn std::io::Write>,
 }
+
 #[cfg(feature = "std")]
 impl<'a> WriteAdapter<'a> {
     pub fn new(writer: &'a mut dyn std::io::Write) -> Self {
@@ -46,12 +47,14 @@ impl<'a> WriteAdapter<'a> {
         }
     }
 }
+
 #[cfg(feature = "std")]
 impl<'a> Drop for WriteAdapter<'a> {
     fn drop(&mut self) {
         self.writer.flush().expect("flush failed");
     }
 }
+
 #[cfg(feature = "std")]
 impl<'a> ByteWriter for WriteAdapter<'a> {
     fn write_u8(&mut self, byte: u8) {
@@ -487,18 +490,21 @@ pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
 /// A display helper for formatting a slice of bytes as hex
 /// with different options using Rust's builtin format language
 pub struct DisplayHex<'a>(pub &'a [u8]);
+
 impl<'a> fmt::Display for DisplayHex<'a> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::LowerHex::fmt(self, f)
     }
 }
+
 #[cfg(feature = "formatter")]
 impl<'a> crate::prettier::PrettyPrint for DisplayHex<'a> {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::text(format!("{:#x}", self))
     }
 }
+
 impl<'a> fmt::LowerHex for DisplayHex<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {

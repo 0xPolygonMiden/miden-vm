@@ -10,6 +10,7 @@ pub enum ResolvedProcedure {
     /// The name was resolved to a procedure exported from another module
     External(FullyQualifiedProcedureName),
 }
+
 impl Spanned for ResolvedProcedure {
     fn span(&self) -> SourceSpan {
         match self {
@@ -25,7 +26,9 @@ pub struct LocalNameResolver {
     resolved: BTreeMap<ProcedureName, ProcedureIndex>,
     resolutions: Vec<ResolvedProcedure>,
 }
+
 impl LocalNameResolver {
+    /// Try to resolve `name` as a procedure
     pub fn resolve(&self, name: &ProcedureName) -> Option<ResolvedProcedure> {
         self.resolved
             .get(name)
@@ -33,10 +36,14 @@ impl LocalNameResolver {
             .map(|index| self.resolutions[index.as_usize()].clone())
     }
 
+    /// Try to resolve `name` to an imported module, returning the [LibraryPath] of that module.
     pub fn resolve_import(&self, name: &Ident) -> Option<Span<&LibraryPath>> {
         self.imports.get(name).map(|spanned| spanned.as_ref())
     }
 
+    /// Get the name of the procedure at `index`
+    ///
+    /// This is guaranteed to resolve if `index` is valid, and will panic if not.
     pub fn get_name(&self, index: ProcedureIndex) -> &ProcedureName {
         self.resolved
             .iter()
@@ -44,6 +51,7 @@ impl LocalNameResolver {
             .expect("invalid procedure index")
     }
 
+    /// Extend the set of imports this resolver knows about.
     pub fn with_imports<I>(mut self, imports: I) -> Self
     where
         I: IntoIterator<Item = (Ident, Span<LibraryPath>)>,
@@ -52,7 +60,9 @@ impl LocalNameResolver {
         self
     }
 }
+
 impl FromIterator<(ProcedureName, ResolvedProcedure)> for LocalNameResolver {
+    /// Construct a [LocalNameResolver] from an iterator of resolved names.
     fn from_iter<T>(iter: T) -> Self
     where
         T: IntoIterator<Item = (ProcedureName, ResolvedProcedure)>,

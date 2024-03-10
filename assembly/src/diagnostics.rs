@@ -8,12 +8,19 @@ use core::{fmt, ops::Range};
 
 pub type SourceFile = NamedSource<alloc::string::String>;
 
+/// Represents a diagnostic label.
+///
+/// A label is a source span and optional diagnostic text that should be laid out
+/// next to the source snippet.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Label {
     span: miette::SourceSpan,
     label: Option<Cow<'static, str>>,
 }
+
 impl Label {
+    /// Construct a label for the given range of bytes, expressible as any type
+    /// which can be converted to a [`Range<usize>`], e.g. [SourceSpan].
     pub fn at<R>(range: R) -> Self
     where
         Range<usize>: From<R>,
@@ -25,6 +32,7 @@ impl Label {
         }
     }
 
+    /// Construct a label which points to a specific offset in the source file.
     pub fn point<L>(at: usize, label: L) -> Self
     where
         Cow<'static, str>: From<L>,
@@ -35,6 +43,7 @@ impl Label {
         }
     }
 
+    /// Construct a label from the given source range and diagnostic text.
     pub fn new<R, L>(range: R, label: L) -> Self
     where
         Range<usize>: From<R>,
@@ -47,16 +56,19 @@ impl Label {
         }
     }
 
+    /// Returns the diagnostic text, the actual "label", for this label.
     pub fn label(&self) -> Option<&str> {
         self.label.as_deref()
     }
 }
+
 impl From<Label> for miette::SourceSpan {
     #[inline(always)]
     fn from(label: Label) -> Self {
         label.span
     }
 }
+
 impl From<Label> for LabeledSpan {
     #[inline]
     fn from(label: Label) -> LabeledSpan {
@@ -68,30 +80,45 @@ impl From<Label> for LabeledSpan {
     }
 }
 
+/// This type is used to associate a more complex label or set of labels
+/// with some other error. In particular, it is used to reference related
+/// bits of source code distinct from that of the original error.
+///
+/// A related label can have a distinct severity, its own message, and its
+/// own sub-labels, and may reference code in a completely different source file
+/// that the original error.
 #[derive(Debug)]
 pub struct RelatedLabel {
+    /// The severity for this related label
     pub severity: Severity,
+    /// The message for this label
     pub message: Cow<'static, str>,
+    /// The sub-labels for this label
     pub labels: Vec<Label>,
+    /// The source file to use when rendering source spans of this label as snippets.
     pub file: Option<Arc<SourceFile>>,
 }
+
 impl fmt::Display for RelatedLabel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.message.as_ref())
     }
 }
+
 #[cfg(feature = "std")]
 impl std::error::Error for RelatedLabel {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
     }
 }
+
 #[cfg(not(feature = "std"))]
 impl miette::StdError for RelatedLabel {
     fn source(&self) -> Option<&(dyn miette::StdError + 'static)> {
         None
     }
 }
+
 impl RelatedLabel {
     pub fn new<S>(severity: Severity, message: S) -> Self
     where
@@ -155,6 +182,7 @@ impl RelatedLabel {
         self
     }
 }
+
 impl Diagnostic for RelatedLabel {
     fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
         None
@@ -187,8 +215,12 @@ impl Diagnostic for RelatedLabel {
 }
 
 /// This type allows rolling up a diagnostic into a parent error
+///
+/// This is necessary as [Report] cannot be used as the source error
+/// when deriving [Diagnostic].
 #[derive(Debug)]
 pub struct RelatedError(Report);
+
 impl RelatedError {
     pub fn into_report(self) -> Report {
         self.0
@@ -199,6 +231,7 @@ impl RelatedError {
         self.0.as_ref()
     }
 }
+
 impl Diagnostic for RelatedError {
     fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
         self.as_diagnostic().code()
@@ -225,28 +258,33 @@ impl Diagnostic for RelatedError {
         self.as_diagnostic().diagnostic_source()
     }
 }
+
 impl fmt::Display for RelatedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.0, f)
     }
 }
+
 #[cfg(feature = "std")]
 impl std::error::Error for RelatedError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         AsRef::<dyn std::error::Error>::as_ref(&self.0).source()
     }
 }
+
 #[cfg(not(feature = "std"))]
 impl miette::StdError for RelatedError {
     fn source(&self) -> Option<&(dyn miette::StdError + 'static)> {
         AsRef::<dyn miette::StdError>::as_ref(&self.0).source()
     }
 }
+
 impl From<Report> for RelatedError {
     fn from(report: Report) -> Self {
         Self(report)
     }
 }
+
 impl RelatedError {
     pub const fn new(report: Report) -> Self {
         Self(report)
@@ -260,6 +298,7 @@ impl RelatedError {
     }
 }
 
+/// Rendering and error reporting implementation details.
 pub mod reporting {
     use core::fmt;
     pub use miette::{
@@ -271,16 +310,21 @@ pub mod reporting {
 
     #[cfg(feature = "std")]
     pub use miette::{GraphicalReportHandler, GraphicalTheme};
+
     pub type ReportHandlerOpts = miette::MietteHandlerOpts;
+
     #[cfg(feature = "std")]
     pub type DefaultReportHandler = miette::GraphicalReportHandler;
+
     #[cfg(not(feature = "std"))]
     pub type DefaultReportHandler = miette::DebugReportHandler;
 
+    /// A type that can be used to render a [Diagnostic] via [core::fmt::Display]
     pub struct PrintDiagnostic<D, R = DefaultReportHandler> {
         handler: R,
         diag: D,
     }
+
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D> {
         pub fn new(diag: D) -> Self {
             Self {
@@ -300,6 +344,7 @@ pub mod reporting {
             Self::new(diag)
         }
     }
+
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D, NarratableReportHandler> {
         pub fn narrated(diag: D) -> Self {
             Self {
@@ -308,6 +353,7 @@ pub mod reporting {
             }
         }
     }
+
     impl<D: AsRef<dyn super::Diagnostic>> PrintDiagnostic<D, JSONReportHandler> {
         pub fn json(diag: D) -> Self {
             Self {
@@ -316,16 +362,19 @@ pub mod reporting {
             }
         }
     }
+
     impl<D: AsRef<dyn super::Diagnostic>> fmt::Display for PrintDiagnostic<D> {
         fn fmt(&self, f: &mut fmt::Formatter) -> core::fmt::Result {
             self.handler.render_report(f, self.diag.as_ref())
         }
     }
+
     impl<D: AsRef<dyn super::Diagnostic>> fmt::Display for PrintDiagnostic<D, NarratableReportHandler> {
         fn fmt(&self, f: &mut fmt::Formatter) -> core::fmt::Result {
             self.handler.render_report(f, self.diag.as_ref())
         }
     }
+
     impl<D: AsRef<dyn super::Diagnostic>> fmt::Display for PrintDiagnostic<D, JSONReportHandler> {
         fn fmt(&self, f: &mut fmt::Formatter) -> core::fmt::Result {
             self.handler.render_report(f, self.diag.as_ref())

@@ -1,9 +1,6 @@
 use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use core::fmt;
 
-// SOURCE LOCATION
-// ================================================================================================
-
 /// A struct containing information about the location of a source item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SourceLocation {
@@ -19,24 +16,15 @@ impl Default for SourceLocation {
 }
 
 impl SourceLocation {
-    // CONSTRUCTORS
-    // -------------------------------------------------------------------------------------------------
-
     /// Creates a new instance of [SourceLocation].
     pub const fn new(line: u32, column: u32) -> Self {
         Self { line, column }
     }
 
-    // PUBLIC ACCESSORS
-    // -------------------------------------------------------------------------------------------------
-
     /// Returns the line of the location.
     pub const fn line(&self) -> u32 {
         self.line
     }
-
-    // STATE MUTATORS
-    // -------------------------------------------------------------------------------------------------
 
     /// Moves the column by the given offset.
     pub fn move_column(&mut self, offset: u32) {

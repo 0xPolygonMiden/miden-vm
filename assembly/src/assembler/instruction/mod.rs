@@ -17,9 +17,7 @@ mod u32_ops;
 
 use self::u32_ops::U32OpMode::*;
 
-// INSTRUCTION HANDLERS
-// ================================================================================================
-
+/// Instruction Compilation
 impl Assembler {
     pub(super) fn compile_instruction(
         &self,

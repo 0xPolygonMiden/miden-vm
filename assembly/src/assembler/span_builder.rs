@@ -2,9 +2,6 @@ use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction}
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{code_blocks::CodeBlock, AdviceInjector, AssemblyOp, Operation};
 
-// SPAN BUILDER
-// ================================================================================================
-
 /// A helper struct for constructing SPAN blocks while compiling procedure bodies.
 ///
 /// Operations and decorators can be added to a span builder via various `add_*()` and `push_*()`
@@ -20,9 +17,8 @@ pub struct SpanBuilder {
     last_asmop_pos: usize,
 }
 
+/// Constructors
 impl SpanBuilder {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
     /// Returns a new [SpanBuilder] instantiated with the specified optional wrapper.
     ///
     /// If the wrapper is provided, the prologue of the wrapper is immediately appended to the
@@ -39,10 +35,10 @@ impl SpanBuilder {
             None => Self::default(),
         }
     }
+}
 
-    // OPERATIONS
-    // --------------------------------------------------------------------------------------------
-
+/// Operations
+impl SpanBuilder {
     /// Adds the specified operation to the list of span operations and returns Ok(None).
     pub fn add_op(&mut self, op: Operation) {
         self.ops.push(op);
@@ -76,10 +72,10 @@ impl SpanBuilder {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
     }
+}
 
-    // DECORATORS
-    // --------------------------------------------------------------------------------------------
-
+/// Decorators
+impl SpanBuilder {
     /// Add ths specified decorator to the list of span decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
@@ -126,10 +122,10 @@ impl SpanBuilder {
             assembly_op.set_num_cycles(cycle_count as u8)
         }
     }
+}
 
-    // SPAN CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
+/// Span Constructors
+impl SpanBuilder {
     /// Creates a new SPAN block from the operations and decorators currently in this builder and
     /// appends the block to the provided target.
     ///

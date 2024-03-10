@@ -11,7 +11,9 @@ impl fmt::Debug for ModuleGraph {
     }
 }
 
+#[doc(hidden)]
 struct DisplayModuleGraph<'a>(&'a ModuleGraph);
+
 impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_set()
@@ -33,7 +35,9 @@ impl<'a> fmt::Debug for DisplayModuleGraph<'a> {
     }
 }
 
+#[doc(hidden)]
 struct DisplayModuleGraphNodes<'a>(&'a Vec<Arc<Module>>);
+
 impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_list()
@@ -55,12 +59,14 @@ impl<'a> fmt::Debug for DisplayModuleGraphNodes<'a> {
     }
 }
 
+#[doc(hidden)]
 struct DisplayModuleGraphNode<'a> {
     module: ModuleIndex,
     index: ProcedureIndex,
     path: &'a LibraryPath,
     proc: &'a Export,
 }
+
 impl<'a> fmt::Debug for DisplayModuleGraphNode<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Node")
@@ -71,10 +77,12 @@ impl<'a> fmt::Debug for DisplayModuleGraphNode<'a> {
     }
 }
 
+#[doc(hidden)]
 struct DisplayModuleGraphNodeWithEdges<'a> {
     gid: GlobalProcedureIndex,
     out_edges: &'a [GlobalProcedureIndex],
 }
+
 impl<'a> fmt::Debug for DisplayModuleGraphNodeWithEdges<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Edge")
