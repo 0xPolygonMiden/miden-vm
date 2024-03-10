@@ -84,11 +84,17 @@ impl Renderer for MarkdownRenderer {
             Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, module);
             for export in module.procedures() {
+                if !export.visibility().is_exported() {
+                    continue;
+                }
                 if let Export::Alias(ref reexported) = export {
                     Self::write_docs_reexported_proc(&f, reexported);
                 }
             }
             for export in module.procedures() {
+                if !export.visibility().is_exported() {
+                    continue;
+                }
                 if let Export::Procedure(ref proc) = export {
                     Self::write_docs_procedure(&f, proc);
                 }
