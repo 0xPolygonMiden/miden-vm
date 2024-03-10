@@ -2,6 +2,7 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct ProcedureIndex(u16);
+
 impl ProcedureIndex {
     pub fn new(id: usize) -> Self {
         Self(id.try_into().expect("invalid procedure index: too many procedures"))

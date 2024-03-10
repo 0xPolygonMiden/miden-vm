@@ -12,24 +12,23 @@ use core::{fmt, ops::Index};
 
 /// The [ProcedureCache] is responsible for caching the MAST of compiled procedures.
 ///
-/// Once cached, subsequent compilations will use the cached MAST artifacts, rather
-/// than recompiling the same procedures again and again.
+/// Once cached, subsequent compilations will use the cached MAST artifacts, rather than
+/// recompiling the same procedures again and again.
 ///
 /// # Usage
 ///
-/// The procedure cache is intimately tied to a [ModuleGraph], which effectively acts
-/// as a cache for the MASM syntax tree, and associates each procedure with a unique
-/// [GlobalProcedureIndex] which acts as the cache key for the corresponding
-/// [ProcedureCache].
+/// The procedure cache is intimately tied to a [ModuleGraph], which effectively acts as a cache
+/// for the MASM syntax tree, and associates each procedure with a unique [GlobalProcedureIndex]
+/// which acts as the cache key for the corresponding [ProcedureCache].
 ///
-/// This also is how we avoid serving cached artifacts when the syntax tree of a module
-/// is modified and recompiled - the old module will be removed from the [ModuleGraph]
-/// and the new version will be added as a new module, getting new [GlobalProcedureIndex]s
-/// for each of its procedures as a result.
+/// This also is how we avoid serving cached artifacts when the syntax tree of a module is modified
+/// and recompiled - the old module will be removed from the [ModuleGraph] and the new version will
+/// be added as a new module, getting new [GlobalProcedureIndex]s for each of its procedures as a
+/// result.
 ///
-/// As a result of this design choice, a unique [ProcedureCache] is associated with each
-/// context in play during compilation: the global assembler context has its own cache,
-/// and each [AssemblyContext] has its own cache.
+/// As a result of this design choice, a unique [ProcedureCache] is associated with each context in
+/// play during compilation: the global assembler context has its own cache, and each
+/// [AssemblyContext] has its own cache.
 #[derive(Default)]
 pub struct ProcedureCache {
     cache: Vec<Vec<Option<Arc<Procedure>>>>,
@@ -274,6 +273,7 @@ pub struct IntoIter {
     pos: (usize, usize),
     empty: bool,
 }
+
 impl Iterator for IntoIter {
     type Item = (GlobalProcedureIndex, Arc<Procedure>);
 
@@ -317,7 +317,9 @@ impl fmt::Debug for ProcedureCache {
     }
 }
 
+#[doc(hidden)]
 struct DisplayCachedModules<'a>(&'a ProcedureCache);
+
 impl<'a> fmt::Debug for DisplayCachedModules<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let roots = &self.0.by_mast_root;
@@ -343,11 +345,13 @@ impl<'a> fmt::Debug for DisplayCachedModules<'a> {
     }
 }
 
+#[doc(hidden)]
 struct DisplayCachedProcedures<'a> {
     roots: &'a BTreeMap<RpoDigest, GlobalProcedureIndex>,
     slots: &'a [Option<Arc<Procedure>>],
     module: usize,
 }
+
 impl<'a> fmt::Debug for DisplayCachedProcedures<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_set()
@@ -373,12 +377,14 @@ struct ModuleSlot<'a> {
     module: &'a LibraryPath,
 }
 
+#[doc(hidden)]
 struct ProcedureSlot<'a> {
     roots: &'a BTreeMap<RpoDigest, GlobalProcedureIndex>,
     module: usize,
     index: usize,
     procedure: &'a Procedure,
 }
+
 impl<'a> fmt::Debug for ProcedureSlot<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let id = GlobalProcedureIndex {

@@ -39,6 +39,7 @@ pub struct Scanner<'input> {
     start: usize,
     end: usize,
 }
+
 impl<'input> Scanner<'input> {
     /// Construct a new [Scanner] for the given `source`
     pub fn new(input: &'input str) -> Self {

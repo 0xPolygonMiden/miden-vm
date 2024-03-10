@@ -78,6 +78,7 @@ pub struct Lexer<'input> {
     /// If an error occurs during tokenization, it is held here
     error: Option<ParsingError>,
 }
+
 impl<'input> Lexer<'input> {
     /// Produces an instance of the lexer with the lexical analysis to be performed on the `input`
     /// string. Note that no lexical analysis occurs until the lexer has been iterated over.

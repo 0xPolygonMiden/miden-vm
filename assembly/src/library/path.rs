@@ -37,7 +37,9 @@ pub enum LibraryPathComponent<'a> {
     /// A non-namespace component of the path
     Normal(&'a Ident),
 }
+
 impl<'a> Eq for LibraryPathComponent<'a> {}
+
 impl<'a> PartialEq for LibraryPathComponent<'a> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -47,11 +49,13 @@ impl<'a> PartialEq for LibraryPathComponent<'a> {
         }
     }
 }
+
 impl<'a> PartialEq<str> for LibraryPathComponent<'a> {
     fn eq(&self, other: &str) -> bool {
         self.as_ref().eq(other)
     }
 }
+
 impl<'a> AsRef<str> for LibraryPathComponent<'a> {
     fn as_ref(&self) -> &str {
         match self {
@@ -60,6 +64,7 @@ impl<'a> AsRef<str> for LibraryPathComponent<'a> {
         }
     }
 }
+
 impl<'a> fmt::Display for LibraryPathComponent<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.as_ref())
@@ -370,6 +375,7 @@ impl LibraryPath {
         path
     }
 }
+
 impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
     type Error = PathError;
     fn try_from(iter: Vec<LibraryPathComponent<'a>>) -> Result<Self, Self::Error> {
@@ -392,16 +398,19 @@ impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
         Ok(Self::make(ns, components))
     }
 }
+
 impl From<LibraryNamespace> for LibraryPath {
     fn from(ns: LibraryNamespace) -> Self {
         Self::make(ns, smallvec![])
     }
 }
+
 impl From<LibraryPath> for String {
     fn from(path: LibraryPath) -> Self {
         path.to_string()
     }
 }
+
 impl TryFrom<String> for LibraryPath {
     type Error = PathError;
 
@@ -409,6 +418,7 @@ impl TryFrom<String> for LibraryPath {
         Self::new(value)
     }
 }
+
 impl FromStr for LibraryPath {
     type Err = PathError;
 
@@ -462,9 +472,7 @@ pub(super) fn validate_component(component: &str) -> Result<(), PathError> {
     }
 }
 
-// TESTS
-// ================================================================================================
-
+/// Tests
 #[cfg(test)]
 mod tests {
     use super::{super::LibraryNamespaceError, IdentError, LibraryPath, PathError};

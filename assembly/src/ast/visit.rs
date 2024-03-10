@@ -64,6 +64,7 @@ pub trait Visit<T = ()> {
         visit_immediate_error_code(self, code)
     }
 }
+
 impl<'a, V, T> Visit<T> for &'a mut V
 where
     V: ?Sized + Visit<T>,
@@ -466,6 +467,7 @@ pub trait VisitMut<T = ()> {
         visit_mut_immediate_error_code(self, code)
     }
 }
+
 impl<'a, V, T> VisitMut<T> for &'a mut V
 where
     V: ?Sized + VisitMut<T>,

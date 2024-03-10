@@ -17,45 +17,41 @@ use crate::{
 
 /// Represents the kind of a [Module].
 ///
-/// The three different kinds have slightly different
-/// rules on what syntax is allowed, as well as what
-/// operations can be performed in the body of procedures
-/// defined in the module. See the documentation for each
-/// variant for a summary of these differences.
+/// The three different kinds have slightly different rules on what syntax is allowed, as well as
+/// what operations can be performed in the body of procedures defined in the module. See the
+/// documentation for each variant for a summary of these differences.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ModuleKind {
-    /// A library is a simple container of code that must be
-    /// included into an executable module to form a complete program.
+    /// A library is a simple container of code that must be included into an executable module to
+    /// form a complete program.
     ///
-    /// Library modules cannot use the `begin`..`end` syntax, which
-    /// is used to define the entrypoint procedure for an executable.
-    /// Aside from this, they are free to use all other MASM syntax.
+    /// Library modules cannot use the `begin`..`end` syntax, which is used to define the entrypoint
+    /// procedure for an executable. Aside from this, they are free to use all other MASM syntax.
     #[default]
     Library = 0,
-    /// An executable is the root module of a program, and provides
-    /// the entrypoint for executing that program.
+    /// An executable is the root module of a program, and provides the entrypoint for executing
+    /// that program.
     ///
-    /// As the executable module is the root module, it may not export
-    /// procedures for other modules to depend on, it may only import
-    /// and call externally-defined procedures, or private locally-
+    /// As the executable module is the root module, it may not export procedures for other modules
+    /// to depend on, it may only import and call externally-defined procedures, or private locally-
     /// defined procedures.
     ///
     /// An executable module must contain a `begin`..`end` block.
     Executable = 1,
     /// A kernel is like a library module, but is special in a few ways:
     ///
-    /// * Its code always executes in the root context, so it is stateful
-    /// in a way that normal libraries cannot replicate. This can be used
-    /// to provide core services that would otherwise not be possible to
-    /// implement.
+    /// * Its code always executes in the root context, so it is stateful in a way that normal
+    /// libraries cannot replicate. This can be used to provide core services that would otherwise
+    /// not be possible to implement.
     ///
-    /// * The procedures exported from the kernel may be the target of
-    /// the `syscall` instruction, and in fact _must_ be called that way.
+    /// * The procedures exported from the kernel may be the target of the `syscall` instruction,
+    /// and in fact _must_ be called that way.
     ///
     /// * Kernels may not use `syscall` or `call` instructions internally
     Kernel = 2,
 }
+
 impl fmt::Display for ModuleKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -65,11 +61,13 @@ impl fmt::Display for ModuleKind {
         }
     }
 }
+
 impl Serializable for ModuleKind {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u8(*self as u8)
     }
 }
+
 impl Deserializable for ModuleKind {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
@@ -83,27 +81,23 @@ impl Deserializable for ModuleKind {
 
 /// The abstract syntax tree for a single Miden Assembly module.
 ///
-/// All module kinds share this AST representation, as they are
-/// largely identical. However, the [ModuleKind] dictates how the
-/// parsed module is semantically analyzed and validated.
+/// All module kinds share this AST representation, as they are largely identical. However, the
+/// [ModuleKind] dictates how the parsed module is semantically analyzed and validated.
 #[derive(Clone)]
 pub struct Module {
     /// The span covering the entire definition of this module
     span: SourceSpan,
-    /// If available/known, the source contents from which this
-    /// module was parsed. This is used to provide rich diagnostics
-    /// output during semantic analysis.
+    /// If available/known, the source contents from which this module was parsed. This is used
+    /// to provide rich diagnostics output during semantic analysis.
     ///
-    /// In cases where this file is not available, diagnostics will
-    /// revert to a simple form with a helpful message, but without
-    /// source code snippets.
+    /// In cases where this file is not available, diagnostics will revert to a simple form with
+    /// a helpful message, but without source code snippets.
     source_file: Option<Arc<SourceFile>>,
     /// The documentation associated with this module.
     ///
-    /// Module documentation is provided in Miden Assembly as a
-    /// documentation comment starting on the first line of the module.
-    /// All other documentation comments are attached to the item
-    /// the precede in the module body.
+    /// Module documentation is provided in Miden Assembly as a documentation comment starting on
+    /// the first line of the module. All other documentation comments are attached to the item the
+    /// precede in the module body.
     docs: Option<Span<String>>,
     /// The fully-qualified path representing the name of this module
     path: LibraryPath,
@@ -113,9 +107,8 @@ pub struct Module {
     pub(crate) imports: Vec<Import>,
     /// The procedures (defined or re-exported) in the module body
     ///
-    /// NOTE: Despite the name, the procedures in this set are not
-    /// necessarily exported, the individual procedure item must
-    /// be checked to determine visibility
+    /// NOTE: Despite the name, the procedures in this set are not necessarily exported, the
+    /// individual procedure item must be checked to determine visibility
     pub(crate) procedures: Vec<Export>,
 }
 
@@ -127,6 +120,8 @@ impl Spanned for Module {
 
 /// Construction
 impl Module {
+    /// Create a new [Module] with the specified `kind` and fully-qualified path,
+    /// e.g. `std::math::u64`
     pub fn new(kind: ModuleKind, path: LibraryPath) -> Self {
         Self {
             span: Default::default(),
@@ -139,37 +134,48 @@ impl Module {
         }
     }
 
+    /// An alias for creating the default, but empty, `#kernel` [Module].
     pub fn new_kernel() -> Self {
         Self::new(ModuleKind::Kernel, LibraryNamespace::Kernel.into())
     }
 
+    /// An alias for creating the default, but empty, `#exec` [Module].
     pub fn new_executable() -> Self {
         Self::new(ModuleKind::Executable, LibraryNamespace::Exec.into())
     }
 
+    /// Build this [Module] with the given source file in which it was defined.
+    ///
+    /// When a source file is given, diagnostics will contain source code snippets.
     pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
         self.source_file = source_file;
         self
     }
 
+    /// Specify the source span in the source file in which this module was defined,
+    /// that covers the full definition of this module.
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
     }
 
+    /// Like [Module::with_source_file], but does not require ownership of the [Module].
     pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
         self.source_file = Some(source_file);
     }
 
+    /// Set the documentation for this module
     pub fn set_docs(&mut self, docs: Option<Span<String>>) {
         self.docs = docs;
     }
 
+    /// Like [Module::with_span], but does not require ownership of the [Module].
     pub fn set_span(&mut self, span: SourceSpan) {
         self.span = span;
     }
 
-    /// Define a procedure, raise an error if the procedure conflicts with an existing definition
+    /// Define a procedure, raising an error if the procedure is invalid, or conflicts with a
+    /// previous definition
     pub fn define_procedure(&mut self, export: Export) -> Result<(), SemanticAnalysisError> {
         if self.is_kernel() && matches!(export, Export::Alias(_)) {
             return Err(SemanticAnalysisError::ImportToKernel {
@@ -188,6 +194,8 @@ impl Module {
         }
     }
 
+    /// Define an import, raising an error if the import is invalid, or conflicts with a previous
+    /// definition.
     pub fn define_import(&mut self, import: Import) -> Result<(), SemanticAnalysisError> {
         if let Some(prev_import) = self.resolve_import(&import.name) {
             let prev_span = prev_import.span;
@@ -255,21 +263,17 @@ impl Module {
 impl Module {
     /// Get the source code for this module, if available
     ///
-    /// The source code will not be available in the following
-    /// situations:
+    /// The source code will not be available in the following situations:
     ///
-    /// * The module was constructed in-memory via AST structures,
-    /// and not derived from source code.
-    /// * The module was serialized without debug info, and then
-    /// deserialized. Without debug info, the source code is lost
-    /// when round-tripping through serialization.
+    /// * The module was constructed in-memory via AST structures, and not derived from source code.
+    /// * The module was serialized without debug info, and then deserialized. Without debug info,
+    /// the source code is lost when round-tripping through serialization.
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         self.source_file.clone()
     }
 
-    /// Get the name of this specific module, i.e. the last component
-    /// of the [LibraryPath] that represents the fully-qualified name
-    /// of the module, e.g. `u64` in `std::math::u64`
+    /// Get the name of this specific module, i.e. the last component of the [LibraryPath] that
+    /// represents the fully-qualified name of the module, e.g. `u64` in `std::math::u64`
     pub fn name(&self) -> &str {
         self.path.last()
     }
@@ -289,8 +293,8 @@ impl Module {
         self.path.namespace() == namespace
     }
 
-    /// Get the module documentation for this module, if it was present
-    /// in the source code the module was parsed from
+    /// Get the module documentation for this module, if it was present in the source code the
+    /// module was parsed from
     pub fn docs(&self) -> Option<Span<&str>> {
         self.docs.as_ref().map(|spanned| spanned.as_deref())
     }
@@ -320,8 +324,8 @@ impl Module {
 
     /// Get an iterator over the procedures defined in this module.
     ///
-    /// The entity returned is an [Export], which abstracts over locally-
-    /// defined procedures and re-exported procedures from imported modules.
+    /// The entity returned is an [Export], which abstracts over locally-defined procedures and
+    /// re-exported procedures from imported modules.
     pub fn procedures(&self) -> core::slice::Iter<'_, Export> {
         self.procedures.iter()
     }
@@ -338,26 +342,25 @@ impl Module {
         self.imports.iter()
     }
 
-    /// Get an iterator over the "dependencies" of a module, i.e. what
-    /// library namespaces we expect to find imported procedures in.
+    /// Get an iterator over the "dependencies" of a module, i.e. what library namespaces we expect
+    /// to find imported procedures in.
     ///
-    /// For example, if we have imported `std::math::u64`, then we would
-    /// expect to import that module from a [crate::Library] with the
-    /// namespace `std`.
+    /// For example, if we have imported `std::math::u64`, then we would expect to import that module
+    /// from a [crate::Library] with the namespace `std`.
     pub fn dependencies(&self) -> impl Iterator<Item = &LibraryNamespace> {
         self.import_paths().map(|import| import.namespace())
     }
 
     /// Get the procedure at `index` in this module's procedure table.
     ///
-    /// The procedure returned may be either a locally-defined procedure,
-    /// or a re-exported procedure. See [Export] for details.
+    /// The procedure returned may be either a locally-defined procedure, or a re-exported
+    /// procedure. See [Export] for details.
     pub fn get(&self, index: ProcedureIndex) -> Option<&Export> {
         self.procedures.get(index.as_usize())
     }
 
-    /// Get the [ProcedureIndex] for the first procedure in this module's
-    /// procedure table which returns true for `predicate`.
+    /// Get the [ProcedureIndex] for the first procedure in this module's procedure table which
+    /// returns true for `predicate`.
     pub fn index_of<F>(&self, predicate: F) -> Option<ProcedureIndex>
     where
         F: FnMut(&Export) -> bool,
@@ -365,8 +368,8 @@ impl Module {
         self.procedures.iter().position(predicate).map(ProcedureIndex::new)
     }
 
-    /// Get the [ProcedureIndex] for the procedure whose name is `name` in
-    /// this module's procedure table, _if_ that procedure is exported.
+    /// Get the [ProcedureIndex] for the procedure whose name is `name` in this module's procedure
+    /// table, _if_ that procedure is exported.
     ///
     /// Non-exported procedures can be retrieved by using [Module::index_of].
     pub fn index_of_name(&self, name: &ProcedureName) -> Option<ProcedureIndex> {
@@ -427,13 +430,16 @@ impl core::ops::Index<ProcedureIndex> for Module {
         &self.procedures[index.as_usize()]
     }
 }
+
 impl core::ops::IndexMut<ProcedureIndex> for Module {
     #[inline]
     fn index_mut(&mut self, index: ProcedureIndex) -> &mut Self::Output {
         &mut self.procedures[index.as_usize()]
     }
 }
+
 impl Eq for Module {}
+
 impl PartialEq for Module {
     fn eq(&self, other: &Self) -> bool {
         self.kind == other.kind
@@ -535,11 +541,13 @@ impl Module {
         })?
     }
 }
+
 impl Serializable for Module {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.write_into_with_options(target, AstSerdeOptions::new(true, true))
     }
 }
+
 impl Deserializable for Module {
     /// Deserialize a [Module] from `source`
     ///

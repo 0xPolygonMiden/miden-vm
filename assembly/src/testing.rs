@@ -80,6 +80,7 @@ full output: `{context}`
         }
     }
 }
+
 impl fmt::Display for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -88,16 +89,19 @@ impl fmt::Display for Pattern {
         }
     }
 }
+
 impl From<&'static str> for Pattern {
     fn from(s: &'static str) -> Self {
         Self::Literal(alloc::borrow::Cow::Borrowed(s.trim()))
     }
 }
+
 impl From<String> for Pattern {
     fn from(s: String) -> Self {
         Self::Literal(alloc::borrow::Cow::Owned(s))
     }
 }
+
 impl From<regex::Regex> for Pattern {
     fn from(pat: regex::Regex) -> Self {
         Self::Regex(pat)
@@ -166,14 +170,23 @@ macro_rules! assert_diagnostic_lines {
     }};
 }
 
+/// A [TestContext] provides common functionality for all tests which interact with an [Assembler].
+///
+/// It is used by constructing it with `TestContext::default()`, which will initialize the diagnostic
+/// reporting infrastructure, and construct a default [Assembler] instance for you. You can then
+/// optionally customize the context, or start invoking any of its test helpers.
+///
+/// Some of the assertion macros defined above require a [TestContext], so be aware of that.
 pub struct TestContext {
     assembler: Assembler,
 }
+
 impl Default for TestContext {
     fn default() -> Self {
         Self::new()
     }
 }
+
 impl TestContext {
     pub fn new() -> Self {
         #[cfg(feature = "std")]
@@ -194,18 +207,28 @@ impl TestContext {
         }
     }
 
+    /// Parse the given source file into a vector of top-level [Form]s.
+    ///
+    /// This does not run semantic analysis, or construct a [Module] from the parsed
+    /// forms, and is largely intended for low-level testing of the parser.
     #[track_caller]
     pub fn parse_forms(&mut self, source: Arc<SourceFile>) -> Result<Vec<Form>, Report> {
         crate::parser::parse_forms(source.clone())
             .map_err(|err| Report::new(err).with_source_code(source))
     }
 
+    /// Parse the given source file into an executable [Module].
+    ///
+    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically valid.
     #[track_caller]
     pub fn parse_program(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
         let mut parser = ModuleParser::new(ModuleKind::Executable);
         parser.parse(LibraryNamespace::Exec.into(), source)
     }
 
+    /// Parse the given source file into a kernel [Module].
+    ///
+    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically valid.
     #[allow(unused)]
     #[track_caller]
     pub fn parse_kernel(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
@@ -213,12 +236,16 @@ impl TestContext {
         parser.parse(LibraryNamespace::Kernel.into(), source)
     }
 
+    /// Parse the given source file into an anonymous library [Module].
+    ///
+    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically valid.
     #[track_caller]
     pub fn parse_module(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
         let mut parser = ModuleParser::new(ModuleKind::Library);
         parser.parse(LibraryNamespace::Anon.into(), source)
     }
 
+    /// Parse the given source file into a library [Module] with the given fully-qualified path.
     #[track_caller]
     pub fn parse_module_with_path(
         &mut self,
@@ -229,11 +256,18 @@ impl TestContext {
         parser.parse(path, source)
     }
 
+    /// Add `module` to the [Assembler] constructed by this context, making it available to
+    /// other modules.
     #[track_caller]
     pub fn add_module(&mut self, module: Box<Module>) -> Result<(), Report> {
         self.assembler.add_module(module)
     }
 
+    /// Add a module to the [Assembler] constructed by this context, with the fully-qualified
+    /// name `path`, by parsing it from the provided source file.
+    ///
+    /// This will fail if the module cannot be parsed, fails semantic analysis, or conflicts
+    /// with a previously added module within the assembler.
     #[track_caller]
     pub fn add_module_from_source(
         &mut self,
@@ -244,6 +278,7 @@ impl TestContext {
         self.assembler.add_module(ast)
     }
 
+    /// Add the modules of `library` to the [Assembler] constructed by this context.
     #[track_caller]
     pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
     where
@@ -252,16 +287,26 @@ impl TestContext {
         self.assembler.add_library(library)
     }
 
+    /// Compile a [Program] from `source` using the [Assembler] constructed by this context.
+    ///
+    /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
+    /// module represented in `source`.
     #[track_caller]
     pub fn compile(&mut self, source: Arc<SourceFile>) -> Result<Program, Report> {
         self.assembler.compile_source(source)
     }
 
+    /// Compile a [Program] from the given executable module.
+    ///
+    /// This will return an error if the given module is not an executable module, or if compilation
+    /// fails for some reason.
     #[track_caller]
     pub fn compile_ast(&mut self, ast: Box<Module>) -> Result<Program, Report> {
         self.assembler.compile_ast(ast)
     }
 
+    /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning
+    /// the MAST roots of all the exported procedures of that module.
     #[track_caller]
     pub fn compile_module_from_source(
         &mut self,
@@ -272,10 +317,16 @@ impl TestContext {
         self.assembler.compile_module(ast, &mut AssemblyContext::for_library(&path))
     }
 
+    /// Get a reference to the [ProcedureCache] of the [Assembler] constructed by this context.
     pub fn procedure_cache(&self) -> &ProcedureCache {
         self.assembler.procedure_cache()
     }
 
+    /// Display the MAST root associated with `name` in the procedure cache of the [Assembler]
+    /// constructed by this context.
+    ///
+    /// It is expected that the module containing `name` was previously compiled by the assembler,
+    /// and is thus in the cache. This function will panic if that is not the case.
     pub fn display_digest_from_cache(
         &self,
         name: &FullyQualifiedProcedureName,
@@ -284,7 +335,7 @@ impl TestContext {
             .get_by_name(name)
             .map(|p| p.code().hash())
             .map(DisplayDigest)
-            .unwrap()
+            .unwrap_or_else(|| panic!("procedure '{}' is not in the procedure cache", name))
     }
 }
 

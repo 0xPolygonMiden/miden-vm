@@ -6,12 +6,11 @@ use crate::{
     SourceSpan, Span, Spanned,
 };
 
-/// Represents a procedure that acts like it is locally-defined, but
-/// delegates to an externally-defined procedure.
+/// Represents a procedure that acts like it is locally-defined, but delegates to an externally-
+/// defined procedure.
 ///
-/// These procedure "aliases" do not have a concrete representation
-/// in the module, but are instead resolved during compilation to
-/// refer directly to the aliased procedure, regardless of whether
+/// These procedure "aliases" do not have a concrete representation in the module, but are instead
+/// resolved during compilation to refer directly to the aliased procedure, regardless of whether
 /// the caller is in the current module, or in another module.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureAlias {
@@ -28,11 +27,82 @@ pub struct ProcedureAlias {
     /// to the concrete definition until compilation time.
     pub(crate) target: FullyQualifiedProcedureName,
 }
+
+impl ProcedureAlias {
+    /// Create a new procedure alias called `name`, which resolves to `target`
+    pub fn new(name: ProcedureName, target: FullyQualifiedProcedureName) -> Self {
+        Self {
+            docs: None,
+            source_file: None,
+            name,
+            target,
+        }
+    }
+
+    /// Add documentation to this procedure alias
+    pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
+        self.docs = docs;
+        self
+    }
+
+    /// Add source code to this declaration, so that we can render source snippets in diagnostics.
+    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
+        self.source_file = source_file;
+        self
+    }
+
+    /// Get the source file associated with this declaration
+    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
+        self.source_file.clone()
+    }
+
+    /// Get the documentation associated with this declaration
+    pub fn docs(&self) -> Option<&Span<String>> {
+        self.docs.as_ref()
+    }
+
+    /// Get the name of this alias within its containing module.
+    ///
+    /// If the procedure is simply re-exported with the same name,
+    /// this will be equivalent to `self.target().name`
+    pub fn name(&self) -> &ProcedureName {
+        &self.name
+    }
+
+    /// Get the fully-qualified procedure name of the aliased procedure
+    pub fn target(&self) -> &FullyQualifiedProcedureName {
+        &self.target
+    }
+}
+
+/// Serialization
+impl ProcedureAlias {
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+        self.name.write_into_with_options(target, options);
+        self.target.write_into_with_options(target, options);
+    }
+
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
+        let name = ProcedureName::read_from_with_options(source, options)?;
+        let target = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
+        Ok(Self {
+            source_file: None,
+            docs: None,
+            name,
+            target,
+        })
+    }
+}
+
 impl Spanned for ProcedureAlias {
     fn span(&self) -> SourceSpan {
         self.target.span()
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for ProcedureAlias {
     fn render(&self) -> crate::prettier::Document {
@@ -58,60 +128,5 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
             ));
         }
         doc
-    }
-}
-impl ProcedureAlias {
-    pub fn new(name: ProcedureName, target: FullyQualifiedProcedureName) -> Self {
-        Self {
-            docs: None,
-            source_file: None,
-            name,
-            target,
-        }
-    }
-
-    pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
-        self.docs = docs;
-        self
-    }
-
-    pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
-        self.source_file = source_file;
-        self
-    }
-
-    pub fn source_file(&self) -> Option<Arc<SourceFile>> {
-        self.source_file.clone()
-    }
-
-    pub fn docs(&self) -> Option<&Span<String>> {
-        self.docs.as_ref()
-    }
-
-    pub fn name(&self) -> &ProcedureName {
-        &self.name
-    }
-
-    pub fn target(&self) -> &FullyQualifiedProcedureName {
-        &self.target
-    }
-
-    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
-        self.name.write_into_with_options(target, options);
-        self.target.write_into_with_options(target, options);
-    }
-
-    pub fn read_from_with_options<R: ByteReader>(
-        source: &mut R,
-        options: AstSerdeOptions,
-    ) -> Result<Self, DeserializationError> {
-        let name = ProcedureName::read_from_with_options(source, options)?;
-        let target = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
-        Ok(Self {
-            source_file: None,
-            docs: None,
-            name,
-            target,
-        })
     }
 }

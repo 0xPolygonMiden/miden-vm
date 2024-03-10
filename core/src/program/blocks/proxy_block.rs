@@ -24,6 +24,7 @@ impl Proxy {
         self.hash
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Proxy {
     fn render(&self) -> crate::prettier::Document {
@@ -32,6 +33,7 @@ impl crate::prettier::PrettyPrint for Proxy {
         const_text("proxy") + const_text(".") + self.hash.render()
     }
 }
+
 #[cfg(feature = "formatter")]
 impl fmt::Display for Proxy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -39,6 +41,7 @@ impl fmt::Display for Proxy {
         self.pretty_print(f)
     }
 }
+
 #[cfg(not(feature = "formatter"))]
 impl fmt::Display for Proxy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

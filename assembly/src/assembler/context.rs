@@ -8,41 +8,33 @@ use crate::{
 };
 use vm_core::code_blocks::CodeBlock;
 
-/// An [AssemblyContext] is used to store configuration and state
-/// pertaining to the current compilation of a module/procedure
-/// by an [crate::Assembler].
+/// An [AssemblyContext] is used to store configuration and state pertaining to the current
+/// compilation of a module/procedure by an [crate::Assembler].
 ///
-/// The context specifies context-specific configuration, the type
-/// of artifact being compiled, the current module being compiled,
-/// and the current procedure being compiled.
+/// The context specifies context-specific configuration, the type of artifact being compiled,
+/// the current module being compiled, and the current procedure being compiled.
 ///
 /// To provide a custom context, you must compile by invoking the
-/// [crate::Assembler::compile_in_context] API, which will use
-/// the provided context in place of the default one generated internally
-/// by the other `compile`-like APIs.
+/// [crate::Assembler::compile_in_context] API, which will use the provided context in place of
+/// the default one generated internally by the other `compile`-like APIs.
 #[derive(Default)]
 pub struct AssemblyContext {
     /// What kind of artifact are we assembling
     kind: ArtifactKind,
-    /// When true, this permits calls to refer to procedures which are
-    /// not locally available, as long as they are referenced by MAST root,
-    /// and not by name. As long as the MAST for those roots is present
-    /// when the code is executed, this works fine. However, if the
-    /// VM tries to execute a program with such calls, and the MAST is not
-    /// available, the program will trap.
+    /// When true, this permits calls to refer to procedures which are not locally available,
+    /// as long as they are referenced by MAST root, and not by name. As long as the MAST for those
+    /// roots is present when the code is executed, this works fine. However, if the VM tries to
+    /// execute a program with such calls, and the MAST is not available, the program will trap.
     allow_phantom_calls: bool,
     /// The current procedure being compiled
     current_procedure: Option<ProcedureContext>,
     /// The fully-qualified module path which should be compiled.
     ///
-    /// If unset, it defaults to the module which
-    /// represents the specified `kind`, i.e. if
-    /// the kind is executable, we compile the
-    /// executable module, and so on.
+    /// If unset, it defaults to the module which represents the specified `kind`, i.e. if the kind
+    /// is executable, we compile the executable module, and so on.
     ///
-    /// When set, the module graph is traversed from the given
-    /// module only, so any code unreachable from this module
-    /// is not considered for compilation.
+    /// When set, the module graph is traversed from the given module only, so any code unreachable
+    /// from this module is not considered for compilation.
     root: Option<LibraryPath>,
 }
 

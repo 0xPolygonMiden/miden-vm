@@ -28,17 +28,21 @@ pub struct PhantomCall {
     source_file: Option<Arc<SourceFile>>,
     callee: RpoDigest,
 }
+
 impl Eq for PhantomCall {}
+
 impl PartialEq for PhantomCall {
     fn eq(&self, other: &Self) -> bool {
         self.callee.eq(&other.callee)
     }
 }
+
 impl Ord for PhantomCall {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.callee.cmp(&other.callee)
     }
 }
+
 impl PartialOrd for PhantomCall {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
@@ -680,6 +684,7 @@ impl ModuleGraph {
         })
     }
 }
+
 impl Index<ModuleIndex> for ModuleGraph {
     type Output = Arc<Module>;
 
@@ -687,6 +692,7 @@ impl Index<ModuleIndex> for ModuleGraph {
         self.modules.index(index.as_usize())
     }
 }
+
 impl Index<GlobalProcedureIndex> for ModuleGraph {
     type Output = Export;
 
@@ -724,6 +730,7 @@ pub enum ResolvedTarget {
     },
     Phantom(RpoDigest),
 }
+
 impl ResolvedTarget {
     pub fn into_global_id(self) -> Option<GlobalProcedureIndex> {
         match self {
@@ -738,6 +745,7 @@ struct NameResolver<'a> {
     graph: &'a ModuleGraph,
     pending: Vec<ThinModule>,
 }
+
 impl<'a> NameResolver<'a> {
     pub fn new(graph: &'a ModuleGraph) -> Self {
         Self {
@@ -1099,6 +1107,7 @@ struct ReanalyzeCheck<'a, 'b: 'a> {
     module_id: ModuleIndex,
     source_file: Option<Arc<SourceFile>>,
 }
+
 impl<'a, 'b: 'a> ReanalyzeCheck<'a, 'b> {
     fn resolve_target(
         &self,
@@ -1127,6 +1136,7 @@ impl<'a, 'b: 'a> ReanalyzeCheck<'a, 'b> {
         }
     }
 }
+
 impl<'a, 'b: 'a> Visit<Result<bool, AssemblyError>> for ReanalyzeCheck<'a, 'b> {
     fn visit_syscall(
         &mut self,
@@ -1155,6 +1165,7 @@ struct ModuleRewriteVisitor<'a, 'b: 'a> {
     phantoms: BTreeSet<PhantomCall>,
     source_file: Option<Arc<SourceFile>>,
 }
+
 impl<'a, 'b: 'a> ModuleRewriteVisitor<'a, 'b> {
     fn rewrite_target(
         &mut self,
@@ -1204,6 +1215,7 @@ impl<'a, 'b: 'a> ModuleRewriteVisitor<'a, 'b> {
         ControlFlow::Continue(())
     }
 }
+
 impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriteVisitor<'a, 'b> {
     fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<AssemblyError> {
         self.invoked.clear();

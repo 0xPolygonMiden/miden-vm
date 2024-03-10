@@ -21,6 +21,7 @@ pub enum Visibility {
     #[default]
     Private = 2,
 }
+
 impl fmt::Display for Visibility {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.is_exported() {
@@ -30,6 +31,7 @@ impl fmt::Display for Visibility {
         }
     }
 }
+
 impl Visibility {
     /// Returns true if the procedure has been explicitly exported
     pub fn is_exported(&self) -> bool {
@@ -41,11 +43,13 @@ impl Visibility {
         matches!(self, Self::Syscall)
     }
 }
+
 impl Serializable for Visibility {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u8(*self as u8)
     }
 }
+
 impl Deserializable for Visibility {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
@@ -80,6 +84,8 @@ pub struct Procedure {
 
 /// Construction
 impl Procedure {
+    /// Create a new [Procedure] from the given source span, visibility, name, number of locals,
+    /// and code block.
     pub fn new(
         span: SourceSpan,
         visibility: Visibility,
@@ -99,59 +105,79 @@ impl Procedure {
         }
     }
 
+    /// Add documentation to this procedure definition
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
         self.docs = docs;
         self
     }
 
+    /// Add source code to this procedure definition so we can render source snippets
+    /// in diagnostics.
     pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
         self.source_file = source_file;
         self
     }
 
+    /// Like [Procedure::with_source_file], but does not require ownership of the procedure.
     pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
         self.source_file = Some(source_file);
+    }
+
+    /// Modify the visibility of this procedure.
+    ///
+    /// This is made crate-local as the visibility of a procedure is virtually always determined
+    /// by the source code from which it was derived; the only exception being kernel modules,
+    /// where exported procedures take on syscall visibility once the module is identified as
+    /// a kernel.
+    pub(crate) fn set_visibility(&mut self, visibility: Visibility) {
+        self.visibility = visibility;
     }
 }
 
 /// Metadata
 impl Procedure {
+    /// Get the source file associated with this procedure
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         self.source_file.clone()
     }
 
+    /// Get the name of this procedure within its containing module.
     pub fn name(&self) -> &ProcedureName {
         &self.name
     }
 
+    /// Get the visibility of this procedure
     pub fn visibility(&self) -> Visibility {
         self.visibility
     }
 
-    pub(crate) fn set_visibility(&mut self, visibility: Visibility) {
-        self.visibility = visibility;
-    }
-
+    /// Return the number of locals allocated by this procedure.
     pub fn num_locals(&self) -> u16 {
         self.num_locals
     }
 
+    /// Returns true if this procedure corresponds to the `begin`..`end` block of an
+    /// executable module.
     pub fn is_entrypoint(&self) -> bool {
         self.name.is_main()
     }
 
+    /// Get the documentation for this procedure, if present.
     pub fn docs(&self) -> Option<&Span<String>> {
         self.docs.as_ref()
     }
 
+    /// Get a reference to the [Block] containing the body of this procedure.
     pub fn body(&self) -> &Block {
         &self.body
     }
 
+    /// Get a mutable reference to the [Block] containing the body of this procedure.
     pub fn body_mut(&mut self) -> &mut Block {
         &mut self.body
     }
 
+    /// Get an iterator over the operations of the top-level [Block] of this procedure.
     pub fn iter(&self) -> core::slice::Iter<'_, crate::ast::Op> {
         self.body.iter()
     }
@@ -168,6 +194,10 @@ impl Procedure {
         }
     }
 
+    /// Extend the set of procedures known to be invoked by this procedure.
+    ///
+    /// This is for internal use only, and is called during semantic analysis
+    /// once we've identified the set of invoked procedures for a given definition.
     pub(crate) fn extend_invoked<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = Invoke>,
@@ -181,6 +211,7 @@ pub(crate) enum InvokedIter<'a, I: Iterator<Item = &'a Invoke> + 'a> {
     Empty,
     NonEmpty(I),
 }
+
 impl<'a, I> Iterator for InvokedIter<'a, I>
 where
     I: Iterator<Item = &'a Invoke> + 'a,
@@ -245,6 +276,7 @@ impl Spanned for Procedure {
         self.span
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Procedure {
     fn render(&self) -> crate::prettier::Document {
@@ -269,6 +301,7 @@ impl crate::prettier::PrettyPrint for Procedure {
         doc + text("end") + nl() + nl()
     }
 }
+
 impl fmt::Debug for Procedure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Procedure")
@@ -281,7 +314,9 @@ impl fmt::Debug for Procedure {
             .finish()
     }
 }
+
 impl Eq for Procedure {}
+
 impl PartialEq for Procedure {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name

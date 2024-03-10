@@ -5,6 +5,16 @@ use crate::{
 use alloc::{sync::Arc, vec::Vec};
 use core::fmt;
 
+/// The high-level error type for all semantic analysis errors.
+///
+/// This rolls up multiple errors into a single one, and as such, can emit many
+/// diagnostics at once. You should prefer to gather up errors and continue with
+/// analysis for as long as possible before returning an error of this type, so
+/// as to provide as much information to the user as possible, but there are cases
+/// where doing so would not be profitable - it is a judgement call.
+///
+/// The semantic analyzer does this though, and you can examine its implementation
+/// to see how we approach this during the semantic analysis phase specifically.
 #[derive(Debug, thiserror::Error, Diagnostic)]
 #[error("syntax error")]
 #[diagnostic(help("see emitted diagnostics for details"))]
@@ -15,6 +25,7 @@ pub struct SyntaxError {
     pub errors: Vec<SemanticAnalysisError>,
 }
 
+/// Represents an error that occurs during semantic analysis
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum SemanticAnalysisError {
     #[error("invalid program: no entrypoint defined")]
@@ -159,14 +170,23 @@ pub enum SemanticAnalysisError {
     },
 }
 
+/// Represents a system limit that was exceeded
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LimitKind {
+    /// The total number of procedures in a module
     Procedures,
+    /// The total number of procedure locals
     Locals,
+    /// The total number of imports in a module
     Imports,
+    /// The total number of calls to imports
+    ///
+    /// TODO(pauls): Is this even a limit anymore?
     CalledImports,
+    /// The total number of instructions in a procedure.
     Instructions,
 }
+
 impl fmt::Display for LimitKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

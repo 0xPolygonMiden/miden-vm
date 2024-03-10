@@ -273,6 +273,7 @@ pub enum Instruction {
     Emit(ImmU32),
     Trace(ImmU32),
 }
+
 impl Instruction {
     /// Returns true if the instruction should yield a breakpoint.
     pub const fn should_break(&self) -> bool {

@@ -49,6 +49,7 @@ impl Loop {
         &self.body
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Loop {
     fn render(&self) -> crate::prettier::Document {
@@ -56,6 +57,7 @@ impl crate::prettier::PrettyPrint for Loop {
         indent(4, const_text("while.true") + nl() + self.body.render()) + nl() + const_text("end")
     }
 }
+
 #[cfg(feature = "formatter")]
 impl fmt::Display for Loop {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -63,6 +65,7 @@ impl fmt::Display for Loop {
         self.pretty_print(f)
     }
 }
+
 #[cfg(not(feature = "formatter"))]
 impl fmt::Display for Loop {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

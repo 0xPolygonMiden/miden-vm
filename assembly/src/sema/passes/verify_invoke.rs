@@ -7,6 +7,17 @@ use crate::{
     Span, Spanned,
 };
 
+/// This visitor visits every `exec`, `call`, `syscall`, and `procref`, and ensures that the
+/// invocation target for that call is resolvable to the extent possible within the current
+/// module's context.
+///
+/// This means that any reference to an external module must have a corresponding import, that
+/// the invocation kind is valid in the current module (e.g. `syscall` in a kernel module is
+/// _not_ valid, nor is `caller` outside of a kernel module).
+///
+/// We attempt to apply as many call-related validations as we can here, however we are limited
+/// until later stages of compilation on what we can know in the context of a single module.
+/// As a result, more complex analyses are reserved until assembly.
 pub struct VerifyInvokeTargets<'a> {
     analyzer: &'a mut AnalysisContext,
     module: &'a mut Module,
@@ -14,6 +25,7 @@ pub struct VerifyInvokeTargets<'a> {
     current_procedure: ProcedureName,
     invoked: BTreeSet<Invoke>,
 }
+
 impl<'a> VerifyInvokeTargets<'a> {
     pub fn new(
         analyzer: &'a mut AnalysisContext,
@@ -30,6 +42,7 @@ impl<'a> VerifyInvokeTargets<'a> {
         }
     }
 }
+
 impl<'a> VerifyInvokeTargets<'a> {
     fn resolve_local(&mut self, name: &ProcedureName) -> ControlFlow<()> {
         if !self.procedures.contains(name) {
@@ -58,6 +71,7 @@ impl<'a> VerifyInvokeTargets<'a> {
         }
     }
 }
+
 impl<'a> VisitMut for VerifyInvokeTargets<'a> {
     fn visit_mut_inst(&mut self, inst: &mut Span<Instruction>) -> ControlFlow<()> {
         let span = inst.span();

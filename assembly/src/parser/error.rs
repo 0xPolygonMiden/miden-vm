@@ -20,6 +20,7 @@ pub enum LiteralErrorKind {
     /// The value was expected to be a value < 63
     InvalidBitSize,
 }
+
 impl fmt::Display for LiteralErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -46,6 +47,7 @@ pub enum HexErrorKind {
     /// Occurs when the hex-encoded value is > 64 digits
     TooLong,
 }
+
 impl fmt::Display for HexErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -181,6 +183,7 @@ pub enum ParsingError {
         span: SourceSpan,
     },
 }
+
 impl ParsingError {
     fn tag(&self) -> u8 {
         // SAFETY: This is safe because we have given this enum a
@@ -189,7 +192,9 @@ impl ParsingError {
         unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }
+
 impl Eq for ParsingError {}
+
 impl PartialEq for ParsingError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {

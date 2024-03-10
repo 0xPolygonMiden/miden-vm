@@ -12,8 +12,8 @@ use crate::{
     SourceSpan, Span, Spanned,
 };
 
-/// Represents a fully-qualified procedure name, e.g. `std::math::u64::add`,
-/// parsed into it's contituent [LibraryPath] and [ProcedureName] components.
+/// Represents a fully-qualified procedure name, e.g. `std::math::u64::add`, parsed into it's
+/// contituent [LibraryPath] and [ProcedureName] components.
 #[derive(Clone)]
 pub struct FullyQualifiedProcedureName {
     /// The source span associated with this identifier
@@ -23,7 +23,10 @@ pub struct FullyQualifiedProcedureName {
     /// The name of the procedure
     pub name: ProcedureName,
 }
+
 impl FullyQualifiedProcedureName {
+    /// Create a new [FullyQualifiedProcedureName] with the given fully-qualified module path
+    /// and procedure name.
     pub fn new(module: LibraryPath, name: ProcedureName) -> Self {
         Self {
             span: SourceSpan::default(),
@@ -32,6 +35,7 @@ impl FullyQualifiedProcedureName {
         }
     }
 }
+
 impl FromStr for FullyQualifiedProcedureName {
     type Err = Report;
 
@@ -46,32 +50,39 @@ impl FromStr for FullyQualifiedProcedureName {
         }
     }
 }
+
 impl Eq for FullyQualifiedProcedureName {}
+
 impl PartialEq for FullyQualifiedProcedureName {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.module == other.module
     }
 }
+
 impl Ord for FullyQualifiedProcedureName {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.module.cmp(&other.module).then_with(|| self.name.cmp(&other.name))
     }
 }
+
 impl PartialOrd for FullyQualifiedProcedureName {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
+
 impl From<FullyQualifiedProcedureName> for miette::SourceSpan {
     fn from(fqn: FullyQualifiedProcedureName) -> Self {
         fqn.span.into()
     }
 }
+
 impl Spanned for FullyQualifiedProcedureName {
     fn span(&self) -> SourceSpan {
         self.span
     }
 }
+
 impl fmt::Debug for FullyQualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("FullyQualifiedProcedureName")
@@ -80,6 +91,7 @@ impl fmt::Debug for FullyQualifiedProcedureName {
             .finish()
     }
 }
+
 impl fmt::Display for FullyQualifiedProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}::{}", &self.module, &self.name)
@@ -154,6 +166,7 @@ impl FullyQualifiedProcedureName {
 /// ```
 #[derive(Debug, Clone)]
 pub struct ProcedureName(Ident);
+
 impl ProcedureName {
     /// Reserved name for a main procedure.
     pub const MAIN_PROC_NAME: &'static str = "#main";
@@ -194,37 +207,45 @@ impl ProcedureName {
         self.0.as_str() == Self::MAIN_PROC_NAME
     }
 }
+
 impl Eq for ProcedureName {}
+
 impl PartialEq for ProcedureName {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
+
 impl Ord for ProcedureName {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.0.cmp(&other.0)
     }
 }
+
 impl PartialOrd for ProcedureName {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
+
 impl Hash for ProcedureName {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state);
     }
 }
+
 impl Spanned for ProcedureName {
     fn span(&self) -> SourceSpan {
         self.0.span()
     }
 }
+
 impl From<ProcedureName> for miette::SourceSpan {
     fn from(name: ProcedureName) -> Self {
         name.span().into()
     }
 }
+
 impl core::ops::Deref for ProcedureName {
     type Target = str;
 
@@ -233,28 +254,33 @@ impl core::ops::Deref for ProcedureName {
         self.0.as_str()
     }
 }
+
 impl AsRef<Ident> for ProcedureName {
     #[inline(always)]
     fn as_ref(&self) -> &Ident {
         &self.0
     }
 }
+
 impl AsRef<str> for ProcedureName {
     #[inline(always)]
     fn as_ref(&self) -> &str {
         self.0.as_str()
     }
 }
+
 impl PartialEq<str> for ProcedureName {
     fn eq(&self, other: &str) -> bool {
         self.0.as_ref() == other
     }
 }
+
 impl PartialEq<Ident> for ProcedureName {
     fn eq(&self, other: &Ident) -> bool {
         &self.0 == other
     }
 }
+
 impl fmt::Display for ProcedureName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
@@ -337,11 +363,13 @@ impl ProcedureName {
             .map(|id| id.with_span(span))
     }
 }
+
 impl Serializable for ProcedureName {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.write_into_with_options(target, Default::default())
     }
 }
+
 impl Deserializable for ProcedureName {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         Self::read_from_with_options(source, Default::default())

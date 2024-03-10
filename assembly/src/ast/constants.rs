@@ -16,7 +16,9 @@ pub struct Constant {
     /// The expression associated with the constant
     pub value: ConstantExpr,
 }
+
 impl Constant {
+    /// Create a new [Constant] from the given source span, name, and value.
     pub fn new(span: SourceSpan, name: Ident, value: ConstantExpr) -> Self {
         Self {
             span,
@@ -26,11 +28,13 @@ impl Constant {
         }
     }
 
+    /// Add documentation to this constant declaration.
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
         self.docs = docs;
         self
     }
 }
+
 impl fmt::Debug for Constant {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Constant")
@@ -40,6 +44,7 @@ impl fmt::Debug for Constant {
             .finish()
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Constant {
     fn render(&self) -> crate::prettier::Document {
@@ -62,12 +67,15 @@ impl crate::prettier::PrettyPrint for Constant {
         doc + self.value.render()
     }
 }
+
 impl Eq for Constant {}
+
 impl PartialEq for Constant {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.value == other.value
     }
 }
+
 impl Spanned for Constant {
     fn span(&self) -> SourceSpan {
         self.span
@@ -88,69 +96,7 @@ pub enum ConstantExpr {
         rhs: Box<ConstantExpr>,
     },
 }
-impl Eq for ConstantExpr {}
-impl PartialEq for ConstantExpr {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Literal(l), Self::Literal(y)) => l == y,
-            (Self::Var(l), Self::Var(y)) => l == y,
-            (
-                Self::BinaryOp {
-                    op: lop,
-                    lhs: llhs,
-                    rhs: lrhs,
-                    ..
-                },
-                Self::BinaryOp {
-                    op: rop,
-                    lhs: rlhs,
-                    rhs: rrhs,
-                    ..
-                },
-            ) => lop == rop && llhs == rlhs && lrhs == rrhs,
-            _ => false,
-        }
-    }
-}
-impl fmt::Debug for ConstantExpr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Literal(ref lit) => fmt::Debug::fmt(&**lit, f),
-            Self::Var(ref name) => fmt::Debug::fmt(&**name, f),
-            Self::BinaryOp {
-                ref op,
-                ref lhs,
-                ref rhs,
-                ..
-            } => f.debug_tuple(op.name()).field(lhs).field(rhs).finish(),
-        }
-    }
-}
-#[cfg(feature = "formatter")]
-impl crate::prettier::PrettyPrint for ConstantExpr {
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
 
-        match self {
-            Self::Literal(ref literal) => display(literal),
-            Self::Var(ref ident) => display(ident),
-            Self::BinaryOp { op, lhs, rhs, .. } => {
-                let single_line = lhs.render() + display(op) + rhs.render();
-                let multi_line = lhs.render() + nl() + (display(op)) + rhs.render();
-                single_line | multi_line
-            }
-        }
-    }
-}
-impl Spanned for ConstantExpr {
-    fn span(&self) -> SourceSpan {
-        match self {
-            Self::Literal(spanned) => spanned.span(),
-            Self::Var(spanned) => spanned.span(),
-            Self::BinaryOp { span, .. } => *span,
-        }
-    }
-}
 impl ConstantExpr {
     /// Unwrap a literal value from this expression or panic
     ///
@@ -166,11 +112,9 @@ impl ConstantExpr {
 
     /// Attempt to fold to a single value.
     ///
-    /// Returns `Err` if an invalid expression is found while
-    /// folding, such as division by zero.
+    /// Returns `Err` if an invalid expression is found while folding, such as division by zero.
     ///
-    /// This will only succeed if the expression has
-    /// no references to other constants.
+    /// This will only succeed if the expression has no references to other constants.
     pub fn try_fold(self) -> Result<Self, ParsingError> {
         match self {
             Self::Literal(_) | Self::Var(_) => Ok(self),
@@ -255,6 +199,74 @@ impl ConstantExpr {
     }
 }
 
+impl Eq for ConstantExpr {}
+
+impl PartialEq for ConstantExpr {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Literal(l), Self::Literal(y)) => l == y,
+            (Self::Var(l), Self::Var(y)) => l == y,
+            (
+                Self::BinaryOp {
+                    op: lop,
+                    lhs: llhs,
+                    rhs: lrhs,
+                    ..
+                },
+                Self::BinaryOp {
+                    op: rop,
+                    lhs: rlhs,
+                    rhs: rrhs,
+                    ..
+                },
+            ) => lop == rop && llhs == rlhs && lrhs == rrhs,
+            _ => false,
+        }
+    }
+}
+
+impl fmt::Debug for ConstantExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Literal(ref lit) => fmt::Debug::fmt(&**lit, f),
+            Self::Var(ref name) => fmt::Debug::fmt(&**name, f),
+            Self::BinaryOp {
+                ref op,
+                ref lhs,
+                ref rhs,
+                ..
+            } => f.debug_tuple(op.name()).field(lhs).field(rhs).finish(),
+        }
+    }
+}
+
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for ConstantExpr {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        match self {
+            Self::Literal(ref literal) => display(literal),
+            Self::Var(ref ident) => display(ident),
+            Self::BinaryOp { op, lhs, rhs, .. } => {
+                let single_line = lhs.render() + display(op) + rhs.render();
+                let multi_line = lhs.render() + nl() + (display(op)) + rhs.render();
+                single_line | multi_line
+            }
+        }
+    }
+}
+
+impl Spanned for ConstantExpr {
+    fn span(&self) -> SourceSpan {
+        match self {
+            Self::Literal(spanned) => spanned.span(),
+            Self::Var(spanned) => spanned.span(),
+            Self::BinaryOp { span, .. } => *span,
+        }
+    }
+}
+
 /// Represents the set of binary arithmetic operators supported in Miden Assembly syntax
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConstantOp {
@@ -264,6 +276,7 @@ pub enum ConstantOp {
     Div,
     IntDiv,
 }
+
 impl ConstantOp {
     const fn name(&self) -> &'static str {
         match self {
@@ -275,6 +288,7 @@ impl ConstantOp {
         }
     }
 }
+
 #[cfg(feature = "formatter")]
 impl fmt::Display for ConstantOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

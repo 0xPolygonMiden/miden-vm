@@ -104,12 +104,14 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
         }
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for AdviceInjectorNode {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)
     }
 }
+
 impl fmt::Display for AdviceInjectorNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -225,6 +227,7 @@ impl Deserializable for AdviceInjectorNode {
 pub enum SignatureKind {
     RpoFalcon512 = 0,
 }
+
 impl From<SignatureKind> for vm_core::SignatureKind {
     fn from(kind: SignatureKind) -> Self {
         match kind {
@@ -232,6 +235,7 @@ impl From<SignatureKind> for vm_core::SignatureKind {
         }
     }
 }
+
 impl fmt::Display for SignatureKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let kind: vm_core::SignatureKind = (*self).into();
@@ -244,6 +248,7 @@ impl Serializable for SignatureKind {
         target.write_u8(*self as u8);
     }
 }
+
 impl Deserializable for SignatureKind {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         match source.read_u8()? {

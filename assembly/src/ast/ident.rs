@@ -10,6 +10,7 @@ use crate::{
     Spanned,
 };
 
+/// Represents the types of errors that can occur when parsing/validating an [Ident]
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
@@ -24,6 +25,8 @@ pub enum IdentError {
     Casing(CaseKindError),
 }
 
+/// Represents the various types of casing errors that can occur, e.g. using an identifier
+/// with `SCREAMING_CASE` where one with `snake_case` is expected.
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum CaseKindError {
     #[error("only uppercase characters or underscores are allowed, and must start with an alphabetic character")]
@@ -34,9 +37,30 @@ pub enum CaseKindError {
     Camel,
 }
 
+/// Represents a generic identifier in Miden Assembly source code.
+///
+/// This type is used internally by all other specialized identifier types, e.g.
+/// [super::ProcedureName], and enforces the baseline rules for bare identifiers in Miden Assembly.
+/// Higher-level types, such as `ProcedureName`, can implement their own variations on these rules,
+/// and construct an [Ident] using [Ident::new_unchecked].
+///
+/// All identifiers are associated with a source span, and are interned to the extent possible, i.e.
+/// rather than allocating a new `String` for every use of the same identifier, we attempt to have
+/// all such uses share a single reference-counted allocation. This interning is not perfect or
+/// guaranteed globally, but generally holds within a given module. In the future we may make these
+/// actually interned strings with a global interner, but for now it is simply best-effort.
 #[derive(Clone)]
 pub struct Ident {
+    /// The source span associated with this identifier.
+    ///
+    /// NOTE: To make use of this span, we need to know the context in which it was
+    /// used, i.e. either the containing module or procedure, both of which have a
+    /// source file which we can use to render a source snippet for this span.
+    ///
+    /// If a span is not known, the default value is used, which has zero-length and
+    /// thus will not be rendered as a source snippet.
     span: SourceSpan,
+    /// The actual content of the identifier
     name: Arc<str>,
 }
 impl Ident {
@@ -67,14 +91,17 @@ impl Ident {
         Self { span, name }
     }
 
+    /// Unwrap this [Ident], extracting the inner [`Arc<str>`].
     pub fn into_inner(self) -> Arc<str> {
         self.name
     }
 
+    /// Get the content of this identifier as a `str`
     pub fn as_str(&self) -> &str {
         self.name.as_ref()
     }
 
+    /// Apply the default [Ident] validation rules to `source`
     pub fn validate(source: impl AsRef<str>) -> Result<(), IdentError> {
         let source = source.as_ref();
         if source.is_empty() {
@@ -89,37 +116,45 @@ impl Ident {
         Ok(())
     }
 }
+
 impl fmt::Debug for Ident {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_tuple("Ident").field(&self.name).finish()
     }
 }
+
 impl Eq for Ident {}
+
 impl PartialEq for Ident {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
+
 impl Ord for Ident {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.name.cmp(&other.name)
     }
 }
+
 impl PartialOrd for Ident {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
+
 impl Hash for Ident {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
     }
 }
+
 impl Spanned for Ident {
     fn span(&self) -> SourceSpan {
         self.span
     }
 }
+
 impl core::ops::Deref for Ident {
     type Target = str;
 
@@ -127,17 +162,20 @@ impl core::ops::Deref for Ident {
         self.name.as_ref()
     }
 }
+
 impl AsRef<str> for Ident {
     #[inline]
     fn as_ref(&self) -> &str {
         &self.name
     }
 }
+
 impl fmt::Display for Ident {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.name, f)
     }
 }
+
 impl FromStr for Ident {
     type Err = IdentError;
 
@@ -151,6 +189,7 @@ impl FromStr for Ident {
     }
 }
 
+/// Serialization
 impl Ident {
     pub fn write_into_with_options<W: ByteWriter>(
         &self,
@@ -190,6 +229,7 @@ impl Serializable for Ident {
         target.write_bytes(self.name.as_bytes());
     }
 }
+
 impl Deserializable for Ident {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let span = SourceSpan::read_from(source)?;

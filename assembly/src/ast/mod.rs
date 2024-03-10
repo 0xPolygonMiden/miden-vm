@@ -36,9 +36,6 @@ pub use self::visit::{Visit, VisitMut};
 
 pub(crate) type SmallOpsVec = smallvec::SmallVec<[Op; 1]>;
 
-// CONSTANTS
-// ================================================================================================
-
 /// Maximum number of procedures in a module.
 pub const MAX_LOCAL_PROCS: usize = u16::MAX as usize;
 

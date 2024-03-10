@@ -15,6 +15,7 @@ pub struct Block {
     span: SourceSpan,
     body: Vec<Op>,
 }
+
 impl Block {
     /// Create a new [Block]
     pub fn new(span: SourceSpan, body: Vec<Op>) -> Self {
@@ -48,7 +49,10 @@ impl Block {
     pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, Op> {
         self.body.iter_mut()
     }
+}
 
+/// Serialization
+impl Block {
     /// Serialize this block to `target` with `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         if options.debug_info {
@@ -86,6 +90,7 @@ impl fmt::Debug for Block {
         f.debug_list().entries(&self.body).finish()
     }
 }
+
 #[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Block {
     fn render(&self) -> crate::prettier::Document {
@@ -95,12 +100,15 @@ impl crate::prettier::PrettyPrint for Block {
         body.map(|body| indent(4, body)).unwrap_or(Document::Empty)
     }
 }
+
 impl Spanned for Block {
     fn span(&self) -> SourceSpan {
         self.span
     }
 }
+
 impl Eq for Block {}
+
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
         self.body == other.body

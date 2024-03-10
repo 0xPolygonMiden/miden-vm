@@ -49,8 +49,10 @@ impl LibraryNamespace {
 
     /// Base kernel path.
     pub const KERNEL_PATH: &'static str = "#sys";
+
     /// Path for an executable module.
     pub const EXEC_PATH: &'static str = "#exec";
+
     /// Path for a module without library path.
     pub const ANON_PATH: &'static str = "#anon";
 
@@ -126,6 +128,7 @@ impl LibraryNamespace {
         Ok(())
     }
 }
+
 impl core::ops::Deref for LibraryNamespace {
     type Target = str;
 
@@ -133,16 +136,19 @@ impl core::ops::Deref for LibraryNamespace {
         self.as_str()
     }
 }
+
 impl AsRef<str> for LibraryNamespace {
     fn as_ref(&self) -> &str {
         self.as_str()
     }
 }
+
 impl fmt::Display for LibraryNamespace {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.as_str())
     }
 }
+
 impl FromStr for LibraryNamespace {
     type Err = LibraryNamespaceError;
 
@@ -158,6 +164,7 @@ impl FromStr for LibraryNamespace {
         }
     }
 }
+
 impl TryFrom<Ident> for LibraryNamespace {
     type Error = LibraryNamespaceError;
     fn try_from(ident: Ident) -> Result<Self, Self::Error> {
