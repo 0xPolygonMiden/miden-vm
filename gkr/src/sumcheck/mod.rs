@@ -24,24 +24,22 @@ pub struct CommittedValue<E: FieldElement> {
 
 #[derive(Clone, Debug)]
 pub struct SumCheckProof<E: FieldElement, H: ElementHasher> {
-    pub round_proofs: Vec<RoundProof<E, H>>,
-    pub final_round: FinalRound<E, H>,
+    pub rounds: Vec<SumCheckRound<E, H>>,
+    pub final_check: FinalCheck<E, H>,
 }
 
 #[derive(Clone, Debug)]
-pub struct RoundProof<E: FieldElement, H: ElementHasher> {
-    pub s_commit: PolynomialCommitment<H>,
-    pub s_at_0: CommittedValue<E>,
-    pub s_at_1: CommittedValue<E>,
-
-    // Used by next round
-    pub s_at_r: CommittedValue<E>,
+pub struct SumCheckRound<E: FieldElement, H: ElementHasher> {
+    pub round_poly_commit: PolynomialCommitment<H>,
+    pub round_poly_at_0: CommittedValue<E>,
+    pub round_poly_at_1: CommittedValue<E>,
+    pub round_poly_at_r: CommittedValue<E>,
 }
 
 #[derive(Clone, Debug)]
-pub struct FinalRound<E: FieldElement, H: ElementHasher> {
-    pub poly_commits: Vec<PolynomialCommitment<H>>,
-    pub poly_openings_at_r: Vec<CommittedValue<E>>,
+pub struct FinalCheck<E: FieldElement, H: ElementHasher> {
+    pub input_poly_commits: Vec<PolynomialCommitment<H>>,
+    pub input_poly_openings_at_r: Vec<CommittedValue<E>>,
 }
 
 pub struct VerificationError;
@@ -68,40 +66,29 @@ where
 
     // check first round
     {
-        let round_0_proof = proof.round_proofs.first().unwrap();
-        let round_0_challenge = verify_round(round_0_proof, I::FINAL_CLAIMED_VALUE, transcript)?;
+        let round_0 = proof.rounds.first().unwrap();
+        let round_0_challenge = verify_round(round_0, I::FINAL_CLAIMED_VALUE, transcript)?;
         challenges.push(round_0_challenge);
     }
 
     // check all other rounds
-    for (round_current, round_prev) in
-        zip(proof.round_proofs.iter().skip(1), proof.round_proofs.iter())
-    {
-        let round_claim = &round_prev.s_at_r;
+    for (round_current, round_prev) in zip(proof.rounds.iter().skip(1), proof.rounds.iter()) {
+        let round_claim = &round_prev.round_poly_at_r;
         let round_challenge = verify_round(round_current, round_claim.value, transcript)?;
         challenges.push(round_challenge);
     }
 
     // final check
     {
-        let last_round_claim = proof.round_proofs.last().unwrap().s_at_r.value;
-        let poly_evals: Vec<E> = proof
-            .final_round
-            .poly_openings_at_r
-            .into_iter()
-            .map(|opening| opening.value)
-            .collect();
-
-        if last_round_claim != instance.g(poly_evals) {
-            return Err(VerificationError);
-        }
+        let last_round_claim = proof.rounds.last().unwrap().round_poly_at_r.value;
+        verify_final_check(proof.final_check, last_round_claim, instance)?;
     }
 
     Ok(())
 }
 
 pub fn verify_round<E, H, R>(
-    current_round_proof: &RoundProof<E, H>,
+    current_round: &SumCheckRound<E, H>,
     round_claim: E,
     transcript: &mut R,
 ) -> Result<E::BaseField, VerificationError>
@@ -110,19 +97,44 @@ where
     H: ElementHasher<BaseField = E>,
     R: RandomCoin<BaseField = E::BaseField, Hasher = H>,
 {
-    let RoundProof {
-        s_commit,
-        s_at_0,
-        s_at_1,
-        s_at_r: _,
-    } = current_round_proof;
+    let SumCheckRound {
+        round_poly_commit,
+        round_poly_at_0,
+        round_poly_at_1,
+        round_poly_at_r: _,
+    } = current_round;
 
-    transcript.reseed(s_commit.commitment);
+    // TODO: Verify all the openings here
+
+    transcript.reseed(round_poly_commit.commitment);
 
     // the actual check
-    if s_at_0.value + s_at_1.value != round_claim {
+    if round_poly_at_0.value + round_poly_at_1.value != round_claim {
         return Err(VerificationError);
     }
 
     Ok(transcript.draw().unwrap())
+}
+
+pub fn verify_final_check<E, H, I>(
+    final_check: FinalCheck<E, H>,
+    last_claim: E,
+    instance: I,
+) -> Result<(), VerificationError>
+where
+    E: FieldElement,
+    H: ElementHasher<BaseField = E>,
+    I: SumCheckInstance<E>,
+{
+    let poly_evals: Vec<E> = final_check
+        .input_poly_openings_at_r
+        .into_iter()
+        .map(|opening| opening.value)
+        .collect();
+
+    if last_claim != instance.g(poly_evals) {
+        return Err(VerificationError);
+    }
+
+    Ok(())
 }
