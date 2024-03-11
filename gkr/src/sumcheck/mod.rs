@@ -22,12 +22,18 @@ pub struct CommittedValue<E: FieldElement> {
     pub commitment_proof: CommitmentProof,
 }
 
+/// A sum-check proof. Consists of multiple rounds, followed by a final check. This implements a
+/// generalized version of the traditional sum-check protocol, as described in
+/// [this issue](https://github.com/0xPolygonMiden/miden-vm/issues/1182).
 #[derive(Clone, Debug)]
 pub struct SumCheckProof<E: FieldElement, H: ElementHasher> {
     pub rounds: Vec<SumCheckRound<E, H>>,
     pub final_check: FinalCheck<E, H>,
 }
 
+/// In each round, the prover commits to a univariate "round polynomial" `p`, and opens it at 0, 1
+/// and a random `r` provided by the verifier. This round polynomial is designed such that `p(0) +
+/// p(1) = claim`, where `claim` is `p_prev(r_prev)`.
 #[derive(Clone, Debug)]
 pub struct SumCheckRound<E: FieldElement, H: ElementHasher> {
     pub round_poly_commit: PolynomialCommitment<H>,
@@ -36,6 +42,9 @@ pub struct SumCheckRound<E: FieldElement, H: ElementHasher> {
     pub round_poly_at_r: CommittedValue<E>,
 }
 
+/// Provides the data necessary for the verifier to perform the final check of the protocol. We call
+/// the multivariate polynomials `p_1(x1, ..., xu), ..., p_v(x1, ..., xu)` the "input polynomials".
+/// The prover commits to each, and opens them at a random `(r1, ..., ru)` provided by the verifier.
 #[derive(Clone, Debug)]
 pub struct FinalCheck<E: FieldElement, H: ElementHasher> {
     pub input_poly_commits: Vec<PolynomialCommitment<H>>,
@@ -44,10 +53,12 @@ pub struct FinalCheck<E: FieldElement, H: ElementHasher> {
 
 pub struct VerificationError;
 
-/// An instance of a sum check problem
+/// An instance of a sum-check problem
 pub trait SumCheckInstance<E: FieldElement> {
+    /// The value of the evaluation of the grand sum, as claimed by the prover
     const FINAL_CLAIMED_VALUE: E;
 
+    /// The public function g(p_1(x), ..., p_v(x))
     fn g(&self, poly_evals: Vec<E>) -> E;
 }
 
