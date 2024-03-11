@@ -349,7 +349,7 @@ impl ParserContext<'_> {
     /// - A procedure with the same name as re-exported procedure has already been either
     ///   declared or re-exported from this context.
     fn parse_reexported_procedure(
-        &self,
+        &mut self,
         tokens: &mut TokenStream,
     ) -> Result<ProcReExport, ParsingError> {
         let proc_start = tokens.pos();
@@ -365,7 +365,11 @@ impl ParserContext<'_> {
         let module_path = self
             .import_info
             .get_module_path(module)
+            .cloned()
             .ok_or(ParsingError::procedure_module_not_imported(header, module))?;
+
+        // add module path of reexported procedure to the module imports
+        self.import_info.add_reexported_module(&module_path);
 
         // consume the `export` token
         tokens.advance();
@@ -381,7 +385,7 @@ impl ParserContext<'_> {
             }
         }
 
-        let proc_id = ProcedureId::from_name(&ref_name, module_path);
+        let proc_id = ProcedureId::from_name(&ref_name, &module_path);
         Ok(ProcReExport::new(proc_id, proc_name, docs))
     }
 
