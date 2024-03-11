@@ -13,3 +13,4 @@ edition = "2021"
 rust-version = "1.75"
 
 [dependencies]
+vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
