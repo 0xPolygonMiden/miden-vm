@@ -3,6 +3,7 @@ members = [
   "air",
   "assembly",
   "core",
+  "gkr",
   "miden",
   "processor",
   "prover",
