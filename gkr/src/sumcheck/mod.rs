@@ -62,17 +62,21 @@ where
     R: RandomCoin<BaseField = E::BaseField, Hasher = H>,
     I: SumCheckInstance<E>,
 {
+    let SumCheckProof {
+        rounds,
+        final_check,
+    } = proof;
     let mut challenges: Vec<E::BaseField> = Vec::new();
 
     // check first round
     {
-        let round_0 = proof.rounds.first().unwrap();
+        let round_0 = rounds.first().unwrap();
         let round_0_challenge = verify_round(round_0, I::FINAL_CLAIMED_VALUE, transcript)?;
         challenges.push(round_0_challenge);
     }
 
     // check all other rounds
-    for (round_current, round_prev) in zip(proof.rounds.iter().skip(1), proof.rounds.iter()) {
+    for (round_current, round_prev) in zip(rounds.iter().skip(1), rounds.iter()) {
         let round_claim = &round_prev.round_poly_at_r;
         let round_challenge = verify_round(round_current, round_claim.value, transcript)?;
         challenges.push(round_challenge);
@@ -80,8 +84,8 @@ where
 
     // final check
     {
-        let last_round_claim = proof.rounds.last().unwrap().round_poly_at_r.value;
-        verify_final_check(proof.final_check, last_round_claim, instance)?;
+        let last_round_claim = rounds.last().unwrap().round_poly_at_r.value;
+        verify_final_check(final_check, last_round_claim, instance)?;
     }
 
     Ok(())
@@ -126,13 +130,13 @@ where
     H: ElementHasher<BaseField = E>,
     I: SumCheckInstance<E>,
 {
-    let poly_evals: Vec<E> = final_check
+    let input_poly_evals: Vec<E> = final_check
         .input_poly_openings_at_r
         .into_iter()
         .map(|opening| opening.value)
         .collect();
 
-    if last_claim != instance.g(poly_evals) {
+    if last_claim != instance.g(input_poly_evals) {
         return Err(VerificationError);
     }
 
