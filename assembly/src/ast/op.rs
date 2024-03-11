@@ -108,7 +108,10 @@ impl Op {
     fn tag(&self) -> u8 {
         // SAFETY: This is safe because we have given this enum a
         // primitive representation with #[repr(u8)], with the first
-        // field of the underlying union-of-structs the discriminant
+        // field of the underlying union-of-structs the discriminant.
+        //
+        // See the section on "accessing the numeric value of the discriminant"
+        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
         unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }
