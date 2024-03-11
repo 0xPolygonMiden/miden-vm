@@ -66,39 +66,20 @@ where
 {
     let mut challenges: Vec<E::BaseField> = Vec::new();
 
-    // check first round alone
-    let round_0_proof = proof.round_proofs.first().unwrap();
-
-    // TODO: EXTRACT IN FUNCTION
+    // check first round
     {
-        transcript.reseed(round_0_proof.s_commit.commitment);
-        if round_0_proof.s_at_0.value + round_0_proof.s_at_1.value != I::FINAL_CLAIMED_VALUE {
-            return Err(VerificationError);
-        }
-        challenges.push(transcript.draw().unwrap());
+        let round_0_proof = proof.round_proofs.first().unwrap();
+        let round_0_challenge = verify_round(round_0_proof, I::FINAL_CLAIMED_VALUE, transcript)?;
+        challenges.push(round_0_challenge);
     }
 
     // check all other rounds
     for (round_current, round_prev) in
         zip(proof.round_proofs.iter().skip(1), proof.round_proofs.iter())
     {
-        let RoundProof {
-            s_commit,
-            s_at_0,
-            s_at_1,
-            s_at_r: _,
-        } = round_current;
-
         let round_claim = &round_prev.s_at_r;
-
-        transcript.reseed(s_commit.commitment);
-
-        // the actual check
-        if s_at_0.value + s_at_1.value != round_claim.value {
-            return Err(VerificationError);
-        }
-
-        challenges.push(transcript.draw().unwrap());
+        let round_challenge = verify_round(round_current, round_claim.value, transcript)?;
+        challenges.push(round_challenge);
     }
 
     // final check
@@ -117,4 +98,31 @@ where
     }
 
     Ok(())
+}
+
+pub fn verify_round<E, H, R>(
+    current_round_proof: &RoundProof<E, H>,
+    round_claim: E,
+    transcript: &mut R,
+) -> Result<E::BaseField, VerificationError>
+where
+    E: FieldElement,
+    H: ElementHasher<BaseField = E>,
+    R: RandomCoin<BaseField = E::BaseField, Hasher = H>,
+{
+    let RoundProof {
+        s_commit,
+        s_at_0,
+        s_at_1,
+        s_at_r: _,
+    } = current_round_proof;
+
+    transcript.reseed(s_commit.commitment);
+
+    // the actual check
+    if s_at_0.value + s_at_1.value != round_claim {
+        return Err(VerificationError);
+    }
+
+    Ok(transcript.draw().unwrap())
 }
