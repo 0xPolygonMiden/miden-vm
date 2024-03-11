@@ -22,13 +22,16 @@ pub struct CommittedValue<E: FieldElement> {
     pub commitment_proof: CommitmentProof,
 }
 
-/// A sum-check proof. Consists of multiple rounds, followed by a final check. This implements a
-/// generalized version of the traditional sum-check protocol, as described in
+/// A sum-check proof. Consists of multiple rounds, followed by a final check, and the value of the
+/// evaluation of the grand sum, as claimed by the prover.
+///
+/// This implements a generalized version of the traditional sum-check protocol, as described in
 /// [this issue](https://github.com/0xPolygonMiden/miden-vm/issues/1182).
 #[derive(Clone, Debug)]
 pub struct SumCheckProof<E: FieldElement, H: ElementHasher> {
     pub rounds: Vec<SumCheckRound<E, H>>,
     pub final_check: FinalCheck<E, H>,
+    pub claimed_sum_evaluation: E,
 }
 
 /// In each round, the prover commits to a univariate "round polynomial" `p`, and opens it at 0, 1
@@ -55,9 +58,6 @@ pub struct VerificationError;
 
 /// An instance of a sum-check problem
 pub trait SumCheckInstance<E: FieldElement> {
-    /// The value of the evaluation of the grand sum, as claimed by the prover
-    const FINAL_CLAIMED_VALUE: E;
-
     /// The public function g(p_1(x), ..., p_v(x))
     fn g(&self, poly_evals: Vec<E>) -> E;
 }
@@ -76,13 +76,14 @@ where
     let SumCheckProof {
         rounds,
         final_check,
+        claimed_sum_evaluation,
     } = proof;
     let mut challenges: Vec<E::BaseField> = Vec::new();
 
     // check first round
     {
         let round_0 = rounds.first().unwrap();
-        let round_0_challenge = verify_round(round_0, I::FINAL_CLAIMED_VALUE, transcript)?;
+        let round_0_challenge = verify_round(round_0, claimed_sum_evaluation, transcript)?;
         challenges.push(round_0_challenge);
     }
 
