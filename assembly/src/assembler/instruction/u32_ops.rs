@@ -27,7 +27,7 @@ pub enum U32OpMode {
 pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-         // Test the fourth element
+        // Test the fourth element
         Dup3, U32split, Swap, Drop, Eqz,
 
         // Test the third element
@@ -481,23 +481,23 @@ fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     let ops_group_2 = [
         Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
 
-        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...] 
-                        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz` 
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...]
+                        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz`
                         // zeros:
                         // 1111111111...1110000...0
                         // └─ `clz` ones ─┘
 
-        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...] 
-                                              // pow2(32 - clz) / 2 is equal to `clz` leading 
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...]
+                                              // pow2(32 - clz) / 2 is equal to `clz` leading
                                               // zeros, `1` one and all other zeros.
 
-        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...] 
+        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...]
                          // 1111111111...111000...0 <-- bitmask
                          // └─  clz ones ─┘│
                          //                └─ additional one
 
-        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz] 
-                        // If calcualtion of `clz` is correct, m should be equal to 
+        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz]
+                        // If calcualtion of `clz` is correct, m should be equal to
                         // pow2(32 - clz) / 2
 
         Eq, Assert(0) // [clz, ...]
@@ -556,23 +556,23 @@ fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     let ops_group_2 = [
         Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
 
-        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...] 
-                        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo` 
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...]
+                        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo`
                         // zeros:
                         // 11111111...1110000...0
                         // └─ clo ones ─┘
 
-        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...] 
-                                              // pow2(32 - clo) / 2 is equal to `clo` leading 
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...]
+                                              // pow2(32 - clo) / 2 is equal to `clo` leading
                                               // zeros, `1` one and all other zeros.
 
-        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...] 
+        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...]
                    // 111111111...111000...0 <-- bitmask
                    // └─ clo ones ─┘│
                    //               └─ additional one
 
-        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo] 
-                        // If calcualtion of `clo` is correct, m should be equal to 
+        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo]
+                        // If calcualtion of `clo` is correct, m should be equal to
                         // 2^32 - pow2(32 - clo)
 
         Eq, Assert(0) // [clo, ...]
@@ -630,23 +630,23 @@ fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     #[rustfmt::skip]
     let ops_group_2 = [
         Dup0, // [pow2(ctz), pow2(ctz), n, ctz, ...]
-              // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
+        // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
 
         Pad, Incr, Neg, Add, // [pow2(ctz) - 1, pow2(ctz), n, ctz, ...]
 
         Swap, U32split, Drop, // [pow2(ctz), pow2(ctz) - 1, n, ctz, ...]
-                              // We need to drop the high bits of `pow2(ctz)` because if `ctz` 
+                              // We need to drop the high bits of `pow2(ctz)` because if `ctz`
                               // equals 32 `pow2(ctz)` will exceed the u32. Also in that case there
                               // is no need to check the dividing one, since it is absent (value is
-                              // all 0's). 
+                              // all 0's).
 
         Dup0, MovUp2, Add, // [bit_mask, pow2(ctz), n, ctz]
                            // 00..001111111111...11 <-- bitmask
                            //       │└─ ctz ones ─┘
                            //       └─ additional one
-                           
+
         MovUp2, U32and, // [m, pow2(ctz), ctz]
-                        // If calcualtion of `ctz` is correct, m should be equal to 
+                        // If calcualtion of `ctz` is correct, m should be equal to
                         // pow2(ctz)
 
         Eq, Assert(0), // [ctz, ...]
@@ -709,18 +709,18 @@ fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
         Pad, Incr, Neg, Add, // [pow2(cto) - 1, pow2(cto), n, cto, ...]
 
         Swap, U32split, Drop, // [pow2(cto), pow2(cto) - 1, n, cto, ...]
-                              // We need to drop the high bits of `pow2(cto)` because if `cto` 
+                              // We need to drop the high bits of `pow2(cto)` because if `cto`
                               // equals 32 `pow2(cto)` will exceed the u32. Also in that case there
-                              // is no need to check the dividing zero, since it is absent (value 
-                              // is all 1's). 
+                              // is no need to check the dividing zero, since it is absent (value
+                              // is all 1's).
 
         Dup1, Add, // [bit_mask, pow2(cto) - 1, n, cto]
                    // 00..001111111111...11 <-- bitmask
                    //       │└─ cto ones ─┘
                    //       └─ additional one
-                           
+
         MovUp2, U32and, // [m, pow2(cto) - 1, cto]
-                        // If calcualtion of `cto` is correct, m should be equal to 
+                        // If calcualtion of `cto` is correct, m should be equal to
                         // pow2(cto) - 1
 
         Eq, Assert(0), // [cto, ...]

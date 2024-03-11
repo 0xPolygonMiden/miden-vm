@@ -1,9 +1,29 @@
+use miden::{Digest, Word};
+use processor::ExecutionError;
+use test_utils::crypto::rpo_falcon512::KeyPair;
+use test_utils::rand::rand_vector;
+use test_utils::serde::Serializable;
 use test_utils::{
     build_test,
     crypto::{MerkleStore, RpoDigest},
     rand::rand_value,
-    Felt,
+    Felt, TestError,
 };
+
+const ADVICE_PUSH_SIG: &str = "
+    begin
+        # => [PK, MSG, ...]
+
+        # Calling adv.push_sig.rpo_falcon512 on its own gives an error:
+        # internal error: entered unreachable code: decorators in and empty SPAN block
+        # add stack calls to avoid this issue.
+        push.0
+        drop
+
+        adv.push_sig.rpo_falcon512
+
+        # => [PK, MSG, ...]
+    end";
 
 // ADVICE INJECTION
 // ================================================================================================
@@ -328,4 +348,99 @@ fn advice_insert_hdword() {
     let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
+}
+
+#[test]
+fn advice_push_sig_rpo_falcon_512() {
+    // Generate random public key and message to sign.
+    let keypair = KeyPair::new().unwrap();
+    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+    let pk_sk_bytes = keypair.to_bytes();
+
+    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
+
+    let mut op_stack = vec![];
+    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    op_stack.extend_from_slice(&message);
+    op_stack.extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
+    let adv_stack = vec![];
+    let store = MerkleStore::new();
+
+    let mut expected_stack = op_stack.clone();
+    expected_stack.reverse();
+
+    let test = build_test!(ADVICE_PUSH_SIG, &op_stack, &adv_stack, store, advice_map.into_iter());
+    test.expect_stack(&expected_stack);
+}
+
+#[test]
+fn advice_push_sig_rpo_falcon_512_bad_key_value() {
+    // Generate random public key and message to sign.
+    let keypair = KeyPair::new().unwrap();
+    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+
+    let pk_sk_bytes = keypair.to_bytes();
+
+    let mut to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+
+    // Public key as bytes must have values in the range 0 - 255.
+    to_adv_map.pop();
+    to_adv_map.push(Felt::new(257));
+
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map.into())];
+
+    let store = MerkleStore::new();
+    let advice_stack = vec![];
+
+    let mut stack_inputs = vec![];
+    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    stack_inputs.extend_from_slice(&message);
+    stack_inputs
+        .extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
+
+    let test =
+        build_test!(ADVICE_PUSH_SIG, &stack_inputs, &advice_stack, store, advice_map.into_iter());
+    test.expect_error(TestError::ExecutionError(ExecutionError::MalformedSignatureKey(
+        "RPO Falcon512",
+    )));
+}
+
+#[test]
+fn advice_push_sig_rpo_falcon_512_bad_key_length() {
+    // Generate random public key and message to sign.
+    let keypair = KeyPair::new().unwrap();
+    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+
+    let pk: Word = keypair.public_key().into();
+    let pk: Digest = pk.into();
+
+    let pk_sk_bytes = keypair.to_bytes();
+
+    let mut to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+
+    // Public key as bytes must be at least the correct length PK_LEN;
+    to_adv_map.pop();
+
+    let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map.into())];
+
+    let store = MerkleStore::new();
+    let advice_stack = vec![];
+
+    let mut stack_inputs = vec![];
+    let message = message.into_iter().map(|a| a.as_int()).collect::<Vec<u64>>();
+    stack_inputs.extend_from_slice(&message);
+    stack_inputs
+        .extend_from_slice(&pk.as_elements().iter().map(|a| a.as_int()).collect::<Vec<u64>>());
+
+    let test =
+        build_test!(ADVICE_PUSH_SIG, &stack_inputs, &advice_stack, store, advice_map.into_iter());
+    test.expect_error(TestError::ExecutionError(ExecutionError::MalformedSignatureKey(
+        "RPO Falcon512",
+    )));
 }
