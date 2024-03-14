@@ -37,6 +37,9 @@ use alloc::{boxed::Box, collections::BTreeSet, sync::Arc, vec::Vec};
 
 type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
+// MODULE PARSER
+// ================================================================================================
+
 #[derive(Default)]
 pub struct ModuleParser {
     kind: ast::ModuleKind,
@@ -77,6 +80,9 @@ fn parse_forms_internal(
         .parse(&source, interned, core::marker::PhantomData, lexer)
         .map_err(error::handle_parse_error)
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {

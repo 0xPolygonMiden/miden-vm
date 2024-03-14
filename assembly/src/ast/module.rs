@@ -15,6 +15,9 @@ use crate::{
     Serializable, SourceSpan, Span, Spanned,
 };
 
+// MODULE KIND
+// ================================================================================================
+
 /// Represents the kind of a [Module].
 ///
 /// The three different kinds have slightly different rules on what syntax is allowed, as well as
@@ -36,7 +39,7 @@ pub enum ModuleKind {
     ///
     /// As the executable module is the root module, it may not export procedures for other modules
     /// to depend on, it may only import and call externally-defined procedures, or private
-    /// locally- defined procedures.
+    /// locally-defined procedures.
     ///
     /// An executable module must contain a `begin`..`end` block.
     Executable = 1,
@@ -49,7 +52,7 @@ pub enum ModuleKind {
     /// * The procedures exported from the kernel may be the target of the `syscall` instruction,
     /// and in fact _must_ be called that way.
     ///
-    /// * Kernels may not use `syscall` or `call` instructions internally
+    /// * Kernels may not use `syscall` or `call` instructions internally.
     Kernel = 2,
 }
 
@@ -80,13 +83,16 @@ impl Deserializable for ModuleKind {
     }
 }
 
+// MODULE
+// ================================================================================================
+
 /// The abstract syntax tree for a single Miden Assembly module.
 ///
 /// All module kinds share this AST representation, as they are largely identical. However, the
 /// [ModuleKind] dictates how the parsed module is semantically analyzed and validated.
 #[derive(Clone)]
 pub struct Module {
-    /// The span covering the entire definition of this module
+    /// The span covering the entire definition of this module.
     span: SourceSpan,
     /// If available/known, the source contents from which this module was parsed. This is used
     /// to provide rich diagnostics output during semantic analysis.
@@ -100,29 +106,23 @@ pub struct Module {
     /// the first line of the module. All other documentation comments are attached to the item the
     /// precede in the module body.
     docs: Option<Span<String>>,
-    /// The fully-qualified path representing the name of this module
+    /// The fully-qualified path representing the name of this module.
     path: LibraryPath,
-    /// The kind of module this represents
+    /// The kind of module this represents.
     kind: ModuleKind,
-    /// The imports defined in the module body
+    /// The imports defined in the module body.
     pub(crate) imports: Vec<Import>,
-    /// The procedures (defined or re-exported) in the module body
+    /// The procedures (defined or re-exported) in the module body.
     ///
     /// NOTE: Despite the name, the procedures in this set are not necessarily exported, the
-    /// individual procedure item must be checked to determine visibility
+    /// individual procedure item must be checked to determine visibility.
     pub(crate) procedures: Vec<Export>,
-}
-
-impl Spanned for Module {
-    fn span(&self) -> SourceSpan {
-        self.span
-    }
 }
 
 /// Construction
 impl Module {
-    /// Create a new [Module] with the specified `kind` and fully-qualified path,
-    /// e.g. `std::math::u64`
+    /// Creates a new [Module] with the specified `kind` and fully-qualified path, e.g.
+    /// `std::math::u64`.
     pub fn new(kind: ModuleKind, path: LibraryPath) -> Self {
         Self {
             span: Default::default(),
@@ -145,7 +145,7 @@ impl Module {
         Self::new(ModuleKind::Executable, LibraryNamespace::Exec.into())
     }
 
-    /// Build this [Module] with the given source file in which it was defined.
+    /// Builds this [Module] with the given source file in which it was defined.
     ///
     /// When a source file is given, diagnostics will contain source code snippets.
     pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
@@ -153,8 +153,8 @@ impl Module {
         self
     }
 
-    /// Specify the source span in the source file in which this module was defined,
-    /// that covers the full definition of this module.
+    /// Specifies the source span in the source file in which this module was defined, that covers
+    /// the full definition of this module.
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
@@ -165,7 +165,7 @@ impl Module {
         self.source_file = Some(source_file);
     }
 
-    /// Set the documentation for this module
+    /// Sets the documentation for this module
     pub fn set_docs(&mut self, docs: Option<Span<String>>) {
         self.docs = docs;
     }
@@ -175,7 +175,7 @@ impl Module {
         self.span = span;
     }
 
-    /// Define a procedure, raising an error if the procedure is invalid, or conflicts with a
+    /// Defines a procedure, raising an error if the procedure is invalid, or conflicts with a
     /// previous definition
     pub fn define_procedure(&mut self, export: Export) -> Result<(), SemanticAnalysisError> {
         if self.is_kernel() && matches!(export, Export::Alias(_)) {
@@ -195,7 +195,7 @@ impl Module {
         }
     }
 
-    /// Define an import, raising an error if the import is invalid, or conflicts with a previous
+    /// Defines an import, raising an error if the import is invalid, or conflicts with a previous
     /// definition.
     pub fn define_import(&mut self, import: Import) -> Result<(), SemanticAnalysisError> {
         if let Some(prev_import) = self.resolve_import(&import.name) {
@@ -439,6 +439,12 @@ impl core::ops::IndexMut<ProcedureIndex> for Module {
     }
 }
 
+impl Spanned for Module {
+    fn span(&self) -> SourceSpan {
+        self.span
+    }
+}
+
 impl Eq for Module {}
 
 impl PartialEq for Module {
@@ -515,12 +521,10 @@ impl Module {
             std::fs::create_dir_all(dir)?;
         }
 
-        // NOTE: We're protecting against unwinds here due to i/o
-        // errors that will get turned into panics if writing to
-        // the underlying file fails. This is because ByteWriter does
-        // not have fallible APIs, thus WriteAdapter has to panic
-        // if writes fail. This could be fixed, but that has to happen
-        // upstream in winterfell
+        // NOTE: We're protecting against unwinds here due to i/o errors that will get turned into
+        // panics if writing to the underlying file fails. This is because ByteWriter does not have
+        // fallible APIs, thus WriteAdapter has to panic if writes fail. This could be fixed, but
+        // that has to happen upstream in winterfell
         std::panic::catch_unwind(|| match std::fs::File::create(path) {
             Ok(ref mut file) => {
                 let options = AstSerdeOptions {

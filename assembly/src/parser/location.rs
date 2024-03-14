@@ -1,18 +1,15 @@
 use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use core::fmt;
 
+// SOURCE LOCATION
+// ================================================================================================
+
 /// A struct containing information about the location of a source item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SourceLocation {
     // TODO add uri
     line: u32,
     column: u32,
-}
-
-impl Default for SourceLocation {
-    fn default() -> Self {
-        Self { line: 1, column: 1 }
-    }
 }
 
 impl SourceLocation {
@@ -29,6 +26,12 @@ impl SourceLocation {
     /// Moves the column by the given offset.
     pub fn move_column(&mut self, offset: u32) {
         self.column += offset;
+    }
+}
+
+impl Default for SourceLocation {
+    fn default() -> Self {
+        Self { line: 1, column: 1 }
     }
 }
 

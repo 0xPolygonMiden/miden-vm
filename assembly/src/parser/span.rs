@@ -7,8 +7,7 @@ use core::{
 
 use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-/// This trait should be implemented for any type that has
-/// an associated [SourceSpan].
+/// This trait should be implemented for any type that has an associated [SourceSpan].
 pub trait Spanned {
     fn span(&self) -> SourceSpan;
 }
@@ -19,10 +18,11 @@ impl<T: Spanned> Spanned for &T {
     }
 }
 
-/// This type is used to wrap any `T` with a [SourceSpan],
-/// and is typically used when it is not convenient to add
-/// a [SourceSpan] to the type - most commonly because we
-/// don't control the type.
+// SPAN
+// ================================================================================================
+
+/// This type is used to wrap any `T` with a [SourceSpan], and is typically used when it is not
+/// convenient to add a [SourceSpan] to the type - most commonly because we don't control the type.
 pub struct Span<T> {
     span: SourceSpan,
     spanned: T,
@@ -271,18 +271,19 @@ impl<T: Deserializable> Deserializable for Span<T> {
     }
 }
 
+// SOURCE SPAN
+// ================================================================================================
+
 /// This represents a span of bytes in a Miden Assembly source file.
 ///
-/// It is compact, using only 8 bytes to represent the full span. This
-/// does, however, come at the tradeoff of only supporting source
-/// files of up to 2^32 bytes.
+/// It is compact, using only 8 bytes to represent the full span. This does, however, come at the
+/// tradeoff of only supporting source files of up to 2^32 bytes.
 ///
-/// This type is produced by the lexer and carried through parsing.
-/// It can be converted into a line/column range as well, if needed.
+/// This type is produced by the lexer and carried through parsing. It can be converted into a
+/// line/column range as well, if needed.
 ///
-/// This representation is more convenient to produce, and allows
-/// showing source spans in error messages, whereas line/column
-/// information is useful at a glance in debug output, it is harder
+/// This representation is more convenient to produce, and allows showing source spans in error
+/// messages, whereas line/column information is useful at a glance in debug output, it is harder
 /// to produce nice errors with it compared to this representation.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SourceSpan {
