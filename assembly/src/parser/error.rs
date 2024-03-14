@@ -7,6 +7,9 @@ use core::{fmt, ops::Range};
 use super::{ParseError, SourceSpan};
 use crate::diagnostics::Diagnostic;
 
+// LITERAL ERROR KIND
+// ================================================================================================
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LiteralErrorKind {
     /// The input was empty
@@ -35,6 +38,9 @@ impl fmt::Display for LiteralErrorKind {
     }
 }
 
+// HEX ERROR KIND
+// ================================================================================================
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum HexErrorKind {
     /// Expected two hex digits for every byte, but had fewer than that
@@ -62,6 +68,9 @@ impl fmt::Display for HexErrorKind {
         }
     }
 }
+
+// PARSING ERROR
+// ================================================================================================
 
 #[derive(Debug, Default, Clone, thiserror::Error, Diagnostic)]
 #[repr(u8)]
@@ -279,10 +288,12 @@ pub fn handle_parse_error(err: ParseError) -> ParsingError {
     }
 }
 
-// The parser generator will show every token that is expected
-// in some scenarios, so to avoid cluttering the diagnostic output
-// with all of the instruction opcodes, we collapse them into a
-// single token
+// HELPER FUNCTIONS
+// ================================================================================================
+
+// The parser generator will show every token that is expected in some scenarios, so to avoid
+// cluttering the diagnostic output with all of the instruction opcodes, we collapse them into a
+// single token.
 fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
     use super::Token;
     let mut has_instruction = false;

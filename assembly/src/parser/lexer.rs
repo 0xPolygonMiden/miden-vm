@@ -34,6 +34,9 @@ macro_rules! pop2 {
     }};
 }
 
+// LEXER
+// ================================================================================================
+
 /// The lexer that is used to perform lexical analysis Miden Assembly grammar. The lexer implements
 /// the `Iterator` trait, so in order to retrieve the tokens, you simply have to iterate over it.
 ///

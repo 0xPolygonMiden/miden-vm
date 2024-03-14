@@ -1,18 +1,18 @@
 use core::ops::Range;
 
-/// [Scanner] handles the low-level details of reading characters
-/// from a raw input stream of bytes. It decodes those bytes into
-/// UTF-8 characters, and associates each character with the [SourceIndex]
-/// at which it occurs.
+// SCANNER
+// ================================================================================================
+
+/// [Scanner] handles the low-level details of reading characters from a raw input stream of bytes.
+/// It decodes those bytes into UTF-8 characters, and associates each character with the
+/// [SourceIndex] at which it occurs.
 ///
-/// The [Scanner] is intended to be consumed by a lexer, which handles
-/// converting the stream of characters into a token stream for use
-/// by the parser.
+/// The [Scanner] is intended to be consumed by a lexer, which handles converting the stream of
+/// characters into a token stream for use by the parser.
 ///
 /// ## Scanner Lifecycle
 ///
-/// The following illustrates how content flows from the raw input
-/// stream through the scanner.
+/// The following illustrates how content flows from the raw input stream through the scanner.
 ///
 /// ```ignore
 /// lexer <- (peek) <- pending <- source
@@ -21,15 +21,13 @@ use core::ops::Range;
 ///
 /// As shown above, the lexer is "pulling" characters from the scanner.
 ///
-/// When "peeking" a character, we return the character currently in the
-/// `pending` field, but if `pending` is empty, we read enough bytes from
-/// the source to construct a UTF-8 character, and store it as `pending`,
-/// as well as returning it to the lexer.
+/// When "peeking" a character, we return the character currently in the `pending` field, but if
+/// `pending` is empty, we read enough bytes from the source to construct a UTF-8 character, and
+/// store it as `pending`, as well as returning it to the lexer.
 ///
-/// When "popping" a character (i.e. we are advancing the scanner in the
-/// input), we are returing the character in the `current` field, and then
-/// moving the character in `pending` into `current`. Accordingly, if any
-/// of those fields is empty, we must pull from the next field in the chain,
+/// When "popping" a character (i.e. we are advancing the scanner in the input), we are returning
+/// the character in the `current` field, and then moving the character in `pending` into `current`.
+/// Accordingly, if any of those fields is empty, we must pull from the next field in the chain,
 /// reading bytes from the input as we go.
 pub struct Scanner<'input> {
     input: &'input str,
@@ -41,7 +39,7 @@ pub struct Scanner<'input> {
 }
 
 impl<'input> Scanner<'input> {
-    /// Construct a new [Scanner] for the given `source`
+    /// Construct a new [Scanner] for the given `source`.
     pub fn new(input: &'input str) -> Self {
         let end = input.as_bytes().len();
         assert!(end < u32::MAX as usize, "file too large");
@@ -66,8 +64,7 @@ impl<'input> Scanner<'input> {
 
     /// Advance scanner pipeline by a single character.
     ///
-    /// `pending` becomes `current`, and bytes are read from the input
-    /// to repopulate `pending`.
+    /// `pending` becomes `current`, and bytes are read from the input to repopulate `pending`.
     #[inline]
     pub fn advance(&mut self) {
         self.current = self.pending;

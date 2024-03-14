@@ -3,6 +3,9 @@ use core::fmt;
 
 use vm_core::Felt;
 
+// DOCUMENTATION TYPE
+// ================================================================================================
+
 /// Represents the scope of a given documentation comment
 #[derive(Debug, Clone)]
 pub enum DocumentationType {
@@ -29,6 +32,9 @@ impl core::ops::Deref for DocumentationType {
     }
 }
 
+// HEX ENCODED VALUE
+// ================================================================================================
+
 /// Represents one of the various types of values that have a hex-encoded representation in Miden
 /// Assembly source files.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -44,6 +50,9 @@ pub enum HexEncodedValue {
     /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 64 hex digits
     Word([Felt; 4]),
 }
+
+// TOKEN
+// ================================================================================================
 
 /// The token type produced by [crate::parser::Lexer], and consumed by the parser.
 #[derive(Debug, Clone)]
@@ -403,8 +412,8 @@ impl<'input> fmt::Display for Token<'input> {
 impl<'input> Token<'input> {
     /// Returns true if this token represents the name of an instruction.
     ///
-    /// This is used to simplify diagnostic output related to expected tokens so as
-    /// not to overwhelm the user with a ton of possible expected instruction variants.
+    /// This is used to simplify diagnostic output related to expected tokens so as not to
+    /// overwhelm the user with a ton of possible expected instruction variants.
     pub fn is_instruction(&self) -> bool {
         matches!(
             self,
@@ -704,20 +713,19 @@ impl<'input> Token<'input> {
         ("xor", Token::Xor),
     ];
 
-    /// Construct a DFA capable of recognizing Miden Assembly keywords.
+    /// Constructs a DFA capable of recognizing Miden Assembly keywords.
     ///
-    /// Constructing the state machine is expensive, so it should not be done in hot
-    /// code. Instead, prefer to construct it once and reuse it many times.
+    /// Constructing the state machine is expensive, so it should not be done in hot code. Instead,
+    /// prefer to construct it once and reuse it many times.
     ///
-    /// Currently we construct an instance of this searcher in the lexer, which is
-    /// then used to select a keyword token or construct an identifier token depending
-    /// on whether a given string is a known keyword.
+    /// Currently we construct an instance of this searcher in the lexer, which is then used to
+    /// select a keyword token or construct an identifier token depending on whether a given string
+    /// is a known keyword.
     pub fn keyword_searcher() -> aho_corasick::AhoCorasick {
         use aho_corasick::AhoCorasick;
 
-        // Execute a search for any of the keywords above,
-        // matching longest first, and requiring the match
-        // to cover the entire input.
+        // Execute a search for any of the keywords above, matching longest first, and requiring
+        // the match to cover the entire input.
         AhoCorasick::builder()
             .match_kind(aho_corasick::MatchKind::LeftmostLongest)
             .start_kind(aho_corasick::StartKind::Anchored)
@@ -725,26 +733,25 @@ impl<'input> Token<'input> {
             .expect("unable to build aho-corasick searcher for token")
     }
 
-    /// Return an appropriate [Token] depending on whether the given string
-    /// is a keyword or an identifier.
+    /// Returns an appropriate [Token] depending on whether the given string is a keyword or an
+    /// identifier.
     ///
-    /// NOTE: This constructs and throws away an expensive-to-construct Aho-Corasick
-    /// state machine. You should not call this from any code on a hot path. Instead,
-    /// construct the state machine once using [Token::keyword_searcher], and reuse
-    /// it for all searches using [Token::from_keyword_or_ident_with_searcher].
+    /// NOTE: This constructs and throws away an expensive-to-construct Aho-Corasick state machine.
+    /// You should not call this from any code on a hot path. Instead, construct the state machine
+    /// once using [Token::keyword_searcher], and reuse it for all searches using
+    /// [Token::from_keyword_or_ident_with_searcher].
     ///
-    /// Currently, this function is only called along one code path, which is when
-    /// we are constructing a parser error in which we wish to determine which, if
-    /// any, of the expected tokens are instruction opcode keywords, so we can collapse
-    /// them into a more user-friendly error message. This is not on a hot path, so we
-    /// don't care if it is a bit slow.
+    /// Currently, this function is only called along one code path, which is when we are
+    /// constructing a parser error in which we wish to determine which, if any, of the expected
+    /// tokens are instruction opcode keywords, so we can collapse them into a more user-friendly
+    /// error message. This is not on a hot path, so we don't care if it is a bit slow.
     pub fn from_keyword_or_ident(s: &'input str) -> Self {
         let searcher = Self::keyword_searcher();
         Self::from_keyword_or_ident_with_searcher(s, &searcher)
     }
 
-    /// This is the primary function you should use when you wish to get an appropriate
-    /// token for a given input string, depending on whether it is a keyword or an identifier.
+    /// This is the primary function you should use when you wish to get an appropriate token for
+    /// a given input string, depending on whether it is a keyword or an identifier.
     ///
     /// See [Token::keyword_searcher] for additional information on how this is meant to be used.
     pub fn from_keyword_or_ident_with_searcher(
@@ -764,10 +771,10 @@ impl<'input> Token<'input> {
 
     /// Parses a [Token] from a string corresponding to that token.
     ///
-    /// This solely exists to aid in constructing more user-friendly error messages
-    /// in certain scenarios, and is otherwise not used (not should it be). It is
-    /// quite expensive to call due to invoking [Token::keyword_searcher] under the
-    /// covers. See the documentation for that function for more details.
+    /// This solely exists to aid in constructing more user-friendly error messages in certain
+    /// scenarios, and is otherwise not used (nor should it be). It is quite expensive to call due
+    /// to invoking [Token::keyword_searcher] under the covers. See the documentation for that
+    /// function for more details.
     pub fn parse(s: &'input str) -> Result<Token<'input>, ()> {
         match Token::from_keyword_or_ident(s) {
             Token::Ident(_) => {
