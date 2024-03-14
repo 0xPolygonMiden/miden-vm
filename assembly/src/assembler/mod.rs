@@ -210,7 +210,8 @@ impl Assembler {
         }
     }
 
-    /// Parse `source` as a library module with path `path`, and add it to the module graph of the assembler
+    /// Parse `source` as a library module with path `path`, and add it to the module graph of the
+    /// assembler
     pub fn with_module_from_source(
         mut self,
         path: LibraryPath,
@@ -220,7 +221,8 @@ impl Assembler {
         Ok(self)
     }
 
-    /// Parse `source` as a library module with path `path`, and add it to the module graph of the assembler
+    /// Parse `source` as a library module with path `path`, and add it to the module graph of the
+    /// assembler
     pub fn add_module_from_source(
         &mut self,
         path: LibraryPath,
@@ -307,7 +309,8 @@ impl Assembler {
         self.with_kernel_from_module(kernel)
     }
 
-    /// Sets the kernel for the assembler to the kernel defined by the provided abstract syntax tree.
+    /// Sets the kernel for the assembler to the kernel defined by the provided abstract syntax
+    /// tree.
     ///
     /// # Errors
     ///
@@ -474,7 +477,8 @@ impl Assembler {
         self.compile_kernel_module(module).map(|(_, kernel)| kernel)
     }
 
-    /// Compiles the given kernel module, returning both the compiled kernel and its index in the graph.
+    /// Compiles the given kernel module, returning both the compiled kernel and its index in the
+    /// graph.
     fn compile_kernel_module(
         &mut self,
         module: Box<ast::Module>,

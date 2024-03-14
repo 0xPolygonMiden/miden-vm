@@ -126,7 +126,8 @@ impl<T> Span<T> {
         self.span.end += count;
     }
 
-    /// Consume this span, returning the component parts, i.e. the [SourceSpan] and value of type `T`.
+    /// Consume this span, returning the component parts, i.e. the [SourceSpan] and value of type
+    /// `T`.
     #[inline]
     pub fn into_parts(self) -> (SourceSpan, T) {
         (self.span, self.spanned)

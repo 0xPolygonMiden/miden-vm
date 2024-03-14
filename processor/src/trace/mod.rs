@@ -269,9 +269,9 @@ impl Trace for ExecutionTrace {
 /// The process includes:
 /// - Determining the length of the trace required to accommodate the longest trace column.
 /// - Padding the columns to make sure all columns are of the same length.
-/// - Inserting random values in the last row of all columns. This helps ensure that there
-///   are no repeating patterns in each column and each column contains a least two distinct
-///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
+/// - Inserting random values in the last row of all columns. This helps ensure that there are no
+///   repeating patterns in each column and each column contains a least two distinct values. This,
+///   in turn, ensures that polynomial degrees of all columns are stable.
 fn finalize_trace<H>(
     process: Process<H>,
     mut rng: RpoRandomCoin,

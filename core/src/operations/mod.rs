@@ -39,7 +39,8 @@ pub enum Operation {
     Caller,
 
     /// Pushes the current value of the clock cycle onto the stack. This operation can be used to
-    /// measure the number of cycles it has taken to execute the program up to the current instruction.
+    /// measure the number of cycles it has taken to execute the program up to the current
+    /// instruction.
     Clk,
 
     // ----- flow control operations --------------------------------------------------------------
@@ -85,7 +86,8 @@ pub enum Operation {
     /// Pops an element off the stack, negates it, and pushes the result back onto the stack.
     Neg,
 
-    /// Pops two elements off the stack, multiplies them, and pushes the result back onto the stack.
+    /// Pops two elements off the stack, multiplies them, and pushes the result back onto the
+    /// stack.
     Mul,
 
     /// Pops an element off the stack, computes its multiplicative inverse, and pushes the result
@@ -95,7 +97,8 @@ pub enum Operation {
     /// Pops an element off the stack, adds 1 to it, and pushes the result back onto the stack.
     Incr,
 
-    /// Pops two elements off the stack, multiplies them, and pushes the result back onto the stack.
+    /// Pops two elements off the stack, multiplies them, and pushes the result back onto the
+    /// stack.
     ///
     /// If either of the elements is greater than 1, execution fails. This operation is equivalent
     /// to boolean AND.
@@ -363,13 +366,13 @@ pub enum Operation {
     /// - All other stack elements remain the same.
     MStream,
 
-    /// Pops two words from the advice stack, writes them to memory, and replaces the top 8 elements
-    /// of the stack with them, element-wise, in stack order.
+    /// Pops two words from the advice stack, writes them to memory, and replaces the top 8
+    /// elements of the stack with them, element-wise, in stack order.
     ///
     /// The operation works as follows:
     /// - Two words are popped from the advice stack.
-    /// - The destination memory address for the first word is retrieved from the 13th stack element
-    ///   (position 12).
+    /// - The destination memory address for the first word is retrieved from the 13th stack
+    ///   element (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
     /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
     ///   order).

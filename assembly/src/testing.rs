@@ -172,9 +172,9 @@ macro_rules! assert_diagnostic_lines {
 
 /// A [TestContext] provides common functionality for all tests which interact with an [Assembler].
 ///
-/// It is used by constructing it with `TestContext::default()`, which will initialize the diagnostic
-/// reporting infrastructure, and construct a default [Assembler] instance for you. You can then
-/// optionally customize the context, or start invoking any of its test helpers.
+/// It is used by constructing it with `TestContext::default()`, which will initialize the
+/// diagnostic reporting infrastructure, and construct a default [Assembler] instance for you. You
+/// can then optionally customize the context, or start invoking any of its test helpers.
 ///
 /// Some of the assertion macros defined above require a [TestContext], so be aware of that.
 pub struct TestContext {
@@ -219,7 +219,8 @@ impl TestContext {
 
     /// Parse the given source file into an executable [Module].
     ///
-    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically valid.
+    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
+    /// valid.
     #[track_caller]
     pub fn parse_program(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
         let mut parser = ModuleParser::new(ModuleKind::Executable);
@@ -228,7 +229,8 @@ impl TestContext {
 
     /// Parse the given source file into a kernel [Module].
     ///
-    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically valid.
+    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
+    /// valid.
     #[allow(unused)]
     #[track_caller]
     pub fn parse_kernel(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
@@ -238,7 +240,8 @@ impl TestContext {
 
     /// Parse the given source file into an anonymous library [Module].
     ///
-    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically valid.
+    /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
+    /// valid.
     #[track_caller]
     pub fn parse_module(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
         let mut parser = ModuleParser::new(ModuleKind::Library);

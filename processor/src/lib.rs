@@ -415,8 +415,8 @@ where
     /// satisfied by executing NOOPs as needed. Specifically:
     /// - If an operation group ends with an operation carrying an immediate value, a NOOP is
     ///   executed after it.
-    /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per
-    ///   group) to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
+    /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per group)
+    ///   to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
     #[inline(always)]
     fn execute_op_batch(
         &mut self,

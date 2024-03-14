@@ -455,7 +455,8 @@ fn asmop_conditional_execution_test() {
     assert_eq!(expected_vm_state, vm_state);
 }
 
-/// This is a helper function to build a vector of [VmStatePartial] from a specified [VmStateIterator].
+/// This is a helper function to build a vector of [VmStatePartial] from a specified
+/// [VmStateIterator].
 fn build_vm_state(vm_state_iterator: VmStateIterator) -> Vec<VmStatePartial> {
     let mut vm_state = Vec::new();
     for state in vm_state_iterator {

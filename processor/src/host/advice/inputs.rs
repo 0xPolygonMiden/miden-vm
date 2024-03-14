@@ -14,8 +14,8 @@ use vm_core::crypto::hash::RpoDigest;
 ///
 /// 1. Single advice stack which can contain any number of elements.
 /// 2. Key-mapped element lists which can be pushed onto the advice stack.
-/// 3. Merkle store, which is used to provide nondeterministic inputs for instructions that
-///    operates with Merkle trees.
+/// 3. Merkle store, which is used to provide nondeterministic inputs for instructions that operates
+///    with Merkle trees.
 #[cfg(not(feature = "internals"))]
 #[derive(Clone, Debug, Default)]
 pub struct AdviceInputs {

@@ -38,8 +38,8 @@ pub use winter_prover::StarkProof;
 /// Executes and proves the specified `program` and returns the result together with a STARK-based
 /// proof of the program's execution.
 ///
-/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
-///   inputs for the VM.
+/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret) inputs
+///   for the VM.
 /// * `options` defines parameters for STARK proof generation.
 ///
 /// # Errors

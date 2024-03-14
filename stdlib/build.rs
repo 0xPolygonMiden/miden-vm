@@ -51,7 +51,8 @@ trait Renderer {
     fn render(stdlib: &MaslLibrary, output_dir: &str);
 }
 
-/// Writes Miden standard library modules documentation markdown files based on the available modules and comments.
+/// Writes Miden standard library modules documentation markdown files based on the available
+/// modules and comments.
 pub fn build_stdlib_docs(library: &MaslLibrary, output_dir: &str) -> io::Result<()> {
     // Clean the output folder. This only deletes the folder's content, and not the folder itself,
     // because removing the folder fails on docs.rs

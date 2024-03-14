@@ -28,14 +28,14 @@ type ProcHashBytes = [u8; 32];
 ///
 /// In the above, the meaning of columns is as follows:
 /// - `s0` is a selector column which indicates whether a procedure in a given row should count
-///   toward kernel access. ONE indicates that a procedure should be counted as a single access,
-///   and ZERO indicates that it shouldn't.
+///   toward kernel access. ONE indicates that a procedure should be counted as a single access, and
+///   ZERO indicates that it shouldn't.
 /// - `idx` is a procedure index in the kernel. Values in this column start at ZERO and are
-///   incremented by ONE for every new procedure. Said another way, if `idx` does not change,
-///   values in `h0` - `h3` must remain the same, but when `idx` is incremented values in `h0` -
-///   `h3` can change.
-/// - `h0` - `h3` columns contain roots of procedures in a given kernel. Together with `idx`
-///   column, these form tuples (index, procedure root) for all procedures in the kernel.
+///   incremented by ONE for every new procedure. Said another way, if `idx` does not change, values
+///   in `h0` - `h3` must remain the same, but when `idx` is incremented values in `h0` - `h3` can
+///   change.
+/// - `h0` - `h3` columns contain roots of procedures in a given kernel. Together with `idx` column,
+///   these form tuples (index, procedure root) for all procedures in the kernel.
 pub struct KernelRom {
     access_map: BTreeMap<ProcHashBytes, ProcAccessInfo>,
     kernel: Kernel,

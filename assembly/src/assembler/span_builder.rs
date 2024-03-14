@@ -148,8 +148,8 @@ impl SpanBuilder {
     /// appends the block to the provided target.
     ///
     /// The main differences from the `extract_span_int()` method above are:
-    /// - Operations contained in the epilogue of the span builder are appended to the list of
-    ///   ops which go into the new SPAN block.
+    /// - Operations contained in the epilogue of the span builder are appended to the list of ops
+    ///   which go into the new SPAN block.
     /// - The span builder is consumed in the process.
     pub fn extract_final_span_into(mut self, target: &mut Vec<CodeBlock>) {
         self.ops.append(&mut self.epilogue);

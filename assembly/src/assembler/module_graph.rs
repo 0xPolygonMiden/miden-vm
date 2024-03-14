@@ -962,7 +962,8 @@ impl<'a> NameResolver<'a> {
         }
     }
 
-    /// Resolve `name` to its concrete definition, returning the corresponding [GlobalProcedureIndex]
+    /// Resolve `name` to its concrete definition, returning the corresponding
+    /// [GlobalProcedureIndex].
     ///
     /// If an error occurs during resolution, or the name cannot be resolved, `Err` is returned.
     pub fn find(

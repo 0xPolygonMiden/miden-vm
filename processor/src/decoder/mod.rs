@@ -302,30 +302,30 @@ where
 /// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┴───┴───┤
 ///
 /// In the above, the meaning of the columns is as follows:
-/// * addr column contains address of the hasher for the current block (row index from the
-///   auxiliary hashing table). It also serves the role of unique block identifiers. This is
-///   convenient, because hasher addresses are guaranteed to be unique.
-/// * op_bits columns b0 through b6 are used to encode an operation to be executed by the VM.
-///   Each of these columns contains a single binary value, which together form a single opcode.
+/// * addr column contains address of the hasher for the current block (row index from the auxiliary
+///   hashing table). It also serves the role of unique block identifiers. This is convenient,
+///   because hasher addresses are guaranteed to be unique.
+/// * op_bits columns b0 through b6 are used to encode an operation to be executed by the VM. Each
+///   of these columns contains a single binary value, which together form a single opcode.
 /// * Hasher state columns h0 through h7. These are multi purpose columns used as follows:
 ///   - When starting decoding of a new code block (e.g., via JOIN, SPLIT, LOOP, SPAN operations)
 ///    these columns are used for providing inputs for the current block's hash computations.
-///   - When finishing decoding of a code block (i.e., via END operation), these columns are
-///     used to record the result of the hash computation.
-///   - Inside a SPAN block, the first two columns are used to keep track of un-executed
-///     operations in the current operation group, as well as the address of the parent code
-///     block. The remaining 6 columns are unused by the decoder and, thus, can be used by the
-///     VM as helper columns.
+///   - When finishing decoding of a code block (i.e., via END operation), these columns are used to
+///     record the result of the hash computation.
+///   - Inside a SPAN block, the first two columns are used to keep track of un-executed operations
+///     in the current operation group, as well as the address of the parent code block. The
+///     remaining 6 columns are unused by the decoder and, thus, can be used by the VM as helper
+///     columns.
 /// * in_span column is a binary flag set to ONE when we are inside a SPAN block, and to ZERO
 ///   otherwise.
 /// * Operation group count column is used to keep track of the number of un-executed operation
 ///   groups in the current SPAN block.
 /// * Operation index column is used to keep track of the indexes of the currently executing
-///   operations within an operation group. Values in this column could be between 0 and 8
-///   (both inclusive) as there could be at most 9 operations in an operation group.
-/// * Operation batch flag columns c0, c1, c2 which indicate how many operation groups are in
-///   a given operation batch. These flags are set only for SPAN or RESPAN operations, and are
-///   set to ZEROs otherwise.
+///   operations within an operation group. Values in this column could be between 0 and 8 (both
+///   inclusive) as there could be at most 9 operations in an operation group.
+/// * Operation batch flag columns c0, c1, c2 which indicate how many operation groups are in a
+///   given operation batch. These flags are set only for SPAN or RESPAN operations, and are set to
+///   ZEROs otherwise.
 /// * Operation bit extra columns `be0` and `be1` which are used to reduce the degree of op flags
 ///   for operations.
 ///   - `be0` is set when op_bits[6] is ONE, op_bits[5] is ZERO, and op_bits[4] is ONE.
@@ -653,9 +653,9 @@ impl Default for Decoder {
 // ================================================================================================
 
 /// Keeps track of the info needed to decode a currently executing SPAN block. The info includes:
-/// - Operations which still need to be executed in the current group. The operations are
-///   encoded as opcodes (7 bits) appended one after another into a single field element, with the
-///   next operation to be executed located at the least significant position.
+/// - Operations which still need to be executed in the current group. The operations are encoded as
+///   opcodes (7 bits) appended one after another into a single field element, with the next
+///   operation to be executed located at the least significant position.
 /// - Number of operation groups left to be executed in the entire SPAN block.
 #[derive(Default)]
 struct SpanContext {
@@ -724,7 +724,8 @@ impl DebugInfo {
         self.in_debug_mode
     }
 
-    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
+    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug
+    /// mode.
     pub fn operations(&self) -> &[Operation] {
         &self.operations
     }

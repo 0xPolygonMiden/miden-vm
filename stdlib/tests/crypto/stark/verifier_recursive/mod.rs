@@ -120,7 +120,8 @@ pub fn generate_advice_inputs(
         .draw_integers(air.options().num_queries(), air.lde_domain_size(), pow_nonce)
         .map_err(|_| VerifierError::RandomCoinError)?;
 
-    // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
+    // read advice maps and Merkle paths related to trace and constraint composition polynomial
+    // evaluations
     let (mut advice_map, mut partial_trees_traces) =
         channel.read_queried_trace_states(&query_positions)?;
     let (mut adv_map_constraint, partial_tree_constraint) =

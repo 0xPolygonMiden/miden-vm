@@ -150,8 +150,8 @@ pub trait Host {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
     fn get_adv_merkle_path<S: ProcessState>(
         &mut self,

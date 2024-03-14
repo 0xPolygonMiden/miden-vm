@@ -458,8 +458,8 @@ impl RecAdviceProvider {
     /// instance will contain only the non-deterministic inputs which were requested during program
     /// execution.
     ///
-    /// The `Vec<Felt>`, `SimpleAdviceMap`, and `MerkleStore` represent the stack, map, and Merkle store of
-    /// the advice provider at the time of finalization.
+    /// The `Vec<Felt>`, `SimpleAdviceMap`, and `MerkleStore` represent the stack, map, and Merkle
+    /// store of the advice provider at the time of finalization.
     pub fn finalize(self) -> (AdviceInputs, Vec<Felt>, SimpleAdviceMap, MerkleStore) {
         let Self {
             provider,

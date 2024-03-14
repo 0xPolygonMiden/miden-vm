@@ -28,9 +28,9 @@ mod tests;
 /// ├─────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:
-/// - Column `v` contains the value being range-checked where `v` must be a 16-bit value. The
-///   values must be in increasing order and the jump allowed between two values should be a power
-///   of 3 less than or equal to 3^7, and duplicates are allowed.
+/// - Column `v` contains the value being range-checked where `v` must be a 16-bit value. The values
+///   must be in increasing order and the jump allowed between two values should be a power of 3
+///   less than or equal to 3^7, and duplicates are allowed.
 /// - Column `m` specifies the lookup multiplicity, which is how many lookups are to be included for
 ///   a given value.
 ///
@@ -41,8 +41,8 @@ pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
     /// Range check lookups performed by all user operations, grouped and sorted by clock cycle.
-    /// Each cycle is mapped to a vector of the range checks requested at that cycle, which can come
-    /// from the stack, memory, or both.
+    /// Each cycle is mapped to a vector of the range checks requested at that cycle, which can
+    /// come from the stack, memory, or both.
     cycle_lookups: BTreeMap<u32, Vec<u16>>,
 }
 

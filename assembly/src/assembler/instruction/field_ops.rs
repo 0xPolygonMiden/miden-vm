@@ -198,8 +198,8 @@ pub fn exp_imm(span_builder: &mut SpanBuilder, pow: Felt) -> Result<(), Assembly
 ///
 /// The expected starting state of the stack (from the top) is: [b, ...].
 ///
-/// After these operations, the stack state will be: [b^pow, ...], where b is the immediate value and b
-/// is less than 8.
+/// After these operations, the stack state will be: [b^pow, ...], where b is the immediate value
+/// and b is less than 8.
 ///
 /// VM cycles per mode:
 /// - pow = 0: 3 cycles
@@ -450,8 +450,8 @@ fn split_elements(span_builder: &mut SpanBuilder) {
     span_builder.push_op(U32split);
 }
 
-/// Appends operations to the span_builder block to simultaneously check both the "less than" condition
-/// (a < b) and equality (a = b) and push a separate flag onto the stack for each result.
+/// Appends operations to the span_builder block to simultaneously check both the "less than"
+/// condition (a < b) and equality (a = b) and push a separate flag onto the stack for each result.
 ///
 /// The expected stack (from the top) is: [b, a, ...].
 /// - Pushes 1 on the stack if a < b and 0 otherwise.
@@ -507,9 +507,9 @@ fn check_lt_high_bits(span_builder: &mut SpanBuilder) {
     span_builder.push_ops([MovUp2, MovUp3]);
 }
 
-/// Appends operations to the span_builder block to emulate a "less than" conditional and check that a < b
-/// for a starting stack of [b, a, ...]. Pops both elements and leaves 1 on the stack if a < b and
-/// 0 otherwise.
+/// Appends operations to the span_builder block to emulate a "less than" conditional and check that
+/// a < b for a starting stack of [b, a, ...]. Pops both elements and leaves 1 on the stack if a < b
+/// and 0 otherwise.
 ///
 /// This is implemented with the VM's U32SUB op, which performs a subtraction and leaves the
 /// result and an underflow flag on the stack. When a < b, a - b will underflow, so the less-than
@@ -546,9 +546,9 @@ fn set_result(span_builder: &mut SpanBuilder) {
     span_builder.push_op(Or);
 }
 
-/// Appends operations to the span_builder block to emulate a "less than or equal" conditional and check
-/// that a <= b for a starting stack of [b, a, ...]. Pops both elements and leaves 1 on the stack
-/// if a <= b and 0 otherwise.
+/// Appends operations to the span_builder block to emulate a "less than or equal" conditional and
+/// check that a <= b for a starting stack of [b, a, ...]. Pops both elements and leaves 1 on the
+/// stack if a <= b and 0 otherwise.
 ///
 /// This is implemented with the VM's U32SUB op, which performs a subtraction and leaves the
 /// result and an underflow flag on the stack. When a < b, a - b will underflow, so the less-than

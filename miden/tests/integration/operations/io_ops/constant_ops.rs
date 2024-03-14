@@ -65,7 +65,7 @@ fn push_many() {
 
 #[test]
 fn push_without_separator() {
-    // --- push the maximum allowed number of hexadecimal values without separators (4) ------------------
+    // --- push the maximum allowed number of hexadecimal values without separators (4) -----------
     let asm_op = "push.0x\
     0000000000000000\
     0100000000000000\

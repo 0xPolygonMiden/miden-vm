@@ -156,14 +156,14 @@ fn test_not_stack_operation() {
 fn test_and_stack_operation() {
     let expected = [ZERO; NUM_CONSTRAINTS];
 
-    // ----------------- top elements are 0 and 0 -----------------------------------------------------
+    // ----------------- top elements are 0 and 0 -------------------------------------------------
     let a = ZERO;
     let b = ZERO;
     let frame = get_and_test_frame(a, b);
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 0 and 1 -----------------------------------------------------
+    // ----------------- top elements are 0 and 1 -------------------------------------------------
 
     let a = ZERO;
     let b = ONE;
@@ -171,7 +171,7 @@ fn test_and_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 0 -----------------------------------------------------
+    // ----------------- top elements are 1 and 0 -------------------------------------------------
 
     let a = ONE;
     let b = ZERO;
@@ -179,7 +179,7 @@ fn test_and_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 1 -----------------------------------------------------
+    // ----------------- top elements are 1 and 1 -------------------------------------------------
 
     let a = ONE;
     let b = ONE;
@@ -194,14 +194,14 @@ fn test_and_stack_operation() {
 fn test_or_stack_operation() {
     let expected = [ZERO; NUM_CONSTRAINTS];
 
-    // ----------------- top elements are 0 and 0 -----------------------------------------------------
+    // ----------------- top elements are 0 and 0 -------------------------------------------------
     let a = ZERO;
     let b = ZERO;
     let frame = get_or_test_frame(a, b);
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 0 and 1 -----------------------------------------------------
+    // ----------------- top elements are 0 and 1 -------------------------------------------------
 
     let a = ZERO;
     let b = ONE;
@@ -209,7 +209,7 @@ fn test_or_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 0 -----------------------------------------------------
+    // ----------------- top elements are 1 and 0 -------------------------------------------------
 
     let a = ONE;
     let b = ZERO;
@@ -217,7 +217,7 @@ fn test_or_stack_operation() {
     let result = get_constraint_evaluation(frame);
     assert_eq!(expected, result);
 
-    // ----------------- top elements are 1 and 1 -----------------------------------------------------
+    // ----------------- top elements are 1 and 1 -------------------------------------------------
 
     let a = ONE;
     let b = ONE;

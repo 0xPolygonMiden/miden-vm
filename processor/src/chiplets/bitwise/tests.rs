@@ -184,7 +184,8 @@ fn bitwise_multiple() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Builds a trace of the specified length and fills it with data from the provided Bitwise instance.
+/// Builds a trace of the specified length and fills it with data from the provided Bitwise
+/// instance.
 fn build_trace(bitwise: Bitwise, num_rows: usize) -> Vec<Vec<Felt>> {
     let mut trace = (0..TRACE_WIDTH).map(|_| vec![ZERO; num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
