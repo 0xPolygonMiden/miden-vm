@@ -238,7 +238,8 @@ impl FriVerifierFold4Ext2 {
         self.domain_size
     }
 
-    /// Verifier in the setting of (folding_factor, blowup_factor, extension_degree) = (4, (1 << 3), 2)
+    /// Verifier in the setting of (folding_factor, blowup_factor, extension_degree) = (4, (1 << 3),
+    /// 2)
     #[allow(clippy::type_complexity)]
     fn verify_fold_4_ext_2(
         &self,
@@ -246,7 +247,7 @@ impl FriVerifierFold4Ext2 {
         evaluations: &[QuadExt],
         positions: &[usize],
     ) -> Result<((Vec<PartialMerkleTree>, AdvMap), Vec<u64>, Vec<u64>), VerifierError> {
-        // 1 ----- verify the recursive components of the FRI proof -----------------------------------
+        // 1 ----- verify the recursive components of the FRI proof -------------------------------
         let positions = positions.to_vec();
         let evaluations = evaluations.to_vec();
         let mut final_pos_eval: Vec<(usize, QuadExt)> = vec![];
@@ -274,7 +275,7 @@ impl FriVerifierFold4Ext2 {
             final_pos_eval.push((cur_pos, evaluation));
         }
 
-        // 2 ----- verify the remainder of the FRI proof ----------------------------------------------
+        // 2 ----- verify the remainder of the FRI proof ------------------------------------------
 
         // read the remainder from the channel and make sure it matches with the columns
         // of the previous layer

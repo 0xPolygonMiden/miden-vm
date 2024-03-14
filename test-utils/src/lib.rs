@@ -159,15 +159,15 @@ macro_rules! assert_assembler_diagnostic {
 /// different types of tests.
 ///
 /// Types of valid result tests:
-/// - Execution test: check that running a program compiled from the given source has the
-///   specified results for the given (optional) inputs.
+/// - Execution test: check that running a program compiled from the given source has the specified
+///   results for the given (optional) inputs.
 /// - Proptest: run an execution test inside a proptest.
 ///
 /// Types of failure tests:
 /// - Assembly error test: check that attempting to compile the given source causes an
 /// AssemblyError which contains the specified substring.
-/// - Execution error test: check that running a program compiled from the given source causes
-///   an ExecutionError which contains the specified substring.
+/// - Execution error test: check that running a program compiled from the given source causes an
+///   ExecutionError which contains the specified substring.
 pub struct Test {
     pub source: Arc<SourceFile>,
     pub kernel: Option<String>,
@@ -236,7 +236,8 @@ impl Test {
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
-            // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing easier
+            // Main memory is zeroed by default, use zeros as a fallback when unwrap to make testing
+            // easier
             let mem_state =
                 process.get_mem_value(ContextId::root(), mem_start_addr).unwrap_or(EMPTY_WORD);
 

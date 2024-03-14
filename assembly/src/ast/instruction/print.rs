@@ -66,7 +66,7 @@ impl PrettyPrint for Instruction {
             Self::Ext2Neg => const_text("ext2neg"),
             Self::Ext2Inv => const_text("ext2inv"),
 
-            // ----- u32 manipulation ---------------------------------------------------------------
+            // ----- u32 manipulation -------------------------------------------------------------
             Self::U32Test => const_text("u32test"),
             Self::U32TestW => const_text("u32testw"),
             Self::U32Assert => const_text("u32assert"),
@@ -129,7 +129,7 @@ impl PrettyPrint for Instruction {
             Self::U32Min => const_text("u32min"),
             Self::U32Max => const_text("u32max"),
 
-            // ----- stack manipulation ---------------------------------------------------------------
+            // ----- stack manipulation -----------------------------------------------------------
             Self::Drop => const_text("drop"),
             Self::DropW => const_text("dropw"),
             Self::PadW => const_text("padw"),

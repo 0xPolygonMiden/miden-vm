@@ -103,7 +103,8 @@ impl VmStateIterator {
             let b = assembly_ops[self.asmop_idx - 1].0 as u32;
             (
                 &assembly_ops[self.asmop_idx - 1],
-                // difference between current clock cycle and start clock cycle of the current asmop
+                // difference between current clock cycle and start clock cycle of the current
+                // asmop
                 (a.max(b) - a.min(b)) as u8,
             )
         } else {

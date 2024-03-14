@@ -194,7 +194,7 @@ impl Serializable for Instruction {
             Self::U32Min => OpCode::U32Min.write_into(target),
             Self::U32Max => OpCode::U32Max.write_into(target),
 
-            // ----- stack manipulation ---------------------------------------------------------------
+            // ----- stack manipulation -----------------------------------------------------------
             Self::Drop => OpCode::Drop.write_into(target),
             Self::DropW => OpCode::DropW.write_into(target),
             Self::PadW => OpCode::PadW.write_into(target),
@@ -274,7 +274,7 @@ impl Serializable for Instruction {
             Self::CDrop => OpCode::CDrop.write_into(target),
             Self::CDropW => OpCode::CDropW.write_into(target),
 
-            // ----- input / output operations --------------------------------------------------------
+            // ----- input / output operations ----------------------------------------------------
             Self::Push(imm) => {
                 OpCode::PushFelt.write_into(target);
                 imm.expect_value().write_into(target);

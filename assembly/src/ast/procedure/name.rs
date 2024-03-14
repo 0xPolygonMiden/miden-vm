@@ -132,9 +132,8 @@ impl FullyQualifiedProcedureName {
 /// - It must start with an ASCII alphabetic character, or one of: `_`, `.`, or `$`
 /// - If it starts with a non-ASCII alphabetic character, it must contain at least one ASCII
 ///   alphabetic character, e.g. `_`, `$_` are not valid symbols, but `_a` or `$_a` are.
-/// - Otherwise, the name may consist of any number of printable ASCII characters,
-///   e.g. alphanumerics, punctuation, etc. Control characters and the like are explicitly
-///   not allowed.
+/// - Otherwise, the name may consist of any number of printable ASCII characters, e.g.
+///   alphanumerics, punctuation, etc. Control characters and the like are explicitly not allowed.
 ///
 /// NOTE: In Miden Assembly source files, a procedure name must be quoted in double-quotes if it
 /// contains any characters other than ASCII alphanumerics, `_`, or `::`. See examples
@@ -196,7 +195,8 @@ impl ProcedureName {
         Self(name)
     }
 
-    /// Obtain a procedure name representing the reserved name for the executable entrypoint (i.e. `main`)
+    /// Obtain a procedure name representing the reserved name for the executable entrypoint (i.e.
+    /// `main`)
     pub fn main() -> Self {
         let name = Arc::from(Self::MAIN_PROC_NAME.to_string().into_boxed_str());
         Self(Ident::new_unchecked(Span::unknown(name)))

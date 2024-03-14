@@ -105,9 +105,8 @@ impl LibraryPath {
     /// * The path is empty.
     /// * The path prefix represents an invalid namespace, see [LibraryNamespace] for details.
     /// * Any component of the path is empty.
-    /// * Any component is not a valid bare identifier in Miden Assembly syntax,
-    ///   i.e. lowercase alphanumeric with underscores allowed, starts with alphabetic
-    ///   character.
+    /// * Any component is not a valid bare identifier in Miden Assembly syntax, i.e. lowercase
+    ///   alphanumeric with underscores allowed, starts with alphabetic character.
     pub fn new(source: impl AsRef<str>) -> Result<Self, PathError> {
         let source = source.as_ref();
         if source.is_empty() {
@@ -323,7 +322,8 @@ impl LibraryPath {
         inner.components.pop()
     }
 
-    /// Returns a new path, representing the current one with the last non-namespace component removed.
+    /// Returns a new path, representing the current one with the last non-namespace component
+    /// removed.
     pub fn strip_last(&self) -> Option<Self> {
         match self.inner.components.len() {
             0 => None,
@@ -337,7 +337,8 @@ impl LibraryPath {
         }
     }
 
-    /// Checks if the given input string is a valid [LibraryPath], returning the number of components in the path.
+    /// Checks if the given input string is a valid [LibraryPath], returning the number of
+    /// components in the path.
     ///
     /// See the documentation of [LibraryPath::new] for details on what constitutes a valid path.
     pub fn validate<S>(source: S) -> Result<usize, PathError>

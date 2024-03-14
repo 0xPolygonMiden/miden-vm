@@ -17,7 +17,8 @@ pub const NUM_CONSTRAINTS: usize = 13;
 // The co-efficient of the most significant 16-bit limb in the helper register during aggregation.
 pub const TWO_48: Felt = Felt::new(2u64.pow(48));
 
-// The co-efficient of the 2nd most significant 16-bit limb in the helper register during aggregation.
+// The co-efficient of the 2nd most significant 16-bit limb in the helper register during
+// aggregation.
 pub const TWO_32: Felt = Felt::new(2u64.pow(32));
 
 // The co-efficient of the 3rd significant 16-bit limb in the helper register during aggregation.
@@ -99,8 +100,8 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-/// Enforces constraints of the U32SPLIT operation. The U32SPLIT operation splits the top element into
-/// two 32-bit numbers. Therefore, the following constraints are enforced:
+/// Enforces constraints of the U32SPLIT operation. The U32SPLIT operation splits the top element
+/// into two 32-bit numbers. Therefore, the following constraints are enforced:
 /// - The aggregation of limbs from the helper registers forms the top element in the stack.
 pub fn enforce_u32split_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
@@ -108,7 +109,8 @@ pub fn enforce_u32split_constraints<E: FieldElement<BaseField = Felt>>(
     op_flag: E,
     limbs: &LimbCompositions<E>,
 ) -> usize {
-    // Enforces the aggregation of limbs from the helper registers forms the top element in the current trace.
+    // Enforces the aggregation of limbs from the helper registers forms the top element in the
+    // current trace.
     result[0] = op_flag * are_equal(frame.stack_item(0), limbs.v64());
 
     1
@@ -160,8 +162,8 @@ pub fn enforce_u32add3_constraints<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the U32SUB operation. The U32SUB operation subtracts the first
 /// element from the second in the current trace of the stack. Therefore, the following
 /// constraints are enforced:
-/// - The aggregation of limbs from helper registers is equal to the difference of the top
-///   two elements in the stack.
+/// - The aggregation of limbs from helper registers is equal to the difference of the top two
+///   elements in the stack.
 /// - The first element in the next trace should be a binary.
 pub fn enforce_u32sub_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
@@ -188,8 +190,8 @@ pub fn enforce_u32sub_constraints<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the U32MUL operation. The U32MUL operation multiplies the top two
 /// elements in the current trace of the stack. Therefore, the following constraints are
 /// enforced:
-/// - The aggregation of all the limbs in the helper registers is equal to the product of the
-///   top two elements in the stack.
+/// - The aggregation of all the limbs in the helper registers is equal to the product of the top
+///   two elements in the stack.
 pub fn enforce_u32mul_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -209,8 +211,8 @@ pub fn enforce_u32mul_constraints<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the U32MADD operation. The U32MADD operation adds the third
 /// element to the product of the first two elements in the current trace. Therefore, the
 /// following constraints are enforced:
-/// - The aggregation of all the limbs in the helper registers is equal to the sum of the
-///   third element with the product of the first two elements in the current trace.
+/// - The aggregation of all the limbs in the helper registers is equal to the sum of the third
+///   element with the product of the first two elements in the current trace.
 pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -231,12 +233,12 @@ pub fn enforce_u32madd_constraints<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the U32DIV operation. The U32DIV operation divides the second element
 /// with the first element in the current trace. Therefore, the following constraints are enforced:
 /// - The second element in the current trace should be equal to the sum of the first element in the
-///   next trace with the product of the first element in the current trace and second element in the
-///   next trace.
-/// - The difference between the second elements in the current and next trace should be equal to the
-///   aggregation of the lower 16-bits limbs.
-/// - The difference between the second elements in the current and next trace and one should be equal
-///   to the aggregation of the upper 16-bits limbs.
+///   next trace with the product of the first element in the current trace and second element in
+///   the next trace.
+/// - The difference between the second elements in the current and next trace should be equal to
+///   the aggregation of the lower 16-bits limbs.
+/// - The difference between the second elements in the current and next trace and one should be
+///   equal to the aggregation of the upper 16-bits limbs.
 pub fn enforce_u32div_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -263,8 +265,8 @@ pub fn enforce_u32div_constraints<E: FieldElement<BaseField = Felt>>(
 // GENERAL U32 OPERATION CONSTRAINTS
 // ===============================================================================================================
 
-/// The constraint checks if the top four element in the trace on aggregating forms a valid field element.
-/// no not. This constraint is applicable in `U32SPLIT`, `U32MADD` and `U32MUL`.
+/// The constraint checks if the top four element in the trace on aggregating forms a valid field
+/// element. no not. This constraint is applicable in `U32SPLIT`, `U32MADD` and `U32MUL`.
 pub fn enforce_check_element_validity<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -286,7 +288,8 @@ pub fn enforce_check_element_validity<E: FieldElement<BaseField = Felt>>(
 
 /// Enforces constraints of the general operation. The constaints checks if the lower 16-bits limbs
 /// are aggregated correctly or not. Therefore, the following constraints are enforced:
-/// - The aggregation of lower two lower 16-bits limbs in the helper registers is equal to the second
+/// - The aggregation of lower two lower 16-bits limbs in the helper registers is equal to the
+///   second
 /// element in the next row.
 /// - The aggregation of lower two upper 16-bits limbs in the helper registers is equal to the first
 /// element in the next row.
@@ -324,7 +327,8 @@ pub struct LimbCompositions<E: FieldElement> {
 }
 
 impl<E: FieldElement<BaseField = Felt>> LimbCompositions<E> {
-    // Returns a new instance of [LimbCompositions] instantiated with all the intermediate limbs values.
+    // Returns a new instance of [LimbCompositions] instantiated with all the intermediate limbs
+    // values.
     pub fn new(frame: &EvaluationFrame<E>) -> Self {
         let v_lo =
             E::from(TWO_16) * frame.user_op_helper(1) + E::from(TWO_0) * frame.user_op_helper(0);

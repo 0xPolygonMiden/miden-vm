@@ -12,10 +12,10 @@ use stdlib::StdLibrary;
 /// of Miden assembly. To use the repl, simply type "miden repl" after building it with feature
 /// "executable" (cargo build --release --feature executable) when in the miden home
 /// crate and the repl will launch. After the REPL gets initialized, you can execute any Miden
-/// instruction, undo executed instructions, check the state of the stack and memory at a given point,
-/// and do many other useful things! When the REPL is exited, a `history.txt` file is saved. One
-/// thing to note is that all the REPL native commands start with an `!` to differentiate them from
-/// regular assembly instructions.
+/// instruction, undo executed instructions, check the state of the stack and memory at a given
+/// point, and do many other useful things! When the REPL is exited, a `history.txt` file is saved.
+/// One thing to note is that all the REPL native commands start with an `!` to differentiate them
+/// from regular assembly instructions.
 ///
 /// Miden Instructions
 /// All Miden instructions mentioned in the
@@ -65,9 +65,9 @@ use stdlib::StdLibrary;
 /// `!undo`
 /// The `!undo` command reverts to the previous state of the stack and memory by dropping off the
 /// last executed assembly instruction from the program. One could use `!undo` as often as they want
-/// to restore the state of a stack and memory $n$ instructions ago (provided there are $n$ instructions
-/// in the program). The `!undo` command will result in an error if no remaining instructions are left in
-///  the miden program.
+/// to restore the state of a stack and memory $n$ instructions ago (provided there are $n$
+/// instructions in the program). The `!undo` command will result in an error if no remaining
+/// instructions are left in  the miden program.
 /// >> push.1 push.2 push.3
 /// >> push.4
 /// >> !stack
@@ -81,8 +81,8 @@ use stdlib::StdLibrary;
 /// 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0
 ///
 ///`!program`
-/// The `!program` command prints out the entire miden program getting executed. E.g., in the below scenario:
-/// >> push.1
+/// The `!program` command prints out the entire miden program getting executed. E.g., in the below
+/// scenario: >> push.1
 /// >> push.2
 /// >> push.3
 /// >> add
@@ -100,9 +100,9 @@ use stdlib::StdLibrary;
 /// The `!help` command prints out all the available commands in the REPL tool.
 ///
 /// `!mem`
-/// The `!mem` command prints out the contents of all initialized memory locations. For each such location,
-/// the address, along with its memory values, is printed. Recall that four elements are stored at each memory
-/// address.
+/// The `!mem` command prints out the contents of all initialized memory locations. For each such
+/// location, the address, along with its memory values, is printed. Recall that four elements are
+/// stored at each memory address.
 /// If the memory has at least one value that has been initialized:
 /// >> !mem
 /// 7: [1, 2, 0, 3]
@@ -210,8 +210,8 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
                         print_mem_address(*addr, mem);
                     }
                 } else if line.len() > 6 && &line[..5] == "!mem[" {
-                    // if user wants to see the state of a particular address in a memory, the input should be atleast
-                    // of length 5.
+                    // if user wants to see the state of a particular address in a memory, the input
+                    // should be at least of length 5.
 
                     // flag to determine if the memory at an address has been initialized or not
                     let mut mem_at_addr_present = false;
@@ -279,9 +279,9 @@ pub fn start_repl(library_paths: &Vec<PathBuf>, use_stdlib: bool) {
 /// HELPER METHODS
 /// --------------------------------------------------------------------------------------------
 
-/// Compiles and executes a compiled Miden program, returning the stack, memory and any Miden errors.
-/// The program is passed in as a String, passed to the Miden Assembler, and then passed into the Miden
-/// Processor to be executed.
+/// Compiles and executes a compiled Miden program, returning the stack, memory and any Miden
+/// errors. The program is passed in as a String, passed to the Miden Assembler, and then passed
+/// into the Miden Processor to be executed.
 fn execute(
     program: String,
     provided_libraries: &[MaslLibrary],

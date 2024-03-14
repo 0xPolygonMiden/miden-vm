@@ -58,7 +58,8 @@ impl ECExt5 {
         }
     }
 
-    // Validates an encoded elliptic curve point, verifying whether it can be decoded successfully or not, denoted by boolean return value
+    // Validates an encoded elliptic curve point, verifying whether it can be decoded successfully
+    // or not, denoted by boolean return value
     //
     // Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
     pub fn validate(w: Ext5) -> Felt {
@@ -125,8 +126,9 @@ impl ECExt5 {
     }
 
     // Multiply an elliptic curve point by 319 -bit scalar ( which should be lesser
-    // than prime number 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 )
-    // using double-and-add rule, while collecting inspiration from https://github.com/itzmeanjan/secp256k1/blob/cbbe199/point.py#L174-L186
+    // than prime number
+    // 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
+    // ) using double-and-add rule, while collecting inspiration from https://github.com/itzmeanjan/secp256k1/blob/cbbe199/point.py#L174-L186
     pub fn scalar_mul(self, scalar: &[u32; 10]) -> Self {
         let mut base = self;
         let mut res = ECExt5::neutral();

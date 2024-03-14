@@ -230,14 +230,14 @@ fn u32shl_b() {
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     test.expect_stack(&[a.wrapping_shl(b) as u64]);
 
-    // // --- test random values ---------------------------------------------------------------------
+    // --- test random values ---------------------------------------------------------------------
     // let a = rand_value::<u32>();
     // let b = rand_value::<u32>() % 32;
 
     // let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     // test.expect_stack(&[a.wrapping_shl(b) as u64]);
 
-    // // --- test out of bounds input (should not fail) --------------------------------------------
+    // --- test out of bounds input (should not fail) ---------------------------------------------
     // let b = 1;
     // let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
     // assert!(test.execute().is_ok());

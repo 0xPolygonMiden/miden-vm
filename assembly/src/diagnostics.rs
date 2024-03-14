@@ -8,10 +8,13 @@ use core::{fmt, ops::Range};
 
 pub type SourceFile = NamedSource<alloc::string::String>;
 
+// LABEL
+// ================================================================================================
+
 /// Represents a diagnostic label.
 ///
-/// A label is a source span and optional diagnostic text that should be laid out
-/// next to the source snippet.
+/// A label is a source span and optional diagnostic text that should be laid out next to the
+/// source snippet.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Label {
     span: miette::SourceSpan,
@@ -19,8 +22,8 @@ pub struct Label {
 }
 
 impl Label {
-    /// Construct a label for the given range of bytes, expressible as any type
-    /// which can be converted to a [`Range<usize>`], e.g. [SourceSpan].
+    /// Construct a label for the given range of bytes, expressible as any type which can be
+    /// converted to a [`Range<usize>`], e.g. [SourceSpan].
     pub fn at<R>(range: R) -> Self
     where
         Range<usize>: From<R>,
@@ -80,13 +83,15 @@ impl From<Label> for LabeledSpan {
     }
 }
 
-/// This type is used to associate a more complex label or set of labels
-/// with some other error. In particular, it is used to reference related
-/// bits of source code distinct from that of the original error.
+// RELATED LABEL
+// ================================================================================================
+
+/// This type is used to associate a more complex label or set of labels with some other error. In
+/// particular, it is used to reference related bits of source code distinct from that of the
+/// original error.
 ///
-/// A related label can have a distinct severity, its own message, and its
-/// own sub-labels, and may reference code in a completely different source file
-/// that the original error.
+/// A related label can have a distinct severity, its own message, and its own sub-labels, and may
+/// reference code in a completely different source file that the original error.
 #[derive(Debug)]
 pub struct RelatedLabel {
     /// The severity for this related label
@@ -214,10 +219,12 @@ impl Diagnostic for RelatedLabel {
     }
 }
 
+// RELATED ERROR
+// ================================================================================================
+
 /// This type allows rolling up a diagnostic into a parent error
 ///
-/// This is necessary as [Report] cannot be used as the source error
-/// when deriving [Diagnostic].
+/// This is necessary as [Report] cannot be used as the source error when deriving [Diagnostic].
 #[derive(Debug)]
 pub struct RelatedError(Report);
 
@@ -298,6 +305,9 @@ impl RelatedError {
     }
 }
 
+// REPORTING
+// ================================================================================================
+
 /// Rendering and error reporting implementation details.
 pub mod reporting {
     use core::fmt;
@@ -306,10 +316,7 @@ pub mod reporting {
     };
 
     #[cfg(feature = "std")]
-    pub use miette::set_panic_hook;
-
-    #[cfg(feature = "std")]
-    pub use miette::{GraphicalReportHandler, GraphicalTheme};
+    pub use miette::{set_panic_hook, GraphicalReportHandler, GraphicalTheme};
 
     pub type ReportHandlerOpts = miette::MietteHandlerOpts;
 

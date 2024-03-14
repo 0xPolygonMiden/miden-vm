@@ -210,8 +210,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - Merkle tree for the specified root cannot be found in the advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to the advice provider.
     fn copy_merkle_node_to_adv_stack<S: ProcessState>(
         &mut self,
@@ -320,14 +320,14 @@ pub trait AdviceProvider: Sized {
     ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
     ///   Advice stack: [coefficients...]
     ///
-    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
-    ///   Must be a power of 2 and greater 1.
+    /// - `input_size` is the number of evaluations (each evaluation is 2 base field elements). Must
+    ///   be a power of 2 and greater 1.
     /// - `output_size` is the number of coefficients in the interpolated polynomial (each
     ///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
     ///   input evaluations.
     /// - `input_start_ptr` is the memory address of the first evaluation.
-    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
-    ///   degree coefficients are located at the top of the advice stack.
+    /// - `coefficients` are the coefficients of the interpolated polynomial such that lowest degree
+    ///   coefficients are located at the top of the advice stack.
     ///
     /// # Errors
     /// Returns an error if:
@@ -342,7 +342,8 @@ pub trait AdviceProvider: Sized {
         injectors::adv_stack_injectors::push_ext2_intt_result(self, process)
     }
 
-    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden VM.
+    /// Pushes values onto the advice stack which are required for verification of a DSA in Miden
+    /// VM.
     ///
     /// Inputs:
     ///   Operand stack: [PK, MSG, ...]
@@ -638,8 +639,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
     fn get_tree_node(&self, root: Word, depth: &Felt, index: &Felt)
         -> Result<Word, ExecutionError>;
@@ -650,8 +651,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
     fn get_merkle_path(
         &self,
@@ -684,8 +685,8 @@ pub trait AdviceProvider: Sized {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
     fn update_merkle_node(

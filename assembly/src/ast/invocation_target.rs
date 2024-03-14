@@ -53,8 +53,8 @@ pub enum InvocationTarget {
     MastRoot(Span<RpoDigest>) = 0,
     /// A locally-defined procedure
     ProcedureName(ProcedureName) = 1,
-    /// A context-sensitive procedure path, which references the name of an import in the containing
-    /// module.
+    /// A context-sensitive procedure path, which references the name of an import in the
+    /// containing module.
     ProcedurePath { name: ProcedureName, module: Ident } = 2,
     /// A fully-resolved procedure path, which refers to a specific externally-defined procedure
     /// with its full path

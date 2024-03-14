@@ -233,8 +233,8 @@ impl OverflowTable {
 /// A single row in the stack overflow table. Each row contains the following values:
 /// - The value of the stack item pushed into the overflow table.
 /// - The clock cycle at which the stack item was pushed into the overflow table.
-/// - The clock cycle of the value which was at the top of the overflow table when this value
-///   was pushed onto it.
+/// - The clock cycle of the value which was at the top of the overflow table when this value was
+///   pushed onto it.
 #[derive(Debug, PartialEq, Eq)]
 pub struct OverflowTableRow {
     val: Felt,

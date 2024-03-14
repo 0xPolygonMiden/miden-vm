@@ -100,8 +100,8 @@ pub fn enforce_constraints<E: FieldElement>(
 
 /// Enforces constraints of the ADD operation. The ADD operation adds the first two elements
 /// in the current trace. Therefore, the following constraints are enforced:
-/// - The first element in the trace frame should be the addition of the first two elements in
-///   the current trace. s0` - s0 - s1 = 0.
+/// - The first element in the trace frame should be the addition of the first two elements in the
+///   current trace. s0` - s0 - s1 = 0.
 pub fn enforce_add_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -117,10 +117,10 @@ pub fn enforce_add_constraints<E: FieldElement>(
     1
 }
 
-/// Enforces constraints of the NEG operation. The NEG operation updates the top element
-/// in the stack with its inverse. Therefore, the following constraints are enforced:
-/// - The first element in the next frame should be the negation of first element in the
-///   current frame, therefore, their sum should be 0. s0` + s0 = 0.
+/// Enforces constraints of the NEG operation. The NEG operation updates the top element in the
+/// stack with its inverse. Therefore, the following constraints are enforced:
+/// - The first element in the next frame should be the negation of first element in the current
+///   frame, therefore, their sum should be 0. s0` + s0 = 0.
 pub fn enforce_neg_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -135,8 +135,8 @@ pub fn enforce_neg_constraints<E: FieldElement>(
 
 /// Enforces constraints of the MUL operation. The MUL operation multiplies the first two elements
 /// in the current trace. Therefore, the following constraints are enforced:
-/// - The first element in the next frame should be the product of the first two elements in
-///   the current frame. s0` - s0 * s1 = 0
+/// - The first element in the next frame should be the product of the first two elements in the
+///   current frame. s0` - s0 * s1 = 0
 pub fn enforce_mul_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -154,8 +154,8 @@ pub fn enforce_mul_constraints<E: FieldElement>(
 
 /// Enforces constraints of the INV operation. The INV operation updates the top element
 /// in the stack with its inverse. Therefore, the following constraints are enforced:
-/// - The next element in the next frame should be the inverse of first element in the
-///   current frame. s0` * s0 = 1.
+/// - The next element in the next frame should be the inverse of first element in the current
+///   frame. s0` * s0 = 1.
 pub fn enforce_inv_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -277,8 +277,9 @@ pub fn enforce_eq_constraints<E: FieldElement>(
     // Enforce that either c or difference between a & b is zero.
     result[0] = op_flag * are_equal(diff_top_elements * c, E::ZERO);
 
-    // It is the inverse of the diff of the top two element in the current frame if the diff is not ZERO;
-    // otherwise it could be anything. The value is fetched from the first register in the user op helper.
+    // It is the inverse of the diff of the top two element in the current frame if the diff is not
+    // ZERO; otherwise it could be anything. The value is fetched from the first register in the
+    // user op helper.
     let diff_inv = frame.user_op_helper(0);
 
     let helper_agg_value = E::ONE - diff_top_elements * diff_inv;
@@ -305,7 +306,8 @@ pub fn enforce_eqz_constraints<E: FieldElement>(
     result[0] = op_flag * are_equal(a * b, E::ZERO);
 
     // It is the inverse of the top element in the current frame if the top element is not ZERO; it
-    // could be anything otherwise. The value is fetched from the first register in the user op helper.
+    // could be anything otherwise. The value is fetched from the first register in the user op
+    // helper.
     let inv = frame.user_op_helper(0);
 
     let helper_agg_value = E::ONE - a * inv;
@@ -316,9 +318,10 @@ pub fn enforce_eqz_constraints<E: FieldElement>(
     2
 }
 
-/// Enforces constraints of the EXPACC operation. The EXPACC operation computes a single turn of exponent
-/// accumulation for the given inputs. Therefore, the following constraints are enforced:
-/// - The first element in the next frame should be a binary which is enforced as a general constraint.
+/// Enforces constraints of the EXPACC operation. The EXPACC operation computes a single turn of
+/// exponent accumulation for the given inputs. Therefore, the following constraints are enforced:
+/// - The first element in the next frame should be a binary which is enforced as a general
+///   constraint.
 /// - The exp value in the next frame should be the square of exp value in the current frame.
 /// - The accumulation value in the next frame is the product of the accumulation value in the
 /// current frame and the value which needs to be included in this turn.

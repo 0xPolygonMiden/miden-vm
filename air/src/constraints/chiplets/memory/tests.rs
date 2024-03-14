@@ -103,8 +103,8 @@ enum MemoryTestDeltaType {
 /// in the  specified column (context, address, or clock), then returns the evaluation of the memory
 /// constraints on this frame.
 ///
-/// - To test a valid write, the MemoryTestDeltaType must be Context or Address and the `old_values` and
-/// `new_values` must change.
+/// - To test a valid write, the MemoryTestDeltaType must be Context or Address and the `old_values`
+///   and `new_values` must change.
 /// - To test a valid read, the `delta_type` must be Clock and the `old_values` and `new_values`
 /// must be equal.
 fn get_constraint_evaluation(
@@ -132,8 +132,8 @@ fn get_constraint_evaluation(
 /// - `selectors`: specifies the memory operation selectors in the next row which is being tested.
 /// - `delta_type`: specifies the column over which the delta value should be calculated.
 /// - `delta_row`: specifies the values of the context, address, and clock columns in the next row.
-/// - `old_values`: specifies the old values, which are placed in the value columns of the
-///   current row.
+/// - `old_values`: specifies the old values, which are placed in the value columns of the current
+///   row.
 /// - `new_values`: specifies the new values, which are placed in the value columns of the next row.
 fn get_test_frame(
     selectors: Selectors,

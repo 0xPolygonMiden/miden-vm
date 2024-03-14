@@ -13,11 +13,11 @@ use vm_core::{AdviceInjector, Operation::*};
 ///
 /// To perform the operation we do the following:
 /// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
-///    then reordering the stack and pushing an additional 4 elements so that the stack looks
-///    like: [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to
-///    ONE as we are hashing a number of elements which is not a multiple of the rate width. We
-///    also set the next element in the rate after `A` to ONE.  All other capacity and rate
-///    elements are set to ZERO, in accordance with the RPO rules.
+///    then reordering the stack and pushing an additional 4 elements so that the stack looks like:
+///    [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to ONE as
+///    we are hashing a number of elements which is not a multiple of the rate width. We also set
+///    the next element in the rate after `A` to ONE.  All other capacity and rate elements are set
+///    to ZERO, in accordance with the RPO rules.
 /// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
 ///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
 /// 3. Drop D and B to achieve our result [C, ...]
@@ -64,9 +64,8 @@ pub(super) fn hash(span: &mut SpanBuilder) {
 ///    elements are set to ZERO, in accordance with the RPO padding rule for when the input length
 ///    is a multiple of the rate.
 /// 2. Reorder the top 2 words to restore the order of the elements to be hashed to [B, A, C, ...].
-/// 3. Append the HPERM operation, which performs a permutation of Rescue Prime Optimized on the
-///    top 12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash
-///    result.
+/// 3. Append the HPERM operation, which performs a permutation of Rescue Prime Optimized on the top
+///    12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash result.
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.

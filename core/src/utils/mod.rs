@@ -117,7 +117,8 @@ impl<'a> ReadAdapter<'a> {
 
     /// Return the current reader buffer as a (possibly empty) slice of bytes.
     ///
-    /// This buffer being empty _does not_ mean we're at EOF, you must call [non_empty_reader_buffer_mut] first.
+    /// This buffer being empty _does not_ mean we're at EOF, you must call
+    /// [non_empty_reader_buffer_mut] first.
     #[inline(always)]
     fn reader_buffer(&self) -> Ref<'_, [u8]> {
         Ref::map(self.reader.borrow(), |r| r.buffer())
@@ -188,7 +189,8 @@ impl<'a> ReadAdapter<'a> {
         }
     }
 
-    /// Takes the next `N` bytes from the input as an array, returning an error if the operation fails
+    /// Takes the next `N` bytes from the input as an array, returning an error if the operation
+    /// fails
     fn read_exact<const N: usize>(&mut self) -> Result<[u8; N], DeserializationError> {
         let buf = self.buffer();
         let mut output = [0; N];

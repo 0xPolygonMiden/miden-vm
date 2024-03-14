@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn op_u32assert2() {
-        // --- test random values ensuring other elements are still values are still intact ----------
+        // --- test random values ensuring other elements are still values are still intact -------
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);

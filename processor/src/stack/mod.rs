@@ -46,8 +46,8 @@ const MAX_TOP_IDX: usize = STACK_TOP_SIZE - 1;
 /// - s0...s15 are the columns representing the top 16 slots of the stack.
 /// - Bookkeeping column b0 contains the number of items on the stack (i.e., the stack depth).
 /// - Bookkeeping column b1 contains an address of a row in the “overflow table” in which we’ll
-///   store the data that doesn’t fit into the top 16 slots. When b1=0, it means that all stack
-///   data fits into the top 16 slots of the stack.
+///   store the data that doesn’t fit into the top 16 slots. When b1=0, it means that all stack data
+///   fits into the top 16 slots of the stack.
 /// - Helper column h0 is used to ensure that stack depth does not drop below 16. Values in this
 ///   column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
 ///   other value otherwise.

@@ -26,16 +26,17 @@ pub enum ModuleKind {
     /// A library is a simple container of code that must be included into an executable module to
     /// form a complete program.
     ///
-    /// Library modules cannot use the `begin`..`end` syntax, which is used to define the entrypoint
-    /// procedure for an executable. Aside from this, they are free to use all other MASM syntax.
+    /// Library modules cannot use the `begin`..`end` syntax, which is used to define the
+    /// entrypoint procedure for an executable. Aside from this, they are free to use all other
+    /// MASM syntax.
     #[default]
     Library = 0,
     /// An executable is the root module of a program, and provides the entrypoint for executing
     /// that program.
     ///
     /// As the executable module is the root module, it may not export procedures for other modules
-    /// to depend on, it may only import and call externally-defined procedures, or private locally-
-    /// defined procedures.
+    /// to depend on, it may only import and call externally-defined procedures, or private
+    /// locally- defined procedures.
     ///
     /// An executable module must contain a `begin`..`end` block.
     Executable = 1,
@@ -345,8 +346,8 @@ impl Module {
     /// Get an iterator over the "dependencies" of a module, i.e. what library namespaces we expect
     /// to find imported procedures in.
     ///
-    /// For example, if we have imported `std::math::u64`, then we would expect to import that module
-    /// from a [crate::Library] with the namespace `std`.
+    /// For example, if we have imported `std::math::u64`, then we would expect to import that
+    /// module from a [crate::Library] with the namespace `std`.
     pub fn dependencies(&self) -> impl Iterator<Item = &LibraryNamespace> {
         self.import_paths().map(|import| import.namespace())
     }
@@ -494,7 +495,8 @@ impl Module {
 
     /// Returns a [Module] struct deserialized from the provided bytes.
     ///
-    /// Assumes that the module was encoded using [Module::write_into] or [Module::write_into_with_options]
+    /// Assumes that the module was encoded using [Module::write_into] or
+    /// [Module::write_into_with_options]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DeserializationError> {
         let mut source = crate::SliceReader::new(bytes);
         Self::read_from(&mut source)
@@ -551,7 +553,8 @@ impl Serializable for Module {
 impl Deserializable for Module {
     /// Deserialize a [Module] from `source`
     ///
-    /// Assumes that the module was encoded using [Serializable::write_into] or [Module::write_into_with_options]
+    /// Assumes that the module was encoded using [Serializable::write_into] or
+    /// [Module::write_into_with_options]
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let options = AstSerdeOptions::read_from(source)?;
         let (span, source_file) = if options.debug_info {
@@ -630,8 +633,8 @@ impl fmt::Debug for Module {
 impl fmt::Display for Module {
     /// Writes this [Module] as formatted MASM code into the formatter.
     ///
-    /// The formatted code puts each instruction on a separate line and preserves correct indentation
-    /// for instruction blocks.
+    /// The formatted code puts each instruction on a separate line and preserves correct
+    /// indentation for instruction blocks.
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;

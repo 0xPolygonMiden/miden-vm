@@ -266,7 +266,8 @@ pub enum OpCode {
     IfElse,
     Repeat,
     While,
-    // NOTE: If any further variants are added here, make sure you update the `MAX_DISCRIMINANT` constant
+    // NOTE: If any further variants are added here, make sure you update the `MAX_DISCRIMINANT`
+    // constant
 }
 
 impl OpCode {
