@@ -145,7 +145,7 @@ impl ExampleOptions {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn test_example<H>(example: Example<H>, fail: bool)
+pub fn test_example_with_options<H>(example: Example<H>, fail: bool, options: ProvingOptions)
 where
     H: Host,
 {
@@ -158,7 +158,7 @@ where
     } = example;
 
     let (mut outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
+        miden::prove(&program, stack_inputs.clone(), host, options).unwrap();
 
     assert_eq!(
         expected_result,
@@ -175,4 +175,13 @@ where
     } else {
         assert!(miden::verify(program_info, stack_inputs, outputs, proof).is_ok());
     }
+}
+
+
+#[cfg(test)]
+pub fn test_example<H>(example: Example<H>, fail: bool)
+where
+    H: Host,
+{
+    test_example_with_options(example, fail, ProvingOptions::default());
 }
