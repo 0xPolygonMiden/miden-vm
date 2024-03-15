@@ -18,7 +18,7 @@ use processor::{utils::group_vector_elements, ONE};
 use std::time::Instant;
 use winter_prover::{
     crypto::MerkleTree,
-    matrix::{build_segments, get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
+    matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
     proof::Queries,
     AuxTraceRandElements, CompositionPoly, CompositionPolyTrace, ConstraintCommitment,
     ConstraintCompositionCoefficients, DefaultConstraintEvaluator, EvaluationFrame, Prover,
