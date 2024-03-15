@@ -14,7 +14,7 @@ use ministark_gpu::{
     utils::page_aligned_uninit_vector,
 };
 use pollster::block_on;
-use processor::ONE;
+use processor::{utils::group_vector_elements, ONE};
 use std::time::Instant;
 use winter_prover::{
     crypto::MerkleTree,
@@ -37,6 +37,63 @@ const RPO_RATE: usize = Rpo256::RATE_RANGE.end - Rpo256::RATE_RANGE.start;
 pub(crate) struct MetalRpoExecutionProver<R>(pub ExecutionProver<Rpo256, R>)
 where
     R: RandomCoin<BaseField = Felt, Hasher = Rpo256>;
+
+
+impl<R> MetalRpoExecutionProver<R>
+where
+    R: RandomCoin<BaseField = Felt, Hasher = Rpo256>,
+{
+    fn build_aligned_segement<E, const N: usize>(
+        polys: &ColMatrix<E>,
+        poly_offset: usize,
+        offsets: &[Felt],
+        twiddles: &[Felt],
+    ) -> Segment<Felt, N>
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        let poly_size = polys.num_rows();
+        let domain_size = offsets.len();
+        assert!(domain_size.is_power_of_two());
+        assert!(domain_size > poly_size);
+        assert_eq!(poly_size, twiddles.len() * 2);
+        assert!(poly_offset < polys.num_base_cols());
+
+        // allocate memory for the segment
+        let data = if polys.num_base_cols() - poly_offset >= N {
+            // if we will fill the entire segment, we allocate uninitialized memory
+            unsafe { page_aligned_uninit_vector(domain_size) }
+        } else {
+            // but if some columns in the segment will remain unfilled, we allocate memory initialized
+            // to zeros to make sure we don't end up with memory with undefined values
+            group_vector_elements(Felt::zeroed_vector(N * domain_size))
+        };
+
+        Segment::new_with_buffer(data, polys, poly_offset, offsets, twiddles)
+    }
+    fn build_aligned_segements<E, const N: usize>(
+        polys: &ColMatrix<E>,
+        twiddles: &[Felt],
+        offsets: &[Felt],
+    ) -> Vec<Segment<Felt, N>>
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        assert!(N > 0, "batch size N must be greater than zero");
+        debug_assert_eq!(polys.num_rows(), twiddles.len() * 2);
+        debug_assert_eq!(offsets.len() % polys.num_rows(), 0);
+
+        let num_segments = if polys.num_base_cols() % N == 0 {
+            polys.num_base_cols() / N
+        } else {
+            polys.num_base_cols() / N + 1
+        };
+
+        (0..num_segments)
+            .map(|i| Self::build_aligned_segement(polys, i * N, offsets, twiddles))
+            .collect()
+    }
+}
 
 impl<R> Prover for MetalRpoExecutionProver<R>
 where
@@ -114,7 +171,7 @@ where
         let blowup = domain.trace_to_lde_blowup();
         let offsets =
             get_evaluation_offsets::<E>(composition_poly.column_len(), blowup, domain.offset());
-        let segments = build_segments(composition_poly.data(), domain.trace_twiddles(), &offsets);
+        let segments = Self::build_aligned_segements(composition_poly.data(), domain.trace_twiddles(), &offsets);
         event!(
             Level::INFO,
             "Evaluated {} composition polynomial columns over LDE domain (2^{} elements) in {} ms",
