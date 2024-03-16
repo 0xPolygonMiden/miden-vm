@@ -92,6 +92,12 @@ impl<'a> PrettyPrinter<'a> {
         Ok(())
     }
 
+    /// This function visits the document tree represented by a [Chunk] and determines if the amount
+    /// of space required to display the chunk fits on the current line.
+    ///
+    /// This is used in conjunction with `Document::Choice` to determine which layout to actually
+    /// display between the two choices: the single-line layout, or the multi-line layout. If the
+    /// single-line layout does not fit on the current line, then the multi-line layout is used.
     fn fits(&self, chunk: Chunk<'a>) -> bool {
         let mut remaining = self.width.saturating_sub(self.col as usize);
         let mut stack = vec![chunk];
