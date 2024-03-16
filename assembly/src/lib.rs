@@ -17,7 +17,7 @@ use vm_core::{
 };
 
 #[cfg(feature = "formatter")]
-pub use vm_core::{prettier, utils::DisplayHex};
+use vm_core::{prettier, utils::DisplayHex};
 
 mod assembler;
 pub mod ast;
@@ -26,14 +26,15 @@ pub mod diagnostics;
 mod errors;
 pub mod library;
 mod parser;
-pub(crate) mod sema;
+mod sema;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 #[cfg(test)]
 mod tests;
 
 pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
-pub use self::ast::{Module, ProcedureName};
+pub use self::ast::{Module, ModuleKind, ProcedureName};
+pub use self::compile::{Compile, Options as CompileOpts};
 pub use self::errors::AssemblyError;
 pub use self::library::{
     Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,

@@ -5,8 +5,7 @@ use crate::{
         reporting::{set_hook, ReportHandlerOpts},
         Report, SourceFile,
     },
-    parser::ModuleParser,
-    Library, LibraryNamespace, LibraryPath, RpoDigest,
+    Compile, CompileOpts, Library, LibraryPath, RpoDigest,
 };
 
 #[cfg(feature = "std")]
@@ -222,9 +221,8 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_program(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
-        let mut parser = ModuleParser::new(ModuleKind::Executable);
-        parser.parse(LibraryNamespace::Exec.into(), source)
+    pub fn parse_program(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile()
     }
 
     /// Parse the given source file into a kernel [Module].
@@ -233,9 +231,8 @@ impl TestContext {
     /// valid.
     #[allow(unused)]
     #[track_caller]
-    pub fn parse_kernel(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
-        let mut parser = ModuleParser::new(ModuleKind::Kernel);
-        parser.parse(LibraryNamespace::Kernel.into(), source)
+    pub fn parse_kernel(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_opts(CompileOpts::for_kernel())
     }
 
     /// Parse the given source file into an anonymous library [Module].
@@ -243,9 +240,8 @@ impl TestContext {
     /// This runs semantic analysis, and the returned module is guaranteed to be syntactically
     /// valid.
     #[track_caller]
-    pub fn parse_module(&mut self, source: Arc<SourceFile>) -> Result<Box<Module>, Report> {
-        let mut parser = ModuleParser::new(ModuleKind::Library);
-        parser.parse(LibraryNamespace::Anon.into(), source)
+    pub fn parse_module(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
+        source.compile_with_opts(CompileOpts::for_library())
     }
 
     /// Parse the given source file into a library [Module] with the given fully-qualified path.
@@ -253,16 +249,15 @@ impl TestContext {
     pub fn parse_module_with_path(
         &mut self,
         path: LibraryPath,
-        source: Arc<SourceFile>,
+        source: impl Compile,
     ) -> Result<Box<Module>, Report> {
-        let mut parser = ModuleParser::new(ModuleKind::Library);
-        parser.parse(path, source)
+        source.compile_with_opts(CompileOpts::new(ModuleKind::Library, path).unwrap())
     }
 
     /// Add `module` to the [Assembler] constructed by this context, making it available to
     /// other modules.
     #[track_caller]
-    pub fn add_module(&mut self, module: Box<Module>) -> Result<(), Report> {
+    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
         self.assembler.add_module(module)
     }
 
@@ -275,10 +270,15 @@ impl TestContext {
     pub fn add_module_from_source(
         &mut self,
         path: LibraryPath,
-        source: Arc<SourceFile>,
+        source: impl Compile,
     ) -> Result<(), Report> {
-        let ast = self.parse_module_with_path(path, source)?;
-        self.assembler.add_module(ast)
+        self.assembler.add_module_with_options(
+            source,
+            CompileOpts {
+                path: Some(path),
+                ..CompileOpts::for_library()
+            },
+        )
     }
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.
@@ -295,29 +295,24 @@ impl TestContext {
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
     /// module represented in `source`.
     #[track_caller]
-    pub fn compile(&mut self, source: Arc<SourceFile>) -> Result<Program, Report> {
-        self.assembler.compile_source(source)
-    }
-
-    /// Compile a [Program] from the given executable module.
-    ///
-    /// This will return an error if the given module is not an executable module, or if compilation
-    /// fails for some reason.
-    #[track_caller]
-    pub fn compile_ast(&mut self, ast: Box<Module>) -> Result<Program, Report> {
-        self.assembler.compile_ast(ast)
+    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
+        self.assembler.assemble(source)
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning
     /// the MAST roots of all the exported procedures of that module.
     #[track_caller]
-    pub fn compile_module_from_source(
+    pub fn assemble_module(
         &mut self,
         path: LibraryPath,
-        source: Arc<SourceFile>,
+        module: impl Compile,
     ) -> Result<Vec<RpoDigest>, Report> {
-        let ast = self.parse_module_with_path(path.clone(), source)?;
-        self.assembler.compile_module(ast, &mut AssemblyContext::for_library(&path))
+        let mut context = AssemblyContext::for_library(&path);
+        let options = CompileOpts {
+            path: Some(path),
+            ..CompileOpts::for_library()
+        };
+        self.assembler.assemble_module(module, options, &mut context)
     }
 
     /// Get a reference to the [ProcedureCache] of the [Assembler] constructed by this context.

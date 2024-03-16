@@ -1,13 +1,14 @@
 use crate::{
     ast::{
         self, instrument, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
-        InvokeKind, Module, ModuleKind, ProcedureIndex,
+        InvokeKind, ModuleKind, ProcedureIndex,
     },
-    diagnostics::{Report, SourceFile},
+    diagnostics::Report,
     sema::SemanticAnalysisError,
-    AssemblyError, Felt, Library, LibraryNamespace, LibraryPath, RpoDigest, Spanned, ONE, ZERO,
+    AssemblyError, Compile, CompileOpts, Felt, Library, LibraryNamespace, LibraryPath, RpoDigest,
+    Spanned, ONE, ZERO,
 };
-use alloc::{boxed::Box, string::ToString, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use vm_core::{
     code_blocks::CodeBlock, utils::group_vector_elements, CodeBlockTable, Decorator, DecoratorList,
     Kernel, Operation, Program,
@@ -179,8 +180,23 @@ impl Assembler {
     /// Add `module` to the module graph of the assembler
     ///
     /// The given module must be a library module, or an error will be returned
-    pub fn with_module(mut self, module: Box<ast::Module>) -> Result<Self, Report> {
+    #[inline]
+    pub fn with_module(mut self, module: impl Compile) -> Result<Self, Report> {
         self.add_module(module)?;
+
+        Ok(self)
+    }
+
+    /// Add `module` to the module graph of the assembler with the given options.
+    ///
+    /// The given module must be a library module, or an error will be returned
+    #[inline]
+    pub fn with_module_and_options(
+        mut self,
+        module: impl Compile,
+        options: CompileOpts,
+    ) -> Result<Self, Report> {
+        self.add_module_with_options(module, options)?;
 
         Ok(self)
     }
@@ -188,50 +204,43 @@ impl Assembler {
     /// Add `module` to the module graph of the assembler
     ///
     /// The given module must be a library module, or an error will be returned
-    pub fn add_module(&mut self, module: Box<ast::Module>) -> Result<(), Report> {
+    #[inline]
+    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
+        self.add_module_with_options(module, CompileOpts::for_library())
+    }
+
+    /// Add `module` to the module graph of the assembler, using the provided options.
+    ///
+    /// The given module must be a library or kernel module, or an error will be returned
+    pub fn add_module_with_options(
+        &mut self,
+        module: impl Compile,
+        options: CompileOpts,
+    ) -> Result<(), Report> {
+        if options.kind == ModuleKind::Executable {
+            return Err(Report::msg("cannot call `add_module_with_options` with an executable module: you must provide it via `compile` instead"));
+        }
+
+        let module = module.compile_with_opts(options)?;
         match module.kind() {
             ModuleKind::Kernel if self.kernel_index().is_some() => {
                 Err(Report::new(AssemblyError::ConflictingKernels))
             }
             ModuleKind::Kernel => {
-                let (kernel_index, kernel) = self.compile_kernel_module(module)?;
+                let (kernel_index, kernel) = self.assemble_kernel_module(module)?;
                 self.module_graph.set_kernel(Some(kernel_index), kernel);
 
                 Ok(())
-            }
-            ModuleKind::Executable => {
-                Err(Report::msg("cannot call `add_module` with an executable module: you must provide it via `compile` instead"))
             }
             ModuleKind::Library => {
                 self.module_graph.add_module(module)?;
 
                 Ok(())
             }
+            ModuleKind::Executable => {
+                unreachable!("invalid Compile trait implementation: did not respect 'kind' option")
+            }
         }
-    }
-
-    /// Parse `source` as a library module with path `path`, and add it to the module graph of the
-    /// assembler
-    pub fn with_module_from_source(
-        mut self,
-        path: LibraryPath,
-        source: impl ToString,
-    ) -> Result<Self, Report> {
-        self.add_module_from_source(path, source)?;
-        Ok(self)
-    }
-
-    /// Parse `source` as a library module with path `path`, and add it to the module graph of the
-    /// assembler
-    pub fn add_module_from_source(
-        &mut self,
-        path: LibraryPath,
-        source: impl ToString,
-    ) -> Result<(), Report> {
-        let kind = ModuleKind::Library;
-        let source = Arc::new(SourceFile::new(path.path(), source.to_string()));
-        let ast = ast::Module::parse(path, kind, source)?;
-        self.add_module(ast)
     }
 
     /// Adds the library to provide modules for the compilation.
@@ -258,7 +267,7 @@ impl Assembler {
                 }));
             }
 
-            self.add_module(Box::new(module.clone()))?;
+            self.add_module(module)?;
 
             Ok(())
         })
@@ -295,35 +304,36 @@ impl Assembler {
         Ok(self)
     }
 
-    /// Sets the kernel for the assembler to the kernel defined by the provided source.
+    /// Sets the kernel for the assembler to the kernel compiled from the given source.
     ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
     ///
     /// # Panics
     /// Panics if the assembler has already been used to compile programs.
-    pub fn with_kernel_from_source(self, source: impl ToString) -> Result<Self, Report> {
-        let ns = LibraryNamespace::Kernel;
-        let source_file = Arc::from(SourceFile::new(LibraryNamespace::Kernel, source.to_string()));
-        let kernel = Module::parse(ns.into(), ModuleKind::Kernel, source_file)?;
-        self.with_kernel_from_module(kernel)
+    pub fn with_kernel_from_module(mut self, module: impl Compile) -> Result<Self, Report> {
+        self.add_kernel_from_module(module)?;
+
+        Ok(self)
     }
 
-    /// Sets the kernel for the assembler to the kernel defined by the provided abstract syntax
-    /// tree.
+    /// Adds a kernel to the assembler by compiling it from the given source.
     ///
     /// # Errors
+    /// Returns an error if compiling kernel source results in an error.
     ///
-    /// Returns an error if the given module is not a valid kernel module, or if
-    /// compiling kernel source results in an error.
-    pub fn with_kernel_from_module(mut self, module: Box<Module>) -> Result<Self, Report> {
+    /// # Panics
+    /// Panics if the assembler has already been used to compile programs.
+    pub fn add_kernel_from_module(&mut self, module: impl Compile) -> Result<(), Report> {
         if self.module_graph.has_nonempty_kernel() {
             return Err(Report::new(AssemblyError::ConflictingKernels));
         }
-        let (kernel_index, kernel) = self.compile_kernel_module(module)?;
+
+        let module = module.compile_with_opts(CompileOpts::for_kernel())?;
+        let (kernel_index, kernel) = self.assemble_kernel_module(module)?;
         self.module_graph.set_kernel(Some(kernel_index), kernel);
 
-        Ok(self)
+        Ok(())
     }
 
     #[cfg(any(test, feature = "testing"))]
@@ -339,78 +349,70 @@ impl Assembler {
     }
 }
 
-/// Compilation
+/// Compilation/Assembly
 impl Assembler {
-    /// Compiles the provided source code into a [Program]. The resulting program can be executed
+    /// Compiles the provided module into a [Program]. The resulting program can be executed
     /// on Miden VM.
     ///
     /// # Errors
+    ///
     /// Returns an error if parsing or compilation of the specified program fails.
-    pub fn compile<S>(&mut self, source: S) -> Result<Program, Report>
-    where
-        S: ToString,
-    {
-        let ns = LibraryNamespace::Exec;
-        let source = Arc::new(SourceFile::new(ns.as_str(), source.to_string()));
-        self.compile_source(source)
-    }
-
-    /// Like [Assembler::compile], but takes a [SourceFile], allowing the caller to provide their
-    /// own file name to be used in diagnostics.
-    pub fn compile_source(&mut self, source: Arc<SourceFile>) -> Result<Program, Report> {
-        // parse the program into an AST
-        let kind = ModuleKind::Executable;
-        let ns = LibraryNamespace::Exec;
-        let ast = ast::Module::parse(ns.into(), kind, source)?;
-
-        // compile the program and return
-        self.compile_ast(ast)
-    }
-
-    /// Compile the file at the provided path into a [Program]. The resulting program can be
-    /// executed on Miden VM.
-    ///
-    /// # Errors
-    /// Returns an error if we fail to read the file, or if parsing/compilation fails.
-    #[cfg(feature = "std")]
-    pub fn compile_file<P>(&mut self, path: P) -> Result<Program, Report>
-    where
-        P: AsRef<std::path::Path>,
-    {
-        // parse the program into an AST
-        let kind = ModuleKind::Executable;
-        let ns = LibraryNamespace::Exec;
-        let ast = ast::Module::parse_file(ns.into(), kind, path)?;
-
-        // compile the program and return
-        self.compile_ast(ast)
-    }
-
-    /// Compiles the provided abstract syntax tree into a [Program]. The resulting program can be
-    /// executed on Miden VM.
-    ///
-    /// # Errors
-    ///
-    /// * If the provided context is not appropriate for compiling a program.
-    /// * If compilation of the program fails
-    #[instrument("compile_ast", skip_all)]
-    pub fn compile_ast(&mut self, program: Box<ast::Module>) -> Result<Program, Report> {
+    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
         let mut context = AssemblyContext::default();
-        self.compile_in_context(program, &mut context)
+        self.assemble_with_opts_in_context(source, CompileOpts::default(), &mut context)
     }
 
-    /// Compile `program` using the provided [AssemblyContext] to configure compilation
-    pub fn compile_in_context(
+    /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
+    pub fn assemble_in_context(
         &mut self,
-        program: Box<ast::Module>,
+        source: impl Compile,
         context: &mut AssemblyContext,
     ) -> Result<Program, Report> {
-        if !program.is_executable() {
-            return Err(Report::msg(format!("expected executable module, got {}", program.kind())));
+        self.assemble_with_opts_in_context(source, CompileOpts::default(), context)
+    }
+
+    /// Compiles the provided module into a [Program] using the provided options.
+    ///
+    /// The resulting program can be executed on Miden VM.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified program fails, or the options
+    /// are invalid.
+    pub fn assemble_with_opts(
+        &mut self,
+        source: impl Compile,
+        options: CompileOpts,
+    ) -> Result<Program, Report> {
+        let mut context = AssemblyContext::default();
+        self.assemble_with_opts_in_context(source, options, &mut context)
+    }
+
+    /// Like [Assembler::compile_with_opts], but additonally uses the provided [AssemblyContext]
+    /// to configure the assembler.
+    #[instrument("assemble_with_opts_in_context", skip_all)]
+    pub fn assemble_with_opts_in_context(
+        &mut self,
+        source: impl Compile,
+        options: CompileOpts,
+        context: &mut AssemblyContext,
+    ) -> Result<Program, Report> {
+        if options.kind != ModuleKind::Executable {
+            return Err(Report::msg(
+                "invalid compile options: compile_with_opts requires that the kind be 'executable'",
+            ));
         }
 
+        let program = source.compile_with_opts(CompileOpts {
+            // Override the module name so that we always compile the executable
+            // module as #exec
+            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
+            ..options
+        })?;
+        assert!(program.is_executable());
+
         // Remove any previously compiled executable module and clean up graph
-        let prev_program = self.module_graph.find_module_index(&LibraryNamespace::Exec.into());
+        let prev_program = self.module_graph.find_module_index(program.path());
         if let Some(module_index) = prev_program {
             self.module_graph.remove_module(module_index);
             self.procedure_cache.remove_module(module_index);
@@ -432,54 +434,56 @@ impl Assembler {
         self.compile_program(entrypoint, context)
     }
 
-    /// Compile all procedures in the specified module, adding them to the procedure cache.
+    /// Compile and assembles all procedures in the specified module, adding them to the procedure cache.
     ///
     /// Returns a vector of procedure digests for all exported procedures in the module.
     ///
-    /// The provided context is used to determine what type of module to compile, i.e. either
+    /// The provided context is used to determine what type of module to assemble, i.e. either
     /// a kernel or library module.
-    pub fn compile_module(
+    pub fn assemble_module(
         &mut self,
-        module: Box<ast::Module>,
+        module: impl Compile,
+        options: CompileOpts,
         context: &mut AssemblyContext,
     ) -> Result<Vec<RpoDigest>, Report> {
-        if module.is_executable() {
-            return Err(Report::msg(format!(
-                "expected library or kernel module, got {}",
-                module.kind()
-            )));
-        }
         match context.kind() {
-            ArtifactKind::Executable => return Err(Report::msg(
-                "invalid context: expected context configured for library or kernel modules"
-            )),
-            ArtifactKind::Kernel if !module.is_kernel() => return Err(Report::msg(
-                "invalid context: cannot compile a kernel with a context configured for library compilation"
-            )),
-            ArtifactKind::Library if module.is_kernel() => return Err(Report::msg(
-                "invalid context: cannot compile a library with a context configured for kernel compilation"
-            )),
+            _ if options.kind.is_executable() => {
+                return Err(Report::msg(
+                    "invalid compile options: expected configuration for library or kernel module ",
+                ))
+            }
+            ArtifactKind::Executable => {
+                return Err(Report::msg(
+                    "invalid context: expected context configured for library or kernel modules",
+                ))
+            }
+            ArtifactKind::Kernel if !options.kind.is_kernel() => {
+                return Err(Report::msg(
+                    "invalid context: cannot assemble a kernel from a module compiled as a library",
+                ))
+            }
+            ArtifactKind::Library if !options.kind.is_library() => {
+                return Err(Report::msg(
+                    "invalid context: cannot assemble a library from a module compiled as a kernel",
+                ))
+            }
             ArtifactKind::Kernel | ArtifactKind::Library => (),
         }
 
-        // Recompute graph with the provided module, and start compiling
+        // Compile module
+        let module = module.compile_with_opts(options)?;
+
+        // Recompute graph with the provided module, and start assembly
         let module_id = self.module_graph.add_module(module)?;
         self.module_graph.recompute()?;
-        self.compile_graph(context)?;
+        self.assemble_graph(context)?;
 
         self.module_exports(module_id)
     }
 
-    /// Compiles the given kernel module.
-    ///
-    /// This will return an error if the kernel is invalid.
-    pub fn compile_kernel(&mut self, module: Box<ast::Module>) -> Result<Kernel, Report> {
-        self.compile_kernel_module(module).map(|(_, kernel)| kernel)
-    }
-
     /// Compiles the given kernel module, returning both the compiled kernel and its index in the
     /// graph.
-    fn compile_kernel_module(
+    fn assemble_kernel_module(
         &mut self,
         module: Box<ast::Module>,
     ) -> Result<(ModuleIndex, Kernel), Report> {
@@ -592,7 +596,7 @@ impl Assembler {
     /// in the procedure cache once compiled.
     ///
     /// Returns an error if any of the provided Miden Assembly is invalid.
-    fn compile_graph(&mut self, context: &mut AssemblyContext) -> Result<(), Report> {
+    fn assemble_graph(&mut self, context: &mut AssemblyContext) -> Result<(), Report> {
         let mut worklist = self.module_graph.topological_sort().to_vec();
         assert!(!worklist.is_empty());
         self.process_graph_worklist(&mut worklist, context, None).map(|_| ())

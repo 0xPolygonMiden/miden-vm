@@ -293,7 +293,7 @@ fn execute(
         .with_libraries(provided_libraries.iter())
         .map_err(|err| format!("{err}"))?;
 
-    let program = assembler.compile(program).map_err(|err| format!("{err}"))?;
+    let program = assembler.assemble(program).map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
     let host = DefaultHost::default();

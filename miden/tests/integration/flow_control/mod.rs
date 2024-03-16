@@ -1,7 +1,4 @@
-use assembly::{
-    ast::{Module, ModuleKind},
-    Assembler, AssemblyContext, LibraryPath,
-};
+use assembly::{ast::ModuleKind, Assembler, AssemblyContext, LibraryPath};
 use processor::ExecutionError;
 use stdlib::StdLibrary;
 use test_utils::{build_test, expect_exec_error, StackInputs, Test};
@@ -404,11 +401,9 @@ fn procref() {
 
     // obtain procedures' MAST roots by compiling them as module
     let module_path = "test::foo".parse::<LibraryPath>().unwrap();
-    let module_ast =
-        Module::parse_str(module_path.clone(), ModuleKind::Library, module_source).unwrap();
-    let mast_roots = assembler
-        .compile_module(module_ast, &mut AssemblyContext::for_library(&module_path))
-        .unwrap();
+    let mut context = AssemblyContext::for_library(&module_path);
+    let opts = assembly::CompileOpts::new(ModuleKind::Library, module_path).unwrap();
+    let mast_roots = assembler.assemble_module(module_source, opts, &mut context).unwrap();
 
     let source = "
     use.std::math::u64

@@ -16,14 +16,14 @@ use pretty_assertions::{assert_eq, assert_str_eq};
 macro_rules! assert_assembler_diagnostic {
     ($context:ident, $source:expr, $($expected:literal),+) => {{
         let error = $context
-            .compile($source)
+            .assemble($source)
             .expect_err("expected diagnostic to be raised, but compilation succeeded");
         assert_diagnostic_lines!(error, $($expected),*);
     }};
 
     ($context:ident, $source:expr, $($expected:expr),+) => {{
         let error = $context
-            .compile($source)
+            .assemble($source)
             .expect_err("expected diagnostic to be raised, but compilation succeeded");
         assert_diagnostic_lines!(error, $($expected),*);
     }};
@@ -36,7 +36,7 @@ macro_rules! assert_assembler_diagnostic {
 fn simple_instructions() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin push.0 assertz end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span pad eqz assert(0) end
@@ -44,7 +44,7 @@ end";
     assert_str_eq!(format!("{program}"), expected);
 
     let source = source_file!("begin push.10 push.50 push.2 u32wrapping_madd end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span push(10) push(50) push(2) u32madd drop end
@@ -52,7 +52,7 @@ end";
     assert_str_eq!(format!("{program}"), expected);
 
     let source = source_file!("begin push.10 push.50 push.2 u32wrapping_add3 end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span push(10) push(50) push(2) u32add3 drop end
@@ -67,7 +67,7 @@ end";
 fn empty_program() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "begin span noop end end";
     assert_eq!(expected, format!("{}", program));
     Ok(())
@@ -79,7 +79,7 @@ fn empty_program() -> TestResult {
 fn empty_if() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin if.true end end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     if.true
@@ -98,7 +98,7 @@ end";
 fn empty_while() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin while.true end end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     while.true
@@ -115,7 +115,7 @@ end";
 fn empty_repeat() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin repeat.5 end end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span noop noop noop noop noop end
@@ -128,7 +128,7 @@ end";
 fn single_span() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin push.1 push.2 add end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span pad incr push(2) add end
@@ -143,7 +143,7 @@ fn span_and_simple_if() -> TestResult {
 
     // if with else
     let source = source_file!("begin push.2 push.3 if.true add else mul end end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     join
@@ -159,7 +159,7 @@ end";
 
     // if without else
     let source = source_file!("begin push.2 push.3 if.true add end end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     join
@@ -202,7 +202,7 @@ fn simple_main_call() -> TestResult {
     context.add_module(account_code)?;
 
     // compile note 1 program
-    context.compile(source_file!(
+    context.assemble(source_file!(
         "
         use.context::account
         begin
@@ -212,7 +212,7 @@ fn simple_main_call() -> TestResult {
     ))?;
 
     // compile note 2 program
-    context.compile(source_file!(
+    context.assemble(source_file!(
         "
         use.context::account
         begin
@@ -228,7 +228,7 @@ fn call_without_path() -> TestResult {
     let mut context = TestContext::default();
     // compile first module
     //context.add_module_from_source(
-    context.compile_module_from_source(
+    context.assemble_module(
         "account_code1".parse().unwrap(),
         source_file!(
             "\
@@ -247,7 +247,7 @@ fn call_without_path() -> TestResult {
 
     // compile second module
     //context.add_module_from_source(
-    context.compile_module_from_source(
+    context.assemble_module(
         "account_code2".parse().unwrap(),
         source_file!(
             "\
@@ -265,7 +265,7 @@ fn call_without_path() -> TestResult {
     //---------------------------------------------------------------------------------------------
 
     // compile program in which functions from different modules but with equal names are called
-    context.compile(source_file!(
+    context.assemble(source_file!(
         "
         begin
             # call the account_method_1 from the first module (account_code1)
@@ -321,7 +321,7 @@ fn procref_call() -> TestResult {
     )?;
 
     // compile program with procref calls
-    context.compile(source_file!(
+    context.assemble(source_file!(
         "
         use.module::path::two
 
@@ -402,7 +402,7 @@ fn simple_constant() -> TestResult {
 begin
     span push(7) end
 end";
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -421,7 +421,7 @@ fn multiple_constants_push() -> TestResult {
 begin
     span push(21) push(64) push(44) push(72) end
 end";
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -440,7 +440,7 @@ fn constant_numeric_expression() -> TestResult {
 begin
     span push(26) end
 end";
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -461,7 +461,7 @@ fn constant_alphanumeric_expression() -> TestResult {
 begin
     span push(21) end
 end";
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -480,7 +480,7 @@ fn constant_hexadecimal_value() -> TestResult {
 begin
     span push(255) end
 end";
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -499,7 +499,7 @@ fn constant_field_division() -> TestResult {
 begin
     span push(2) end
 end";
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -774,7 +774,7 @@ fn mem_operations_with_constants() -> TestResult {
     end
     "
     ));
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     // Define expected
     let expected = source_file!(format!(
@@ -814,7 +814,7 @@ fn mem_operations_with_constants() -> TestResult {
     end
     "
     ));
-    let expected_program = context.compile(expected)?;
+    let expected_program = context.assemble(expected)?;
     assert_str_eq!(expected_program.to_string(), program.to_string());
     Ok(())
 }
@@ -904,7 +904,7 @@ fn assert_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -928,7 +928,7 @@ fn assertz_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -952,7 +952,7 @@ fn assert_eq_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -976,7 +976,7 @@ fn assert_eqw_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -1034,7 +1034,7 @@ fn u32assert_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -1068,7 +1068,7 @@ fn u32assert2_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -1092,7 +1092,7 @@ fn u32assertw_with_code() -> TestResult {
     "
     );
     let mut context = TestContext::default();
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let expected = "\
 begin
@@ -1140,7 +1140,7 @@ fn nested_control_blocks() -> TestResult {
         push.3 add
         end"
     );
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     join
@@ -1179,7 +1179,7 @@ fn program_with_one_procedure() -> TestResult {
     let mut context = TestContext::default();
     let source =
         source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
     let expected = format!(
         "\
@@ -1200,7 +1200,7 @@ end"
 fn program_with_one_empty_procedure() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("proc.foo end begin exec.foo end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
     let expected = format!(
         "\
@@ -1221,7 +1221,7 @@ fn program_with_nested_procedure() -> TestResult {
         proc.bar push.5 exec.foo add end \
         begin push.2 push.4 add exec.foo push.11 exec.bar sub end"
     );
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
     let bar = context.display_digest_from_cache(&"#exec::bar".parse().unwrap());
     let expected = format!(
@@ -1262,7 +1262,7 @@ fn program_with_proc_locals() -> TestResult {
             exec.foo \
         end"
     );
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
     let expected = format!(
         "\
@@ -1304,7 +1304,7 @@ fn program_with_exported_procedure() -> TestResult {
 fn program_with_dynamic_code_execution() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin dynexec end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     dyn
@@ -1317,7 +1317,7 @@ end";
 fn program_with_dynamic_code_execution_in_new_context() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin dyncall end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     call.0xc75c340ec6a69e708457544d38783abbb604d881b7dc62d00bfc2b10f52808e6
@@ -1395,7 +1395,7 @@ fn program_with_phantom_mast_call() -> TestResult {
 
     let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(false);
     let err = assembler
-        .compile_in_context(ast.clone(), &mut context)
+        .assemble_in_context(ast.clone(), &mut context)
         .expect_err("expected compilation to fail with phantom calls");
     assert_diagnostic_lines!(
         err,
@@ -1410,7 +1410,7 @@ fn program_with_phantom_mast_call() -> TestResult {
 
     // phantom calls allowed
     let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(true);
-    assembler.compile_in_context(ast, &mut context)?;
+    assembler.assemble_in_context(ast, &mut context)?;
     Ok(())
 }
 
@@ -1447,7 +1447,7 @@ fn program_with_one_import_and_hex_call() -> TestResult {
             call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
         end"#
     ));
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let iszero_unsafe =
         context.display_digest_from_cache(&"dummy::math::u256::iszero_unsafe".parse().unwrap());
@@ -1506,7 +1506,7 @@ fn program_with_two_imported_procs_with_same_mast_root() -> TestResult {
             exec.u256::iszero_unsafe_dup
         end"#
     ));
-    context.compile(source)?;
+    context.assemble(source)?;
     Ok(())
 }
 
@@ -1576,7 +1576,7 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
             exec.u256::notchecked_eqz
         end"#
     ));
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let checked_eqz =
         context.display_digest_from_cache(&"dummy1::math::u64::checked_eqz".parse().unwrap());
     let notchecked_eqz =
@@ -1647,7 +1647,7 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
             exec.u256::notchecked_eqz
         end"#
     ));
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
 
     let checked_eqz =
         context.display_digest_from_cache(&"dummy2::math::u64::checked_eqz".parse().unwrap());
@@ -1708,18 +1708,18 @@ fn module_alias() -> TestResult {
 
     context.add_library(&library)?;
 
-    let source = "
+    let source = source_file!(
+        "
         use.dummy::math::u64->bigint
 
         begin
             push.1.0
             push.2.0
             exec.bigint::checked_add
-        end";
-    let ast =
-        Module::parse_str(LibraryNamespace::Exec.into(), ModuleKind::Executable, source).unwrap();
+        end"
+    );
 
-    let program = context.compile_ast(ast)?;
+    let program = context.assemble(source)?;
     let checked_add =
         context.display_digest_from_cache(&"dummy::math::u64::checked_add".parse().unwrap());
     let expected = format!(
@@ -1861,7 +1861,7 @@ fn program_with_import_errors() {
 fn comment_simple() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin # simple comment \n push.1 push.2 add end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span pad incr push(2) add end
@@ -1888,7 +1888,7 @@ fn comment_in_nested_control_blocks() -> TestResult {
         push.3 add
         end"
     );
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     join
@@ -1923,7 +1923,7 @@ end";
 fn comment_before_program() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!(" # starting comment \n begin push.1 push.2 add end");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span pad incr push(2) add end
@@ -1936,7 +1936,7 @@ end";
 fn comment_after_program() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin push.1 push.2 add end # closing comment");
-    let program = context.compile(source)?;
+    let program = context.assemble(source)?;
     let expected = "\
 begin
     span pad incr push(2) add end

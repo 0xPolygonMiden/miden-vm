@@ -274,12 +274,16 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program or Assembly error.
     pub fn compile(&self) -> Result<Program, Report> {
+        use assembly::{CompileOpts, ModuleKind};
         let assembler = self
             .add_modules
             .iter()
             .fold(assembly::Assembler::default(), |assembler, (path, source)| {
                 assembler
-                    .with_module_from_source(path.clone(), source.clone())
+                    .with_module_and_options(
+                        source,
+                        CompileOpts::new(ModuleKind::Library, path.clone()).unwrap(),
+                    )
                     .expect("invalid masm source code")
             })
             .with_debug_mode(self.in_debug_mode)
@@ -287,11 +291,11 @@ impl Test {
             .expect("failed to load stdlib");
 
         let mut assembler = if let Some(kernel) = self.kernel.as_ref() {
-            assembler.with_kernel_from_source(kernel).expect("invalid kernel")
+            assembler.with_kernel_from_module(kernel).expect("invalid kernel")
         } else {
             assembler
         };
-        assembler.compile_source(self.source.clone())
+        assembler.assemble(self.source.clone())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
