@@ -61,7 +61,7 @@ fn nested_blocks() {
     }
 
     let mut assembler = Assembler::new()
-        .with_kernel_from_source(KERNEL)
+        .with_kernel_from_module(KERNEL)
         .unwrap()
         .with_library(&DummyLibrary::default())
         .unwrap();
@@ -114,7 +114,7 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
-    let program = assembler.compile(program).unwrap();
+    let program = assembler.assemble(program).unwrap();
 
     let exec_bar = assembler
         .procedure_cache()

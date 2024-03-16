@@ -197,7 +197,7 @@ fn falcon_prove_verify() {
     let program = Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib")
-        .compile(source)
+        .assemble(source)
         .expect("failed to compile test source");
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");

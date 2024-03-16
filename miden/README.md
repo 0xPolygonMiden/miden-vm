@@ -57,7 +57,7 @@ use processor::ExecutionOptions;
 let mut assembler = Assembler::default();
 
 // compile Miden assembly source code into a program
-let program = assembler.compile("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble("begin push.3 push.5 add end").unwrap();
 
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();
@@ -105,7 +105,7 @@ use miden_vm::{Assembler, DefaultHost, ProvingOptions, prove, StackInputs};
 let mut assembler = Assembler::default();
 
 // this is our program, we compile it from assembly code
-let program = assembler.compile("begin push.3 push.5 add end").unwrap();
+let program = assembler.assemble("begin push.3 push.5 add end").unwrap();
 
 // let's execute it and generate a STARK proof
 let (outputs, proof) = prove(
@@ -193,7 +193,7 @@ let source = format!(
     n - 1
 );
 let mut assembler = Assembler::default();
-let program = assembler.compile(&source).unwrap();
+let program = assembler.assemble(&source).unwrap();
 
 // initialize a default host (with an empty advice provider)
 let host = DefaultHost::default();
