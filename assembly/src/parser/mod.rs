@@ -112,7 +112,7 @@ fn parse_forms_internal(
     let lexer = Lexer::new(scanner);
     grammar::FormsParser::new()
         .parse(&source, interned, core::marker::PhantomData, lexer)
-        .map_err(error::handle_parse_error)
+        .map_err(ParsingError::from)
 }
 
 // TESTS
