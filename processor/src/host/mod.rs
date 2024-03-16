@@ -58,15 +58,15 @@ pub trait Host {
     /// Handles the event emitted from the VM.
     fn on_event<S: ProcessState>(
         &mut self,
-        process: &S,
-        event_id: u32,
+        _process: &S,
+        _event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
-            event_id,
-            process.clk(),
-            process.ctx()
+            _event_id,
+            _process.clk(),
+            _process.ctx()
         );
         Ok(HostResponse::None)
     }
@@ -74,26 +74,26 @@ pub trait Host {
     /// Handles the debug request from the VM.
     fn on_debug<S: ProcessState>(
         &mut self,
-        process: &S,
-        options: &DebugOptions,
+        _process: &S,
+        _options: &DebugOptions,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
-        debug::print_debug_info(process, options);
+        debug::print_debug_info(_process, _options);
         Ok(HostResponse::None)
     }
 
     /// Handles the trace emmited from the VM.
     fn on_trace<S: ProcessState>(
         &mut self,
-        process: &S,
-        trace_id: u32,
+        _process: &S,
+        _trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Trace with id {} emitted at step {} in context {}",
-            trace_id,
-            process.clk(),
-            process.ctx()
+            _trace_id,
+            _process.clk(),
+            _process.ctx()
         );
         Ok(HostResponse::None)
     }

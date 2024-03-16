@@ -1,6 +1,7 @@
 // VERIFIER CHANNEL
 // ================================================================================================
 
+use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use test_utils::{
     crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},

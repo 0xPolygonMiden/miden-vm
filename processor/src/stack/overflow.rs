@@ -1,7 +1,8 @@
-use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
+
 use vm_core::{utils::uninit_vector, StarkField};
+
+use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
 
 // OVERFLOW TABLE
 // ================================================================================================

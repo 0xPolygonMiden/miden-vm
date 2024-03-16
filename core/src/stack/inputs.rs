@@ -1,9 +1,8 @@
 use alloc::vec::Vec;
-
-use crate::utils::{ByteReader, Deserializable, DeserializationError};
+use core::slice;
 
 use super::{ByteWriter, Felt, InputError, Serializable, ToElements};
-use core::slice;
+use crate::utils::{ByteReader, Deserializable, DeserializationError};
 
 // STACK INPUTS
 // ================================================================================================

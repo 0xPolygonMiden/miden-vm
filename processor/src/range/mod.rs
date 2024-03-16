@@ -1,7 +1,7 @@
+use alloc::{collections::BTreeMap, vec::Vec};
+
 use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
 use crate::utils::uninit_vector;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;

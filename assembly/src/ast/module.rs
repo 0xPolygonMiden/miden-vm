@@ -540,8 +540,6 @@ impl Module {
     where
         P: AsRef<std::path::Path>,
     {
-        use vm_core::utils::WriteAdapter;
-
         let path = path.as_ref();
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
@@ -557,8 +555,7 @@ impl Module {
                     serialize_imports: true,
                     debug_info: true,
                 };
-                let mut adapter = WriteAdapter::new(file);
-                self.write_into_with_options(&mut adapter, options);
+                self.write_into_with_options(file, options);
                 Ok(())
             }
             Err(err) => Err(err),
