@@ -25,6 +25,7 @@ pub use assembly::{
     diagnostics::{Report, SourceFile},
     Library, LibraryPath, MaslLibrary,
 };
+pub use pretty_assertions::{assert_eq, assert_ne, assert_str_eq};
 pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
@@ -114,7 +115,7 @@ macro_rules! expect_exec_error {
     ($test:expr, $expected:expr) => {
         match $test.execute() {
             Ok(_) => panic!("expected execution to fail @ {}:{}", file!(), line!()),
-            Err(error) => assert_eq!(error, $expected),
+            Err(error) => $crate::assert_eq!(error, $expected),
         }
     };
 }

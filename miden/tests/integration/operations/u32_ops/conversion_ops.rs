@@ -1,5 +1,4 @@
 use super::{prop_randw, test_inputs_out_of_bounds};
-use pretty_assertions::assert_eq;
 use processor::ExecutionError;
 use test_utils::{
     build_op_test, expect_exec_error, proptest::prelude::*, rand::rand_value, Felt, StarkField,

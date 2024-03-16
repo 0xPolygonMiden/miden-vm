@@ -1,5 +1,4 @@
-use pretty_assertions::assert_eq;
-use test_utils::{build_op_test, build_test, Felt, ToElements};
+use test_utils::{assert_eq, build_op_test, build_test, Felt, ToElements};
 use vm_core::chiplets::hasher::apply_permutation;
 
 mod adv_ops;

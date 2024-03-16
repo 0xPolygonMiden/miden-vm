@@ -1,6 +1,5 @@
-use pretty_assertions::assert_eq;
 use processor::{AsmOpInfo, VmStateIterator};
-use test_utils::build_debug_test;
+use test_utils::{assert_eq, build_debug_test};
 use vm_core::{AssemblyOp, Felt, Operation};
 
 #[test]
