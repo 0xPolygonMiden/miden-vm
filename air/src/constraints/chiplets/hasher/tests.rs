@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{
     trace::chiplets::hasher::{Selectors, LINEAR_HASH, STATE_WIDTH},
-    utils::collections::*,
     Felt, TRACE_WIDTH,
 };
+use alloc::vec::Vec;
 use rand_utils::rand_array;
 use vm_core::chiplets::hasher::apply_round;
 use winter_air::EvaluationFrame;

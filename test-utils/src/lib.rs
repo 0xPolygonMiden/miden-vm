@@ -1,18 +1,22 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[macro_use]
+#[cfg_attr(feature = "std", macro_use)]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 // IMPORTS
 // ================================================================================================
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
-use alloc::sync::Arc;
-use vm_core::{
-    chiplets::hasher::apply_permutation,
-    utils::{collections::*, string::*},
+use alloc::{
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
 };
+use vm_core::chiplets::hasher::apply_permutation;
 
 // EXPORTS
 // ================================================================================================

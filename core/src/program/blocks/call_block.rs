@@ -1,4 +1,5 @@
-use super::{fmt, hasher, Digest, Felt, Operation};
+use super::{hasher, Digest, Felt, Operation};
+use core::fmt;
 
 // CALL BLOCK
 // ================================================================================================

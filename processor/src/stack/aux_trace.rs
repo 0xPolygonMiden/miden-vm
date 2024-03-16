@@ -1,5 +1,6 @@
 use super::{Felt, FieldElement, OverflowTableRow};
-use crate::{trace::AuxColumnBuilder, utils::collections::*};
+use crate::trace::AuxColumnBuilder;
+use alloc::vec::Vec;
 use miden_air::trace::main_trace::MainTrace;
 
 // AUXILIARY TRACE BUILDER

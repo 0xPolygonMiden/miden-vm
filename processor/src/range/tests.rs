@@ -1,7 +1,8 @@
 use super::{Felt, RangeChecker, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
+use alloc::{collections::BTreeMap, vec::Vec};
 use test_utils::rand::rand_array;
-use vm_core::utils::{collections::*, ToElements};
+use vm_core::utils::ToElements;
 
 #[test]
 fn range_checks() {

@@ -79,6 +79,18 @@ pub enum ParsingError {
     #[error("parsing failed due to unexpected input")]
     #[diagnostic()]
     Failed = 0,
+    #[error("expected input to be valid utf8, but invalid byte sequences were found")]
+    #[diagnostic()]
+    InvalidUtf8 {
+        #[label("invalid byte sequence starts here")]
+        span: SourceSpan,
+    },
+    #[error("expected input to be valid utf8, but end-of-file was reached before final codepoint was read")]
+    #[diagnostic()]
+    IncompleteUtf8 {
+        #[label("the codepoint starting here is incomplete")]
+        span: SourceSpan,
+    },
     #[error("invalid syntax")]
     #[diagnostic()]
     InvalidToken {
@@ -248,6 +260,20 @@ impl PartialEq for ParsingError {
                 },
             ) => lexpect == rexpect,
             (x, y) => x.tag() == y.tag(),
+        }
+    }
+}
+
+impl From<core::str::Utf8Error> for ParsingError {
+    fn from(err: core::str::Utf8Error) -> Self {
+        let start = u32::try_from(err.valid_up_to()).ok().unwrap_or(u32::MAX);
+        match err.error_len() {
+            None => Self::IncompleteUtf8 {
+                span: SourceSpan::at(start),
+            },
+            Some(len) => Self::InvalidUtf8 {
+                span: SourceSpan::new(start..(start + len as u32)),
+            },
         }
     }
 }

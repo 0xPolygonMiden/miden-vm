@@ -3,9 +3,8 @@
 
 use super::{
     crypto::{RandomCoin, Rpo256, RpoDigest},
-    event,
     math::fft,
-    ExecutionProver, ExecutionTrace, Felt, FieldElement, Level, ProcessorAir, PublicInputs,
+    ExecutionProver, ExecutionTrace, Felt, FieldElement, ProcessorAir, PublicInputs,
     WinterProofOptions,
 };
 use elsa::FrozenVec;
@@ -15,7 +14,8 @@ use ministark_gpu::{
 };
 use pollster::block_on;
 use processor::ONE;
-use std::time::Instant;
+use std::{boxed::Box, time::Instant, vec::Vec};
+use tracing::{event, Level};
 use winter_prover::{
     crypto::MerkleTree,
     matrix::{build_segments, get_evaluation_offsets, ColMatrix, RowMatrix, Segment},

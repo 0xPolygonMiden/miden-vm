@@ -1,4 +1,5 @@
-use crate::{trace::MIN_TRACE_LEN, utils::string::*};
+use crate::trace::MIN_TRACE_LEN;
+use alloc::string::String;
 use core::fmt::{Display, Formatter};
 
 // EXECUTION ERROR

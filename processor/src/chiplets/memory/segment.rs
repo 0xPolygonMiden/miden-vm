@@ -3,7 +3,7 @@ use miden_air::trace::chiplets::memory::{
 };
 
 use super::{Felt, Word, INIT_MEM_VALUE};
-use crate::utils::collections::*;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 // MEMORY SEGMENT TRACE
 // ================================================================================================

@@ -6,6 +6,7 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+use alloc::vec::Vec;
 use core::cell::RefCell;
 
 use miden_air::trace::{
@@ -22,7 +23,6 @@ use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
-    utils::collections::*,
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 

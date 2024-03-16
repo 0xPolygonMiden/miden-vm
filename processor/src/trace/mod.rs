@@ -5,7 +5,7 @@ use super::{
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState,
 };
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     main_trace::MainTrace,

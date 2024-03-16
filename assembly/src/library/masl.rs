@@ -186,8 +186,6 @@ mod use_std {
         where
             P: AsRef<Path>,
         {
-            use vm_core::utils::WriteAdapter;
-
             fs::create_dir_all(&dir_path)?;
             let mut path = dir_path.as_ref().join(self.namespace.as_ref());
             path.set_extension(Self::LIBRARY_EXTENSION);
@@ -198,8 +196,7 @@ mod use_std {
             // needs to be addressed in winterfall at some point
             std::panic::catch_unwind(|| {
                 let mut file = fs::File::create(path)?;
-                let mut adapter = WriteAdapter::new(&mut file);
-                self.write_into(&mut adapter);
+                self.write_into(&mut file);
                 Ok(())
             })
             .map_err(|p| {

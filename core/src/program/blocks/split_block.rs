@@ -1,5 +1,6 @@
-use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
-use crate::utils::boxed::*;
+use super::{hasher, CodeBlock, Digest, Felt, Operation};
+use alloc::boxed::Box;
+use core::fmt;
 
 // SPLIT BLOCK
 // ================================================================================================

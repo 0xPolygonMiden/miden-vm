@@ -1,6 +1,6 @@
 use super::{hasher, Digest, Felt, Operation};
-use crate::utils::collections::*;
 use crate::DecoratorList;
+use alloc::vec::Vec;
 use core::fmt;
 
 mod call_block;

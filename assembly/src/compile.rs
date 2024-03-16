@@ -11,7 +11,7 @@ use crate::{
     diagnostics::{
         Diagnostic, IntoDiagnostic, NamedSource, Report, SourceCode, SourceFile, WrapErr,
     },
-    library::{LibraryNamespace, LibraryPath, PathError},
+    library::{LibraryNamespace, LibraryPath},
 };
 
 /// The set of options which can be used to control the behavior of the [Compile] trait.
@@ -223,8 +223,10 @@ impl<'a> Compile for &'a [u8] {
     #[inline(always)]
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
         core::str::from_utf8(self)
-            .into_diagnostic()
-            .wrap_err("parsing failed: expected source code to be valid utf-8")
+            .map_err(|err| {
+                Report::from(crate::parser::ParsingError::from(err)).with_source_code(self.to_vec())
+            })
+            .wrap_err("parsing failed: invalid source code")
             .and_then(|source| source.compile_with_opts(options))
     }
 }
@@ -233,8 +235,11 @@ impl Compile for Vec<u8> {
     #[inline(always)]
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
         String::from_utf8(self)
-            .into_diagnostic()
-            .wrap_err("parsing failed: expected source code to be valid utf-8")
+            .map_err(|err| {
+                let error = crate::parser::ParsingError::from(err.utf8_error());
+                Report::from(error).with_source_code(err.into_bytes())
+            })
+            .wrap_err("parsing failed: invalid source code")
             .and_then(|source| source.compile_with_opts(options))
     }
 }
@@ -245,7 +250,10 @@ where
 {
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
         let content = String::from_utf8(self.inner().as_ref().to_vec())
-            .into_diagnostic()
+            .map_err(|err| {
+                let error = crate::parser::ParsingError::from(err.utf8_error());
+                Report::from(error).with_source_code(err.into_bytes())
+            })
             .wrap_err("parsing failed: expected source code to be valid utf-8")?;
         Arc::new(SourceFile::new(self.name(), content)).compile_with_opts(options)
     }
@@ -254,7 +262,7 @@ where
 #[cfg(feature = "std")]
 impl<'a> Compile for &'a std::path::Path {
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        use crate::ast::Ident;
+        use crate::{ast::Ident, library::PathError};
         use std::path::Component;
 
         let path = match options.path {

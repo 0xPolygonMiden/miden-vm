@@ -1,5 +1,5 @@
 use super::{AuxTraceBuilder, Felt, FieldElement, ZERO};
-use crate::utils::collections::*;
+use alloc::{collections::BTreeMap, vec::Vec};
 use vm_core::{utils::uninit_vector, StarkField};
 
 // OVERFLOW TABLE

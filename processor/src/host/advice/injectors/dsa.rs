@@ -1,5 +1,6 @@
 use super::super::{ExecutionError, Felt, Word};
-use crate::utils::collections::*;
+use alloc::vec::Vec;
+#[cfg(feature = "std")]
 use vm_core::{
     crypto::dsa::rpo_falcon512::{KeyPair, Polynomial},
     utils::Deserializable,
@@ -67,7 +68,7 @@ pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionErro
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+pub fn falcon_sign(_pk_sk: &[Felt], _msg: Word) -> Result<Vec<Felt>, ExecutionError> {
     Err(ExecutionError::FailedSignatureGeneration(
         "RPO Falcon512 signature generation is not available in no_std context",
     ))

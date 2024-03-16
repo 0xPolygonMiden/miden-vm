@@ -1,5 +1,6 @@
 use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
-use crate::utils::{collections::*, uninit_vector};
+use crate::utils::uninit_vector;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;

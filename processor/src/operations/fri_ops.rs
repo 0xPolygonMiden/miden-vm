@@ -245,8 +245,9 @@ mod tests {
     use super::{
         ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
     };
+    use alloc::vec::Vec;
     use test_utils::rand::{rand_array, rand_value, rand_vector};
-    use vm_core::{utils::collections::*, StackInputs};
+    use vm_core::StackInputs;
     use winter_prover::math::{fft, get_power_series_with_offset};
     use winter_utils::transpose_slice;
 

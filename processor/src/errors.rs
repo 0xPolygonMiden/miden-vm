@@ -3,7 +3,7 @@ use super::{
     system::{FMP_MAX, FMP_MIN},
     CodeBlock, Digest, Felt, QuadFelt, Word,
 };
-use crate::utils::string::*;
+use alloc::string::String;
 use core::fmt::{Display, Formatter};
 use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};

@@ -1,10 +1,7 @@
 use super::FieldElement;
+use alloc::vec::Vec;
 use core::ops::Range;
-use vm_core::utils::{collections::*, range as create_range};
-
-// RE-EXPORTS
-// ================================================================================================
-pub use vm_core::utils::{collections, string};
+use vm_core::utils::range as create_range;
 
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================

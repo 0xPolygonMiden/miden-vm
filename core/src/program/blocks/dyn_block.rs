@@ -1,4 +1,5 @@
-use super::{fmt, Digest, Felt, Operation};
+use super::{Digest, Felt, Operation};
+use core::fmt;
 
 // CONSTANTS
 // ================================================================================================

@@ -3,7 +3,8 @@ use super::{
     build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Word, ONE, ZERO,
 };
 
-use crate::{utils::collections::*, StackInputs};
+use crate::StackInputs;
+use alloc::vec::Vec;
 use miden_air::trace::{
     chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS,
 };

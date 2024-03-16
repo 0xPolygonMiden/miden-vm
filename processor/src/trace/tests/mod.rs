@@ -2,10 +2,8 @@ use super::{
     super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, Process, Trace,
     NUM_RAND_ROWS,
 };
-use crate::{
-    utils::collections::*, AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider,
-    StackInputs,
-};
+use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
+use alloc::vec::Vec;
 use test_utils::rand::rand_array;
 use vm_core::{
     code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, StackOutputs, Word, ONE, ZERO,

@@ -1,5 +1,5 @@
 use super::{Felt, HasherState, Selectors, TraceFragment, STATE_WIDTH, TRACE_WIDTH, ZERO};
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use core::ops::Range;
 use miden_air::trace::chiplets::hasher::NUM_ROUNDS;
 use vm_core::chiplets::hasher::apply_round;
