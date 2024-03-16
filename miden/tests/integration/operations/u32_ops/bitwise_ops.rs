@@ -1,5 +1,4 @@
 use super::test_input_out_of_bounds;
-use pretty_assertions::assert_eq;
 use processor::math::Felt;
 use processor::ExecutionError;
 use test_utils::{

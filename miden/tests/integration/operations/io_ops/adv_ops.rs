@@ -1,5 +1,4 @@
 use super::{build_op_test, build_test};
-use pretty_assertions::assert_eq;
 use processor::ExecutionError;
 use processor::ExecutionError::AdviceStackReadFailed;
 use test_utils::expect_exec_error;

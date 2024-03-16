@@ -1,4 +1,3 @@
-use pretty_assertions::assert_eq;
 use processor::ExecutionError;
 use test_utils::{build_op_test, expect_exec_error};
 

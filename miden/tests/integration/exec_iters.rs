@@ -1,6 +1,5 @@
-use pretty_assertions::assert_eq;
 use processor::{AsmOpInfo, ContextId, VmState};
-use test_utils::{build_debug_test, Felt, ToElements, ONE};
+use test_utils::{assert_eq, build_debug_test, Felt, ToElements, ONE};
 use vm_core::{AssemblyOp, Operation};
 
 // EXEC ITER TESTS
