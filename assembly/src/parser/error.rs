@@ -252,39 +252,41 @@ impl PartialEq for ParsingError {
     }
 }
 
-pub fn handle_parse_error(err: ParseError) -> ParsingError {
-    use super::Token;
-    match err {
-        ParseError::InvalidToken { location: at } => ParsingError::InvalidToken {
-            span: SourceSpan::from(at..at),
-        },
-        ParseError::UnrecognizedToken {
-            token: (l, Token::Eof, r),
-            expected,
-        } => ParsingError::UnrecognizedEof {
-            span: SourceSpan::from(l..r),
-            expected: simplify_expected_tokens(expected),
-        },
-        ParseError::UnrecognizedToken {
-            token: (l, tok, r),
-            expected,
-        } => ParsingError::UnrecognizedToken {
-            span: SourceSpan::from(l..r),
-            token: tok.to_string(),
-            expected: simplify_expected_tokens(expected),
-        },
-        ParseError::ExtraToken { token: (l, tok, r) } => ParsingError::ExtraToken {
-            span: SourceSpan::from(l..r),
-            token: tok.to_string(),
-        },
-        ParseError::UnrecognizedEof {
-            location: at,
-            expected,
-        } => ParsingError::UnrecognizedEof {
-            span: SourceSpan::from(at..at),
-            expected: simplify_expected_tokens(expected),
-        },
-        ParseError::User { error } => error,
+impl<'a> From<ParseError<'a>> for ParsingError {
+    fn from(err: ParseError) -> Self {
+        use super::Token;
+        match err {
+            ParseError::InvalidToken { location: at } => Self::InvalidToken {
+                span: SourceSpan::from(at..at),
+            },
+            ParseError::UnrecognizedToken {
+                token: (l, Token::Eof, r),
+                expected,
+            } => Self::UnrecognizedEof {
+                span: SourceSpan::from(l..r),
+                expected: simplify_expected_tokens(expected),
+            },
+            ParseError::UnrecognizedToken {
+                token: (l, tok, r),
+                expected,
+            } => Self::UnrecognizedToken {
+                span: SourceSpan::from(l..r),
+                token: tok.to_string(),
+                expected: simplify_expected_tokens(expected),
+            },
+            ParseError::ExtraToken { token: (l, tok, r) } => Self::ExtraToken {
+                span: SourceSpan::from(l..r),
+                token: tok.to_string(),
+            },
+            ParseError::UnrecognizedEof {
+                location: at,
+                expected,
+            } => Self::UnrecognizedEof {
+                span: SourceSpan::from(at..at),
+                expected: simplify_expected_tokens(expected),
+            },
+            ParseError::User { error } => error,
+        }
     }
 }
 
