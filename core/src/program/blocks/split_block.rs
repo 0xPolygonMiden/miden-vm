@@ -1,5 +1,7 @@
-use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
 use alloc::boxed::Box;
+use core::fmt;
+
+use super::{hasher, CodeBlock, Digest, Felt, Operation};
 
 // SPLIT BLOCK
 // ================================================================================================

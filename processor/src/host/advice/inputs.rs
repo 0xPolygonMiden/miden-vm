@@ -1,5 +1,7 @@
-use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
 use alloc::vec::Vec;
+
+use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
+
 use vm_core::crypto::hash::RpoDigest;
 
 // ADVICE INPUTS

@@ -1,14 +1,15 @@
-use crate::ProcessState;
+use alloc::{collections::BTreeMap, vec::Vec};
+
+use vm_core::SignatureKind;
 
 use super::{
     injectors, AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath,
     MerkleStore, NodeIndex, RpoDigest, StoreNode, Word,
 };
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use vm_core::utils::collections::KvMap;
-use vm_core::utils::collections::RecordingMap;
-use vm_core::SignatureKind;
+use crate::{
+    utils::collections::{KvMap, RecordingMap},
+    ProcessState,
+};
 
 // TYPE ALIASES
 // ================================================================================================

@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{

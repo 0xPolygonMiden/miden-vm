@@ -1,11 +1,15 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::fmt;
+
+use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
+
 use crate::{
     range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
     Felt, Host, Process, Stack, System, TraceLenSummary,
 };
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use core::fmt;
-use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]

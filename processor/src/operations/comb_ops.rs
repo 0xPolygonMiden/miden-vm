@@ -171,10 +171,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::collections::*;
-    use alloc::borrow::ToOwned;
+    use alloc::{borrow::ToOwned, vec::Vec};
+
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
+
+    use crate::{ContextId, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {
