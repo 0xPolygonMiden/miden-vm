@@ -134,7 +134,7 @@ fn swapn_fail() {
         "invalid immediate: value must be in the range 1..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin swap.16 end",
-        "  :       ^^^^^^^",
+        "  :            ^^",
         "  `----"
     );
 }
@@ -169,7 +169,7 @@ fn swapwn_fail() {
         "invalid immediate: value must be in the range 1..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin swapw.4 end",
-        "  :       ^^^^^^^",
+        "  :             ^",
         "  `----"
     );
 }
@@ -201,7 +201,7 @@ fn movup_fail() {
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movup.0 end",
-        "  :       ^^^^^^^",
+        "  :             ^",
         "  `----"
     );
 
@@ -213,7 +213,7 @@ fn movup_fail() {
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movup.1 end",
-        "  :       ^^^^^^^",
+        "  :             ^",
         "  `----"
     );
 
@@ -225,7 +225,7 @@ fn movup_fail() {
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movup.16 end",
-        "  :       ^^^^^^^^",
+        "  :             ^^",
         "  `----"
     );
 }
@@ -248,7 +248,7 @@ fn movupw_fail() {
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movupw.0 end",
-        "  :       ^^^^^^^^",
+        "  :              ^",
         "  `----"
     );
 
@@ -260,7 +260,7 @@ fn movupw_fail() {
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movupw.1 end",
-        "  :       ^^^^^^^^",
+        "  :              ^",
         "  `----"
     );
 
@@ -272,7 +272,7 @@ fn movupw_fail() {
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movupw.4 end",
-        "  :       ^^^^^^^^",
+        "  :              ^",
         "  `----"
     );
 }
@@ -295,7 +295,7 @@ fn movdn_fail() {
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movdn.0 end",
-        "  :       ^^^^^^^",
+        "  :             ^",
         "  `----"
     );
 
@@ -307,7 +307,7 @@ fn movdn_fail() {
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movdn.1 end",
-        "  :       ^^^^^^^",
+        "  :             ^",
         "  `----"
     );
 
@@ -319,7 +319,7 @@ fn movdn_fail() {
         "invalid immediate: value must be in the range 2..16 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movdn.16 end",
-        "  :       ^^^^^^^^",
+        "  :             ^^",
         "  `----"
     );
 }
@@ -342,7 +342,7 @@ fn movdnw_fail() {
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movdnw.0 end",
-        "  :       ^^^^^^^^",
+        "  :              ^",
         "  `----"
     );
 
@@ -354,7 +354,7 @@ fn movdnw_fail() {
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movdnw.1 end",
-        "  :       ^^^^^^^^",
+        "  :              ^",
         "  `----"
     );
 
@@ -366,7 +366,7 @@ fn movdnw_fail() {
         "invalid immediate: value must be in the range 2..4 (exclusive)",
         regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
         "1 | begin movdnw.4 end",
-        "  :       ^^^^^^^^",
+        "  :              ^",
         "  `----"
     );
 }

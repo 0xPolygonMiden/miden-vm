@@ -10,7 +10,7 @@ use core::{marker::PhantomData, num::NonZeroU32};
 use smallvec::smallvec;
 use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
-use crate::{LibraryPath, LibraryNamespace, ProcedureName, ast::*, diagnostics::SourceFile};
+use crate::{LibraryPath, LibraryNamespace, ProcedureName, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
     HexEncodedValue, Token, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,
@@ -478,7 +478,7 @@ Inst: Instruction = {
 
 #[inline]
 AdviceInjector: Instruction = {
-    "adv" "." "insert_hdword" <domain:MaybeImm<U8>> => {
+    "adv" "." "insert_hdword" <domain:MaybeImm<RawU8>> => {
         domain.map(|domain| Instruction::AdvInject(AdviceInjectorNode::InsertHdwordImm { domain }))
               .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::InsertHdword))
     },
@@ -767,33 +767,45 @@ InstWithLocalIndex: Instruction = {
 #[inline]
 InstWithStackIndex: Instruction = {
     "adv_push" "." <l:@L> <i:OneBasedStackIndex> <r:@R> => Instruction::AdvPush(Immediate::Value(Span::new(span!(l, r), i))),
-    "dup" <i:("." <ZeroBasedStackIndex>)?> => match i.unwrap_or(0) {
-        0 => Instruction::Dup0,
-        1 => Instruction::Dup1,
-        2 => Instruction::Dup2,
-        3 => Instruction::Dup3,
-        4 => Instruction::Dup4,
-        5 => Instruction::Dup5,
-        6 => Instruction::Dup6,
-        7 => Instruction::Dup7,
-        8 => Instruction::Dup8,
-        9 => Instruction::Dup9,
-        10 => Instruction::Dup10,
-        11 => Instruction::Dup11,
-        12 => Instruction::Dup12,
-        13 => Instruction::Dup13,
-        14 => Instruction::Dup14,
-        15 => Instruction::Dup15,
-        _ => unreachable!(),
+    "dup" <i:("." <U8>)?> =>? {
+        let (span, idx) = i.map(|s| s.into_parts()).unwrap_or((SourceSpan::default(), 0));
+        Ok(match idx {
+            0 => Instruction::Dup0,
+            1 => Instruction::Dup1,
+            2 => Instruction::Dup2,
+            3 => Instruction::Dup3,
+            4 => Instruction::Dup4,
+            5 => Instruction::Dup5,
+            6 => Instruction::Dup6,
+            7 => Instruction::Dup7,
+            8 => Instruction::Dup8,
+            9 => Instruction::Dup9,
+            10 => Instruction::Dup10,
+            11 => Instruction::Dup11,
+            12 => Instruction::Dup12,
+            13 => Instruction::Dup13,
+            14 => Instruction::Dup14,
+            15 => Instruction::Dup15,
+            _ => return Err(ParseError::User {
+                error: ParsingError::ImmediateOutOfRange { span, range: 0..16 },
+            }),
+        })
     },
-    "dupw" <i:("." <ZeroBasedWordIndex>)?> => match i.unwrap_or(0) {
-        0 => Instruction::DupW0,
-        1 => Instruction::DupW1,
-        2 => Instruction::DupW2,
-        3 => Instruction::DupW3,
-        _ => unreachable!(),
+    "dupw" <l:@L> <i:("." <U8>)?> <r:@R> =>? {
+        let (span, idx) = i.map(|s| s.into_parts()).unwrap_or((SourceSpan::default(), 0));
+        Ok(match idx {
+            0 => Instruction::DupW0,
+            1 => Instruction::DupW1,
+            2 => Instruction::DupW2,
+            3 => Instruction::DupW3,
+            _ => {
+                return Err(ParseError::User {
+                    error: ParsingError::ImmediateOutOfRange { span, range: 0..4 },
+                })
+            }
+        })
     },
-    <l:@L> "movdn" <i:("." <U8>)> <r:@R> =>? Ok(match i {
+    "movdn" <i:("." <U8>)> =>? Ok(match i.into_inner() {
         2 => Instruction::MovDn2,
         3 => Instruction::MovDn3,
         4 => Instruction::MovDn4,
@@ -808,14 +820,14 @@ InstWithStackIndex: Instruction = {
         13 => Instruction::MovDn13,
         14 => Instruction::MovDn14,
         15 => Instruction::MovDn15,
-        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..16 }}),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: i.span(), range: 2..16 }}),
     }),
-    <l:@L> "movdnw" <i:("." <U8>)> <r:@R> =>? Ok(match i {
+    "movdnw" <i:("." <U8>)> =>? Ok(match i.into_inner() {
         2 => Instruction::MovDnW2,
         3 => Instruction::MovDnW3,
-        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..4 }}),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: i.span(), range: 2..4 }}),
     }),
-    <l:@L> "movup" <i:("." <U8>)> <r:@R> =>? Ok(match i {
+    "movup" <i:("." <U8>)> =>? Ok(match i.into_inner() {
         2 => Instruction::MovUp2,
         3 => Instruction::MovUp3,
         4 => Instruction::MovUp4,
@@ -830,37 +842,43 @@ InstWithStackIndex: Instruction = {
         13 => Instruction::MovUp13,
         14 => Instruction::MovUp14,
         15 => Instruction::MovUp15,
-        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..16 }}),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: i.span(), range: 2..16 }}),
     }),
-    <l:@L> "movupw" <i:("." <U8>)> <r:@R> =>? Ok(match i {
+    "movupw" <i:("." <U8>)> =>? Ok(match i.into_inner() {
         2 => Instruction::MovUpW2,
         3 => Instruction::MovUpW3,
-        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 2..4 }}),
+        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: i.span(), range: 2..4 }}),
     }),
-    <l:@L> "swap" <i:("." <U8>)?> <r:@R> =>? Ok(match i.unwrap_or(1) {
-        1 => Instruction::Swap1,
-        2 => Instruction::Swap2,
-        3 => Instruction::Swap3,
-        4 => Instruction::Swap4,
-        5 => Instruction::Swap5,
-        6 => Instruction::Swap6,
-        7 => Instruction::Swap7,
-        8 => Instruction::Swap8,
-        9 => Instruction::Swap9,
-        10 => Instruction::Swap10,
-        11 => Instruction::Swap11,
-        12 => Instruction::Swap12,
-        13 => Instruction::Swap13,
-        14 => Instruction::Swap14,
-        15 => Instruction::Swap15,
-        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..16 }}),
-    }),
-    <l:@L> "swapw" <i:("." <U8>)?> <r:@R> =>? Ok(match i.unwrap_or(1) {
-        1 => Instruction::SwapW1,
-        2 => Instruction::SwapW2,
-        3 => Instruction::SwapW3,
-        _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..4 }}),
-    })
+    "swap" <i:("." <U8>)?> =>? {
+        let (span, idx) = i.map(|s| s.into_parts()).unwrap_or((SourceSpan::default(), 1));
+        Ok(match idx {
+            1 => Instruction::Swap1,
+            2 => Instruction::Swap2,
+            3 => Instruction::Swap3,
+            4 => Instruction::Swap4,
+            5 => Instruction::Swap5,
+            6 => Instruction::Swap6,
+            7 => Instruction::Swap7,
+            8 => Instruction::Swap8,
+            9 => Instruction::Swap9,
+            10 => Instruction::Swap10,
+            11 => Instruction::Swap11,
+            12 => Instruction::Swap12,
+            13 => Instruction::Swap13,
+            14 => Instruction::Swap14,
+            15 => Instruction::Swap15,
+            _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span, range: 1..16 }}),
+        })
+    },
+    "swapw" <i:("." <U8>)?> =>? {
+        let (span, idx) = i.map(|s| s.into_parts()).unwrap_or((SourceSpan::default(), 1));
+        Ok(match idx {
+            1 => Instruction::SwapW1,
+            2 => Instruction::SwapW2,
+            3 => Instruction::SwapW3,
+            _ => return Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span, range: 1..4 }}),
+        })
+    }
 }
 
 #[inline]
@@ -924,20 +942,28 @@ MaybeParam<T>: Option<T> = {
 
 /// Parses a valid 32-bit shift
 Shift32: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
+    <n:U8> =>? {
+        let (span, n) = n.into_parts();
         if n > 31 {
-            Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 0..32 } })
+            Err(ParseError::User { error: ParsingError::ImmediateOutOfRange { span, range: 0..32 } })
         } else {
             Ok(n)
         }
     }
 }
 
-U8: u8 = {
+
+#[inline]
+RawU8: u8 = {
+    <n:U8> => n.into_inner(),
+}
+
+U8: Span<u8> = {
     <l:@L> <n:uint> <r:@R> =>? {
+        let span = span!(l, r);
         u8::try_from(n).map_err(|error| ParseError::User {
-            error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 0..(u8::MAX as usize + 1) },
-        })
+            error: ParsingError::ImmediateOutOfRange { span, range: 0..(u8::MAX as usize + 1) },
+        }).map(|n| Span::new(span, n))
     }
 }
 
@@ -977,23 +1003,12 @@ MastRoot: Span<RpoDigest> = {
     }
 }
 
-ZeroBasedStackIndex: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
-        if n > 15 {
-            Err(ParseError::User {
-                error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 0..16 },
-            })
-        } else {
-            Ok(n)
-        }
-    }
-}
-
 OneBasedStackIndex: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
+    <n:U8> =>? {
+        let (span, n) = n.into_parts();
         if n == 0 || n > 16 {
             Err(ParseError::User {
-                error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..17 },
+                error: ParsingError::ImmediateOutOfRange { span, range: 1..17 },
             })
         } else {
             Ok(n)
@@ -1002,22 +1017,11 @@ OneBasedStackIndex: u8 = {
 }
 
 StackWordOffset: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
+    <n:U8> =>? {
+        let (span, n) = n.into_parts();
         if n > crate::ast::MAX_STACK_WORD_OFFSET {
             Err(ParseError::User {
-                error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 0..(crate::ast::MAX_STACK_WORD_OFFSET as usize + 1) },
-            })
-        } else {
-            Ok(n)
-        }
-    }
-}
-
-ZeroBasedWordIndex: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
-        if n > 3 {
-            Err(ParseError::User {
-                error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 0..4 },
+                error: ParsingError::ImmediateOutOfRange { span, range: 0..(crate::ast::MAX_STACK_WORD_OFFSET as usize + 1) },
             })
         } else {
             Ok(n)
@@ -1026,10 +1030,11 @@ ZeroBasedWordIndex: u8 = {
 }
 
 OneBasedWordIndex: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
+    <n:U8> =>? {
+        let (span, n) = n.into_parts();
         if n == 0 || n > 4 {
             Err(ParseError::User {
-                error: ParsingError::ImmediateOutOfRange { span: span!(l, r), range: 1..5 },
+                error: ParsingError::ImmediateOutOfRange { span, range: 1..5 },
             })
         } else {
             Ok(n)
@@ -1038,11 +1043,12 @@ OneBasedWordIndex: u8 = {
 }
 
 BitSize: u8 = {
-    <l:@L> <n:U8> <r:@R> =>? {
+    <n:U8> =>? {
+        let (span, n) = n.into_parts();
         if n < 64 {
             Ok(n)
         } else {
-            Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::InvalidBitSize } })
+            Err(ParseError::User { error: ParsingError::InvalidLiteral { span, kind: LiteralErrorKind::InvalidBitSize } })
         }
     }
 }
