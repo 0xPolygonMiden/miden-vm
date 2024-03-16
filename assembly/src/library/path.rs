@@ -24,6 +24,8 @@ pub enum PathError {
     EmptyComponent,
     #[error("invalid library path component: {0}")]
     InvalidComponent(#[from] crate::ast::IdentError),
+    #[error("invalid library path: contains invalid utf8 byte sequences")]
+    InvalidUtf8,
     #[error(transparent)]
     InvalidNamespace(#[from] crate::library::LibraryNamespaceError),
     #[error("cannot join a path with reserved name to other paths")]
@@ -236,6 +238,12 @@ impl LibraryPath {
 
 /// Mutation
 impl LibraryPath {
+    /// Override the current [LibraryNamespace] for this path.
+    pub fn set_namespace(&mut self, ns: LibraryNamespace) {
+        let inner = Arc::make_mut(&mut self.inner);
+        inner.ns = ns;
+    }
+
     /// Appends the provided path to this path and returns the result.
     ///
     /// # Errors
@@ -415,7 +423,17 @@ impl From<LibraryPath> for String {
 impl TryFrom<String> for LibraryPath {
     type Error = PathError;
 
+    #[inline]
     fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl<'a> TryFrom<&'a str> for LibraryPath {
+    type Error = PathError;
+
+    #[inline]
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
         Self::new(value)
     }
 }
@@ -423,6 +441,7 @@ impl TryFrom<String> for LibraryPath {
 impl FromStr for LibraryPath {
     type Err = PathError;
 
+    #[inline]
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         Self::new(value)
     }

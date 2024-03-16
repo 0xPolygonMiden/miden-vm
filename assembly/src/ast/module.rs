@@ -56,6 +56,20 @@ pub enum ModuleKind {
     Kernel = 2,
 }
 
+impl ModuleKind {
+    pub fn is_executable(&self) -> bool {
+        matches!(self, Self::Executable)
+    }
+
+    pub fn is_kernel(&self) -> bool {
+        matches!(self, Self::Kernel)
+    }
+
+    pub fn is_library(&self) -> bool {
+        matches!(self, Self::Library)
+    }
+}
+
 impl fmt::Display for ModuleKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -163,6 +177,16 @@ impl Module {
     /// Like [Module::with_source_file], but does not require ownership of the [Module].
     pub fn set_source_file(&mut self, source_file: Arc<SourceFile>) {
         self.source_file = Some(source_file);
+    }
+
+    /// Sets the [LibraryPath] for this module
+    pub fn set_path(&mut self, path: LibraryPath) {
+        self.path = path;
+    }
+
+    /// Sets the [LibraryNamespace] for this module
+    pub fn set_namespace(&mut self, ns: LibraryNamespace) {
+        self.path.set_namespace(ns);
     }
 
     /// Sets the documentation for this module
@@ -308,13 +332,15 @@ impl Module {
     }
 
     /// Returns true if this module is an executable module.
+    #[inline(always)]
     pub fn is_executable(&self) -> bool {
-        matches!(self.kind, ModuleKind::Executable)
+        self.kind.is_executable()
     }
 
     /// Returns true if this module is a kernel module.
+    #[inline(always)]
     pub fn is_kernel(&self) -> bool {
-        matches!(self.kind, ModuleKind::Kernel)
+        self.kind.is_kernel()
     }
 
     /// Returns true if this module has an entrypoint procedure defined,
