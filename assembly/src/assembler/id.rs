@@ -7,11 +7,13 @@ use crate::ast::ProcedureIndex;
 /// machine-word sized handle that can be trivially stored, passed around, and later used to
 /// perform constant-complexity operations against that procedure.
 ///
-/// <div class="warning">As a result of this being just an index into a specific instance of a
-/// [super::ModuleGraph], it does not provide any guarantees about uniqueness or stability when
-/// the same module is stored in multiple graphs - each graph may assign it a unique index. You
-/// must ensure that you do not store these indices and attempt to use them with just any module
-/// graph - it is only valid with the one it was assigned from.
+/// <div class="warning">
+/// As a result of this being just an index into a specific instance of a [super::ModuleGraph],
+/// it does not provide any guarantees about uniqueness or stability when the same module is stored
+/// in multiple graphs - each graph may assign it a unique index. You must ensure that you do not
+/// store these indices and attempt to use them with just any module graph - it is only valid with
+/// the one it was assigned from.
+/// </div>
 ///
 /// In addition to the [super::ModuleGraph], these indices are also used with an instance of a
 /// [super::ProcedureCache]. This is because the [super::ModuleGraph] and [super::ProcedureCache]
