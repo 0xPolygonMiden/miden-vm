@@ -50,18 +50,12 @@ pub fn analyze(
                 if let Some(docs) = docs.take() {
                     analyzer.error(SemanticAnalysisError::ImportDocstring { span: docs.span() });
                 }
-                if matches!(kind, ModuleKind::Kernel) {
-                    analyzer.error(SemanticAnalysisError::ImportToKernel {
-                        span: import.span(),
-                    });
-                } else {
-                    analyzer.define_import(import)?;
-                }
+                analyzer.define_import(import)?;
             }
             Form::Procedure(export @ Export::Alias(_)) => match kind {
                 ModuleKind::Kernel => {
                     docs.take();
-                    analyzer.error(SemanticAnalysisError::ImportToKernel {
+                    analyzer.error(SemanticAnalysisError::ReexportFromKernel {
                         span: export.span(),
                     });
                 }

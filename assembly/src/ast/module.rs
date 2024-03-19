@@ -203,7 +203,7 @@ impl Module {
     /// previous definition
     pub fn define_procedure(&mut self, export: Export) -> Result<(), SemanticAnalysisError> {
         if self.is_kernel() && matches!(export, Export::Alias(_)) {
-            return Err(SemanticAnalysisError::ImportToKernel {
+            return Err(SemanticAnalysisError::ReexportFromKernel {
                 span: export.span(),
             });
         }
