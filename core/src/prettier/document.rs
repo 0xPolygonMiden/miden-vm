@@ -21,6 +21,26 @@ pub enum Document {
     /// the amount of space remaining in the layout
     Choice(Rc<Document>, Rc<Document>),
 }
+impl Document {
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty)
+    }
+
+    pub fn has_leading_newline(&self) -> bool {
+        match self {
+            Self::Empty => false,
+            Self::Newline => true,
+            Self::Text(ref text, _) => text.starts_with(['\n', '\r']),
+            Self::Flatten(doc) => doc.has_leading_newline(),
+            Self::Indent(_, doc) => doc.has_leading_newline(),
+            Self::Concat(a, b) if a.is_empty() => b.has_leading_newline(),
+            Self::Concat(a, _) => a.has_leading_newline(),
+            // The choice should always have a single-line option, so we
+            // have to return false here
+            Self::Choice(..) => false,
+        }
+    }
+}
 
 /// Render a line break (i.e. newline) in the output
 pub fn nl() -> Document {
@@ -82,6 +102,9 @@ pub fn concat(left: Document, right: Document) -> Document {
 /// leftmost choices contain newlines, then this combinator has the
 /// effect of displaying all choices on one line.
 pub fn flatten(doc: Document) -> Document {
+    if doc.is_empty() {
+        return doc;
+    }
     Document::Flatten(Rc::new(doc))
 }
 
@@ -92,6 +115,9 @@ pub fn flatten(doc: Document) -> Document {
 /// NOTE: Indentation is applied following newlines, therefore, the first
 /// line of a document is _not_ indented.
 pub fn indent(indent: u32, doc: Document) -> Document {
+    if doc.is_empty() {
+        return doc;
+    }
     Document::Indent(indent, Rc::new(doc))
 }
 
@@ -100,6 +126,12 @@ impl core::ops::Add for Document {
 
     /// Concatenate the two documents
     fn add(self: Document, other: Document) -> Self::Output {
+        if self.is_empty() {
+            return other;
+        }
+        if other.is_empty() {
+            return self;
+        }
         Document::Concat(Rc::new(self), Rc::new(other))
     }
 }
@@ -107,11 +139,14 @@ impl core::ops::Add for Document {
 impl core::ops::AddAssign for Document {
     /// Append `rhs` to `self`
     fn add_assign(&mut self, rhs: Document) {
-        let lhs = core::mem::take(self);
-        if matches!(lhs, Document::Empty) {
+        if rhs.is_empty() {
+            return;
+        }
+        if self.is_empty() {
             *self = rhs;
             return;
         }
+        let lhs = core::mem::take(self);
         *self = Document::Concat(Rc::new(lhs), Rc::new(rhs));
     }
 }
@@ -123,6 +158,12 @@ impl core::ops::BitOr for Document {
     /// the required width, then display the left document. Otherwise, display
     /// the right document.
     fn bitor(self: Document, other: Document) -> Self::Output {
+        if self.is_empty() {
+            return other;
+        }
+        if other.is_empty() {
+            return self;
+        }
         Document::Choice(Rc::new(self), Rc::new(other))
     }
 }
