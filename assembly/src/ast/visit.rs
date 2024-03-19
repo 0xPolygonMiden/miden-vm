@@ -305,9 +305,8 @@ where
     V: ?Sized + Visit<T>,
 {
     match options.into_inner() {
-        DebugOptions::StackTop(ref imm) | DebugOptions::LocalRangeFrom(ref imm) => {
-            visitor.visit_immediate_u16(imm)
-        }
+        DebugOptions::StackTop(ref imm) => visitor.visit_immediate_u8(imm),
+        DebugOptions::LocalRangeFrom(ref imm) => visitor.visit_immediate_u16(imm),
         DebugOptions::MemInterval(ref imm1, ref imm2) => {
             visitor.visit_immediate_u32(imm1)?;
             visitor.visit_immediate_u32(imm2)
@@ -731,9 +730,8 @@ where
     V: ?Sized + VisitMut<T>,
 {
     match options.into_inner() {
-        DebugOptions::StackTop(ref mut imm) | DebugOptions::LocalRangeFrom(ref mut imm) => {
-            visitor.visit_mut_immediate_u16(imm)
-        }
+        DebugOptions::StackTop(ref mut imm) => visitor.visit_mut_immediate_u8(imm),
+        DebugOptions::LocalRangeFrom(ref mut imm) => visitor.visit_mut_immediate_u16(imm),
         DebugOptions::MemInterval(ref mut imm1, ref mut imm2) => {
             visitor.visit_mut_immediate_u32(imm1)?;
             visitor.visit_mut_immediate_u32(imm2)
