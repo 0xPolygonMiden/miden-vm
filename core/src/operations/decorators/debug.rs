@@ -12,7 +12,7 @@ pub enum DebugOptions {
     /// Print out the entire contents of the stack for the current execution context.
     StackAll,
     /// Prints out the top n items of the stack for the current context.
-    StackTop(u16),
+    StackTop(u8),
     /// Prints out the entire contents of RAM.
     MemAll,
     /// Prints out the contents of memory stored in the provided interval. Interval boundaries are

@@ -2,7 +2,7 @@ use alloc::string::ToString;
 use core::fmt;
 
 use crate::{
-    ast::{ImmU16, ImmU32},
+    ast::{ImmU16, ImmU32, ImmU8},
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 
@@ -19,7 +19,7 @@ const LOCAL_ALL: u8 = 6;
 #[repr(u8)]
 pub enum DebugOptions {
     StackAll = STACK_ALL,
-    StackTop(ImmU16) = STACK_TOP,
+    StackTop(ImmU8) = STACK_TOP,
     MemAll = MEM_ALL,
     MemInterval(ImmU32, ImmU32) = MEM_INTERVAL,
     LocalInterval(ImmU16, ImmU16) = LOCAL_INTERVAL,
@@ -52,7 +52,7 @@ impl TryFrom<DebugOptions> for vm_core::DebugOptions {
     fn try_from(options: DebugOptions) -> Result<Self, Self::Error> {
         match options {
             DebugOptions::StackAll => Ok(Self::StackAll),
-            DebugOptions::StackTop(ImmU16::Value(n)) => Ok(Self::StackTop(n.into_inner())),
+            DebugOptions::StackTop(ImmU8::Value(n)) => Ok(Self::StackTop(n.into_inner())),
             DebugOptions::MemAll => Ok(Self::MemAll),
             DebugOptions::MemInterval(ImmU32::Value(start), ImmU32::Value(end)) => {
                 Ok(Self::MemInterval(start.into_inner(), end.into_inner()))
@@ -88,8 +88,8 @@ impl Serializable for DebugOptions {
         target.write_u8(self.tag());
         match self {
             Self::StackAll | Self::MemAll | Self::LocalAll => (),
-            Self::StackTop(ImmU16::Value(n)) => {
-                target.write_u16(n.into_inner());
+            Self::StackTop(ImmU8::Value(n)) => {
+                target.write_u8(n.into_inner());
             }
             Self::MemInterval(ImmU32::Value(n), ImmU32::Value(m)) => {
                 target.write_u32(n.into_inner());
@@ -116,7 +116,7 @@ impl Deserializable for DebugOptions {
         match source.read_u8()? {
             STACK_ALL => Ok(Self::StackAll),
             STACK_TOP => {
-                let n = source.read_u16()?;
+                let n = source.read_u8()?;
                 if n == 0 {
                     return Err(DeserializationError::InvalidValue(n.to_string()));
                 }
