@@ -156,6 +156,15 @@ impl<'a> PrettyPrint for alloc::borrow::Cow<'a, str> {
     }
 }
 
+impl<T: PrettyPrint> PrettyPrint for alloc::boxed::Box<T> {
+    fn render(&self) -> Document {
+        PrettyPrint::render(self.as_ref())
+    }
+    fn pretty_print(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        PrettyPrint::pretty_print(self.as_ref(), f)
+    }
+}
+
 struct Prettier<'a, P: ?Sized + PrettyPrint>(&'a P);
 
 impl<'a, P: ?Sized + PrettyPrint> fmt::Display for Prettier<'a, P> {

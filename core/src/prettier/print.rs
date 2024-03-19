@@ -67,8 +67,20 @@ impl<'a> PrettyPrinter<'a> {
                 Document::Empty => (),
                 Document::Newline => {
                     f.write_char('\n')?;
-                    write!(f, "{1:0$}", chunk.indent as usize, "")?;
-                    self.col = chunk.indent;
+                    // If the next chunk is also a newline, do not apply indentation
+                    let strip_indentation = self
+                        .chunks
+                        .iter()
+                        .rev()
+                        .find(|chunk| !chunk.doc.is_empty())
+                        .map(|chunk| chunk.doc.has_leading_newline())
+                        .unwrap_or(true);
+                    if strip_indentation {
+                        self.col = 0;
+                    } else {
+                        write!(f, "{1:0$}", chunk.indent as usize, "")?;
+                        self.col = chunk.indent;
+                    }
                 }
                 Document::Text(text, width) => {
                     f.write_str(text)?;
