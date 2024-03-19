@@ -90,9 +90,9 @@ pub enum SemanticAnalysisError {
         #[label("previously imported here")]
         prev_span: SourceSpan,
     },
-    #[error("invalid import: kernel modules cannot import from other modules")]
+    #[error("invalid re-exported procedure: kernel modules may not re-export procedures from other modules")]
     #[diagnostic()]
-    ImportToKernel {
+    ReexportFromKernel {
         #[label]
         span: SourceSpan,
     },
