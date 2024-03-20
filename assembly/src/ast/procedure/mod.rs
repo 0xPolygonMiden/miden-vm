@@ -110,9 +110,10 @@ impl Export {
     ///
     /// NOTE: This only applies to [Procedure]s, other types currently return an empty
     /// iterator whenever called.
-    pub(crate) fn invoked(&self) -> impl Iterator<Item = &Invoke> + '_ {
+    pub(crate) fn invoked<'a, 'b: 'a>(&'b self) -> impl Iterator<Item = &'a Invoke> + 'a {
         match self {
-            Self::Procedure(ref proc) => proc.invoked(),
+            Self::Procedure(ref proc) if proc.invoked.is_empty() => procedure::InvokedIter::Empty,
+            Self::Procedure(ref proc) => procedure::InvokedIter::NonEmpty(proc.invoked.iter()),
             Self::Alias(_) => procedure::InvokedIter::Empty,
         }
     }
