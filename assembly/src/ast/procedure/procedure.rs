@@ -285,18 +285,18 @@ impl crate::prettier::PrettyPrint for Procedure {
             doc = docs
                 .lines()
                 .map(text)
-                .reduce(|acc, line| acc + nl() + text("#! ") + line)
+                .reduce(|acc, line| acc + nl() + const_text("#! ") + line)
                 .unwrap_or(Document::Empty);
         }
 
-        doc += display(self.visibility) + text(".") + display(&self.name);
+        doc += display(self.visibility) + const_text(".") + display(&self.name);
         if self.num_locals > 0 {
-            doc += text(".") + display(self.num_locals);
+            doc += const_text(".") + display(self.num_locals);
         }
 
         doc += indent(4, nl() + self.body.render()) + nl();
 
-        doc + text("end") + nl() + nl()
+        doc + const_text("end") + nl() + nl()
     }
 }
 
