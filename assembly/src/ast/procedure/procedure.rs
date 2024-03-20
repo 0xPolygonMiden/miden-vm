@@ -79,7 +79,7 @@ pub struct Procedure {
     /// The body of the procedure
     body: Block,
     /// The set of callees for any call-like instruction in the procedure body.
-    invoked: BTreeSet<Invoke>,
+    pub(super) invoked: BTreeSet<Invoke>,
 }
 
 /// Construction
@@ -184,9 +184,7 @@ impl Procedure {
 
     /// Get an iterator over the set of invocation targets of this procedure,
     /// i.e. the callees of any call instructions in the body of this procedure.
-    pub(crate) fn invoked(
-        &self,
-    ) -> InvokedIter<'_, alloc::collections::btree_set::Iter<'_, Invoke>> {
+    pub fn invoked<'a, 'b: 'a>(&'b self) -> impl Iterator<Item = &'a Invoke> + 'a {
         if self.invoked.is_empty() {
             InvokedIter::Empty
         } else {
@@ -198,7 +196,7 @@ impl Procedure {
     ///
     /// This is for internal use only, and is called during semantic analysis
     /// once we've identified the set of invoked procedures for a given definition.
-    pub(crate) fn extend_invoked<I>(&mut self, iter: I)
+    pub fn extend_invoked<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = Invoke>,
     {
