@@ -6,20 +6,22 @@ use crate::{
     Serializable, SourceSpan, Spanned,
 };
 
-/// Represents an import statement in Miden Assembly syntax
+// IMPORT
+// ================================================================================================
+
+/// Represents an import statement in Miden Assembly syntax.
 #[derive(Clone)]
 pub struct Import {
-    /// The source span of the statement
+    /// The source span of the statement.
     pub span: SourceSpan,
-    /// The local module name/alias
+    /// The local module name/alias.
     ///
-    /// When the imported item is aliased to a new name, this
-    /// field contains the alias, while `path.last()` can be
-    /// used to obtain the actual name.
+    /// When the imported item is aliased to a new name, this field contains the alias, while
+    /// `path.last()` can be used to obtain the actual name.
     pub name: Ident,
-    /// The fully-qualified path
+    /// The fully-qualified path.
     pub path: LibraryPath,
-    /// The number of times this import has been used locally
+    /// The number of times this import has been used locally.
     pub uses: usize,
 }
 
@@ -47,7 +49,7 @@ impl Import {
 
 /// Serialization
 impl Import {
-    /// Serialize this import to `target` with `options`
+    /// Serializes this import to `target` with `options`
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         if options.debug_info {
             self.span.write_into(target);
@@ -56,7 +58,7 @@ impl Import {
         self.path.write_into(target);
     }
 
-    /// Deserialize this import from `source` with `options`
+    /// Deserializes this import from `source` with `options`.
     pub fn read_from_with_options<R: ByteReader>(
         source: &mut R,
         options: AstSerdeOptions,
