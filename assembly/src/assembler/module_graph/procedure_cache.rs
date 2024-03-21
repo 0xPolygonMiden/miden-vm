@@ -1,14 +1,15 @@
-use super::{GlobalProcedureIndex, ModuleIndex, Procedure};
-use crate::{
-    ast::{FullyQualifiedProcedureName, ProcedureIndex},
-    AssemblyError, LibraryPath, RpoDigest,
-};
 use alloc::{
     collections::{BTreeMap, VecDeque},
     sync::Arc,
     vec::Vec,
 };
 use core::{fmt, ops::Index};
+
+use crate::{
+    assembler::{GlobalProcedureIndex, ModuleIndex, Procedure},
+    ast::{FullyQualifiedProcedureName, ProcedureIndex},
+    AssemblyError, LibraryPath, RpoDigest,
+};
 
 // PROCEDURE CACHE
 // ================================================================================================

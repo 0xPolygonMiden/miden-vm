@@ -3,7 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use super::{GlobalProcedureIndex, ModuleIndex};
+use crate::assembler::{GlobalProcedureIndex, ModuleIndex};
 
 /// Represents the inability to construct a topological ordering of the nodes in a [CallGraph]
 /// due to a cycle in the graph, which can happen due to recursion.

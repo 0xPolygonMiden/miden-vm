@@ -14,25 +14,23 @@ use vm_core::{
     Kernel, Operation, Program,
 };
 
-mod callgraph;
 mod context;
 mod id;
 mod instruction;
 mod module_graph;
 mod procedure;
-mod procedure_cache;
 mod span_builder;
 #[cfg(test)]
 mod tests;
 
 pub use self::context::AssemblyContext;
 pub use self::id::{GlobalProcedureIndex, ModuleIndex};
+pub(crate) use self::module_graph::ProcedureCache;
 pub use self::procedure::Procedure;
 
+use self::context::ProcedureContext;
 use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
-pub(crate) use self::procedure_cache::ProcedureCache;
 use self::span_builder::SpanBuilder;
-use self::{callgraph::CallGraph, context::ProcedureContext};
 
 // ARTIFACT KIND
 // ================================================================================================
