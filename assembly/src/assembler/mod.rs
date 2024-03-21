@@ -34,7 +34,10 @@ pub(crate) use self::procedure_cache::ProcedureCache;
 use self::span_builder::SpanBuilder;
 use self::{callgraph::CallGraph, context::ProcedureContext};
 
-/// Represents the type of artifact produced by an [Assembler]
+// ARTIFACT KIND
+// ================================================================================================
+
+/// Represents the type of artifact produced by an [Assembler].
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ArtifactKind {
@@ -58,8 +61,11 @@ pub enum ArtifactKind {
     Kernel,
 }
 
-/// The [Assembler] is the primary interface for compiling Miden Assembly
-/// to the Miden Abstract Syntax Tree (MAST).
+// ASSEMBLER
+// ================================================================================================
+
+/// The [Assembler] is the primary interface for compiling Miden Assembly to the Miden Abstract
+/// Syntax Tree (MAST).
 ///
 /// # Usage
 ///
@@ -112,14 +118,14 @@ pub enum ArtifactKind {
 /// that it plays well with the most common usage patterns.
 /// </div>
 pub struct Assembler {
-    /// The global [ModuleGraph] for this assembler. All new
-    /// [AssemblyContext]s inherit this graph as a baseline.
+    /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
+    /// as a baseline.
     module_graph: Box<ModuleGraph>,
-    /// The global procedure cache for this assembler
+    /// The global procedure cache for this assembler.
     procedure_cache: ProcedureCache,
-    /// Whether the assembler enables extra debugging information
+    /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
-    /// Whether the assembler allows unknown invocation targets in compiled code
+    /// Whether the assembler allows unknown invocation targets in compiled code.
     allow_phantom_calls: bool,
 }
 
@@ -434,7 +440,8 @@ impl Assembler {
         self.compile_program(entrypoint, context)
     }
 
-    /// Compile and assembles all procedures in the specified module, adding them to the procedure cache.
+    /// Compile and assembles all procedures in the specified module, adding them to the procedure
+    /// cache.
     ///
     /// Returns a vector of procedure digests for all exported procedures in the module.
     ///

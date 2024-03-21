@@ -10,6 +10,9 @@ use alloc::{
 };
 use core::{fmt, ops::Index};
 
+// PROCEDURE CACHE
+// ================================================================================================
+
 /// The [ProcedureCache] is responsible for caching the MAST of compiled procedures.
 ///
 /// Once cached, subsequent compilations will use the cached MAST artifacts, rather than
@@ -84,9 +87,8 @@ impl ProcedureCache {
         })
     }
 
-    /// Search for a procedure in the cache using `predicate`,
-    /// starting from procedures with the highest [ModuleIndex]
-    /// to lowest.
+    /// Search for a procedure in the cache using `predicate`, starting from procedures with the
+    /// highest [ModuleIndex] to lowest.
     #[allow(unused)]
     pub fn rfind<F>(&self, mut predicate: F) -> Option<Arc<Procedure>>
     where
@@ -110,8 +112,8 @@ impl ProcedureCache {
 
     /// Look up a procedure by its fully-qualified name
     ///
-    /// NOTE: If a procedure with the same name is cached twice, this will return
-    /// the version with the highest [ModuleIndex].
+    /// NOTE: If a procedure with the same name is cached twice, this will return the version with
+    /// the highest [ModuleIndex].
     #[allow(unused)]
     pub fn get_by_name(&self, name: &FullyQualifiedProcedureName) -> Option<Arc<Procedure>> {
         self.rfind(|p| p.fully_qualified_name() == name)
@@ -151,12 +153,10 @@ impl ProcedureCache {
     /// # Errors
     ///
     /// This operation will fail under the following conditions:
-    ///
-    /// * The cache slot for the given [GlobalProcedureIndex] is occupied with a
-    /// conflicting definition
-    ///
-    /// * A procedure with the same MAST root is already in the cache, but the
-    /// two procedures have differing metadata (such as the number of locals, etc).
+    /// - The cache slot for the given [GlobalProcedureIndex] is occupied with a conflicting
+    ///   definition.
+    /// - A procedure with the same MAST root is already in the cache, but the two procedures have
+    ///   differing metadata (such as the number of locals, etc).
     pub fn insert(
         &mut self,
         id: GlobalProcedureIndex,
@@ -169,8 +169,8 @@ impl ProcedureCache {
 
         // Check if an entry is already in this cache slot.
         //
-        // If there is already a cache entry, but it conflicts with what
-        // we're trying to cache, then raise an error.
+        // If there is already a cache entry, but it conflicts with what we're trying to cache,
+        // then raise an error.
         if let Some(cached) = self.get(id) {
             if cached.mast_root() != mast_root || cached.num_locals() != procedure.num_locals() {
                 return Err(AssemblyError::ConflictingDefinitions {
@@ -179,19 +179,18 @@ impl ProcedureCache {
                 });
             }
 
-            // The global procedure index and the MAST root resolve to
-            // an already cached version of this procedure, nothing to do
+            // The global procedure index and the MAST root resolve to an already cached version of
+            // this procedure, nothing to do.
             //
-            // TODO: We should emit a warning for this, because while it is
-            // not an error per se, it does reflect that we're doing work we
-            // don't need to be doing. However, emitting a warning only makes
-            // sense if this is controllable by the user, and it isn't yet
+            // TODO: We should emit a warning for this, because while it is not an error per se, it
+            // does reflect that we're doing work we don't need to be doing. However, emitting a
+            // warning only makes sense if this is controllable by the user, and it isn't yet
             // clear whether this edge case will ever happen in practice anyway.
             return Ok(());
         }
 
-        // We don't have a cache entry yet, but we do want to make sure we
-        // don't have a conflicting cache entry with the same MAST root:
+        // We don't have a cache entry yet, but we do want to make sure we don't have a conflicting
+        // cache entry with the same MAST root:
         if let Some(cached) = self.get_by_mast_root(&mast_root) {
             // Sanity check
             assert_eq!(cached.mast_root(), mast_root);
@@ -203,10 +202,9 @@ impl ProcedureCache {
                 });
             }
 
-            // We have a previously cached version of an equivalent procedure,
-            // just under a different [GlobalProcedureIndex], so insert the
-            // cached procedure into the slot for `id`, but skip inserting
-            // a record in the MAST root lookup table
+            // We have a previously cached version of an equivalent procedure, just under a
+            // different [GlobalProcedureIndex], so insert the cached procedure into the slot for
+            // `id`, but skip inserting a record in the MAST root lookup table
             self.cache[id.module.as_usize()][id.index.as_usize()] = Some(procedure);
             return Ok(());
         }
@@ -239,8 +237,8 @@ impl ProcedureCache {
             self.modules.resize(min_cache_len, None);
         }
 
-        // If this is the first entry for this module index, record
-        // the path to the module for future queries
+        // If this is the first entry for this module index, record the path to the module for
+        // future queries
         let module_name = &mut self.modules[id.module.as_usize()];
         if module_name.is_none() {
             *module_name = Some(module.clone());
@@ -367,9 +365,8 @@ impl<'a> fmt::Debug for DisplayCachedProcedures<'a> {
     }
 }
 
-// NOTE: Clippy thinks these fields are dead because
-// it doesn't recognize that they are used by the
-// `debug_map` implementation
+// NOTE: Clippy thinks these fields are dead because it doesn't recognize that they are used by the
+// `debug_map` implementation.
 #[derive(Debug)]
 #[allow(dead_code)]
 struct ModuleSlot<'a> {
