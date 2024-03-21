@@ -38,7 +38,7 @@ pub fn u32testw(span_builder: &mut SpanBuilder) {
         // Test the first element
         Dup1, U32split, Swap, Drop, Eqz, And,
     ];
-    span_builder.add_ops(ops);
+    span_builder.push_ops(ops);
 }
 
 /// Translates u32assertw assembly instruction to VM operations.
@@ -60,7 +60,7 @@ pub fn u32assertw(span_builder: &mut SpanBuilder, err_code: Felt) {
         // Move the elements back into place
         MovUp3, MovUp3,
     ];
-    span_builder.add_ops(ops);
+    span_builder.push_ops(ops);
 }
 
 // ARITHMETIC OPERATIONS
@@ -121,7 +121,7 @@ pub fn u32div(
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
     handle_division(span_builder, ctx, imm)?;
-    span_builder.add_op(Drop);
+    span_builder.push_op(Drop);
     Ok(())
 }
 
@@ -138,7 +138,7 @@ pub fn u32mod(
     imm: Option<Span<u32>>,
 ) -> Result<(), AssemblyError> {
     handle_division(span_builder, ctx, imm)?;
-    span_builder.add_ops([Swap, Drop]);
+    span_builder.push_ops([Swap, Drop]);
     Ok(())
 }
 
@@ -178,7 +178,7 @@ pub fn u32not(span_builder: &mut SpanBuilder) {
         // Drop the underflow flag
         Drop,
     ];
-    span_builder.add_ops(ops);
+    span_builder.push_ops(ops);
 }
 
 /// Translates u32shl assembly instructions to VM operations.
@@ -192,7 +192,7 @@ pub fn u32not(span_builder: &mut SpanBuilder) {
 pub fn u32shl(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
     prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, imm)?;
     if imm != Some(0) {
-        span_builder.add_ops([U32mul, Drop]);
+        span_builder.push_ops([U32mul, Drop]);
     }
     Ok(())
 }
@@ -208,7 +208,7 @@ pub fn u32shl(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), Ass
 pub fn u32shr(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
     prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, imm)?;
     if imm != Some(0) {
-        span_builder.add_ops([U32div, Drop]);
+        span_builder.push_ops([U32div, Drop]);
     }
     Ok(())
 }
@@ -224,7 +224,7 @@ pub fn u32shr(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), Ass
 pub fn u32rotl(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
     prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span_builder, imm)?;
     if imm != Some(0) {
-        span_builder.add_ops([U32mul, Add]);
+        span_builder.push_ops([U32mul, Add]);
     }
     Ok(())
 }
@@ -253,7 +253,7 @@ pub fn u32rotr(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), As
             append_pow2_op(span_builder);
         }
     }
-    span_builder.add_ops([U32mul, Add]);
+    span_builder.push_ops([U32mul, Add]);
     Ok(())
 }
 
@@ -289,7 +289,7 @@ pub fn u32popcnt(span_builder: &mut SpanBuilder) {
         U32mul, Drop,
         Push(Felt::new(1 << 24)), U32div, Drop
     ];
-    span_builder.add_ops(ops);
+    span_builder.push_ops(ops);
 }
 
 /// Translates `u32clz` assembly instruction to VM operations. `u32clz` counts the number of
@@ -359,7 +359,7 @@ fn handle_arithmetic_operation(
 
     // in the wrapping mode, drop high 32 bits
     if matches!(op_mode, U32OpMode::Wrapping) {
-        span_builder.add_op(Drop);
+        span_builder.push_op(Drop);
     }
 }
 
@@ -384,7 +384,7 @@ fn handle_division(
         push_u32_value(span_builder, imm.into_inner());
     }
 
-    span_builder.add_op(U32div);
+    span_builder.push_op(U32div);
     Ok(())
 }
 
@@ -485,7 +485,7 @@ fn calculate_clz(span: &mut SpanBuilder) {
         Eq, Assert(0) // [clz, ...]
     ];
 
-    span.add_ops(ops_group_2);
+    span.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Clo`
@@ -560,7 +560,7 @@ fn calculate_clo(span: &mut SpanBuilder) {
         Eq, Assert(0) // [clo, ...]
     ];
 
-    span.add_ops(ops_group_2);
+    span.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Ctz`
@@ -634,7 +634,7 @@ fn calculate_ctz(span: &mut SpanBuilder) {
         Eq, Assert(0), // [ctz, ...]
     ];
 
-    span.add_ops(ops_group_2);
+    span.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Cto`
@@ -708,7 +708,7 @@ fn calculate_cto(span: &mut SpanBuilder) {
         Eq, Assert(0), // [cto, ...]
     ];
 
-    span.add_ops(ops_group_2);
+    span.push_ops(ops_group_2);
 }
 
 // COMPARISON OPERATIONS
@@ -730,7 +730,7 @@ pub fn u32lte(span_builder: &mut SpanBuilder) {
     compute_lt(span_builder);
 
     // Flip the final results to get the lte results.
-    span_builder.add_op(Not);
+    span_builder.push_op(Not);
 }
 
 /// Translates u32gt assembly instructions to VM operations.
@@ -750,7 +750,7 @@ pub fn u32gte(span_builder: &mut SpanBuilder) {
     compute_lt(span_builder);
 
     // Flip the final results to get the gte results.
-    span_builder.add_op(Not);
+    span_builder.push_op(Not);
 }
 
 /// Translates u32min assembly instructions to VM operations.
@@ -764,7 +764,7 @@ pub fn u32min(span_builder: &mut SpanBuilder) {
     compute_max_and_min(span_builder);
 
     // Drop the max and keep the min
-    span_builder.add_op(Drop);
+    span_builder.push_op(Drop);
 }
 
 /// Translates u32max assembly instructions to VM operations.
@@ -778,7 +778,7 @@ pub fn u32max(span_builder: &mut SpanBuilder) {
     compute_max_and_min(span_builder);
 
     // Drop the min and keep the max
-    span_builder.add_ops([Swap, Drop]);
+    span_builder.push_ops([Swap, Drop]);
 }
 
 // COMPARISON OPERATIONS - HELPERS

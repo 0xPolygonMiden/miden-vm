@@ -18,10 +18,9 @@ pub type CallSet = BTreeSet<RpoDigest>;
 ///
 /// * Fully-qualified path of the procedure in Miden Assembly (if known).
 /// * Number of procedure locals to allocate.
+/// * The visibility of the procedure (e.g. public/private/syscall)
 /// * The set of MAST roots invoked by this procedure.
 /// * The original source span and file of the procedure (if available).
-/// - Number of procedure locals available to the procedure.
-/// - A set of MAST roots of procedures which are invoked from this procedure.
 #[derive(Clone, Debug)]
 pub struct Procedure {
     span: SourceSpan,

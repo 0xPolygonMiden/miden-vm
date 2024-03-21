@@ -15,7 +15,7 @@ const TWO: Felt = Felt::new(2);
 ///
 /// VM cycles: 11 cycles
 pub fn assertw(span_builder: &mut SpanBuilder, err_code: u32) {
-    span_builder.add_ops([
+    span_builder.push_ops([
         MovUp4,
         Eq,
         Assert(err_code),
@@ -41,13 +41,13 @@ pub fn assertw(span_builder: &mut SpanBuilder, err_code: u32) {
 /// - otherwise: PUSH(imm) ADD
 pub fn add_imm(span_builder: &mut SpanBuilder, imm: Felt) {
     if imm == ZERO {
-        span_builder.add_op(Noop);
+        span_builder.push_op(Noop);
     } else if imm == ONE {
-        span_builder.add_op(Incr);
+        span_builder.push_op(Incr);
     } else if imm == TWO {
-        span_builder.add_ops([Incr, Incr]);
+        span_builder.push_ops([Incr, Incr]);
     } else {
-        span_builder.add_ops([Push(imm), Add]);
+        span_builder.push_ops([Push(imm), Add]);
     }
 }
 
@@ -57,9 +57,9 @@ pub fn add_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// - otherwise: PUSH(-imm) ADD
 pub fn sub_imm(span_builder: &mut SpanBuilder, imm: Felt) {
     if imm == ZERO {
-        span_builder.add_op(Noop);
+        span_builder.push_op(Noop);
     } else {
-        span_builder.add_ops([Push(-imm), Add]);
+        span_builder.push_ops([Push(-imm), Add]);
     }
 }
 
@@ -70,11 +70,11 @@ pub fn sub_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// - otherwise: PUSH(imm) MUL
 pub fn mul_imm(span_builder: &mut SpanBuilder, imm: Felt) {
     if imm == ZERO {
-        span_builder.add_ops([Drop, Pad]);
+        span_builder.push_ops([Drop, Pad]);
     } else if imm == ONE {
-        span_builder.add_op(Noop);
+        span_builder.push_op(Noop);
     } else {
-        span_builder.add_ops([Push(imm), Mul]);
+        span_builder.push_ops([Push(imm), Mul]);
     }
 }
 
@@ -100,9 +100,9 @@ pub fn div_imm(
             AssemblyError::Other(RelatedError::new(error))
         });
     } else if imm == ONE {
-        span_builder.add_op(Noop);
+        span_builder.push_op(Noop);
     } else {
-        span_builder.add_ops([Push(imm.into_inner().inv()), Mul]);
+        span_builder.push_ops([Push(imm.into_inner().inv()), Mul]);
     }
     Ok(())
 }
@@ -286,7 +286,7 @@ pub fn ilog2(span: &mut SpanBuilder) {
         // => [ilog2, ...]
     ];
 
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 // COMPARISON OPERATIONS
@@ -298,9 +298,9 @@ pub fn ilog2(span: &mut SpanBuilder) {
 /// - otherwise: PUSH(imm) EQ
 pub fn eq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
     if imm == ZERO {
-        span_builder.add_op(Eqz);
+        span_builder.push_op(Eqz);
     } else {
-        span_builder.add_ops([Push(imm), Eq]);
+        span_builder.push_ops([Push(imm), Eq]);
     }
 }
 
@@ -310,9 +310,9 @@ pub fn eq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// - otherwise: PUSH(imm) EQ NOT
 pub fn neq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
     if imm == ZERO {
-        span_builder.add_ops([Eqz, Not]);
+        span_builder.push_ops([Eqz, Not]);
     } else {
-        span_builder.add_ops([Push(imm), Eq, Not]);
+        span_builder.push_ops([Push(imm), Eq, Not]);
     }
 }
 
@@ -320,7 +320,7 @@ pub fn neq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 ///
 /// This operation takes 15 VM cycles.
 pub fn eqw(span_builder: &mut SpanBuilder) {
-    span_builder.add_ops([
+    span_builder.push_ops([
         // duplicate first pair of for comparison(4th elements of each word) in reverse order
         // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
         Dup7, Dup4, Eq,
@@ -429,7 +429,7 @@ pub fn gte(span_builder: &mut SpanBuilder) {
 ///
 /// Vm cycles: 5
 pub fn is_odd(span_builder: &mut SpanBuilder) {
-    span_builder.add_ops([U32split, Drop, Pad, Incr, U32and]);
+    span_builder.push_ops([U32split, Drop, Pad, Incr, U32and]);
 }
 
 // COMPARISON OPERATION HELPER FUNCTIONS
