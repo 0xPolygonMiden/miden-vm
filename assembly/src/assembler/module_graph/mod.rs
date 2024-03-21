@@ -1,8 +1,13 @@
+mod analysis;
 mod callgraph;
 mod debug;
+mod name_resolver;
+mod phantom;
 mod procedure_cache;
+mod rewrites;
 
 pub use self::callgraph::{CallGraph, CycleError};
+pub use self::name_resolver::{CallerInfo, ResolvedTarget};
 pub use self::procedure_cache::ProcedureCache;
 
 use alloc::{
@@ -12,51 +17,24 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use core::ops::{ControlFlow, Index};
+use core::ops::Index;
 
 use smallvec::{smallvec, SmallVec};
 use vm_core::Kernel;
 
+use self::{
+    analysis::MaybeRewriteCheck, name_resolver::NameResolver, phantom::PhantomCall,
+    rewrites::ModuleRewriter,
+};
 use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
     ast::{
-        visit, Export, FullyQualifiedProcedureName, Ident, InvocationTarget, Invoke, InvokeKind,
-        Module, Procedure, ProcedureIndex, ProcedureName, ResolvedProcedure, Visit, VisitMut,
+        Export, FullyQualifiedProcedureName, InvocationTarget, Module, Procedure, ProcedureIndex,
+        ProcedureName, ResolvedProcedure,
     },
     diagnostics::{RelatedLabel, SourceFile},
-    AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
+    AssemblyError, LibraryPath, RpoDigest, Spanned,
 };
-
-// PHANTOM CALL
-// ================================================================================================
-
-#[derive(Clone)]
-#[allow(dead_code)]
-pub struct PhantomCall {
-    span: SourceSpan,
-    source_file: Option<Arc<SourceFile>>,
-    callee: RpoDigest,
-}
-
-impl Eq for PhantomCall {}
-
-impl PartialEq for PhantomCall {
-    fn eq(&self, other: &Self) -> bool {
-        self.callee.eq(&other.callee)
-    }
-}
-
-impl Ord for PhantomCall {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.callee.cmp(&other.callee)
-    }
-}
-
-impl PartialOrd for PhantomCall {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
 
 // MODULE GRAPH
 // ================================================================================================
@@ -315,19 +293,11 @@ impl ModuleGraph {
         for (pending_index, mut module) in pending.into_iter().enumerate() {
             let module_id = ModuleIndex::new(high_water_mark + pending_index);
 
-            let source_file = module.source_file();
-            let mut visitor = ModuleRewriteVisitor {
-                resolver: &resolver,
-                module_id,
-                invoked: Default::default(),
-                phantoms: Default::default(),
-                source_file,
-            };
-            if let ControlFlow::Break(err) = visitor.visit_mut_module(&mut module) {
-                return Err(err);
-            }
+            let mut rewriter = ModuleRewriter::new(&resolver);
+            rewriter.apply(module_id, &mut module)?;
 
-            phantoms.extend(visitor.phantoms.into_iter());
+            // Gather the phantom calls found while rewriting the module
+            phantoms.extend(rewriter.phantoms());
 
             for (index, procedure) in module.procedures().enumerate() {
                 let procedure_id = ProcedureIndex::new(index);
@@ -401,34 +371,19 @@ impl ModuleGraph {
         module: Arc<Module>,
     ) -> Result<Option<Arc<Module>>, AssemblyError> {
         let resolver = NameResolver::new(self);
-        let mut visitor = ReanalyzeCheck {
-            resolver: &resolver,
-            module_id,
-            source_file: module.source_file(),
-        };
-        match visitor.visit_module(&module) {
-            ControlFlow::Break(result) => {
-                if result? {
-                    // We need to rewrite this module again, so get an owned copy of the original
-                    // and use that
-                    let mut module = Box::new(Arc::unwrap_or_clone(module));
-                    let mut visitor = ModuleRewriteVisitor {
-                        resolver: &resolver,
-                        module_id,
-                        invoked: Default::default(),
-                        phantoms: Default::default(),
-                        source_file: module.source_file(),
-                    };
-                    if let ControlFlow::Break(err) = visitor.visit_mut_module(&mut module) {
-                        return Err(err);
-                    }
-                    self.phantoms.extend(visitor.phantoms);
-                    Ok(Some(Arc::from(module)))
-                } else {
-                    Ok(None)
-                }
-            }
-            ControlFlow::Continue(_) => Ok(None),
+        let maybe_rewrite = MaybeRewriteCheck::new(&resolver);
+        if maybe_rewrite.check(module_id, &module)? {
+            // We need to rewrite this module again, so get an owned copy of the original
+            // and use that
+            let mut module = Box::new(Arc::unwrap_or_clone(module));
+            let mut rewriter = ModuleRewriter::new(&resolver);
+            rewriter.apply(module_id, &mut module)?;
+
+            self.phantoms.extend(rewriter.phantoms());
+
+            Ok(Some(Arc::from(module)))
+        } else {
+            Ok(None)
         }
     }
 }
@@ -686,554 +641,5 @@ impl Index<GlobalProcedureIndex> for ModuleGraph {
 
     fn index(&self, index: GlobalProcedureIndex) -> &Self::Output {
         self.modules[index.module.as_usize()].index(index.index)
-    }
-}
-
-// HELPER STRUCTS
-// ================================================================================================
-
-struct ThinModule {
-    source_file: Option<Arc<SourceFile>>,
-    path: LibraryPath,
-    resolver: crate::ast::LocalNameResolver,
-}
-
-#[derive(Debug, Clone)]
-pub struct CallerInfo {
-    pub span: SourceSpan,
-    pub source_file: Option<Arc<SourceFile>>,
-    pub module: ModuleIndex,
-    pub kind: InvokeKind,
-}
-
-#[derive(Debug)]
-pub enum ResolvedTarget {
-    Cached {
-        digest: RpoDigest,
-        gid: Option<GlobalProcedureIndex>,
-    },
-    Exact {
-        gid: GlobalProcedureIndex,
-    },
-    Resolved {
-        gid: GlobalProcedureIndex,
-        target: InvocationTarget,
-    },
-    Phantom(RpoDigest),
-}
-
-impl ResolvedTarget {
-    pub fn into_global_id(self) -> Option<GlobalProcedureIndex> {
-        match self {
-            ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => Some(gid),
-            ResolvedTarget::Cached { gid, .. } => gid,
-            ResolvedTarget::Phantom(_) => None,
-        }
-    }
-}
-
-// NAME RESOLVER
-// ================================================================================================
-
-struct NameResolver<'a> {
-    graph: &'a ModuleGraph,
-    pending: Vec<ThinModule>,
-}
-
-impl<'a> NameResolver<'a> {
-    pub fn new(graph: &'a ModuleGraph) -> Self {
-        Self {
-            graph,
-            pending: vec![],
-        }
-    }
-
-    pub fn push_pending(&mut self, module: &Module) {
-        self.pending.push(ThinModule {
-            source_file: module.source_file(),
-            path: module.path().clone(),
-            resolver: module.resolver(),
-        });
-    }
-
-    pub fn resolve(
-        &self,
-        caller: &CallerInfo,
-        callee: &ProcedureName,
-    ) -> Result<ResolvedTarget, AssemblyError> {
-        match self.resolve_local(caller, callee) {
-            Some(ResolvedProcedure::Local(index)) if matches!(caller.kind, InvokeKind::SysCall) => {
-                let gid = GlobalProcedureIndex {
-                    module: self.graph.kernel_index.unwrap(),
-                    index: index.into_inner(),
-                };
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => Ok(ResolvedTarget::Exact { gid }),
-                }
-            }
-            Some(ResolvedProcedure::Local(index)) => {
-                let gid = GlobalProcedureIndex {
-                    module: caller.module,
-                    index: index.into_inner(),
-                };
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => Ok(ResolvedTarget::Exact { gid }),
-                }
-            }
-            Some(ResolvedProcedure::External(ref fqn)) => {
-                let gid = self.find(caller, fqn)?;
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => {
-                        let path = self.module_path(gid.module);
-                        let pending_offset = self.graph.modules.len();
-                        let name = if gid.module.as_usize() >= pending_offset {
-                            self.pending[gid.module.as_usize() - pending_offset]
-                                .resolver
-                                .get_name(gid.index)
-                                .clone()
-                        } else {
-                            self.graph[gid].name().clone()
-                        };
-                        Ok(ResolvedTarget::Resolved {
-                            gid,
-                            target: InvocationTarget::AbsoluteProcedurePath { name, path },
-                        })
-                    }
-                }
-            }
-            None => Err(AssemblyError::Failed {
-                labels: vec![RelatedLabel::error("undefined procedure")
-                    .with_source_file(caller.source_file.clone())
-                    .with_labeled_span(caller.span, "unable to resolve this name locally")],
-            }),
-        }
-    }
-
-    pub fn resolve_import(&self, caller: &CallerInfo, name: &Ident) -> Option<Span<&LibraryPath>> {
-        let pending_offset = self.graph.modules.len();
-        if caller.module.as_usize() >= pending_offset {
-            self.pending[caller.module.as_usize() - pending_offset]
-                .resolver
-                .resolve_import(name)
-        } else {
-            self.graph[caller.module]
-                .resolve_import(name)
-                .map(|import| Span::new(import.span(), import.path()))
-        }
-    }
-
-    pub fn resolve_target(
-        &self,
-        caller: &CallerInfo,
-        target: &InvocationTarget,
-    ) -> Result<ResolvedTarget, AssemblyError> {
-        match target {
-            InvocationTarget::MastRoot(mast_root) => {
-                match self.graph.get_procedure_index_by_digest(mast_root) {
-                    None => Ok(ResolvedTarget::Phantom(mast_root.into_inner())),
-                    Some(gid) => Ok(ResolvedTarget::Exact { gid }),
-                }
-            }
-            InvocationTarget::ProcedureName(ref callee) => self.resolve(caller, callee),
-            InvocationTarget::ProcedurePath {
-                ref name,
-                module: ref imported_module,
-            } => match self.resolve_import(caller, imported_module) {
-                Some(imported_module) => {
-                    let fqn = FullyQualifiedProcedureName {
-                        span: target.span(),
-                        module: imported_module.into_inner().clone(),
-                        name: name.clone(),
-                    };
-                    let gid = self.find(caller, &fqn)?;
-                    match self.graph.get_mast_root(gid) {
-                        Some(digest) => Ok(ResolvedTarget::Cached {
-                            digest: *digest,
-                            gid: Some(gid),
-                        }),
-                        None => {
-                            let path = self.module_path(gid.module);
-                            let pending_offset = self.graph.modules.len();
-                            let name = if gid.module.as_usize() >= pending_offset {
-                                self.pending[gid.module.as_usize() - pending_offset]
-                                    .resolver
-                                    .get_name(gid.index)
-                                    .clone()
-                            } else {
-                                self.graph[gid].name().clone()
-                            };
-                            Ok(ResolvedTarget::Resolved {
-                                gid,
-                                target: InvocationTarget::AbsoluteProcedurePath { name, path },
-                            })
-                        }
-                    }
-                }
-                None => Err(AssemblyError::UndefinedModule {
-                    span: target.span(),
-                    source_file: caller.source_file.clone(),
-                    path: LibraryPath::new_from_components(
-                        LibraryNamespace::User(imported_module.clone().into_inner()),
-                        [],
-                    ),
-                }),
-            },
-            InvocationTarget::AbsoluteProcedurePath { ref name, ref path } => {
-                let fqn = FullyQualifiedProcedureName {
-                    span: target.span(),
-                    module: path.clone(),
-                    name: name.clone(),
-                };
-                let gid = self.find(caller, &fqn)?;
-                match self.graph.get_mast_root(gid) {
-                    Some(digest) => Ok(ResolvedTarget::Cached {
-                        digest: *digest,
-                        gid: Some(gid),
-                    }),
-                    None => Ok(ResolvedTarget::Exact { gid }),
-                }
-            }
-        }
-    }
-
-    fn resolve_local(
-        &self,
-        caller: &CallerInfo,
-        callee: &ProcedureName,
-    ) -> Option<ResolvedProcedure> {
-        let module = if matches!(caller.kind, InvokeKind::SysCall) {
-            // Resolve local names relative to the kernel
-            self.graph.kernel_index?
-        } else {
-            caller.module
-        };
-        self.resolve_local_with_index(module, callee)
-    }
-
-    fn resolve_local_with_index(
-        &self,
-        module: ModuleIndex,
-        callee: &ProcedureName,
-    ) -> Option<ResolvedProcedure> {
-        let pending_offset = self.graph.modules.len();
-        let module_index = module.as_usize();
-        if module_index >= pending_offset {
-            self.pending[module_index - pending_offset].resolver.resolve(callee)
-        } else {
-            self.graph[module].resolve(callee)
-        }
-    }
-
-    pub fn module_source(&self, module: ModuleIndex) -> Option<Arc<SourceFile>> {
-        let pending_offset = self.graph.modules.len();
-        let module_index = module.as_usize();
-        if module_index >= pending_offset {
-            self.pending[module_index - pending_offset].source_file.clone()
-        } else {
-            self.graph[module].source_file()
-        }
-    }
-
-    fn module_path(&self, module: ModuleIndex) -> LibraryPath {
-        let pending_offset = self.graph.modules.len();
-        let module_index = module.as_usize();
-        if module_index >= pending_offset {
-            self.pending[module_index - pending_offset].path.clone()
-        } else {
-            self.graph[module].path().clone()
-        }
-    }
-
-    /// Resolve `name` to its concrete definition, returning the corresponding
-    /// [GlobalProcedureIndex].
-    ///
-    /// If an error occurs during resolution, or the name cannot be resolved, `Err` is returned.
-    pub fn find(
-        &self,
-        caller: &CallerInfo,
-        callee: &FullyQualifiedProcedureName,
-    ) -> Result<GlobalProcedureIndex, AssemblyError> {
-        // If the caller is a syscall, set the invoke kind to exec until we have resolved the
-        // procedure, then verify that it is in the kernel module
-        let mut current_caller = if matches!(caller.kind, InvokeKind::SysCall) {
-            let mut caller = caller.clone();
-            caller.kind = InvokeKind::Exec;
-            Cow::Owned(caller)
-        } else {
-            Cow::Borrowed(caller)
-        };
-        let mut current_callee = Cow::Borrowed(callee);
-        let mut visited = BTreeSet::default();
-        loop {
-            let module_index = self.find_module_index(&current_callee.module).ok_or_else(|| {
-                AssemblyError::UndefinedModule {
-                    span: current_callee.span(),
-                    source_file: current_caller.source_file.clone(),
-                    path: current_callee.module.clone(),
-                }
-            })?;
-            let resolved = self.resolve_local_with_index(module_index, &current_callee.name);
-            match resolved {
-                Some(ResolvedProcedure::Local(index)) => {
-                    let id = GlobalProcedureIndex {
-                        module: module_index,
-                        index: index.into_inner(),
-                    };
-                    if matches!(current_caller.kind, InvokeKind::SysCall if self.graph.kernel_index != Some(module_index))
-                    {
-                        break Err(AssemblyError::InvalidSysCallTarget {
-                            span: current_callee.span(),
-                            source_file: current_caller.source_file.clone(),
-                            callee: current_callee.into_owned(),
-                        });
-                    }
-                    break Ok(id);
-                }
-                Some(ResolvedProcedure::External(fqn)) => {
-                    // If we see that we're about to enter an infinite
-                    // resolver loop because of a recursive alias, return
-                    // an error
-                    if !visited.insert(fqn.clone()) {
-                        break Err(AssemblyError::Failed {
-                            labels: vec![
-                                RelatedLabel::error("recursive alias")
-                                    .with_source_file(self.module_source(module_index))
-                                    .with_labeled_span(fqn.span(), "occurs because this import causes import resolution to loop back on itself"),
-                                RelatedLabel::advice("recursive alias")
-                                    .with_source_file(caller.source_file.clone())
-                                    .with_labeled_span(caller.span, "as a result of resolving this procedure reference"),
-                            ],
-                        });
-                    }
-                    let source_file = self
-                        .find_module_index(&fqn.module)
-                        .and_then(|index| self.module_source(index));
-                    current_caller = Cow::Owned(CallerInfo {
-                        span: fqn.span(),
-                        source_file,
-                        module: module_index,
-                        kind: current_caller.kind,
-                    });
-                    current_callee = Cow::Owned(fqn);
-                }
-                None if matches!(current_caller.kind, InvokeKind::SysCall) => {
-                    if self.graph.has_nonempty_kernel() {
-                        // No kernel, so this invoke is invalid anyway
-                        break Err(AssemblyError::Failed {
-                            labels: vec![
-                                RelatedLabel::error("undefined kernel procedure")
-                                    .with_source_file(caller.source_file.clone())
-                                    .with_labeled_span(caller.span, "unable to resolve this reference to a procedure in the current kernel"),
-                                RelatedLabel::error("invalid syscall")
-                                    .with_source_file(self.module_source(module_index))
-                                    .with_labeled_span(
-                                        current_callee.span(),
-                                        "this name cannot be resolved, because the assembler has an empty kernel",
-                                    ),
-                            ]
-                        });
-                    } else {
-                        // No such kernel procedure
-                        break Err(AssemblyError::Failed {
-                            labels: vec![
-                                RelatedLabel::error("undefined kernel procedure")
-                                    .with_source_file(caller.source_file.clone())
-                                    .with_labeled_span(caller.span, "unable to resolve this reference to a procedure in the current kernel"),
-                                RelatedLabel::error("name resolution cannot proceed")
-                                    .with_source_file(self.module_source(module_index))
-                                    .with_labeled_span(
-                                        current_callee.span(),
-                                        "this name cannot be resolved",
-                                    ),
-                            ]
-                        });
-                    }
-                }
-                None => {
-                    // No such procedure known to `module`
-                    break Err(AssemblyError::Failed {
-                        labels: vec![
-                            RelatedLabel::error("undefined procedure")
-                                .with_source_file(caller.source_file.clone())
-                                .with_labeled_span(
-                                    caller.span,
-                                    "unable to resolve this reference to its definition",
-                                ),
-                            RelatedLabel::error("name resolution cannot proceed")
-                                .with_source_file(self.module_source(module_index))
-                                .with_labeled_span(
-                                    current_callee.span(),
-                                    "this name cannot be resolved",
-                                ),
-                        ],
-                    });
-                }
-            }
-        }
-    }
-
-    /// Resolve a [LibraryPath] to a [ModuleIndex] in this graph
-    pub fn find_module_index(&self, name: &LibraryPath) -> Option<ModuleIndex> {
-        self.graph
-            .modules
-            .iter()
-            .map(|m| m.path())
-            .chain(self.pending.iter().map(|m| &m.path))
-            .position(|path| path == name)
-            .map(ModuleIndex::new)
-    }
-}
-
-// REANALYZE CHECK
-// ================================================================================================
-
-struct ReanalyzeCheck<'a, 'b: 'a> {
-    resolver: &'a NameResolver<'b>,
-    module_id: ModuleIndex,
-    source_file: Option<Arc<SourceFile>>,
-}
-
-impl<'a, 'b: 'a> ReanalyzeCheck<'a, 'b> {
-    fn resolve_target(
-        &self,
-        kind: InvokeKind,
-        target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
-        let caller = CallerInfo {
-            span: target.span(),
-            source_file: self.source_file.clone(),
-            module: self.module_id,
-            kind,
-        };
-        match self.resolver.resolve_target(&caller, target) {
-            Err(err) => ControlFlow::Break(Err(err)),
-            Ok(ResolvedTarget::Resolved { .. }) => ControlFlow::Break(Ok(true)),
-            Ok(ResolvedTarget::Exact { .. } | ResolvedTarget::Phantom(_)) => {
-                ControlFlow::Continue(())
-            }
-            Ok(ResolvedTarget::Cached { .. }) => {
-                if let InvocationTarget::MastRoot(_) = target {
-                    ControlFlow::Continue(())
-                } else {
-                    ControlFlow::Break(Ok(true))
-                }
-            }
-        }
-    }
-}
-
-impl<'a, 'b: 'a> Visit<Result<bool, AssemblyError>> for ReanalyzeCheck<'a, 'b> {
-    fn visit_syscall(
-        &mut self,
-        target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
-        self.resolve_target(InvokeKind::SysCall, target)
-    }
-    fn visit_call(
-        &mut self,
-        target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
-        self.resolve_target(InvokeKind::Call, target)
-    }
-    fn visit_invoke_target(
-        &mut self,
-        target: &InvocationTarget,
-    ) -> ControlFlow<Result<bool, AssemblyError>> {
-        self.resolve_target(InvokeKind::Exec, target)
-    }
-}
-
-// MODULE REWRITER VISITOR
-// ================================================================================================
-
-struct ModuleRewriteVisitor<'a, 'b: 'a> {
-    resolver: &'a NameResolver<'b>,
-    module_id: ModuleIndex,
-    invoked: BTreeSet<Invoke>,
-    phantoms: BTreeSet<PhantomCall>,
-    source_file: Option<Arc<SourceFile>>,
-}
-
-impl<'a, 'b: 'a> ModuleRewriteVisitor<'a, 'b> {
-    fn rewrite_target(
-        &mut self,
-        kind: InvokeKind,
-        target: &mut InvocationTarget,
-    ) -> ControlFlow<AssemblyError> {
-        let caller = CallerInfo {
-            span: target.span(),
-            source_file: self.source_file.clone(),
-            module: self.module_id,
-            kind,
-        };
-        match self.resolver.resolve_target(&caller, target) {
-            Err(err) => return ControlFlow::Break(err),
-            Ok(ResolvedTarget::Cached { digest, .. }) => {
-                *target = InvocationTarget::MastRoot(Span::new(target.span(), digest));
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
-            Ok(ResolvedTarget::Phantom(callee)) => {
-                let call = PhantomCall {
-                    span: target.span(),
-                    source_file: self.source_file.clone(),
-                    callee,
-                };
-                self.phantoms.insert(call);
-            }
-            Ok(ResolvedTarget::Exact { .. }) => {
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
-            Ok(ResolvedTarget::Resolved {
-                target: new_target, ..
-            }) => {
-                *target = new_target;
-                self.invoked.insert(Invoke {
-                    kind,
-                    target: target.clone(),
-                });
-            }
-        }
-
-        ControlFlow::Continue(())
-    }
-}
-
-impl<'a, 'b: 'a> VisitMut<AssemblyError> for ModuleRewriteVisitor<'a, 'b> {
-    fn visit_mut_procedure(&mut self, procedure: &mut Procedure) -> ControlFlow<AssemblyError> {
-        self.invoked.clear();
-        self.invoked.extend(procedure.invoked().cloned());
-        visit::visit_mut_procedure(self, procedure)?;
-        procedure.extend_invoked(core::mem::take(&mut self.invoked));
-        ControlFlow::Continue(())
-    }
-    fn visit_mut_syscall(&mut self, target: &mut InvocationTarget) -> ControlFlow<AssemblyError> {
-        self.rewrite_target(InvokeKind::SysCall, target)
-    }
-    fn visit_mut_call(&mut self, target: &mut InvocationTarget) -> ControlFlow<AssemblyError> {
-        self.rewrite_target(InvokeKind::Call, target)
-    }
-    fn visit_mut_invoke_target(
-        &mut self,
-        target: &mut InvocationTarget,
-    ) -> ControlFlow<AssemblyError> {
-        self.rewrite_target(InvokeKind::Exec, target)
     }
 }
