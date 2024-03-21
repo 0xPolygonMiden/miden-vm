@@ -8,9 +8,7 @@ use alloc::{
 
 use crate::{
     ast::{Module, ModuleKind},
-    diagnostics::{
-        Diagnostic, IntoDiagnostic, NamedSource, Report, SourceCode, SourceFile, WrapErr,
-    },
+    diagnostics::{IntoDiagnostic, NamedSource, Report, SourceCode, SourceFile, WrapErr},
     library::{LibraryNamespace, LibraryPath},
 };
 
@@ -24,10 +22,6 @@ pub struct Options {
     ///
     /// The default kind is executable.
     pub kind: ModuleKind,
-    /// The namespace to apply to the compiled [Module].
-    ///
-    /// If unset, the namespace will be derived from the [ModuleKind].
-    pub namespace: Option<LibraryNamespace>,
     /// The name to give the compiled [Module]
     ///
     /// This option overrides `namespace`.
@@ -42,7 +36,6 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             kind: ModuleKind::Executable,
-            namespace: None,
             path: None,
         }
     }
@@ -60,7 +53,6 @@ impl Options {
         let path = path.try_into()?;
         Ok(Self {
             kind,
-            namespace: None,
             path: Some(path),
         })
     }
@@ -80,18 +72,6 @@ impl Options {
             ..Default::default()
         }
     }
-}
-
-/// This error occurs when attempting to use a [Module] in a context which is invalid for that
-/// module.
-///
-/// For example, using an executable module as a library.
-#[derive(Debug, thiserror::Error, Diagnostic)]
-#[error("compilation failed: expected a {expected} module, but got a {actual} module")]
-#[diagnostic()]
-pub struct ModuleKindMismatchError {
-    expected: ModuleKind,
-    actual: ModuleKind,
 }
 
 // COMPILE TRAIT
@@ -115,7 +95,7 @@ pub trait Compile: Sized {
 
     /// Compile (or convert) `self` into a [Module] using the provided `options`.
     ///
-    /// Returns a [SyntaxError] if compilation fails due to a parsing or semantic analysis error,
+    /// Returns a [Report] if compilation fails due to a parsing or semantic analysis error,
     /// or if the module provided is of the wrong kind (e.g. we expected a library module but got
     /// an executable module).
     ///
@@ -146,10 +126,6 @@ impl Compile for Box<Module> {
         if actual == options.kind {
             if let Some(path) = options.path {
                 self.set_path(path);
-            } else if let Some(ns) = options.namespace {
-                if !self.is_in_namespace(&ns) {
-                    self.set_namespace(ns);
-                }
             }
             Ok(self)
         } else {
@@ -175,17 +151,11 @@ impl Compile for Arc<SourceFile> {
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
         let path = match options.path {
             Some(path) => path,
-            None => {
-                let mut path = self
-                    .name()
-                    .parse::<LibraryPath>()
-                    .into_diagnostic()
-                    .wrap_err("cannot compile module as it has an invalid path/name")?;
-                if let Some(ns) = options.namespace {
-                    path.set_namespace(ns);
-                }
-                path
-            }
+            None => self
+                .name()
+                .parse::<LibraryPath>()
+                .into_diagnostic()
+                .wrap_err("cannot compile module as it has an invalid path/name")?,
         };
         Module::parse(path, options.kind, self)
     }
@@ -208,11 +178,6 @@ impl<'a> Compile for &'a String {
 impl Compile for String {
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
         if let Some(path) = options.path {
-            let source = Arc::new(SourceFile::new(path.path(), self));
-            return Module::parse(path, options.kind, source);
-        }
-        if let Some(ns) = options.namespace {
-            let path = LibraryPath::from(ns);
             let source = Arc::new(SourceFile::new(path.path(), self));
             return Module::parse(path, options.kind, source);
         }
@@ -288,11 +253,11 @@ impl<'a> Compile for &'a std::path::Path {
         let path = match options.path {
             Some(path) => path,
             None => {
-                let ns = options.namespace.unwrap_or_else(|| match options.kind {
+                let ns = match options.kind {
                     ModuleKind::Library => LibraryNamespace::Anon,
                     ModuleKind::Executable => LibraryNamespace::Exec,
                     ModuleKind::Kernel => LibraryNamespace::Kernel,
-                });
+                };
                 let mut parts = Vec::default();
                 self.components()
                     .skip_while(|component| {

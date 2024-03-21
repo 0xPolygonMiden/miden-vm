@@ -59,6 +59,6 @@ pub fn caller(span: &mut SpanBuilder, context: &AssemblyContext) -> Result<(), A
             source_file: current_procedure.source_file(),
         });
     }
-    span.add_op(Caller);
+    span.push_op(Caller);
     Ok(())
 }

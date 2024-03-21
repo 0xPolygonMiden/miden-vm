@@ -47,7 +47,7 @@ pub(super) fn hash(span: &mut SpanBuilder) {
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 /// Appends HPERM and stack manipulation operations to the span block as required to compute a
@@ -92,7 +92,7 @@ pub(super) fn hmerge(span: &mut SpanBuilder) {
         // Drop 4 elements (the capacity portion)
         Drop, Drop, Drop, Drop,
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 // MERKLE TREES
@@ -124,7 +124,7 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) {
         // no longer needed => [V, R, ...]
         MovUp4, Drop, MovUp4, Drop,
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block
@@ -184,7 +184,7 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) {
 ///
 /// This operation takes 1 VM cycle.
 pub(super) fn mtree_verify(span: &mut SpanBuilder) {
-    span.add_op(MpVerify);
+    span.push_op(MpVerify);
 }
 
 // MERKLE TREES - HELPERS
@@ -293,5 +293,5 @@ fn update_mtree(span: &mut SpanBuilder) {
     ];
 
     // stack: [V_old, R_new, ...] (25 cycles)
-    span.add_ops(ops);
+    span.push_ops(ops);
 }

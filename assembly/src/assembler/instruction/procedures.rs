@@ -131,7 +131,7 @@ impl Assembler {
             .iter()
             .map(|elem| Operation::Push(*elem))
             .collect::<SmallVec<[_; 4]>>();
-        span_builder.add_ops(ops);
+        span_builder.push_ops(ops);
         Ok(())
     }
 }
