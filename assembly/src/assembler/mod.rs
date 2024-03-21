@@ -166,7 +166,7 @@ impl Assembler {
         self.module_graph.kernel_index()
     }
 
-    /// Returns true if this assembler was instantiated with phantom calls enabled
+    /// Returns true if this assembler was instantiated with phantom calls enabled.
     pub fn allow_phantom_calls(&self) -> bool {
         self.allow_phantom_calls
     }
@@ -177,15 +177,15 @@ impl Assembler {
         self
     }
 
-    /// Set whether to allow phantom calls
+    /// Sets whether to allow phantom calls.
     pub fn with_phantom_calls(mut self, yes: bool) -> Self {
         self.allow_phantom_calls = yes;
         self
     }
 
-    /// Add `module` to the module graph of the assembler
+    /// Adds `module` to the module graph of the assembler.
     ///
-    /// The given module must be a library module, or an error will be returned
+    /// The given module must be a library module, or an error will be returned.
     #[inline]
     pub fn with_module(mut self, module: impl Compile) -> Result<Self, Report> {
         self.add_module(module)?;
@@ -193,9 +193,9 @@ impl Assembler {
         Ok(self)
     }
 
-    /// Add `module` to the module graph of the assembler with the given options.
+    /// Adds `module` to the module graph of the assembler with the given options.
     ///
-    /// The given module must be a library module, or an error will be returned
+    /// The given module must be a library module, or an error will be returned.
     #[inline]
     pub fn with_module_and_options(
         mut self,
@@ -207,15 +207,15 @@ impl Assembler {
         Ok(self)
     }
 
-    /// Add `module` to the module graph of the assembler
+    /// Adds `module` to the module graph of the assembler.
     ///
-    /// The given module must be a library module, or an error will be returned
+    /// The given module must be a library module, or an error will be returned.
     #[inline]
     pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
         self.add_module_with_options(module, CompileOpts::for_library())
     }
 
-    /// Add `module` to the module graph of the assembler, using the provided options.
+    /// Adds `module` to the module graph of the assembler, using the provided options.
     ///
     /// The given module must be a library or kernel module, or an error will be returned
     pub fn add_module_with_options(
@@ -394,7 +394,7 @@ impl Assembler {
         self.assemble_with_opts_in_context(source, options, &mut context)
     }
 
-    /// Like [Assembler::compile_with_opts], but additonally uses the provided [AssemblyContext]
+    /// Like [Assembler::compile_with_opts], but additionally uses the provided [AssemblyContext]
     /// to configure the assembler.
     #[instrument("assemble_with_opts_in_context", skip_all)]
     pub fn assemble_with_opts_in_context(

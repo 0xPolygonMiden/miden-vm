@@ -231,7 +231,7 @@ impl ModuleGraph {
     /// which are to be added to the graph, and then each module is visited to perform a deeper
     /// analysis than can be done by the `sema` module, as we now have the full set of modules
     /// available to do import resolution, and to rewrite invoke targets with their absolute paths
-    /// and/or mast roots. A variety of issues are caught at this stage.
+    /// and/or MAST roots. A variety of issues are caught at this stage.
     ///
     /// Once each module is validated, the various analysis results stored as part of the graph
     /// structure are updated to reflect that module being added to the graph. Once part of the

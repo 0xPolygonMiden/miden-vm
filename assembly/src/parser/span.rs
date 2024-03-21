@@ -46,7 +46,7 @@ impl<T: Clone> Clone for Span<T> {
 }
 
 impl<T> Span<T> {
-    /// Create a span for `spanned` with `span`
+    /// Creates a span for `spanned` with `span`.
     #[inline]
     pub fn new(span: impl Into<SourceSpan>, spanned: T) -> Self {
         Self {
@@ -55,7 +55,7 @@ impl<T> Span<T> {
         }
     }
 
-    /// Create a span for `spanned` representing a single location, `offset`
+    /// Creates a span for `spanned` representing a single location, `offset`.
     #[inline]
     pub fn at(offset: usize, spanned: T) -> Self {
         Self {
@@ -64,7 +64,7 @@ impl<T> Span<T> {
         }
     }
 
-    /// Create a [Span] from a value with an unknown/default location
+    /// Creates a [Span] from a value with an unknown/default location.
     pub fn unknown(spanned: T) -> Self {
         Self {
             span: Default::default(),
@@ -72,13 +72,13 @@ impl<T> Span<T> {
         }
     }
 
-    /// Get the associated [SourceSpan] for this spanned item.
+    /// Gets the associated [SourceSpan] for this spanned item.
     #[inline(always)]
     pub const fn span(&self) -> SourceSpan {
         self.span
     }
 
-    /// Apply a transformation to the spanned value while retaining the same [SourceSpan]
+    /// Applies a transformation to the spanned value while retaining the same [SourceSpan].
     #[inline]
     pub fn map<U, F>(self, mut f: F) -> Span<U>
     where
@@ -90,8 +90,8 @@ impl<T> Span<T> {
         }
     }
 
-    /// Like [`Option<T>::as_deref`], this constructs a [`Span<U>`] wrapping the result
-    /// of dereferencing the inner value of type `T` as a value of type `U`.
+    /// Like [`Option<T>::as_deref`], this constructs a [`Span<U>`] wrapping the result of
+    /// dereferencing the inner value of type `T` as a value of type `U`.
     pub fn as_deref<U>(&self) -> Span<&U>
     where
         U: ?Sized,
@@ -103,7 +103,7 @@ impl<T> Span<T> {
         }
     }
 
-    /// Get a new [Span] that borrows the inner value.
+    /// Gets a new [Span] that borrows the inner value.
     pub fn as_ref(&self) -> Span<&T> {
         Span {
             span: self.span,
@@ -111,7 +111,7 @@ impl<T> Span<T> {
         }
     }
 
-    /// Shift the span right by `count` units
+    /// Shifts the span right by `count` units
     #[inline]
     pub fn shift(&mut self, count: usize) {
         let count: u32 = count.try_into().expect("invalid count: must be smaller than 2^32");
@@ -119,21 +119,21 @@ impl<T> Span<T> {
         self.span.end += count;
     }
 
-    /// Extend the end of the span by `count` units
+    /// Extends the end of the span by `count` units.
     #[inline]
     pub fn extend(&mut self, count: usize) {
         let count: u32 = count.try_into().expect("invalid count: must be smaller than 2^32");
         self.span.end += count;
     }
 
-    /// Consume this span, returning the component parts, i.e. the [SourceSpan] and value of type
+    /// Consumes this span, returning the component parts, i.e. the [SourceSpan] and value of type
     /// `T`.
     #[inline]
     pub fn into_parts(self) -> (SourceSpan, T) {
         (self.span, self.spanned)
     }
 
-    /// Unwrap the spanned value of type `T`
+    /// Unwraps the spanned value of type `T`.
     #[inline]
     pub fn into_inner(self) -> T {
         self.spanned
@@ -292,7 +292,7 @@ pub struct SourceSpan {
 }
 
 impl SourceSpan {
-    /// Create a new [SourceSpan] from the given range.
+    /// Creates a new [SourceSpan] from the given range.
     pub fn new(range: Range<u32>) -> Self {
         Self {
             start: range.start,
@@ -300,7 +300,7 @@ impl SourceSpan {
         }
     }
 
-    /// Create a new [SourceSpan] for a specific offset.
+    /// Creates a new [SourceSpan] for a specific offset.
     pub fn at(offset: u32) -> Self {
         Self {
             start: offset,
@@ -308,30 +308,30 @@ impl SourceSpan {
         }
     }
 
-    /// Get the offset in bytes corresponding to the start of this span (inclusive).
+    /// Gets the offset in bytes corresponding to the start of this span (inclusive).
     #[inline(always)]
     pub fn start(&self) -> usize {
         self.start as usize
     }
 
-    /// Get the offset in bytes corresponding to the end of this span (exclusive).
+    /// Gets the offset in bytes corresponding to the end of this span (exclusive).
     #[inline(always)]
     pub fn end(&self) -> usize {
         self.end as usize
     }
 
-    /// Get the length of this span in bytes
+    /// Gets the length of this span in bytes.
     #[inline(always)]
     pub fn len(&self) -> usize {
         (self.end - self.start) as usize
     }
 
-    /// Returns true if this span is empty
+    /// Returns true if this span is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Convert this span into a [`Range<u32>`]
+    /// Converts this span into a [`Range<u32>`].
     #[inline]
     pub fn into_range(self) -> Range<u32> {
         self.start..self.end
