@@ -21,7 +21,7 @@ pub struct Options {
     ///
     /// The default kind is executable.
     pub kind: ModuleKind,
-    /// The namespace to apply to the compiled [Module]
+    /// The namespace to apply to the compiled [Module].
     ///
     /// If unset, the namespace will be derived from the [ModuleKind].
     pub namespace: Option<LibraryNamespace>,
@@ -61,7 +61,7 @@ impl Options {
         })
     }
 
-    /// Get the default [Options] for compiling a library module
+    /// Get the default [Options] for compiling a library module.
     pub fn for_library() -> Self {
         Self {
             kind: ModuleKind::Library,
@@ -69,7 +69,7 @@ impl Options {
         }
     }
 
-    /// Get the default [Options] for compiling a kernel module
+    /// Get the default [Options] for compiling a kernel module.
     pub fn for_kernel() -> Self {
         Self {
             kind: ModuleKind::Kernel,
@@ -78,13 +78,28 @@ impl Options {
     }
 }
 
+/// This error occurs when attempting to use a [Module] in a context which is invalid for that
+/// module.
+///
+/// For example, using an executable module as a library.
+#[derive(Debug, thiserror::Error, Diagnostic)]
+#[error("compilation failed: expected a {expected} module, but got a {actual} module")]
+#[diagnostic()]
+pub struct ModuleKindMismatchError {
+    expected: ModuleKind,
+    actual: ModuleKind,
+}
+
+// COMPILE TRAIT
+// ================================================================================================
+
 /// This trait is meant to be implemented by any type that can be compiled to a [Module],
 /// to allow methods which expect a [Module] to accept things like:
 ///
-/// * A [Module] which was previously compiled or read from a [crate::Library]
-/// * A string representing the source code of a [Module]
-/// * A path to a file containing the source code of a [Module]
-/// * A vector of [Form]s comprising the contents of a [Module]
+/// * A [Module] which was previously compiled or read from a [crate::Library].
+/// * A string representing the source code of a [Module].
+/// * A path to a file containing the source code of a [Module].
+/// * A vector of [Form]s comprising the contents of a [Module].
 pub trait Compile: Sized {
     /// Compile (or convert) `self` into an executable [Module].
     ///
@@ -98,22 +113,14 @@ pub trait Compile: Sized {
     ///
     /// Returns a [SyntaxError] if compilation fails due to a parsing or semantic analysis error,
     /// or if the module provided is of the wrong kind (e.g. we expected a library module but got
-    /// an executable module)
+    /// an executable module).
     ///
     /// See the documentation for [Options] to see how compilation can be configured.
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report>;
 }
 
-/// This error occurs when attempting to use a [Module] in a context which is invalid for that module.
-///
-/// For example, using an executable module as a library.
-#[derive(Debug, thiserror::Error, Diagnostic)]
-#[error("compilation failed: expected a {expected} module, but got a {actual} module")]
-#[diagnostic()]
-pub struct ModuleKindMismatchError {
-    expected: ModuleKind,
-    actual: ModuleKind,
-}
+// COMPILE IMPLEMENTATIONS FOR MODULES
+// ------------------------------------------------------------------------------------------------
 
 impl Compile for Module {
     #[inline(always)]
@@ -177,6 +184,9 @@ impl Compile for Arc<SourceFile> {
     }
 }
 
+// COMPILE IMPLEMENTATIONS FOR STRINGS
+// ------------------------------------------------------------------------------------------------
+
 impl<'a> Compile for &'a str {
     #[inline(always)]
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
@@ -219,6 +229,9 @@ impl<'a> Compile for Cow<'a, str> {
     }
 }
 
+// COMPILE IMPLEMENTATIONS FOR BYTES
+// ------------------------------------------------------------------------------------------------
+
 impl<'a> Compile for &'a [u8] {
     #[inline(always)]
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
@@ -258,6 +271,9 @@ where
         Arc::new(SourceFile::new(self.name(), content)).compile_with_opts(options)
     }
 }
+
+// COMPILE IMPLEMENTATIONS FOR FILES
+// ------------------------------------------------------------------------------------------------
 
 #[cfg(feature = "std")]
 impl<'a> Compile for &'a std::path::Path {

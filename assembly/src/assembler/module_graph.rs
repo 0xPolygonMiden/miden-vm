@@ -21,6 +21,9 @@ use crate::{
 use smallvec::{smallvec, SmallVec};
 use vm_core::Kernel;
 
+// PHANTOM CALL
+// ================================================================================================
+
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct PhantomCall {
@@ -49,42 +52,38 @@ impl PartialOrd for PhantomCall {
     }
 }
 
+// MODULE GRAPH
+// ================================================================================================
+
 #[derive(Default, Clone)]
 pub struct ModuleGraph {
     modules: Vec<Arc<Module>>,
-    /// The set of modules pending additional processing
-    /// before adding them to the graph.
+    /// The set of modules pending additional processing before adding them to the graph.
     ///
-    /// When adding a set of inter-dependent modules to the
-    /// graph, we process them as a group, so that any references
-    /// between them can be resolved, and the contents of the module
+    /// When adding a set of inter-dependent modules to the graph, we process them as a group, so
+    /// that any references between them can be resolved, and the contents of the module
     /// rewritten to reflect the changes.
     ///
-    /// Once added to the graph, modules become immutable, and any
-    /// additional modules added after that must by definition only
-    /// depend on modules in the graph, and not be depended upon.
+    /// Once added to the graph, modules become immutable, and any additional modules added after
+    /// that must by definition only depend on modules in the graph, and not be depended upon.
     #[allow(clippy::vec_box)]
     pub(crate) pending: Vec<Box<Module>>,
-    /// The global call graph of calls, not counting those
-    /// that are performed directly via MAST root
+    /// The global call graph of calls, not counting those that are performed directly via MAST
+    /// root.
     callgraph: CallGraph,
     /// The computed topological ordering of the call graph
     topo: Vec<GlobalProcedureIndex>,
-    /// The set of MAST roots which have procedure definitions
-    /// in this graph. There can be multiple procedures bound to
-    /// the same root due to having identical code.
+    /// The set of MAST roots which have procedure definitions in this graph. There can be
+    /// multiple procedures bound to the same root due to having identical code.
     roots: BTreeMap<RpoDigest, SmallVec<[GlobalProcedureIndex; 1]>>,
-    /// The set of procedures in this graph which have known
-    /// MAST roots
+    /// The set of procedures in this graph which have known MAST roots
     digests: BTreeMap<GlobalProcedureIndex, RpoDigest>,
-    /// The set of procedures which have no known definition in
-    /// the graph, aka "phantom calls". Since we know the hash
-    /// of these functions, we can proceed with compilation, but
-    /// in some contexts we wish to disallow them and raise an
-    /// error if any such calls are present.
+    /// The set of procedures which have no known definition in the graph, aka "phantom calls".
+    /// Since we know the hash of these functions, we can proceed with compilation, but in some
+    /// contexts we wish to disallow them and raise an error if any such calls are present.
     ///
-    /// When we merge graphs, we attempt to resolve phantoms by
-    /// attempting to find definitions in the opposite graph.
+    /// When we merge graphs, we attempt to resolve phantoms by attempting to find definitions in
+    /// the opposite graph.
     phantoms: BTreeSet<PhantomCall>,
     kernel_index: Option<ModuleIndex>,
     kernel: Kernel,
@@ -99,10 +98,9 @@ impl ModuleGraph {
     /// * Module with same [LibraryPath] is in the graph already
     /// * Too many modules in the graph
     ///
-    /// NOTE: This operation only adds a module to the graph, but
-    /// does not perform the important analysis needed for compilation,
-    /// you must call [recompute] once all modules are added to ensure
-    /// the analysis results reflect the current version of the graph.
+    /// NOTE: This operation only adds a module to the graph, but does not perform the
+    /// important analysis needed for compilation, you must call [recompute] once all modules
+    /// are added to ensure the analysis results reflect the current version of the graph.
     pub fn add_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
@@ -117,19 +115,16 @@ impl ModuleGraph {
         Ok(module_id)
     }
 
-    /// Remove a module from the graph by discarding any edges
-    /// involving that module. We do not remove the module from
-    /// the node set by default, so as to preserve the stability
-    /// of indices in the graph. However, we do remove the module
-    /// from the set if it is the most recently added module, as
-    /// that matches the most common case of compiling multiple
-    /// programs in a row, where we discard the executable module
-    /// each time.
+    /// Remove a module from the graph by discarding any edges involving that module. We do not
+    /// remove the module from the node set by default, so as to preserve the stability of indices
+    /// in the graph. However, we do remove the module from the set if it is the most recently
+    /// added module, as that matches the most common case of compiling multiple programs in a row,
+    /// where we discard the executable module each time.
     pub fn remove_module(&mut self, index: ModuleIndex) {
         use alloc::collections::btree_map::Entry;
 
-        // If the given index is a pending module, we
-        // just remove it from the pending set and call it a day
+        // If the given index is a pending module, we just remove it from the pending set and call
+        // it a day
         let pending_offset = self.modules.len();
         if index.as_usize() >= pending_offset {
             self.pending.remove(index.as_usize() - pending_offset);
@@ -138,10 +133,8 @@ impl ModuleGraph {
 
         self.callgraph.remove_edges_for_module(index);
 
-        // We remove all nodes from the topological sort
-        // that belong to the given module. The resulting
-        // sort is still valid, but may change the next
-        // time it is computed
+        // We remove all nodes from the topological sort that belong to the given module. The
+        // resulting sort is still valid, but may change the next time it is computed
         self.topo.retain(|gid| gid.module != index);
 
         // Remove any cached procedure roots for the given module
@@ -166,9 +159,8 @@ impl ModuleGraph {
             self.kernel = Default::default();
         }
 
-        // If the module being removed comes last in the node set,
-        // remove it from the set to avoid growing the set unnecessarily
-        // over time.
+        // If the module being removed comes last in the node set, remove it from the set to avoid
+        // growing the set unnecessarily over time.
         if index.as_usize() == self.modules.len().saturating_sub(1) {
             self.modules.pop();
         }
@@ -228,50 +220,46 @@ impl ModuleGraph {
 impl ModuleGraph {
     /// Recompute the module graph.
     ///
-    /// This should be called any time `add_module`, `add_library`, etc., are
-    /// called, when all such modifications to the graph are complete. For example,
-    /// if you have a pair of libraries, a kernel module, and a program module that
-    /// you want to compile together, you can call the various graph builder methods
-    /// to add those modules to the pending set. Doing so does some initial sanity
-    /// checking, but the bulk of the analysis work is done once the set of modules is
-    /// final, and we can reason globally about a program or library.
+    /// This should be called any time `add_module`, `add_library`, etc., are called, when all such
+    /// modifications to the graph are complete. For example, if you have a pair of libraries, a
+    /// kernel module, and a program module that you want to compile together, you can call the
+    /// various graph builder methods to add those modules to the pending set. Doing so does some
+    /// initial sanity checking, but the bulk of the analysis work is done once the set of modules
+    /// is final, and we can reason globally about a program or library.
     ///
-    /// When this function is called, some initial information is calculated about the
-    /// modules which are to be added to the graph, and then each module is visited to
-    /// perform a deeper analysis than can be done by the `sema` module, as we now have
-    /// the full set of modules available to do import resolution, and to rewrite invoke
-    /// targets with their absolute paths and/or mast roots. A variety of issues are
-    /// caught at this stage.
+    /// When this function is called, some initial information is calculated about the modules
+    /// which are to be added to the graph, and then each module is visited to perform a deeper
+    /// analysis than can be done by the `sema` module, as we now have the full set of modules
+    /// available to do import resolution, and to rewrite invoke targets with their absolute paths
+    /// and/or mast roots. A variety of issues are caught at this stage.
     ///
-    /// Once each module is validated, the various analysis results stored as part of the
-    /// graph structure are updated to reflect that module being added to the graph. Once
-    /// part of the graph, the module becomes immutable/clone-on-write, so as to allow
-    /// the graph to be cheaply cloned.
+    /// Once each module is validated, the various analysis results stored as part of the graph
+    /// structure are updated to reflect that module being added to the graph. Once part of the
+    /// graph, the module becomes immutable/clone-on-write, so as to allow the graph to be
+    /// cheaply cloned.
     ///
-    /// The final, and most important, analysis done by this function is the topological
-    /// sort of the global call graph, which contains the inter-procedural dependencies
-    /// of every procedure in the module graph. We use this sort order to do two things:
+    /// The final, and most important, analysis done by this function is the topological sort of
+    /// the global call graph, which contains the inter-procedural dependencies of every procedure
+    /// in the module graph. We use this sort order to do two things:
     ///
-    /// 1. Verify that there are no static cycles in the graph that would prevent us from
-    /// being able to hash the generated MAST of the program. NOTE: dynamic cycles,
-    /// e.g. those induced by `dynexec`, are perfectly fine, we are only interested in
-    /// preventing cycles that interfere with the ability to generate MAST roots.
+    /// 1. Verify that there are no static cycles in the graph that would prevent us from being able
+    ///    to hash the generated MAST of the program. NOTE: dynamic cycles, e.g. those induced by
+    ///    `dynexec`, are perfectly fine, we are only interested in preventing cycles that interfere
+    ///    with the ability to generate MAST roots.
     ///
-    /// 2. Visit the call graph bottom-up, so that we can fully compile a procedure before
-    /// any of its callers, and thus rewrite those callers to reference that procedure by
-    /// MAST root, rather than by name. As a result, a compiled MAST program is like an
-    /// immutable snapshot of the entire call graph at the time of compilation. Later, if
-    /// we choose to recompile a subset of modules (currently we do not have support for
-    /// this in the assembler API), we can re-analyze/re-compile only those parts of the
-    /// graph which have actually changed.
+    /// 2. Visit the call graph bottom-up, so that we can fully compile a procedure before any of
+    ///    its callers, and thus rewrite those callers to reference that procedure by MAST root,
+    ///    rather than by name. As a result, a compiled MAST program is like an immutable snapshot
+    ///    of the entire call graph at the time of compilation. Later, if we choose to recompile a
+    ///    subset of modules (currently we do not have support for this in the assembler API), we
+    ///    can re-analyze/re-compile only those parts of the graph which have actually changed.
     ///
-    /// NOTE: This will return `Err` if we detect a validation error, a cycle in the graph,
-    /// or an operation not supported by the current configuration. Basically, for any reason
-    ///  that would cause the resulting graph to represent an invalid program.
+    /// NOTE: This will return `Err` if we detect a validation error, a cycle in the graph, or an
+    /// operation not supported by the current configuration. Basically, for any reason that would
+    /// cause the resulting graph to represent an invalid program.
     pub fn recompute(&mut self) -> Result<(), AssemblyError> {
-        // It is acceptable for there to be no changes, but if
-        // the graph is empty and no changes are being made, we
-        // treat that as an error
+        // It is acceptable for there to be no changes, but if the graph is empty and no changes
+        // are being made, we treat that as an error
         if self.modules.is_empty() && self.pending.is_empty() {
             return Err(AssemblyError::Empty);
         }
@@ -284,9 +272,8 @@ impl ModuleGraph {
         // Remove previous topological sort, since it is no longer valid
         self.topo.clear();
 
-        // Visit all of the pending modules, assigning them ids, and
-        // adding them to the module graph after rewriting any calls
-        // to use absolute paths
+        // Visit all of the pending modules, assigning them ids, and adding them to the module
+        // graph after rewriting any calls to use absolute paths
         let high_water_mark = self.modules.len();
         let pending = core::mem::take(&mut self.pending);
         for (pending_index, pending_module) in pending.iter().enumerate() {
@@ -300,17 +287,16 @@ impl ModuleGraph {
                     index: procedure_id,
                 };
 
-                // Ensure all entrypoints and exported symbols are represented
-                // in the call graph, even if they have no edges, we need them
-                // in the graph for the topological sort
+                // Ensure all entrypoints and exported symbols are represented in the call graph,
+                // even if they have no edges, we need them in the graph for the topological sort
                 if matches!(procedure, Export::Procedure(_)) {
                     self.callgraph.get_or_insert_node(global_id);
                 }
             }
         }
 
-        // Obtain a set of resolvers for the pending modules so that we
-        // can do name resolution before they are added to the graph
+        // Obtain a set of resolvers for the pending modules so that we can do name resolution
+        // before they are added to the graph
         let mut resolver = NameResolver::new(self);
         for module in pending.iter() {
             resolver.push_pending(module);
@@ -372,17 +358,16 @@ impl ModuleGraph {
             .into_iter()
             .for_each(|(callee, caller)| self.callgraph.add_edge_unchecked(callee, caller));
 
-        // Visit all of the modules in the base module graph, and modify
-        // them if any of the pending modules allow additional information
-        // to be inferred (such as the absolute path of imports, etc)
+        // Visit all of the modules in the base module graph, and modify them if any of the
+        // pending modules allow additional information to be inferred (such as the absolute path
+        // of imports, etc)
         for module_index in 0..high_water_mark {
             let module_id = ModuleIndex::new(module_index);
             let module = self.modules[module_id.as_usize()].clone();
 
-            // Re-analyze the module, and if we needed to clone-on-write,
-            // the new module will be returned. Otherwise, `Ok(None)`
-            // indicates that the module is unchaged, and `Err` indicates
-            // that re-analysis has found an issue with this module.
+            // Re-analyze the module, and if we needed to clone-on-write, the new module will be
+            // returned. Otherwise, `Ok(None)` indicates that the module is unchanged, and `Err`
+            // indicates that re-analysis has found an issue with this module.
             if let Some(new_module) = self.reanalyze_module(module_id, module)? {
                 self.modules[module_id.as_usize()] = new_module;
             }
@@ -446,11 +431,10 @@ impl ModuleGraph {
 impl ModuleGraph {
     /// Get a slice representing the topological ordering of this graph.
     ///
-    /// The slice is ordered such that when a node is encountered, all of
-    /// its dependencies come after it in the slice. Thus, by walking the
-    /// slice in reverse, we visit the leaves of the graph before any of
-    /// the dependents of those leaves. We use this property to resolve
-    /// MAST roots for the entire program, bottom-up.
+    /// The slice is ordered such that when a node is encountered, all of its dependencies come
+    /// after it in the slice. Thus, by walking the slice in reverse, we visit the leaves of the
+    /// graph before any of the dependents of those leaves. We use this property to resolve MAST
+    /// roots for the entire program, bottom-up.
     pub fn topological_sort(&self) -> &[GlobalProcedureIndex] {
         self.topo.as_slice()
     }
@@ -480,10 +464,10 @@ impl ModuleGraph {
         self.modules.get(id.module.as_usize()).and_then(|m| m.get(id.index))
     }
 
-    /// Fetch a [Procedure] by [RpoDigest]
+    /// Fetches a [Procedure] by [RpoDigest].
     ///
-    /// NOTE: This implicitly chooses the first definition for a procedure
-    /// if the same digest is shared for multiple definitions.
+    /// NOTE: This implicitly chooses the first definition for a procedure if the same digest is
+    /// shared for multiple definitions.
     #[allow(unused)]
     pub fn get_procedure_by_digest(&self, digest: &RpoDigest) -> Option<&Procedure> {
         self.roots
@@ -501,8 +485,8 @@ impl ModuleGraph {
         self.roots.get(digest).map(|indices| indices[0])
     }
 
-    /// Look up the [RpoDigest] associated with the given [GlobalProcedureIndex],
-    /// if one is known at this point in time.
+    /// Look up the [RpoDigest] associated with the given [GlobalProcedureIndex], if one is known
+    /// at this point in time.
     pub fn get_mast_root(&self, id: GlobalProcedureIndex) -> Option<&RpoDigest> {
         self.digests.get(&id)
     }
@@ -512,7 +496,7 @@ impl ModuleGraph {
         self.callgraph.out_edges(gid)
     }
 
-    /// Resolve `target` from the perspective of `caller`
+    /// Resolves `target` from the perspective of `caller`.
     pub fn resolve_target(
         &self,
         caller: &CallerInfo,
@@ -522,15 +506,14 @@ impl ModuleGraph {
         resolver.resolve_target(caller, target)
     }
 
-    /// Register a [RpoDigest] as corresponding to a given [GlobalProcedureIndex].
+    /// Registers a [RpoDigest] as corresponding to a given [GlobalProcedureIndex].
     ///
     /// # SAFETY
     ///
-    /// It is essential that the caller _guarantee_ that the given digest belongs
-    /// to the specified procedure. It is fine if there are multiple procedures
-    /// with the same digest, but it _must_ be the case that if a given digest
-    /// is specified, it can be used as if it was the definition of the referenced
-    /// procedure, i.e. they are referentially transparent.
+    /// It is essential that the caller _guarantee_ that the given digest belongs to the specified
+    /// procedure. It is fine if there are multiple procedures with the same digest, but it _must_
+    /// be the case that if a given digest is specified, it can be used as if it was the definition
+    /// of the referenced procedure, i.e. they are referentially transparent.
     pub(crate) fn register_mast_root(
         &mut self,
         id: GlobalProcedureIndex,
@@ -588,7 +571,7 @@ impl ModuleGraph {
         Ok(())
     }
 
-    /// Resolve a [FullyQualifiedProcedureName] to its defining [Procedure]
+    /// Resolves a [FullyQualifiedProcedureName] to its defining [Procedure].
     pub fn find(
         &self,
         source_file: Option<Arc<SourceFile>>,
@@ -614,9 +597,8 @@ impl ModuleGraph {
                     break Ok(id);
                 }
                 Some(ResolvedProcedure::External(fqn)) => {
-                    // If we see that we're about to enter an infinite
-                    // resolver loop because of a recursive alias, return
-                    // an error
+                    // If we see that we're about to enter an infinite resolver loop because of a
+                    // recursive alias, return an error
                     if name == &fqn {
                         break Err(AssemblyError::RecursiveAlias {
                             source_file: caller.clone(),
@@ -701,6 +683,9 @@ impl Index<GlobalProcedureIndex> for ModuleGraph {
     }
 }
 
+// HELPER STRUCTS
+// ================================================================================================
+
 struct ThinModule {
     source_file: Option<Arc<SourceFile>>,
     path: LibraryPath,
@@ -740,6 +725,9 @@ impl ResolvedTarget {
         }
     }
 }
+
+// NAME RESOLVER
+// ================================================================================================
 
 struct NameResolver<'a> {
     graph: &'a ModuleGraph,
@@ -971,9 +959,8 @@ impl<'a> NameResolver<'a> {
         caller: &CallerInfo,
         callee: &FullyQualifiedProcedureName,
     ) -> Result<GlobalProcedureIndex, AssemblyError> {
-        // If the caller is a syscall, set the invoke kind
-        // to exec until we have resolved the procedure, then
-        // verify that it is in the kernel module
+        // If the caller is a syscall, set the invoke kind to exec until we have resolved the
+        // procedure, then verify that it is in the kernel module
         let mut current_caller = if matches!(caller.kind, InvokeKind::SysCall) {
             let mut caller = caller.clone();
             caller.kind = InvokeKind::Exec;
@@ -1103,6 +1090,9 @@ impl<'a> NameResolver<'a> {
     }
 }
 
+// REANALYZE CHECK
+// ================================================================================================
+
 struct ReanalyzeCheck<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,
@@ -1158,6 +1148,9 @@ impl<'a, 'b: 'a> Visit<Result<bool, AssemblyError>> for ReanalyzeCheck<'a, 'b> {
         self.resolve_target(InvokeKind::Exec, target)
     }
 }
+
+// MODULE REWRITER VISITOR
+// ================================================================================================
 
 struct ModuleRewriteVisitor<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,

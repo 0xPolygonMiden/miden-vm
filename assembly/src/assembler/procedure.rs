@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{collections::BTreeSet, sync::Arc};
 
 use crate::{
     ast::{FullyQualifiedProcedureName, ProcedureName, Visibility},
@@ -7,16 +7,19 @@ use crate::{
 };
 use vm_core::code_blocks::CodeBlock;
 
-pub type CallSet = alloc::collections::BTreeSet<RpoDigest>;
+pub type CallSet = BTreeSet<RpoDigest>;
+
+// PROCEDURE
+// ================================================================================================
 
 /// A compiled Miden Assembly procedure, consisting of MAST and basic metadata.
 ///
 /// Procedure metadata includes:
 ///
-/// * Fully-qualified path of the procedure in Miden Assembly (if known)
-/// * Number of procedure locals to allocate
-/// * The set of MAST roots invoked by this procedure
-/// * The original source span and file of the procedure (if available)
+/// * Fully-qualified path of the procedure in Miden Assembly (if known).
+/// * Number of procedure locals to allocate.
+/// * The set of MAST roots invoked by this procedure.
+/// * The original source span and file of the procedure (if available).
 /// - Number of procedure locals available to the procedure.
 /// - A set of MAST roots of procedures which are invoked from this procedure.
 #[derive(Clone, Debug)]
