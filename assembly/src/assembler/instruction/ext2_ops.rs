@@ -15,7 +15,7 @@ pub fn ext2_add(span: &mut SpanBuilder) {
         MovDn2,         // [b1, a1, a0+b0, ...]
         Add             // [b1+a1, a0+b0, ...]
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
@@ -34,7 +34,7 @@ pub fn ext2_sub(span: &mut SpanBuilder) {
         MovDn2,     // [-b1, a1, a0-b0, ...]
         Add         // [a1-b1, a0-b0, ...]
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 /// Given a stack with initial configuration given by [b1, b0, a1, a0, ...] where a = (a0, a1) and
@@ -43,7 +43,7 @@ pub fn ext2_sub(span: &mut SpanBuilder) {
 ///
 /// This operation takes 3 VM cycles.
 pub fn ext2_mul(span: &mut SpanBuilder) {
-    span.add_ops([Ext2Mul, Drop, Drop]);
+    span.push_ops([Ext2Mul, Drop, Drop]);
 }
 
 /// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
@@ -67,7 +67,7 @@ pub fn ext2_div(span: &mut SpanBuilder) {
         Drop,           // [b0', a1*b1', a0*b0'...]
         Drop            // [a1*b1', a0*b0'...]
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 /// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0, a1) represents
@@ -83,7 +83,7 @@ pub fn ext2_neg(span: &mut SpanBuilder) {
         Neg,            // [-a0, -a1, ...]
         Swap            // [-a1, -a0, ...]
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }
 
 /// Given an invertible quadratic extension field element on the stack, this routine computes
@@ -124,5 +124,5 @@ pub fn ext2_inv(span: &mut SpanBuilder) {
         MovUp2,         // [1, a1', a0', ...]
         Assert(0),      // [a1', a0', ...]
     ];
-    span.add_ops(ops);
+    span.push_ops(ops);
 }

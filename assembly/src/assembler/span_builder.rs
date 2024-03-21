@@ -42,20 +42,6 @@ impl SpanBuilder {
 
 /// Operations
 impl SpanBuilder {
-    /// Adds the specified operation to the list of span operations and returns Ok(None).
-    pub fn add_op(&mut self, op: Operation) {
-        self.ops.push(op);
-    }
-
-    /// Adds the specified sequence operations to the list of span operations and returns Ok(None).
-    pub fn add_ops<I, O>(&mut self, ops: I)
-    where
-        I: IntoIterator<Item = O>,
-        O: Borrow<Operation>,
-    {
-        self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
-    }
-
     /// Adds the specified operation to the list of span operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
