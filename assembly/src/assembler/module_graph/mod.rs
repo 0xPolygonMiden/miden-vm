@@ -1,4 +1,9 @@
+mod callgraph;
 mod debug;
+mod procedure_cache;
+
+pub use self::callgraph::{CallGraph, CycleError};
+pub use self::procedure_cache::ProcedureCache;
 
 use alloc::{
     borrow::Cow,
@@ -9,7 +14,10 @@ use alloc::{
 };
 use core::ops::{ControlFlow, Index};
 
-use super::{callgraph::CycleError, CallGraph, GlobalProcedureIndex, ModuleIndex};
+use smallvec::{smallvec, SmallVec};
+use vm_core::Kernel;
+
+use super::{GlobalProcedureIndex, ModuleIndex};
 use crate::{
     ast::{
         visit, Export, FullyQualifiedProcedureName, Ident, InvocationTarget, Invoke, InvokeKind,
@@ -18,8 +26,6 @@ use crate::{
     diagnostics::{RelatedLabel, SourceFile},
     AssemblyError, LibraryNamespace, LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
 };
-use smallvec::{smallvec, SmallVec};
-use vm_core::Kernel;
 
 // PHANTOM CALL
 // ================================================================================================
