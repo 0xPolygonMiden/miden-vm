@@ -15,8 +15,8 @@ fn main() {
     // compilation to fail unexpectedly. Instead, we detect the use of a nightly compiler, and
     // conditionally enable nightly features automatically when the nightly compiler is in use.
     //
-    // To accomplish that goal, we set a `nightly` configuration variable, which can then be referenced
-    // in `#[cfg]` directives, e.g. `#[cfg(nightly)]` or `#[cfg(not(nightly))]`.
+    // To accomplish that goal, we set a `nightly` configuration variable, which can then be
+    // referenced in `#[cfg]` directives, e.g. `#[cfg(nightly)]` or `#[cfg(not(nightly))]`.
     if let Channel::Nightly = version_meta().unwrap().channel {
         println!("cargo:rustc-cfg=nightly")
     }

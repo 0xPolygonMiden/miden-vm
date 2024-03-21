@@ -2,6 +2,9 @@ use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction}
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{code_blocks::CodeBlock, AdviceInjector, AssemblyOp, Operation};
 
+// SPAN BUILDER
+// ================================================================================================
+
 /// A helper struct for constructing SPAN blocks while compiling procedure bodies.
 ///
 /// Operations and decorators can be added to a span builder via various `add_*()` and `push_*()`

@@ -16,16 +16,18 @@ impl CycleError {
     }
 }
 
+// CALL GRAPH
+// ================================================================================================
+
 /// A [CallGraph] is a directed, acyclic graph which represents all of the edges between
 /// procedures formed by a caller/callee relationship.
 ///
 /// More precisely, this graph can be used to perform the following analyses:
-///
-/// * What is the maximum call stack depth for a program?
-/// * Are there any recursive procedure calls?
-/// * Are there procedures which are unreachable from the program entrypoint?, i.e. dead code
-/// * What is the set of procedures which are reachable from a given procedure, and which of
-/// those are (un)conditionally called?
+/// - What is the maximum call stack depth for a program?
+/// - Are there any recursive procedure calls?
+/// - Are there procedures which are unreachable from the program entrypoint?, i.e. dead code
+/// - What is the set of procedures which are reachable from a given procedure, and which of those
+///   are (un)conditionally called?
 ///
 /// A [CallGraph] is the actual graph underpinning the [ModuleGraph] data structure, and the
 /// two are intrinsically linked to one another (i.e. a [CallGraph] is meaningless without
@@ -37,7 +39,7 @@ pub struct CallGraph {
 }
 
 impl CallGraph {
-    /// Get the set of edges from the given caller to its callees in the graph
+    /// Gets the set of edges from the given caller to its callees in the graph.
     pub fn out_edges(&self, gid: GlobalProcedureIndex) -> &[GlobalProcedureIndex] {
         self.nodes.get(&gid).map(|out_edges| out_edges.as_slice()).unwrap_or(&[])
     }
@@ -53,14 +55,14 @@ impl CallGraph {
         self.nodes.entry(id).or_default()
     }
 
-    /// Add an edge in the call graph from `caller` to `callee`.
+    /// Adds an edge in the call graph from `caller` to `callee`.
     ///
     /// If introducing this edge will cause a cycle in the graph, then `Err` is returned, and
     /// the edge is not added.
     ///
     /// NOTE: This function performs a topological sort of the graph to perform the cycle check,
-    /// which can be expensive. If you need to add many edges at once, use [add_edge_unchecked], and
-    /// then when ready, call [toposort] to verify that there are no cycles.
+    /// which can be expensive. If you need to add many edges at once, use [add_edge_unchecked],
+    /// and then when ready, call [toposort] to verify that there are no cycles.
     #[allow(unused)]
     pub fn add_edge(
         &mut self,
@@ -157,11 +159,9 @@ impl CallGraph {
         let mut roots =
             VecDeque::from_iter(graph.nodes.keys().copied().filter(|n| !has_preds.contains(n)));
 
-        // If all nodes have predecessors, there must be a cycle, so
-        // just pick a node and let the algorithm find the cycle for
-        // that node so we have a useful error. Set a flag so that we
-        // can assert that the cycle was actually found as a sanity
-        // check
+        // If all nodes have predecessors, there must be a cycle, so just pick a node and let the
+        // algorithm find the cycle for that node so we have a useful error. Set a flag so that we
+        // can assert that the cycle was actually found as a sanity check
         let mut expect_cycle = false;
         if roots.is_empty() {
             expect_cycle = true;
@@ -201,8 +201,8 @@ impl CallGraph {
         }
     }
 
-    /// Get a new graph which is a subgraph of `self` containing all of
-    /// the nodes reachable from `root`, and nothing else.
+    /// Gets a new graph which is a subgraph of `self` containing all of the nodes reachable from
+    /// `root`, and nothing else.
     pub fn subgraph(&self, root: GlobalProcedureIndex) -> Self {
         let mut worklist = VecDeque::from_iter([root]);
         let mut graph = Self::default();
@@ -222,18 +222,18 @@ impl CallGraph {
         graph
     }
 
-    /// Construct the topological ordering of nodes in the call graph,
-    /// for which `caller` is an ancestor.
+    /// Constructs the topological ordering of nodes in the call graph, for which `caller` is an
+    /// ancestor.
     ///
-    /// Returns `Err` if a cycle is detected in the graph
+    /// # Errors
+    /// Returns an error if a cycle is detected in the graph.
     pub fn toposort_caller(
         &self,
         caller: GlobalProcedureIndex,
     ) -> Result<Vec<GlobalProcedureIndex>, CycleError> {
         let mut output = Vec::with_capacity(self.nodes.len());
 
-        // Build a subgraph of `self` containing only those nodes
-        // reachable from `caller`
+        // Build a subgraph of `self` containing only those nodes reachable from `caller`
         let mut graph = self.subgraph(caller);
 
         // Remove all predecessor edges to `caller`

@@ -8,6 +8,9 @@ use crate::{
 };
 use vm_core::code_blocks::CodeBlock;
 
+// ASSEMBLY CONTEXT
+// ================================================================================================
+
 /// An [AssemblyContext] is used to store configuration and state pertaining to the current
 /// compilation of a module/procedure by an [crate::Assembler].
 ///
@@ -38,16 +41,6 @@ pub struct AssemblyContext {
     root: Option<LibraryPath>,
 }
 
-pub(super) struct ProcedureContext {
-    span: SourceSpan,
-    source_file: Option<Arc<SourceFile>>,
-    gid: GlobalProcedureIndex,
-    name: FullyQualifiedProcedureName,
-    visibility: Visibility,
-    num_locals: u16,
-    callset: CallSet,
-}
-
 /// Builders
 impl AssemblyContext {
     pub fn new(kind: ArtifactKind) -> Self {
@@ -67,7 +60,7 @@ impl AssemblyContext {
         Self::new(ArtifactKind::Library).with_root(path.clone())
     }
 
-    /// Returns a new [AssemblyContext] for a executable module.
+    /// Returns a new [AssemblyContext] for an executable module.
     pub fn for_program(path: &LibraryPath) -> Self {
         Self::new(ArtifactKind::Executable).with_root(path.clone())
     }
@@ -101,9 +94,8 @@ impl AssemblyContext {
     ///
     /// # Panics
     ///
-    /// This function will panic if you attempt to enable phantom
-    /// calls for a kernel-mode context, as non-local procedure calls
-    /// are not allowed in kernel modules.
+    /// This function will panic if you attempt to enable phantom calls for a kernel-mode context,
+    /// as non-local procedure calls are not allowed in kernel modules.
     pub fn with_phantom_calls(mut self, allow_phantom_calls: bool) -> Self {
         assert!(
             !self.is_kernel() || !allow_phantom_calls,
@@ -175,6 +167,19 @@ impl AssemblyContext {
 
         Ok(())
     }
+}
+
+// PROCEDURE CONTEXT
+// ================================================================================================
+
+pub(super) struct ProcedureContext {
+    span: SourceSpan,
+    source_file: Option<Arc<SourceFile>>,
+    gid: GlobalProcedureIndex,
+    name: FullyQualifiedProcedureName,
+    visibility: Visibility,
+    num_locals: u16,
+    callset: CallSet,
 }
 
 impl ProcedureContext {
@@ -253,6 +258,7 @@ impl ProcedureContext {
         Box::new(procedure)
     }
 }
+
 impl Spanned for ProcedureContext {
     fn span(&self) -> SourceSpan {
         self.span
