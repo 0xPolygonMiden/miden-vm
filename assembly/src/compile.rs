@@ -14,6 +14,9 @@ use crate::{
     library::{LibraryNamespace, LibraryPath},
 };
 
+// COMPILE OPTIONS
+// ================================================================================================
+
 /// The set of options which can be used to control the behavior of the [Compile] trait.
 #[derive(Debug, Clone)]
 pub struct Options {
@@ -34,6 +37,7 @@ pub struct Options {
     /// or deriving one from `kind`.
     pub path: Option<LibraryPath>,
 }
+
 impl Default for Options {
     fn default() -> Self {
         Self {
@@ -164,6 +168,9 @@ impl Compile for Arc<Module> {
     }
 }
 
+// COMPILE IMPLEMENTATIONS FOR STRINGS
+// ------------------------------------------------------------------------------------------------
+
 impl Compile for Arc<SourceFile> {
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
         let path = match options.path {
@@ -183,9 +190,6 @@ impl Compile for Arc<SourceFile> {
         Module::parse(path, options.kind, self)
     }
 }
-
-// COMPILE IMPLEMENTATIONS FOR STRINGS
-// ------------------------------------------------------------------------------------------------
 
 impl<'a> Compile for &'a str {
     #[inline(always)]

@@ -60,17 +60,17 @@ impl Index<GlobalProcedureIndex> for ProcedureCache {
 }
 
 impl ProcedureCache {
-    /// Returns true if the cache is empty
+    /// Returns true if the cache is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Returns the number of procedures in the cache
+    /// Returns the number of procedures in the cache.
     pub fn len(&self) -> usize {
         self.cache.iter().map(|m| m.iter().filter_map(|p| p.as_deref()).count()).sum()
     }
 
-    /// Search for a procedure in the cache using `predicate`
+    /// Searches for a procedure in the cache using `predicate`.
     #[allow(unused)]
     pub fn find<F>(&self, mut predicate: F) -> Option<Arc<Procedure>>
     where
@@ -87,7 +87,7 @@ impl ProcedureCache {
         })
     }
 
-    /// Search for a procedure in the cache using `predicate`, starting from procedures with the
+    /// Searches for a procedure in the cache using `predicate`, starting from procedures with the
     /// highest [ModuleIndex] to lowest.
     #[allow(unused)]
     pub fn rfind<F>(&self, mut predicate: F) -> Option<Arc<Procedure>>
@@ -105,12 +105,12 @@ impl ProcedureCache {
         })
     }
 
-    /// Look up a procedure by its MAST root hash
+    /// Looks up a procedure by its MAST root.
     pub fn get_by_mast_root(&self, digest: &RpoDigest) -> Option<Arc<Procedure>> {
         self.by_mast_root.get(digest).copied().map(|index| self[index].clone())
     }
 
-    /// Look up a procedure by its fully-qualified name
+    /// Looks up a procedure by its fully-qualified name.
     ///
     /// NOTE: If a procedure with the same name is cached twice, this will return the version with
     /// the highest [ModuleIndex].
@@ -119,14 +119,14 @@ impl ProcedureCache {
         self.rfind(|p| p.fully_qualified_name() == name)
     }
 
-    /// Returns the procedure with the given [GlobalProcedureIndex], if it is cached
+    /// Returns the procedure with the given [GlobalProcedureIndex], if it is cached.
     pub fn get(&self, id: GlobalProcedureIndex) -> Option<Arc<Procedure>> {
         self.cache
             .get(id.module.as_usize())
             .and_then(|m| m.get(id.index.as_usize()).and_then(|p| p.clone()))
     }
 
-    /// Returns true if the procedure with the given [GlobalProcedureIndex] is cached
+    /// Returns true if the procedure with the given [GlobalProcedureIndex] is cached.
     #[allow(unused)]
     pub fn contains_key(&self, id: GlobalProcedureIndex) -> bool {
         self.cache
@@ -135,7 +135,7 @@ impl ProcedureCache {
             .unwrap_or(false)
     }
 
-    /// Returns true if the procedure with the given MAST root is cached
+    /// Returns true if the procedure with the given MAST root is cached.
     #[allow(unused)]
     pub fn contains_mast_root(&self, hash: &RpoDigest) -> bool {
         self.by_mast_root.contains_key(hash)
@@ -147,8 +147,8 @@ impl ProcedureCache {
         self.cache.iter().flat_map(|m| m.iter().filter_map(|p| p.clone()))
     }
 
-    /// Inserts the given [Procedure] into this cache, using the [GlobalProcedureIndex]
-    /// as the cache key.
+    /// Inserts the given [Procedure] into this cache, using the [GlobalProcedureIndex] as the
+    /// cache key.
     ///
     /// # Errors
     ///

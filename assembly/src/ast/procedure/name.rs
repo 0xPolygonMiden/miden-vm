@@ -12,15 +12,18 @@ use crate::{
     SourceSpan, Span, Spanned,
 };
 
+// FULLY QUALIFIED PROCEDURE NAME
+// ================================================================================================
+
 /// Represents a fully-qualified procedure name, e.g. `std::math::u64::add`, parsed into it's
-/// contituent [LibraryPath] and [ProcedureName] components.
+/// constituent [LibraryPath] and [ProcedureName] components.
 #[derive(Clone)]
 pub struct FullyQualifiedProcedureName {
-    /// The source span associated with this identifier
+    /// The source span associated with this identifier.
     pub span: SourceSpan,
-    /// The module path for this procedure
+    /// The module path for this procedure.
     pub module: LibraryPath,
-    /// The name of the procedure
+    /// The name of the procedure.
     pub name: ProcedureName,
 }
 
@@ -124,6 +127,9 @@ impl FullyQualifiedProcedureName {
         Ok(Self { span, module, name })
     }
 }
+
+// PROCEDURE NAME
+// ================================================================================================
 
 /// Procedure name.
 ///
