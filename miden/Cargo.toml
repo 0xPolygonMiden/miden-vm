@@ -53,13 +53,7 @@ executable = [
     "dep:tracing-subscriber",
 ]
 metal = ["prover/metal", "std"]
-std = [
-    "assembly/std",
-    "assembly/formatter",
-    "processor/std",
-    "prover/std",
-    "verifier/std",
-]
+std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
@@ -76,14 +70,14 @@ stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.8", defaul
 tracing = { version = "0.1", default-features = false, features = [
     "attributes",
 ] }
-tracing-subscriber = { version = "0.3", features = [
+tracing-subscriber = { version = "0.3", optional = true, features = [
     "std",
     "env-filter",
-], optional = true }
-tracing-forest = { version = "0.1", features = [
+] }
+tracing-forest = { version = "0.1", optional = true, features = [
     "ansi",
     "smallvec",
-], optional = true }
+] }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.8", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
 

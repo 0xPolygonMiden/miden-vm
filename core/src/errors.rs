@@ -1,5 +1,5 @@
-use crate::utils::DisplayHex;
 use alloc::string::String;
+use miden_formatting::hex::DisplayHex;
 
 // INPUT ERROR
 // ================================================================================================

@@ -73,7 +73,7 @@ impl Display for ExecutionError {
 
         match self {
             AdviceMapKeyNotFound(key) => {
-                let hex = to_hex(Felt::elements_as_bytes(key))?;
+                let hex = to_hex(Felt::elements_as_bytes(key));
                 write!(f, "Value for key {hex} not present in the advice map")
             }
             AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
@@ -81,7 +81,7 @@ impl Display for ExecutionError {
                 write!(f, "Instruction `caller` used outside of kernel context")
             }
             CodeBlockNotFound(digest) => {
-                let hex = to_hex(&digest.as_bytes())?;
+                let hex = to_hex(digest.as_bytes());
                 write!(
                     f,
                     "Failed to execute code block with root {hex}; the block could not be found"
@@ -92,7 +92,7 @@ impl Display for ExecutionError {
             }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
             DynamicCodeBlockNotFound(digest) => {
-                let hex = to_hex(&digest.as_bytes())?;
+                let hex = to_hex(digest.as_bytes());
                 write!(
                     f,
                     "Failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found"
@@ -155,8 +155,8 @@ impl Display for ExecutionError {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
             }
             MerklePathVerificationFailed { value, index, root } => {
-                let value = to_hex(Felt::elements_as_bytes(value))?;
-                let root = to_hex(&root.as_bytes())?;
+                let value = to_hex(Felt::elements_as_bytes(value));
+                let root = to_hex(root.as_bytes());
                 write!(f, "Merkle path verification failed for value {value} at index {index}, in the Merkle tree with root {root}")
             }
             MerkleStoreLookupFailed(reason) => {
@@ -178,16 +178,16 @@ impl Display for ExecutionError {
                 )
             }
             SmtNodeNotFound(node) => {
-                let node_hex = to_hex(Felt::elements_as_bytes(node))?;
+                let node_hex = to_hex(Felt::elements_as_bytes(node));
                 write!(f, "Smt node {node_hex} not found")
             }
             SmtNodePreImageNotValid(node, preimage_len) => {
-                let node_hex = to_hex(Felt::elements_as_bytes(node))?;
+                let node_hex = to_hex(Felt::elements_as_bytes(node));
                 write!(f, "Invalid pre-image for node {node_hex}. Expected pre-image length to be a multiple of 8, but was {preimage_len}")
             }
             ProverError(error) => write!(f, "Proof generation failed: {error}"),
             SyscallTargetNotInKernel(proc) => {
-                let hex = to_hex(&proc.as_bytes())?;
+                let hex = to_hex(proc.as_bytes());
                 write!(f, "Syscall failed: procedure with root {hex} was not found in the kernel")
             }
             UnexecutableCodeBlock(block) => {

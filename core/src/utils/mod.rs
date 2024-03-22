@@ -1,7 +1,7 @@
 use crate::Felt;
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use core::{
-    fmt::{self, Debug},
+    fmt::Debug,
     ops::{Bound, Range},
 };
 
@@ -130,46 +130,4 @@ fn debug_assert_is_checked() {
 // FORMATTING
 // ================================================================================================
 
-/// Utility to convert a sequence of bytes to hex.
-pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
-    use core::fmt::Write;
-
-    let mut s = String::with_capacity(bytes.len() * 2);
-    write!(s, "{:x}", DisplayHex(bytes))?;
-    Ok(s)
-}
-
-/// A display helper for formatting a slice of bytes as hex
-/// with different options using Rust's builtin format language
-pub struct DisplayHex<'a>(pub &'a [u8]);
-
-impl<'a> fmt::Display for DisplayHex<'a> {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::LowerHex::fmt(self, f)
-    }
-}
-
-#[cfg(feature = "formatter")]
-impl<'a> crate::prettier::PrettyPrint for DisplayHex<'a> {
-    fn render(&self) -> crate::prettier::Document {
-        crate::prettier::text(format!("{:#x}", self))
-    }
-}
-
-impl<'a> fmt::LowerHex for DisplayHex<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if f.alternate() {
-            f.write_str("0x")?;
-        }
-        for byte in self.0.iter() {
-            write!(f, "{byte:02x}")?;
-        }
-        Ok(())
-    }
-}
-
-/// Builds a hex string from a byte slice
-pub fn write_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "{:#x}", DisplayHex(bytes))
-}
+pub use miden_formatting::hex::{to_hex, DisplayHex, ToHex};
