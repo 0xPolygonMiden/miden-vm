@@ -8,14 +8,14 @@ While executing in a user context, we can request to execute some procedures in 
 ![context transitions](../../assets/user_docs/assembly/execution_contexts/context_transitions.png)
 
 ### Procedure invocation semantics
-As mentioned in the [previous section](./code_organization.md), procedures in Miden assembly can be invoked via three different instructions: `exec`, `call`, and `syscall`. Invocation semantics of `call` and `syscall` instructions are basically the same, the only difference being that the `syscall` instruction can be used only with procedures which are defined in the program's kernel. The `exec` instruction is different, and we explain these differences below.
+As mentioned in the [previous section](./code_organization.md), procedures in Miden assembly can be invoked via five different instructions: `exec`, `call`, `syscall`, `dynexec`, and `dyncall`. Invocation semantics of `call`, `dyncall`, and `syscall` instructions are basically the same, the only difference being that the `syscall` instruction can be used only to call kernel's procedures. The `exec` and `dynexec` instructions are different, and we explain these differences below.
 
-#### Invoking via `call` and `syscall` instructions
-When a procedure is invoked via a `call` or a `syscall` instruction, the following happens:
-* Execution moves into a different context. In case of a `call` instruction, a new user context is created. In case of a `syscall` instruction, the execution moves back into the root context.
+#### Invoking via `call`, `dyncall`, and `syscall` instructions
+When a procedure is invoked via a `call`, `dyncall` or a `syscall` instruction, the following happens:
+* Execution moves into a different context. In case of the `call` and `dyncall` instructions, a new user context is created. In case of a `syscall` instruction, the execution moves back into the root context.
 * All stack items beyond the 16th item get "hidden" from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.
 
-When a procedure returns from a `call` or a `syscall`, the following happens:
+When the called procedure returns, the following happens:
 * Execution moves back to the context from which the procedure was invoked.
 * Stack depth is set to its original depth. Before the stack depth is reset, the VM checks if the current stack depth is exactly 16, and fails otherwise.
 
