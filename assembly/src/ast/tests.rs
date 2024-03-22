@@ -2,7 +2,11 @@ use super::{
     AstSerdeOptions, CodeBody, Felt, Instruction, LocalProcMap, ModuleAst, Node, ParsingError,
     ProcedureAst, ProcedureId, ProcedureName, ProgramAst, SourceLocation, Token,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec::Vec,
+};
 use vm_core::utils::SliceReader;
 
 // UNIT TESTS

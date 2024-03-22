@@ -1,6 +1,8 @@
 use super::Felt;
-use crate::utils::collections::*;
-use vm_core::{crypto::hash::RpoDigest, utils::collections::btree_map::IntoIter};
+use alloc::collections::btree_map::IntoIter;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use vm_core::crypto::hash::RpoDigest;
 
 // ADVICE MAP
 // ================================================================================================

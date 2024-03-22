@@ -1,4 +1,5 @@
 use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, ModuleAst, Version};
+use alloc::vec::Vec;
 use vm_core::utils::{Deserializable, Serializable, SliceReader};
 
 #[test]

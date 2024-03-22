@@ -4,7 +4,8 @@ use super::{
     ModuleImports, Node, ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap,
     Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::string::ToString;
+use alloc::vec::Vec;
 
 // PARSER CONTEXT
 // ================================================================================================

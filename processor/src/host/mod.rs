@@ -1,3 +1,5 @@
+use std::println;
+
 use super::{ExecutionError, Felt, ProcessState};
 use crate::MemAdviceProvider;
 use vm_core::{crypto::merkle::MerklePath, AdviceInjector, DebugOptions, Word};

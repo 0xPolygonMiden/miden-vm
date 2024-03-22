@@ -2,7 +2,7 @@ use super::{
     Assembler, AssemblyContext, AssemblyError, CodeBlock, Operation, ProcedureId, RpoDigest,
     SpanBuilder,
 };
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================

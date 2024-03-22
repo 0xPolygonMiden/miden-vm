@@ -1,5 +1,5 @@
 use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
-use crate::utils::boxed::*;
+use winter_utils::Box;
 
 // SPLIT BLOCK
 // ================================================================================================
