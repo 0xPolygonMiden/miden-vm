@@ -135,7 +135,6 @@ impl<T: fmt::Display> fmt::Display for Immediate<T> {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl<T: crate::prettier::PrettyPrint> crate::prettier::PrettyPrint for Immediate<T> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

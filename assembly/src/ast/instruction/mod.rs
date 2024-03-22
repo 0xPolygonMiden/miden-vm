@@ -2,7 +2,6 @@ pub mod advice;
 pub mod debug;
 mod deserialize;
 mod opcode;
-#[cfg(feature = "formatter")]
 mod print;
 mod serialize;
 
@@ -281,18 +280,10 @@ impl Instruction {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl core::fmt::Display for Instruction {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use crate::prettier::PrettyPrint;
 
         self.pretty_print(f)
-    }
-}
-
-#[cfg(not(feature = "formatter"))]
-impl core::fmt::Display for Instruction {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:?}", self)
     }
 }

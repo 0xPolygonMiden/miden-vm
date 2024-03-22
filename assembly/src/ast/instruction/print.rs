@@ -1,7 +1,7 @@
 use crate::{
-    ast::InvocationTarget,
+    ast::{Immediate, InvocationTarget},
     prettier::{Document, PrettyPrint},
-    DisplayHex,
+    DisplayHex, Span,
 };
 
 use super::Instruction;
@@ -28,29 +28,29 @@ impl PrettyPrint for Instruction {
                 flatten(const_text("assertz.err") + const_text("=") + display(err_code))
             }
             Self::Add => const_text("add"),
-            Self::AddImm(value) => inst_with_imm("add", value),
+            Self::AddImm(value) => inst_with_felt_imm("add", value),
             Self::Sub => const_text("sub"),
-            Self::SubImm(value) => inst_with_imm("sub", value),
+            Self::SubImm(value) => inst_with_felt_imm("sub", value),
             Self::Mul => const_text("mul"),
-            Self::MulImm(value) => inst_with_imm("mul", value),
+            Self::MulImm(value) => inst_with_felt_imm("mul", value),
             Self::Div => const_text("div"),
-            Self::DivImm(value) => inst_with_imm("div", value),
+            Self::DivImm(value) => inst_with_felt_imm("div", value),
             Self::Neg => const_text("neg"),
             Self::ILog2 => const_text("ilog2"),
             Self::Inv => const_text("inv"),
             Self::Incr => const_text("add.1"),
             Self::Pow2 => const_text("pow2"),
             Self::Exp => const_text("exp"),
-            Self::ExpImm(value) => inst_with_imm("exp", value),
+            Self::ExpImm(value) => inst_with_felt_imm("exp", value),
             Self::ExpBitLength(value) => text(format!("exp.u{value}")),
             Self::Not => const_text("not"),
             Self::And => const_text("and"),
             Self::Or => const_text("or"),
             Self::Xor => const_text("xor"),
             Self::Eq => const_text("eq"),
-            Self::EqImm(value) => inst_with_imm("eq", value),
+            Self::EqImm(value) => inst_with_felt_imm("eq", value),
             Self::Neq => const_text("neq"),
-            Self::NeqImm(value) => inst_with_imm("neq", value),
+            Self::NeqImm(value) => inst_with_felt_imm("neq", value),
             Self::Eqw => const_text("eqw"),
             Self::Lt => const_text("lt"),
             Self::Lte => const_text("lte"),
@@ -210,16 +210,18 @@ impl PrettyPrint for Instruction {
             Self::CDropW => const_text("cdropw"),
 
             // ----- input / output operations ----------------------------------------------------
-            Self::Push(imm) => inst_with_imm("push", imm),
+            Self::Push(imm) => inst_with_felt_imm("push", imm),
             Self::PushU8(value) => inst_with_imm("push", value),
             Self::PushU16(value) => inst_with_imm("push", value),
             Self::PushU32(value) => inst_with_imm("push", value),
-            Self::PushFelt(value) => inst_with_imm("push", value),
-            Self::PushWord(values) => inst_with_pretty_params("push", values),
+            Self::PushFelt(value) => {
+                inst_with_felt_imm("push", &Immediate::Value(Span::unknown(*value)))
+            }
+            Self::PushWord(values) => inst_with_pretty_felt_params("push", values),
             Self::PushU8List(values) => inst_with_pretty_params("push", values),
             Self::PushU16List(values) => inst_with_pretty_params("push", values),
             Self::PushU32List(values) => inst_with_pretty_params("push", values),
-            Self::PushFeltList(values) => inst_with_pretty_params("push", values),
+            Self::PushFeltList(values) => inst_with_pretty_felt_params("push", values),
 
             Self::Locaddr(value) => inst_with_imm("locaddr", value),
             Self::Sdepth => const_text("sdepth"),
@@ -338,6 +340,38 @@ fn inst_with_imm(name: &'static str, imm: &dyn PrettyPrint) -> Document {
     let imm = imm.render();
 
     flatten(const_text(name) + const_text(".") + imm)
+}
+
+fn inst_with_felt_imm(name: &'static str, imm: &Immediate<crate::Felt>) -> Document {
+    use crate::prettier::*;
+
+    let value = match imm {
+        Immediate::Value(ref value) => display(*value),
+        Immediate::Constant(ref name) => text(name),
+    };
+
+    flatten(const_text(name) + const_text(".") + value)
+}
+
+fn inst_with_pretty_felt_params(inst: &'static str, params: &[crate::Felt]) -> Document {
+    use crate::prettier::*;
+
+    let single_line = text(inst)
+        + const_text(".")
+        + params
+            .iter()
+            .copied()
+            .map(display)
+            .reduce(|acc, doc| acc + const_text(".") + doc)
+            .unwrap_or_default();
+
+    let multi_line = params
+        .iter()
+        .copied()
+        .map(|v| text(inst) + const_text(".") + display(v))
+        .reduce(|acc, doc| acc + nl() + doc)
+        .unwrap_or_default();
+    single_line | multi_line
 }
 
 fn inst_with_pretty_params<P: PrettyPrint>(inst: &'static str, params: &[P]) -> Document {

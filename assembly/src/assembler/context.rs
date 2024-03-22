@@ -24,6 +24,8 @@ use vm_core::code_blocks::CodeBlock;
 pub struct AssemblyContext {
     /// What kind of artifact are we assembling
     kind: ArtifactKind,
+    /// When true, promote warning diagnostics to errors
+    warnings_as_errors: bool,
     /// When true, this permits calls to refer to procedures which are not locally available,
     /// as long as they are referenced by MAST root, and not by name. As long as the MAST for those
     /// roots is present when the code is executed, this works fine. However, if the VM tries to
@@ -68,6 +70,12 @@ impl AssemblyContext {
     fn with_root(mut self, path: LibraryPath) -> Self {
         self.root = Some(path);
         self
+    }
+
+    /// When true, all warning diagnostics are promoted to errors
+    #[inline(always)]
+    pub fn set_warnings_as_errors(&mut self, yes: bool) {
+        self.warnings_as_errors = yes;
     }
 
     #[inline]
@@ -118,6 +126,12 @@ impl AssemblyContext {
     /// Returns the type of artifact to produce with this context
     pub fn kind(&self) -> ArtifactKind {
         self.kind
+    }
+
+    /// Returns true if this context treats warning diagnostics as errors
+    #[inline(always)]
+    pub fn warnings_as_errors(&self) -> bool {
+        self.warnings_as_errors
     }
 
     /// Registers a "phantom" call to the procedure with the specified MAST root.

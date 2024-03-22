@@ -82,14 +82,14 @@ impl Call {
 impl crate::prettier::PrettyPrint for Call {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
-        use miden_formatting::hex::DisplayHex;
+        use miden_formatting::hex::ToHex;
 
         let doc = if self.is_syscall {
             const_text("syscall")
         } else {
             const_text("call")
         };
-        doc + const_text(".") + display(DisplayHex::new(&self.fn_hash.as_bytes()))
+        doc + const_text(".") + text(self.fn_hash.as_bytes().to_hex_with_prefix())
     }
 }
 

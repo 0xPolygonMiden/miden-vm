@@ -91,7 +91,6 @@ impl fmt::Debug for Block {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Block {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

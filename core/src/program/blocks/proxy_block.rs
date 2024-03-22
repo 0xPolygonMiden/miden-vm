@@ -29,9 +29,9 @@ impl Proxy {
 impl crate::prettier::PrettyPrint for Proxy {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
-        use miden_formatting::hex::DisplayHex;
+        use miden_formatting::hex::ToHex;
 
-        const_text("proxy") + const_text(".") + display(DisplayHex(&self.hash.as_bytes()))
+        const_text("proxy") + const_text(".") + text(self.hash.as_bytes().to_hex_with_prefix())
     }
 }
 

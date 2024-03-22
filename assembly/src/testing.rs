@@ -202,7 +202,7 @@ impl TestContext {
             let _ = set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
         }
         Self {
-            assembler: Assembler::default().with_debug_mode(true),
+            assembler: Assembler::default().with_debug_mode(true).with_warnings_as_errors(true),
         }
     }
 
@@ -222,7 +222,10 @@ impl TestContext {
     /// valid.
     #[track_caller]
     pub fn parse_program(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile()
+        source.compile_with_opts(CompileOpts {
+            warnings_as_errors: self.assembler.warnings_as_errors(),
+            ..Default::default()
+        })
     }
 
     /// Parse the given source file into a kernel [Module].
@@ -232,7 +235,10 @@ impl TestContext {
     #[allow(unused)]
     #[track_caller]
     pub fn parse_kernel(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts::for_kernel())
+        source.compile_with_opts(CompileOpts {
+            warnings_as_errors: self.assembler.warnings_as_errors(),
+            ..CompileOpts::for_kernel()
+        })
     }
 
     /// Parse the given source file into an anonymous library [Module].
@@ -241,7 +247,10 @@ impl TestContext {
     /// valid.
     #[track_caller]
     pub fn parse_module(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts::for_library())
+        source.compile_with_opts(CompileOpts {
+            warnings_as_errors: self.assembler.warnings_as_errors(),
+            ..CompileOpts::for_library()
+        })
     }
 
     /// Parse the given source file into a library [Module] with the given fully-qualified path.
@@ -251,7 +260,10 @@ impl TestContext {
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts::new(ModuleKind::Library, path).unwrap())
+        source.compile_with_opts(CompileOpts {
+            warnings_as_errors: self.assembler.warnings_as_errors(),
+            ..CompileOpts::new(ModuleKind::Library, path).unwrap()
+        })
     }
 
     /// Add `module` to the [Assembler] constructed by this context, making it available to
@@ -308,8 +320,11 @@ impl TestContext {
         module: impl Compile,
     ) -> Result<Vec<RpoDigest>, Report> {
         let mut context = AssemblyContext::for_library(&path);
+        context.set_warnings_as_errors(self.assembler.warnings_as_errors());
+
         let options = CompileOpts {
             path: Some(path),
+            warnings_as_errors: self.assembler.warnings_as_errors(),
             ..CompileOpts::for_library()
         };
         self.assembler.assemble_module(module, options, &mut context)

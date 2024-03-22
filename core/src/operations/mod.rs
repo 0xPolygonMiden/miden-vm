@@ -588,7 +588,6 @@ impl Operation {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Operation {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)
