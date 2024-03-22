@@ -176,7 +176,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="execution-contexts"><a class="header" href="#execution-contexts">Execution contexts</a></h2>
 <p>Miden assembly program execution can span multiple isolated contexts. An execution context defines its own memory space which is not accessible from other execution contexts.</p>
 <p>All programs start executing in a <em>root</em> context. Thus, the main procedure of a program is always executed in the root context. To move execution into a different context, we can invoke a procedure using the <code>call</code> instruction. In fact, any time we invoke a procedure using the <code>call</code> instruction, the procedure is executed in a new context. We refer to all non-root contexts as <em>user contexts</em>.</p>

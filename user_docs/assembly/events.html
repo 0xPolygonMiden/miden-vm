@@ -176,7 +176,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h2 id="events"><a class="header" href="#events">Events</a></h2>
 <p>Miden assembly supports the concept of events. Events are a simple data structure with a single <code>event_id</code> field.  When an event is emitted by a program, it is communicated to the host. Events can be emitted at specific points of program execution with the intent of triggering some action on the host. This is useful as the program has contextual information that would be challenging for the host to infer. The emission of events allows the program to communicate this contextual information to the host. The host contains an event handler that is responsible for handling events and taking appropriate actions. The emission of events does not change the state of the VM but it can  change the state of the host.</p>
 <p>An event can be emitted via the <code>emit.&lt;event_id&gt;</code> assembly instruction where <code>&lt;event_id&gt;</code> can be any 32-bit value specified either directly or via a <a href="./code_organization.html#constants">named constant</a>. For example:</p>

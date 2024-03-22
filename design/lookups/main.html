@@ -176,9 +176,9 @@
 
                 <div id="content" class="content">
                     <main>
-                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
 <h1 id="lookup-arguments-in-miden-vm"><a class="header" href="#lookup-arguments-in-miden-vm">Lookup arguments in Miden VM</a></h1>
-<p>Zero knowledge virtual machines frequently make use of lookup arguments to enable performance optimizations. Miden VM uses two types of arguments: multiset checks and a multivariate lookup based on logarithmic derivatives known as LogUp. A brief introduction to multiset checks can be found <a href="https://hackmd.io/@arielg/ByFgSDA7D">here</a>. The description of LogUp can be found <a href="https://eprint.iacr.org/2022/1530.pdf">here</a>.</p>
+<p>Zero knowledge virtual machines frequently make use of lookup arguments to enable performance optimizations. Miden VM uses two types of arguments: multiset checks and a multivariate lookup based on logarithmic derivatives known as LogUp. A brief introduction to multiset checks can be found <a href="./multiset.html">here</a>. The description of LogUp can be found <a href="https://eprint.iacr.org/2022/1530.pdf">here</a>.</p>
 <p>In Miden VM, lookup arguments are used for two purposes:</p>
 <ol>
 <li>To prove the consistency of intermediate values that must persist between different cycles of the trace without storing the full data in the execution trace (which would require adding more columns to the trace).</li>
