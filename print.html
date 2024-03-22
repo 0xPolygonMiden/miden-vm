@@ -789,14 +789,14 @@ end
 <p>While executing in a user context, we can request to execute some procedures in the root context. This can be done via the <code>syscall</code> instruction. The set of procedures which can be invoked via the <code>syscall</code> instruction is limited by the <a href="user_docs/assembly/execution_contexts.html#kernels">kernel</a> against which a program is compiled. Once the procedure called via <code>syscall</code> returns, the execution moves back to the user context from which it was invoked. The diagram below illustrates this graphically:</p>
 <p><img src="user_docs/assembly/../../assets/user_docs/assembly/execution_contexts/context_transitions.png" alt="context transitions" /></p>
 <h3 id="procedure-invocation-semantics"><a class="header" href="#procedure-invocation-semantics">Procedure invocation semantics</a></h3>
-<p>As mentioned in the <a href="user_docs/assembly/./code_organization.html">previous section</a>, procedures in Miden assembly can be invoked via three different instructions: <code>exec</code>, <code>call</code>, and <code>syscall</code>. Invocation semantics of <code>call</code> and <code>syscall</code> instructions are basically the same, the only difference being that the <code>syscall</code> instruction can be used only with procedures which are defined in the program's kernel. The <code>exec</code> instruction is different, and we explain these differences below.</p>
-<h4 id="invoking-via-call-and-syscall-instructions"><a class="header" href="#invoking-via-call-and-syscall-instructions">Invoking via <code>call</code> and <code>syscall</code> instructions</a></h4>
-<p>When a procedure is invoked via a <code>call</code> or a <code>syscall</code> instruction, the following happens:</p>
+<p>As mentioned in the <a href="user_docs/assembly/./code_organization.html">previous section</a>, procedures in Miden assembly can be invoked via five different instructions: <code>exec</code>, <code>call</code>, <code>syscall</code>, <code>dynexec</code>, and <code>dyncall</code>. Invocation semantics of <code>call</code>, <code>dyncall</code>, and <code>syscall</code> instructions are basically the same, the only difference being that the <code>syscall</code> instruction can be used only to call kernel's procedures. The <code>exec</code> and <code>dynexec</code> instructions are different, and we explain these differences below.</p>
+<h4 id="invoking-via-call-dyncall-and-syscall-instructions"><a class="header" href="#invoking-via-call-dyncall-and-syscall-instructions">Invoking via <code>call</code>, <code>dyncall</code>, and <code>syscall</code> instructions</a></h4>
+<p>When a procedure is invoked via a <code>call</code>, <code>dyncall</code> or a <code>syscall</code> instruction, the following happens:</p>
 <ul>
-<li>Execution moves into a different context. In case of a <code>call</code> instruction, a new user context is created. In case of a <code>syscall</code> instruction, the execution moves back into the root context.</li>
+<li>Execution moves into a different context. In case of the <code>call</code> and <code>dyncall</code> instructions, a new user context is created. In case of a <code>syscall</code> instruction, the execution moves back into the root context.</li>
 <li>All stack items beyond the 16th item get "hidden" from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.</li>
 </ul>
-<p>When a procedure returns from a <code>call</code> or a <code>syscall</code>, the following happens:</p>
+<p>When the called procedure returns, the following happens:</p>
 <ul>
 <li>Execution moves back to the context from which the procedure was invoked.</li>
 <li>Stack depth is set to its original depth. Before the stack depth is reset, the VM checks if the current stack depth is exactly 16, and fails otherwise.</li>
