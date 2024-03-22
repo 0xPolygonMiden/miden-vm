@@ -18,6 +18,8 @@ use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
 mod utils;
 pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
 
+mod virtual_bus;
+
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
