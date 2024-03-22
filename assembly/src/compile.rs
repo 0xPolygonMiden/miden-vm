@@ -22,6 +22,8 @@ pub struct Options {
     ///
     /// The default kind is executable.
     pub kind: ModuleKind,
+    /// When true, promote warning diagnostics to errors
+    pub warnings_as_errors: bool,
     /// The name to give the compiled [Module]
     ///
     /// This option overrides `namespace`.
@@ -36,6 +38,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             kind: ModuleKind::Executable,
+            warnings_as_errors: false,
             path: None,
         }
     }
@@ -54,6 +57,7 @@ impl Options {
         Ok(Self {
             kind,
             path: Some(path),
+            ..Default::default()
         })
     }
 
@@ -157,7 +161,9 @@ impl Compile for Arc<SourceFile> {
                 .into_diagnostic()
                 .wrap_err("cannot compile module as it has an invalid path/name")?,
         };
-        Module::parse(path, options.kind, self)
+        let mut parser = Module::parser(options.kind);
+        parser.set_warnings_as_errors(options.warnings_as_errors);
+        parser.parse(path, self)
     }
 }
 
@@ -177,9 +183,11 @@ impl<'a> Compile for &'a String {
 
 impl Compile for String {
     fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+        let mut parser = Module::parser(options.kind);
+        parser.set_warnings_as_errors(options.warnings_as_errors);
         if let Some(path) = options.path {
             let source = Arc::new(SourceFile::new(path.path(), self));
-            return Module::parse(path, options.kind, source);
+            return parser.parse(path, source);
         }
         let path = LibraryPath::from(match options.kind {
             ModuleKind::Library => LibraryNamespace::Anon,
@@ -187,7 +195,7 @@ impl Compile for String {
             ModuleKind::Kernel => LibraryNamespace::Kernel,
         });
         let source = Arc::new(SourceFile::new(path.path(), self));
-        Module::parse(path, options.kind, source)
+        parser.parse(path, source)
     }
 }
 
@@ -284,7 +292,8 @@ impl<'a> Compile for &'a std::path::Path {
                 LibraryPath::new_from_components(ns, parts)
             }
         };
-        Module::parse_file(path, options.kind, self)
+        let mut parser = Module::parser(options.kind);
+        parser.parse_file(path, self)
     }
 }
 

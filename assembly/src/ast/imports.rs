@@ -90,7 +90,6 @@ impl fmt::Debug for Import {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Import {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

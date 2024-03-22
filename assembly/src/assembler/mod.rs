@@ -121,6 +121,8 @@ pub struct Assembler {
     module_graph: Box<ModuleGraph>,
     /// The global procedure cache for this assembler.
     procedure_cache: ProcedureCache,
+    /// Whether to treat warning diagnostics as errors
+    warnings_as_errors: bool,
     /// Whether the assembler enables extra debugging information.
     in_debug_mode: bool,
     /// Whether the assembler allows unknown invocation targets in compiled code.
@@ -132,6 +134,7 @@ impl Default for Assembler {
         Self {
             module_graph: Default::default(),
             procedure_cache: Default::default(),
+            warnings_as_errors: false,
             in_debug_mode: false,
             allow_phantom_calls: true,
         }
@@ -142,6 +145,11 @@ impl Assembler {
     /// Start building an [Assembler]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Returns true if this assembler promotes warning diagnostics as errors by default.
+    pub fn warnings_as_errors(&self) -> bool {
+        self.warnings_as_errors
     }
 
     /// Returns true if this assembler was instantiated in debug mode.
@@ -167,6 +175,14 @@ impl Assembler {
     /// Returns true if this assembler was instantiated with phantom calls enabled.
     pub fn allow_phantom_calls(&self) -> bool {
         self.allow_phantom_calls
+    }
+
+    /// Sets the default behavior of this assembler with regard to warning diagnostics.
+    ///
+    /// When true, any warning diagnostics that are emitted will be promoted to errors.
+    pub fn with_warnings_as_errors(mut self, yes: bool) -> Self {
+        self.warnings_as_errors = yes;
+        self
     }
 
     /// Puts the assembler into the debug mode.
@@ -333,7 +349,11 @@ impl Assembler {
             return Err(Report::new(AssemblyError::ConflictingKernels));
         }
 
-        let module = module.compile_with_opts(CompileOpts::for_kernel())?;
+        let opts = CompileOpts {
+            warnings_as_errors: self.warnings_as_errors,
+            ..CompileOpts::for_kernel()
+        };
+        let module = module.compile_with_opts(opts)?;
         let (kernel_index, kernel) = self.assemble_kernel_module(module)?;
         self.module_graph.set_kernel(Some(kernel_index), kernel);
 
@@ -363,7 +383,9 @@ impl Assembler {
     /// Returns an error if parsing or compilation of the specified program fails.
     pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
         let mut context = AssemblyContext::default();
-        self.assemble_with_opts_in_context(source, CompileOpts::default(), &mut context)
+        context.set_warnings_as_errors(self.warnings_as_errors);
+
+        self.assemble_in_context(source, &mut context)
     }
 
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
@@ -372,7 +394,11 @@ impl Assembler {
         source: impl Compile,
         context: &mut AssemblyContext,
     ) -> Result<Program, Report> {
-        self.assemble_with_opts_in_context(source, CompileOpts::default(), context)
+        let opts = CompileOpts {
+            warnings_as_errors: context.warnings_as_errors(),
+            ..CompileOpts::default()
+        };
+        self.assemble_with_opts_in_context(source, opts, context)
     }
 
     /// Compiles the provided module into a [Program] using the provided options.
@@ -389,6 +415,8 @@ impl Assembler {
         options: CompileOpts,
     ) -> Result<Program, Report> {
         let mut context = AssemblyContext::default();
+        context.set_warnings_as_errors(options.warnings_as_errors);
+
         self.assemble_with_opts_in_context(source, options, &mut context)
     }
 
@@ -497,6 +525,8 @@ impl Assembler {
         }
 
         let mut context = AssemblyContext::for_kernel(module.path());
+        context.set_warnings_as_errors(self.warnings_as_errors);
+
         let kernel_index = self.module_graph.add_module(module)?;
         self.module_graph.recompute()?;
         let kernel_module = self.module_graph[kernel_index].clone();

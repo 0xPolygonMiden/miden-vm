@@ -1,4 +1,8 @@
-use crate::{ast::*, diagnostics::SourceFile, Felt, LibraryPath, Span, Spanned};
+use crate::{
+    ast::*,
+    diagnostics::{Diagnostic, Severity, SourceFile},
+    Felt, LibraryPath, Span, Spanned,
+};
 use alloc::{
     boxed::Box,
     collections::{BTreeMap, BTreeSet},
@@ -16,6 +20,7 @@ pub struct AnalysisContext {
     constants: BTreeMap<Ident, Constant>,
     procedures: BTreeSet<ProcedureName>,
     errors: Vec<SemanticAnalysisError>,
+    warnings_as_errors: bool,
 }
 
 impl AnalysisContext {
@@ -27,7 +32,17 @@ impl AnalysisContext {
             constants: Default::default(),
             procedures: Default::default(),
             errors: Default::default(),
+            warnings_as_errors: false,
         }
+    }
+
+    pub fn set_warnings_as_errors(&mut self, yes: bool) {
+        self.warnings_as_errors = yes;
+    }
+
+    #[inline(always)]
+    pub fn warnings_as_errors(&self) -> bool {
+        self.warnings_as_errors
     }
 
     /// Define a new constant `name`, bound to `value`
@@ -148,8 +163,30 @@ impl AnalysisContext {
     }
 
     pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
+        if self.warnings_as_errors() {
+            return !self.errors.is_empty();
+        }
+        self.errors
+            .iter()
+            .any(|err| matches!(err.severity().unwrap_or(Severity::Error), Severity::Error))
     }
+
+    #[cfg(feature = "std")]
+    fn emit_warnings(self) {
+        use crate::diagnostics::Report;
+
+        if !self.errors.is_empty() {
+            // Emit warnings to stderr
+            let warning = Report::from(super::errors::SyntaxWarning {
+                input: self.source_code,
+                errors: self.errors,
+            });
+            std::eprintln!("{}", warning);
+        }
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn emit_warnings(self) {}
 
     pub fn source_file(&self) -> Arc<SourceFile> {
         self.source_code.clone()
@@ -168,13 +205,15 @@ impl AnalysisContext {
     }
 
     pub fn into_result(mut self) -> Result<Box<Module>, SyntaxError> {
-        if self.errors.is_empty() {
-            Ok(self.module.take().unwrap())
-        } else {
+        if self.has_errors() {
             Err(SyntaxError {
                 input: self.source_code,
                 errors: self.errors,
             })
+        } else {
+            let module = self.module.take().unwrap();
+            self.emit_warnings();
+            Ok(module)
         }
     }
 }

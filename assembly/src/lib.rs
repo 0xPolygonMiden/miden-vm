@@ -16,7 +16,6 @@ use vm_core::{
     Felt, ONE, ZERO,
 };
 
-#[cfg(feature = "formatter")]
 use vm_core::{prettier, utils::DisplayHex};
 
 mod assembler;

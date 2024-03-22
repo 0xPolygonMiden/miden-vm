@@ -156,7 +156,6 @@ impl Export {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Export {
     fn render(&self) -> crate::prettier::Document {
         match self {

@@ -70,7 +70,6 @@ impl Program {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Program {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -78,17 +77,11 @@ impl crate::prettier::PrettyPrint for Program {
         indent(4, const_text("begin") + nl() + self.root.render()) + nl() + const_text("end")
     }
 }
-#[cfg(feature = "formatter")]
+
 impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-#[cfg(not(feature = "formatter"))]
-impl fmt::Display for Program {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "begin {} end", self.root)
     }
 }
 

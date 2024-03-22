@@ -188,7 +188,6 @@ impl<T: fmt::Display> fmt::Display for Span<T> {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl<T: crate::prettier::PrettyPrint> crate::prettier::PrettyPrint for Span<T> {
     fn render(&self) -> crate::prettier::Document {
         self.spanned.render()

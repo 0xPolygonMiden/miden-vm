@@ -59,7 +59,6 @@ impl Join {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Join {
     #[rustfmt::skip]
     fn render(&self) -> crate::prettier::Document {
@@ -76,17 +75,9 @@ impl crate::prettier::PrettyPrint for Join {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl fmt::Display for Join {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-#[cfg(not(feature = "formatter"))]
-impl fmt::Display for Join {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "join {} {} end", self.body[0], self.body[1])
     }
 }

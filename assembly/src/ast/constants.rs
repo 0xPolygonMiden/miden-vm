@@ -45,7 +45,6 @@ impl fmt::Debug for Constant {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Constant {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -240,7 +239,6 @@ impl fmt::Debug for ConstantExpr {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for ConstantExpr {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -289,7 +287,6 @@ impl ConstantOp {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl fmt::Display for ConstantOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
