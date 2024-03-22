@@ -2,7 +2,8 @@ use super::{
     build_trace_from_ops, rand_array, Felt, FieldElement, Operation, Trace, NUM_RAND_ROWS, ONE,
     ZERO,
 };
-use crate::{stack::OverflowTableRow, utils::collections::*};
+use crate::stack::OverflowTableRow;
+use alloc::vec::Vec;
 use miden_air::trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
 
 // CONSTANTS

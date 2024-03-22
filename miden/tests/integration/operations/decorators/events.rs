@@ -13,7 +13,7 @@ fn test_event_handling() {
     end";
 
     // compile and execute program
-    let program = Assembler::default().compile(source).unwrap();
+    let program = Assembler::default().assemble(source).unwrap();
     let mut host = TestHost::default();
     processor::execute(&program, Default::default(), &mut host, Default::default()).unwrap();
 
@@ -33,7 +33,7 @@ fn test_trace_handling() {
     end";
 
     // compile program
-    let program = Assembler::default().compile(source).unwrap();
+    let program = Assembler::default().assemble(source).unwrap();
     let mut host = TestHost::default();
 
     // execute program with disabled tracing

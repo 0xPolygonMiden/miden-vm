@@ -1,94 +1,41 @@
-use crate::utils::string::*;
-use core::fmt;
+use crate::utils::DisplayHex;
+use alloc::string::String;
 
 // INPUT ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum InputError {
-    DuplicateAdviceRoot([u8; 32]),
-    InputLengthExceeded(usize, usize),
+    #[error("{0} is not a valid field element: {1}")]
     NotFieldElement(u64, String),
+    #[error("{:#x} is a duplicate of the current merkle set", DisplayHex(.0.as_slice()))]
+    DuplicateAdviceRoot([u8; 32]),
+    #[error("number of input values can not exceed {0}, but {1} was provided")]
+    InputLengthExceeded(usize, usize),
 }
-
-impl fmt::Display for InputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use InputError::*;
-        match self {
-            DuplicateAdviceRoot(key) => {
-                write!(f, "{key:02x?} is a duplicate of the current merkle set")
-            }
-            InputLengthExceeded(limit, provided) => {
-                write!(
-                    f,
-                    "Number of input values can not exceed {limit}, but {provided} was provided"
-                )
-            }
-            NotFieldElement(num, description) => {
-                write!(f, "{num} is not a valid field element: {description}")
-            }
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for InputError {}
 
 // OUTPUT ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum OutputError {
+    #[error("overflow addresses contains invalid field element: {0}")]
     InvalidOverflowAddress(String),
+    #[error("overflow addresses length is {0}, but expected {1}")]
     InvalidOverflowAddressLength(usize, usize),
+    #[error("stack contains an invalid field element: {0}")]
     InvalidStackElement(String),
+    #[error("too many elements for output stack, {0} elements")]
     OutputSizeTooBig(usize),
-}
-
-impl fmt::Display for OutputError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use OutputError::*;
-        match self {
-            InvalidOverflowAddress(description) => {
-                write!(f, "overflow addresses contains invalid field element: {description}")
-            }
-            InvalidOverflowAddressLength(actual, expected) => {
-                write!(f, "overflow addresses length is {actual}, but expected {expected}")
-            }
-            InvalidStackElement(description) => {
-                write!(f, "stack contains an invalid field element: {description}")
-            }
-            OutputSizeTooBig(size) => {
-                write!(f, "too many elements for output stack, {size} elements")
-            }
-        }
-    }
 }
 
 // KERNEL ERROR
 // ================================================================================================
 
-#[cfg(feature = "std")]
-impl std::error::Error for OutputError {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum KernelError {
+    #[error("kernel cannot have duplicated procedures")]
     DuplicatedProcedures,
+    #[error("kernel can have at most {0} procedures, received {1}")]
     TooManyProcedures(usize, usize),
 }
-
-impl fmt::Display for KernelError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            KernelError::DuplicatedProcedures => {
-                write!(f, "Kernel can not have duplicated procedures",)
-            }
-            KernelError::TooManyProcedures(max, count) => {
-                write!(f, "Kernel can have at most {} procedures, received {}", max, count)
-            }
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for KernelError {}

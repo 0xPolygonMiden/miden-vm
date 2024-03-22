@@ -1,4 +1,5 @@
 use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
+use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use miden_vm::{Kernel, ProgramInfo};
 use std::{path::PathBuf, time::Instant};
@@ -21,25 +22,27 @@ pub struct VerifyCmd {
 }
 
 impl VerifyCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("===============================================================================");
         println!("Verifying proof: {}", self.proof_file.display());
         println!("-------------------------------------------------------------------------------");
 
         // read program hash from input
-        let program_hash = ProgramHash::read(&self.program_hash)?;
+        let program_hash = ProgramHash::read(&self.program_hash).map_err(Report::msg)?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.proof_file)?;
 
         // fetch the stack inputs from the arguments
-        let stack_inputs = input_data.parse_stack_inputs()?;
+        let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
 
         // load outputs data from file
-        let outputs_data = OutputFile::read(&self.output_file, &self.proof_file)?;
+        let outputs_data =
+            OutputFile::read(&self.output_file, &self.proof_file).map_err(Report::msg)?;
 
         // load proof from file
-        let proof = ProofFile::read(&Some(self.proof_file.clone()), &self.proof_file)?;
+        let proof = ProofFile::read(&Some(self.proof_file.clone()), &self.proof_file)
+            .map_err(Report::msg)?;
 
         let now = Instant::now();
 
@@ -48,8 +51,10 @@ impl VerifyCmd {
         let program_info = ProgramInfo::new(program_hash, kernel);
 
         // verify proof
-        verifier::verify(program_info, stack_inputs, outputs_data.stack_outputs()?, proof)
-            .map_err(|err| format!("Program failed verification! - {}", err))?;
+        let stack_outputs = outputs_data.stack_outputs().map_err(Report::msg)?;
+        verifier::verify(program_info, stack_inputs, stack_outputs, proof)
+            .into_diagnostic()
+            .wrap_err("Program failed verification!")?;
 
         println!("Verification complete in {} ms", now.elapsed().as_millis());
 

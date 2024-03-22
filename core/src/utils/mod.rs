@@ -1,19 +1,20 @@
 use crate::Felt;
+use alloc::{string::String, vec::Vec};
 use core::{
-    fmt::{self, Debug, Write},
+    fmt::{self, Debug},
     ops::{Bound, Range},
 };
-use {collections::*, string::*};
 
 // RE-EXPORTS
 // ================================================================================================
 
-pub use winter_utils::{group_slice_elements, group_vector_elements};
-
 pub use miden_crypto::utils::{
-    boxed, collections, string, uninit_vector, vec, Box, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Serializable, SliceReader,
+    collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
+    Serializable, SliceReader,
 };
+#[cfg(feature = "std")]
+pub use winter_utils::ReadAdapter;
+pub use winter_utils::{group_slice_elements, group_vector_elements};
 
 pub mod math {
     pub use math::{batch_inversion, log2};
@@ -131,20 +132,44 @@ fn debug_assert_is_checked() {
 
 /// Utility to convert a sequence of bytes to hex.
 pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
+    use core::fmt::Write;
+
     let mut s = String::with_capacity(bytes.len() * 2);
-
-    for byte in bytes {
-        write!(s, "{byte:02x}")?;
-    }
-
+    write!(s, "{:x}", DisplayHex(bytes))?;
     Ok(s)
 }
 
-/// Writes a hex string representation of provided bytes into the formatter.
-pub fn write_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "0x")?;
-    for byte in bytes {
-        write!(f, "{byte:02x}")?;
+/// A display helper for formatting a slice of bytes as hex
+/// with different options using Rust's builtin format language
+pub struct DisplayHex<'a>(pub &'a [u8]);
+
+impl<'a> fmt::Display for DisplayHex<'a> {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::LowerHex::fmt(self, f)
     }
-    Ok(())
+}
+
+#[cfg(feature = "formatter")]
+impl<'a> crate::prettier::PrettyPrint for DisplayHex<'a> {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::text(format!("{:#x}", self))
+    }
+}
+
+impl<'a> fmt::LowerHex for DisplayHex<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if f.alternate() {
+            f.write_str("0x")?;
+        }
+        for byte in self.0.iter() {
+            write!(f, "{byte:02x}")?;
+        }
+        Ok(())
+    }
+}
+
+/// Builds a hex string from a byte slice
+pub fn write_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
+    write!(f, "{:#x}", DisplayHex(bytes))
 }

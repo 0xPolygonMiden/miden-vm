@@ -86,7 +86,7 @@ fn to_stack(i_digest: &[u8], stack: &mut [u64]) {
             | (i_digest[(i << 3) + 3] as u64) << 24
             | (i_digest[(i << 3) + 2] as u64) << 16
             | (i_digest[(i << 3) + 1] as u64) << 8
-            | (i_digest[(i << 3) + 0] as u64);
+            | (i_digest[i << 3] as u64);
 
         // split into higher/ lower bits of u64
         let high = (word >> 32) as u32;
@@ -95,7 +95,7 @@ fn to_stack(i_digest: &[u8], stack: &mut [u64]) {
         // 64 -bit standard representation number kept as two 32 -bit numbers
         // where first one holds higher 32 -bits and second one holds remaining lower
         // 32 -bits of u64 word
-        stack[(i << 1) + 0] = high as u64;
+        stack[i << 1] = high as u64;
         stack[(i << 1) + 1] = low as u64;
     }
 }

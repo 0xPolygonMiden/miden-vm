@@ -1,5 +1,6 @@
 use super::super::{AdviceSource, ExecutionError, Felt, HostResponse, Word};
-use crate::{utils::collections::*, AdviceProvider, ProcessState};
+use crate::{AdviceProvider, ProcessState};
+use alloc::vec::Vec;
 use vm_core::{
     crypto::{
         hash::RpoDigest,

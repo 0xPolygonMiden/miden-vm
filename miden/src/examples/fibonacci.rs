@@ -39,7 +39,7 @@ fn generate_fibonacci_program(n: usize) -> Program {
         n - 1
     );
 
-    Assembler::default().compile(program).unwrap()
+    Assembler::default().assemble(program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence

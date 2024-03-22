@@ -1,6 +1,5 @@
+use assembly::diagnostics::Report;
 use clap::Parser;
-use core::fmt;
-use miden_vm::{AssemblyError, ExecutionError};
 #[cfg(feature = "tracing-forest")]
 use tracing_forest::ForestLayer;
 #[cfg(not(feature = "tracing-forest"))]
@@ -37,7 +36,7 @@ pub enum Actions {
 
 /// CLI entry point
 impl Cli {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         match &self.action {
             Actions::Analyze(analyze) => analyze.execute(),
             Actions::Compile(compile) => compile.execute(),
@@ -54,9 +53,11 @@ impl Cli {
 }
 
 /// Executable entry point
-pub fn main() {
+pub fn main() -> Result<(), Report> {
     // read command-line args
     let cli = Cli::parse();
+
+    initialize_diagnostics();
 
     // configure logging
     // if logging level is not specified, set level to "warn"
@@ -83,28 +84,22 @@ pub fn main() {
     }
 
     // execute cli action
-    if let Err(error) = cli.execute() {
-        println!("{}", error);
-    }
+    cli.execute()
 }
 
-// PROGRAM ERROR
-// ================================================================================================
+fn initialize_diagnostics() {
+    use assembly::diagnostics::reporting::{self, ReportHandlerOpts};
 
-/// This is used to specify the error type returned from analyze.
-#[derive(Debug)]
-pub enum ProgramError {
-    AssemblyError(AssemblyError),
-    ExecutionError(ExecutionError),
-}
-
-impl fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ProgramError::AssemblyError(e) => write!(f, "Assembly Error: {:?}", e),
-            ProgramError::ExecutionError(e) => write!(f, "Execution Error: {:?}", e),
+    #[cfg(feature = "std")]
+    {
+        let result = reporting::set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
+        if result.is_ok() {
+            reporting::set_panic_hook();
         }
     }
-}
 
-impl std::error::Error for ProgramError {}
+    #[cfg(not(feature = "std"))]
+    {
+        let _ = reporting::set_hook(Box::new(|_| Box::new(ReportHandlerOpts::new().build())));
+    }
+}

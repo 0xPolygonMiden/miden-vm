@@ -1,9 +1,12 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+use alloc::vec::Vec;
 use core::cell::RefCell;
 
 use miden_air::trace::{
@@ -20,7 +23,6 @@ use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
-    utils::collections::*,
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 
@@ -245,7 +247,10 @@ where
             CodeBlock::Call(block) => self.execute_call_block(block, cb_table),
             CodeBlock::Dyn(block) => self.execute_dyn_block(block, cb_table),
             CodeBlock::Span(block) => self.execute_span_block(block),
-            CodeBlock::Proxy(_) => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
+            CodeBlock::Proxy(proxy) => match cb_table.get(proxy.hash()) {
+                Some(block) => self.execute_code_block(block, cb_table),
+                None => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
+            },
         }
     }
 
@@ -410,8 +415,8 @@ where
     /// satisfied by executing NOOPs as needed. Specifically:
     /// - If an operation group ends with an operation carrying an immediate value, a NOOP is
     ///   executed after it.
-    /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per
-    ///   group) to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
+    /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per group)
+    ///   to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
     #[inline(always)]
     fn execute_op_batch(
         &mut self,

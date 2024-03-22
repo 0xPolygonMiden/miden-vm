@@ -1,12 +1,10 @@
 use.std::crypto::fri::frie2f4
-use.std::crypto::fri::ext2fri
 use.std::crypto::fri::helper
 
 use.std::crypto::stark::deep_queries
 use.std::crypto::stark::random_coin
 use.std::crypto::stark::ood_frames
 use.std::crypto::stark::public_inputs
-use.std::crypto::stark::utils
 use.std::crypto::stark::constants
 
 

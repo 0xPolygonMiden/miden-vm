@@ -1,7 +1,7 @@
+use alloc::vec::Vec;
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    collections::*,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
     Felt, VerifierError,
@@ -121,7 +121,8 @@ pub fn generate_advice_inputs(
         .draw_integers(air.options().num_queries(), air.lde_domain_size(), pow_nonce)
         .map_err(|_| VerifierError::RandomCoinError)?;
 
-    // read advice maps and Merkle paths related to trace and constraint composition polynomial evaluations
+    // read advice maps and Merkle paths related to trace and constraint composition polynomial
+    // evaluations
     let (mut advice_map, mut partial_trees_traces) =
         channel.read_queried_trace_states(&query_positions)?;
     let (mut adv_map_constraint, partial_tree_constraint) =
@@ -151,8 +152,7 @@ pub fn generate_advice_inputs(
 pub fn digest_to_int_vec(digest: &[RpoDigest]) -> Vec<u64> {
     digest
         .iter()
-        .map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
-        .flatten()
+        .flat_map(|digest| digest.as_elements().iter().map(|e| e.as_int()))
         .collect()
 }
 

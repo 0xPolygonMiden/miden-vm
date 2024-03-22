@@ -5,6 +5,7 @@ use super::{
     build_op_group,
 };
 use crate::DefaultHost;
+use alloc::vec::Vec;
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -18,7 +19,6 @@ use miden_air::trace::{
 use test_utils::rand::rand_value;
 use vm_core::{
     code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
-    utils::collections::*,
     CodeBlockTable, EMPTY_WORD, ONE, ZERO,
 };
 

@@ -1,7 +1,8 @@
 use super::{Felt, RangeChecker, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
+use alloc::{collections::BTreeMap, vec::Vec};
 use test_utils::rand::rand_array;
-use vm_core::utils::{collections::*, ToElements};
+use vm_core::utils::ToElements;
 
 #[test]
 fn range_checks() {
@@ -97,7 +98,8 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
         assert!(value <= 65535, "not a 16-bit value");
         let value = value as u16;
 
-        // make sure the delta between this and the previous value is 0 or a power of 3 and at most 3^7
+        // make sure the delta between this and the previous value is 0 or a power of 3 and at most
+        // 3^7
         let delta = value - prev_value;
         assert!(valid_delta(delta));
 

@@ -58,7 +58,7 @@ fn b_range_trace_stack() {
     expected += (alpha - Felt::new(256)).inv();
     assert_eq!(expected, b_range[values_start + 5]);
 
-    // --- Check the last value of the b_range column is one. ------------------------------------------
+    // --- Check the last value of the b_range column is one --------------------------------------
 
     let last_row = b_range.len() - NUM_RAND_ROWS - 1;
     assert_eq!(ONE, b_range[last_row]);

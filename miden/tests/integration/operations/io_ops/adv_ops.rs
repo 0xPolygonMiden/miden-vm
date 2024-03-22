@@ -1,6 +1,7 @@
-use super::{build_op_test, build_test, TestError};
+use super::{build_op_test, build_test};
 use processor::ExecutionError;
 use processor::ExecutionError::AdviceStackReadFailed;
+use test_utils::expect_exec_error;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
@@ -31,7 +32,7 @@ fn adv_push() {
 fn adv_push_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_push.1");
-    test.expect_error(TestError::ExecutionError(ExecutionError::AdviceStackReadFailed(1)));
+    expect_exec_error!(test, ExecutionError::AdviceStackReadFailed(1));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -52,7 +53,7 @@ fn adv_loadw() {
 fn adv_loadw_invalid() {
     // attempting to read from empty advice stack should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
-    test.expect_error(TestError::ExecutionError(AdviceStackReadFailed(1)));
+    expect_exec_error!(test, AdviceStackReadFailed(1));
 }
 
 // MOVING ELEMENTS TO MEMORY VIA THE STACK (PIPE)
@@ -97,8 +98,9 @@ fn adv_pipe_with_hperm() {
 
     // the state of the hasher is the first 12 elements of the stack (in reverse order). the state
     // is built by replacing the values on the top of the stack with the top 8 values from the head
-    // of the advice stack (i.e. values 1 through 8). Thus, the first 8 elements on the stack will be
-    // 1-8 in stack order (stack[0] = 8), and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
+    // of the advice stack (i.e. values 1 through 8). Thus, the first 8 elements on the stack will
+    // be 1-8 in stack order (stack[0] = 8), and the remaining 4 are untouched (i.e., 9, 10, 11,
+    // 12).
     let mut state: [Felt; 12] =
         [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
 

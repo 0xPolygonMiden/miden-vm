@@ -2,9 +2,8 @@ use super::{
     chiplets::hasher::{self, Digest},
     errors, Felt, Operation,
 };
-use crate::utils::{
-    collections::*, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-};
+use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
 pub mod blocks;
@@ -71,6 +70,22 @@ impl Program {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Program {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        indent(4, const_text("begin") + nl() + self.root.render()) + nl() + const_text("end")
+    }
+}
+#[cfg(feature = "formatter")]
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+#[cfg(not(feature = "formatter"))]
 impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "begin {} end", self.root)

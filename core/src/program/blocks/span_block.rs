@@ -1,5 +1,7 @@
-use super::{fmt, hasher, Digest, Felt, Operation};
-use crate::{utils::collections::*, DecoratorIterator, DecoratorList, ZERO};
+use super::{hasher, Digest, Felt, Operation};
+use crate::{DecoratorIterator, DecoratorList, ZERO};
+use alloc::vec::Vec;
+use core::fmt;
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -132,8 +134,8 @@ impl Span {
         &self.decorators
     }
 
-    /// Returns a [DecoratorIterator] which allows us to iterate through the decorator list of this span
-    /// block while executing operation batches of this span block
+    /// Returns a [DecoratorIterator] which allows us to iterate through the decorator list of this
+    /// span block while executing operation batches of this span block
     pub fn decorator_iter(&self) -> DecoratorIterator {
         DecoratorIterator::new(&self.decorators)
     }
@@ -151,6 +153,58 @@ impl Span {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Span {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        // e.g. `span a b c end`
+        let single_line = const_text("span")
+            + const_text(" ")
+            + self
+                .op_batches
+                .iter()
+                .flat_map(|batch| batch.ops.iter())
+                .map(|p| p.render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default()
+            + const_text(" ")
+            + const_text("end");
+
+        // e.g. `
+        // span
+        //     a
+        //     b
+        //     c
+        // end
+        // `
+        let multi_line = indent(
+            4,
+            const_text("span")
+                + nl()
+                + self
+                    .op_batches
+                    .iter()
+                    .flat_map(|batch| batch.ops.iter())
+                    .map(|p| p.render())
+                    .reduce(|acc, doc| acc + nl() + doc)
+                    .unwrap_or_default(),
+        ) + nl()
+            + const_text("end");
+
+        single_line | multi_line
+    }
+}
+
+#[cfg(feature = "formatter")]
+impl fmt::Display for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+
+#[cfg(not(feature = "formatter"))]
 impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "span")?;
@@ -245,12 +299,12 @@ impl OpBatchAccumulator {
     /// Returns true if this accumulator can accept the specified operation.
     ///
     /// An accumulator may not be able accept an operation for the following reasons:
-    /// - There is no more space in the underlying batch (e.g., the 8th group of the batch
-    ///   already contains 9 operations).
-    /// - There is no space for the immediate value carried by the operation (e.g., the 8th
-    ///   group is only partially full, but we are trying to add a PUSH operation).
-    /// - The alignment rules require that the operation overflows into the next group, and
-    ///   if this happens, there will be no space for the operation or its immediate value.
+    /// - There is no more space in the underlying batch (e.g., the 8th group of the batch already
+    ///   contains 9 operations).
+    /// - There is no space for the immediate value carried by the operation (e.g., the 8th group is
+    ///   only partially full, but we are trying to add a PUSH operation).
+    /// - The alignment rules require that the operation overflows into the next group, and if this
+    ///   happens, there will be no space for the operation or its immediate value.
     pub fn can_accept_op(&self, op: Operation) -> bool {
         if op.imm_value().is_some() {
             // an operation carrying an immediate value cannot be the last one in a group; so, we
@@ -377,12 +431,12 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 /// operation batches.
 ///
 /// Then number of operation groups is computed as follows:
-/// - For all batches but the last one we set the number of groups to 8, regardless of the
-///   actual number of groups in the batch. The reason for this is that when operation
-///   batches are concatenated together each batch contributes 8 elements to the hash.
-/// - For the last batch, we take the number of actual batches and round it up to the next
-///   power of two. The reason for rounding is that the VM always executes a number of
-///   operation groups which is a power of two.
+/// - For all batches but the last one we set the number of groups to 8, regardless of the actual
+///   number of groups in the batch. The reason for this is that when operation batches are
+///   concatenated together each batch contributes 8 elements to the hash.
+/// - For the last batch, we take the number of actual batches and round it up to the next power of
+///   two. The reason for rounding is that the VM always executes a number of operation groups which
+///   is a power of two.
 pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
     let last_batch_num_groups = op_batches.last().expect("no last group").num_groups();
     (op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()

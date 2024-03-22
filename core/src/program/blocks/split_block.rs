@@ -1,5 +1,6 @@
-use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
-use crate::utils::boxed::*;
+use super::{hasher, CodeBlock, Digest, Felt, Operation};
+use alloc::boxed::Box;
+use core::fmt;
 
 // SPLIT BLOCK
 // ================================================================================================
@@ -57,6 +58,26 @@ impl Split {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Split {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        let mut doc = indent(4, const_text("if.true") + nl() + self.branches[0].render()) + nl();
+        doc += indent(4, const_text("else") + nl() + self.branches[1].render());
+        doc + nl() + const_text("end")
+    }
+}
+
+#[cfg(feature = "formatter")]
+impl fmt::Display for Split {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+
+#[cfg(not(feature = "formatter"))]
 impl fmt::Display for Split {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "if.true {} else {} end", self.branches[0], self.branches[1])

@@ -28,7 +28,7 @@ fn falcon_prove_verify() {
     let program = Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib")
-        .compile(source)
+        .assemble(source)
         .expect("failed to compile test source");
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
@@ -46,6 +46,7 @@ fn falcon_prove_verify() {
     assert!(result.is_ok(), "error: {result:?}");
 }
 
+#[allow(clippy::type_complexity)]
 fn generate_test(
     keypair: KeyPair,
     message: Word,

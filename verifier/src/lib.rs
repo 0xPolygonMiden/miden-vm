@@ -1,13 +1,16 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
+use alloc::vec;
 use core::fmt;
-use vm_core::{
-    crypto::{
-        hash::{Blake3_192, Blake3_256, Rpo256},
-        random::{RpoRandomCoin, WinterRandomCoin},
-    },
-    utils::vec,
+use vm_core::crypto::{
+    hash::{Blake3_192, Blake3_256, Rpo256},
+    random::{RpoRandomCoin, WinterRandomCoin},
 };
 use winter_verifier::verify as verify_proof;
 

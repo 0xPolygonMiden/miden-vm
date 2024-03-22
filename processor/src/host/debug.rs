@@ -1,5 +1,7 @@
 use super::ProcessState;
-use crate::{system::ContextId, utils::collections::*};
+use crate::system::ContextId;
+use alloc::vec::Vec;
+use std::{print, println};
 use vm_core::{DebugOptions, Word};
 
 // DEBUG HANDLER

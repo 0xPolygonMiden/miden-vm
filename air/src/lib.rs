@@ -1,11 +1,14 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+use alloc::vec::Vec;
 use vm_core::{
-    utils::{collections::*, ByteReader, ByteWriter, Deserializable, Serializable},
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{

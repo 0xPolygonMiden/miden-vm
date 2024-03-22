@@ -1,45 +1,46 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+#![cfg_attr(all(nightly, not(feature = "std")), feature(error_in_core))]
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
+#[cfg(any(test, feature = "std"))]
+extern crate std;
 
 use vm_core::{
-    code_blocks::CodeBlock,
-    crypto,
+    crypto::hash::RpoDigest,
     errors::KernelError,
     utils::{
-        collections::{btree_map, BTreeMap},
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
-    CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
+    Felt, ONE, ZERO,
 };
 
-mod library;
-pub use library::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Module, Version};
-
-mod procedures;
-use procedures::{CallSet, NamedProcedure, Procedure};
-pub use procedures::{ProcedureId, ProcedureName};
-
-pub mod ast;
-use ast::{NAMESPACE_LABEL_PARSER, PROCEDURE_LABEL_PARSER};
-
-mod tokens;
-use tokens::{Token, TokenStream};
-
-mod errors;
-pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, PathError};
+#[cfg(feature = "formatter")]
+use vm_core::{prettier, utils::DisplayHex};
 
 mod assembler;
-pub use assembler::{Assembler, AssemblyContext};
-
+pub mod ast;
+mod compile;
+pub mod diagnostics;
+mod errors;
+pub mod library;
+mod parser;
+mod sema;
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
 #[cfg(test)]
 mod tests;
 
-// RE-EXPORTS
-// ================================================================================================
+pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
+pub use self::ast::{Module, ModuleKind, ProcedureName};
+pub use self::compile::{Compile, Options as CompileOpts};
+pub use self::errors::AssemblyError;
+pub use self::library::{
+    Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,
+};
+pub use self::parser::{SourceLocation, SourceSpan, Span, Spanned};
 
+/// Re-exported for downstream crates
 pub use vm_core::utils;
 
 // CONSTANTS
@@ -60,10 +61,3 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 
 /// The maximum number of bits allowed for the exponent parameter for exponentiation instructions.
 const MAX_EXP_BITS: u8 = 64;
-
-/// The maximum length (in bytes) of a constant, procedure, or library namespace labels.
-const MAX_LABEL_LEN: usize = 255;
-
-/// The required length of the hexadecimal representation for an input value when more than one hex
-/// input is provided to `push` masm operation without period separators.
-const HEX_CHUNK_SIZE: usize = 16;

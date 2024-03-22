@@ -1,11 +1,13 @@
-use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
-use crate::utils::boxed::*;
+use super::{hasher, CodeBlock, Digest, Felt, Operation};
+use alloc::boxed::Box;
+use core::fmt;
 
 // JOIN BLOCKS
 // ================================================================================================
 /// Block for sequential execution of two sub-blocks.
 ///
-/// Executes left sub-block then the right sub-block. Fails if either of the sub-block execution fails.
+/// Executes left sub-block then the right sub-block. Fails if either of the sub-block execution
+/// fails.
 ///
 /// The hash of a join block is computed as:
 ///
@@ -56,6 +58,32 @@ impl Join {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Join {
+    #[rustfmt::skip]
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        indent(
+            4,
+            const_text("join")
+            + nl()
+            + self.body[0].render()
+            + nl()
+            + self.body[1].render(),
+        ) + nl() + const_text("end")
+    }
+}
+
+#[cfg(feature = "formatter")]
+impl fmt::Display for Join {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+
+#[cfg(not(feature = "formatter"))]
 impl fmt::Display for Join {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "join {} {} end", self.body[0], self.body[1])

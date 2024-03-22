@@ -1,7 +1,8 @@
 use crate::{
-    utils::collections::*, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
-    Operation, Process, StackInputs,
+    CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
+    StackInputs,
 };
+use alloc::vec::Vec;
 use miden_air::trace::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -139,7 +140,8 @@ fn validate_hasher_trace(trace: &ChipletsTrace, start: usize, end: usize) {
 
         match row % HASH_CYCLE_LEN {
             0 => {
-                // in the first row, the expected start of the trace should hold the initial selectors
+                // in the first row, the expected start of the trace should hold the initial
+                // selectors
                 assert_eq!(LINEAR_HASH, [trace[1][row], trace[2][row], trace[3][row]]);
             }
             7 => {

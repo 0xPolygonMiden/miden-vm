@@ -1,5 +1,6 @@
 use super::{Felt, Word, ONE, ZERO};
-use crate::{system::ContextId, utils::collections::*};
+use crate::system::ContextId;
+use alloc::vec::Vec;
 
 // BLOCK STACK
 // ================================================================================================

@@ -568,7 +568,7 @@ fn composite_flags() {
     assert_eq!(op_flags.control_flow(), ONE);
     assert_eq!(op_flags.top_binary(), ZERO);
 
-    // ----------------------------------- left shift -----------------------------------------------
+    // ----------------------------------- left shift ---------------------------------------------
 
     frame.current_mut()[DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX] = ONE;
 

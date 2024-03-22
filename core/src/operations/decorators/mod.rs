@@ -1,4 +1,4 @@
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use core::fmt;
 
 mod advice;
@@ -36,6 +36,13 @@ pub enum Decorator {
     Trace(u32),
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Decorator {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::display(self)
+    }
+}
+
 impl fmt::Display for Decorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -50,7 +57,8 @@ impl fmt::Display for Decorator {
     }
 }
 
-/// Vector consisting of a tuple of operation index (within a span block) and decorator at that index
+/// Vector consisting of a tuple of operation index (within a span block) and decorator at that
+/// index
 pub type DecoratorList = Vec<(usize, Decorator)>;
 
 /// Iterator used to iterate through the decorator list of a span block

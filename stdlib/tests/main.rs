@@ -1,3 +1,5 @@
+extern crate alloc;
+
 /// Instantiates a test with Miden standard library included.
 #[macro_export]
 macro_rules! build_test {

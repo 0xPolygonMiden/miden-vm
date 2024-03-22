@@ -1,4 +1,5 @@
-use super::{fmt, Digest};
+use super::Digest;
+use core::fmt;
 
 // PROXY BLOCK
 // ================================================================================================
@@ -25,8 +26,27 @@ impl Proxy {
     }
 }
 
+#[cfg(feature = "formatter")]
+impl crate::prettier::PrettyPrint for Proxy {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        const_text("proxy") + const_text(".") + self.hash.render()
+    }
+}
+
+#[cfg(feature = "formatter")]
 impl fmt::Display for Proxy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "proxy.{:?}", self.hash) // TODO: use hex, change formatting
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
+    }
+}
+
+#[cfg(not(feature = "formatter"))]
+impl fmt::Display for Proxy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::utils::DisplayHex;
+        write!(f, "proxy.{:#x}", DisplayHex(self.hash.as_bytes().as_slice()))
     }
 }

@@ -1,4 +1,5 @@
-use super::{collections::*, Felt, Word, ZERO};
+use super::{Felt, Word, ZERO};
+use alloc::vec::Vec;
 
 // RE-EXPORTS
 // ================================================================================================
