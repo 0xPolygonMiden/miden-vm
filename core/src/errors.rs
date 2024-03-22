@@ -1,7 +1,6 @@
 use alloc::string::String;
-use core::fmt;
 
-use crate::utils::DisplayHex;
+use miden_formatting::hex::DisplayHex;
 
 // INPUT ERROR
 // ================================================================================================

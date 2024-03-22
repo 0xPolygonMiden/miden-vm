@@ -22,7 +22,7 @@ path = "tests/main.rs"
 
 [features]
 default = ["std"]
-std = ["assembly/std", "assembly/formatter"]
+std = ["assembly/std"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
