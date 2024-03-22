@@ -105,7 +105,6 @@ impl Spanned for ProcedureAlias {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for ProcedureAlias {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

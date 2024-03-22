@@ -2,7 +2,7 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use vm_core::utils::{Deserializable, Serializable, SliceReader};
 
-use super::{LibraryNamespace, LibraryPath, MaslLibrary, Version};
+use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Version};
 use crate::{
     ast::{AstSerdeOptions, Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, SourceFile},
@@ -67,7 +67,6 @@ fn masl_locations_serialization() -> Result<(), Report> {
 }
 
 #[test]
-#[cfg(feature = "formatter")]
 fn get_module_by_path() -> Result<(), Report> {
     let _context = TestContext::new();
     // declare foo module

@@ -116,7 +116,6 @@ impl Op {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Op {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

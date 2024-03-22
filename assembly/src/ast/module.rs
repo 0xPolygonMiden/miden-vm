@@ -252,14 +252,8 @@ impl Module {
     where
         P: AsRef<std::path::Path>,
     {
-        use crate::diagnostics::{IntoDiagnostic, WrapErr};
-        let path = path.as_ref();
-        let filename = path.to_string_lossy();
-        let source = std::fs::read_to_string(path)
-            .into_diagnostic()
-            .wrap_err_with(|| format!("failed to parse module from '{filename}'"))?;
-        let source_file = Arc::new(SourceFile::new(filename, source));
-        Self::parse(name, kind, source_file)
+        let mut parser = Self::parser(kind);
+        parser.parse_file(name, path)
     }
 
     /// Parse a [Module], `name`, of the given [ModuleKind], from `source`.
@@ -268,9 +262,8 @@ impl Module {
         kind: ModuleKind,
         source: impl ToString,
     ) -> Result<Box<Self>, Report> {
-        let source = source.to_string();
-        let source_file = Arc::new(SourceFile::new(name.path(), source));
-        Self::parse(name, kind, source_file)
+        let mut parser = Self::parser(kind);
+        parser.parse_str(name, source)
     }
 
     /// Parse a [Module], `name`, of the given [ModuleKind], from `source_file`.
@@ -279,8 +272,17 @@ impl Module {
         kind: ModuleKind,
         source_file: Arc<SourceFile>,
     ) -> Result<Box<Self>, Report> {
-        let mut parser = crate::parser::ModuleParser::new(kind);
+        let mut parser = Self::parser(kind);
         parser.parse(name, source_file)
+    }
+
+    /// Get a [ModuleParser] for parsing modules of the provided [ModuleKind]
+    ///
+    /// This is mostly useful when you want tighter control over the parser configuration, otherwise
+    /// it is generally more convenient to use [Module::parse_file] or [Module::parse_str] for most
+    /// use cases.
+    pub fn parser(kind: ModuleKind) -> crate::parser::ModuleParser {
+        crate::parser::ModuleParser::new(kind)
     }
 }
 
@@ -656,7 +658,6 @@ impl fmt::Debug for Module {
 /// Pretty-printed representation of this module as Miden Assembly text format
 ///
 /// NOTE: Delegates to the [crate::prettier::PrettyPrint] implementation internally
-#[cfg(feature = "formatter")]
 impl fmt::Display for Module {
     /// Writes this [Module] as formatted MASM code into the formatter.
     ///
@@ -671,7 +672,6 @@ impl fmt::Display for Module {
 }
 
 /// The pretty-printer for [Module]
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Module {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

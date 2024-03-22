@@ -39,7 +39,6 @@ impl DebugOptions {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for DebugOptions {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)

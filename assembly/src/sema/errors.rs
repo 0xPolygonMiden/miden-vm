@@ -25,6 +25,21 @@ pub struct SyntaxError {
     pub errors: Vec<SemanticAnalysisError>,
 }
 
+/// This type is used when emitting advice/warnings, when those are not being treated as errors.
+///
+/// Like [SyntaxError], this rolls up all such notices into a single batch, and emits them all
+/// at once. The difference is that we never return this as an error from any API, it simply
+/// exists to leverage the diagnostic infrastructure of `miette`.
+#[derive(Debug, thiserror::Error, Diagnostic)]
+#[error("one or more warnings were emitted")]
+#[diagnostic(help("see below for details"))]
+pub struct SyntaxWarning {
+    #[source_code]
+    pub input: Arc<SourceFile>,
+    #[related]
+    pub errors: Vec<SemanticAnalysisError>,
+}
+
 /// Represents an error that occurs during semantic analysis
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum SemanticAnalysisError {

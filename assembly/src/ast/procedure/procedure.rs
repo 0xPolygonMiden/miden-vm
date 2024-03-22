@@ -275,7 +275,6 @@ impl Spanned for Procedure {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Procedure {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;

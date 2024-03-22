@@ -26,8 +26,11 @@ pub fn analyze(
     kind: ModuleKind,
     path: LibraryPath,
     forms: Vec<Form>,
+    warnings_as_errors: bool,
 ) -> Result<Box<Module>, SyntaxError> {
     let mut analyzer = AnalysisContext::new(source, kind, path);
+    analyzer.set_warnings_as_errors(warnings_as_errors);
+
     let mut forms = VecDeque::from(forms);
     let mut docs = None;
     while let Some(form) = forms.pop_front() {

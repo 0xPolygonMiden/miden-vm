@@ -108,7 +108,6 @@ impl From<&AdviceInjectorNode> for AdviceInjector {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for AdviceInjectorNode {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)

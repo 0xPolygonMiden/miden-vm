@@ -33,7 +33,7 @@ use crate::{
     diagnostics::{Report, SourceFile},
     sema, LibraryPath,
 };
-use alloc::{boxed::Box, collections::BTreeSet, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeSet, string::ToString, sync::Arc, vec::Vec};
 
 type ParseError<'a> = lalrpop_util::ParseError<u32, Token<'a>, ParsingError>;
 
@@ -69,6 +69,8 @@ pub struct ModuleParser {
     /// a better interner, we will also want to update those types to be in terms of whatever
     /// the handle type of the interner is.
     interned: BTreeSet<Arc<str>>,
+    /// When true, all warning diagnostics are promoted to error severity
+    warnings_as_errors: bool,
 }
 impl ModuleParser {
     /// Construct a new parser for the given `kind` of [Module]
@@ -76,7 +78,13 @@ impl ModuleParser {
         Self {
             kind,
             interned: Default::default(),
+            warnings_as_errors: false,
         }
+    }
+
+    /// Configure this parser so that any warning diagnostics are promoted to errors.
+    pub fn set_warnings_as_errors(&mut self, yes: bool) {
+        self.warnings_as_errors = yes;
     }
 
     /// Parse a [Module] from `source`, and give it the provided `path`.
@@ -87,7 +95,35 @@ impl ModuleParser {
     ) -> Result<Box<ast::Module>, Report> {
         let forms = parse_forms_internal(source.clone(), &mut self.interned)
             .map_err(|err| Report::new(err).with_source_code(source.clone()))?;
-        sema::analyze(source, self.kind, path, forms).map_err(Report::new)
+        sema::analyze(source, self.kind, path, forms, self.warnings_as_errors).map_err(Report::new)
+    }
+
+    /// Parse a [Module], `name`, from `path`.
+    #[cfg(feature = "std")]
+    pub fn parse_file<P>(&mut self, name: LibraryPath, path: P) -> Result<Box<ast::Module>, Report>
+    where
+        P: AsRef<std::path::Path>,
+    {
+        use crate::diagnostics::{IntoDiagnostic, WrapErr};
+
+        let path = path.as_ref();
+        let filename = path.to_string_lossy();
+        let source = std::fs::read_to_string(path)
+            .into_diagnostic()
+            .wrap_err_with(|| format!("failed to parse module from '{filename}'"))?;
+        let source_file = Arc::new(SourceFile::new(filename, source));
+        self.parse(name, source_file)
+    }
+
+    /// Parse a [Module], `name`, from `source`.
+    pub fn parse_str(
+        &mut self,
+        name: LibraryPath,
+        source: impl ToString,
+    ) -> Result<Box<ast::Module>, Report> {
+        let source = source.to_string();
+        let source_file = Arc::new(SourceFile::new(name.path(), source));
+        self.parse(name, source_file)
     }
 }
 

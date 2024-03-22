@@ -155,7 +155,6 @@ impl Span {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Span {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -198,24 +197,10 @@ impl crate::prettier::PrettyPrint for Span {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-#[cfg(not(feature = "formatter"))]
-impl fmt::Display for Span {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "span")?;
-        for batch in self.op_batches.iter() {
-            for op in batch.ops.iter() {
-                write!(f, " {op}")?;
-            }
-        }
-        write!(f, " end")
     }
 }
 

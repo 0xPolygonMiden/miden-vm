@@ -124,7 +124,7 @@ impl CodeBlock {
         }
     }
 }
-#[cfg(feature = "formatter")]
+
 impl crate::prettier::PrettyPrint for CodeBlock {
     fn render(&self) -> crate::prettier::Document {
         match self {
@@ -138,25 +138,11 @@ impl crate::prettier::PrettyPrint for CodeBlock {
         }
     }
 }
-#[cfg(feature = "formatter")]
+
 impl fmt::Display for CodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
 
         self.pretty_print(f)
-    }
-}
-#[cfg(not(feature = "formatter"))]
-impl fmt::Display for CodeBlock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CodeBlock::Span(block) => write!(f, "{block}"),
-            CodeBlock::Join(block) => write!(f, "{block}"),
-            CodeBlock::Split(block) => write!(f, "{block}"),
-            CodeBlock::Loop(block) => write!(f, "{block}"),
-            CodeBlock::Call(block) => write!(f, "{block}"),
-            CodeBlock::Dyn(block) => write!(f, "{block}",),
-            CodeBlock::Proxy(block) => write!(f, "{block}"),
-        }
     }
 }

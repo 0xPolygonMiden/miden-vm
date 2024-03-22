@@ -59,7 +59,6 @@ impl Split {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Split {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
@@ -70,17 +69,9 @@ impl crate::prettier::PrettyPrint for Split {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl fmt::Display for Split {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-#[cfg(not(feature = "formatter"))]
-impl fmt::Display for Split {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "if.true {} else {} end", self.branches[0], self.branches[1])
     }
 }
