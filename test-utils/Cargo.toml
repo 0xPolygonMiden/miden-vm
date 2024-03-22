@@ -25,7 +25,6 @@ std = [
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false, features = [
     "testing",
-    "formatter",
 ] }
 processor = { package = "miden-processor", path = "../processor", version = "0.8", default-features = false, features = [
     "internals",

@@ -86,8 +86,7 @@ pub use math::{
     polynom, ExtensionOf, FieldElement, StarkField, ToElements,
 };
 
-#[cfg(feature = "formatter")]
-pub mod prettier;
+pub use miden_formatting::prettier;
 
 mod program;
 pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};

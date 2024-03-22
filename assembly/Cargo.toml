@@ -17,8 +17,7 @@ bench = false
 doctest = false
 
 [features]
-default = ["std", "formatter"]
-formatter = ["vm-core/formatter"]
+default = ["std"]
 std = [
     "aho-corasick/std",
     "vm-core/std",

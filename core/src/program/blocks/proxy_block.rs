@@ -26,27 +26,18 @@ impl Proxy {
     }
 }
 
-#[cfg(feature = "formatter")]
 impl crate::prettier::PrettyPrint for Proxy {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
+        use miden_formatting::hex::DisplayHex;
 
-        const_text("proxy") + const_text(".") + self.hash.render()
+        const_text("proxy") + const_text(".") + display(DisplayHex(&self.hash.as_bytes()))
     }
 }
 
-#[cfg(feature = "formatter")]
 impl fmt::Display for Proxy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-#[cfg(not(feature = "formatter"))]
-impl fmt::Display for Proxy {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use crate::utils::DisplayHex;
-        write!(f, "proxy.{:#x}", DisplayHex(self.hash.as_bytes().as_slice()))
     }
 }

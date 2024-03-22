@@ -2,7 +2,7 @@ use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use vm_core::utils::{Deserializable, Serializable, SliceReader};
 
-use super::{Library, LibraryNamespace, LibraryPath, MaslLibrary, Version};
+use super::{LibraryNamespace, LibraryPath, MaslLibrary, Version};
 use crate::{
     ast::{AstSerdeOptions, Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, SourceFile},
