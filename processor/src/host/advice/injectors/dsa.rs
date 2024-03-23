@@ -1,9 +1,8 @@
 use super::super::{ExecutionError, Felt, Word};
 use alloc::vec::Vec;
-use vm_core::{crypto::dsa::rpo_falcon512::Polynomial, utils::Deserializable};
 
-/// Gets as input a vector containing an expanded public key and its associated secret key, and a
-/// word representing a message and outputs a vector of values to be pushed onto the advice stack.
+/// Gets as input a vector containing a secret key, and a word representing a message and outputs a
+/// vector of values to be pushed onto the advice stack.
 /// The values are the ones required for a Falcon signature verification inside the VM and they are:
 ///
 /// 1. The nonce represented as 8 field elements.
@@ -14,13 +13,16 @@ use vm_core::{crypto::dsa::rpo_falcon512::Polynomial, utils::Deserializable};
 ///
 /// # Errors
 /// Will return an error if either:
-/// - The keys are malformed due to either incorrect length or failed decoding.
+/// - The secret key is malformed due to either incorrect length or failed decoding.
 /// - The signature generation failed.
 #[cfg(feature = "std")]
 pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
-    // Create the corresponding key pair
-    use vm_core::crypto::dsa::rpo_falcon512::SecretKey;
+    use vm_core::{
+        crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
+        utils::Deserializable,
+    };
 
+    // Create the corresponding secret key
     let mut sk_bytes = Vec::with_capacity(sk.len());
     for element in sk {
         let value = element.as_int();
@@ -64,7 +66,7 @@ pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> 
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(pk_sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
     Err(ExecutionError::FailedSignatureGeneration(
         "RPO Falcon512 signature generation is not available in no_std context",
     ))
