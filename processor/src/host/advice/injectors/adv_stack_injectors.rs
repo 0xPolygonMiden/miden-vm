@@ -1,7 +1,6 @@
 use super::super::{AdviceSource, ExecutionError, Felt, HostResponse};
-use crate::{
-    utils::collections::*, AdviceProvider, Ext2InttError, FieldElement, ProcessState, ZERO,
-};
+use crate::{AdviceProvider, Ext2InttError, FieldElement, ProcessState, ZERO};
+use alloc::vec::Vec;
 use vm_core::{QuadExtension, SignatureKind};
 use winter_prover::math::fft;
 

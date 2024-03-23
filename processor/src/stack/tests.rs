@@ -1,11 +1,12 @@
 use super::{
     super::StackTopState, Felt, OverflowTableRow, Stack, StackInputs, ONE, STACK_TOP_SIZE, ZERO,
 };
+use alloc::vec::Vec;
 use miden_air::trace::{
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
     STACK_TRACE_WIDTH,
 };
-use vm_core::{utils::collections::*, FieldElement, StarkField};
+use vm_core::{FieldElement, StarkField};
 
 // TYPE ALIASES
 // ================================================================================================

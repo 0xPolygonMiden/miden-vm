@@ -1,7 +1,6 @@
 use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    collections::*,
     crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
     Felt, VerifierError,

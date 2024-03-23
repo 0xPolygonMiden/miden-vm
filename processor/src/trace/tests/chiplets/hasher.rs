@@ -4,6 +4,7 @@ use super::{
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::StackInputs;
+use alloc::vec::Vec;
 use core::ops::Range;
 use miden_air::trace::{
     chiplets::{
@@ -22,7 +23,7 @@ use vm_core::{
     chiplets::hasher::apply_permutation,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    utils::{collections::*, range},
+    utils::range,
     Word,
 };
 

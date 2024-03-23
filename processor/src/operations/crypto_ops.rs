@@ -185,11 +185,11 @@ mod tests {
         Process,
     };
     use crate::{AdviceInputs, StackInputs, Word, ZERO};
+    use alloc::vec::Vec;
     use test_utils::rand::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-        utils::collections::*,
     };
 
     #[test]
