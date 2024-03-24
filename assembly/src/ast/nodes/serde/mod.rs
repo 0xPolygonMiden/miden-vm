@@ -244,29 +244,30 @@ pub enum OpCode {
     MTreeSet = 211,
     MTreeMerge = 212,
     MTreeVerify = 213,
+    MTreeVerifyWithError = 214,
 
     // ----- STARK proof verification -------------------------------------------------------------
-    FriExt2Fold4 = 214,
-    RCombBase = 215,
+    FriExt2Fold4 = 215,
+    RCombBase = 216,
 
     // ----- exec / call --------------------------------------------------------------------------
-    ExecLocal = 216,
-    ExecImported = 217,
-    CallLocal = 218,
-    CallMastRoot = 219,
-    CallImported = 220,
-    SysCall = 221,
-    DynExec = 222,
-    DynCall = 223,
-    ProcRefLocal = 224,
-    ProcRefImported = 225,
+    ExecLocal = 217,
+    ExecImported = 218,
+    CallLocal = 219,
+    CallMastRoot = 220,
+    CallImported = 221,
+    SysCall = 222,
+    DynExec = 223,
+    DynCall = 224,
+    ProcRefLocal = 225,
+    ProcRefImported = 226,
 
     // ----- debugging ----------------------------------------------------------------------------
-    Debug = 226,
+    Debug = 227,
 
     // ----- event decorators ---------------------------------------------------------------------
-    Emit = 227,
-    Trace = 228,
+    Emit = 228,
+    Trace = 229,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,

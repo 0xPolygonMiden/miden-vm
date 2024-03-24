@@ -269,6 +269,7 @@ pub enum Instruction {
     MTreeSet,
     MTreeMerge,
     MTreeVerify,
+    MTreeVerifyWithError(ErrorCode),
 
     // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4,
@@ -535,6 +536,7 @@ impl fmt::Display for Instruction {
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeMerge => write!(f, "mtree_merge"),
             Self::MTreeVerify => write!(f, "mtree_verify"),
+            Self::MTreeVerifyWithError(err_code) => write!(f, "mtree_verify.err={err_code}"),
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => write!(f, "fri_ext2fold4"),

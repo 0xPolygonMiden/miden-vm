@@ -1,6 +1,6 @@
 use super::{
-    super::ProcReExport, adv_ops, debug, events, field_ops, io_ops, stack_ops, sys_ops, u32_ops,
-    CodeBody, Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap,
+    super::ProcReExport, adv_ops, crypro_ops, debug, events, field_ops, io_ops, stack_ops, sys_ops,
+    u32_ops, CodeBody, Instruction, InvocationTarget, LibraryPath, LocalConstMap, LocalProcMap,
     ModuleImports, Node, ParsingError, ProcedureAst, ProcedureId, ProcedureName, ReExportedProcMap,
     Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN,
 };
@@ -612,7 +612,7 @@ impl ParserContext<'_> {
             "mtree_get" => simple_instruction(op, MTreeGet),
             "mtree_set" => simple_instruction(op, MTreeSet),
             "mtree_merge" => simple_instruction(op, MTreeMerge),
-            "mtree_verify" => simple_instruction(op, MTreeVerify),
+            "mtree_verify" => crypro_ops::parse_mtree_verify(op, &self.local_constants),
 
             // ----- STARK proof verification -----------------------------------------------------
             "fri_ext2fold4" => simple_instruction(op, FriExt2Fold4),

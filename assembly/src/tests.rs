@@ -908,6 +908,32 @@ fn u32assertw_with_code() {
     assert_eq!(expected, format!("{program}"));
 }
 
+#[test]
+fn mtree_verify_with_code() {
+    let source = "\
+    const.ERR1=1
+
+    begin
+        mtree_verify
+        mtree_verify.err=ERR1
+        mtree_verify.err=2
+    end
+    "
+    .to_string();
+    let assembler = Assembler::default();
+    let program = assembler.compile(source).unwrap();
+
+    let expected = "\
+        begin \
+            span \
+                mpverify(0) \
+                mpverify(1) \
+                mpverify(2) \
+            end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 

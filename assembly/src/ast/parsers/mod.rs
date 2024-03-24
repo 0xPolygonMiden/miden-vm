@@ -12,6 +12,7 @@ use crate::{
 use core::{fmt::Display, ops::RangeBounds};
 
 mod adv_ops;
+mod crypro_ops;
 mod debug;
 mod events;
 mod field_ops;

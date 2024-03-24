@@ -281,7 +281,8 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeMerge => crypto_ops::mtree_merge(span),
-            Instruction::MTreeVerify => crypto_ops::mtree_verify(span),
+            Instruction::MTreeVerify => span.add_op(MpVerify(0)),
+            Instruction::MTreeVerifyWithError(err_code) => span.add_op(MpVerify(*err_code)),
 
             // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => span.add_op(FriE2F4),
