@@ -8,7 +8,7 @@
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
 - [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
-- [BREAKING] Migrated to `miden-crypto` v0.9.0.
+- [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
 
 ## 0.8.0 (02-26-2024)
 
