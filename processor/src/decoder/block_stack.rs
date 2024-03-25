@@ -95,7 +95,7 @@ impl BlockStack {
 // ================================================================================================
 
 /// Contains basic information about a code block.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct BlockInfo {
     pub addr: Felt,
     block_type: BlockType,
