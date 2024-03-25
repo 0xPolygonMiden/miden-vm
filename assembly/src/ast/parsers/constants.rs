@@ -1,5 +1,6 @@
 use super::{Felt, LocalConstMap, ParsingError, Token};
-use crate::utils::{collections::*, string::*};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::Display;
 
 // CONSTANT VALUE EXPRESSIONS
@@ -298,6 +299,7 @@ mod tests {
         },
         ONE,
     };
+    use alloc::string::ToString;
     use Operation::*;
 
     #[test]

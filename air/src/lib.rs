@@ -1,11 +1,15 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+use alloc::vec::Vec;
+
 use vm_core::{
-    utils::{collections::*, ByteReader, ByteWriter, Deserializable, Serializable},
+    utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
@@ -173,7 +177,7 @@ impl Air for ProcessorAir {
         );
 
         // Add initial assertions for the range checker's auxiliary columns.
-        range::get_aux_assertions_first_step(&mut result);
+        range::get_aux_assertions_first_step::<E>(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
@@ -187,7 +191,7 @@ impl Air for ProcessorAir {
         );
 
         // Add the range checker's auxiliary column assertions for the last step.
-        range::get_aux_assertions_last_step(&mut result, last_step);
+        range::get_aux_assertions_last_step::<E>(&mut result, last_step);
 
         result
     }

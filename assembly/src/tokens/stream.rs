@@ -1,5 +1,5 @@
 use super::{LineTokenizer, LinesStream, ParsingError, SourceLocation, Token};
-use crate::utils::{collections::*, string::*};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::fmt;
 
 // TOKEN STREAM

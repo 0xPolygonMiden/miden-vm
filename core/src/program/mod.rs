@@ -2,9 +2,8 @@ use super::{
     chiplets::hasher::{self, Digest},
     errors, Felt, Operation,
 };
-use crate::utils::{
-    collections::*, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-};
+use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
 pub mod blocks;

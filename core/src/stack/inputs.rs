@@ -1,4 +1,6 @@
-use crate::utils::{collections::*, ByteReader, Deserializable, DeserializationError};
+use alloc::vec::Vec;
+
+use crate::utils::{ByteReader, Deserializable, DeserializationError};
 
 use super::{ByteWriter, Felt, InputError, Serializable, ToElements};
 use core::slice;
@@ -75,7 +77,7 @@ impl<'a> IntoIterator for &'a StackInputs {
 
 impl IntoIterator for StackInputs {
     type Item = Felt;
-    type IntoIter = vec::IntoIter<Felt>;
+    type IntoIter = alloc::vec::IntoIter<Felt>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.values.into_iter()

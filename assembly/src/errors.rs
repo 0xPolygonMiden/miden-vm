@@ -2,7 +2,10 @@ use super::{
     ast::ProcReExport, crypto::hash::RpoDigest, tokens::SourceLocation, KernelError,
     LibraryNamespace, ProcedureId, ProcedureName, Token,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt;
 
 // ASSEMBLY ERROR
