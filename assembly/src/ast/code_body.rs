@@ -2,7 +2,7 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Node, Serializable,
     SourceLocation, MAX_BODY_LEN,
 };
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use core::{iter, slice};
 
 // CODE BODY

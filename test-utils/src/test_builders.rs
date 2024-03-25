@@ -107,7 +107,7 @@ macro_rules! build_test_by_mode {
             .with_merkle_store(store);
 
         $crate::Test {
-            source: String::from($source),
+            source: std::string::String::from($source),
             kernel: None,
             stack_inputs,
             advice_inputs,

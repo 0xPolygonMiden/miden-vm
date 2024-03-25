@@ -1,4 +1,5 @@
-use crate::utils::{collections::*, range, ByteReader, Deserializable, DeserializationError};
+use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
+use alloc::vec::Vec;
 use miden_crypto::{Word, ZERO};
 
 use super::{

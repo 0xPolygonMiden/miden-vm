@@ -1,9 +1,12 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "std")]
+extern crate std;
+
 #[macro_use]
 extern crate alloc;
 
+use alloc::vec::Vec;
 use core::cell::RefCell;
 
 use miden_air::trace::{
@@ -20,7 +23,6 @@ use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
-    utils::collections::*,
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 

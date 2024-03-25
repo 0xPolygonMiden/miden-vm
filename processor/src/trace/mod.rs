@@ -5,7 +5,7 @@ use super::{
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState,
 };
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use miden_air::trace::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     main_trace::MainTrace,
@@ -165,7 +165,7 @@ impl ExecutionTrace {
         let mut row = [ZERO; TRACE_WIDTH];
         for i in 0..self.length() {
             self.main_trace.read_row_into(i, &mut row);
-            println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
+            std::println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
         }
     }
 

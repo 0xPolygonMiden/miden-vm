@@ -3,10 +3,11 @@ use super::{
     D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, EMPTY_WORD, ONE, V_COL_RANGE,
 };
 use crate::ContextId;
+use alloc::vec::Vec;
 use miden_air::trace::chiplets::memory::{
     Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE, TRACE_WIDTH as MEMORY_TRACE_WIDTH,
 };
-use vm_core::{utils::collections::*, Word};
+use vm_core::Word;
 
 #[test]
 fn mem_init() {

@@ -5,7 +5,8 @@ use super::{
     Node::{self, Instruction},
     ParsingError, Token, CONSTANT_LABEL_PARSER, HEX_CHUNK_SIZE,
 };
-use crate::{utils::collections::*, StarkField, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
+use crate::{StarkField, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
+use alloc::vec::Vec;
 use core::ops::RangeBounds;
 use vm_core::WORD_SIZE;
 

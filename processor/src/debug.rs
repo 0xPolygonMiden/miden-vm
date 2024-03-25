@@ -1,10 +1,9 @@
 use crate::{
-    range::RangeChecker,
-    system::ContextId,
-    utils::{collections::*, string::*},
-    Chiplets, ChipletsLengths, Decoder, ExecutionError, Felt, Host, Process, Stack, System,
-    TraceLenSummary,
+    range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
+    Felt, Host, Process, Stack, System, TraceLenSummary,
 };
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::fmt;
 use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
 

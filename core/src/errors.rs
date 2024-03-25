@@ -1,5 +1,6 @@
-use crate::utils::string::*;
 use core::fmt;
+
+use alloc::string::String;
 
 // INPUT ERROR
 // ================================================================================================

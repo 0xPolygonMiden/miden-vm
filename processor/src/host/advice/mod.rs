@@ -1,12 +1,12 @@
 use super::HostResponse;
 use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use vm_core::{
     crypto::{
         hash::RpoDigest,
         merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
     },
-    utils::collections::*,
     AdviceInjector, SignatureKind,
 };
 

@@ -5,8 +5,9 @@ use crate::{
         MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_TRACE_OFFSET,
         MEMORY_V_COL_RANGE,
     },
-    utils::{binary_not, collections::*, is_binary, EvaluationResult},
+    utils::{binary_not, is_binary, EvaluationResult},
 };
+use alloc::vec::Vec;
 use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]

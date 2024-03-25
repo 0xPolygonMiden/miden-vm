@@ -1,7 +1,8 @@
 use crate::{
-    utils::collections::*, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
-    Operation, Process, StackInputs,
+    CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
+    StackInputs,
 };
+use alloc::vec::Vec;
 use miden_air::trace::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},

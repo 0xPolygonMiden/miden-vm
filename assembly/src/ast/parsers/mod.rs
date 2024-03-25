@@ -5,10 +5,9 @@ use super::{
     SliceReader, StarkField, Token, TokenStream, MAX_BODY_LEN, MAX_DOCS_LEN, MAX_LABEL_LEN,
     MAX_STACK_WORD_OFFSET,
 };
-use crate::{
-    utils::{collections::*, string::*},
-    HEX_CHUNK_SIZE,
-};
+use crate::HEX_CHUNK_SIZE;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::{fmt::Display, ops::RangeBounds};
 
 mod adv_ops;

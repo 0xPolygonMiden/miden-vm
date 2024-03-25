@@ -1,7 +1,7 @@
 use super::{cli::InputFile, ProgramError};
 use clap::Parser;
 use core::fmt;
-use miden_vm::{utils::collections::*, Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
