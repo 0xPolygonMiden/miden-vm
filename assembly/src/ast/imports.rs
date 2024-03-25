@@ -3,7 +3,9 @@ use super::{
     ParsingError, ProcedureId, ProcedureName, Serializable, Token, TokenStream, MAX_IMPORTS,
     MAX_INVOKED_IMPORTED_PROCS,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::collections::BTreeMap;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -90,7 +92,7 @@ impl ModuleImports {
 
     /// Look up the path of the imported module with the given name.
     pub fn get_module_path(&self, module_name: &str) -> Option<&LibraryPath> {
-        self.imports.get(&module_name.to_string())
+        self.imports.get(module_name)
     }
 
     /// Look up the actual procedure name and module path associated with the given [ProcedureId],

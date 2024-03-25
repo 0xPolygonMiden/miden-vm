@@ -4,7 +4,7 @@ use super::{
     ONE, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS, OP_BATCH_SIZE,
     ZERO,
 };
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use core::ops::Range;
 use vm_core::utils::new_array_vec;
 

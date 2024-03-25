@@ -2,10 +2,10 @@ use super::{
     AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, LibraryPath, NamedProcedure,
     Procedure, ProcedureCache, ProcedureId, ProcedureName, RpoDigest,
 };
-use crate::{
-    ast::{ModuleAst, ProgramAst},
-    utils::{collections::*, string::*},
-};
+use crate::ast::{ModuleAst, ProgramAst};
+use alloc::collections::BTreeMap;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================

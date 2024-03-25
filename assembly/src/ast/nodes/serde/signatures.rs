@@ -1,5 +1,5 @@
 use super::{ByteReader, ByteWriter, DeserializationError};
-use crate::utils::string::*;
+use alloc::string::ToString;
 use vm_core::SignatureKind;
 
 const RPOFALCON512: u8 = 0;

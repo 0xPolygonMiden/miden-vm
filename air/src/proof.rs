@@ -1,8 +1,7 @@
+use alloc::vec::Vec;
 use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
-    utils::{
-        collections::*, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-    },
+    utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 use winter_air::proof::StarkProof;
 

@@ -7,9 +7,10 @@ use crate::{
         },
         HASHER_NODE_INDEX_COL_IDX, HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE,
     },
-    utils::{are_equal, binary_not, collections::*, is_binary, EvaluationResult},
+    utils::{are_equal, binary_not, is_binary, EvaluationResult},
     ONE, ZERO,
 };
+use alloc::vec::Vec;
 
 #[cfg(test)]
 mod tests;

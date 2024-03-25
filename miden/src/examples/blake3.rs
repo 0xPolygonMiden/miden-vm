@@ -1,7 +1,7 @@
 use super::Example;
-use miden::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+use miden_vm::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
 use stdlib::StdLibrary;
-use vm_core::utils::group_slice_elements;
+use vm_core::{utils::group_slice_elements, Felt};
 
 // CONSTANTS
 // ================================================================================================
@@ -22,7 +22,7 @@ pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
 
     Example {
         program,
-        stack_inputs: StackInputs::try_from_values(INITIAL_HASH_VALUE.iter().map(|&v| v as u64))
+        stack_inputs: StackInputs::try_from_ints(INITIAL_HASH_VALUE.iter().map(|&v| v as u64))
             .unwrap(),
         host: DefaultHost::default(),
         expected_result,
@@ -35,7 +35,7 @@ fn generate_blake3_program(n: usize) -> Program {
     let program = format!(
         "
         use.std::crypto::hashes::blake3
-        
+
         begin
             repeat.{}
                 exec.blake3::hash_1to1
@@ -52,7 +52,7 @@ fn generate_blake3_program(n: usize) -> Program {
 }
 
 /// Computes the `n`-th hash of blake3 1-to-1 hash chain
-fn compute_hash_chain(n: usize) -> Vec<u64> {
+fn compute_hash_chain(n: usize) -> Vec<Felt> {
     let mut bytes: [u8; 32] = INITIAL_HASH_VALUE
         .iter()
         .flat_map(|v| v.to_le_bytes())
@@ -67,8 +67,8 @@ fn compute_hash_chain(n: usize) -> Vec<u64> {
 
     group_slice_elements::<u8, 4>(&bytes)
         .iter()
-        .map(|&bytes| u32::from_le_bytes(bytes) as u64)
-        .collect::<Vec<u64>>()
+        .map(|&bytes| Felt::from(u32::from_le_bytes(bytes)))
+        .collect::<Vec<Felt>>()
 }
 
 // EXAMPLE TESTER

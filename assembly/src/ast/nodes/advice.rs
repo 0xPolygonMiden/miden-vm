@@ -5,7 +5,7 @@ use super::{
     },
     serde::signatures,
 };
-use crate::utils::string::*;
+use alloc::string::ToString;
 use core::fmt;
 use vm_core::{AdviceInjector, Felt, SignatureKind, ZERO};
 

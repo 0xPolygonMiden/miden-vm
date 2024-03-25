@@ -1,5 +1,6 @@
 use super::{Deserializable, LabelError, RpoDigest, SliceReader, MAX_LABEL_LEN};
-use crate::utils::{collections::*, string::*};
+use alloc::string::ToString;
+use alloc::vec::Vec;
 
 // LABEL PARSERS
 // ================================================================================================

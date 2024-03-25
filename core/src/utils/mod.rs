@@ -1,9 +1,9 @@
 use crate::Felt;
+use alloc::{string::String, vec::Vec};
 use core::{
     fmt::{self, Debug, Write},
     ops::{Bound, Range},
 };
-use {collections::*, string::*};
 
 // RE-EXPORTS
 // ================================================================================================
@@ -11,8 +11,8 @@ use {collections::*, string::*};
 pub use winter_utils::{group_slice_elements, group_vector_elements};
 
 pub use miden_crypto::utils::{
-    boxed, collections, string, uninit_vector, vec, Box, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Serializable, SliceReader,
+    collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
+    Serializable, SliceReader,
 };
 
 pub mod math {

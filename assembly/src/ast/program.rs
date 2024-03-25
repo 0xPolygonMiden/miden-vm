@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::ast::MAX_BODY_LEN;
 
 use super::{
@@ -18,7 +20,6 @@ use super::{
         SliceReader, Token, TokenStream,
     },
 };
-use crate::utils::collections::*;
 
 use core::{fmt, iter};
 #[cfg(feature = "std")]

@@ -1,6 +1,6 @@
 use clap::Parser;
 use core::fmt;
-use miden::{AssemblyError, ExecutionError};
+use miden_vm::{AssemblyError, ExecutionError};
 #[cfg(feature = "tracing-forest")]
 use tracing_forest::ForestLayer;
 #[cfg(not(feature = "tracing-forest"))]

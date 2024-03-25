@@ -1,5 +1,6 @@
 use super::{uninit_vector, Felt, FieldElement, NUM_RAND_ROWS};
-use crate::utils::collections::*;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use miden_air::trace::main_trace::MainTrace;
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 

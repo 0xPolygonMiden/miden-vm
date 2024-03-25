@@ -1,6 +1,6 @@
 use super::{
     errors::{InputError, OutputError},
-    Felt, StackTopState, StarkField, ToElements,
+    Felt, StackTopState, ToElements,
 };
 use crate::utils::{ByteWriter, Serializable};
 

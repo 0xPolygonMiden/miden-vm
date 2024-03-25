@@ -243,8 +243,9 @@ mod tests {
     use super::{
         ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
     };
+    use alloc::vec::Vec;
     use test_utils::rand::{rand_array, rand_value, rand_vector};
-    use vm_core::{utils::collections::*, StackInputs};
+    use vm_core::StackInputs;
     use winter_prover::math::{fft, get_power_series_with_offset};
     use winter_utils::transpose_slice;
 
@@ -321,7 +322,7 @@ mod tests {
         ];
 
         // --- execute FRIE2F4 operation --------------------------------------
-        let stack_inputs = StackInputs::new(inputs.to_vec());
+        let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
         process.execute_op(Operation::FriE2F4).unwrap();
 

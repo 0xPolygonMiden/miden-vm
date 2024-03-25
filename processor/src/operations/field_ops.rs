@@ -235,7 +235,7 @@ mod tests {
     fn op_add() {
         // initialize the stack with a few values
         let (a, b, c) = get_rand_values();
-        let stack = StackInputs::try_from_values([c.as_int(), b.as_int(), a.as_int()]).unwrap();
+        let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // add the top two values
@@ -255,7 +255,7 @@ mod tests {
     fn op_neg() {
         // initialize the stack with a few values
         let (a, b, c) = get_rand_values();
-        let stack = StackInputs::try_from_values([c.as_int(), b.as_int(), a.as_int()]).unwrap();
+        let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // negate the top value
@@ -271,7 +271,7 @@ mod tests {
     fn op_mul() {
         // initialize the stack with a few values
         let (a, b, c) = get_rand_values();
-        let stack = StackInputs::try_from_values([c.as_int(), b.as_int(), a.as_int()]).unwrap();
+        let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // add the top two values
@@ -291,7 +291,7 @@ mod tests {
     fn op_inv() {
         // initialize the stack with a few values
         let (a, b, c) = get_rand_values();
-        let stack = StackInputs::try_from_values([c.as_int(), b.as_int(), a.as_int()]).unwrap();
+        let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // invert the top value
@@ -313,7 +313,7 @@ mod tests {
     fn op_incr() {
         // initialize the stack with a few values
         let (a, b, c) = get_rand_values();
-        let stack = StackInputs::try_from_values([c.as_int(), b.as_int(), a.as_int()]).unwrap();
+        let stack = StackInputs::try_from_ints([c.as_int(), b.as_int(), a.as_int()]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // negate the top value
@@ -331,7 +331,7 @@ mod tests {
     #[test]
     fn op_and() {
         // --- test 0 AND 0 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 0, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 0, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
@@ -339,7 +339,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 0, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 0, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
@@ -347,7 +347,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 AND 1 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 1, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
@@ -355,7 +355,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 1 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 1, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::And).unwrap();
@@ -363,12 +363,12 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
-        let stack = StackInputs::try_from_values([2, 1, 2]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1, 2]).unwrap();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::And).is_err());
 
         // --- second operand is not binary -----------------------------------
-        let stack = StackInputs::try_from_values([2, 2, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::And).is_err());
 
@@ -380,7 +380,7 @@ mod tests {
     #[test]
     fn op_or() {
         // --- test 0 OR 0 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 0, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 0, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
@@ -388,7 +388,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 OR 0 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 0, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 0, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
@@ -396,7 +396,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 OR 1 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 1, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
@@ -404,7 +404,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 OR 0 ---------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 1, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Or).unwrap();
@@ -412,12 +412,12 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
-        let stack = StackInputs::try_from_values([2, 1, 2]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1, 2]).unwrap();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::Or).is_err());
 
         // --- second operand is not binary -----------------------------------
-        let stack = StackInputs::try_from_values([2, 2, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::Or).is_err());
 
@@ -429,21 +429,21 @@ mod tests {
     #[test]
     fn op_not() {
         // --- test NOT 0 -----------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::Not).unwrap();
         let expected = build_expected(&[ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test NOT 1 ----------------------------------------------------
-        let stack = StackInputs::try_from_values([2, 1]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 1]).unwrap();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::Not).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- operand is not binary ------------------------------------------
-        let stack = StackInputs::try_from_values([2, 2]).unwrap();
+        let stack = StackInputs::try_from_ints([2, 2]).unwrap();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::Not).is_err());
     }
@@ -455,7 +455,7 @@ mod tests {
     fn op_eq() {
         // --- test when top two values are equal -----------------------------
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([3, 7, 7]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([3, 7, 7]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -465,7 +465,7 @@ mod tests {
 
         // --- test when top two values are not equal -------------------------
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([3, 5, 7]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([3, 5, 7]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -485,7 +485,7 @@ mod tests {
     fn op_eqz() {
         // --- test when top is zero ------------------------------------------
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([3, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([3, 0]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -495,7 +495,7 @@ mod tests {
 
         // --- test when top is not zero --------------------------------------
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([3, 4]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([3, 4]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -516,7 +516,7 @@ mod tests {
         let c = 4;
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -531,7 +531,7 @@ mod tests {
         let c = 16;
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -546,7 +546,7 @@ mod tests {
         let c = 625;
 
         let advice_inputs = AdviceInputs::default();
-        let stack_inputs = StackInputs::try_from_values([a, b, c, 0]).unwrap();
+        let stack_inputs = StackInputs::try_from_ints([a, b, c, 0]).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 

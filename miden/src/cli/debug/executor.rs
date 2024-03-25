@@ -1,5 +1,5 @@
 use super::DebugCommand;
-use miden::{
+use miden_vm::{
     math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
 };
 

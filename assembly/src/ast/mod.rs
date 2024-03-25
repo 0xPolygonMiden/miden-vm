@@ -7,7 +7,9 @@ use super::{
     LabelError, LibraryPath, ParsingError, ProcedureId, ProcedureName, Serializable, SliceReader,
     StarkField, Token, TokenStream, MAX_LABEL_LEN,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use alloc::vec::Vec;
 use vm_core::utils::bound_into_included_u64;
 
 pub use tracing::{event, info_span, instrument, Level};

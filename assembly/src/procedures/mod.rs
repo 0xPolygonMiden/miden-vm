@@ -3,7 +3,10 @@ use super::{
     ByteReader, ByteWriter, CodeBlock, Deserializable, DeserializationError, LabelError,
     LibraryPath, Serializable, PROCEDURE_LABEL_PARSER,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::{
+    collections::BTreeSet,
+    string::{String, ToString},
+};
 use core::{
     fmt,
     ops::{self, Deref},
@@ -366,6 +369,7 @@ impl ops::Deref for CallSet {
 #[cfg(test)]
 mod test {
     use super::{super::MAX_LABEL_LEN, LabelError, ProcedureName};
+    use alloc::borrow::ToOwned;
 
     #[test]
     fn test_procedure_name_max_len() {

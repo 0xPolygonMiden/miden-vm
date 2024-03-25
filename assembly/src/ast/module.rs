@@ -11,8 +11,9 @@ use super::{
         Token, TokenStream,
     },
 };
-use crate::utils::{collections::*, string::*};
 
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::{fmt, str::from_utf8};
 use vm_core::utils::Serializable;
 

@@ -1,8 +1,6 @@
 use super::{Felt, FieldElement, NUM_RAND_ROWS};
-use crate::{
-    chiplets::Chiplets,
-    utils::{collections::*, uninit_vector},
-};
+use crate::{chiplets::Chiplets, utils::uninit_vector};
+use alloc::vec::Vec;
 use core::slice;
 use miden_air::trace::main_trace::MainTrace;
 

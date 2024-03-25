@@ -3,7 +3,7 @@ use super::{
     LibraryError, LibraryNamespace, LibraryPath, Module, ModuleAst, Serializable, Version,
     MAX_DEPENDENCIES, MAX_MODULES,
 };
-use crate::utils::collections::*;
+use alloc::{collections::BTreeSet, vec::Vec};
 use core::slice::Iter;
 
 // CONSTANT DEFINITIONS
@@ -119,6 +119,8 @@ impl MaslLibrary {
 
 #[cfg(feature = "std")]
 mod use_std {
+    use alloc::{collections::BTreeMap, string::ToString};
+
     use super::{super::super::ast::instrument, *};
     use std::{fs, io, path::Path};
 

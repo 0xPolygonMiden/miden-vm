@@ -1,5 +1,6 @@
 use super::super::{AdviceProvider, ExecutionError, Felt, HostResponse};
-use crate::{utils::collections::*, ProcessState};
+use crate::ProcessState;
+use alloc::vec::Vec;
 use vm_core::{
     crypto::hash::{Rpo256, RpoDigest},
     EMPTY_WORD, WORD_SIZE,
@@ -141,9 +142,7 @@ pub(crate) fn insert_hperm_into_adv_map<S: ProcessState, A: AdviceProvider>(
 /// After the operation, both the original trees and the new tree remains in the advice
 /// provider (i.e., the input trees are not removed).
 ///
-/// # Errors
-/// Return an error if a Merkle tree for either of the specified roots cannot be found in this
-/// advice provider.
+/// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 pub(crate) fn merge_merkle_nodes<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
     process: &S,

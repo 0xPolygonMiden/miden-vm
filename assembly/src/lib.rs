@@ -1,15 +1,16 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use vm_core::{
     code_blocks::CodeBlock,
     crypto,
     errors::KernelError,
     utils::{
-        collections::{btree_map, BTreeMap},
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,

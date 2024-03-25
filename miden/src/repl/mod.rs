@@ -1,5 +1,5 @@
 use assembly::{Assembler, Library, MaslLibrary};
-use miden::{math::Felt, DefaultHost, StackInputs, Word};
+use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use std::{collections::BTreeSet, path::PathBuf};

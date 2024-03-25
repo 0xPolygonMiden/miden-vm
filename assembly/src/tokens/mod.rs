@@ -3,7 +3,11 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath, ParsingError,
     ProcedureName, Serializable,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt;
 
 mod lines;

@@ -1,6 +1,5 @@
-use super::{
-    btree_map::Entry, AssemblyError, BTreeMap, NamedProcedure, Procedure, ProcedureId, RpoDigest,
-};
+use super::{AssemblyError, BTreeMap, NamedProcedure, Procedure, ProcedureId, RpoDigest};
+use alloc::collections::btree_map::Entry;
 
 // PROCEDURE CACHE
 // ================================================================================================

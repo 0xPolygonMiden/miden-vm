@@ -2,7 +2,7 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, PathError, Serializable,
     MAX_LABEL_LEN,
 };
-use crate::utils::string::*;
+use alloc::string::{String, ToString};
 use core::{fmt, ops::Deref, str::from_utf8};
 
 // CONSTANTS

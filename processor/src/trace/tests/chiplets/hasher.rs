@@ -4,6 +4,7 @@ use super::{
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::StackInputs;
+use alloc::vec::Vec;
 use core::ops::Range;
 use miden_air::trace::{
     chiplets::{
@@ -22,7 +23,7 @@ use vm_core::{
     chiplets::hasher::apply_permutation,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    utils::{collections::*, range},
+    utils::range,
     Word,
 };
 
@@ -422,7 +423,7 @@ fn b_chip_mpverify() {
         leaves[index][2].as_int(),
         leaves[index][3].as_int(),
     ];
-    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
@@ -568,7 +569,7 @@ fn b_chip_mrupdate() {
         old_leaf_value[2].as_int(),
         old_leaf_value[3].as_int(),
     ];
-    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 

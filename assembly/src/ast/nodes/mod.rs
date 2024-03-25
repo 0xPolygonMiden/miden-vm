@@ -1,5 +1,5 @@
 use super::{AstFormatterContext, CodeBody, Felt, FormattableCodeBody, ProcedureId, RpoDigest};
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 use core::fmt;
 use vm_core::DebugOptions;
 

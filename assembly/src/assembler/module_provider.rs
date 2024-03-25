@@ -1,5 +1,6 @@
 use super::{Library, LibraryError, Module, ProcedureId};
-use crate::utils::collections::*;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 
 // MODULE PROVIDER
 // ================================================================================================

@@ -49,7 +49,7 @@ mod tests {
         // initialize the stack with a few values
         let [a0, a1, b0, b1] = [rand_value(); 4];
 
-        let stack = StackInputs::new(vec![a0, a1, b0, b1]);
+        let stack = StackInputs::new(vec![a0, a1, b0, b1]).expect("inputs lenght too long");
         let mut process = Process::new_dummy(stack);
 
         // multiply the top two values
@@ -64,7 +64,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // calling ext2mul with a stack of minimum depth is ok
-        let stack = StackInputs::new(vec![]);
+        let stack = StackInputs::new(vec![]).expect("inputs lenght too long");
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::Ext2Mul).is_ok());
     }

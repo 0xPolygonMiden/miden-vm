@@ -3,7 +3,7 @@ use super::{
     Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
     TRACE_WIDTH,
 };
-use crate::utils::collections::*;
+use alloc::vec::Vec;
 
 use miden_air::trace::chiplets::hasher::{
     DIGEST_LEN, HASH_CYCLE_LEN, NUM_ROUNDS, NUM_SELECTORS, STATE_COL_RANGE,

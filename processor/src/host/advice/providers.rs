@@ -1,8 +1,13 @@
+use crate::ProcessState;
+
 use super::{
     injectors, AdviceInputs, AdviceProvider, AdviceSource, ExecutionError, Felt, MerklePath,
     MerkleStore, NodeIndex, RpoDigest, StoreNode, Word,
 };
-use crate::{utils::collections::*, ProcessState};
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use vm_core::utils::collections::KvMap;
+use vm_core::utils::collections::RecordingMap;
 use vm_core::SignatureKind;
 
 // TYPE ALIASES
@@ -185,18 +190,6 @@ where
             .map_err(ExecutionError::MerkleStoreLookupFailed)
     }
 
-    fn find_lone_leaf(
-        &self,
-        root: Word,
-        root_index: NodeIndex,
-        tree_depth: u8,
-    ) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
-        self.store
-            .find_lone_leaf(root.into(), root_index, tree_depth)
-            .map(|leaf| leaf.map(|(index, leaf)| (index, leaf.into())))
-            .map_err(ExecutionError::MerkleStoreLookupFailed)
-    }
-
     fn update_merkle_node(
         &mut self,
         root: Word,
@@ -315,10 +308,6 @@ impl AdviceProvider for MemAdviceProvider {
 
     fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
         self.provider.get_leaf_depth(root, tree_depth, index)
-    }
-
-    fn find_lone_leaf(&self, root: Word, root_index: NodeIndex, tree_depth: u8) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
-        self.provider.find_lone_leaf(root, root_index, tree_depth)
     }
 
     fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {
@@ -440,10 +429,6 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn get_leaf_depth(&self, root: Word, tree_depth: &Felt, index: &Felt) -> Result<u8, ExecutionError> {
         self.provider.get_leaf_depth(root, tree_depth, index)
-    }
-
-    fn find_lone_leaf(&self, root: Word, root_index: NodeIndex, tree_depth: u8) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
-        self.provider.find_lone_leaf(root, root_index, tree_depth)
     }
 
     fn update_merkle_node(&mut self, root: Word, depth: &Felt, index: &Felt, value: Word) -> Result<(MerklePath, Word), ExecutionError> {

@@ -1,7 +1,6 @@
-use vm_core::crypto::hash::RpoDigest;
-
 use super::{AdviceMap, Felt, InnerNodeInfo, InputError, MerkleStore};
-use crate::utils::collections::*;
+use alloc::vec::Vec;
+use vm_core::crypto::hash::RpoDigest;
 
 // ADVICE INPUTS
 // ================================================================================================

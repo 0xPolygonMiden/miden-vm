@@ -171,11 +171,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::collections::*;
+    use crate::{ContextId, Process, QuadFelt};
+    use alloc::borrow::ToOwned;
+    use alloc::vec::Vec;
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
-
-    use crate::{ContextId, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {
@@ -195,7 +195,7 @@ mod tests {
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
-        let stack_inputs = StackInputs::new(inputs.to_vec());
+        let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
 
         // --- setup memory -----------------------------------------------------------------------

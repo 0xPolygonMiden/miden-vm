@@ -3,6 +3,7 @@ use crate::{
     Assembler, AssemblyContext, AssemblyError, Library, LibraryNamespace, LibraryPath, MaslLibrary,
     Module, ProcedureName, Version,
 };
+use alloc::{string::ToString, vec::Vec};
 use core::slice::Iter;
 
 // SIMPLE PROGRAMS

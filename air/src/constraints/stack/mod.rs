@@ -4,7 +4,8 @@ use super::super::{
     STACK_AUX_TRACE_OFFSET, STACK_TRACE_OFFSET, ZERO,
 };
 use crate::decoder::{IS_CALL_FLAG_COL_IDX, IS_SYSCALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET};
-use crate::utils::{are_equal, collections::*, is_binary};
+use crate::utils::{are_equal, is_binary};
+use alloc::vec::Vec;
 use vm_core::{stack::STACK_TOP_SIZE, StackOutputs};
 
 pub mod field_ops;
@@ -227,7 +228,7 @@ pub fn get_assertions_last_step(
 // --- AUXILIARY COLUMNS --------------------------------------------------------------------------
 
 /// Returns the stack's boundary assertions for auxiliary columns at the first step.
-pub fn get_aux_assertions_first_step<E: FieldElement>(
+pub fn get_aux_assertions_first_step<E>(
     result: &mut Vec<Assertion<E>>,
     alphas: &AuxTraceRandElements<E>,
     stack_inputs: &[Felt],
@@ -245,7 +246,7 @@ pub fn get_aux_assertions_first_step<E: FieldElement>(
 }
 
 /// Returns the stack's boundary assertions for auxiliary columns at the last step.
-pub fn get_aux_assertions_last_step<E: FieldElement>(
+pub fn get_aux_assertions_last_step<E>(
     result: &mut Vec<Assertion<E>>,
     alphas: &AuxTraceRandElements<E>,
     stack_outputs: &StackOutputs,
@@ -269,7 +270,7 @@ pub fn get_aux_assertions_last_step<E: FieldElement>(
 
 /// Gets the initial value of the overflow table auxiliary column from the provided sets of initial
 /// values and random elements.
-fn get_overflow_table_init<E: FieldElement>(alphas: &[E], init_values: &[Felt]) -> E
+fn get_overflow_table_init<E>(alphas: &[E], init_values: &[Felt]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -293,7 +294,7 @@ where
 
 /// Gets the final value of the overflow table auxiliary column from the provided program outputs
 /// and random elements.
-fn get_overflow_table_final<E: FieldElement>(alphas: &[E], stack_outputs: &StackOutputs) -> E
+fn get_overflow_table_final<E>(alphas: &[E], stack_outputs: &StackOutputs) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {

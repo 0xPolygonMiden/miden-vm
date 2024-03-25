@@ -1,12 +1,12 @@
 use super::HostResponse;
 use crate::{ExecutionError, Felt, InputError, ProcessState, Word};
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use vm_core::{
     crypto::{
         hash::RpoDigest,
         merkle::{InnerNodeInfo, MerklePath, MerkleStore, NodeIndex, StoreNode},
     },
-    utils::collections::*,
     AdviceInjector, SignatureKind,
 };
 
@@ -183,9 +183,7 @@ pub trait AdviceProvider: Sized {
     /// After the operation, both the original trees and the new tree remains in the advice
     /// provider (i.e., the input trees are not removed).
     ///
-    /// # Errors
-    /// Return an error if a Merkle tree for either of the specified roots cannot be found in this
-    /// advice provider.
+    /// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
     fn merge_merkle_nodes<S: ProcessState>(
         &mut self,
         process: &S,
@@ -677,21 +675,6 @@ pub trait AdviceProvider: Sized {
         index: &Felt,
     ) -> Result<u8, ExecutionError>;
 
-    /// Returns node value and index of a leaf node in the subtree of the specified root, if and
-    /// only if this is the only leaf in the entire subtree. Otherwise, None is returned.
-    ///
-    /// The root itself is assumed to be located at the specified index in a tree with the provided
-    /// depth.
-    ///
-    /// # Errors
-    /// Returns an error if a three for the specified root does not exist in the advice provider.
-    fn find_lone_leaf(
-        &self,
-        root: Word,
-        root_index: NodeIndex,
-        tree_depth: u8,
-    ) -> Result<Option<(NodeIndex, Word)>, ExecutionError>;
-
     /// Updates a node at the specified depth and index in a Merkle tree with the specified root;
     /// returns the Merkle path from the updated node to the new root, together with the new root.
     ///
@@ -719,9 +702,8 @@ pub trait AdviceProvider: Sized {
     /// After the operation, both the original trees and the new tree remains in the advice
     /// provider (i.e., the input trees are not removed).
     ///
-    /// # Errors
-    /// Returns an error if a Merkle tree for either of the specified roots cannot be found in this
-    /// advice provider.
+    /// It is not checked whether a Merkle tree for either of the specified roots can be found in
+    /// this advice provider.
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
 
     /// Returns a subset of this Merkle store such that the returned Merkle store contains all
@@ -799,15 +781,6 @@ where
         index: &Felt,
     ) -> Result<u8, ExecutionError> {
         T::get_leaf_depth(self, root, tree_depth, index)
-    }
-
-    fn find_lone_leaf(
-        &self,
-        root: Word,
-        root_index: NodeIndex,
-        tree_depth: u8,
-    ) -> Result<Option<(NodeIndex, Word)>, ExecutionError> {
-        T::find_lone_leaf(self, root, root_index, tree_depth)
     }
 
     fn update_merkle_node(

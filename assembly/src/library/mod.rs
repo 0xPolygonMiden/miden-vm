@@ -3,10 +3,10 @@ use super::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryError, PathError,
     Serializable, MAX_LABEL_LEN, NAMESPACE_LABEL_PARSER,
 };
-use crate::utils::string::*;
 use core::{cmp::Ordering, fmt, ops::Deref, str::from_utf8};
 
 mod masl;
+use alloc::string::{String, ToString};
 pub use masl::MaslLibrary;
 
 mod path;

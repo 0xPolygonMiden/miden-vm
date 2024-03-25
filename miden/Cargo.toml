@@ -20,7 +20,6 @@ doctest = false
 required-features = ["executable"]
 
 [lib]
-name = "miden"
 path = "src/lib.rs"
 bench = false
 doctest = false

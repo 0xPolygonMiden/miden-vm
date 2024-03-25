@@ -1,7 +1,8 @@
 use crate::{
-    utils::collections::*, CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel,
-    Operation, Process, StackInputs,
+    CodeBlock, DefaultHost, ExecutionOptions, ExecutionTrace, Kernel, Operation, Process,
+    StackInputs,
 };
+use alloc::vec::Vec;
 use miden_air::trace::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -110,7 +111,7 @@ fn build_trace(
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
     let program = CodeBlock::new_span(operations);

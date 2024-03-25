@@ -158,8 +158,7 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// follows:
 /// - merged root, 4 elements
 ///
-/// This operation will fail if either of the input roots doesn't exist as Merkle tree in the
-/// advice provider.
+/// It is not checked whether the provided roots exist as Merkle trees in the advide providers.
 ///
 /// This operation takes 16 VM cycles.
 pub(super) fn mtree_merge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {

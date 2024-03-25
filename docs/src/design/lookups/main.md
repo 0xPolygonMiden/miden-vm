@@ -1,6 +1,6 @@
 # Lookup arguments in Miden VM
 
-Zero knowledge virtual machines frequently make use of lookup arguments to enable performance optimizations. Miden VM uses two types of arguments: multiset checks and a multivariate lookup based on logarithmic derivatives known as LogUp. A brief introduction to multiset checks can be found [here](https://hackmd.io/@arielg/ByFgSDA7D). The description of LogUp can be found [here](https://eprint.iacr.org/2022/1530.pdf).
+Zero knowledge virtual machines frequently make use of lookup arguments to enable performance optimizations. Miden VM uses two types of arguments: multiset checks and a multivariate lookup based on logarithmic derivatives known as LogUp. A brief introduction to multiset checks can be found [here](./multiset.md). The description of LogUp can be found [here](https://eprint.iacr.org/2022/1530.pdf).
 
 In Miden VM, lookup arguments are used for two purposes:
 

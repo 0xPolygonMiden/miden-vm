@@ -1,7 +1,7 @@
 use super::{cli::InputFile, ProgramError};
 use clap::Parser;
 use core::fmt;
-use miden::{utils::collections::*, Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
@@ -323,7 +323,7 @@ mod tests {
     fn analyze_test_execution_error() {
         let source = "begin div end";
         let stack_inputs = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let host = DefaultHost::default();
         let execution_details = super::analyze(source, stack_inputs, host);
         let expected_error = "Execution Error: DivideByZero(1)";
