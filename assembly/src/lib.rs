@@ -13,7 +13,7 @@ use vm_core::{
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
     },
-    Felt, ONE, ZERO,
+    Felt, Word, ONE, ZERO,
 };
 
 use vm_core::{prettier, utils::DisplayHex};

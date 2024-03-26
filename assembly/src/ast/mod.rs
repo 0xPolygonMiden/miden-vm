@@ -1,7 +1,5 @@
 //! Abstract syntax tree (AST) components of Miden programs, modules, and procedures.
 
-pub use tracing::{event, info_span, instrument, Level};
-
 mod block;
 mod constants;
 mod form;

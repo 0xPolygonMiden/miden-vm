@@ -7,12 +7,12 @@ use miden_formatting::hex::DisplayHex;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum InputError {
-    #[error("{0} is not a valid field element: {1}")]
-    NotFieldElement(u64, String),
     #[error("{:#x} is a duplicate of the current merkle set", DisplayHex(.0.as_slice()))]
     DuplicateAdviceRoot([u8; 32]),
     #[error("number of input values can not exceed {0}, but {1} was provided")]
     InputLengthExceeded(usize, usize),
+    #[error("{0} is not a valid field element: {1}")]
+    NotFieldElement(u64, String),
 }
 
 // OUTPUT ERROR
