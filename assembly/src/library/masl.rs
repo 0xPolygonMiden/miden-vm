@@ -113,8 +113,8 @@ impl MaslLibrary {
 mod use_std {
     use super::*;
     use crate::{
-        ast::{instrument, ModuleKind},
-        diagnostics::{IntoDiagnostic, Report},
+        ast::ModuleKind,
+        diagnostics::{tracing::instrument, IntoDiagnostic, Report},
     };
     use std::{collections::BTreeMap, fs, io, path::Path};
 

@@ -138,7 +138,7 @@ where
     for import in module.imports.iter() {
         visitor.visit_import(import)?;
     }
-    for export in module.procedures.iter() {
+    for export in module.procedures() {
         visitor.visit_export(export)?;
     }
 
@@ -543,7 +543,7 @@ where
     for import in module.imports.iter_mut() {
         visitor.visit_mut_import(import)?;
     }
-    for export in module.procedures.iter_mut() {
+    for export in module.procedures_mut() {
         visitor.visit_mut_export(export)?;
     }
 

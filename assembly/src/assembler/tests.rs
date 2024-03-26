@@ -145,8 +145,6 @@ fn nested_blocks() {
     let r#false = CodeBlock::new_join([span, r#while]);
     let nested = CodeBlock::new_split(r#true, r#false);
 
-    //let exec = CodeBlock::new_span(vec![Operation::Push(29u32.into())]);
-
     let combined = combine_blocks(vec![before, r#if, nested, exec_foo_bar_baz, syscall]);
 
     assert_eq!(combined.hash(), program.hash());

@@ -1,9 +1,9 @@
 use crate::{
     ast::{
-        self, instrument, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
-        InvokeKind, ModuleKind, ProcedureIndex,
+        self, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind,
+        ModuleKind, ProcedureIndex,
     },
-    diagnostics::Report,
+    diagnostics::{tracing::instrument, Report},
     sema::SemanticAnalysisError,
     AssemblyError, Compile, CompileOpts, Felt, Library, LibraryNamespace, LibraryPath, RpoDigest,
     Spanned, ONE, ZERO,
