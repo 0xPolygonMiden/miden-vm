@@ -332,7 +332,7 @@ impl ModuleGraph {
         self.modules.append(&mut finished);
         edges
             .into_iter()
-            .for_each(|(callee, caller)| self.callgraph.add_edge_unchecked(callee, caller));
+            .for_each(|(callee, caller)| self.callgraph.add_edge(callee, caller));
 
         // Visit all of the modules in the base module graph, and modify them if any of the
         // pending modules allow additional information to be inferred (such as the absolute path
