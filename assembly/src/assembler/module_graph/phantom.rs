@@ -7,7 +7,6 @@ use crate::{diagnostics::SourceFile, RpoDigest, SourceSpan, Spanned};
 /// Such calls are still valid, as at runtime they may be supplied to the VM, but we are limited
 /// in how much we can reason about such procedures, so we represent them and handle them explicitly.
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct PhantomCall {
     /// The source span associated with the call
     pub span: SourceSpan,

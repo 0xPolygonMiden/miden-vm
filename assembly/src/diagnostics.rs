@@ -2,6 +2,7 @@ pub use miette::{
     self, Diagnostic, IntoDiagnostic, LabeledSpan, NamedSource, Report, Result, Severity,
     SourceCode, WrapErr,
 };
+pub use tracing;
 
 use alloc::{borrow::Cow, boxed::Box, sync::Arc, vec::Vec};
 use core::{fmt, ops::Range};

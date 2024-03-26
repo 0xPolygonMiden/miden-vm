@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 
 use crate::{
     ast::{immediate::*, InvocationTarget},
-    Felt,
+    Felt, Word,
 };
 
 /// Represents the set of primitive instructions in Miden Assembly syntax.
@@ -211,7 +211,7 @@ pub enum Instruction {
     PushU16(u16),
     PushU32(u32),
     PushFelt(Felt),
-    PushWord([Felt; 4]),
+    PushWord(Word),
     PushU8List(Vec<u8>),
     PushU16List(Vec<u16>),
     PushU32List(Vec<u32>),
