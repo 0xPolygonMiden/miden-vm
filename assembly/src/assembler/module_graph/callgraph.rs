@@ -55,48 +55,16 @@ impl CallGraph {
         self.nodes.entry(id).or_default()
     }
 
-    /// Adds an edge in the call graph from `caller` to `callee`.
-    ///
-    /// If introducing this edge will cause a cycle in the graph, then `Err` is returned, and
-    /// the edge is not added.
-    ///
-    /// NOTE: This function performs a topological sort of the graph to perform the cycle check,
-    /// which can be expensive. If you need to add many edges at once, use [add_edge_unchecked],
-    /// and then when ready, call [toposort] to verify that there are no cycles.
-    #[allow(unused)]
-    pub fn add_edge(
-        &mut self,
-        caller: GlobalProcedureIndex,
-        callee: GlobalProcedureIndex,
-    ) -> Result<(), CycleError> {
-        if caller == callee {
-            return Err(CycleError(BTreeSet::from_iter([caller, callee])));
-        }
-
-        // Insert the edge
-        self.add_edge_unchecked(caller, callee);
-
-        // Verify the new edge does not introduce cycles in the graph
-        let causes_cycle = self.toposort_caller(caller).is_err();
-        if causes_cycle {
-            // Remove the edge we just inserted
-            self.nodes.get_mut(&caller).unwrap().pop();
-        }
-
-        Ok(())
-    }
-
     /// Add an edge in the call graph from `caller` to `callee`.
     ///
-    /// This version differs from [add_edge], in that no cycle check is performed, which is useful
-    /// when constructing the graph in bulk, and validating at the end. However, it is essential
-    /// that after adding an edge using this API, that you at some point prior to compilation,
-    /// check the validity of the graph using [toposort].
-    pub fn add_edge_unchecked(
-        &mut self,
-        caller: GlobalProcedureIndex,
-        callee: GlobalProcedureIndex,
-    ) {
+    /// This operation is unchecked, i.e. it is possible to introduce cycles in the graph using it.
+    /// As a result, it is essential that the caller either know that adding the edge does _not_
+    /// introduce a cycle, or that [toposort] is run once the graph is built, in order to verify
+    /// that the graph is valid and has no cycles.
+    ///
+    /// NOTE: This function will panic if you attempt to add an edge from a function to itself, which
+    /// trivially introduces a cycle. All other cycle-inducing edges must be caught by a call to [toposort]
+    pub fn add_edge(&mut self, caller: GlobalProcedureIndex, callee: GlobalProcedureIndex) {
         assert_ne!(caller, callee, "a procedure cannot call itself");
 
         // Make sure the callee is in the graph
@@ -184,7 +152,7 @@ impl CallGraph {
         let has_cycle = graph
             .nodes
             .iter()
-            .any(|(n, out_edges)| output.contains(n) && !out_edges.is_empty());
+            .any(|(n, out_edges)| !output.contains(n) || !out_edges.is_empty());
         if has_cycle {
             let mut in_cycle = BTreeSet::default();
             for (n, edges) in graph.nodes.iter() {
@@ -272,5 +240,159 @@ impl CallGraph {
         } else {
             Ok(output)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::{
+        assembler::{GlobalProcedureIndex, ModuleIndex},
+        ast::ProcedureIndex,
+    };
+
+    const A: ModuleIndex = ModuleIndex::const_new(1);
+    const B: ModuleIndex = ModuleIndex::const_new(2);
+    const P1: ProcedureIndex = ProcedureIndex::const_new(1);
+    const P2: ProcedureIndex = ProcedureIndex::const_new(2);
+    const P3: ProcedureIndex = ProcedureIndex::const_new(3);
+    const A1: GlobalProcedureIndex = GlobalProcedureIndex {
+        module: A,
+        index: P1,
+    };
+    const A2: GlobalProcedureIndex = GlobalProcedureIndex {
+        module: A,
+        index: P2,
+    };
+    const A3: GlobalProcedureIndex = GlobalProcedureIndex {
+        module: A,
+        index: P3,
+    };
+    const B1: GlobalProcedureIndex = GlobalProcedureIndex {
+        module: B,
+        index: P1,
+    };
+    const B2: GlobalProcedureIndex = GlobalProcedureIndex {
+        module: B,
+        index: P2,
+    };
+    const B3: GlobalProcedureIndex = GlobalProcedureIndex {
+        module: B,
+        index: P3,
+    };
+
+    #[test]
+    fn callgraph_add_edge() {
+        let graph = callgraph_simple();
+
+        // Verify the graph structure
+        assert_eq!(graph.num_predecessors(A1), 0);
+        assert_eq!(graph.num_predecessors(B1), 0);
+        assert_eq!(graph.num_predecessors(A2), 1);
+        assert_eq!(graph.num_predecessors(B2), 2);
+        assert_eq!(graph.num_predecessors(B3), 1);
+        assert_eq!(graph.num_predecessors(A3), 2);
+
+        assert_eq!(graph.out_edges(A1), &[A2]);
+        assert_eq!(graph.out_edges(B1), &[B2]);
+        assert_eq!(graph.out_edges(A2), &[B2, A3]);
+        assert_eq!(graph.out_edges(B2), &[B3]);
+        assert_eq!(graph.out_edges(A3), &[]);
+        assert_eq!(graph.out_edges(B3), &[A3]);
+    }
+
+    #[test]
+    fn callgraph_add_edge_with_cycle() {
+        let graph = callgraph_cycle();
+
+        // Verify the graph structure
+        assert_eq!(graph.num_predecessors(A1), 0);
+        assert_eq!(graph.num_predecessors(B1), 0);
+        assert_eq!(graph.num_predecessors(A2), 2);
+        assert_eq!(graph.num_predecessors(B2), 2);
+        assert_eq!(graph.num_predecessors(B3), 1);
+        assert_eq!(graph.num_predecessors(A3), 1);
+
+        assert_eq!(graph.out_edges(A1), &[A2]);
+        assert_eq!(graph.out_edges(B1), &[B2]);
+        assert_eq!(graph.out_edges(A2), &[B2]);
+        assert_eq!(graph.out_edges(B2), &[B3]);
+        assert_eq!(graph.out_edges(A3), &[A2]);
+        assert_eq!(graph.out_edges(B3), &[A3]);
+    }
+
+    #[test]
+    fn callgraph_subgraph() {
+        let graph = callgraph_simple();
+        let subgraph = graph.subgraph(A2);
+
+        assert_eq!(subgraph.nodes.keys().copied().collect::<Vec<_>>(), vec![A2, A3, B2, B3]);
+    }
+
+    #[test]
+    fn callgraph_with_cycle_subgraph() {
+        let graph = callgraph_cycle();
+        let subgraph = graph.subgraph(A2);
+
+        assert_eq!(subgraph.nodes.keys().copied().collect::<Vec<_>>(), vec![A2, A3, B2, B3]);
+    }
+
+    #[test]
+    fn callgraph_toposort() {
+        let graph = callgraph_simple();
+
+        let sorted = graph.toposort().expect("expected valid topological ordering");
+        assert_eq!(sorted.as_slice(), &[A1, B1, A2, B2, B3, A3]);
+    }
+
+    #[test]
+    fn callgraph_toposort_caller() {
+        let graph = callgraph_simple();
+
+        let sorted = graph.toposort_caller(A2).expect("expected valid topological ordering");
+        assert_eq!(sorted.as_slice(), &[A2, B2, B3, A3]);
+    }
+
+    #[test]
+    fn callgraph_with_cycle_toposort() {
+        let graph = callgraph_cycle();
+
+        let err = graph.toposort().expect_err("expected topological sort to fail with cycle");
+        assert_eq!(err.0.into_iter().collect::<Vec<_>>(), &[A2, A3, B2, B3]);
+    }
+
+    /// a::a1 -> a::a2 -> a::a3
+    ///            |        ^
+    ///            v        |
+    /// b::b1 -> b::b2 -> b::b3
+    fn callgraph_simple() -> CallGraph {
+        // Construct the graph
+        let mut graph = CallGraph::default();
+        graph.add_edge(A1, A2);
+        graph.add_edge(B1, B2);
+        graph.add_edge(A2, B2);
+        graph.add_edge(A2, A3);
+        graph.add_edge(B2, B3);
+        graph.add_edge(B3, A3);
+
+        graph
+    }
+
+    /// a::a1 -> a::a2 <- a::a3
+    ///            |        ^
+    ///            v        |
+    /// b::b1 -> b::b2 -> b::b3
+    fn callgraph_cycle() -> CallGraph {
+        // Construct the graph
+        let mut graph = CallGraph::default();
+        graph.add_edge(A1, A2);
+        graph.add_edge(B1, B2);
+        graph.add_edge(A2, B2);
+        graph.add_edge(B2, B3);
+        graph.add_edge(B3, A3);
+        graph.add_edge(A3, A2);
+
+        graph
     }
 }

@@ -44,6 +44,11 @@ impl ModuleIndex {
         Self(index.try_into().expect("invalid module index: too many modules"))
     }
 
+    #[cfg(test)]
+    pub const fn const_new(index: u16) -> Self {
+        Self(index)
+    }
+
     #[inline(always)]
     pub const fn as_usize(&self) -> usize {
         self.0 as usize
