@@ -175,12 +175,9 @@ impl Serializable for ModuleImports {
         // We don't need to serialize the library names if the library paths already contain the library names,
         // which is true in the most cases
         self.imports.iter().for_each(|(name, path)| {
-            path.write_into(target);
-            let name = match name == path.last() {
-                true => None,
-                false => Some(name),
-            };
+            let name = (name != path.last()).then_some(name);
             name.write_into(target);
+            path.write_into(target);
         });
         target.write_u16(self.invoked_procs.len() as u16);
         for (proc_id, (proc_name, lib_path)) in self.invoked_procs.iter() {
@@ -196,8 +193,8 @@ impl Deserializable for ModuleImports {
         let mut imports = BTreeMap::<String, LibraryPath>::new();
         let num_imports = source.read_u16()?;
         for _ in 0..num_imports {
-            let path = LibraryPath::read_from(source)?;
             let name = <Option<String>>::read_from(source)?;
+            let path = LibraryPath::read_from(source)?;
             imports.insert(name.unwrap_or_else(|| path.last().to_string()), path);
         }
 
