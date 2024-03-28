@@ -173,8 +173,7 @@ impl Serializable for ModuleImports {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u16(self.imports.len() as u16);
         self.imports.iter().for_each(|(name, path)| {
-            // We don't need to serialize the library names if the library paths already contain the library names,
-            // which is true in the most cases
+            // We don't need to serialize the library names if the library wasn't renamed on import
             let name = (name != path.last()).then_some(name);
             name.write_into(target);
             path.write_into(target);
@@ -195,6 +194,7 @@ impl Deserializable for ModuleImports {
         for _ in 0..num_imports {
             let name = <Option<String>>::read_from(source)?;
             let path = LibraryPath::read_from(source)?;
+            // If library name wasn't serialized, get it from the path
             imports.insert(name.unwrap_or_else(|| path.last().to_string()), path);
         }
 
