@@ -43,8 +43,8 @@ impl<E: FieldElement> RoundProof<E> {
 /// protocol for a certain number of rounds that is less than the number of variables of the
 /// multi-linears. This is the case for example when we have a merged polynomial.
 #[derive(Debug, Clone)]
-pub struct Proof<E> {
-    pub openings: Option<Vec<E>>,
+pub struct Proof<E: FieldElement> {
+    pub openings: Option<FinalOpeningClaim<E>>,
     pub round_proofs: Vec<RoundProof<E>>,
 }
 
@@ -212,10 +212,10 @@ mod test {
 
         fn build_query(
             &self,
-            openings: &[Self::Field],
+            openings_claim: &super::FinalOpeningClaim<Felt>,
             _evaluation_point: &[Self::Field],
         ) -> Vec<Self::Field> {
-            openings.to_vec()
+            openings_claim.openings.to_vec()
         }
     }
 
