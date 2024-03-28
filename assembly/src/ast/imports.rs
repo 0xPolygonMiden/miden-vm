@@ -172,9 +172,12 @@ impl ModuleImports {
 impl Serializable for ModuleImports {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u16(self.imports.len() as u16);
-        // We don't need to serialize the library names (the keys), since the libraty paths (the
-        // values) contain the library names
-        self.imports.values().for_each(|i| i.write_into(target));
+        self.imports.iter().for_each(|(name, path)| {
+            // We don't need to serialize the library names if the library wasn't renamed on import
+            let name = (name != path.last()).then_some(name);
+            name.write_into(target);
+            path.write_into(target);
+        });
         target.write_u16(self.invoked_procs.len() as u16);
         for (proc_id, (proc_name, lib_path)) in self.invoked_procs.iter() {
             proc_id.write_into(target);
@@ -189,8 +192,10 @@ impl Deserializable for ModuleImports {
         let mut imports = BTreeMap::<String, LibraryPath>::new();
         let num_imports = source.read_u16()?;
         for _ in 0..num_imports {
+            let name = <Option<String>>::read_from(source)?;
             let path = LibraryPath::read_from(source)?;
-            imports.insert(path.last().to_string(), path);
+            // If library name wasn't serialized, get it from the path
+            imports.insert(name.unwrap_or_else(|| path.last().to_string()), path);
         }
 
         let mut used_imported_procs = InvokedProcsMap::new();
