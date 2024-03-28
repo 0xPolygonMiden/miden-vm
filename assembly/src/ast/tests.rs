@@ -985,7 +985,6 @@ fn test_ast_program_serde_renamed_imports_serialized() {
     assert_correct_program_serialization(source, true);
 }
 
-
 #[test]
 fn test_repeat_with_constant_count() {
     let source = "\
