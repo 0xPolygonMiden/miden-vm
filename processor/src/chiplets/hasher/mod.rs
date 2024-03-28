@@ -1,7 +1,7 @@
 use super::{
-    BTreeMap, Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Word, ONE,
-    ZERO,
+    Felt, HasherState, MerklePath, MerkleRootUpdate, OpBatch, TraceFragment, Word, ONE, ZERO,
 };
+use alloc::collections::BTreeMap;
 use miden_air::trace::chiplets::hasher::{
     Digest, Selectors, DIGEST_LEN, DIGEST_RANGE, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW,
     MR_UPDATE_OLD, RATE_LEN, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,

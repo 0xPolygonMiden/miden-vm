@@ -64,7 +64,7 @@ pub trait Host {
         event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
-        println!(
+        std::println!(
             "Event with id {} emitted at step {} in context {}",
             event_id,
             process.clk(),
@@ -91,7 +91,7 @@ pub trait Host {
         trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
-        println!(
+        std::println!(
             "Trace with id {} emitted at step {} in context {}",
             trace_id,
             process.clk(),

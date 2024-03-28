@@ -1,4 +1,5 @@
-use super::{BTreeMap, Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
+use super::{Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
+use alloc::collections::BTreeMap;
 use miden_air::trace::chiplets::kernel_rom::TRACE_WIDTH;
 
 #[cfg(test)]

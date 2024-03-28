@@ -1,18 +1,22 @@
 use assembly::{utils::Serializable, Assembler};
 use miden_air::{Felt, ProvingOptions};
 use miden_stdlib::StdLibrary;
-use processor::{AdviceInputs, DefaultHost, Digest, MemAdviceProvider, StackInputs};
+use processor::{
+    crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, MemAdviceProvider, StackInputs,
+};
 use test_utils::{
-    crypto::{rpo_falcon512::KeyPair, MerkleStore},
+    crypto::{rpo_falcon512::SecretKey, MerkleStore},
     rand::rand_vector,
     ProgramInfo, Word,
 };
 
 #[test]
 fn falcon_execution() {
-    let keypair = KeyPair::new().unwrap();
+    let seed = Word::default();
+    let mut rng = RpoRandomCoin::new(seed);
+    let sk = SecretKey::with_rng(&mut rng);
     let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, adv_stack, store, advice_map) = generate_test(keypair, message);
+    let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
 
     let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
     test.expect_stack(&[])
@@ -21,9 +25,9 @@ fn falcon_execution() {
 #[test]
 #[ignore]
 fn falcon_prove_verify() {
-    let keypair = KeyPair::new().unwrap();
+    let sk = SecretKey::new();
     let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, _, _, advice_map) = generate_test(keypair, message);
+    let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
     let program = Assembler::default()
         .with_library(&StdLibrary::default())
@@ -47,7 +51,7 @@ fn falcon_prove_verify() {
 }
 
 fn generate_test(
-    keypair: KeyPair,
+    sk: SecretKey,
     message: Word,
 ) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
     let source = "
@@ -58,11 +62,11 @@ fn generate_test(
     end
     ";
 
-    let pk: Word = keypair.public_key().into();
+    let pk: Word = sk.public_key().into();
     let pk: Digest = pk.into();
-    let pk_sk_bytes = keypair.to_bytes();
+    let sk_bytes = sk.to_bytes();
 
-    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+    let to_adv_map = sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
     let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
 

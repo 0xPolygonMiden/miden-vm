@@ -1,5 +1,6 @@
 use processor::Digest;
-use test_utils::{collections::BTreeMap, crypto::MerkleStore, Felt, StarkField};
+use std::collections::BTreeMap;
+use test_utils::{crypto::MerkleStore, Felt, StarkField};
 
 mod channel;
 
