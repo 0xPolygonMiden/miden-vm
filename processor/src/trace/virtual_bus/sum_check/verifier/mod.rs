@@ -1,8 +1,8 @@
 use self::error::Error;
 use super::{domain::EvaluationDomain, FinalOpeningClaim, Proof};
 use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
-use core::marker::PhantomData;
 use alloc::vec::Vec;
+use core::marker::PhantomData;
 use vm_core::{FieldElement, StarkField};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
