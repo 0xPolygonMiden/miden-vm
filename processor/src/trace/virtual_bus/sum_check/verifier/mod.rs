@@ -88,7 +88,7 @@ where
         coin: &mut C,
     ) -> Result<FinalOpeningClaim<E>, Error> {
         let Proof {
-            openings,
+            openings: openings_claim,
             round_proofs,
         } = proof;
 
@@ -106,15 +106,15 @@ where
             evaluation_point.push(r);
         }
 
-        if let Some(openings) = openings {
-            let query = self.final_query_builder.build_query(&openings, &evaluation_point);
+        if let Some(openings_claim) = openings_claim {
+            if openings_claim.evaluation_point != evaluation_point {
+                return Err(Error::WrongOpeningPoint);
+            }
+            let query = self.final_query_builder.build_query(&openings_claim, &evaluation_point);
             if self.composition_poly.evaluate(&query) != claimed_evaluation {
                 Err(Error::FinalEvaluationCheckFailed)
             } else {
-                Ok(FinalOpeningClaim {
-                    evaluation_point,
-                    openings,
-                })
+                Ok(openings_claim)
             }
         } else {
             Err(Error::NoOpeningsProvided)
@@ -142,11 +142,11 @@ where
 /// In the case where there are no `f_i(r_0, ... ,r_{\nu - 1})` which can be computed by the
 /// Verifier alone, the output of [Self::build_query] will be just the provided openings.
 pub trait FinalQueryBuilder {
-    type Field;
+    type Field: FieldElement;
 
     fn build_query(
         &self,
-        openings: &[Self::Field],
+        openings_claim: &FinalOpeningClaim<Self::Field>,
         evaluation_point: &[Self::Field],
     ) -> Vec<Self::Field>;
 }

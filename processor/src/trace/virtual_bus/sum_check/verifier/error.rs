@@ -6,4 +6,6 @@ pub enum Error {
     NoOpeningsProvided,
     #[error("failed to generate round challenge")]
     FailedToGenerateChallenge,
+    #[error("wrong opening point for the oracles")]
+    WrongOpeningPoint,
 }

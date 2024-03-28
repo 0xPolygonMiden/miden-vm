@@ -1,5 +1,7 @@
 use self::error::Error;
-use super::{domain::EvaluationDomain, reduce_claim, Proof, RoundClaim, RoundProof};
+use super::{
+    domain::EvaluationDomain, reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof,
+};
 use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinear};
 use core::marker::PhantomData;
 use vm_core::{FieldElement, StarkField};
@@ -189,7 +191,13 @@ where
             if mls[0].num_evaluations() != 1 {
                 None
             } else {
-                Some(mls.iter_mut().map(|ml| ml.evaluations()[0]).collect())
+                let openings = mls.iter_mut().map(|ml| ml.evaluations()[0]).collect();
+                let mut evaluation_point = current_round_claim.eval_point;
+                evaluation_point.push(round_challenge);
+                Some(FinalOpeningClaim {
+                    evaluation_point,
+                    openings,
+                })
             }
         };
 
