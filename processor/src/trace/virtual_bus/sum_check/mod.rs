@@ -1,4 +1,5 @@
 use self::domain::EvaluationDomain;
+use alloc::vec::Vec;
 use vm_core::FieldElement;
 
 mod domain;
@@ -99,6 +100,7 @@ mod test {
         verifier::{FinalQueryBuilder, SumCheckVerifier},
     };
     use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinear};
+    use alloc::vec::Vec;
     use test_utils::rand::{rand_array, rand_value, rand_vector};
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
 
