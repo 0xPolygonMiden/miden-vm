@@ -972,6 +972,21 @@ fn test_ast_module_serde_imports_not_serialized() {
 }
 
 #[test]
+fn test_ast_program_serde_renamed_imports_serialized() {
+    let source = "\
+    use.std::math::u64
+    use.std::crypto::fri->renamed
+
+    begin
+        push.0
+        push.1
+        exec.u64::wrapping_add
+    end";
+    assert_correct_program_serialization(source, true);
+}
+
+
+#[test]
 fn test_repeat_with_constant_count() {
     let source = "\
     const.A=3
