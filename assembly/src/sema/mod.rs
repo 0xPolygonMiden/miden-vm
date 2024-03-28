@@ -28,8 +28,10 @@ pub fn analyze(
     forms: Vec<Form>,
     warnings_as_errors: bool,
 ) -> Result<Box<Module>, SyntaxError> {
-    let mut analyzer = AnalysisContext::new(source, kind, path);
+    let mut analyzer = AnalysisContext::new(source.clone());
     analyzer.set_warnings_as_errors(warnings_as_errors);
+
+    let mut module = Box::new(Module::new(kind, path).with_source_file(Some(source)));
 
     let mut forms = VecDeque::from(forms);
     let mut docs = None;
@@ -37,7 +39,7 @@ pub fn analyze(
         match form {
             Form::ModuleDoc(docstring) => {
                 assert!(docs.is_none());
-                analyzer.module_mut().set_docs(Some(docstring));
+                module.set_docs(Some(docstring));
             }
             Form::Doc(docstring) => {
                 if let Some(unused) = docs.replace(docstring) {
@@ -53,7 +55,7 @@ pub fn analyze(
                 if let Some(docs) = docs.take() {
                     analyzer.error(SemanticAnalysisError::ImportDocstring { span: docs.span() });
                 }
-                analyzer.define_import(import)?;
+                define_import(import, &mut module, &mut analyzer)?;
             }
             Form::Procedure(export @ Export::Alias(_)) => match kind {
                 ModuleKind::Kernel => {
@@ -69,7 +71,7 @@ pub fn analyze(
                     });
                 }
                 ModuleKind::Library => {
-                    analyzer.define_procedure(export.with_docs(docs.take()))?;
+                    define_procedure(export.with_docs(docs.take()), &mut module, &mut analyzer)?;
                 }
             },
             Form::Procedure(export) => match kind {
@@ -82,7 +84,7 @@ pub fn analyze(
                     });
                 }
                 _ => {
-                    analyzer.define_procedure(export.with_docs(docs.take()))?;
+                    define_procedure(export.with_docs(docs.take()), &mut module, &mut analyzer)?;
                 }
             },
             Form::Begin(body) if matches!(kind, ModuleKind::Executable) => {
@@ -92,7 +94,7 @@ pub fn analyze(
                     Procedure::new(body.span(), Visibility::Public, ProcedureName::main(), 0, body)
                         .with_docs(docs)
                         .with_source_file(Some(source_file));
-                analyzer.define_procedure(Export::Procedure(procedure))?;
+                define_procedure(Export::Procedure(procedure), &mut module, &mut analyzer)?;
             }
             Form::Begin(body) => {
                 docs.take();
@@ -107,16 +109,14 @@ pub fn analyze(
         });
     }
 
-    if matches!(kind, ModuleKind::Executable) && !analyzer.module().has_entrypoint() {
+    if matches!(kind, ModuleKind::Executable) && !module.has_entrypoint() {
         analyzer.error(SemanticAnalysisError::MissingEntrypoint);
     }
 
-    if analyzer.has_errors() {
-        return analyzer.into_result();
-    }
+    analyzer.has_failed()?;
 
     // Run procedure checks
-    let module = visit_procedures(&mut analyzer)?;
+    visit_procedures(&mut module, &mut analyzer)?;
 
     // Check unused imports
     for import in module.imports() {
@@ -127,11 +127,7 @@ pub fn analyze(
         }
     }
 
-    if analyzer.has_errors() {
-        analyzer.into_result()
-    } else {
-        Ok(module)
-    }
+    analyzer.into_result().map(move |_| module)
 }
 
 /// Visit all of the procedures of the current analysis context,
@@ -140,9 +136,10 @@ pub fn analyze(
 /// When this function returns, all local analysis is complete,
 /// and all that remains is construction of a module graph and
 /// global program analysis to perform any remaining transformations.
-fn visit_procedures(analyzer: &mut AnalysisContext) -> Result<Box<Module>, SyntaxError> {
-    let mut module = analyzer.take_module();
-
+fn visit_procedures(
+    module: &mut Module,
+    analyzer: &mut AnalysisContext,
+) -> Result<(), SyntaxError> {
     let is_kernel = module.is_kernel();
     let locals = BTreeSet::from_iter(module.procedures().map(|p| p.name().clone()));
     let mut procedures = VecDeque::from(core::mem::take(&mut module.procedures));
@@ -169,7 +166,7 @@ fn visit_procedures(analyzer: &mut AnalysisContext) -> Result<Box<Module>, Synta
                 {
                     let mut visitor = VerifyInvokeTargets::new(
                         analyzer,
-                        &mut module,
+                        module,
                         &locals,
                         procedure.name().clone(),
                     );
@@ -202,5 +199,52 @@ fn visit_procedures(analyzer: &mut AnalysisContext) -> Result<Box<Module>, Synta
         }
     }
 
-    Ok(module)
+    Ok(())
+}
+
+fn define_import(
+    import: Import,
+    module: &mut Module,
+    context: &mut AnalysisContext,
+) -> Result<(), SyntaxError> {
+    if let Err(err) = module.define_import(import) {
+        match err {
+            SemanticAnalysisError::ImportConflict { .. } => {
+                // Proceed anyway, to try and capture more errors
+                context.error(err);
+            }
+            err => {
+                // We can't proceed without producing a bunch of errors
+                context.error(err);
+                context.has_failed()?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn define_procedure(
+    export: Export,
+    module: &mut Module,
+    context: &mut AnalysisContext,
+) -> Result<(), SyntaxError> {
+    let name = export.name().clone();
+    if let Err(err) = module.define_procedure(export) {
+        match err {
+            SemanticAnalysisError::SymbolConflict { .. } => {
+                // Proceed anyway, to try and capture more errors
+                context.error(err);
+            }
+            err => {
+                // We can't proceed without producing a bunch of errors
+                context.error(err);
+                context.has_failed()?;
+            }
+        }
+    }
+
+    context.register_procedure_name(name);
+
+    Ok(())
 }

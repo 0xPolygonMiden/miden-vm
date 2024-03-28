@@ -51,7 +51,7 @@ pub struct ModuleGraph {
     /// Once added to the graph, modules become immutable, and any additional modules added after
     /// that must by definition only depend on modules in the graph, and not be depended upon.
     #[allow(clippy::vec_box)]
-    pub(crate) pending: Vec<Box<Module>>,
+    pending: Vec<Box<Module>>,
     /// The global call graph of calls, not counting those that are performed directly via MAST
     /// root.
     callgraph: CallGraph,
@@ -77,14 +77,21 @@ pub struct ModuleGraph {
 impl ModuleGraph {
     /// Add `module` to the graph.
     ///
+    /// NOTE: This operation only adds a module to the graph, but does not perform the
+    /// important analysis needed for compilation, you must call [recompute] once all modules
+    /// are added to ensure the analysis results reflect the current version of the graph.
+    ///
+    /// # Errors
+    ///
     /// This operation can fail for the following reasons:
     ///
     /// * Module with same [LibraryPath] is in the graph already
     /// * Too many modules in the graph
     ///
-    /// NOTE: This operation only adds a module to the graph, but does not perform the
-    /// important analysis needed for compilation, you must call [recompute] once all modules
-    /// are added to ensure the analysis results reflect the current version of the graph.
+    /// # Panics
+    ///
+    /// This function will panic if the number of modules exceeds the maximum representable
+    /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
         let is_duplicate =
             self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
@@ -171,6 +178,7 @@ impl ModuleGraph {
         &self.kernel
     }
 
+    #[allow(unused)]
     pub fn kernel_index(&self) -> Option<ModuleIndex> {
         self.kernel_index
     }

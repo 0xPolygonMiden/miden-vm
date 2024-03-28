@@ -141,40 +141,32 @@ impl Default for Assembler {
     }
 }
 
+/// Builder
 impl Assembler {
     /// Start building an [Assembler]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Returns true if this assembler promotes warning diagnostics as errors by default.
-    pub fn warnings_as_errors(&self) -> bool {
-        self.warnings_as_errors
+    /// Start building an [Assembler] with the given [Kernel].
+    pub fn with_kernel(kernel: Kernel) -> Self {
+        let mut assembler = Self::new();
+        assembler.module_graph.set_kernel(None, kernel);
+        assembler
     }
 
-    /// Returns true if this assembler was instantiated in debug mode.
-    pub fn in_debug_mode(&self) -> bool {
-        self.in_debug_mode
-    }
-
-    /// Returns a reference to the kernel for this assembler.
+    /// Start building an [Assembler], with a kernel given by compiling the given source module.
     ///
-    /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
-    pub fn kernel(&self) -> &Kernel {
-        self.module_graph.kernel()
-    }
+    /// # Errors
+    /// Returns an error if compiling kernel source results in an error.
+    pub fn with_kernel_from_module(module: impl Compile) -> Result<Self, Report> {
+        let mut assembler = Self::new();
+        let opts = CompileOpts::for_kernel();
+        let module = module.compile_with_opts(opts)?;
+        let (kernel_index, kernel) = assembler.assemble_kernel_module(module)?;
+        assembler.module_graph.set_kernel(Some(kernel_index), kernel);
 
-    /// Returns the [ModuleIndex] of the kernel module, if the kernel was provided in source form
-    /// to the assembler.
-    ///
-    /// This returns None when the kernel was provided in precompiled form.
-    fn kernel_index(&self) -> Option<ModuleIndex> {
-        self.module_graph.kernel_index()
-    }
-
-    /// Returns true if this assembler was instantiated with phantom calls enabled.
-    pub fn allow_phantom_calls(&self) -> bool {
-        self.allow_phantom_calls
+        Ok(assembler)
     }
 
     /// Sets the default behavior of this assembler with regard to warning diagnostics.
@@ -237,30 +229,19 @@ impl Assembler {
         module: impl Compile,
         options: CompileOpts,
     ) -> Result<(), Report> {
-        if options.kind == ModuleKind::Executable {
-            return Err(Report::msg("cannot call `add_module_with_options` with an executable module: you must provide it via `compile` instead"));
+        let kind = options.kind;
+        if kind != ModuleKind::Library {
+            return Err(Report::msg(
+                "only library modules are supported by `add_module_with_options`",
+            ));
         }
 
         let module = module.compile_with_opts(options)?;
-        match module.kind() {
-            ModuleKind::Kernel if self.kernel_index().is_some() => {
-                Err(Report::new(AssemblyError::ConflictingKernels))
-            }
-            ModuleKind::Kernel => {
-                let (kernel_index, kernel) = self.assemble_kernel_module(module)?;
-                self.module_graph.set_kernel(Some(kernel_index), kernel);
+        assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
 
-                Ok(())
-            }
-            ModuleKind::Library => {
-                self.module_graph.add_module(module)?;
+        self.module_graph.add_module(module)?;
 
-                Ok(())
-            }
-            ModuleKind::Executable => {
-                unreachable!("invalid Compile trait implementation: did not respect 'kind' option")
-            }
-        }
+        Ok(())
     }
 
     /// Adds the library to provide modules for the compilation.
@@ -314,50 +295,30 @@ impl Assembler {
         }
         Ok(())
     }
+}
 
-    /// Sets the kernel for the assmbler to `kernel`
-    pub fn with_kernel(mut self, kernel: Kernel) -> Result<Self, Report> {
-        if self.module_graph.has_nonempty_kernel() {
-            return Err(Report::new(AssemblyError::ConflictingKernels));
-        }
-        self.module_graph.set_kernel(None, kernel);
-        Ok(self)
+/// Queries
+impl Assembler {
+    /// Returns true if this assembler promotes warning diagnostics as errors by default.
+    pub fn warnings_as_errors(&self) -> bool {
+        self.warnings_as_errors
     }
 
-    /// Sets the kernel for the assembler to the kernel compiled from the given source.
-    ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    ///
-    /// # Panics
-    /// Panics if the assembler has already been used to compile programs.
-    pub fn with_kernel_from_module(mut self, module: impl Compile) -> Result<Self, Report> {
-        self.add_kernel_from_module(module)?;
-
-        Ok(self)
+    /// Returns true if this assembler was instantiated in debug mode.
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
     }
 
-    /// Adds a kernel to the assembler by compiling it from the given source.
+    /// Returns a reference to the kernel for this assembler.
     ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    ///
-    /// # Panics
-    /// Panics if the assembler has already been used to compile programs.
-    pub fn add_kernel_from_module(&mut self, module: impl Compile) -> Result<(), Report> {
-        if self.module_graph.has_nonempty_kernel() {
-            return Err(Report::new(AssemblyError::ConflictingKernels));
-        }
+    /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
+    pub fn kernel(&self) -> &Kernel {
+        self.module_graph.kernel()
+    }
 
-        let opts = CompileOpts {
-            warnings_as_errors: self.warnings_as_errors,
-            ..CompileOpts::for_kernel()
-        };
-        let module = module.compile_with_opts(opts)?;
-        let (kernel_index, kernel) = self.assemble_kernel_module(module)?;
-        self.module_graph.set_kernel(Some(kernel_index), kernel);
-
-        Ok(())
+    /// Returns true if this assembler was instantiated with phantom calls enabled.
+    pub fn allow_phantom_calls(&self) -> bool {
+        self.allow_phantom_calls
     }
 
     #[cfg(any(test, feature = "testing"))]

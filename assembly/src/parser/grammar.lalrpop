@@ -10,7 +10,7 @@ use core::{marker::PhantomData, num::NonZeroU32};
 use smallvec::smallvec;
 use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
-use crate::{LibraryPath, LibraryNamespace, ProcedureName, ast::*, diagnostics::SourceFile, SourceSpan};
+use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
     HexEncodedValue, Token, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,

@@ -34,23 +34,5 @@ pub use self::visit::{Visit, VisitMut};
 
 pub(crate) type SmallOpsVec = smallvec::SmallVec<[Op; 1]>;
 
-/// Maximum number of procedures in a module.
-pub const MAX_LOCAL_PROCS: usize = u16::MAX as usize;
-
-/// Maximum number of re-exported procedures in a module.
-pub const MAX_REEXPORTED_PROCS: usize = u16::MAX as usize;
-
-/// Maximum number of bytes for a single documentation comment.
-pub const MAX_DOCS_LEN: usize = u16::MAX as usize;
-
-/// Maximum number of nodes in statement body (e.g., procedure body, loop body etc.).
-pub const MAX_BODY_LEN: usize = u16::MAX as usize;
-
-/// Maximum number of imported libraries in a module or a program
-pub const MAX_IMPORTS: usize = u16::MAX as usize;
-
-/// Maximum number of imported procedures used in a module or a program
-pub const MAX_INVOKED_IMPORTED_PROCS: usize = u16::MAX as usize;
-
 /// Maximum stack index at which a full word can start.
 pub const MAX_STACK_WORD_OFFSET: u8 = 12;

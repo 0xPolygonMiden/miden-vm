@@ -32,7 +32,6 @@ pub mod testing;
 mod tests;
 
 pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
-pub use self::ast::{Module, ModuleKind, ProcedureName};
 pub use self::compile::{Compile, Options as CompileOpts};
 pub use self::errors::AssemblyError;
 pub use self::library::{

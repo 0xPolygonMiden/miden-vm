@@ -371,6 +371,11 @@ impl Module {
         self.imports.iter()
     }
 
+    /// Same as [imports], but returns mutable references to each import.
+    pub fn imports_mut(&mut self) -> core::slice::IterMut<'_, Import> {
+        self.imports.iter_mut()
+    }
+
     /// Get an iterator over the "dependencies" of a module, i.e. what library namespaces we expect
     /// to find imported procedures in.
     ///
