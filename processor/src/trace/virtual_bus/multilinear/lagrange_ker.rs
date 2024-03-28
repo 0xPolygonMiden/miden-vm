@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use super::{tensorize, FieldElement, MultiLinear};
 
 /// The EQ (equality) function is the binary function defined by

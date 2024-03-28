@@ -4,8 +4,6 @@ pub enum Error {
     NumRoundsZero,
     #[error("sumcheck polynomial degree must be greater than zero")]
     PolynomialDegreeIsZero,
-    #[error("the input was not well formed: {0}")]
-    ImproperInput(String),
     #[error("the evaluation domain does not match the expected size")]
     EvaluationDomainMismatch,
     #[error("the number of rounds is greater than the number of variables")]

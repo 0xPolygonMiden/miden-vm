@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use vm_core::FieldElement;
 use winter_prover::math::batch_inversion;
 
