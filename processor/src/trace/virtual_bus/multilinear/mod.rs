@@ -1,5 +1,5 @@
-use core::ops::Index;
 use alloc::{borrow::ToOwned, vec::Vec};
+use core::ops::Index;
 use vm_core::FieldElement;
 use winter_prover::math::log2;
 
