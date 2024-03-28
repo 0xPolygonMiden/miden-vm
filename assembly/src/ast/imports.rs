@@ -172,9 +172,16 @@ impl ModuleImports {
 impl Serializable for ModuleImports {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write_u16(self.imports.len() as u16);
-        // We don't need to serialize the library names (the keys), since the libraty paths (the
-        // values) contain the library names
-        self.imports.values().for_each(|i| i.write_into(target));
+        // We don't need to serialize the library names if the library paths already contain the library names,
+        // which is true in the most cases
+        self.imports.iter().for_each(|(name, path)| {
+            path.write_into(target);
+            let name = match name == path.last() {
+                true => None,
+                false => Some(name),
+            };
+            name.write_into(target);
+        });
         target.write_u16(self.invoked_procs.len() as u16);
         for (proc_id, (proc_name, lib_path)) in self.invoked_procs.iter() {
             proc_id.write_into(target);
@@ -190,7 +197,8 @@ impl Deserializable for ModuleImports {
         let num_imports = source.read_u16()?;
         for _ in 0..num_imports {
             let path = LibraryPath::read_from(source)?;
-            imports.insert(path.last().to_string(), path);
+            let name = <Option<String>>::read_from(source)?;
+            imports.insert(name.unwrap_or_else(|| path.last().to_string()), path);
         }
 
         let mut used_imported_procs = InvokedProcsMap::new();
