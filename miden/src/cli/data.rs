@@ -1,7 +1,7 @@
 use assembly::{
-    ast::ModuleKind,
+    ast::{Module, ModuleKind},
     diagnostics::{IntoDiagnostic, Report, WrapErr},
-    Assembler, Library, LibraryNamespace, MaslLibrary, Module,
+    Assembler, Library, LibraryNamespace, MaslLibrary,
 };
 use miden_vm::{
     crypto::{MerkleStore, MerkleTree, NodeIndex, PartialMerkleTree, RpoDigest, SimpleSmt},

@@ -60,8 +60,7 @@ fn nested_blocks() {
         }
     }
 
-    let mut assembler = Assembler::new()
-        .with_kernel_from_module(KERNEL)
+    let mut assembler = Assembler::with_kernel_from_module(KERNEL)
         .unwrap()
         .with_library(&DummyLibrary::default())
         .unwrap();

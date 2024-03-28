@@ -1,10 +1,9 @@
 use crate::{
     ast::*,
     diagnostics::{Diagnostic, Severity, SourceFile},
-    Felt, LibraryPath, Span, Spanned,
+    Felt, Span, Spanned,
 };
 use alloc::{
-    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
     vec::Vec,
@@ -15,7 +14,6 @@ use super::{SemanticAnalysisError, SyntaxError};
 /// This maintains the state for semantic analysis of a single [Module].
 pub struct AnalysisContext {
     source_code: Arc<SourceFile>,
-    module: Option<Box<Module>>,
     /// A map of constants to the value of that constant
     constants: BTreeMap<Ident, Constant>,
     procedures: BTreeSet<ProcedureName>,
@@ -24,11 +22,9 @@ pub struct AnalysisContext {
 }
 
 impl AnalysisContext {
-    pub fn new(source_code: Arc<SourceFile>, kind: ModuleKind, path: LibraryPath) -> Self {
-        let module = Box::new(Module::new(kind, path).with_source_file(Some(source_code.clone())));
+    pub fn new(source_code: Arc<SourceFile>) -> Self {
         Self {
             source_code,
-            module: Some(module),
             constants: Default::default(),
             procedures: Default::default(),
             errors: Default::default(),
@@ -43,6 +39,14 @@ impl AnalysisContext {
     #[inline(always)]
     pub fn warnings_as_errors(&self) -> bool {
         self.warnings_as_errors
+    }
+
+    pub fn source_file(&self) -> Arc<SourceFile> {
+        self.source_code.clone()
+    }
+
+    pub fn register_procedure_name(&mut self, name: ProcedureName) {
+        self.procedures.insert(name);
     }
 
     /// Define a new constant `name`, bound to `value`
@@ -74,53 +78,6 @@ impl AnalysisContext {
                 })
             }
         }
-    }
-
-    pub fn define_import(&mut self, import: Import) -> Result<(), SyntaxError> {
-        if let Err(err) = self.module.as_mut().unwrap().define_import(import) {
-            match err {
-                SemanticAnalysisError::ImportConflict { .. } => {
-                    // Proceed anyway, to try and capture more errors
-                    self.errors.push(err);
-                }
-                err => {
-                    // We can't proceed without producing a bunch of errors
-                    self.errors.push(err);
-                    let errors = core::mem::take(&mut self.errors);
-                    return Err(SyntaxError {
-                        input: self.source_code.clone(),
-                        errors,
-                    });
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn define_procedure(&mut self, export: Export) -> Result<(), SyntaxError> {
-        let name = export.name().clone();
-        if let Err(err) = self.module.as_mut().unwrap().define_procedure(export) {
-            match err {
-                SemanticAnalysisError::SymbolConflict { .. } => {
-                    // Proceed anyway, to try and capture more errors
-                    self.errors.push(err);
-                }
-                err => {
-                    // We can't proceed without producing a bunch of errors
-                    self.errors.push(err);
-                    let errors = core::mem::take(&mut self.errors);
-                    return Err(SyntaxError {
-                        input: self.source_code.clone(),
-                        errors,
-                    });
-                }
-            }
-        }
-
-        self.procedures.insert(name);
-
-        Ok(())
     }
 
     fn const_eval(&self, value: &ConstantExpr) -> Result<Felt, SemanticAnalysisError> {
@@ -171,6 +128,29 @@ impl AnalysisContext {
             .any(|err| matches!(err.severity().unwrap_or(Severity::Error), Severity::Error))
     }
 
+    pub fn has_failed(&mut self) -> Result<(), SyntaxError> {
+        if self.has_errors() {
+            Err(SyntaxError {
+                input: self.source_file(),
+                errors: core::mem::take(&mut self.errors),
+            })
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn into_result(self) -> Result<(), SyntaxError> {
+        if self.has_errors() {
+            Err(SyntaxError {
+                input: self.source_code,
+                errors: self.errors,
+            })
+        } else {
+            self.emit_warnings();
+            Ok(())
+        }
+    }
+
     #[cfg(feature = "std")]
     fn emit_warnings(self) {
         use crate::diagnostics::Report;
@@ -187,33 +167,4 @@ impl AnalysisContext {
 
     #[cfg(not(feature = "std"))]
     fn emit_warnings(self) {}
-
-    pub fn source_file(&self) -> Arc<SourceFile> {
-        self.source_code.clone()
-    }
-
-    pub fn module(&self) -> &Module {
-        self.module.as_deref().unwrap()
-    }
-
-    pub fn module_mut(&mut self) -> &mut Module {
-        self.module.as_deref_mut().unwrap()
-    }
-
-    pub(super) fn take_module(&mut self) -> Box<Module> {
-        self.module.take().unwrap()
-    }
-
-    pub fn into_result(mut self) -> Result<Box<Module>, SyntaxError> {
-        if self.has_errors() {
-            Err(SyntaxError {
-                input: self.source_code,
-                errors: self.errors,
-            })
-        } else {
-            let module = self.module.take().unwrap();
-            self.emit_warnings();
-            Ok(module)
-        }
-    }
 }

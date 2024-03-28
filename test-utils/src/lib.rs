@@ -275,11 +275,16 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program or Assembly error.
     pub fn compile(&self) -> Result<Program, Report> {
-        use assembly::{CompileOpts, ModuleKind};
-        let assembler = self
+        use assembly::{ast::ModuleKind, CompileOpts};
+        let assembler = if let Some(kernel) = self.kernel.as_ref() {
+            assembly::Assembler::with_kernel_from_module(kernel).expect("invalid kernel")
+        } else {
+            assembly::Assembler::default()
+        };
+        let mut assembler = self
             .add_modules
             .iter()
-            .fold(assembly::Assembler::default(), |assembler, (path, source)| {
+            .fold(assembler, |assembler, (path, source)| {
                 assembler
                     .with_module_and_options(
                         source,
@@ -291,11 +296,6 @@ impl Test {
             .with_libraries(self.libraries.iter())
             .expect("failed to load stdlib");
 
-        let mut assembler = if let Some(kernel) = self.kernel.as_ref() {
-            assembler.with_kernel_from_module(kernel).expect("invalid kernel")
-        } else {
-            assembler
-        };
         assembler.assemble(self.source.clone())
     }
 

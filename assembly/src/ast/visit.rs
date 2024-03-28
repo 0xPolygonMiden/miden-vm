@@ -1,7 +1,77 @@
+//! This module provides an implementation of the visitor pattern for the AST of Miden Assembly.
+//!
+//! The pattern is implemented in terms of two traits, `Visit` and `VisitMut`, corresponding to
+//! whether or not the visitor has mutable access to each AST node.
+//!
+//! In addition to the visitor traits, there are a number of free functions that correspond to the
+//! methods of those traits. For example, the visit methods for a [Procedure] are
+//! [Visit::visit_procedure] and [VisitMut::visit_mut_procedure]. There are two free functions that
+//! are used in conjunction with these methods: [visit_procedure], and [visit_mut_procedure], which
+//! are typically not imported directly, but are referenced through the `visit` module, e.g.
+//! `visit::visit_procedure`. These free functions implement the default visitor for the AST node
+//! they correspond to. By default, all methods of the `Visit` and `VisitMut` traits delegate to these
+//! functions. As a result, `impl Visit for MyVisitor {}` is technically a valid visitor, and will
+//! traverse the entire AST if invoked.
+//!
+//! Obviously, that visitor wouldn't be very useful, but in practice, the free functions are called
+//! to resume traversal of the AST either before or after executing the desired behavior for a given
+//! AST node. Doing so essentially corresponds to either a post- or preorder traversal of the AST
+//! respectively.
+//!
+//! How do you choose between performing a postorder vs preorder visit? It depends on the semantics of
+//! the visitor, but here are some examples:
+//!
+//! 1. When implementing a visitor that performs constant folding/propagation, you need to visit the
+//! operands of an expression before the operator, in order to determine whether it is possible to fold,
+//! and if so, what the actual values of the operands are. As a result, this is implemented as a postorder
+//! visitor, so that the AST node corresponding to the expression is rewritten after all of it's children.
+//!
+//! 2. When implementing an analysis based on lexical scope, it is necessary to "push down" context from
+//! the root to the leaves of the AST - the context being the contents of each AST nodes inherited scope.
+//! As a result, this is implemented as a preorder traversal, so that the context at each node can be
+//! computed before visiting the children of that node.
+//!
+//! In both cases, the implementor must call the free function corresponding to the _current_ AST node at
+//! the appropriate point (i.e. before/after executing the logic for the node), so that the visitor will
+//! resume its traversal of the tree correctly. Put another way, failing to do so will cause the traversal
+//! to stop at that node (it will continue visiting sibling nodes, if applicable, but it will go no deeper
+//! in the tree).
+//!
+//! # FAQs
+//!
+//! * Why are the free `visit` functions needed?
+//!
+//! Technically they aren't - you could reimplement the visit pattern for every AST node, in each visitor,
+//! independently. However, this is a lot of boilerplate (as you can see below), and would represent a
+//! major maintenance burden if the AST changes shape at all. By implementing the default pattern in those
+//! free functions, they can be reused everywhere, and a visitor need only override the methods of those
+//! nodes it cares about. Changes to the AST only require modifying the code in this module, with the
+//! exception of visitors whose logic must be updated to reflect modifications to specific nodes they care
+//! about.
 use core::ops::ControlFlow;
 
 use crate::{ast::*, Felt, Span};
 
+/// Represents an immutable AST visitor, whose "early return" type is `T` (by default `()`).
+///
+/// Immutable visitors are primarily used for analysis, or to search the AST for something specific.
+///
+/// Unless explicitly overridden, all methods of this trait will perform a default depth-first
+/// traversal of the AST. When a node is overridden, you must ensure that the corresponding free
+/// function in this module is called at an appropriate point if you wish to visit all of the
+/// children of that node. For example, if visiting procedures, you must call `visit::visit_procedure`
+/// either before you do your analysis for that procedure, or after, corresponding to whether you
+/// are pushing information up the tree, or down. If you do not do this, none of the children of
+/// the [Procedure] node will be visited. This is perfectly valid! Sometimes you don't want/need to
+/// waste time on the children of a node if you can obtain all the information you need at the parent.
+/// It is just important to be aware that this is one of the elements placed in the hands of the
+/// visitor implementation.
+///
+/// The methods of this trait all return [core::ops::ControlFlow<T>], which can be used to break out
+/// of the traversal early via `ControlFlow::Break`. The `T` type parameter of this trait controls
+/// what the value associated with an early return will be. In most cases, the default of `()` is all
+/// you need - but in some cases it can be useful to return an error or other value, that indicates
+/// why the traversal ended early.
 pub trait Visit<T = ()> {
     fn visit_module(&mut self, module: &Module) -> ControlFlow<T> {
         visit_module(self, module)
@@ -135,7 +205,7 @@ pub fn visit_module<V, T>(visitor: &mut V, module: &Module) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
-    for import in module.imports.iter() {
+    for import in module.imports() {
         visitor.visit_import(import)?;
     }
     for export in module.procedures() {
@@ -401,6 +471,29 @@ where
     ControlFlow::Continue(())
 }
 
+/// Represents a mutable AST visitor, whose "early return" type is `T` (by default `()`).
+///
+/// Mutable visitors are primarily used to perform rewrites of the AST, either for desugaring
+/// purposes, optimization purposes, or to iteratively flesh out details in the AST as more
+/// information is discovered during compilation (such as the absolute path to a procedure that
+/// is imported from another module).
+///
+/// Unless explicitly overridden, all methods of this trait will perform a default depth-first
+/// traversal of the AST. When a node is overridden, you must ensure that the corresponding free
+/// function in this module is called at an appropriate point if you wish to visit all of the
+/// children of that node. For example, if visiting procedures, you must call
+/// `visit::visit_mut_procedure` either before you do your analysis for that procedure, or after,
+/// corresponding to whether you are rewriting top-down, or bottom-up. If you do not do this, none
+/// of the children of the [Procedure] node will be visited. This is perfectly valid! Sometimes you
+/// only need to rewrite specific nodes that cannot appear further down the tree, in which case you
+/// do not need to visit any of the children. It is just important to be aware that this is one of
+/// the elements placed in the hands of the visitor implementation.
+///
+/// The methods of this trait all return [core::ops::ControlFlow<T>], which can be used to break out
+/// of the traversal early via `ControlFlow::Break`. The `T` type parameter of this trait controls
+/// what the value associated with an early return will be. In most cases, the default of `()` is all
+/// you need - but in some cases it can be useful to return an error or other value, that indicates
+/// why the traversal ended early.
 pub trait VisitMut<T = ()> {
     fn visit_mut_module(&mut self, module: &mut Module) -> ControlFlow<T> {
         visit_mut_module(self, module)
@@ -540,7 +633,7 @@ pub fn visit_mut_module<V, T>(visitor: &mut V, module: &mut Module) -> ControlFl
 where
     V: ?Sized + VisitMut<T>,
 {
-    for import in module.imports.iter_mut() {
+    for import in module.imports_mut() {
         visitor.visit_mut_import(import)?;
     }
     for export in module.procedures_mut() {
