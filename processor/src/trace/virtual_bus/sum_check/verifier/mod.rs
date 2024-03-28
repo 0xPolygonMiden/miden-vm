@@ -31,7 +31,7 @@ where
     composition_poly: P,
     eval_domain: EvaluationDomain<E>,
     final_query_builder: V,
-    _channel: PhantomData<C>,
+    _challenger: PhantomData<C>,
 }
 
 impl<B, E, P, C, H, V> SumCheckVerifier<B, E, P, C, H, V>
@@ -52,7 +52,7 @@ where
             composition_poly,
             eval_domain,
             final_query_builder,
-            _channel: PhantomData,
+            _challenger: PhantomData,
         }
     }
 

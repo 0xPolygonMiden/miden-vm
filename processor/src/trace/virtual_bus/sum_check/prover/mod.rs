@@ -72,7 +72,6 @@ where
     composition_poly: P,
     eval_domain: EvaluationDomain<E>,
     _challenger: PhantomData<C>,
-    _hasher: PhantomData<H>,
 }
 
 impl<B, E, P, C, H> SumCheckProver<B, E, P, C, H>
@@ -94,7 +93,6 @@ where
             composition_poly,
             eval_domain,
             _challenger: PhantomData,
-            _hasher: PhantomData,
         }
     }
 
