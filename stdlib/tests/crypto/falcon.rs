@@ -1,18 +1,17 @@
-use rand::Rng;
+use rand::{thread_rng, Rng};
 
 use assembly::{utils::Serializable, Assembler};
 use miden_air::{Felt, ProvingOptions};
 use miden_stdlib::StdLibrary;
 use processor::{
-    AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider, StackInputs,
+    crypto::RpoRandomCoin, AdviceInputs, DefaultHost, Digest, ExecutionError, MemAdviceProvider,
+    StackInputs,
 };
-
 use std::vec;
-use test_utils::crypto::rpo_falcon512::Polynomial;
 use test_utils::crypto::Rpo256;
 use test_utils::rand::rand_value;
 use test_utils::{
-    crypto::{rpo_falcon512::KeyPair, MerkleStore},
+    crypto::{rpo_falcon512::Polynomial, rpo_falcon512::SecretKey, MerkleStore},
     rand::rand_vector,
     FieldElement, ProgramInfo, QuadFelt, TestError, Word, WORD_SIZE,
 };
@@ -125,22 +124,23 @@ fn test_falcon512_powers_of_tau() {
 #[test]
 fn test_falcon512_probabilistic_product() {
     // Create two random polynomials and multiply them.
-    let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    let pi = Polynomial::mul_modulo_p(&h, &s2);
+    let h = Polynomial::new(random_coefficients());
+    let s2 = Polynomial::new(random_coefficients());
+
+    let pi = mul_modulo_p(h.clone(), s2.clone());
 
     // Lay the polynomials in the advice stack, h then s2 then pi = h * s2.
-    let mut h_array = h.to_elements();
-    h_array.extend(s2.to_elements());
+    let mut h_array = to_elements(h.clone());
+    h_array.extend(to_elements(s2.clone()));
     h_array.extend(pi.iter().map(|a| Felt::new(*a)));
     let advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h and place it on the stack.
-    let binding = Rpo256::hash_elements(&*h.clone().to_elements());
+    let binding = Rpo256::hash_elements(&*to_elements(h.clone()));
     let h_hash = binding.as_elements();
     let h_hash_copy: Vec<u64> = h_hash.into_iter().map(|felt| (*felt).into()).collect();
-
     let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
+
     let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
     let expected_stack = &[];
     test.expect_stack(expected_stack);
@@ -149,20 +149,20 @@ fn test_falcon512_probabilistic_product() {
 #[test]
 fn test_falcon512_probabilistic_product_failure() {
     // Create a polynomial pi that is not equal to h * s2.
-    let h: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    let s2: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
-    let h_wrong: Polynomial = unsafe { Polynomial::new(random_coefficients()) };
+    let h: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let s2: Polynomial<Felt> = Polynomial::new(random_coefficients());
+    let h_wrong: Polynomial<Felt> = Polynomial::new(random_coefficients());
 
-    let pi = Polynomial::mul_modulo_p(&h_wrong, &s2);
+    let pi = mul_modulo_p(h_wrong.clone(), s2.clone());
 
-    // Lay the polynomials in the advice stack, h then s2 then pi.
-    let mut h_array = h.to_elements();
-    h_array.extend(s2.to_elements());
+    // Lay the polynomials in the advice stack, h then s2 then pi = h_wrong * s2.
+    let mut h_array = to_elements(h.clone());
+    h_array.extend(to_elements(s2.clone()));
     h_array.extend(pi.iter().map(|a| Felt::new(*a)));
     let advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h and place it on the stack.
-    let binding = Rpo256::hash_elements(&*h.clone().to_elements());
+    let binding = Rpo256::hash_elements(&*to_elements(h.clone()));
     let h_hash = binding.as_elements();
     let h_hash_copy: Vec<u64> = h_hash.into_iter().map(|felt| (*felt).into()).collect();
 
@@ -177,9 +177,11 @@ fn test_falcon512_probabilistic_product_failure() {
 
 #[test]
 fn falcon_execution() {
-    let keypair = KeyPair::new().unwrap();
+    let seed = Word::default();
+    let mut rng = RpoRandomCoin::new(seed);
+    let sk = SecretKey::with_rng(&mut rng);
     let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, adv_stack, store, advice_map) = generate_test(keypair, message);
+    let (source, op_stack, adv_stack, store, advice_map) = generate_test(sk, message);
 
     let test = build_test!(source, &op_stack, &adv_stack, store, advice_map.into_iter());
     test.expect_stack(&[])
@@ -188,9 +190,9 @@ fn falcon_execution() {
 #[test]
 #[ignore]
 fn falcon_prove_verify() {
-    let keypair = KeyPair::new().unwrap();
+    let sk = SecretKey::new();
     let message = rand_vector::<Felt>(4).try_into().unwrap();
-    let (source, op_stack, _, _, advice_map) = generate_test(keypair, message);
+    let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
     let program = Assembler::default()
         .with_library(&StdLibrary::default())
@@ -198,8 +200,7 @@ fn falcon_prove_verify() {
         .compile(source)
         .expect("failed to compile test source");
 
-    let stack_inputs =
-        StackInputs::try_from_values(op_stack).expect("failed to create stack inputs");
+    let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let host = DefaultHost::new(advice_provider);
@@ -215,7 +216,7 @@ fn falcon_prove_verify() {
 }
 
 fn generate_test(
-    keypair: KeyPair,
+    sk: SecretKey,
     message: Word,
 ) -> (&'static str, Vec<u64>, Vec<u64>, MerkleStore, Vec<(Digest, Vec<Felt>)>) {
     let source = "
@@ -226,11 +227,11 @@ fn generate_test(
     end
     ";
 
-    let pk: Word = keypair.public_key().into();
+    let pk: Word = sk.public_key().into();
     let pk: Digest = pk.into();
-    let pk_sk_bytes = keypair.to_bytes();
+    let sk_bytes = sk.to_bytes();
 
-    let to_adv_map = pk_sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
+    let to_adv_map = sk_bytes.iter().map(|a| Felt::new(*a as u64)).collect::<Vec<Felt>>();
 
     let advice_map: Vec<(Digest, Vec<Felt>)> = vec![(pk, to_adv_map)];
 
@@ -282,10 +283,30 @@ fn powers_of_tau(tau: QuadFelt) -> Vec<u64> {
 }
 
 // Create random coefficients in the range of a polynomial in M.
-fn random_coefficients() -> [u16; N] {
-    let mut res = [u16::default(); N];
-    for i in res.iter_mut() {
-        *i = rand::thread_rng().gen_range(0..M) as u16;
+fn random_coefficients() -> Vec<Felt> {
+    let mut res = Vec::new();
+    for _i in 0..N {
+        res.push(Felt::new(thread_rng().gen_range(0..M)))
     }
     res
+}
+
+/* Multiplies two polynomials over Z_p\[x\] without reducing modulo p. Given that the degrees
+of the input polynomials are less than 512 and their coefficients are less than the modulus
+q equal to M = 12289, the resulting product polynomial is guaranteed to have coefficients less
+than the Miden prime.
+Note that this multiplication is not over Z_p\[x\]/(phi).
+*/
+pub fn mul_modulo_p(a: Polynomial<Felt>, b: Polynomial<Felt>) -> [u64; 1024] {
+    let mut c = [0; 2 * N];
+    for i in 0..N {
+        for j in 0..N {
+            c[i + j] += a.coefficients[i].as_int() * b.coefficients[j].as_int();
+        }
+    }
+    c
+}
+
+pub fn to_elements(poly: Polynomial<Felt>) -> Vec<Felt> {
+    poly.coefficients.iter().map(|&a| Felt::from(a)).collect()
 }

@@ -1,8 +1,6 @@
 use super::{op_flags::OpFlags, EvaluationFrame, FieldElement, TransitionConstraintDegree};
-use crate::{
-    stack::EvaluationFrameExt,
-    utils::{are_equal, collections::*},
-};
+use crate::{stack::EvaluationFrameExt, utils::are_equal};
+use alloc::vec::Vec;
 
 #[cfg(test)]
 pub mod tests;

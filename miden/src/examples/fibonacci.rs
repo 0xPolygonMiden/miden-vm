@@ -1,5 +1,5 @@
 use super::{Example, ONE, ZERO};
-use miden::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
 
 // EXAMPLE BUILDER
 // ================================================================================================
@@ -7,7 +7,7 @@ use miden::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, Stac
 pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
-    let expected_result = vec![compute_fibonacci(n).as_int()];
+    let expected_result = vec![compute_fibonacci(n)];
     println!(
         "Generated a program to compute {}-th Fibonacci term; expected result: {}",
         n, expected_result[0]
@@ -15,7 +15,7 @@ pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
 
     Example {
         program,
-        stack_inputs: StackInputs::try_from_values([0, 1]).unwrap(),
+        stack_inputs: StackInputs::try_from_ints([0, 1]).unwrap(),
         host: DefaultHost::default(),
         expected_result,
         num_outputs: 1,

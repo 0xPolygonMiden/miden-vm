@@ -266,7 +266,7 @@ impl Assembler {
             Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, true),
             Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, false),
             Instruction::MemStore => span.add_ops([MStore, Drop]),
-            Instruction::MemStoreW => span.add_ops([MStoreW]),
+            Instruction::MemStoreW => span.add_op(MStoreW),
             Instruction::MemStoreImm(v) => mem_ops::mem_write_imm(span, ctx, *v, false, true),
             Instruction::MemStoreWImm(v) => mem_ops::mem_write_imm(span, ctx, *v, false, false),
             Instruction::LocStore(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, true),

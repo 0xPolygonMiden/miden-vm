@@ -2,9 +2,8 @@ use super::{
     chiplets::hasher::{self, Digest},
     errors, Felt, Operation,
 };
-use crate::utils::{
-    collections::*, ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
-};
+use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt;
 
 pub mod blocks;
@@ -167,14 +166,20 @@ impl Kernel {
 impl Serializable for Kernel {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         debug_assert!(self.0.len() <= MAX_KERNEL_PROCEDURES);
-        target.write_u16(self.0.len() as u16);
+        target.write_usize(self.0.len());
         target.write_many(&self.0)
     }
 }
 
 impl Deserializable for Kernel {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let len = source.read_u16()?.into();
+        let len = source.read_usize()?;
+        if len > MAX_KERNEL_PROCEDURES {
+            return Err(DeserializationError::InvalidValue(format!(
+                "Number of kernel procedures can not be more than {}, but {} was provided",
+                MAX_KERNEL_PROCEDURES, len
+            )));
+        }
         let kernel = source.read_many::<Digest>(len)?;
         Ok(Self(kernel))
     }

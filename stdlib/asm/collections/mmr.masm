@@ -1,106 +1,6 @@
 use.std::mem
 use.std::crypto::hashes::native
-
-#! Computes trailing number of ones in `number`.
-#!
-#! Stack transition:
-#! Input: [number, ...]
-#! Output: [trailing_ones, ...]
-#! Cycles: 6 + 11 * trailing_ones
-export.u32unchecked_trailing_ones
-  # push counter and flag, the flag is true while no zero have been seen (2 cycles)
-  push.0 push.1
-  # => [flag, count, number, ...]
-
-  dup
-  # LOOP: [flag, count, number, ...] (1 cycles)
-
-  while.true
-    # update the flag (2 cycles)
-    dup.2 u32and
-    # => [flag, count, number, ...]
-
-    # update the number (4 cycles)
-    movup.2 u32div.2
-    # => [number/2, flag, count, ...]
-
-    # update the counter (3 cycles)
-    movup.2 dup.2 add
-    # => [count, number/2, flag, ...]
-
-    # check if should continue (2 cycles)
-    movup.2 dup
-    # LOOP: [flag, flag, count, number/2, ...]
-  end
-
-  # drop flag and number (3 cycles)
-  drop swap drop
-  # => [count, ...]
-end
-
-#! Computes trailing number of ones in `number`.
-#!
-#! Stack transition:
-#! Input: [number, ...]
-#! Output: [trailing_ones, ...]
-#! Cycles:
-#! - 13 + 11 * trailing_ones, when fewer than 32 trailing true bits
-#! - 18 + 11 * trailing_ones, when more than 32 traling true bits
-export.trailing_ones
-  # split into high and low (1 cycles)
-  u32split
-  # => [high, low, ...]
-
-  # compute trailing ones for low (7 + 11 * trailing_ones)
-  swap exec.u32unchecked_trailing_ones
-  # => [trailing_ones, high]
-
-  # test if all bits are set on low (3 cycles)
-  dup eq.32
-  # => [b, traling_ones, high]
-
-  if.true
-     # compute trailing ones for high (7 + 11 * trailing_ones)
-     swap exec.u32unchecked_trailing_ones
-     add
-     # => [trailing_ones, ...]
-  else
-    swap drop
-     # => [trailing_ones, ...] (2 cycles)
-  end
-end
-
-#! Computes the `ilog2(number)` and `2^(ilog2(number))`.
-#!
-#! number must be non-zero, otherwise this will error
-#!
-#! Stack transition:
-#! Input: [number, ...]
-#! Output: [ilog2, power_of_two, ...]
-#!
-#! Cycles:  12 + 9 * leading_zeros
-export.ilog2_checked
-  # prepare the stack (2 cycles)
-  push.2147483648 # power_of_two from high to low bit
-  push.0          # bit_pos from the most-signficant, `31-bit_pos` equals to ilog2
-  # stack: [bit_pos, power_of_two, number, ...]
-
-  dup.1 dup.3 u32and eq.0 # (4 cycles)
-
-  # find the first most-significant true bit (9 * leading_zeros cycles)
-  while.true
-    add.1 swap div.2 swap  # (5 cycles)
-    dup.1 dup.3 u32and eq.0 # (4 cycles)
-  end
-
-  # compute ilog2 (4 cycles)
-  push.31 swap sub
-  # stack: [ilog2, power_of_two, number, ...]
-
-  # drop number (2 cycles)
-  movup.2 drop
-  # stack: [ilog2, power_of_two, ...]
-end
+use.std::math::u64
 
 #! Loads the leaf at the absolute `pos` in the MMR.
 #!
@@ -110,7 +10,7 @@ end
 #! Input: [pos, mmr_ptr, ...]
 #! Output: [N, ...] where `N` is the leaf and `R` is the MMR peak that owns the leaf.
 #!
-#! Cycles: 65 + 9 * tree_position (where `tree_position` is 0-indexed bit position from most to least significant)
+#! Cycles: 115
 export.get
   # load the num_leaves of the MMR (2 cycles)
   dup.1 mem_load
@@ -124,8 +24,8 @@ export.get
   dup.1 swap sub
   # stack: [owner_candidates, num_leaves, pos, mmr_ptr, ...]
 
-  # compute `ilog2(owner_candidates)` and `2**depth`, it corresponds to the owner peak and its depth (13 + 9 * leading_zeros cycles)
-  exec.ilog2_checked swap
+  # compute `ilog2(owner_candidates)` and `2**depth`, it corresponds to the owner peak and its depth (61 cycles)
+  ilog2 dup.0 pow2
   # stack: [owner_peak, depth, num_leaves, pos, mmr_ptr, ...]
 
   # compute `owner_peak - 1`, this mask corresponds to every peak after the owner (3 cycles)
@@ -164,16 +64,16 @@ export.get
   # `mtree_get` instruction will fail for the single leaf case of the MMR. (2 cycles)
   dup.0 eq.0
   if.true
-     drop drop # (2 cycles)
-     # stack: [leaf, ...]
+    drop drop # (2 cycles)
+    # stack: [leaf, ...]
   else
-     # verify and get the leaf (9 cycles)
-      mtree_get
-     # stack: [leaf, root, ...]
+    # verify and get the leaf (9 cycles)
+    mtree_get
+    # stack: [leaf, root, ...]
 
-     # drop the root (5 cycles)
-     swapw dropw
-     # stack: [leaf, ...]
+    # drop the root (5 cycles)
+    swapw dropw
+    # stack: [leaf, ...]
   end
 end
 
@@ -319,7 +219,7 @@ end
 #!
 #! Input: [EL, mmr_ptr, ...]
 #! Output: [...]
-#! Cycles: 108 + 46 * peak_merges
+#! Cycles: 144 + 39 * peak_merges
 export.add
   # get num_leaves (2 cycles)
   dup.4 mem_load
@@ -336,8 +236,8 @@ export.add
   movup.6 add add.1
   # [mmr_end, num_leaves, EL]
 
-  # find how many MMR peaks will be merged (7 + 11 * peak_merges)
-  swap exec.trailing_ones
+  # find how many MMR peaks will be merged (41 cycles)
+  swap u32split exec.u64::cto
   # => [num_merges, mmr_end, EL]
 
   # optimization: negate num_merges to use add.1 instead of sub.1 (1 cycles)
@@ -352,12 +252,12 @@ export.add
   padw
   # => [PAD, EL, -num_merges, mmr_end]
 
-  # loop while there are merges left to be done (3 cycles)
+  # loop while there are merges left to be done (5 cycles)
   dup.8 neq.0
   # LOOP: [b, PAD, EL, -num_merges, mmr_end]
 
-  while.true
-    # load peak (3 cycles)
+  while.true # (39 cycles)
+    # load peak (4 cycles)
     dup.9 sub.1 mem_loadw
     # => [PEAK, EL, -num_merges, mmr_end]
 
@@ -369,11 +269,11 @@ export.add
     padw dup.9 mem_storew
     # => [PAD, EL', -num_merges, mmr_end]
 
-    # update control (6 cycles)
+    # update control (7 cycles)
     swapw.2 add.1 swap sub.1 swap swapw.2
     # => [PAD, EL', -num_merges+1, mmr_end-1]
 
-    # check loop condition (3 cycles)
+    # check loop condition (5 cycles)
     dup.8 neq.0
     # LOOP: [b, PAD, EL', -num_merges+1, mmr_end-1]
   end

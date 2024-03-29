@@ -146,7 +146,7 @@ fn caller() {
     let test = Test {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
-        stack_inputs: StackInputs::try_from_values([1, 2, 3, 4, 5]).unwrap(),
+        stack_inputs: StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap(),
         advice_inputs: AdviceInputs::default(),
         in_debug_mode: false,
         libraries: Vec::default(),

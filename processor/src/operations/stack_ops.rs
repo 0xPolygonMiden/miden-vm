@@ -414,7 +414,7 @@ mod tests {
     #[test]
     fn op_swap() {
         // push a few items onto the stack
-        let stack = StackInputs::try_from_values([1, 2, 3]).unwrap();
+        let stack = StackInputs::try_from_ints([1, 2, 3]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::Swap).unwrap();
@@ -430,7 +430,7 @@ mod tests {
     #[test]
     fn op_swapw() {
         // push a few items onto the stack
-        let stack = StackInputs::try_from_values([1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
+        let stack = StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW).unwrap();
@@ -447,7 +447,7 @@ mod tests {
     fn op_swapw2() {
         // push a few items onto the stack
         let stack =
-            StackInputs::try_from_values([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]).unwrap();
+            StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW2).unwrap();
@@ -463,10 +463,9 @@ mod tests {
     #[test]
     fn op_swapw3() {
         // push a few items onto the stack
-        let stack = StackInputs::try_from_values([
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-        ])
-        .unwrap();
+        let stack =
+            StackInputs::try_from_ints([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+                .unwrap();
         let mut process = Process::new_dummy(stack);
 
         process.execute_op(Operation::SwapW3).unwrap();
@@ -487,7 +486,7 @@ mod tests {
     fn op_movup() {
         // push a few items onto the stack
         let stack =
-            StackInputs::try_from_values([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+            StackInputs::try_from_ints([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
                 .unwrap();
         let mut process = Process::new_dummy(stack);
 
@@ -520,7 +519,7 @@ mod tests {
     fn op_movdn() {
         // push a few items onto the stack
         let stack =
-            StackInputs::try_from_values([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+            StackInputs::try_from_ints([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
                 .unwrap();
         let mut process = Process::new_dummy(stack);
 
@@ -552,7 +551,7 @@ mod tests {
     #[test]
     fn op_cswap() {
         // push a few items onto the stack
-        let stack = StackInputs::try_from_values([4, 3, 2, 1, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([4, 3, 2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // no swap (top of the stack is 0)
@@ -576,7 +575,7 @@ mod tests {
     #[test]
     fn op_cswapw() {
         // push a few items onto the stack
-        let stack = StackInputs::try_from_values([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]).unwrap();
+        let stack = StackInputs::try_from_ints([11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]).unwrap();
         let mut process = Process::new_dummy(stack);
 
         // no swap (top of the stack is 0)

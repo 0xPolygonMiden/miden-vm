@@ -1,5 +1,6 @@
 use super::{Felt, LocalConstMap, ParsingError, Token};
-use crate::utils::{collections::*, string::*};
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt::Display;
 
 // CONSTANT VALUE EXPRESSIONS
@@ -64,7 +65,7 @@ fn build_postfix_expression(
             Operation::Value(_) => postfix_expression.push(operation),
             // if we get `(` push it on the stack
             Operation::LPar => stack.push(Operation::LPar),
-            // if we get `)` push operators from the stack to the postfix expression untill we
+            // if we get `)` push operators from the stack to the postfix expression until we
             // get `(` on stack
             Operation::RPar => {
                 while stack.last() != Some(&Operation::LPar) {
@@ -298,6 +299,7 @@ mod tests {
         },
         ONE,
     };
+    use alloc::string::ToString;
     use Operation::*;
 
     #[test]

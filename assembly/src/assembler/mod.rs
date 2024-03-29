@@ -1,12 +1,12 @@
 use super::{
     ast::{instrument, Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
-    btree_map,
     crypto::hash::RpoDigest,
-    AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library,
-    LibraryError, LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId,
-    ProcedureName, Program, ONE, ZERO,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library, LibraryError,
+    LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId, ProcedureName, Program,
+    ONE, ZERO,
 };
-use crate::utils::collections::*;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 

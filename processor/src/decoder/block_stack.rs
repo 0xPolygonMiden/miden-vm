@@ -1,5 +1,6 @@
 use super::{Felt, Word, ONE, ZERO};
-use crate::{system::ContextId, utils::collections::*};
+use crate::system::ContextId;
+use alloc::vec::Vec;
 
 // BLOCK STACK
 // ================================================================================================
@@ -94,13 +95,14 @@ impl BlockStack {
 // ================================================================================================
 
 /// Contains basic information about a code block.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct BlockInfo {
     pub addr: Felt,
     block_type: BlockType,
     pub parent_addr: Felt,
     pub ctx_info: Option<ExecutionContextInfo>,
     pub is_loop_body: bool,
+    #[allow(dead_code)] // TODO: remove this filed
     pub is_first_child: bool,
 }
 

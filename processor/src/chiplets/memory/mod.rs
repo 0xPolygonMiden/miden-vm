@@ -2,7 +2,8 @@ use super::{
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     Felt, FieldElement, RangeChecker, TraceFragment, Word, EMPTY_WORD, ONE,
 };
-use crate::{system::ContextId, utils::collections::*};
+use crate::system::ContextId;
+use alloc::{collections::BTreeMap, vec::Vec};
 use miden_air::trace::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
 };

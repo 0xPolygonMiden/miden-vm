@@ -9,7 +9,8 @@ use crate::trace::{
     },
     TRACE_WIDTH,
 };
-use crate::{chiplets::memory, utils::collections::*, Felt, FieldElement, ONE, ZERO};
+use crate::{chiplets::memory, Felt, FieldElement, ONE, ZERO};
+use alloc::vec::Vec;
 use rand_utils::rand_value;
 
 // UNIT TESTS

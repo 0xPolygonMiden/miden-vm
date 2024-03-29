@@ -1,5 +1,5 @@
 use super::{super::DebugOptions, ByteReader, ByteWriter, DeserializationError};
-use crate::utils::string::*;
+use alloc::string::ToString;
 
 const STACK_ALL: u8 = 0;
 const STACK_TOP: u8 = 1;

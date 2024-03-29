@@ -185,11 +185,11 @@ mod tests {
         Process,
     };
     use crate::{AdviceInputs, StackInputs, Word, ZERO};
+    use alloc::vec::Vec;
     use test_utils::rand::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
         crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-        utils::collections::*,
     };
 
     #[test]
@@ -201,7 +201,7 @@ mod tests {
             1, 1,            // data: [ONE, ONE]
             1, 0, 0, 0, 0, 0 // padding: ONE followed by the necessary ZEROs
         ];
-        let stack = StackInputs::try_from_values(inputs).unwrap();
+        let stack = StackInputs::try_from_ints(inputs).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
@@ -212,7 +212,7 @@ mod tests {
         let values = rand_vector::<u64>(8);
         let mut inputs: Vec<u64> = vec![values.len() as u64, 0, 0, 0];
         inputs.extend_from_slice(&values);
-        let stack = StackInputs::try_from_values(inputs.clone()).unwrap();
+        let stack = StackInputs::try_from_ints(inputs.clone()).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
         // add the capacity to prepare the input vector
@@ -226,7 +226,7 @@ mod tests {
         let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
         inputs.extend_from_slice(&values);
 
-        let stack = StackInputs::try_from_values(inputs).unwrap();
+        let stack = StackInputs::try_from_ints(inputs).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         process.execute_op(Operation::HPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
@@ -260,7 +260,7 @@ mod tests {
         let index = Felt::new(index);
 
         let advice_inputs = AdviceInputs::default().with_merkle_store(store);
-        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -302,7 +302,7 @@ mod tests {
 
         let store = MerkleStore::from(&tree);
         let advice_inputs = AdviceInputs::default().with_merkle_store(store);
-        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
@@ -380,7 +380,7 @@ mod tests {
             replaced_node[2].as_int(),
             replaced_node[3].as_int(),
         ];
-        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
         let mut process =
             Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 

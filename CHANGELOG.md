@@ -2,8 +2,13 @@
 
 ## 0.9.0
 
+#### Packaging
+- [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
+
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
+- [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
+- [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
 
 ## 0.8.0 (02-26-2024)
 
@@ -20,7 +25,7 @@
 #### Stdlib
 - Introduced `std::utils` module with `is_empty_word` procedure.  Refactored `std::collections::smt`
   and `std::collections::smt64` to use the procedure (#1107).
-- [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142). 
+- [BREAKING] Removed `checked` versions of the instructions in the `std::math::u64` module (#1142).
 - Introduced `clz`, `ctz`, `clo` and `cto` instructions in the `std::math::u64` module (#1179).
 - [BREAKING] Refactored `std::collections::smt` to use `SimpleSmt`-based implementation (#1215).
 - [BREAKING] Removed `std::collections::smt64` (#1249)

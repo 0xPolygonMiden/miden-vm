@@ -3,7 +3,8 @@ use super::{
     build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Word, ONE, ZERO,
 };
 
-use crate::{utils::collections::*, StackInputs};
+use crate::StackInputs;
+use alloc::vec::Vec;
 use miden_air::trace::{
     chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS,
 };
@@ -28,7 +29,7 @@ fn hasher_p1_mp_verify() {
     init_stack.extend_from_slice(&[3, 1]);
     append_word(&mut init_stack, tree.root().into());
     init_stack.reverse();
-    let stack_inputs = StackInputs::try_from_values(init_stack).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(init_stack).unwrap();
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     // build execution trace and extract the sibling table column from it
@@ -62,7 +63,7 @@ fn hasher_p1_mr_update() {
     append_word(&mut init_stack, new_node);
 
     init_stack.reverse();
-    let stack_inputs = StackInputs::try_from_values(init_stack).unwrap();
+    let stack_inputs = StackInputs::try_from_ints(init_stack).unwrap();
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 

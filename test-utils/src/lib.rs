@@ -1,18 +1,18 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "std")]
+extern crate std;
+
 #[macro_use]
 extern crate alloc;
 
+use alloc::{string::String, vec::Vec};
 // IMPORTS
 // ================================================================================================
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
-use vm_core::{
-    chiplets::hasher::apply_permutation,
-    utils::{collections::*, string::*},
-};
+use vm_core::chiplets::hasher::apply_permutation;
 
 // EXPORTS
 // ================================================================================================
@@ -244,7 +244,7 @@ impl Test {
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
-        let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
+        let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let (mut stack_outputs, proof) =
@@ -252,7 +252,7 @@ impl Test {
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
-            stack_outputs.stack_mut()[0] += 1;
+            stack_outputs.stack_mut()[0] += ONE;
             assert!(verifier::verify(program_info, stack_inputs, stack_outputs, proof).is_err());
         } else {
             let result = verifier::verify(program_info, stack_inputs, stack_outputs, proof);

@@ -3,7 +3,9 @@ use super::{
     ParsingError, ProcedureId, ProcedureName, Serializable, Token, TokenStream, MAX_IMPORTS,
     MAX_INVOKED_IMPORTED_PROCS,
 };
-use crate::utils::{collections::*, string::*};
+use alloc::collections::BTreeMap;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
 // TYPE ALIASES
 // ================================================================================================
