@@ -56,7 +56,7 @@ pub struct ModuleParser {
     ///
     /// This is a very primitive and imprecise way of interning strings, but was the least invasive
     /// at the time the new parser was implemented. In essence, we avoid duplicating allocations
-    /// for frequently occuring strings, by tracking which strings we've seen before, and
+    /// for frequently occurring strings, by tracking which strings we've seen before, and
     /// sharing a reference counted pointer instead.
     ///
     /// We may want to replace this eventually with a proper interner, so that we can also gain the
@@ -72,6 +72,7 @@ pub struct ModuleParser {
     /// When true, all warning diagnostics are promoted to error severity
     warnings_as_errors: bool,
 }
+
 impl ModuleParser {
     /// Construct a new parser for the given `kind` of [Module]
     pub fn new(kind: ast::ModuleKind) -> Self {

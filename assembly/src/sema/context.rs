@@ -53,8 +53,8 @@ impl AnalysisContext {
     ///
     /// Returns `Err` if the symbol is already defined
     pub fn define_constant(&mut self, mut constant: Constant) -> Result<(), SyntaxError> {
-        // Handle symbol conflicts before eval to make sure
-        // we can catch self-referential expresssions.
+        // Handle symbol conflicts before eval to make sure we can catch self-referential
+        // expressions.
         if let Some(value) = self.constants.get(&constant.name) {
             self.errors.push(SemanticAnalysisError::SymbolConflict {
                 span: constant.span(),

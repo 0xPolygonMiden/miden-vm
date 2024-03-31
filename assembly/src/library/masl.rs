@@ -209,11 +209,11 @@ mod use_std {
             })?
         }
 
-        /// Read the contents (modules) of this library from `dir`, returning any errors
-        /// that occur while traversing the file system.
+        /// Read the contents (modules) of this library from `dir`, returning any errors that occur
+        /// while traversing the file system.
         ///
-        /// Errors may also be returned if traversal discovers issues with the library,
-        /// such as invalid names, etc.
+        /// Errors may also be returned if traversal discovers issues with the library, such as
+        /// invalid names, etc.
         ///
         /// Returns the set of modules that were parsed
         fn load_modules_from_dir(mut self, dir: &Path) -> Result<Self, Report> {
