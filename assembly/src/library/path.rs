@@ -32,6 +32,9 @@ pub enum PathError {
     UnsupportedJoin,
 }
 
+// LIBRARY PATH COMPONENT
+// ================================================================================================
+
 /// Represents a component of a [LibraryPath] in [LibraryPath::components]
 pub enum LibraryPathComponent<'a> {
     /// The first component of the path, and the namespace of the path
@@ -76,16 +79,17 @@ impl<'a> fmt::Display for LibraryPathComponent<'a> {
 /// This is a convenience type alias for a smallvec of [Ident]
 type Components = smallvec::SmallVec<[Ident; 1]>;
 
+// LIBRARY PATH
+// ================================================================================================
+
 /// Path to a module or a procedure.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LibraryPath {
     inner: Arc<LibraryPathInner>,
 }
 
-/// The data of a [LibraryPath] is allocated on the
-/// heap to make a [LibraryPath] the size of a pointer,
-/// rather than the size of 4 pointers. This makes them
-/// cheap to clone and move around
+/// The data of a [LibraryPath] is allocated on the heap to make a [LibraryPath] the size of a
+/// pointer, rather than the size of 4 pointers. This makes them cheap to clone and move around.
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct LibraryPathInner {
     /// The namespace of this library path
@@ -248,9 +252,8 @@ impl LibraryPath {
     ///
     /// # Errors
     ///
-    /// Returns an error if the join would produce an invalid path.
-    /// For example, paths with reserved namespaces may not be
-    /// joined to other paths.
+    /// Returns an error if the join would produce an invalid path. For example, paths with
+    /// reserved namespaces may not be joined to other paths.
     pub fn join(&self, other: &Self) -> Result<Self, PathError> {
         if other.inner.ns.is_reserved() {
             return Err(PathError::UnsupportedJoin);
@@ -491,6 +494,9 @@ pub(super) fn validate_component(component: &str) -> Result<(), PathError> {
         Ident::validate(component).map_err(PathError::InvalidComponent)
     }
 }
+
+// TESTS
+// ================================================================================================
 
 /// Tests
 #[cfg(test)]

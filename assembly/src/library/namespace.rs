@@ -64,9 +64,8 @@ impl LibraryNamespace {
         source.as_ref().parse()
     }
 
-    /// Parse a [LibraryNamespace] by taking the prefix of the
-    /// given path string, and returning the namespace and remaining
-    /// string if successful.
+    /// Parse a [LibraryNamespace] by taking the prefix of the given path string, and returning
+    /// the namespace and remaining string if successful.
     pub fn strip_path_prefix(path: &str) -> Result<(Self, &str), LibraryNamespaceError> {
         match path.split_once("::") {
             Some((ns, rest)) => ns.parse().map(|ns| (ns, rest)),

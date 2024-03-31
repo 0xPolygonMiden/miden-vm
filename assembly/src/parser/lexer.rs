@@ -386,7 +386,7 @@ impl<'input> Lexer<'input> {
         let name = self.slice();
         match name {
             "exp" => {
-                // Special handling for the `exp.uXX` tokenizatioon
+                // Special handling for the `exp.uXX` tokenization
                 if self.read() == '.' && self.peek() == 'u' {
                     pop2!(self, Token::ExpU)
                 } else {
@@ -533,9 +533,13 @@ impl<'input> Iterator for Lexer<'input> {
     }
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
 fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, ParsingError> {
     use vm_core::{FieldElement, StarkField};
     match hex_digits.len() {
+        // Felt
         n if n <= 16 && n % 2 == 0 => {
             let value = u64::from_str_radix(hex_digits, 16).map_err(|error| {
                 ParsingError::InvalidLiteral {
