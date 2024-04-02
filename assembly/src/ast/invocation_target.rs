@@ -4,6 +4,9 @@ use crate::{
     Serializable, SourceSpan, Span, Spanned,
 };
 
+// INVOKE
+// ================================================================================================
+
 /// Represents the kind of an invocation
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
@@ -32,6 +35,9 @@ impl Invoke {
     }
 }
 
+// INVOCATION TARGET
+// ================================================================================================
+
 /// Describes targets of `exec`, `call`, and `syscall` instructions.
 ///
 /// A label of an invoked procedure must comply with the following rules:
@@ -51,13 +57,13 @@ pub enum InvocationTarget {
     /// defined. However, it does not actually matter, we consider such references to be _a priori_
     /// valid.
     MastRoot(Span<RpoDigest>) = 0,
-    /// A locally-defined procedure
+    /// A locally-defined procedure.
     ProcedureName(ProcedureName) = 1,
     /// A context-sensitive procedure path, which references the name of an import in the
     /// containing module.
     ProcedurePath { name: ProcedureName, module: Ident } = 2,
     /// A fully-resolved procedure path, which refers to a specific externally-defined procedure
-    /// with its full path
+    /// with its full path.
     AbsoluteProcedurePath {
         name: ProcedureName,
         path: LibraryPath,
@@ -78,9 +84,8 @@ impl Spanned for InvocationTarget {
 
 impl InvocationTarget {
     fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a
-        // primitive representation with #[repr(u8)], with the first
-        // field of the underlying union-of-structs the discriminant
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
         //
         // See the section on "accessing the numeric value of the discriminant"
         // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html

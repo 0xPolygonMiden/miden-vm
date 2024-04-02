@@ -4,21 +4,23 @@ use core::fmt;
 use crate::{ast::Ident, parser::ParsingError, Felt, SourceSpan, Span, Spanned};
 use vm_core::FieldElement;
 
-/// Represents a constant definition in Miden Assembly syntax,
-/// i.e. `const.FOO = 1 + 1`
+// CONSTANT
+// ================================================================================================
+
+/// Represents a constant definition in Miden Assembly syntax, i.e. `const.FOO = 1 + 1`.
 pub struct Constant {
-    /// The source span of the definition
+    /// The source span of the definition.
     pub span: SourceSpan,
-    /// The documentation string attached to this definition
+    /// The documentation string attached to this definition.
     pub docs: Option<Span<String>>,
-    /// The name of the constant
+    /// The name of the constant.
     pub name: Ident,
-    /// The expression associated with the constant
+    /// The expression associated with the constant.
     pub value: ConstantExpr,
 }
 
 impl Constant {
-    /// Create a new [Constant] from the given source span, name, and value.
+    /// Creates a new [Constant] from the given source span, name, and value.
     pub fn new(span: SourceSpan, name: Ident, value: ConstantExpr) -> Self {
         Self {
             span,
@@ -28,7 +30,7 @@ impl Constant {
         }
     }
 
-    /// Add documentation to this constant declaration.
+    /// Adds documentation to this constant declaration.
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
         self.docs = docs;
         self
@@ -81,13 +83,16 @@ impl Spanned for Constant {
     }
 }
 
-/// Represents a constant expression or value in Miden Assembly syntax
+// CONSTANT EXPRESSION
+// ================================================================================================
+
+/// Represents a constant expression or value in Miden Assembly syntax.
 pub enum ConstantExpr {
-    /// A literal integer value
+    /// A literal integer value.
     Literal(Span<Felt>),
-    /// A reference to another constant
+    /// A reference to another constant.
     Var(Ident),
-    /// An binary arithmetic operator
+    /// An binary arithmetic operator.
     BinaryOp {
         span: SourceSpan,
         op: ConstantOp,
@@ -97,10 +102,10 @@ pub enum ConstantExpr {
 }
 
 impl ConstantExpr {
-    /// Unwrap a literal value from this expression or panic
+    /// Unwrap a literal value from this expression or panic.
     ///
-    /// This is used in places where we expect the expression
-    /// to have been folded to a value, otherwise a bug occurred.
+    /// This is used in places where we expect the expression to have been folded to a value,
+    /// otherwise a bug occurred.
     #[track_caller]
     pub fn expect_literal(&self) -> Felt {
         match self {
@@ -111,9 +116,10 @@ impl ConstantExpr {
 
     /// Attempt to fold to a single value.
     ///
-    /// Returns `Err` if an invalid expression is found while folding, such as division by zero.
-    ///
     /// This will only succeed if the expression has no references to other constants.
+    ///
+    /// # Errors
+    /// Returns an error if an invalid expression is found while folding, such as division by zero.
     pub fn try_fold(self) -> Result<Self, ParsingError> {
         match self {
             Self::Literal(_) | Self::Var(_) => Ok(self),
@@ -265,7 +271,10 @@ impl Spanned for ConstantExpr {
     }
 }
 
-/// Represents the set of binary arithmetic operators supported in Miden Assembly syntax
+// CONSTANT OPERATION
+// ================================================================================================
+
+/// Represents the set of binary arithmetic operators supported in Miden Assembly syntax.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConstantOp {
     Add,

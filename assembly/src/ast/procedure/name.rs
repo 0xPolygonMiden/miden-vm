@@ -142,8 +142,7 @@ impl FullyQualifiedProcedureName {
 ///   alphanumerics, punctuation, etc. Control characters and the like are explicitly not allowed.
 ///
 /// NOTE: In Miden Assembly source files, a procedure name must be quoted in double-quotes if it
-/// contains any characters other than ASCII alphanumerics, `_`, or `::`. See examples
-/// below.
+/// contains any characters other than ASCII alphanumerics, `_`, or `::`. See examples below.
 ///
 /// ## Examples
 ///
@@ -176,33 +175,32 @@ impl ProcedureName {
     /// Reserved name for a main procedure.
     pub const MAIN_PROC_NAME: &'static str = "#main";
 
-    /// Create a [ProcedureName] from `name`
+    /// Creates a [ProcedureName] from `name`.
     pub fn new(name: impl AsRef<str>) -> Result<Self, IdentError> {
         name.as_ref().parse()
     }
 
-    /// Create a [ProcedureName] from `name`
+    /// Creates a [ProcedureName] from `name`
     pub fn new_with_span(span: SourceSpan, name: impl AsRef<str>) -> Result<Self, IdentError> {
         name.as_ref().parse::<Self>().map(|name| name.with_span(span))
     }
 
-    /// Set the span for this [ProcedureName]
+    /// Sets the span for this [ProcedureName].
     pub fn with_span(self, span: SourceSpan) -> Self {
         Self(self.0.with_span(span))
     }
 
-    /// Create a [ProcedureName] from its raw components
+    /// Creates a [ProcedureName] from its raw components.
     ///
-    /// It is expected that the caller has already validated that the
-    /// name meets all validity criteria for procedure names, for example,
-    /// the parser only lexes/parses valid identifiers, so by construction
-    /// all such identifiers are valid.
+    /// It is expected that the caller has already validated that the name meets all validity
+    /// criteria for procedure names, for example, the parser only lexes/parses valid identifiers,
+    /// so by construction all such identifiers are valid.
     pub(crate) fn new_unchecked(name: Ident) -> Self {
         Self(name)
     }
 
-    /// Obtain a procedure name representing the reserved name for the executable entrypoint (i.e.
-    /// `main`)
+    /// Obtains a procedure name representing the reserved name for the executable entrypoint
+    /// (i.e., `main`).
     pub fn main() -> Self {
         let name = Arc::from(Self::MAIN_PROC_NAME.to_string().into_boxed_str());
         Self(Ident::new_unchecked(Span::unknown(name)))

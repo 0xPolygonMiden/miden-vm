@@ -9,15 +9,18 @@ use crate::{
     Spanned,
 };
 
-/// Represents the visibility of a procedure globally
+// PROCEDURE VISIBILITY
+// ================================================================================================
+
+/// Represents the visibility of a procedure globally.
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Visibility {
-    /// The procedure is visible for call/exec
+    /// The procedure is visible for call/exec.
     Public = 0,
-    /// The procedure is visible to syscalls only
+    /// The procedure is visible to syscalls only.
     Syscall = 1,
-    /// The procedure is visible only locally to the exec instruction
+    /// The procedure is visible only locally to the exec instruction.
     #[default]
     Private = 2,
 }
@@ -61,6 +64,9 @@ impl Deserializable for Visibility {
     }
 }
 
+// PROCEDURE
+// ================================================================================================
+
 /// Represents a concrete procedure definition in Miden Assembly syntax
 #[derive(Clone)]
 pub struct Procedure {
@@ -84,7 +90,7 @@ pub struct Procedure {
 
 /// Construction
 impl Procedure {
-    /// Create a new [Procedure] from the given source span, visibility, name, number of locals,
+    /// Creates a new [Procedure] from the given source span, visibility, name, number of locals,
     /// and code block.
     pub fn new(
         span: SourceSpan,
@@ -105,13 +111,13 @@ impl Procedure {
         }
     }
 
-    /// Add documentation to this procedure definition
+    /// Adds documentation to this procedure definition
     pub fn with_docs(mut self, docs: Option<Span<String>>) -> Self {
         self.docs = docs;
         self
     }
 
-    /// Add source code to this procedure definition so we can render source snippets
+    /// Adds source code to this procedure definition so we can render source snippets
     /// in diagnostics.
     pub fn with_source_file(mut self, source_file: Option<Arc<SourceFile>>) -> Self {
         self.source_file = source_file;
@@ -123,7 +129,7 @@ impl Procedure {
         self.source_file = Some(source_file);
     }
 
-    /// Modify the visibility of this procedure.
+    /// Modifies the visibility of this procedure.
     ///
     /// This is made crate-local as the visibility of a procedure is virtually always determined
     /// by the source code from which it was derived; the only exception being kernel modules,
@@ -136,54 +142,54 @@ impl Procedure {
 
 /// Metadata
 impl Procedure {
-    /// Get the source file associated with this procedure
+    /// Returns the source file associated with this procedure.
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         self.source_file.clone()
     }
 
-    /// Get the name of this procedure within its containing module.
+    /// Returns the name of this procedure within its containing module.
     pub fn name(&self) -> &ProcedureName {
         &self.name
     }
 
-    /// Get the visibility of this procedure
+    /// Returns the visibility of this procedure
     pub fn visibility(&self) -> Visibility {
         self.visibility
     }
 
-    /// Return the number of locals allocated by this procedure.
+    /// Returns the number of locals allocated by this procedure.
     pub fn num_locals(&self) -> u16 {
         self.num_locals
     }
 
-    /// Returns true if this procedure corresponds to the `begin`..`end` block of an
-    /// executable module.
+    /// Returns true if this procedure corresponds to the `begin`..`end` block of an executable
+    /// module.
     pub fn is_entrypoint(&self) -> bool {
         self.name.is_main()
     }
 
-    /// Get the documentation for this procedure, if present.
+    /// Returns the documentation for this procedure, if present.
     pub fn docs(&self) -> Option<&Span<String>> {
         self.docs.as_ref()
     }
 
-    /// Get a reference to the [Block] containing the body of this procedure.
+    /// Returns a reference to the [Block] containing the body of this procedure.
     pub fn body(&self) -> &Block {
         &self.body
     }
 
-    /// Get a mutable reference to the [Block] containing the body of this procedure.
+    /// Returns a mutable reference to the [Block] containing the body of this procedure.
     pub fn body_mut(&mut self) -> &mut Block {
         &mut self.body
     }
 
-    /// Get an iterator over the operations of the top-level [Block] of this procedure.
+    /// Returns an iterator over the operations of the top-level [Block] of this procedure.
     pub fn iter(&self) -> core::slice::Iter<'_, crate::ast::Op> {
         self.body.iter()
     }
 
-    /// Get an iterator over the set of invocation targets of this procedure,
-    /// i.e. the callees of any call instructions in the body of this procedure.
+    /// Returns an iterator over the set of invocation targets of this procedure, i.e. the callees
+    /// of any call instructions in the body of this procedure.
     pub fn invoked<'a, 'b: 'a>(&'b self) -> impl Iterator<Item = &'a Invoke> + 'a {
         if self.invoked.is_empty() {
             InvokedIter::Empty
@@ -192,10 +198,10 @@ impl Procedure {
         }
     }
 
-    /// Extend the set of procedures known to be invoked by this procedure.
+    /// Extends the set of procedures known to be invoked by this procedure.
     ///
-    /// This is for internal use only, and is called during semantic analysis
-    /// once we've identified the set of invoked procedures for a given definition.
+    /// This is for internal use only, and is called during semantic analysis once we've identified
+    /// the set of invoked procedures for a given definition.
     pub fn extend_invoked<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = Invoke>,

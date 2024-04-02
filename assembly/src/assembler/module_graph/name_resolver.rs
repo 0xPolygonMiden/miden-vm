@@ -85,15 +85,18 @@ impl ResolvedTarget {
 /// A [NameResolver] is used to resolve a procedure invocation target to its concrete definition.
 ///
 /// Because modules can re-export/alias the procedures of modules they import, resolving the name of
-/// a procedure can require multiple steps to reach the original concrete definition of the procedure.
+/// a procedure can require multiple steps to reach the original concrete definition of the
+/// procedure.
 ///
 /// The [NameResolver] encapsulates the tricky details of doing this, so that users of the resolver
-/// need only provide a reference to a [ModuleGraph], a name they wish to resolve, and some information
-/// about the caller necessary to determine the context in which the name should be resolved.
+/// need only provide a reference to a [ModuleGraph], a name they wish to resolve, and some
+/// information about the caller necessary to determine the context in which the name should be
+/// resolved.
 pub struct NameResolver<'a> {
     /// The graph containing already-compiled and partially-resolved modules.
     graph: &'a ModuleGraph,
-    /// The set of modules which are being added to `graph`, but which have not been fully processed yet.
+    /// The set of modules which are being added to `graph`, but which have not been fully
+    /// processed yet.
     pending: Vec<ThinModule>,
 }
 
@@ -106,14 +109,16 @@ impl<'a> NameResolver<'a> {
         }
     }
 
-    /// Add a module to the set of "pending" modules this resolver will consult when doing resolution.
+    /// Add a module to the set of "pending" modules this resolver will consult when doing
+    /// resolution.
     ///
-    /// Pending modules are those which are being added to the underlying [ModuleGraph], but which have
-    /// not been processed yet. When resolving names we may need to visit those modules to determine the
-    /// location of the actual definition, but they do not need to be fully validated/processed to do so.
+    /// Pending modules are those which are being added to the underlying [ModuleGraph], but which
+    /// have not been processed yet. When resolving names we may need to visit those modules to
+    /// determine the location of the actual definition, but they do not need to be fully
+    /// validated/processed to do so.
     ///
-    /// This is typically called when we begin processing the pending modules, by adding those we have not
-    /// yet processed to the resolver, as we resolve names for each module in the set.
+    /// This is typically called when we begin processing the pending modules, by adding those we
+    /// have not yet processed to the resolver, as we resolve names for each module in the set.
     pub fn push_pending(&mut self, module: &Module) {
         self.pending.push(ThinModule {
             source_file: module.source_file(),
@@ -189,7 +194,8 @@ impl<'a> NameResolver<'a> {
         }
     }
 
-    /// Resolve `name`, the name of an imported module, to a [LibraryPath], using `caller` as the context
+    /// Resolve `name`, the name of an imported module, to a [LibraryPath], using `caller` as the
+    /// context.
     pub fn resolve_import(&self, caller: &CallerInfo, name: &Ident) -> Option<Span<&LibraryPath>> {
         let pending_offset = self.graph.modules.len();
         if caller.module.as_usize() >= pending_offset {

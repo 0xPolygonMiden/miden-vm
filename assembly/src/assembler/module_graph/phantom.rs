@@ -5,7 +5,8 @@ use crate::{diagnostics::SourceFile, RpoDigest, SourceSpan, Spanned};
 /// Represents a call to a procedure for which we do not have an implementation.
 ///
 /// Such calls are still valid, as at runtime they may be supplied to the VM, but we are limited
-/// in how much we can reason about such procedures, so we represent them and handle them explicitly.
+/// in how much we can reason about such procedures, so we represent them and handle them
+/// explicitly.
 #[derive(Clone)]
 pub struct PhantomCall {
     /// The source span associated with the call
