@@ -6,6 +6,9 @@ use crate::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
 };
 
+// CONSTANTS
+// ================================================================================================
+
 const STACK_ALL: u8 = 0;
 const STACK_TOP: u8 = 1;
 const MEM_ALL: u8 = 2;
@@ -13,6 +16,9 @@ const MEM_INTERVAL: u8 = 3;
 const LOCAL_INTERVAL: u8 = 4;
 const LOCAL_RANGE_FROM: u8 = 5;
 const LOCAL_ALL: u8 = 6;
+
+// DEBUG OPTIONS
+// ================================================================================================
 
 /// A proxy for [vm_core::DebugOptions], but with [super::Immediate] values.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,9 +35,8 @@ pub enum DebugOptions {
 
 impl DebugOptions {
     fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a
-        // primitive representation with #[repr(u8)], with the first
-        // field of the underlying union-of-structs the discriminant
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
         //
         // See the section on "accessing the numeric value of the discriminant"
         // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html

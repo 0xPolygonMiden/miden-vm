@@ -15,10 +15,11 @@ use crate::{
 /// information has been found that would result in at least one rewrite to the module body.
 ///
 /// This pass is intended for modules that were already added to a [ModuleGraph], and so have been
-/// rewritten at least once before. When new modules are added to the graph, the introduction of those
-/// modules may allow us to resolve invocation targets that were previously unresolvable, or that
-/// resolved as phantoms due to missing definitions. When that occurs, we want to go back and rewrite
-/// all of the modules that can be further refined as a result of that additional information.
+/// rewritten at least once before. When new modules are added to the graph, the introduction of
+/// those modules may allow us to resolve invocation targets that were previously unresolvable, or
+/// that resolved as phantoms due to missing definitions. When that occurs, we want to go back and
+/// rewrite all of the modules that can be further refined as a result of that additional
+/// information.
 pub struct MaybeRewriteCheck<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
 }
@@ -28,7 +29,8 @@ impl<'a, 'b: 'a> MaybeRewriteCheck<'a, 'b> {
         Self { resolver }
     }
 
-    /// Run the analysis, returning either a boolean answer, or an error that was found during analysis.
+    /// Run the analysis, returning either a boolean answer, or an error that was found during
+    /// analysis.
     pub fn check(&self, module_id: ModuleIndex, module: &Module) -> Result<bool, AssemblyError> {
         let mut visitor = RewriteCheckVisitor {
             resolver: self.resolver,

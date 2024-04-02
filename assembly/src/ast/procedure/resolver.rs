@@ -2,6 +2,9 @@ use super::{FullyQualifiedProcedureName, ProcedureIndex, ProcedureName};
 use crate::{ast::Ident, LibraryPath, SourceSpan, Span, Spanned};
 use alloc::{collections::BTreeMap, vec::Vec};
 
+// RESOLVED PROCEDURE
+// ================================================================================================
+
 /// Represents the result of resolving a [ProcedureName] in the context of a module.
 #[derive(Debug, Clone)]
 pub enum ResolvedProcedure {
@@ -19,6 +22,9 @@ impl Spanned for ResolvedProcedure {
         }
     }
 }
+
+// LOCAL NAME RESOLVER
+// ================================================================================================
 
 /// A lookup table for procedure names in the context of some module
 pub struct LocalNameResolver {

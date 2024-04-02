@@ -7,6 +7,9 @@ use crate::{
 };
 use vm_core::AdviceInjector;
 
+// CONSTANTS
+// ================================================================================================
+
 const PUSH_U64DIV: u8 = 0;
 const PUSH_EXT2INTT: u8 = 1;
 const PUSH_SMTGET: u8 = 2;
@@ -22,6 +25,9 @@ const INSERT_HDWORD: u8 = 11;
 const INSERT_HDWORD_IMM: u8 = 12;
 const INSERT_HPERM: u8 = 13;
 const PUSH_SIG: u8 = 14;
+
+// ADVICE INJECTOR NODE
+// ================================================================================================
 
 /// Instructions which inject data into the advice provider.
 ///
@@ -50,9 +56,8 @@ pub enum AdviceInjectorNode {
 
 impl AdviceInjectorNode {
     fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a
-        // primitive representation with #[repr(u8)], with the first
-        // field of the underlying union-of-structs the discriminant
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
         //
         // See the section on "accessing the numeric value of the discriminant"
         // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html

@@ -53,55 +53,54 @@ pub enum CaseKindError {
 pub struct Ident {
     /// The source span associated with this identifier.
     ///
-    /// NOTE: To make use of this span, we need to know the context in which it was
-    /// used, i.e. either the containing module or procedure, both of which have a
-    /// source file which we can use to render a source snippet for this span.
+    /// NOTE: To make use of this span, we need to know the context in which it was used, i.e.,
+    /// either the containing module or procedure, both of which have a source file which we can
+    /// use to render a source snippet for this span.
     ///
-    /// If a span is not known, the default value is used, which has zero-length and
-    /// thus will not be rendered as a source snippet.
+    /// If a span is not known, the default value is used, which has zero-length and thus will not
+    /// be rendered as a source snippet.
     span: SourceSpan,
     /// The actual content of the identifier
     name: Arc<str>,
 }
+
 impl Ident {
-    /// Parse an [Ident] from `source`
+    /// Parses an [Ident] from `source`.
     pub fn new(source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse()
     }
 
-    /// Parse an [Ident] from `source`
+    /// Parses an [Ident] from `source`.
     pub fn new_with_span(span: SourceSpan, source: impl AsRef<str>) -> Result<Self, IdentError> {
         source.as_ref().parse::<Self>().map(|id| id.with_span(span))
     }
 
-    /// Set the span for this identifier
+    /// Sets the span for this identifier.
     pub fn with_span(mut self, span: SourceSpan) -> Self {
         self.span = span;
         self
     }
 
-    /// This allows constructing an [Ident] directly from a ref-counted
-    /// string that is known to be a valid identifier, and so does not
-    /// require re-parsing/re-validating. This must _not_ be used to
-    /// bypass validation when you have an identifier that is not valid,
-    /// and such identifiers will be caught during compilation and result
-    /// in a panic being raised.
+    /// This allows constructing an [Ident] directly from a ref-counted string that is known to be
+    /// a valid identifier, and so does not require re-parsing/re-validating. This must _not_ be
+    /// used to bypass validation when you have an identifier that is not valid, and such
+    /// identifiers will be caught during compilation and result in a panic being raised.
     pub(crate) fn new_unchecked(name: Span<Arc<str>>) -> Self {
         let (span, name) = name.into_parts();
         Self { span, name }
     }
 
-    /// Unwrap this [Ident], extracting the inner [`Arc<str>`].
+    /// Unwraps this [Ident], extracting the inner [`Arc<str>`].
     pub fn into_inner(self) -> Arc<str> {
         self.name
     }
 
-    /// Get the content of this identifier as a `str`
+    /// Returns the content of this identifier as a `str`.
     pub fn as_str(&self) -> &str {
         self.name.as_ref()
     }
 
-    /// Apply the default [Ident] validation rules to `source`
+    /// Applies the default [Ident] validation rules to `source`.
     pub fn validate(source: impl AsRef<str>) -> Result<(), IdentError> {
         let source = source.as_ref();
         if source.is_empty() {

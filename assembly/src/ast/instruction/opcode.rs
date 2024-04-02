@@ -1,15 +1,14 @@
 use crate::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use alloc::string::ToString;
 
-/// NOTE: If the number or order of variants in this enumeration changes,
-/// then the version number of the serialized format must be incremented,
-/// and explicit handling must be present to translate from the old values
-/// to the new values. The recommended approach would be to have separate
-/// enums, one for each distinct version of the format, with a set of
-/// translations working upwards from the lowest supported version.
+/// NOTE: If the number or order of variants in this enumeration changes, then the version number
+/// of the serialized format must be incremented, and explicit handling must be present to
+/// translate from the old values to the new values. The recommended approach would be to have
+/// separate enums, one for each distinct version of the format, with a set of translations working
+/// upwards from the lowest supported version.
 ///
-/// However, since serialized MASM is likely going away in favor of MAST,
-/// this may be a non-issue soon anyway.
+/// However, since serialized MASM is likely going away in favor of MAST, this may be a non-issue
+/// soon anyway.
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OpCode {
@@ -291,24 +290,22 @@ impl Deserializable for OpCode {
 
         // SAFETY: This is guaranteed safe for the following reasons:
         //
-        // * OpCode is defined as repr(u8), giving it a stable representation
-        // equivalent to a u8 integer value
+        // * OpCode is defined as repr(u8), giving it a stable representation equivalent to a u8
+        // integer value
         //
-        // * We have specified the discriminants for all of the OpCode variants.
-        // Specifically, we explicitly set the first variant to `0`, and each
-        // subsequent variant is incremented by 1. Thus the range from the first
-        // variant to the last variant is closed, and all integers in that range
-        // are valid discriminant values.
+        // * We have specified the discriminants for all of the OpCode variants. Specifically, we
+        // explicitly set the first variant to `0`, and each subsequent variant is incremented by
+        // 1. Thus the range from the first variant to the last variant is closed, and all integers
+        // in that range are valid discriminant values.
         //
-        // * In Rust, constructing a repr(u*) fieldless enum from an integer is
-        // always valid if the integer value corresponds to a valid discriminant
-        // value, which as we've outlined above, is guaranteed to be true for all
-        // values <= OpCode::MAX_DISCRIMINANT
+        // * In Rust, constructing a repr(u*) fieldless enum from an integer is always valid if the
+        // integer value corresponds to a valid discriminant value, which as we've outlined above,
+        // is guaranteed to be true for all values <= OpCode::MAX_DISCRIMINANT
         //
-        // NOTE: This safety property holds only so long as the number of variants
-        // does not _decrease_. It should be noted that it will be safe, but not
-        // correct, if the order of variants changes, or additional variants are
-        // added, without corresponding changes to the serialization code.
+        // NOTE: This safety property holds only so long as the number of variants does no
+        // _decrease_. It should be noted that it will be safe, but not correct, if the order of
+        // variants changes, or additional variants are added, without corresponding changes to the
+        // serialization code.
         unsafe { Ok(core::mem::transmute::<u8, OpCode>(value)) }
     }
 }

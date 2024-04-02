@@ -28,9 +28,9 @@ use alloc::{string::String, sync::Arc};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Export {
-    /// A locally-defined procedure
+    /// A locally-defined procedure.
     Procedure(Procedure) = 0,
-    /// An alias for an externally-defined procedure, i.e. a re-exported import
+    /// An alias for an externally-defined procedure, i.e. a re-exported import.
     Alias(ProcedureAlias) = 1,
 }
 
@@ -95,7 +95,7 @@ impl Export {
         }
     }
 
-    /// Returns true if this procedure is the program entrypoint
+    /// Returns true if this procedure is the program entrypoint.
     pub fn is_main(&self) -> bool {
         self.name().is_main()
     }
@@ -146,9 +146,8 @@ impl Export {
     }
 
     fn tag(&self) -> u8 {
-        // SAFETY: This is safe because we have given this enum a
-        // primitive representation with #[repr(u8)], with the first
-        // field of the underlying union-of-structs the discriminant
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
         //
         // See the section on "accessing the numeric value of the discriminant"
         // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html

@@ -62,8 +62,9 @@ impl CallGraph {
     /// introduce a cycle, or that [toposort] is run once the graph is built, in order to verify
     /// that the graph is valid and has no cycles.
     ///
-    /// NOTE: This function will panic if you attempt to add an edge from a function to itself, which
-    /// trivially introduces a cycle. All other cycle-inducing edges must be caught by a call to [toposort]
+    /// NOTE: This function will panic if you attempt to add an edge from a function to itself,
+    /// which trivially introduces a cycle. All other cycle-inducing edges must be caught by a
+    /// call to [toposort].
     pub fn add_edge(&mut self, caller: GlobalProcedureIndex, callee: GlobalProcedureIndex) {
         assert_ne!(caller, callee, "a procedure cannot call itself");
 
