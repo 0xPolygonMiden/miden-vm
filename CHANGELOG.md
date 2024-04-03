@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0
+## 0.9.0 (2024-04-03)
 
 #### Packaging
 - [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
@@ -10,7 +10,7 @@
 - [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
 - [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
 
-## 0.8.0 (02-26-2024)
+## 0.8.0 (2024-02-26)
 
 #### Assembly
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations (#1103).

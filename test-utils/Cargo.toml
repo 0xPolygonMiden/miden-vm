@@ -16,12 +16,12 @@ default = ["std"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std", "vm-core/std", "winter-prover/std"]
 
 [dependencies]
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.8", features = ["internals"], default-features = false }
-prover = { package = "miden-prover", path = "../prover", version = "0.8", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.9", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.9", features = ["internals"], default-features = false }
+prover = { package = "miden-prover", path = "../prover", version = "0.9", default-features = false }
 test-case = "3.2"
-verifier = { package = "miden-verifier", path = "../verifier", version = "0.8", default-features = false }
-vm-core = { package = "miden-core", path = "../core", version = "0.8", default-features = false }
+verifier = { package = "miden-verifier", path = "../verifier", version = "0.9", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.9", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.8", default-features = false }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
