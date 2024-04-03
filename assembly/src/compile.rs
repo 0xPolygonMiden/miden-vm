@@ -94,7 +94,7 @@ pub trait Compile: Sized {
     /// See [Compile::compile_with_opts] for more details.
     #[inline]
     fn compile(self) -> Result<Box<Module>, Report> {
-        self.compile_with_opts(Options::default())
+        self.compile_with_options(Options::default())
     }
 
     /// Compile (or convert) `self` into a [Module] using the provided `options`.
@@ -104,7 +104,7 @@ pub trait Compile: Sized {
     /// an executable module).
     ///
     /// See the documentation for [Options] to see how compilation can be configured.
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report>;
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report>;
 }
 
 // COMPILE IMPLEMENTATIONS FOR MODULES
@@ -112,20 +112,20 @@ pub trait Compile: Sized {
 
 impl Compile for Module {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        Box::new(self).compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        Box::new(self).compile_with_options(options)
     }
 }
 
 impl<'a> Compile for &'a Module {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        Box::new(self.clone()).compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        Box::new(self.clone()).compile_with_options(options)
     }
 }
 
 impl Compile for Box<Module> {
-    fn compile_with_opts(mut self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(mut self, options: Options) -> Result<Box<Module>, Report> {
         let actual = self.kind();
         if actual == options.kind {
             if let Some(path) = options.path {
@@ -143,8 +143,8 @@ impl Compile for Box<Module> {
 
 impl Compile for Arc<Module> {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        Box::new(Arc::unwrap_or_clone(self)).compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        Box::new(Arc::unwrap_or_clone(self)).compile_with_options(options)
     }
 }
 
@@ -152,7 +152,7 @@ impl Compile for Arc<Module> {
 // ------------------------------------------------------------------------------------------------
 
 impl Compile for Arc<SourceFile> {
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
         let path = match options.path {
             Some(path) => path,
             None => self
@@ -169,20 +169,20 @@ impl Compile for Arc<SourceFile> {
 
 impl<'a> Compile for &'a str {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        self.to_string().compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        self.to_string().compile_with_options(options)
     }
 }
 
 impl<'a> Compile for &'a String {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        self.clone().compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        self.clone().compile_with_options(options)
     }
 }
 
 impl Compile for String {
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
         let mut parser = Module::parser(options.kind);
         parser.set_warnings_as_errors(options.warnings_as_errors);
         if let Some(path) = options.path {
@@ -201,8 +201,8 @@ impl Compile for String {
 
 impl<'a> Compile for Cow<'a, str> {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        self.into_owned().compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        self.into_owned().compile_with_options(options)
     }
 }
 
@@ -211,26 +211,26 @@ impl<'a> Compile for Cow<'a, str> {
 
 impl<'a> Compile for &'a [u8] {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
         core::str::from_utf8(self)
             .map_err(|err| {
                 Report::from(crate::parser::ParsingError::from(err)).with_source_code(self.to_vec())
             })
             .wrap_err("parsing failed: invalid source code")
-            .and_then(|source| source.compile_with_opts(options))
+            .and_then(|source| source.compile_with_options(options))
     }
 }
 
 impl Compile for Vec<u8> {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
         String::from_utf8(self)
             .map_err(|err| {
                 let error = crate::parser::ParsingError::from(err.utf8_error());
                 Report::from(error).with_source_code(err.into_bytes())
             })
             .wrap_err("parsing failed: invalid source code")
-            .and_then(|source| source.compile_with_opts(options))
+            .and_then(|source| source.compile_with_options(options))
     }
 }
 
@@ -238,14 +238,14 @@ impl<T> Compile for NamedSource<T>
 where
     T: SourceCode + AsRef<[u8]>,
 {
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
         let content = String::from_utf8(self.inner().as_ref().to_vec())
             .map_err(|err| {
                 let error = crate::parser::ParsingError::from(err.utf8_error());
                 Report::from(error).with_source_code(err.into_bytes())
             })
             .wrap_err("parsing failed: expected source code to be valid utf-8")?;
-        Arc::new(SourceFile::new(self.name(), content)).compile_with_opts(options)
+        Arc::new(SourceFile::new(self.name(), content)).compile_with_options(options)
     }
 }
 
@@ -254,7 +254,7 @@ where
 
 #[cfg(feature = "std")]
 impl<'a> Compile for &'a std::path::Path {
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
         use crate::{ast::Ident, library::PathError};
         use std::path::Component;
 
@@ -300,7 +300,7 @@ impl<'a> Compile for &'a std::path::Path {
 #[cfg(feature = "std")]
 impl Compile for std::path::PathBuf {
     #[inline(always)]
-    fn compile_with_opts(self, options: Options) -> Result<Box<Module>, Report> {
-        self.as_path().compile_with_opts(options)
+    fn compile_with_options(self, options: Options) -> Result<Box<Module>, Report> {
+        self.as_path().compile_with_options(options)
     }
 }

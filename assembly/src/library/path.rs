@@ -483,7 +483,7 @@ impl fmt::Display for LibraryPath {
     }
 }
 
-pub(super) fn validate_component(component: &str) -> Result<(), PathError> {
+fn validate_component(component: &str) -> Result<(), PathError> {
     if component.is_empty() {
         Err(PathError::EmptyComponent)
     } else if component.len() > LibraryNamespace::MAX_LENGTH {

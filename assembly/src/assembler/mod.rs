@@ -162,7 +162,7 @@ impl Assembler {
     pub fn with_kernel_from_module(module: impl Compile) -> Result<Self, Report> {
         let mut assembler = Self::new();
         let opts = CompileOpts::for_kernel();
-        let module = module.compile_with_opts(opts)?;
+        let module = module.compile_with_options(opts)?;
         let (kernel_index, kernel) = assembler.assemble_kernel_module(module)?;
         assembler.module_graph.set_kernel(Some(kernel_index), kernel);
 
@@ -236,7 +236,7 @@ impl Assembler {
             ));
         }
 
-        let module = module.compile_with_opts(options)?;
+        let module = module.compile_with_options(options)?;
         assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
 
         self.module_graph.add_module(module)?;
@@ -359,7 +359,7 @@ impl Assembler {
             warnings_as_errors: context.warnings_as_errors(),
             ..CompileOpts::default()
         };
-        self.assemble_with_opts_in_context(source, opts, context)
+        self.assemble_with_options_in_context(source, opts, context)
     }
 
     /// Compiles the provided module into a [Program] using the provided options.
@@ -370,7 +370,7 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or the options
     /// are invalid.
-    pub fn assemble_with_opts(
+    pub fn assemble_with_options(
         &mut self,
         source: impl Compile,
         options: CompileOpts,
@@ -378,13 +378,13 @@ impl Assembler {
         let mut context = AssemblyContext::default();
         context.set_warnings_as_errors(options.warnings_as_errors);
 
-        self.assemble_with_opts_in_context(source, options, &mut context)
+        self.assemble_with_options_in_context(source, options, &mut context)
     }
 
     /// Like [Assembler::compile_with_opts], but additionally uses the provided [AssemblyContext]
     /// to configure the assembler.
     #[instrument("assemble_with_opts_in_context", skip_all)]
-    pub fn assemble_with_opts_in_context(
+    pub fn assemble_with_options_in_context(
         &mut self,
         source: impl Compile,
         options: CompileOpts,
@@ -392,11 +392,11 @@ impl Assembler {
     ) -> Result<Program, Report> {
         if options.kind != ModuleKind::Executable {
             return Err(Report::msg(
-                "invalid compile options: compile_with_opts requires that the kind be 'executable'",
+                "invalid compile options: assemble_with_opts_in_context requires that the kind be 'executable'",
             ));
         }
 
-        let program = source.compile_with_opts(CompileOpts {
+        let program = source.compile_with_options(CompileOpts {
             // Override the module name so that we always compile the executable
             // module as #exec
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
@@ -465,7 +465,7 @@ impl Assembler {
         }
 
         // Compile module
-        let module = module.compile_with_opts(options)?;
+        let module = module.compile_with_options(options)?;
 
         // Recompute graph with the provided module, and start assembly
         let module_id = self.module_graph.add_module(module)?;
