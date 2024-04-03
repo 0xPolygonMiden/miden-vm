@@ -8,6 +8,11 @@ use super::{
 };
 
 /// The value produced by the [Lexer] when iterated
+///
+/// A successfully lexed token is wrapped in a tuple with the start and end byte offsets, where
+/// the end offset is exclusive. We explicitly use a tuple here, and not something like Span<T>,
+/// because this "triple" is the structure expected by the LALRPOP parser generator when used with
+/// a custom lexer like ours.
 pub type Lexed<'input> = Result<(u32, Token<'input>, u32), ParsingError>;
 
 /// Pops a single token from the [Lexer]
@@ -466,7 +471,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn lex_number(&mut self) -> Result<Token<'input>, ParsingError> {
-        // Expect the first character to be a digit or sign
+        // Expect the first character to be a digit
         let c = self.read();
         debug_assert!(c.is_ascii_digit());
 

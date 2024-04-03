@@ -222,7 +222,7 @@ impl TestContext {
     /// valid.
     #[track_caller]
     pub fn parse_program(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts {
+        source.compile_with_options(CompileOpts {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..Default::default()
         })
@@ -235,7 +235,7 @@ impl TestContext {
     #[allow(unused)]
     #[track_caller]
     pub fn parse_kernel(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts {
+        source.compile_with_options(CompileOpts {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..CompileOpts::for_kernel()
         })
@@ -247,7 +247,7 @@ impl TestContext {
     /// valid.
     #[track_caller]
     pub fn parse_module(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts {
+        source.compile_with_options(CompileOpts {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..CompileOpts::for_library()
         })
@@ -260,7 +260,7 @@ impl TestContext {
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<Box<Module>, Report> {
-        source.compile_with_opts(CompileOpts {
+        source.compile_with_options(CompileOpts {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..CompileOpts::new(ModuleKind::Library, path).unwrap()
         })

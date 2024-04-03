@@ -142,7 +142,7 @@ impl FullyQualifiedProcedureName {
 ///   alphanumerics, punctuation, etc. Control characters and the like are explicitly not allowed.
 ///
 /// NOTE: In Miden Assembly source files, a procedure name must be quoted in double-quotes if it
-/// contains any characters other than ASCII alphanumerics, `_`, or `::`. See examples below.
+/// contains any characters other than ASCII alphanumerics, or `_`. See examples below.
 ///
 /// ## Examples
 ///
@@ -152,18 +152,17 @@ impl FullyQualifiedProcedureName {
 ///   ...
 /// end
 ///
-/// # All ASCII alphanumeric, namespaced
-/// proc.std::foo
-///   ...
-/// end
-///
-/// # A variation of the first example with a leading `_`, but this is still allowed bare
+/// # All ASCII alphanumeric, leading underscore
 /// proc._foo
 ///   ...
 /// end
 ///
-/// # A complex procedure name representing a monomorphized Rust function
-/// # This name must be quoted in order to parse it correctly.
+/// # A symbol which contains `::`, which would be treated as a namespace operator, so requires quoting
+/// proc."std::foo"
+///   ...
+/// end
+///
+/// # A complex procedure name representing a monomorphized Rust function, requires quoting
 /// proc."alloc::alloc::box_free::<dyn alloc::boxed::FnBox<(), Output = ()>>"
 ///   ...
 /// end
