@@ -1,12 +1,12 @@
 [package]
 name = "miden-stdlib"
-version = "0.9.0"
+version = "0.9.1"
 description = "Miden VM standard library"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/0xPolygonMiden/miden-vm"
-documentation = "https://docs.rs/miden-stdlib/0.9.0"
+documentation = "https://docs.rs/miden-stdlib/0.9.1"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
 edition = "2021"

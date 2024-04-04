@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 (2024-04-04)
+
+- Added additional trait implementations to error types (#1306).
+
 ## 0.9.0 (2024-04-03)
 
 #### Packaging
