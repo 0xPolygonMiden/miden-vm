@@ -2,10 +2,6 @@
 pub enum Error {
     #[error("number of rounds for sum-check must be greater than zero")]
     NumRoundsZero,
-    #[error("sumcheck polynomial degree must be greater than zero")]
-    PolynomialDegreeIsZero,
-    #[error("the evaluation domain does not match the expected size")]
-    EvaluationDomainMismatch,
     #[error("the number of rounds is greater than the number of variables")]
     TooManyRounds,
     #[error("should provide at least one multi-linear polynomial as input")]

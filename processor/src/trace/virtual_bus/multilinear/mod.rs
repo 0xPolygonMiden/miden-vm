@@ -58,6 +58,19 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     }
 
     /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
+    /// (1 - r_0) * f(0, y_1, ..., y_{ν - 1}) + r_0 * f(1, y_1, ..., y_{ν - 1}). The resulting
+    /// returned multi-linear is defined over a domain of half the size.
+    #[allow(dead_code)]
+    pub fn bind(&self, round_challenge: E) -> Self {
+        let mut result = vec![E::ZERO; 1 << (self.num_variables() - 1)];
+        for (i, res) in result.iter_mut().enumerate() {
+            *res = self.evaluations[i << 1]
+                + round_challenge * (self.evaluations[(i << 1) + 1] - self.evaluations[i << 1]);
+        }
+        Self::from_values(&result).expect("should not fail given that it is a multi-linear")
+    }
+
+    /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
     /// (1 - r_0) * f(0, y_1, ..., y_{ν - 1}) + r_0 * f(1, y_1, ..., y_{ν - 1}) and assigns
     /// the resulting multi-linear, defined over a domain of half the size, to `self`.
     pub fn bind(&mut self, round_challenge: E) {
@@ -68,6 +81,13 @@ impl<E: FieldElement> MultiLinearPoly<E> {
         }
         *self = Self::from_evaluations(result.to_owned())
             .expect("should not fail given that it is a multi-linear");
+    }
+
+    pub fn extend(&mut self, other: &MultiLinear<E>) {
+        let other_vec = other.evaluations.to_vec();
+        assert_eq!(other_vec.len(), self.evaluations().len());
+        self.evaluations.extend(other_vec);
+        self.num_variables += 1;
     }
 }
 
@@ -83,7 +103,7 @@ impl<E: FieldElement> Index<usize> for MultiLinearPoly<E> {
 // ================================================================================================
 
 /// A multi-variate polynomial for composing individual multi-linear polynomials.
-pub trait CompositionPolynomial<E: FieldElement>: Sync + Send {
+pub trait CompositionPolynomial<E: FieldElement> {
     /// The number of variables when interpreted as a multi-variate polynomial.
     fn num_variables(&self) -> u32;
 
@@ -116,7 +136,7 @@ pub fn tensorize<E: FieldElement>(query: &[E]) -> Vec<E> {
 
     let mut evals: Vec<E> = vec![E::ONE; n];
     let mut size = 1;
-    for r_i in query.iter() {
+    for r_i in query.iter().rev() {
         size *= 2;
         for i in (0..size).rev().step_by(2) {
             let scalar = evals[i / 2];
