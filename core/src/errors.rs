@@ -5,7 +5,7 @@ use alloc::string::String;
 // INPUT ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputError {
     DuplicateAdviceRoot([u8; 32]),
     InputLengthExceeded(usize, usize),
@@ -38,7 +38,7 @@ impl std::error::Error for InputError {}
 // OUTPUT ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OutputError {
     InvalidOverflowAddress(String),
     InvalidOverflowAddressLength(usize, usize),

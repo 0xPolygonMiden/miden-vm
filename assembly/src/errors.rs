@@ -12,7 +12,7 @@ use core::fmt;
 // ================================================================================================
 
 /// An error which can be generated while compiling a Miden assembly program into a MAST.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssemblyError {
     CallInKernel(String),
     CallSetProcedureNotFound(RpoDigest),
@@ -178,7 +178,7 @@ impl std::error::Error for AssemblyError {}
 // ================================================================================================
 
 /// An error which can be generated while parsing a Miden assembly source code into an AST.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ParsingError {
     message: String,
     location: SourceLocation,
@@ -695,7 +695,7 @@ impl std::error::Error for ParsingError {}
 // NAME ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LabelError {
     EmptyLabel,
     RpoDigestHexLabelIncorrectLength(usize),
@@ -959,7 +959,7 @@ impl From<PathError> for LibraryError {
 // PATH ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathError {
     ComponentInvalidChar { component: String },
     ComponentInvalidFirstChar { component: String },
