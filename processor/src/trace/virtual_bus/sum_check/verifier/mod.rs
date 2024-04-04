@@ -92,7 +92,7 @@ where
             claim: claimed_evaluation,
         } = self.verify_rounds(claim, round_proofs, coin)?;
 
-        if openings_claim.evaluation_point != evaluation_point {
+        if openings_claim.eval_point != evaluation_point {
             return Err(Error::WrongOpeningPoint);
         }
         let query = self.final_query_builder.build_query(&openings_claim, &evaluation_point);
@@ -111,7 +111,7 @@ where
         round_proofs: Vec<RoundProof<E>>,
         coin: &mut C,
     ) -> Result<RoundClaim<E>, Error> {
-        let mut round_claim = claim;
+        let mut claimed_evaluation = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
             let round_poly_coefs = round_proof.round_poly_coefs.clone();
@@ -125,7 +125,7 @@ where
 
         Ok(RoundClaim {
             eval_point: evaluation_point,
-            claim: round_claim,
+            claim: claimed_evaluation,
         })
     }
 }

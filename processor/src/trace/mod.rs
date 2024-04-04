@@ -19,7 +19,7 @@ mod utils;
 pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummary};
 
 mod virtual_bus;
-pub use virtual_bus::{SumCheckProver, SumCheckVerifier};
+pub use virtual_bus::{VirtualBusProver, VirtualBusVerifier};
 
 #[cfg(test)]
 mod tests;
