@@ -2,7 +2,7 @@ use self::error::Error;
 use super::{
     domain::EvaluationDomain, reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof,
 };
-use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinear};
+use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
 use core::marker::PhantomData;
 use vm_core::{FieldElement, StarkField};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
@@ -13,13 +13,13 @@ mod error;
 /// protocol prover.
 /// The sum-check protocol is an interactive protocol (IP) for proving the following relation:
 ///
-/// v = \sum_{(x_0,\cdots, x_{\nu - 1}) \in \{0 , 1\}^{2^{\nu}}}
+/// v = \sum_{(x_0,\cdots, x_{\nu - 1}) \in \{0 , 1\}^{\nu}}
 ///                     g(f_0((x_0,\cdots, x_{\nu - 1})), \cdots , f_c((x_0,\cdots, x_{\nu - 1})))
 ///
 /// where:
 ///
 /// 1. v ∈ 𝔽 where 𝔽 is a finite field.
-/// 2. f_i are multi-linear polynomials i.e., polynomials in 𝔽[X_i, \cdots ,X_{\nu - 1}] with degree
+/// 2. f_i are multi-linear polynomials i.e., polynomials in 𝔽[X_0, \cdots ,X_{\nu - 1}] with degree
 /// at most one in each variable.
 /// 3. g is a multivariate polynomial with degree at most d in each variable.
 ///
@@ -59,9 +59,9 @@ mod error;
 /// of degree at most `d`. Thus, the Prover in each round sends `d + 1` values, either
 /// the coefficients or the evaluations of `s_i`.
 ///
-/// 2. The Prover has each `f_i` in its evaluation form over the hyper-cube \{0 , 1\}^{2^{\nu}}.
+/// 2. The Prover has each `f_i` in its evaluation form over the hyper-cube \{0 , 1\}^{\nu}.
 ///
-/// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recoverd from the current
+/// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the current
 /// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i - 1}).
 /// This also means that the Verifier can skip point 4.b.
 pub struct SumCheckProver<B, E, P, C, H>
@@ -110,7 +110,7 @@ where
     pub fn prove(
         &self,
         claim: E,
-        mls: &mut [MultiLinear<E>],
+        mls: &mut [MultiLinearPoly<E>],
         num_rounds: usize,
         coin: &mut C,
         //) -> Result<(RoundClaim<E>, Proof<E>), Error> {
@@ -241,7 +241,7 @@ where
 /// the current evaluation at `x` in {2, ... , d_max}.
 fn sumcheck_round<E: FieldElement>(
     polynomial: &dyn CompositionPolynomial<E>,
-    mls: &mut [MultiLinear<E>],
+    mls: &mut [MultiLinearPoly<E>],
 ) -> RoundProof<E> {
     let num_ml = mls.len();
     let num_vars = mls[0].num_variables();
@@ -258,7 +258,7 @@ fn sumcheck_round<E: FieldElement>(
             evals_one[j] = ml.evaluations()[(i << 1) + 1];
         }
 
-        let mut total_evals = vec![E::ZERO; polynomial.max_degree()];
+        let mut total_evals = vec![E::ZERO; polynomial.max_degree() as usize];
         total_evals[0] = polynomial.evaluate(&evals_one);
 
         evals_zero
@@ -278,7 +278,7 @@ fn sumcheck_round<E: FieldElement>(
         total_evals
     });
 
-    let evaluations = total_evals.fold(vec![E::ZERO; polynomial.max_degree()], |mut acc, evals| {
+    let evaluations = total_evals.fold(vec![E::ZERO; polynomial.max_degree() as usize], |mut acc, evals| {
         acc.iter_mut().zip(evals.iter()).for_each(|(a, ev)| *a += *ev);
         acc
     });

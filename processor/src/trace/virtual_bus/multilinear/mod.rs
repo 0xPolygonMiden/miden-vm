@@ -3,46 +3,35 @@ use core::ops::Index;
 use vm_core::FieldElement;
 use winter_prover::math::log2;
 
-#[allow(dead_code)]
-mod lagrange_ker;
-
 mod error;
 use self::error::Error;
 
 // MULTI-LINEAR POLYNOMIAL
 // ================================================================================================
 
-/// The evaluations of a mult-linear polynomial over the boolean hyper-cube {0 , 1}^ν.
+/// Represents a multi-linear polynomial.
+///
+/// The representation stores the evaluations of the polynomial over the boolean hyper-cube
+/// {0 , 1}^ν.
 #[derive(Clone, Debug)]
-pub struct MultiLinear<E: FieldElement> {
+pub struct MultiLinearPoly<E: FieldElement> {
     num_variables: usize,
     evaluations: Vec<E>,
 }
 
-impl<E: FieldElement> MultiLinear<E> {
-    /// Constructs a [MultiLinear] from an array of values in the field.
-    pub fn new(values: Vec<E>) -> Result<Self, Error> {
-        if !values.len().is_power_of_two() {
+impl<E: FieldElement> MultiLinearPoly<E> {
+    /// Constructs a [MultiLinearPoly] from its evaluations over the boolean hyper-cube {0 , 1}^ν.
+    pub fn from_evaluations(evaluations: Vec<E>) -> Result<Self, Error> {
+        if !evaluations.len().is_power_of_two() {
             return Err(Error::EvaluationsNotPowerOfTwo);
         }
         Ok(Self {
-            num_variables: log2(values.len()) as usize,
-            evaluations: values,
+            num_variables: log2(evaluations.len()) as usize,
+            evaluations,
         })
     }
 
-    /// Constructs a [MultiLinear] from a slice of values in the field.
-    pub fn from_values(values: &[E]) -> Result<Self, Error> {
-        if !values.len().is_power_of_two() {
-            return Err(Error::EvaluationsNotPowerOfTwo);
-        }
-        Ok(Self {
-            num_variables: log2(values.len()) as usize,
-            evaluations: values.to_owned(),
-        })
-    }
-
-    /// Returns the number of the multi-linear polynomial.
+    /// Returns the number of variables of the multi-linear polynomial.
     pub fn num_variables(&self) -> usize {
         self.num_variables
     }
@@ -77,7 +66,8 @@ impl<E: FieldElement> MultiLinear<E> {
             *res = self.evaluations[i << 1]
                 + round_challenge * (self.evaluations[(i << 1) + 1] - self.evaluations[i << 1]);
         }
-        Self::from_values(&result).expect("should not fail given that it is a multi-linear")
+        Self::from_evaluations(result.to_owned())
+            .expect("should not fail given that it is a multi-linear")
     }
 
     /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
@@ -89,12 +79,12 @@ impl<E: FieldElement> MultiLinear<E> {
             *res = self.evaluations[i << 1]
                 + round_challenge * (self.evaluations[(i << 1) + 1] - self.evaluations[i << 1]);
         }
-        *self =
-            Self::from_values(&result).expect("should not fail given that it is a multi-linear");
+        *self = Self::from_evaluations(result.to_owned())
+            .expect("should not fail given that it is a multi-linear");
     }
 }
 
-impl<E: FieldElement> Index<usize> for MultiLinear<E> {
+impl<E: FieldElement> Index<usize> for MultiLinearPoly<E> {
     type Output = E;
 
     fn index(&self, index: usize) -> &E {
@@ -108,16 +98,16 @@ impl<E: FieldElement> Index<usize> for MultiLinear<E> {
 /// A multi-variate polynomial for composing individual multi-linear polynomials.
 pub trait CompositionPolynomial<E: FieldElement>: Sync + Send {
     /// The number of variables when interpreted as a multi-variate polynomial.
-    fn num_variables(&self) -> usize;
+    fn num_variables(&self) -> u32;
 
     /// Maximum degree in all variables.
-    fn max_degree(&self) -> usize;
+    fn max_degree(&self) -> u32;
 
     /// Given a query, of length equal the number of variables, evaluates [Self] at this query.
     fn evaluate(&self, query: &[E]) -> E;
 }
 
-// COMPOSITION POLYNOMIAL
+// HELPER
 // ================================================================================================
 
 /// Computes the inner product of two vectors of the same length.
@@ -139,11 +129,11 @@ pub fn tensorize<E: FieldElement>(query: &[E]) -> Vec<E> {
 
     let mut evals: Vec<E> = vec![E::ONE; n];
     let mut size = 1;
-    for query in query.iter() {
+    for r_i in query.iter() {
         size *= 2;
         for i in (0..size).rev().step_by(2) {
             let scalar = evals[i / 2];
-            evals[i] = scalar * *query;
+            evals[i] = scalar * *r_i;
             evals[i - 1] = scalar - evals[i];
         }
     }

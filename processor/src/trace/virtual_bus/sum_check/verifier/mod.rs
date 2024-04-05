@@ -92,17 +92,17 @@ where
             round_proofs,
         } = proof;
 
-        let mut claimed_evaluation = claim;
+        let mut round_claim = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
             let partial_evals = round_proof.poly_evals.clone();
             coin.reseed(H::hash_elements(&partial_evals));
-            let evals = round_proof.to_evals(claimed_evaluation);
+            let evals = round_proof.to_evals(round_claim);
 
             let r = coin.draw().map_err(|_| Error::FailedToGenerateChallenge)?;
             let reduced_evaluation = self.eval_domain.evaluate(&evals, r);
 
-            claimed_evaluation = reduced_evaluation;
+            round_claim = reduced_evaluation;
             evaluation_point.push(r);
         }
 
@@ -111,7 +111,7 @@ where
                 return Err(Error::WrongOpeningPoint);
             }
             let query = self.final_query_builder.build_query(&openings_claim, &evaluation_point);
-            if self.composition_poly.evaluate(&query) != claimed_evaluation {
+            if self.composition_poly.evaluate(&query) != round_claim {
                 Err(Error::FinalEvaluationCheckFailed)
             } else {
                 Ok(openings_claim)
@@ -125,22 +125,22 @@ where
 /// Contains the logic for building the final query made to the virtual polynomial.
 ///
 /// During the last step of the sum-check protocol, the Verifier must evaluate the virtual
-/// polynomial at a random point `(r_0, ... ,r_{\nu - 1})`. To do this, the Verifier asks the Prover
-/// for the openings of the mult-linear oracles at `(r_0, ... ,r_{\nu - 1})` i.e.,
+/// polynomial at a random point `(r_0, ... ,r_{\nu - 1})`. To do this, the Verifier asks
+/// the Prover for the openings of the mult-linear oracles at `(r_0, ... ,r_{\nu - 1})` i.e.,
 /// `v_i = f_i(r_0, ... ,r_{\nu - 1})`. The Verifier then evaluates `g(v_0, ... , v_{\nu - 1})` and
 /// compares it to the reduced claim resulting from the round proofs and challenges.
 /// At this point, for the Verifier to accept the proof, it needs to check that indeed
-/// `v_i = f_i(r_0, ... ,r_{\nu - 1})`, this is the exact content of [FinalOpeningClaim], which can
-/// be either answered by a direct query to the oracles (i.e., in the complied protocol this would
-/// be answered with an opening proof against the commitment) or through further interaction (as
-/// in the case of the GKR protocol).
+/// `v_i = f_i(r_0, ... ,r_{\nu - 1})`, this is the exact content of [`FinalOpeningClaim`], which
+/// can be either answered by a direct query to the oracles (i.e., in the compiled protocol this
+/// would be answered with an opening proof against the commitment) or through further interaction
+/// (as in the case of the GKR protocol).
 ///
-/// The purpose of [FinalQueryBuilder] is to abstract the logic for evaluating multi-linears which
+/// The purpose of [`FinalQueryBuilder`] is to abstract the logic for evaluating multi-linears which
 /// the Verifier can do by herself. For example, this is the case for periodic columns where given
-/// `(r_0, ... ,r_{\nu - 1})` the Verifier can evaluate `f_i(r_0, ... ,r_{\nu - 1})` un-assisted.
+/// `(r_0, ... ,r_{\nu - 1})` the Verifier can evaluate `f_i(r_0, ... ,r_{\nu - 1})` unassisted.
 ///
 /// In the case where there are no `f_i(r_0, ... ,r_{\nu - 1})` which can be computed by the
-/// Verifier alone, the output of [Self::build_query] will be just the provided openings.
+/// Verifier alone, the output of [`Self::build_query`] will be just the provided openings.
 pub trait FinalQueryBuilder {
     type Field: FieldElement;
 
