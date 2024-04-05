@@ -1,5 +1,5 @@
 use self::error::Error;
-use super::{domain::EvaluationDomain, FinalOpeningClaim, Proof};
+use super::{domain::EvaluationDomain, FinalOpeningClaim, Proof, RoundClaim, RoundProof};
 use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
@@ -12,11 +12,11 @@ mod error;
 /// protocol verifier. The protocol is described in [`SumCheckProver`].
 /// The sum-check Verifier is composed of two parts:
 ///
-/// 1. Multi-round interaction where it sends challenges and receives polynomials. For each
+/// 1. A multi-round interaction where it sends challenges and receives polynomials. For each
 /// polynomial received it uses the sent randomness to reduce the current claim to a new one.
 ///
 /// 2. A final round where the Verifier queries the multi-linear oracles it received at the outset
-/// of the protocol (i.e., commitments) for their evaluations the random point
+/// of the protocol (i.e., commitments) for their evaluations at the random point
 /// `(r_0, ... , r_{\nu - 1})` where $\nu$ is the number of rounds of the sum-check protocol and
 /// `r_i` is the randomness sent by the Verifier at each round.
 pub struct SumCheckVerifier<E, P, C, H, V>
@@ -86,10 +86,34 @@ where
         coin: &mut C,
     ) -> Result<FinalOpeningClaim<E>, Error> {
         let Proof {
-            openings: openings_claim,
+            openings_claim,
             round_proofs,
         } = proof;
 
+        let RoundClaim {
+            eval_point: evaluation_point,
+            claim: claimed_evaluation,
+        } = self.verify_rounds(claim, round_proofs, coin)?;
+
+        if openings_claim.evaluation_point != evaluation_point {
+            return Err(Error::WrongOpeningPoint);
+        }
+        let query = self.final_query_builder.build_query(&openings_claim, &evaluation_point);
+
+        if self.composition_poly.evaluate(&query) != claimed_evaluation {
+            Err(Error::FinalEvaluationCheckFailed)
+        } else {
+            Ok(openings_claim)
+        }
+    }
+
+    /// Verifies a round of the sum-check protocol.
+    pub fn verify_rounds(
+        &self,
+        claim: E,
+        round_proofs: Vec<RoundProof<E>>,
+        coin: &mut C,
+    ) -> Result<RoundClaim<E>, Error> {
         let mut round_claim = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
@@ -103,19 +127,10 @@ where
             evaluation_point.push(r);
         }
 
-        if let Some(openings_claim) = openings_claim {
-            if openings_claim.evaluation_point != evaluation_point {
-                return Err(Error::WrongOpeningPoint);
-            }
-            let query = self.final_query_builder.build_query(&openings_claim, &evaluation_point);
-            if self.composition_poly.evaluate(&query) != round_claim {
-                Err(Error::FinalEvaluationCheckFailed)
-            } else {
-                Ok(openings_claim)
-            }
-        } else {
-            Err(Error::NoOpeningsProvided)
-        }
+        Ok(RoundClaim {
+            eval_point: evaluation_point,
+            claim: round_claim,
+        })
     }
 }
 
