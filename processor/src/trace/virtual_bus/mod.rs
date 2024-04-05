@@ -130,11 +130,11 @@ impl<E> CompositionPolynomial<E> for ZeroNumerator<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1 // TODO: Update
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 
@@ -163,11 +163,11 @@ impl<E> CompositionPolynomial<E> for OneDenominator<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1 // TODO: Update
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 

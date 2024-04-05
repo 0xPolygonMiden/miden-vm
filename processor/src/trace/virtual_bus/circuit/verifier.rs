@@ -4,7 +4,9 @@ use super::{
 };
 use crate::trace::virtual_bus::{
     multilinear::{CompositionPolynomial, EqFunction},
-    sum_check::{FinalOpeningClaim, FinalQueryBuilder, Proof as SumCheckFullProof, RoundClaim},
+    sum_check::{
+        CompositionPolyQueryBuilder, FinalOpeningClaim, Proof as SumCheckFullProof, RoundClaim,
+    },
     SumCheckVerifier,
 };
 use alloc::{borrow::ToOwned, sync::Arc, vec::Vec};
@@ -184,14 +186,8 @@ impl<E> GkrQueryBuilder<E> {
     }
 }
 
-impl<E: FieldElement> FinalQueryBuilder for GkrQueryBuilder<E> {
-    type Field = E;
-
-    fn build_query(
-        &self,
-        openings_claim: &FinalOpeningClaim<Self::Field>,
-        evaluation_point: &[Self::Field],
-    ) -> Vec<Self::Field> {
+impl<E: FieldElement> CompositionPolyQueryBuilder<E> for GkrQueryBuilder<E> {
+    fn build_query(&self, openings_claim: &FinalOpeningClaim<E>, evaluation_point: &[E]) -> Vec<E> {
         let rand_sumcheck = evaluation_point;
         let eq_at_gkr_eval_point = EqFunction::new(self.gkr_eval_point.clone());
         let eq = eq_at_gkr_eval_point.evaluate(rand_sumcheck);
@@ -218,14 +214,8 @@ impl<E> GkrMergeQueryBuilder<E> {
     }
 }
 
-impl<E: FieldElement> FinalQueryBuilder for GkrMergeQueryBuilder<E> {
-    type Field = E;
-
-    fn build_query(
-        &self,
-        openings_claim: &FinalOpeningClaim<Self::Field>,
-        evaluation_point: &[Self::Field],
-    ) -> Vec<Self::Field> {
+impl<E: FieldElement> CompositionPolyQueryBuilder<E> for GkrMergeQueryBuilder<E> {
+    fn build_query(&self, openings_claim: &FinalOpeningClaim<E>, evaluation_point: &[E]) -> Vec<E> {
         let eq_at_gkr_eval_point = EqFunction::new(self.gkr_eval_point.clone());
         let mut rand_sumcheck = self.merge_rand.clone();
         rand_sumcheck.extend_from_slice(evaluation_point);
