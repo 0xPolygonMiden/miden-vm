@@ -111,7 +111,7 @@ where
         round_proofs: Vec<RoundProof<E>>,
         coin: &mut C,
     ) -> Result<RoundClaim<E>, Error> {
-        let mut claimed_evaluation = claim;
+        let mut round_claim = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
             let round_poly_coefs = round_proof.round_poly_coefs.clone();
@@ -125,7 +125,7 @@ where
 
         Ok(RoundClaim {
             eval_point: evaluation_point,
-            claim: claimed_evaluation,
+            claim: round_claim,
         })
     }
 }

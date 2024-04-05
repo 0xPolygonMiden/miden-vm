@@ -1,4 +1,4 @@
-use super::{tensorize, FieldElement, MultiLinear};
+use super::{tensorize, FieldElement, MultiLinearPoly};
 use alloc::vec::Vec;
 
 /// The EQ (equality) function is the binary function defined by
@@ -61,9 +61,9 @@ impl<E: FieldElement> EqFunction<E> {
     /// Returns the evaluations of
     /// ((y_0, ..., y_{ν - 1}) ↦ EQ^{~}((r_0, ..., r_{ν - 1}), (y_0, ..., y_{ν - 1})))
     /// over {0 , 1}^ν.
-    pub fn ml_at(evaluation_point: Vec<E>) -> MultiLinear<E> {
+    pub fn ml_at(evaluation_point: Vec<E>) -> MultiLinearPoly<E> {
         let eq_evals = EqFunction::new(evaluation_point.clone()).evaluations();
-        MultiLinear::from_values(&eq_evals)
+        MultiLinearPoly::from_evaluations(eq_evals)
             .expect("should not fail because evaluations is a power of two")
     }
 }

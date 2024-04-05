@@ -96,11 +96,11 @@ impl<E> CompositionPolynomial<E> for U32RangeCheckFlag<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         3
     }
 
@@ -125,11 +125,11 @@ impl<E> CompositionPolynomial<E> for MemoryFlagChiplet<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         3
     }
 
@@ -154,11 +154,11 @@ impl<E> CompositionPolynomial<E> for RangeCheckMultiplicity<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 
@@ -189,11 +189,11 @@ impl<E> CompositionPolynomial<E> for StackValue<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 
@@ -224,11 +224,11 @@ impl<E> CompositionPolynomial<E> for MemoryValue<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 
@@ -257,11 +257,11 @@ impl<E> CompositionPolynomial<E> for TableValue<E>
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 

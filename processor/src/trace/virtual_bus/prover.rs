@@ -2,7 +2,7 @@ use super::{
     circuit::GkrCircuitProof,
     error::Error,
     generate,
-    multilinear::{CompositionPolynomial, MultiLinear},
+    multilinear::{CompositionPolynomial, MultiLinearPoly},
     prove,
 };
 use alloc::{sync::Arc, vec::Vec};
@@ -90,12 +90,12 @@ where
         // TODO: Optimize this so that we can work with base field element directly and thus save
         // on memory usage.
         let trace_len = trace.num_rows();
-        let mut mls: Vec<MultiLinear<E>> = trace
+        let mut mls: Vec<MultiLinearPoly<E>> = trace
             .columns()
             .map(|col| {
                 let mut values: Vec<E> = col.iter().map(|value| E::from(*value)).collect();
                 values[trace_len - 1] = E::ZERO;
-                MultiLinear::new(values).unwrap()
+                MultiLinearPoly::from_evaluations(values).unwrap()
             })
             .collect();
         prove(self.composition_polynomials(), &mut mls, transcript)

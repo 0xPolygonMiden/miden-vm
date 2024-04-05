@@ -1,7 +1,5 @@
-use crate::trace::virtual_bus::{
-    multilinear::{CompositionPolynomial, EqFunction},
-    sum_check::RoundProof,
-};
+use crate::trace::virtual_bus::multilinear::EqFunction;
+use crate::trace::virtual_bus::{multilinear::CompositionPolynomial, sum_check::RoundProof};
 use alloc::{borrow::ToOwned, sync::Arc, vec::Vec};
 use miden_air::trace::TRACE_WIDTH;
 use vm_core::{Felt, FieldElement};
@@ -42,7 +40,7 @@ pub struct FinalLayerProof<E: FieldElement> {
     after_merge_proof: SumCheckProof<E>,
 }
 
-/// Represents a claim to be proven by next sum-check protocol.
+/// Represents a claim to be proven by a subsequent call to the sum-check protocol.
 #[derive(Debug)]
 pub struct GkrClaim<E: FieldElement + 'static> {
     pub evaluation_point: Vec<E>,
@@ -65,11 +63,11 @@ impl<E> CompositionPolynomial<E> for ProjectionComposition
 where
     E: FieldElement,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         1
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         1
     }
 
@@ -102,11 +100,11 @@ impl<E> CompositionPolynomial<E> for GkrComposition<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
-    fn num_variables(&self) -> usize {
+    fn num_variables(&self) -> u32 {
         5
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         3
     }
 
@@ -131,7 +129,7 @@ where
 {
     pub sum_check_combining_randomness: E,
     pub tensored_merge_randomness: Vec<E>,
-    pub degree: usize,
+    pub degree: u32,
 
     pub eq_composer: Arc<dyn CompositionPolynomial<E>>,
     pub right_numerator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
@@ -182,11 +180,11 @@ impl<E> CompositionPolynomial<E> for GkrCompositionMerge<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
-    fn num_variables(&self) -> usize {
-        TRACE_WIDTH
+    fn num_variables(&self) -> u32 {
+        TRACE_WIDTH as u32
     }
 
-    fn max_degree(&self) -> usize {
+    fn max_degree(&self) -> u32 {
         self.degree
     }
 

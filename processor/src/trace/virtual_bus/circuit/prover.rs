@@ -4,7 +4,7 @@ use super::{
     GkrCircuitProof, GkrClaim, GkrComposition,
 };
 use crate::trace::virtual_bus::{
-    multilinear::{CompositionPolynomial, EqFunction, MultiLinear},
+    multilinear::{CompositionPolynomial, EqFunction, MultiLinearPoly},
     sum_check::{FinalClaimBuilder, FinalOpeningClaim, RoundClaim, RoundProof},
     SumCheckProver,
 };
@@ -16,13 +16,13 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 /// Layered circuit for computing a sum of fractions.
 ///
 /// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) / (c * d)
-/// which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the `FractionalSumCircuit`
+/// which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the [`FractionalSumCircuit`]
 /// is built. Due to the uniformity of the circuit, each of the circuit layers collect all the:
 ///
-/// 1. `a`'s into a [MultiLinear] called `p_0`.
-/// 2. `b`'s into a [MultiLinear] called `p_1`.
-/// 3. `c`'s into a [MultiLinear] called `q_0`.
-/// 4. `d`'s into a [MultiLinear] called `q_1`.
+/// 1. `a`'s into a [`MultiLinearPoly`] called `p_0`.
+/// 2. `b`'s into a [`MultiLinearPoly`] called `p_1`.
+/// 3. `c`'s into a [`MultiLinearPoly`] called `q_0`.
+/// 4. `d`'s into a [`MultiLinearPoly`] called `q_1`.
 ///
 /// The relation between two subsequent layers is given by the formula
 ///
@@ -42,10 +42,10 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
 #[derive(Debug)]
 pub struct FractionalSumCircuit<E: FieldElement> {
-    p_0_vec: Vec<MultiLinear<E>>,
-    p_1_vec: Vec<MultiLinear<E>>,
-    q_0_vec: Vec<MultiLinear<E>>,
-    q_1_vec: Vec<MultiLinear<E>>,
+    p_0_vec: Vec<MultiLinearPoly<E>>,
+    p_1_vec: Vec<MultiLinearPoly<E>>,
+    q_0_vec: Vec<MultiLinearPoly<E>>,
+    q_1_vec: Vec<MultiLinearPoly<E>>,
 }
 
 impl<E: FieldElement> FractionalSumCircuit<E> {
@@ -66,19 +66,19 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
         }
 
         let num_layers = num_evaluations.ilog2() as usize;
-        let mut p_0_vec: Vec<MultiLinear<E>> = Vec::with_capacity(num_layers);
-        let mut p_1_vec: Vec<MultiLinear<E>> = Vec::with_capacity(num_layers);
-        let mut q_0_vec: Vec<MultiLinear<E>> = Vec::with_capacity(num_layers);
-        let mut q_1_vec: Vec<MultiLinear<E>> = Vec::with_capacity(num_layers);
+        let mut p_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
+        let mut p_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
+        let mut q_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
+        let mut q_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
 
-        let p_0 =
-            MultiLinear::from_values(&num_den[0]).map_err(|_| ProverError::FailedGenerateML)?;
-        let p_1 =
-            MultiLinear::from_values(&num_den[1]).map_err(|_| ProverError::FailedGenerateML)?;
-        let q_0 =
-            MultiLinear::from_values(&num_den[2]).map_err(|_| ProverError::FailedGenerateML)?;
-        let q_1 =
-            MultiLinear::from_values(&num_den[3]).map_err(|_| ProverError::FailedGenerateML)?;
+        let p_0 = MultiLinearPoly::from_evaluations(num_den[0].to_owned())
+            .map_err(|_| ProverError::FailedGenerateML)?;
+        let p_1 = MultiLinearPoly::from_evaluations(num_den[1].to_owned())
+            .map_err(|_| ProverError::FailedGenerateML)?;
+        let q_0 = MultiLinearPoly::from_evaluations(num_den[2].to_owned())
+            .map_err(|_| ProverError::FailedGenerateML)?;
+        let q_1 = MultiLinearPoly::from_evaluations(num_den[3].to_owned())
+            .map_err(|_| ProverError::FailedGenerateML)?;
         p_0_vec.push(p_0);
         p_1_vec.push(p_1);
         q_0_vec.push(q_0);
@@ -109,11 +109,14 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
     /// Computes the output values of the layer given a set of input values
     #[allow(clippy::type_complexity)]
     fn compute_layer(
-        inp_p_0: &MultiLinear<E>,
-        inp_p_1: &MultiLinear<E>,
-        inp_q_0: &MultiLinear<E>,
-        inp_q_1: &MultiLinear<E>,
-    ) -> Result<(MultiLinear<E>, MultiLinear<E>, MultiLinear<E>, MultiLinear<E>), ProverError> {
+        inp_p_0: &MultiLinearPoly<E>,
+        inp_p_1: &MultiLinearPoly<E>,
+        inp_q_0: &MultiLinearPoly<E>,
+        inp_q_1: &MultiLinearPoly<E>,
+    ) -> Result<
+        (MultiLinearPoly<E>, MultiLinearPoly<E>, MultiLinearPoly<E>, MultiLinearPoly<E>),
+        ProverError,
+    > {
         let len = inp_q_0.num_evaluations();
         let outp_p_0 = (0..len / 2)
             .map(|i| inp_p_0[i] * inp_q_1[i] + inp_p_1[i] * inp_q_0[i])
@@ -125,10 +128,14 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
         let outp_q_1 = (len / 2..len).map(|i| inp_q_0[i] * inp_q_1[i]).collect::<Vec<E>>();
 
         Ok((
-            MultiLinear::new(outp_p_0).map_err(|_| ProverError::FailedGenerateML)?,
-            MultiLinear::new(outp_p_1).map_err(|_| ProverError::FailedGenerateML)?,
-            MultiLinear::new(outp_q_0).map_err(|_| ProverError::FailedGenerateML)?,
-            MultiLinear::new(outp_q_1).map_err(|_| ProverError::FailedGenerateML)?,
+            MultiLinearPoly::from_evaluations(outp_p_0)
+                .map_err(|_| ProverError::FailedGenerateML)?,
+            MultiLinearPoly::from_evaluations(outp_p_1)
+                .map_err(|_| ProverError::FailedGenerateML)?,
+            MultiLinearPoly::from_evaluations(outp_q_0)
+                .map_err(|_| ProverError::FailedGenerateML)?,
+            MultiLinearPoly::from_evaluations(outp_q_1)
+                .map_err(|_| ProverError::FailedGenerateML)?,
         ))
     }
 
@@ -203,7 +210,7 @@ pub fn prove<
     H: ElementHasher<BaseField = Felt>,
 >(
     composition_polys: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
-    mls: &mut Vec<MultiLinear<E>>,
+    mls: &mut Vec<MultiLinearPoly<E>>,
     transcript: &mut C,
 ) -> GkrCircuitProof<E> {
     // evaluate the numerators and denominators over the boolean hyper-cube {0, 1}^{μ + ν}
@@ -244,7 +251,7 @@ fn prove_final_circuit_layer<
     H: ElementHasher<BaseField = Felt>,
 >(
     composition_polys: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
-    mls: &mut Vec<MultiLinear<E>>,
+    mls: &mut Vec<MultiLinearPoly<E>>,
     num_rounds_merge: usize,
     gkr_claim: GkrClaim<E>,
     circuit: &mut FractionalSumCircuit<E>,
@@ -379,7 +386,7 @@ fn sum_check_prover_plain_partial<
 >(
     claim: (E, E),
     num_rounds: usize,
-    ml_polys: &mut [MultiLinear<E>],
+    ml_polys: &mut [MultiLinearPoly<E>],
     transcript: &mut C,
 ) -> ((RoundClaim<E>, Vec<RoundProof<E>>), E) {
     // generate challenge to batch two sumchecks
@@ -405,7 +412,7 @@ fn sum_check_prover_plain_full<
     H: ElementHasher<BaseField = Felt>,
 >(
     claim: (E, E),
-    ml_polys: &mut [MultiLinear<E>],
+    ml_polys: &mut [MultiLinearPoly<E>],
     transcript: &mut C,
 ) -> (SumCheckProof<E>, E) {
     // generate challenge to batch two sumchecks
@@ -429,7 +436,7 @@ fn sum_check_prover_plain_full<
 /// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) =
 /// \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1}))
 fn evaluate_composition_polys<E: FieldElement<BaseField = Felt> + 'static>(
-    mls: &[MultiLinear<E>],
+    mls: &[MultiLinearPoly<E>],
     composition_polys: &[Vec<Arc<dyn CompositionPolynomial<E>>>],
 ) -> Vec<Vec<E>> {
     let num_evaluations = 1 << mls[0].num_variables();
