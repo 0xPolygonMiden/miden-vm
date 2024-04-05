@@ -1,9 +1,9 @@
-// use miden::{Digest, Word};
 use miden_vm::{Digest, Word};
 use processor::ExecutionError;
+use rand_chacha::rand_core::SeedableRng;
 
 use test_utils::crypto::rpo_falcon512::SecretKey;
-use test_utils::rand::rand_vector;
+use test_utils::rand::rand_array;
 use test_utils::serde::Serializable;
 use test_utils::{
     build_test,
@@ -355,9 +355,14 @@ fn advice_insert_hdword() {
 #[test]
 fn advice_push_sig_rpo_falcon_512() {
     // Generate random keys and message.
-    let secret_key = SecretKey::new();
+    let seed: [u8; 32] = rand_array();
+    let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
+
+    let secret_key = SecretKey::with_rng(&mut rng);
+
+    // let secret_key = SecretKey::new();
     let public_key = secret_key.public_key();
-    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+    let message: Word = rand_array();
 
     let public_key_word: Word = public_key.into();
     let public_key_digest: Digest = public_key_word.into();
@@ -389,9 +394,12 @@ fn advice_push_sig_rpo_falcon_512() {
 #[test]
 fn advice_push_sig_rpo_falcon_512_bad_key_value() {
     // Generate random keys and message.
-    let secret_key = SecretKey::new();
+    let seed: [u8; 32] = rand_array();
+    let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
+
+    let secret_key = SecretKey::with_rng(&mut rng);
     let public_key = secret_key.public_key();
-    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+    let message: Word = rand_array();
 
     let public_key_word: Word = public_key.into();
     let public_key_digest: Digest = public_key_word.into();
@@ -428,9 +436,12 @@ fn advice_push_sig_rpo_falcon_512_bad_key_value() {
 #[test]
 fn advice_push_sig_rpo_falcon_512_bad_key_length() {
     // Generate random keys and message.
-    let secret_key = SecretKey::new();
+    let seed: [u8; 32] = rand_array();
+    let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
+
+    let secret_key = SecretKey::with_rng(&mut rng);
     let public_key = secret_key.public_key();
-    let message: Word = rand_vector::<Felt>(4).try_into().unwrap();
+    let message: Word = rand_array();
 
     let public_key_word: Word = public_key.into();
     let public_key_digest: Digest = public_key_word.into();
@@ -457,6 +468,7 @@ fn advice_push_sig_rpo_falcon_512_bad_key_length() {
 
     let test =
         build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
+
     test.expect_error(TestError::ExecutionError(ExecutionError::MalformedSignatureKey(
         "RPO Falcon512",
     )));

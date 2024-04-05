@@ -26,8 +26,6 @@ std = []
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8", default-features = false }
-rand = { version = "0.8.5", default-features = false }
-num = "0.4.1"
 
 [dev-dependencies]
 blake3 = "1.5"
@@ -40,6 +38,8 @@ sha3 = "0.10"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 winter-air = { package = "winter-air", version = "0.8" }
 winter-fri = { package = "winter-fri", version = "0.8" }
+rand = { version = "0.8.5", default-features = false }
+num = "0.4.1"
 
 [build-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.8" }
