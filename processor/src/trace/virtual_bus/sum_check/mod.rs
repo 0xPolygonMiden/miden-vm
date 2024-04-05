@@ -44,7 +44,7 @@ impl<E: FieldElement> RoundProof<E> {
 /// multi-linears.
 #[derive(Debug, Clone)]
 pub struct Proof<E: FieldElement> {
-    pub openings: Option<FinalOpeningClaim<E>>,
+    pub openings_claim: FinalOpeningClaim<E>,
     pub round_proofs: Vec<RoundProof<E>>,
 }
 
@@ -96,11 +96,11 @@ mod test {
 
     use super::{
         domain::EvaluationDomain,
-        prover::SumCheckProver,
+        prover::{FinalClaimBuilder, SumCheckProver},
         verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},
     };
     use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
-    use alloc::vec::Vec;
+    use alloc::{borrow::ToOwned, vec::Vec};
     use test_utils::rand::{rand_array, rand_value, rand_vector};
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
 
@@ -136,9 +136,9 @@ mod test {
         let virtual_poly = ProjectionComposition::new(0);
 
         // Prover
-        let prover = SumCheckProver::new(virtual_poly);
+        let prover = SumCheckProver::new(virtual_poly, PlainClaimBuilder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let proof = prover.prove(claim, &mut mls, num_variables, &mut coin).unwrap();
+        let proof = prover.prove(claim, &mut mls, &mut coin).unwrap();
 
         // Verifier
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
@@ -162,9 +162,9 @@ mod test {
         let virtual_poly = ProductComposition;
 
         // Prover
-        let prover = SumCheckProver::new(virtual_poly);
+        let prover = SumCheckProver::new(virtual_poly, PlainClaimBuilder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let proof = prover.prove(claim, &mut mls, num_variables, &mut coin).unwrap();
+        let proof = prover.prove(claim, &mut mls, &mut coin).unwrap();
 
         // Verifier
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
@@ -192,9 +192,9 @@ mod test {
         let virtual_poly = ProductComposition;
 
         // Prover
-        let prover = SumCheckProver::new(virtual_poly);
+        let prover = SumCheckProver::new(virtual_poly, PlainClaimBuilder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let proof = prover.prove(claim, &mut mls, num_variables, &mut coin).unwrap();
+        let proof = prover.prove(claim, &mut mls, &mut coin).unwrap();
 
         // Verifier
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
@@ -203,6 +203,23 @@ mod test {
         let result = verifier.verify(claim, proof, &mut coin);
 
         assert!(result.is_err())
+    }
+
+    struct PlainClaimBuilder;
+
+    impl FinalClaimBuilder for PlainClaimBuilder {
+        type Field = Felt;
+
+        fn build_claim(
+            &self,
+            openings: Vec<Self::Field>,
+            evaluation_point: &[Self::Field],
+        ) -> super::FinalOpeningClaim<Self::Field> {
+            super::FinalOpeningClaim {
+                evaluation_point: evaluation_point.to_owned(),
+                openings,
+            }
+        }
     }
 
     #[derive(Default)]

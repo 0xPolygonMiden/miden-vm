@@ -3,6 +3,7 @@ use super::{
     domain::EvaluationDomain, reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof,
 };
 use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
@@ -64,34 +65,38 @@ mod error;
 /// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the current
 /// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i - 1}).
 /// This also means that the Verifier can skip point 4.b.
-pub struct SumCheckProver<E, P, C, H>
+pub struct SumCheckProver<E, P, C, H, V>
 where
     E: FieldElement,
     C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     H: ElementHasher<BaseField = E::BaseField>,
+    V: FinalClaimBuilder<Field = E>,
 {
     composition_poly: P,
     eval_domain: EvaluationDomain<E>,
+    final_claim_builder: V,
     _challenger: PhantomData<C>,
 }
 
-impl<E, P, C, H> SumCheckProver<E, P, C, H>
+impl<E, P, C, H, V> SumCheckProver<E, P, C, H, V>
 where
     E: FieldElement,
     P: CompositionPolynomial<E>,
     C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     H: ElementHasher<BaseField = E::BaseField>,
+    V: FinalClaimBuilder<Field = E>,
 {
     /// Constructs a new [SumCheckProver] given a multivariate composition polynomial.
     /// The multivariate composition polynomial corresponds to the `g` polynomial in the
     /// description of the [SumCheckProver] struct.
-    pub fn new(composition_poly: P) -> Self {
+    pub fn new(composition_poly: P, final_claim_builder: V) -> Self {
         let max_degree = composition_poly.max_degree();
         let eval_domain = EvaluationDomain::new(max_degree);
 
         Self {
             composition_poly,
             eval_domain,
+            final_claim_builder,
             _challenger: PhantomData,
         }
     }
@@ -109,9 +114,34 @@ where
         &self,
         claim: E,
         mls: &mut [MultiLinearPoly<E>],
-        num_rounds: usize,
         coin: &mut C,
     ) -> Result<Proof<E>, Error> {
+        let num_rounds = mls[0].num_variables();
+        let (
+            RoundClaim {
+                eval_point,
+                claim: _claim,
+            },
+            round_proofs,
+        ) = self.prove_rounds(claim, mls, num_rounds, coin)?;
+
+        let openings = mls.iter_mut().map(|ml| ml.evaluations()[0]).collect();
+        let openings_claim = self.final_claim_builder.build_claim(openings, &eval_point);
+
+        Ok(Proof {
+            openings_claim,
+            round_proofs,
+        })
+    }
+
+    /// Proves a round of the sum-check protocol.
+    pub fn prove_rounds(
+        &self,
+        claim: E,
+        mls: &mut [MultiLinearPoly<E>],
+        num_rounds: usize,
+        coin: &mut C,
+    ) -> Result<(RoundClaim<E>, Vec<RoundProof<E>>), Error> {
         // there should be at least one multi-linear polynomial provided
         if mls.is_empty() {
             return Err(Error::NoMlsProvided);
@@ -129,7 +159,7 @@ where
         }
 
         // there should at least be one variable for the protocol to be non-trivial
-        if ml_variables < 2 {
+        if ml_variables < 1 {
             return Err(Error::AtLeastOneVariable);
         }
 
@@ -184,24 +214,13 @@ where
         // fold each multi-linear using the last random challenge
         mls.iter_mut().for_each(|ml| ml.bind(round_challenge));
 
-        let openings = {
-            if mls[0].num_evaluations() != 1 {
-                None
-            } else {
-                let openings = mls.iter_mut().map(|ml| ml.evaluations()[0]).collect();
-                let mut evaluation_point = current_round_claim.eval_point;
-                evaluation_point.push(round_challenge);
-                Some(FinalOpeningClaim {
-                    evaluation_point,
-                    openings,
-                })
-            }
-        };
-
-        Ok(Proof {
-            openings,
-            round_proofs,
-        })
+        let round_claim = reduce_claim(
+            &self.eval_domain,
+            &round_proofs[num_rounds - 1],
+            current_round_claim,
+            round_challenge,
+        );
+        Ok((round_claim, round_proofs))
     }
 }
 
@@ -286,4 +305,14 @@ fn sumcheck_round<E: FieldElement>(
     RoundProof {
         partial_poly_evals: evaluations,
     }
+}
+
+pub trait FinalClaimBuilder {
+    type Field: FieldElement;
+
+    fn build_claim(
+        &self,
+        openings: alloc::vec::Vec<Self::Field>,
+        evaluation_point: &[Self::Field],
+    ) -> FinalOpeningClaim<Self::Field>;
 }
