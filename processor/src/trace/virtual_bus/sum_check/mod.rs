@@ -11,12 +11,12 @@ pub use verifier::SumCheckVerifier;
 
 /// A sum-check round proof.
 ///
-/// This represents the polynomial sent by the Prover during one of the rounds of the sum-check
-/// protocol. The polynomial is in evaluation form and excludes the zero-th coefficient as
-/// the Verifier can recover it from the first coefficient and the current reduced claim.
+/// This represents the partial polynomial sent by the Prover during one of the rounds of the
+/// sum-check protocol. The polynomial is in evaluation form and excludes the zero-th coefficient
+/// as the Verifier can recover it from the first coefficient and the current reduced claim.
 #[derive(Debug, Clone)]
 pub struct RoundProof<E> {
-    pub poly_evals: Vec<E>,
+    pub partial_poly_evals: Vec<E>,
 }
 
 impl<E: FieldElement> RoundProof<E> {
@@ -26,10 +26,10 @@ impl<E: FieldElement> RoundProof<E> {
         let mut result = vec![];
 
         // s(0) + s(1) = claim
-        let c0 = claim - self.poly_evals[0];
+        let c0 = claim - self.partial_poly_evals[0];
 
         result.push(c0);
-        result.extend_from_slice(&self.poly_evals);
+        result.extend_from_slice(&self.partial_poly_evals);
         result
     }
 }
@@ -88,16 +88,16 @@ pub fn reduce_claim<E: FieldElement>(
 pub struct FinalOpeningClaim<E: FieldElement> {
     pub evaluation_point: Vec<E>,
     pub openings: Vec<E>,
-    // TODO: add a Vec<Oracles> to give more information on which main trace columns we would like
-    // to open.
 }
 
 #[cfg(test)]
 mod test {
+    use core::marker::PhantomData;
+
     use super::{
         domain::EvaluationDomain,
         prover::SumCheckProver,
-        verifier::{FinalQueryBuilder, SumCheckVerifier},
+        verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},
     };
     use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
     use alloc::vec::Vec;
@@ -141,7 +141,7 @@ mod test {
         let proof = prover.prove(claim, &mut mls, num_variables, &mut coin).unwrap();
 
         // Verifier
-        let plain_query_builder = PlainQueryBuilder;
+        let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
         let result = verifier.verify(claim, proof, &mut coin);
@@ -167,7 +167,7 @@ mod test {
         let proof = prover.prove(claim, &mut mls, num_variables, &mut coin).unwrap();
 
         // Verifier
-        let plain_query_builder = PlainQueryBuilder;
+        let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
         let result = verifier.verify(claim, proof, &mut coin);
@@ -197,7 +197,7 @@ mod test {
         let proof = prover.prove(claim, &mut mls, num_variables, &mut coin).unwrap();
 
         // Verifier
-        let plain_query_builder = PlainQueryBuilder;
+        let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
         let result = verifier.verify(claim, proof, &mut coin);
@@ -205,16 +205,15 @@ mod test {
         assert!(result.is_err())
     }
 
-    struct PlainQueryBuilder;
+    #[derive(Default)]
+    struct ProjectionPolyQueryBuilder<E>(PhantomData<E>);
 
-    impl FinalQueryBuilder for PlainQueryBuilder {
-        type Field = Felt;
-
+    impl<E: FieldElement> CompositionPolyQueryBuilder<E> for ProjectionPolyQueryBuilder<E> {
         fn build_query(
             &self,
-            openings_claim: &super::FinalOpeningClaim<Felt>,
-            _evaluation_point: &[Self::Field],
-        ) -> Vec<Self::Field> {
+            openings_claim: &super::FinalOpeningClaim<E>,
+            _evaluation_point: &[E],
+        ) -> Vec<E> {
             openings_claim.openings.to_vec()
         }
     }

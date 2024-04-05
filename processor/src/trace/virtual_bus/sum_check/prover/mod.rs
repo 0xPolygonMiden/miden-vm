@@ -4,7 +4,7 @@ use super::{
 };
 use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
 use core::marker::PhantomData;
-use vm_core::{FieldElement, StarkField};
+use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
 mod error;
@@ -64,25 +64,23 @@ mod error;
 /// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the current
 /// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i - 1}).
 /// This also means that the Verifier can skip point 4.b.
-pub struct SumCheckProver<B, E, P, C, H>
+pub struct SumCheckProver<E, P, C, H>
 where
-    B: StarkField,
-    E: FieldElement<BaseField = B>,
-    C: RandomCoin<Hasher = H, BaseField = B>,
-    H: ElementHasher<BaseField = B>,
+    E: FieldElement,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
+    H: ElementHasher<BaseField = E::BaseField>,
 {
     composition_poly: P,
     eval_domain: EvaluationDomain<E>,
     _challenger: PhantomData<C>,
 }
 
-impl<B, E, P, C, H> SumCheckProver<B, E, P, C, H>
+impl<E, P, C, H> SumCheckProver<E, P, C, H>
 where
-    B: StarkField,
-    E: FieldElement<BaseField = B>,
+    E: FieldElement,
     P: CompositionPolynomial<E>,
-    C: RandomCoin<Hasher = H, BaseField = B>,
-    H: ElementHasher<BaseField = B>,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
+    H: ElementHasher<BaseField = E::BaseField>,
 {
     /// Constructs a new [SumCheckProver] given a multivariate composition polynomial.
     /// The multivariate composition polynomial corresponds to the `g` polynomial in the
@@ -113,7 +111,6 @@ where
         mls: &mut [MultiLinearPoly<E>],
         num_rounds: usize,
         coin: &mut C,
-        //) -> Result<(RoundClaim<E>, Proof<E>), Error> {
     ) -> Result<Proof<E>, Error> {
         // there should be at least one multi-linear polynomial provided
         if mls.is_empty() {
@@ -151,9 +148,9 @@ where
 
         // run the first round of the protocol
         let mut round_proof = sumcheck_round(&self.composition_poly, mls);
-        round_proofs.push(round_proof);
         // reseed with the s_0 polynomial
-        coin.reseed(H::hash_elements(&round_proofs[0].poly_evals));
+        coin.reseed(H::hash_elements(&round_proof.partial_poly_evals));
+        round_proofs.push(round_proof);
 
         for i in 1..num_rounds {
             // generate random challenge r_i for the i-th round
@@ -168,24 +165,24 @@ where
             );
 
             // fold each multi-linear using the round challenge
-            mls.iter_mut().for_each(|ml| ml.bind_assign(round_challenge));
+            mls.iter_mut().for_each(|ml| ml.bind(round_challenge));
 
             // run the i-th round of the protocol using the folded multi-linears for the new reduced
             // claim. This basically computes the s_i polynomial.
             round_proof = sumcheck_round(&self.composition_poly, mls);
-            round_proofs.push(round_proof);
 
             // update the claim
             current_round_claim = new_round_claim;
 
             // reseed with the s_i polynomial
-            coin.reseed(H::hash_elements(&round_proofs[i].poly_evals));
+            coin.reseed(H::hash_elements(&round_proof.partial_poly_evals));
+            round_proofs.push(round_proof);
         }
 
         // generate the last random challenge
         let round_challenge = coin.draw().map_err(|_| Error::FailedToGenerateChallenge)?;
         // fold each multi-linear using the last random challenge
-        mls.iter_mut().for_each(|ml| ml.bind_assign(round_challenge));
+        mls.iter_mut().for_each(|ml| ml.bind(round_challenge));
 
         let openings = {
             if mls[0].num_evaluations() != 1 {
@@ -240,7 +237,7 @@ where
 /// added to each multi-linear to compute the evaluation at the next point, and `evals_x` to hold
 /// the current evaluation at `x` in {2, ... , d_max}.
 fn sumcheck_round<E: FieldElement>(
-    polynomial: &dyn CompositionPolynomial<E>,
+    composition_poly: &dyn CompositionPolynomial<E>,
     mls: &mut [MultiLinearPoly<E>],
 ) -> RoundProof<E> {
     let num_ml = mls.len();
@@ -258,8 +255,8 @@ fn sumcheck_round<E: FieldElement>(
             evals_one[j] = ml.evaluations()[(i << 1) + 1];
         }
 
-        let mut total_evals = vec![E::ZERO; polynomial.max_degree() as usize];
-        total_evals[0] = polynomial.evaluate(&evals_one);
+        let mut total_evals = vec![E::ZERO; composition_poly.max_degree() as usize];
+        total_evals[0] = composition_poly.evaluate(&evals_one);
 
         evals_zero
             .iter()
@@ -273,17 +270,20 @@ fn sumcheck_round<E: FieldElement>(
             evals_x.iter_mut().zip(deltas.iter()).for_each(|(evx, delta)| {
                 *evx += *delta;
             });
-            *e = polynomial.evaluate(&evals_x);
+            *e = composition_poly.evaluate(&evals_x);
         });
         total_evals
     });
 
-    let evaluations = total_evals.fold(vec![E::ZERO; polynomial.max_degree() as usize], |mut acc, evals| {
-        acc.iter_mut().zip(evals.iter()).for_each(|(a, ev)| *a += *ev);
-        acc
-    });
+    let evaluations = total_evals.fold(
+        vec![E::ZERO; composition_poly.max_degree() as usize],
+        |mut acc, evals| {
+            acc.iter_mut().zip(evals.iter()).for_each(|(a, ev)| *a += *ev);
+            acc
+        },
+    );
 
     RoundProof {
-        poly_evals: evaluations,
+        partial_poly_evals: evaluations,
     }
 }
