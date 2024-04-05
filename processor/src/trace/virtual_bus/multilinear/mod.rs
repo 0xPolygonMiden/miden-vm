@@ -7,7 +7,10 @@ mod lagrange_ker;
 pub use lagrange_ker::EqFunction;
 
 mod error;
-use self::error::Error;
+use self::{
+    error::Error,
+    lagrange_ker::{compute_lagrange_basis_evals_at, inner_product},
+};
 
 // MULTI-LINEAR POLYNOMIAL
 // ================================================================================================
@@ -23,7 +26,7 @@ pub struct MultiLinearPoly<E: FieldElement> {
 }
 
 impl<E: FieldElement> MultiLinearPoly<E> {
-    /// Constructs a [MultiLinearPoly] from its evaluations over the boolean hyper-cube {0 , 1}^ν.
+    /// Constructs a [`MultiLinearPoly`] from its evaluations over the boolean hyper-cube {0 , 1}^ν.
     pub fn from_evaluations(evaluations: Vec<E>) -> Result<Self, Error> {
         if !evaluations.len().is_power_of_two() {
             return Err(Error::EvaluationsNotPowerOfTwo);
@@ -56,7 +59,7 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     /// The evaluation then is the inner product, indexed by {0 , 1}^ν, of the vector of
     /// evaluations times the Lagrange kernel.
     pub fn evaluate(&self, query: &[E]) -> E {
-        let tensored_query = tensorize(query);
+        let tensored_query = compute_lagrange_basis_evals_at(query);
         inner_product(&self.evaluations, &tensored_query)
     }
 
@@ -102,37 +105,4 @@ pub trait CompositionPolynomial<E: FieldElement> {
 
     /// Given a query, of length equal the number of variables, evaluates [Self] at this query.
     fn evaluate(&self, query: &[E]) -> E;
-}
-
-// HELPER
-// ================================================================================================
-
-/// Computes the inner product of two vectors of the same length.
-///
-/// Panics if the vectors have different lengths.
-fn inner_product<E: FieldElement>(evaluations: &[E], tensored_query: &[E]) -> E {
-    assert_eq!(evaluations.len(), tensored_query.len());
-    evaluations
-        .iter()
-        .zip(tensored_query.iter())
-        .fold(E::ZERO, |acc, (x_i, y_i)| acc + *x_i * *y_i)
-}
-
-/// Computes the evaluations of the Lagrange basis polynomials over the interpolating
-/// set {0 , 1}^ν at (r_0, ..., r_{ν - 1}) i.e., the Lagrange kernel at (r_0, ..., r_{ν - 1}).
-pub fn tensorize<E: FieldElement>(query: &[E]) -> Vec<E> {
-    let nu = query.len();
-    let n = 1 << nu;
-
-    let mut evals: Vec<E> = vec![E::ONE; n];
-    let mut size = 1;
-    for r_i in query.iter().rev() {
-        size *= 2;
-        for i in (0..size).rev().step_by(2) {
-            let scalar = evals[i / 2];
-            evals[i] = scalar * *r_i;
-            evals[i - 1] = scalar - evals[i];
-        }
-    }
-    evals
 }
