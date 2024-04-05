@@ -3,7 +3,7 @@ use super::{domain::EvaluationDomain, FinalOpeningClaim, Proof};
 use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use vm_core::{FieldElement, StarkField};
+use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
 mod error;
@@ -19,14 +19,13 @@ mod error;
 /// of the protocol (i.e., commitments) for their evaluations the random point
 /// `(r_0, ... , r_{\nu - 1})` where $\nu$ is the number of rounds of the sum-check protocol and
 /// `r_i` is the randomness sent by the Verifier at each round.
-pub struct SumCheckVerifier<B, E, P, C, H, V>
+pub struct SumCheckVerifier<E, P, C, H, V>
 where
-    B: StarkField,
-    E: FieldElement<BaseField = B>,
-    C: RandomCoin<Hasher = H, BaseField = B>,
+    E: FieldElement,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     P: CompositionPolynomial<E>,
-    H: ElementHasher<BaseField = B>,
-    V: FinalQueryBuilder<Field = E>,
+    H: ElementHasher<BaseField = E::BaseField>,
+    V: CompositionPolyQueryBuilder<E>,
 {
     composition_poly: P,
     eval_domain: EvaluationDomain<E>,
@@ -34,14 +33,13 @@ where
     _challenger: PhantomData<C>,
 }
 
-impl<B, E, P, C, H, V> SumCheckVerifier<B, E, P, C, H, V>
+impl<E, P, C, H, V> SumCheckVerifier<E, P, C, H, V>
 where
-    B: StarkField,
-    E: FieldElement<BaseField = B>,
-    C: RandomCoin<Hasher = H, BaseField = B>,
+    E: FieldElement,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     P: CompositionPolynomial<E>,
-    H: ElementHasher<BaseField = B>,
-    V: FinalQueryBuilder<Field = E>,
+    H: ElementHasher<BaseField = E::BaseField>,
+    V: CompositionPolyQueryBuilder<E>,
 {
     /// Create a new [SumCheckVerifier] from a composition polynomial and final query builder.
     pub fn new(composition_poly: P, final_query_builder: V) -> Self {
@@ -95,14 +93,13 @@ where
         let mut round_claim = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
-            let partial_evals = round_proof.poly_evals.clone();
+            let partial_evals = round_proof.partial_poly_evals.clone();
             coin.reseed(H::hash_elements(&partial_evals));
             let evals = round_proof.to_evals(round_claim);
 
             let r = coin.draw().map_err(|_| Error::FailedToGenerateChallenge)?;
-            let reduced_evaluation = self.eval_domain.evaluate(&evals, r);
 
-            round_claim = reduced_evaluation;
+            round_claim = self.eval_domain.evaluate(&evals, r);
             evaluation_point.push(r);
         }
 
@@ -124,9 +121,9 @@ where
 
 /// Contains the logic for building the final query made to the virtual polynomial.
 ///
-/// During the last step of the sum-check protocol, the Verifier must evaluate the virtual
-/// polynomial at a random point `(r_0, ... ,r_{\nu - 1})`. To do this, the Verifier asks
-/// the Prover for the openings of the mult-linear oracles at `(r_0, ... ,r_{\nu - 1})` i.e.,
+/// During the last step of the sum-check protocol, the Verifier must evaluate the composed
+/// multilinear polynomials at a random point `(r_0, ... ,r_{\nu - 1})`. To do this, the Verifier
+/// asks the Prover for the openings of the mult-linear oracles at `(r_0, ... ,r_{\nu - 1})` i.e.,
 /// `v_i = f_i(r_0, ... ,r_{\nu - 1})`. The Verifier then evaluates `g(v_0, ... , v_{\nu - 1})` and
 /// compares it to the reduced claim resulting from the round proofs and challenges.
 /// At this point, for the Verifier to accept the proof, it needs to check that indeed
@@ -135,18 +132,10 @@ where
 /// would be answered with an opening proof against the commitment) or through further interaction
 /// (as in the case of the GKR protocol).
 ///
-/// The purpose of [`FinalQueryBuilder`] is to abstract the logic for evaluating multi-linears which
-/// the Verifier can do by herself. For example, this is the case for periodic columns where given
-/// `(r_0, ... ,r_{\nu - 1})` the Verifier can evaluate `f_i(r_0, ... ,r_{\nu - 1})` unassisted.
-///
-/// In the case where there are no `f_i(r_0, ... ,r_{\nu - 1})` which can be computed by the
-/// Verifier alone, the output of [`Self::build_query`] will be just the provided openings.
-pub trait FinalQueryBuilder {
-    type Field: FieldElement;
-
-    fn build_query(
-        &self,
-        openings_claim: &FinalOpeningClaim<Self::Field>,
-        evaluation_point: &[Self::Field],
-    ) -> Vec<Self::Field>;
+/// The purpose of [`CompositionPolyQueryBuilder`] is to abstract the logic for evaluating the
+/// multi-linear polynomials that the Verifier can do by herself. For example, this is the case
+/// for periodic columns where given `(r_0, ... ,r_{\nu - 1})` the Verifier can evaluate
+/// it at `(r_0, ... ,r_{\nu - 1})` unassisted.
+pub trait CompositionPolyQueryBuilder<E: FieldElement> {
+    fn build_query(&self, openings_claim: &FinalOpeningClaim<E>, evaluation_point: &[E]) -> Vec<E>;
 }
