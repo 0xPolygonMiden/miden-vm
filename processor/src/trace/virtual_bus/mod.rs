@@ -43,6 +43,8 @@ mod verifier;
 pub use verifier::VirtualBusVerifier;
 mod error;
 mod sub_bus;
+
+#[cfg(test)]
 mod tests;
 
 /// Generates the composition polynomials describing the virtual bus.

@@ -13,7 +13,7 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
-use super::sum_check::Proof as SumCheckProof;
+use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
@@ -21,6 +21,12 @@ pub struct GkrCircuitProof<E: FieldElement + 'static> {
     circuit_outputs: [E; 4],
     before_final_layer_proofs: BeforeFinalLayerProof<E>,
     final_layer_proof: FinalLayerProof<E>,
+}
+
+impl<E: FieldElement + 'static> GkrCircuitProof<E> {
+    pub fn get_final_opening_claim(&self) -> FinalOpeningClaim<E> {
+        self.final_layer_proof.after_merge_proof.openings_claim.clone()
+    }
 }
 
 /// A set of sum-check proofs for all GKR layers but for the input circuit layer.
