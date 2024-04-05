@@ -86,7 +86,7 @@ where
     }
 
     /// Proves the GKR-LogUp relation.
-    pub fn prove(&self, trace: MainTrace, transcript: &mut C) -> GkrCircuitProof<E> {
+    pub fn prove(&self, trace: &MainTrace, transcript: &mut C) -> GkrCircuitProof<E> {
         // TODO: Optimize this so that we can work with base field element directly and thus save
         // on memory usage.
         let trace_len = trace.num_rows();
