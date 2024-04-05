@@ -16,9 +16,9 @@ impl<E> EvaluationDomain<E>
 where
     E: FieldElement,
 {
-    pub fn new(max_degree: usize) -> Self {
-        let interpolation_points: Vec<E> = (0..=max_degree).map(|x| E::from(x as u32)).collect();
-        let barycentric_weights = barycentric_weights(&interpolation_points);
+    pub fn new(max_degree: u32) -> Self {
+        let interpolation_points: Vec<E> = (0..=max_degree).map(E::from).collect();
+        let barycentric_weights = barycentric_weights_denominators(&interpolation_points);
 
         Self {
             interpolation_points,
@@ -32,7 +32,7 @@ where
 }
 
 /// Computes the barycentric weights for a set of interpolation points.
-pub fn barycentric_weights<E: FieldElement>(points: &[E]) -> Vec<E> {
+pub fn barycentric_weights_denominators<E: FieldElement>(points: &[E]) -> Vec<E> {
     let n = points.len();
     let tmp = (0..n)
         .map(|i| (0..n).filter(|&j| j != i).fold(E::ONE, |acc, j| acc * (points[i] - points[j])))

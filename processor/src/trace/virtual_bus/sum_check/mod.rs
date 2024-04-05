@@ -41,7 +41,7 @@ impl<E: FieldElement> RoundProof<E> {
 /// challenges.
 /// Openings is an [Option] as there are situations where we would like to run the sum-check
 /// protocol for a certain number of rounds that is less than the number of variables of the
-/// multi-linears. This is the case for example when we have a merged polynomial.
+/// multi-linears.
 #[derive(Debug, Clone)]
 pub struct Proof<E: FieldElement> {
     pub openings: Option<FinalOpeningClaim<E>>,
@@ -99,7 +99,7 @@ mod test {
         prover::SumCheckProver,
         verifier::{FinalQueryBuilder, SumCheckVerifier},
     };
-    use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinear};
+    use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
     use alloc::vec::Vec;
     use test_utils::rand::{rand_array, rand_value, rand_vector};
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
@@ -131,7 +131,7 @@ mod test {
         let values = rand_vector(1 << num_variables);
         let claim = values.iter().fold(ZERO, |acc, &x| x + acc);
 
-        let ml = MultiLinear::new(values.to_vec()).expect("should not fail");
+        let ml = MultiLinearPoly::from_evaluations(values.to_vec()).expect("should not fail");
         let mut mls = vec![ml];
         let virtual_poly = ProjectionComposition::new(0);
 
@@ -156,8 +156,8 @@ mod test {
         let values_1 = rand_vector(1 << num_variables);
         let claim = values_0.iter().zip(values_1.iter()).fold(ZERO, |acc, (x, y)| *x * *y + acc);
 
-        let ml_0 = MultiLinear::new(values_0.to_vec()).expect("should not fail");
-        let ml_1 = MultiLinear::new(values_1.to_vec()).expect("should not fail");
+        let ml_0 = MultiLinearPoly::from_evaluations(values_0.to_vec()).expect("should not fail");
+        let ml_1 = MultiLinearPoly::from_evaluations(values_1.to_vec()).expect("should not fail");
         let mut mls = vec![ml_0, ml_1];
         let virtual_poly = ProductComposition;
 
@@ -186,8 +186,8 @@ mod test {
         // modifying the claim should make the Verifier reject the proof
         claim += ONE;
 
-        let ml_0 = MultiLinear::new(values_0.to_vec()).expect("should not fail");
-        let ml_1 = MultiLinear::new(values_1.to_vec()).expect("should not fail");
+        let ml_0 = MultiLinearPoly::from_evaluations(values_0.to_vec()).expect("should not fail");
+        let ml_1 = MultiLinearPoly::from_evaluations(values_1.to_vec()).expect("should not fail");
         let mut mls = vec![ml_0, ml_1];
         let virtual_poly = ProductComposition;
 
@@ -234,11 +234,11 @@ mod test {
     where
         E: FieldElement,
     {
-        fn num_variables(&self) -> usize {
+        fn num_variables(&self) -> u32 {
             1
         }
 
-        fn max_degree(&self) -> usize {
+        fn max_degree(&self) -> u32 {
             1
         }
 
@@ -254,11 +254,11 @@ mod test {
     where
         E: FieldElement,
     {
-        fn num_variables(&self) -> usize {
+        fn num_variables(&self) -> u32 {
             2
         }
 
-        fn max_degree(&self) -> usize {
+        fn max_degree(&self) -> u32 {
             2
         }
 
