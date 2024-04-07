@@ -72,13 +72,13 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
         let mut q_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
 
         let p_0 = MultiLinearPoly::from_evaluations(num_den[0].to_owned())
-            .map_err(|_| ProverError::FailedGenerateML)?;
+            .map_err(|_| ProverError::FailedToGenerateML)?;
         let p_1 = MultiLinearPoly::from_evaluations(num_den[1].to_owned())
-            .map_err(|_| ProverError::FailedGenerateML)?;
+            .map_err(|_| ProverError::FailedToGenerateML)?;
         let q_0 = MultiLinearPoly::from_evaluations(num_den[2].to_owned())
-            .map_err(|_| ProverError::FailedGenerateML)?;
+            .map_err(|_| ProverError::FailedToGenerateML)?;
         let q_1 = MultiLinearPoly::from_evaluations(num_den[3].to_owned())
-            .map_err(|_| ProverError::FailedGenerateML)?;
+            .map_err(|_| ProverError::FailedToGenerateML)?;
         p_0_vec.push(p_0);
         p_1_vec.push(p_1);
         q_0_vec.push(q_0);
@@ -129,13 +129,13 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
 
         Ok((
             MultiLinearPoly::from_evaluations(outp_p_0)
-                .map_err(|_| ProverError::FailedGenerateML)?,
+                .map_err(|_| ProverError::FailedToGenerateML)?,
             MultiLinearPoly::from_evaluations(outp_p_1)
-                .map_err(|_| ProverError::FailedGenerateML)?,
+                .map_err(|_| ProverError::FailedToGenerateML)?,
             MultiLinearPoly::from_evaluations(outp_q_0)
-                .map_err(|_| ProverError::FailedGenerateML)?,
+                .map_err(|_| ProverError::FailedToGenerateML)?,
             MultiLinearPoly::from_evaluations(outp_q_1)
-                .map_err(|_| ProverError::FailedGenerateML)?,
+                .map_err(|_| ProverError::FailedToGenerateML)?,
         ))
     }
 
@@ -148,12 +148,12 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
         assert_eq!(self.q_0_vec[len - 1].num_variables(), 0);
         assert_eq!(self.q_1_vec[len - 1].num_variables(), 0);
 
-        let mut p_ = self.p_0_vec[len - 1].clone();
-        p_.extend(&self.p_1_vec[len - 1]);
-        let mut q_ = self.q_0_vec[len - 1].clone();
-        q_.extend(&self.q_1_vec[len - 1]);
+        let mut p = self.p_0_vec[len - 1].clone();
+        p.extend(&self.p_1_vec[len - 1]);
+        let mut q = self.q_0_vec[len - 1].clone();
+        q.extend(&self.q_1_vec[len - 1]);
 
-        (p_.evaluate(&[r]), q_.evaluate(&[r]))
+        (p.evaluate(&[r]), q.evaluate(&[r]))
     }
 
     /// Outputs the value of the circuit output layer.
@@ -187,14 +187,14 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
 ///
 /// The composition polynomials `g` are provided as inputs and then used in order to compute
 /// the evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting
-/// evaluations are then used in order to evaluate [FractionalSumCircuit].
+/// evaluations are then used in order to evaluate [`FractionalSumCircuit`].
 /// At this point, the GKR protocol is used to prove the correctness of circuit evaluation. It
 /// should be noted that the input layer, which corresponds to the last layer treated by the GKR
 /// protocol, is handled differently from the other layers.
 /// More specifically, the sum-check protocol used for the input layer is composed of two sum-check
 /// protocols, the first one works directly with the evaluations of the `m`'s over {0, 1}^{μ + ν}
 /// and runs for μ rounds.
-/// After these μ rounds, and using the resulting [RoundClaim], we run the second and final
+/// After these μ rounds, and using the resulting [`RoundClaim`], we run the second and final
 /// sum-check protocol for ν rounds on the composed multi-linear polynomial given by
 ///
 /// \sum_{y ∈ {0,1}^μ} EQ(ρ', y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1}))
@@ -202,7 +202,7 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
 /// where ρ' is the randomness sampled during the first sum-check protocol.
 ///
 /// As part of the final sum-check protocol, the openings {f_j(ρ)} are provided as part of
-/// a [FinalOpeningClaim]. This latter claim will be proven by the STARK prover later on using
+/// a [`FinalOpeningClaim`]. This latter claim will be proven by the STARK prover later on using
 /// the auxiliary trace.
 pub fn prove<
     E: FieldElement<BaseField = Felt> + 'static,
@@ -212,16 +212,16 @@ pub fn prove<
     composition_polys: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
     mls: &mut Vec<MultiLinearPoly<E>>,
     transcript: &mut C,
-) -> GkrCircuitProof<E> {
+) -> Result<GkrCircuitProof<E>, ProverError> {
     // evaluate the numerators and denominators over the boolean hyper-cube {0, 1}^{μ + ν}
     let input: Vec<Vec<E>> = evaluate_composition_polys(mls, &composition_polys);
 
     // evaluate the GKR fractional sum circuit
-    let mut circuit = FractionalSumCircuit::new(input).unwrap();
+    let mut circuit = FractionalSumCircuit::new(input)?;
 
     // run the GKR prover for all layers except the input layer
     let (before_final_layer_proofs, gkr_claim) =
-        prove_before_final_circuit_layers(&mut circuit, transcript);
+        prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
     let num_rounds_before_merge = composition_polys[0].len().ilog2() as usize;
@@ -232,16 +232,16 @@ pub fn prove<
         gkr_claim,
         &mut circuit,
         transcript,
-    );
+    )?;
 
     // include the circuit output as part of the final proof
     let circuit_outputs = circuit.output_layer();
 
-    GkrCircuitProof {
+    Ok(GkrCircuitProof {
         circuit_outputs,
         before_final_layer_proofs,
         final_layer_proof,
-    }
+    })
 }
 
 /// Proves the final GKR layer which corresponds to the input circuit layer.
@@ -256,7 +256,7 @@ fn prove_final_circuit_layer<
     gkr_claim: GkrClaim<E>,
     circuit: &mut FractionalSumCircuit<E>,
     transcript: &mut C,
-) -> FinalLayerProof<E> {
+) -> Result<FinalLayerProof<E>, ProverError> {
     // parse the [GkrClaim] resulting from the previous GKR layer
     let GkrClaim {
         evaluation_point,
@@ -279,7 +279,7 @@ fn prove_final_circuit_layer<
         num_rounds_merge,
         &mut merged_mls,
         transcript,
-    );
+    )?;
 
     // parse the output of the first sum-check protocol
     let RoundClaim {
@@ -297,12 +297,14 @@ fn prove_final_circuit_layer<
 
     // run the second sum-check protocol
     let main_prover = SumCheckProver::new(gkr_composition, SimpleGkrFinalClaimBuilder(PhantomData));
-    let after_merge_proof = main_prover.prove(claim, mls, transcript).unwrap();
+    let after_merge_proof = main_prover
+        .prove(claim, mls, transcript)
+        .map_err(|_| ProverError::FailedToProveSumCheck)?;
 
-    FinalLayerProof {
+    Ok(FinalLayerProof {
         before_merge_proof,
         after_merge_proof,
-    }
+    })
 }
 
 /// Proves all GKR layers except for input layer.
@@ -313,7 +315,7 @@ fn prove_before_final_circuit_layers<
 >(
     circuit: &mut FractionalSumCircuit<E>,
     transcript: &mut C,
-) -> (BeforeFinalLayerProof<E>, GkrClaim<E>) {
+) -> Result<(BeforeFinalLayerProof<E>, GkrClaim<E>), ProverError> {
     // absorb the circuit output layer. This corresponds to sending the four values of the output
     // layer to the verifier. The verifier then replies with a challenge `r` in order to evaluate
     // `p` and `q` at `r` as multi-linears.
@@ -328,7 +330,7 @@ fn prove_before_final_circuit_layers<
     transcript.reseed(H::hash_elements(&data));
 
     // generate the challenge and reduce [p0, p1, q0, q1] to [pr, qr]
-    let r = transcript.draw().unwrap();
+    let r = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
     let mut claim = circuit.evaluate_output_layer(r);
 
     let mut proof_layers: Vec<SumCheckProof<E>> = Vec::new();
@@ -346,11 +348,11 @@ fn prove_before_final_circuit_layers<
         let mut mls = vec![poly_a, poly_b, poly_c, poly_d, poly_x];
 
         // run the sumcheck protocol
-        let (proof, _) = sum_check_prover_plain_full(claim, &mut mls, transcript);
+        let (proof, _) = sum_check_prover_plain_full(claim, &mut mls, transcript)?;
 
         // sample a random challenge to reduce claims
         transcript.reseed(H::hash_elements(&proof.openings_claim.openings));
-        let r_layer = transcript.draw().unwrap();
+        let r_layer = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
 
         // reduce the claim
         let p0 = proof.openings_claim.openings[0];
@@ -367,7 +369,7 @@ fn prove_before_final_circuit_layers<
         proof_layers.push(proof);
     }
 
-    (
+    Ok((
         BeforeFinalLayerProof {
             proof: proof_layers,
         },
@@ -375,10 +377,11 @@ fn prove_before_final_circuit_layers<
             evaluation_point: rand,
             claimed_evaluation: claim,
         },
-    )
+    ))
 }
 
 /// Runs the first sum-check prover for the input layer.
+#[allow(clippy::type_complexity)]
 fn sum_check_prover_plain_partial<
     E: FieldElement<BaseField = Felt> + 'static,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
@@ -388,11 +391,11 @@ fn sum_check_prover_plain_partial<
     num_rounds: usize,
     ml_polys: &mut [MultiLinearPoly<E>],
     transcript: &mut C,
-) -> ((RoundClaim<E>, Vec<RoundProof<E>>), E) {
+) -> Result<((RoundClaim<E>, Vec<RoundProof<E>>), E), ProverError> {
     // generate challenge to batch two sumchecks
     let data = vec![claim.0, claim.1];
     transcript.reseed(H::hash_elements(&data));
-    let r_batch = transcript.draw().unwrap();
+    let r_batch = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
     let claim = claim.0 + claim.1 * r_batch;
 
     // generate the composition polynomial
@@ -400,9 +403,11 @@ fn sum_check_prover_plain_partial<
 
     // run the sum-check protocol
     let main_prover = SumCheckProver::new(composer, SimpleGkrFinalClaimBuilder(PhantomData));
-    let proof = main_prover.prove_rounds(claim, ml_polys, num_rounds, transcript).unwrap();
+    let proof = main_prover
+        .prove_rounds(claim, ml_polys, num_rounds, transcript)
+        .map_err(|_| ProverError::FailedToProveSumCheck)?;
 
-    (proof, r_batch)
+    Ok((proof, r_batch))
 }
 
 /// Runs the sum-check prover used in all but the input layer.
@@ -414,11 +419,11 @@ fn sum_check_prover_plain_full<
     claim: (E, E),
     ml_polys: &mut [MultiLinearPoly<E>],
     transcript: &mut C,
-) -> (SumCheckProof<E>, E) {
+) -> Result<(SumCheckProof<E>, E), ProverError> {
     // generate challenge to batch two sumchecks
     let data = vec![claim.0, claim.1];
     transcript.reseed(H::hash_elements(&data));
-    let r_batch = transcript.draw().unwrap();
+    let r_batch = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
     let claim_ = claim.0 + claim.1 * r_batch;
 
     // generate the composition polynomial
@@ -426,9 +431,11 @@ fn sum_check_prover_plain_full<
 
     // run the sum-check protocol
     let main_prover = SumCheckProver::new(composer, SimpleGkrFinalClaimBuilder(PhantomData));
-    let proof = main_prover.prove(claim_, ml_polys, transcript).unwrap();
+    let proof = main_prover
+        .prove(claim_, ml_polys, transcript)
+        .map_err(|_| ProverError::FailedToProveSumCheck)?;
 
-    (proof, r_batch)
+    Ok((proof, r_batch))
 }
 
 /// Computes the evaluations over {0, 1}^{μ + ν} of
@@ -456,9 +463,9 @@ fn evaluate_composition_polys<E: FieldElement<BaseField = Felt> + 'static>(
     num_den
 }
 
-/// Constructs [FinalOpeningClaim] for the sum-checks used in the GKR protocol.
+/// Constructs [`FinalOpeningClaim`] for the sum-checks used in the GKR protocol.
 ///
-/// TODO: currently, this just removes the EQ evaluation as it can computed by the verifier.
+/// TODO: currently, this just removes the EQ evaluation as it can be computed by the verifier.
 /// This should be generalized for other "transparent" multi-linears e.g., periodic columns.
 struct SimpleGkrFinalClaimBuilder<E: FieldElement>(PhantomData<E>);
 

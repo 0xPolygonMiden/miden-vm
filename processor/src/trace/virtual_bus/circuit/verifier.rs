@@ -47,7 +47,7 @@ pub fn verify<
 
     // generate the random challenge to reduce two claims into a single claim
     transcript.reseed(H::hash_elements(&circuit_outputs));
-    let r = transcript.draw().map_err(|_| VerifierError::FailedGenerateRandomness)?;
+    let r = transcript.draw().map_err(|_| VerifierError::FailedToGenerateChallenge)?;
 
     // reduce the claim
     let p_r = p0 + r * (p1 - p0);
@@ -70,7 +70,7 @@ pub fn verify<
 
         // generate the random challenge to reduce two claims into a single claim
         transcript.reseed(H::hash_elements(&openings));
-        let r_layer = transcript.draw().unwrap();
+        let r_layer = transcript.draw().map_err(|_| VerifierError::FailedToGenerateChallenge)?;
 
         let p0 = openings[0];
         let p1 = openings[1];
@@ -110,7 +110,7 @@ pub fn verify_sum_check_proof_before_last<
 ) -> Result<FinalOpeningClaim<E>, VerifierError> {
     // generate challenge to batch sum-checks
     transcript.reseed(H::hash_elements(&[claim.0, claim.1]));
-    let r_batch: E = transcript.draw().unwrap();
+    let r_batch: E = transcript.draw().map_err(|_| VerifierError::FailedToGenerateChallenge)?;
 
     // compute the claim for the batched sum-check
     let reduced_claim = claim.0 + claim.1 * r_batch;
@@ -143,7 +143,7 @@ pub fn verify_sum_check_proof_last<
 
     // generate challenge to batch sum-checks
     transcript.reseed(H::hash_elements(&[claim.0, claim.1]));
-    let r_sum_check: E = transcript.draw().unwrap();
+    let r_sum_check: E = transcript.draw().map_err(|_| VerifierError::FailedToGenerateChallenge)?;
 
     // compute the claim for the batched sum-check
     let reduced_claim = claim.0 + claim.1 * r_sum_check;
@@ -174,7 +174,7 @@ pub fn verify_sum_check_proof_last<
         .map_err(|_| VerifierError::FailedToVerifySumCheck)
 }
 
-/// A [FinalQueryBuilder] for the sum-check verifier used for all sum-checks but for the final one.
+/// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final one.
 #[derive(Default)]
 struct GkrQueryBuilder<E> {
     gkr_eval_point: Vec<E>,
@@ -198,7 +198,7 @@ impl<E: FieldElement> CompositionPolyQueryBuilder<E> for GkrQueryBuilder<E> {
     }
 }
 
-/// A [FinalQueryBuilder] for the sum-check verifier used for the final sum-check.
+/// A [`FinalQueryBuilder`] for the sum-check verifier used for the final sum-check.
 #[derive(Default)]
 struct GkrMergeQueryBuilder<E> {
     gkr_eval_point: Vec<E>,

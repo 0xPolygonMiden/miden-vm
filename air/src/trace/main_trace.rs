@@ -41,6 +41,13 @@ impl Deref for MainTrace {
     }
 }
 
+#[cfg(any(test, feature = "internals"))]
+impl core::ops::DerefMut for MainTrace {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.columns
+    }
+}
+
 impl MainTrace {
     pub fn new(main_trace: ColMatrix<Felt>) -> Self {
         Self {

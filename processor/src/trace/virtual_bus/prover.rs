@@ -1,6 +1,6 @@
 use super::{
     circuit::GkrCircuitProof,
-    error::Error,
+    error::{Error, ProverError},
     generate,
     multilinear::{CompositionPolynomial, MultiLinearPoly},
     prove,
@@ -50,7 +50,7 @@ where
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 {
-    /// Constructs a new [VirtualBusProver] given a set of random values for the GKR-LogUp relation.
+    /// Constructs a new [`VirtualBusProver`] given a set of random values for the GKR-LogUp relation.
     ///
     /// The constructor uses the randomness to do two things:
     ///
@@ -86,7 +86,11 @@ where
     }
 
     /// Proves the GKR-LogUp relation.
-    pub fn prove(&self, trace: &MainTrace, transcript: &mut C) -> GkrCircuitProof<E> {
+    pub fn prove(
+        &self,
+        trace: &MainTrace,
+        transcript: &mut C,
+    ) -> Result<GkrCircuitProof<E>, ProverError> {
         // TODO: Optimize this so that we can work with base field element directly and thus save
         // on memory usage.
         let trace_len = trace.num_rows();
@@ -98,6 +102,8 @@ where
                 MultiLinearPoly::from_evaluations(values).unwrap()
             })
             .collect();
+
         prove(self.composition_polynomials(), &mut mls, transcript)
+            .map_err(|_| ProverError::FailedToGenerateProof)
     }
 }
