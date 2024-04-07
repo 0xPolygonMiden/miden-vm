@@ -1,6 +1,10 @@
 use super::{
-    circuit::GkrCircuitProof, error::Error, generate, multilinear::CompositionPolynomial,
-    sum_check::FinalOpeningClaim, verify,
+    circuit::GkrCircuitProof,
+    error::{Error, VerifierError},
+    generate,
+    multilinear::CompositionPolynomial,
+    sum_check::FinalOpeningClaim,
+    verify,
 };
 use alloc::{sync::Arc, vec::Vec};
 use core::marker::PhantomData;
@@ -26,7 +30,7 @@ where
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 {
-    /// Constructs a new [VirtualBusVerifier] given a set of random values for the GKR-LogUp relation.
+    /// Constructs a new [`VirtualBusVerifier`] given a set of random values for the GKR-LogUp relation.
     pub fn new(log_up_randomness: Vec<E>) -> Result<Self, Error> {
         let (claim, composition_polynomials) = generate(log_up_randomness)?;
 
@@ -51,7 +55,12 @@ where
     /// Verifies the GKR-LogUp relation. This output, in the case the proof is accepted,
     /// a [FinalOpeningClaim] which is passed on to the STARK verifier in order to check
     /// the correctness of the claimed openings.
-    pub fn verify(&self, proof: GkrCircuitProof<E>, transcript: &mut C) -> FinalOpeningClaim<E> {
-        verify(self.claim, proof, self.composition_polynomials(), transcript).unwrap()
+    pub fn verify(
+        &self,
+        proof: GkrCircuitProof<E>,
+        transcript: &mut C,
+    ) -> Result<FinalOpeningClaim<E>, VerifierError> {
+        verify(self.claim, proof, self.composition_polynomials(), transcript)
+            .map_err(|_| VerifierError::FailedToVerifyProof)
     }
 }

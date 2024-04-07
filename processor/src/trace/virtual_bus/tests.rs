@@ -3,7 +3,10 @@ use crate::{
     DefaultHost, ExecutionTrace, Process,
 };
 use alloc::vec::Vec;
-use miden_air::{trace::main_trace::MainTrace, ExecutionOptions};
+use miden_air::{
+    trace::{main_trace::MainTrace, range::M_COL_IDX},
+    ExecutionOptions,
+};
 use vm_core::crypto::random::RpoRandomCoin;
 use vm_core::{
     code_blocks::CodeBlock, CodeBlockTable, Felt, FieldElement, Kernel, Operation, StackInputs,
@@ -29,12 +32,45 @@ fn test_vb_prover_verifier() {
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
     let vb_prover = VirtualBusProver::new(alphas.clone()).unwrap();
-    let proof = vb_prover.prove(&trace, &mut transcript);
+    let proof = vb_prover.prove(&trace, &mut transcript).unwrap();
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
     let vb_verifier = VirtualBusVerifier::new(alphas).unwrap();
-    let _final_opening_claim = vb_verifier.verify(proof, &mut transcript);
+    let final_opening_claim = vb_verifier.verify(proof, &mut transcript);
+    assert!(final_opening_claim.is_ok())
+}
+
+#[test]
+fn test_vb_prover_verifier_failure() {
+    let s = 6;
+    let o = 6;
+    let stack: Vec<_> = (0..(1 << s)).into_iter().collect();
+    let operations: Vec<_> = (0..(1 << o))
+        .flat_map(|_| {
+            vec![Operation::U32split, Operation::U32add, Operation::U32xor, Operation::MStoreW]
+        })
+        .collect();
+
+    // modifying the multiplicity
+    let mut trace = build_full_trace(&stack, operations, Kernel::default());
+    let index = trace.get_column(M_COL_IDX).iter().position(|v| *v != Felt::ZERO).unwrap();
+    trace.get_column_mut(M_COL_IDX)[index] = Felt::ONE;
+
+    // this should be generated using the transcript up to when the prover sends the commitment
+    // to the main trace.
+    let alphas: Vec<Felt> = vec![test_utils::rand::rand_value()];
+
+    let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
+    let mut transcript = RpoRandomCoin::new(seed.into());
+    let vb_prover = VirtualBusProver::new(alphas.clone()).unwrap();
+    let proof = vb_prover.prove(&trace, &mut transcript).unwrap();
+
+    let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
+    let mut transcript = RpoRandomCoin::new(seed.into());
+    let vb_verifier = VirtualBusVerifier::new(alphas).unwrap();
+    let final_opening_claim = vb_verifier.verify(proof, &mut transcript);
+    assert!(final_opening_claim.is_err())
 }
 
 fn build_full_trace(stack_inputs: &[u64], operations: Vec<Operation>, kernel: Kernel) -> MainTrace {
