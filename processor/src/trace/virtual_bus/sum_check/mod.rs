@@ -92,8 +92,6 @@ pub struct FinalOpeningClaim<E: FieldElement> {
 
 #[cfg(test)]
 mod test {
-    use core::marker::PhantomData;
-
     use super::{
         domain::EvaluationDomain,
         prover::{FinalClaimBuilder, SumCheckProver},
@@ -223,10 +221,10 @@ mod test {
     }
 
     #[derive(Default)]
-    struct ProjectionPolyQueryBuilder<E>(PhantomData<E>);
+    struct ProjectionPolyQueryBuilder;
 
-    impl<E: FieldElement> CompositionPolyQueryBuilder<E> for ProjectionPolyQueryBuilder<E> {
-        fn build_query(
+    impl CompositionPolyQueryBuilder for ProjectionPolyQueryBuilder {
+        fn build_query<E: FieldElement>(
             &self,
             openings_claim: &super::FinalOpeningClaim<E>,
             _evaluation_point: &[E],

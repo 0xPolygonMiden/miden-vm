@@ -25,7 +25,7 @@ where
     C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     P: CompositionPolynomial<E>,
     H: ElementHasher<BaseField = E::BaseField>,
-    V: CompositionPolyQueryBuilder<E>,
+    V: CompositionPolyQueryBuilder,
 {
     composition_poly: P,
     eval_domain: EvaluationDomain<E>,
@@ -39,7 +39,7 @@ where
     C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     P: CompositionPolynomial<E>,
     H: ElementHasher<BaseField = E::BaseField>,
-    V: CompositionPolyQueryBuilder<E>,
+    V: CompositionPolyQueryBuilder,
 {
     /// Create a new [SumCheckVerifier] from a composition polynomial and final query builder.
     pub fn new(composition_poly: P, final_query_builder: V) -> Self {
@@ -151,6 +151,10 @@ where
 /// multi-linear polynomials that the Verifier can do by herself. For example, this is the case
 /// for periodic columns where given `(r_0, ... ,r_{\nu - 1})` the Verifier can evaluate
 /// it at `(r_0, ... ,r_{\nu - 1})` unassisted.
-pub trait CompositionPolyQueryBuilder<E: FieldElement> {
-    fn build_query(&self, openings_claim: &FinalOpeningClaim<E>, evaluation_point: &[E]) -> Vec<E>;
+pub trait CompositionPolyQueryBuilder {
+    fn build_query<E: FieldElement>(
+        &self,
+        openings_claim: &FinalOpeningClaim<E>,
+        evaluation_point: &[E],
+    ) -> Vec<E>;
 }
