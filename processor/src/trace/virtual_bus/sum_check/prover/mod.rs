@@ -105,6 +105,17 @@ where
     /// a number of rounds `num_rounds`, computes `num_rounds` iterations of the sum-check protocol
     /// starting from claim `claim`.
     ///
+    /// More specifically, executes the sum-check protocol for the following relation
+    ///
+    /// v = \sum_{(x_0,\cdots, x_{\nu - 1}) \in \{0 , 1\}^{\nu}}
+    ///                     g(f_0((x_0,\cdots, x_{\nu - 1})), \cdots , f_c((x_0,\cdots, x_{\nu - 1})))
+    ///
+    /// where:
+    ///
+    /// 1. `claim` is v.
+    /// 2. `mls` is [f_0, ..., f_c].
+    /// 3. `self.composition_poly` is g.
+    ///
     /// # Errors
     /// Returns an error if:
     /// - No multi-linears were provided.
