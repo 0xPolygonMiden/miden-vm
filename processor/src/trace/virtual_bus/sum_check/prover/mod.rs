@@ -1,8 +1,9 @@
 use self::error::Error;
-use super::{
-    domain::EvaluationDomain, reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof,
+use super::{reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof};
+use crate::trace::virtual_bus::{
+    multilinear::{CompositionPolynomial, MultiLinearPoly},
+    univariate::UnivariatePolyEvals,
 };
-use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use vm_core::FieldElement;
@@ -73,8 +74,8 @@ where
     V: FinalClaimBuilder<Field = E>,
 {
     composition_poly: P,
-    eval_domain: EvaluationDomain<E>,
     final_claim_builder: V,
+
     _challenger: PhantomData<C>,
 }
 
@@ -90,12 +91,8 @@ where
     /// The multivariate composition polynomial corresponds to the `g` polynomial in the
     /// description of the [SumCheckProver] struct.
     pub fn new(composition_poly: P, final_claim_builder: V) -> Self {
-        let max_degree = composition_poly.max_degree();
-        let eval_domain = EvaluationDomain::new(max_degree);
-
         Self {
             composition_poly,
-            eval_domain,
             final_claim_builder,
             _challenger: PhantomData,
         }
@@ -188,35 +185,36 @@ where
         };
 
         // run the first round of the protocol
-        let mut round_proof = sumcheck_round(&self.composition_poly, mls);
+        let round_poly_evals = sumcheck_round(&self.composition_poly, mls);
+        let round_poly_coefs = round_poly_evals.to_poly(current_round_claim.claim);
+
         // reseed with the s_0 polynomial
-        coin.reseed(H::hash_elements(&round_proof.partial_poly_evals));
-        round_proofs.push(round_proof);
+        coin.reseed(H::hash_elements(&round_poly_coefs.coefficients));
+        round_proofs.push(RoundProof { round_poly_coefs });
 
         for i in 1..num_rounds {
             // generate random challenge r_i for the i-th round
             let round_challenge = coin.draw().map_err(|_| Error::FailedToGenerateChallenge)?;
 
             // compute the new reduced round claim
-            let new_round_claim = reduce_claim(
-                &self.eval_domain,
-                &round_proofs[i - 1],
-                current_round_claim,
-                round_challenge,
-            );
+            let new_round_claim =
+                reduce_claim(&round_proofs[i - 1], current_round_claim, round_challenge);
 
             // fold each multi-linear using the round challenge
             mls.iter_mut().for_each(|ml| ml.bind(round_challenge));
 
             // run the i-th round of the protocol using the folded multi-linears for the new reduced
             // claim. This basically computes the s_i polynomial.
-            round_proof = sumcheck_round(&self.composition_poly, mls);
+            let round_poly_evals = sumcheck_round(&self.composition_poly, mls);
 
             // update the claim
             current_round_claim = new_round_claim;
 
+            let round_poly_coefs = round_poly_evals.to_poly(current_round_claim.claim);
+
             // reseed with the s_i polynomial
-            coin.reseed(H::hash_elements(&round_proof.partial_poly_evals));
+            coin.reseed(H::hash_elements(&round_poly_coefs.coefficients));
+            let round_proof = RoundProof { round_poly_coefs };
             round_proofs.push(round_proof);
         }
 
@@ -225,12 +223,8 @@ where
         // fold each multi-linear using the last random challenge
         mls.iter_mut().for_each(|ml| ml.bind(round_challenge));
 
-        let round_claim = reduce_claim(
-            &self.eval_domain,
-            &round_proofs[num_rounds - 1],
-            current_round_claim,
-            round_challenge,
-        );
+        let round_claim =
+            reduce_claim(&round_proofs[num_rounds - 1], current_round_claim, round_challenge);
         Ok((round_claim, round_proofs))
     }
 }
@@ -269,7 +263,7 @@ where
 fn sumcheck_round<E: FieldElement>(
     composition_poly: &dyn CompositionPolynomial<E>,
     mls: &mut [MultiLinearPoly<E>],
-) -> RoundProof<E> {
+) -> UnivariatePolyEvals<E> {
     let num_ml = mls.len();
     let num_vars = mls[0].num_variables();
     let num_rounds = num_vars - 1;
@@ -313,8 +307,8 @@ fn sumcheck_round<E: FieldElement>(
         },
     );
 
-    RoundProof {
-        partial_poly_evals: evaluations,
+    UnivariatePolyEvals {
+        partial_evaluations: evaluations,
     }
 }
 

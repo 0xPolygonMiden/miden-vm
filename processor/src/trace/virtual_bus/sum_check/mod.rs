@@ -1,8 +1,6 @@
-use self::domain::EvaluationDomain;
+use super::univariate::UnivariatePolyCoef;
 use alloc::vec::Vec;
 use vm_core::FieldElement;
-
-mod domain;
 
 mod prover;
 pub use prover::SumCheckProver;
@@ -12,26 +10,12 @@ pub use verifier::SumCheckVerifier;
 /// A sum-check round proof.
 ///
 /// This represents the partial polynomial sent by the Prover during one of the rounds of the
-/// sum-check protocol. The polynomial is in evaluation form and excludes the zero-th coefficient
-/// as the Verifier can recover it from the first coefficient and the current reduced claim.
+/// sum-check protocol. The polynomial is in coefficient form and excludes the coefficient for
+/// the linear term as the Verifier can recover it from the other coefficients and the current
+/// (reduced) claim.
 #[derive(Debug, Clone)]
-pub struct RoundProof<E> {
-    pub partial_poly_evals: Vec<E>,
-}
-
-impl<E: FieldElement> RoundProof<E> {
-    /// Completes the evaluations of the round polynomial by computing the zero-th coefficient
-    /// using the round claim.
-    pub fn to_evals(&self, claim: E) -> Vec<E> {
-        let mut result = vec![];
-
-        // s(0) + s(1) = claim
-        let c0 = claim - self.partial_poly_evals[0];
-
-        result.push(c0);
-        result.extend_from_slice(&self.partial_poly_evals);
-        result
-    }
+pub struct RoundProof<E: FieldElement> {
+    pub round_poly_coefs: UnivariatePolyCoef<E>,
 }
 
 /// A sum-check proof.
@@ -39,9 +23,6 @@ impl<E: FieldElement> RoundProof<E> {
 /// Composed of the round proofs i.e., the polynomials sent by the Prover at each round as well as
 /// the (claimed) openings of the multi-linear oracles at the evaluation point given by the round
 /// challenges.
-/// Openings is an [Option] as there are situations where we would like to run the sum-check
-/// protocol for a certain number of rounds that is less than the number of variables of the
-/// multi-linears.
 #[derive(Debug, Clone)]
 pub struct Proof<E: FieldElement> {
     pub openings_claim: FinalOpeningClaim<E>,
@@ -58,15 +39,14 @@ pub struct RoundClaim<E: FieldElement> {
 
 /// Reduces an old claim to a new claim using the round challenge.
 pub fn reduce_claim<E: FieldElement>(
-    domain: &EvaluationDomain<E>,
     current_poly: &RoundProof<E>,
     current_round_claim: RoundClaim<E>,
     round_challenge: E,
 ) -> RoundClaim<E> {
-    // construct the round polynomial using the current claim
-    let poly_evals = current_poly.to_evals(current_round_claim.claim);
     // evaluate the round polynomial at the round challenge to obtain the new claim
-    let new_claim = domain.evaluate(&poly_evals, round_challenge);
+    let new_claim = current_poly
+        .round_poly_coefs
+        .evaluate_using_claim(&current_round_claim.claim, &round_challenge);
 
     // update the evaluation point using the round challenge
     let mut new_partial_eval_point = current_round_claim.eval_point;
@@ -80,10 +60,10 @@ pub fn reduce_claim<E: FieldElement>(
 
 /// Represents an opening claim at an evaluation point against a batch of oracles.
 ///
-/// After verifying [Proof], the verifier is left with a final question being whether a number
-/// of oracles open to some value at some given point. This question is answered either using
-/// further interaction with the Prover or using a polynomial commitment opening proof in
-/// the compiled protocol.
+/// After verifying [`Proof`], the verifier is left with a question on the validity of a final
+/// claim on a number of oracles open to a given set of values at some given point.
+/// This question is answered either using further interaction with the Prover or using
+/// a polynomial commitment opening proof in the compiled protocol.
 #[derive(Clone, Debug)]
 pub struct FinalOpeningClaim<E: FieldElement> {
     pub evaluation_point: Vec<E>,
@@ -93,35 +73,13 @@ pub struct FinalOpeningClaim<E: FieldElement> {
 #[cfg(test)]
 mod test {
     use super::{
-        domain::EvaluationDomain,
         prover::{FinalClaimBuilder, SumCheckProver},
         verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},
     };
     use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
     use alloc::{borrow::ToOwned, vec::Vec};
-    use test_utils::rand::{rand_array, rand_value, rand_vector};
+    use test_utils::rand::rand_vector;
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
-
-    #[test]
-    fn test_evaluation_domain() {
-        let max_degree = 5;
-        let eval_domain = EvaluationDomain::<Felt>::new(max_degree);
-
-        let r = rand_value();
-        let coefficients: [Felt; 6] = rand_array();
-
-        let evaluations: Vec<Felt> = (0..=max_degree)
-            .into_iter()
-            .map(|x| eval(&coefficients, Felt::from(x as u8)))
-            .collect();
-
-        assert_eq!(coefficients.len(), evaluations.len());
-
-        let result = eval_domain.evaluate(&evaluations, r);
-        let expected = eval(&coefficients, r);
-
-        assert_eq!(result, expected);
-    }
 
     #[test]
     fn test_sum_check_sum() {
@@ -280,12 +238,5 @@ mod test {
             assert_eq!(query.len(), 2);
             query[0] * query[1]
         }
-    }
-
-    pub fn eval<E>(p: &[E], x: E) -> E
-    where
-        E: FieldElement,
-    {
-        p.iter().rev().fold(E::ZERO, |acc, &coeff| acc * x + coeff)
     }
 }

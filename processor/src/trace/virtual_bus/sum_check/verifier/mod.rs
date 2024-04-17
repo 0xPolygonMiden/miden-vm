@@ -1,5 +1,5 @@
 use self::error::Error;
-use super::{domain::EvaluationDomain, FinalOpeningClaim, Proof, RoundClaim, RoundProof};
+use super::{FinalOpeningClaim, Proof, RoundClaim, RoundProof};
 use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
@@ -28,8 +28,8 @@ where
     V: CompositionPolyQueryBuilder,
 {
     composition_poly: P,
-    eval_domain: EvaluationDomain<E>,
     final_query_builder: V,
+    _field: PhantomData<E>,
     _challenger: PhantomData<C>,
 }
 
@@ -43,13 +43,10 @@ where
 {
     /// Create a new [SumCheckVerifier] from a composition polynomial and final query builder.
     pub fn new(composition_poly: P, final_query_builder: V) -> Self {
-        let max_degree = composition_poly.max_degree();
-        let eval_domain = EvaluationDomain::new(max_degree);
-
         Self {
             composition_poly,
-            eval_domain,
             final_query_builder,
+            _field: PhantomData,
             _challenger: PhantomData,
         }
     }
@@ -117,13 +114,12 @@ where
         let mut round_claim = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
-            let partial_evals = round_proof.partial_poly_evals.clone();
-            coin.reseed(H::hash_elements(&partial_evals));
-            let evals = round_proof.to_evals(round_claim);
+            let round_poly_coefs = round_proof.round_poly_coefs.clone();
+            coin.reseed(H::hash_elements(&round_poly_coefs.coefficients));
 
             let r = coin.draw().map_err(|_| Error::FailedToGenerateChallenge)?;
 
-            round_claim = self.eval_domain.evaluate(&evals, r);
+            round_claim = round_proof.round_poly_coefs.evaluate_using_claim(&round_claim, &r);
             evaluation_point.push(r);
         }
 
