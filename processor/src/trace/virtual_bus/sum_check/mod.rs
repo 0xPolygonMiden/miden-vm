@@ -181,8 +181,8 @@ mod test {
     #[derive(Default)]
     struct ProjectionPolyQueryBuilder;
 
-    impl CompositionPolyQueryBuilder for ProjectionPolyQueryBuilder {
-        fn build_query<E: FieldElement>(
+    impl<E: FieldElement> CompositionPolyQueryBuilder<E> for ProjectionPolyQueryBuilder {
+        fn build_query(
             &self,
             openings_claim: &super::FinalOpeningClaim<E>,
             _evaluation_point: &[E],
