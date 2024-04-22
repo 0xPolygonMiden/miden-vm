@@ -93,12 +93,13 @@ where
     ) -> Result<GkrCircuitProof<E>, ProverError> {
         // TODO: Optimize this so that we can work with base field element directly and thus save
         // on memory usage.
-        let trace_len = trace.num_rows();
         let mut mls: Vec<MultiLinearPoly<E>> = trace
             .columns()
             .map(|col| {
                 let mut values: Vec<E> = col.iter().map(|value| E::from(*value)).collect();
-                values[trace_len - 1] = E::ZERO;
+                if let Some(value) = values.last_mut(){
+                    *value = E::ZERO
+                }
                 MultiLinearPoly::from_evaluations(values).unwrap()
             })
             .collect();
