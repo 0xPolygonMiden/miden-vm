@@ -15,7 +15,7 @@ rust-version = "1.75"
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
-metal = ["dep:ministark-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
+metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]
@@ -26,5 +26,5 @@ winter-prover = { package = "winter-prover", version = "0.8", default-features =
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
-ministark-gpu = { version = "0.3", features = [ "winterfell" ], optional = true }
+miden-gpu = { version = "0.1", optional = true }
 pollster = { version = "0.3", optional = true }

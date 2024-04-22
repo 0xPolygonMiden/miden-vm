@@ -63,37 +63,55 @@ impl ProvingOptions {
     }
 
     /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level.
+    pub fn with_96_bit_security() -> Self {
+        Self {
+            exec_options: ExecutionOptions::default(),
+            proof_options: Self::REGULAR_96_BITS,
+            hash_fn: HashFunction::Blake3_192,
+        }
+    }
+
+    /// Creates a new preset instance of [ProvingOptions] targeting 96-bit security level.
     ///
-    /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
-    /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
-    /// but may take significantly longer to generate.
-    pub fn with_96_bit_security(recursive: bool) -> Self {
-        if recursive {
+    /// With recursive function, proofs will be generated using an arithmetization-friendly
+    /// hash functions (RPO/RPX), depending on `use_rpx` flag. Such proofs are well-suited for
+    /// recursive proof verification, but may take significantly longer to generate.
+    pub fn with_96_bit_security_recursive(use_rpx: bool) -> Self {
+        if use_rpx {
+            Self {
+                exec_options: ExecutionOptions::default(),
+                proof_options: Self::RECURSIVE_96_BITS,
+                hash_fn: HashFunction::Rpx256,
+            }
+        } else {
             Self {
                 exec_options: ExecutionOptions::default(),
                 proof_options: Self::RECURSIVE_96_BITS,
                 hash_fn: HashFunction::Rpo256,
             }
-        } else {
-            Self {
-                exec_options: ExecutionOptions::default(),
-                proof_options: Self::REGULAR_96_BITS,
-                hash_fn: HashFunction::Blake3_192,
-            }
+        }
+    }
+
+    /// Creates a new preset instance of [ProvingOptions] targeting 128-bit security level.
+    pub fn with_128_bit_security() -> Self {
+        Self {
+            exec_options: ExecutionOptions::default(),
+            proof_options: Self::REGULAR_128_BITS,
+            hash_fn: HashFunction::Blake3_256,
         }
     }
 
     /// Creates a new preset instance of [ProvingOptions] targeting 128-bit security level.
     ///
-    /// If `recursive` flag is set to true, proofs will be generated using an arithmetization-
-    /// friendly hash function (RPO). Such proofs are well-suited for recursive proof verification,
-    /// but may take significantly longer to generate.
-    pub fn with_128_bit_security(recursive: bool) -> Self {
-        if recursive {
+    /// With recursive function, proofs will be generated using an arithmetization-friendly
+    /// hash functions (RPO/RPX), depending on `use_rpx` flag. Such proofs are well-suited for
+    /// recursive proof verification, but may take significantly longer to generate.
+    pub fn with_128_bit_security_recursive(use_rpx: bool) -> Self {
+        if use_rpx {
             Self {
                 exec_options: ExecutionOptions::default(),
                 proof_options: Self::RECURSIVE_128_BITS,
-                hash_fn: HashFunction::Rpo256,
+                hash_fn: HashFunction::Rpx256,
             }
         } else {
             Self {
@@ -129,7 +147,7 @@ impl ProvingOptions {
 
 impl Default for ProvingOptions {
     fn default() -> Self {
-        Self::with_96_bit_security(false)
+        Self::with_96_bit_security()
     }
 }
 
