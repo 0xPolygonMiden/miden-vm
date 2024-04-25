@@ -97,7 +97,7 @@ where
             .columns()
             .map(|col| {
                 let mut values: Vec<E> = col.iter().map(|value| E::from(*value)).collect();
-                if let Some(value) = values.last_mut(){
+                if let Some(value) = values.last_mut() {
                     *value = E::ZERO
                 }
                 MultiLinearPoly::from_evaluations(values).unwrap()

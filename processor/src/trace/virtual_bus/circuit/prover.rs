@@ -421,8 +421,7 @@ fn sum_check_prover_plain_full<
     transcript: &mut C,
 ) -> Result<(SumCheckProof<E>, E), ProverError> {
     // generate challenge to batch two sumchecks
-    let data = vec![claim.0, claim.1];
-    transcript.reseed(H::hash_elements(&data));
+    transcript.reseed(H::hash_elements(&[claim.0, claim.1]));
     let r_batch = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
     let claim_ = claim.0 + claim.1 * r_batch;
 
