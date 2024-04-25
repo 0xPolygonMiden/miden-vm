@@ -1,9 +1,12 @@
 # Changelog
 
-## 0.9.0
+## 0.9.0 (TBD)
 
 #### Packaging
 - [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
+
+#### Stdlib
+- Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
 
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
