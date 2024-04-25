@@ -76,6 +76,15 @@ impl<E: FieldElement> MultiLinearPoly<E> {
             .expect("should not fail given that it is a multi-linear");
     }
 
+    /// Given two instances of [`MultiLinearPoly`], f(x_0, x_1, ..., x_{ν - 1}) and
+    /// g(x_0, x_1, ..., x_{ν - 1}), constructs the following polynomial defined by
+    ///
+    /// merge(f, g)(x_0, x_1, ..., x_{ν - 1}, z) := (1 - z) * f(x_0, x_1, ..., x_{ν - 1})
+    ///                                                      + z * g(x_0, x_1, ..., x_{ν - 1})
+    /// Notice that:
+    ///
+    /// 1. merge(f, g)(x_0, x_1, ..., x_{ν - 1}, 0) = f(x_0, x_1, ..., x_{ν - 1})
+    /// 2. merge(f, g)(x_0, x_1, ..., x_{ν - 1}, 1) = g(x_0, x_1, ..., x_{ν - 1})
     pub fn extend(&mut self, other: &MultiLinearPoly<E>) {
         let other_vec = other.evaluations.to_vec();
         assert_eq!(other_vec.len(), self.evaluations().len());
