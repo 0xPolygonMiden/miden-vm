@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2 (2024-04-25) - `air` and `processor` crates only
+
+- Allowed enabling debug mode via `ExecutionOptions` (#1316).
+
 ## 0.9.1 (2024-04-04)
 
 - Added additional trait implementations to error types (#1306).
