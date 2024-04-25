@@ -82,7 +82,7 @@ pub trait Host {
         Ok(HostResponse::None)
     }
 
-    /// Handles the trace emmited from the VM.
+    /// Handles the trace emitted from the VM.
     fn on_trace<S: ProcessState>(
         &mut self,
         process: &S,

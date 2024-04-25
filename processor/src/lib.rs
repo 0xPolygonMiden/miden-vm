@@ -184,7 +184,7 @@ where
         host: H,
         execution_options: ExecutionOptions,
     ) -> Self {
-        Self::initialize(kernel, stack_inputs, host, false, execution_options)
+        Self::initialize(kernel, stack_inputs, host, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
@@ -193,8 +193,7 @@ where
             kernel,
             stack_inputs,
             host,
-            true,
-            ExecutionOptions::default().with_tracing(),
+            ExecutionOptions::default().with_tracing().with_debugging(),
         )
     }
 
@@ -202,9 +201,9 @@ where
         kernel: Kernel,
         stack: StackInputs,
         host: H,
-        in_debug_mode: bool,
         execution_options: ExecutionOptions,
     ) -> Self {
+        let in_debug_mode = execution_options.enable_debugging();
         Self {
             system: System::new(execution_options.expected_cycles() as usize),
             decoder: Decoder::new(in_debug_mode),
