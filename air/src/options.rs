@@ -151,6 +151,7 @@ pub struct ExecutionOptions {
     max_cycles: u32,
     expected_cycles: u32,
     enable_tracing: bool,
+    enable_debugging: bool,
 }
 
 impl Default for ExecutionOptions {
@@ -159,6 +160,7 @@ impl Default for ExecutionOptions {
             max_cycles: u32::MAX,
             expected_cycles: MIN_TRACE_LEN as u32,
             enable_tracing: false,
+            enable_debugging: false,
         }
     }
 }
@@ -191,30 +193,51 @@ impl ExecutionOptions {
             max_cycles,
             expected_cycles,
             enable_tracing,
+            enable_debugging: false,
         })
     }
 
-    /// Enables Host to handle the `tracing` instructions.
+    /// Enables execution of the `trace` instructions.
     pub fn with_tracing(mut self) -> Self {
         self.enable_tracing = true;
+        self
+    }
+
+    /// Enables execution of programs in debug mode.
+    ///
+    /// In debug mode the VM does the following:
+    /// - Executes `debug` instructions (these are ignored in regular mode).
+    /// - Records additional info about program execution (e.g., keeps track of stack state at
+    ///   every cycle of the VM) which enables stepping through the program forward and backward.
+    pub fn with_debugging(mut self) -> Self {
+        self.enable_debugging = true;
         self
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns maximum number of cycles
+    /// Returns maximum number of cycles a program is allowed to execute for.
     pub fn max_cycles(&self) -> u32 {
         self.max_cycles
     }
 
-    /// Returns number of the expected cycles
+    /// Returns the number of cycles a program is expected to take.
+    ///
+    /// This will serve as a hint to the VM for how much memory to allocate for a program's
+    /// execution trace and may result in performance improvements when the number of expected
+    /// cycles is equal to the number of actual cycles.
     pub fn expected_cycles(&self) -> u32 {
         self.expected_cycles
     }
 
-    /// Returns a flag indicating whether the Host should handle `trace` instructions
+    /// Returns a flag indicating whether the VM should execute `trace` instructions.
     pub fn enable_tracing(&self) -> bool {
         self.enable_tracing
+    }
+
+    /// Returns a flag indicating whether the VM should execute a program in debug mode.
+    pub fn enable_debugging(&self) -> bool {
+        self.enable_debugging
     }
 }
