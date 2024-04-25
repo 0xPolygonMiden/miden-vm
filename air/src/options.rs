@@ -204,7 +204,7 @@ impl ExecutionOptions {
     }
 
     /// Enables execution of programs in debug mode.
-    /// 
+    ///
     /// In debug mode the VM does the following:
     /// - Executes `debug` instructions (these are ignored in regular mode).
     /// - Records additional info about program execution (e.g., keeps track of stack state at
@@ -223,7 +223,7 @@ impl ExecutionOptions {
     }
 
     /// Returns the number of cycles a program is expected to take.
-    /// 
+    ///
     /// This will serve as a hint to the VM for how much memory to allocate for a program's
     /// execution trace and may result in performance improvements when the number of expected
     /// cycles is equal to the number of actual cycles.
