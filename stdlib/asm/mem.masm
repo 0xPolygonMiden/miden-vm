@@ -1,3 +1,5 @@
+use.std::crypto::hashes::native
+
 # ===== MEMORY FUNCTIONS ==========================================================================
 
 #! Copies `n` words from `read_ptr` to `write_ptr`.
@@ -149,9 +151,8 @@ export.pipe_words_to_memory.0
     # => [C', B', A', write_ptr+1, ...]
   end
 
-  # The RPO result is word B, discard the unused portion of the rate and the capacity. (9 cycles)
-  dropw swapw dropw
-  # => [rpo_hash, write_ptr', ...]
+  exec.native::state_to_digest
+  # => [HASH, write_ptr', ...]
 end
 
 #! Moves an arbitrary number of words from the advice stack to memory and asserts it matches the commitment.
@@ -173,4 +174,108 @@ export.pipe_preimage_to_memory.0
   # Check the COM (10 cycles)
   assert_eqw
   # => [write_ptr', ...]
+end
+
+#! Moves 2 words from the advice stack to memory and asserts it matches the commitment.
+#!
+#! Input: [write_ptr, COM, ...]
+#! Output: [write_ptr', ...]
+#! Cycles: 36
+export.pipe_to_memory_2.0
+  exec.native::init_no_padding
+  # => [PERM, PERM, PERM, write_ptr, COM, ...] (12 cycles)
+
+  repeat.1
+    adv_pipe hperm
+  end
+  # => [PERM, PERM, PERM, write_ptr', COM, ...] (2 cycles)
+
+  exec.native::state_to_digest
+  # => [DIGEST, write_ptr', COM, ...] (9 cycles)
+
+  # Save the write_ptr
+  movup.4 movdn.8
+  # => [DIGEST, COM, write_ptr', ...] (2 cycles)
+
+  # Check the commitment
+  assert_eqw
+  # => [write_ptr', ...] (11 cycles)
+end
+
+#! Moves 4 words from the advice stack to memory and asserts it matches the commitment.
+#!
+#! Input: [write_ptr, COM, ...]
+#! Output: [write_ptr', ...]
+#! Cycles: 38
+export.pipe_to_memory_4.0
+  exec.native::init_no_padding
+  # => [PERM, PERM, PERM, write_ptr, COM, ...] (12 cycles)
+
+  repeat.2
+    adv_pipe hperm
+  end
+  # => [PERM, PERM, PERM, write_ptr', COM, ...] (4 cycles)
+
+  exec.native::state_to_digest
+  # => [DIGEST, write_ptr', COM, ...] (9 cycles)
+
+  # Save the write_ptr
+  movup.4 movdn.8
+  # => [DIGEST, COM, write_ptr', ...] (2 cycles)
+
+  # Check the commitment
+  assert_eqw
+  # => [write_ptr', ...] (11 cycles)
+end
+
+#! Moves 6 words from the advice stack to memory and asserts it matches the commitment.
+#!
+#! Input: [write_ptr, COM, ...]
+#! Output: [write_ptr', ...]
+#! Cycles: 40
+export.pipe_to_memory_6.0
+  exec.native::init_no_padding
+  # => [PERM, PERM, PERM, write_ptr, COM, ...] (12 cycles)
+
+  repeat.3
+    adv_pipe hperm
+  end
+  # => [PERM, PERM, PERM, write_ptr', COM, ...] (6 cycles)
+
+  exec.native::state_to_digest
+  # => [DIGEST, write_ptr', COM, ...] (9 cycles)
+
+  # Save the write_ptr
+  movup.4 movdn.8
+  # => [DIGEST, COM, write_ptr', ...] (2 cycles)
+
+  # Check the commitment
+  assert_eqw
+  # => [write_ptr', ...] (11 cycles)
+end
+
+#! Moves 8 words from the advice stack to memory and asserts it matches the commitment.
+#!
+#! Input: [write_ptr, COM, ...]
+#! Output: [write_ptr', ...]
+#! Cycles: 42
+export.pipe_to_memory_8.0
+  exec.native::init_no_padding
+  # => [PERM, PERM, PERM, write_ptr, COM, ...] (12 cycles)
+
+  repeat.4
+    adv_pipe hperm
+  end
+  # => [PERM, PERM, PERM, write_ptr', COM, ...] (8 cycles)
+
+  exec.native::state_to_digest
+  # => [DIGEST, write_ptr', COM, ...] (9 cycles)
+
+  # Save the write_ptr
+  movup.4 movdn.8
+  # => [DIGEST, COM, write_ptr', ...] (2 cycles)
+
+  # Check the commitment
+  assert_eqw
+  # => [write_ptr', ...] (11 cycles)
 end
