@@ -854,7 +854,7 @@ mod tests {
             )
         } else {
             ExecutionProver::new(
-                ProvingOptions::with_128_bit_security(false),
+                ProvingOptions::with_128_bit_security(true),
                 StackInputs::default(),
                 StackOutputs::default(),
             )
