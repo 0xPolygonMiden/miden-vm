@@ -209,7 +209,7 @@ fn falcon_prove_verify() {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
     let host = DefaultHost::new(advice_provider);
 
-    let options = ProvingOptions::with_96_bit_security();
+    let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) = test_utils::prove(&program, stack_inputs.clone(), host, options)
         .expect("failed to generate proof");
 

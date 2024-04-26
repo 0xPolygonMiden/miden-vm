@@ -15,7 +15,7 @@ rust-version = "1.75"
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
 default = ["std"]
-metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster"]
+metal = ["dep:miden-gpu", "dep:elsa", "dep:pollster", "concurrent", "std"]
 std = ["air/std", "processor/std", "winter-prover/std"]
 
 [dependencies]

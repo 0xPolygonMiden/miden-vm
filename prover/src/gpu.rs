@@ -14,13 +14,14 @@ use miden_gpu::{
     HashFn,
 };
 use pollster::block_on;
-use processor::crypto::{ElementHasher, Hasher};
-use processor::ONE;
+use processor::{
+    crypto::{ElementHasher, Hasher},
+    ONE,
+};
 use std::{marker::PhantomData, time::Instant, boxed::Box, vec::Vec};
 use tracing::{event, Level};
-use winter_prover::crypto::Digest;
 use winter_prover::{
-    crypto::MerkleTree,
+    crypto::{Digest, MerkleTree},
     matrix::{build_segments, get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
     proof::Queries,
     AuxTraceRandElements, CompositionPoly, CompositionPolyTrace, ConstraintCommitment,
@@ -845,10 +846,18 @@ mod tests {
     >(
         use_rpx: bool,
     ) -> ExecutionProver<H, R> {
-        ExecutionProver::new(
-            ProvingOptions::with_128_bit_security_recursive(use_rpx),
-            StackInputs::default(),
-            StackOutputs::default(),
-        )
+        if use_rpx {
+            ExecutionProver::new(
+                ProvingOptions::with_128_bit_security_rpx(),
+                StackInputs::default(),
+                StackOutputs::default(),
+            )
+        } else {
+            ExecutionProver::new(
+                ProvingOptions::with_128_bit_security(false),
+                StackInputs::default(),
+                StackOutputs::default(),
+            )
+        }
     }
 }
