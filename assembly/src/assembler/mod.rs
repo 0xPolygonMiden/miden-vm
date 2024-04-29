@@ -5,8 +5,8 @@ use crate::{
     },
     diagnostics::{tracing::instrument, Report},
     sema::SemanticAnalysisError,
-    AssemblyError, Compile, CompileOpts, Felt, Library, LibraryNamespace, LibraryPath, RpoDigest,
-    Spanned, ONE, ZERO,
+    AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
+    RpoDigest, Spanned, ONE, ZERO,
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use vm_core::{
@@ -84,37 +84,6 @@ pub enum ArtifactKind {
 /// procedures, build the assembler with them first, using the various builder methods on
 /// [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
 /// [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
-///
-/// # Assembly Contexts
-///
-/// Using the instructions above, all of the code you provide will be compiled and cached using a
-/// single global context. That works fine if you are creating the assembler and discarding it after
-/// you've compiled your program. However, if you plan to compile multiple distinct programs, you
-/// will want to use [AssemblyContext]s and [Assembler::compile_in_context].
-///
-/// An [AssemblyContext] is essentially a way to isolate the program-specific elements of a
-/// compilation session in a separate cache, so that you avoid polluting the global cache with a
-/// bunch of objects from multiple programs, causing analysis to become more expensive. By isolating
-/// those in a context-specific cache, you have more fine control over how things are cached.
-///
-/// More precisely, the [Assembler] has a global module graph and procedure cache, which it uses to
-/// perform analysis during compilation, and to avoid redundantly compiling the same procedures for
-/// every program. Any modules you add to the global context will be inherited by _all_ contexts.
-/// This is where you will cache the kernel, standard libraries, anything else that is quite common.
-///
-/// Each [AssemblyContext] has its own module graph and procedure cache, which contains only those
-/// modules which you add to it. When you call [Assembler::compile_in_context] with that context, it
-/// is merged with the global context, inter-procedural analysis is performed, and then the compiled
-/// objects are cached in the provided [AssemblyContext], allowing it to be used multiple times if
-/// desired.
-///
-/// <div class="warning">
-/// The context isolation described above is not currently how things are implemented, but I believe
-/// represent where we will want to ultimately take the `AssemblyContext` struct. The main obstacle
-/// right now is that we don't have a clear picture of how an `Assembler` will be used, so we want
-/// to make sure that we design the `Assembler` and `AssemblyContext` relationship in such a way
-/// that it plays well with the most common usage patterns.
-/// </div>
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
     /// as a baseline.
@@ -161,7 +130,7 @@ impl Assembler {
     /// Returns an error if compiling kernel source results in an error.
     pub fn with_kernel_from_module(module: impl Compile) -> Result<Self, Report> {
         let mut assembler = Self::new();
-        let opts = CompileOpts::for_kernel();
+        let opts = CompileOptions::for_kernel();
         let module = module.compile_with_options(opts)?;
         let (kernel_index, kernel) = assembler.assemble_kernel_module(module)?;
         assembler.module_graph.set_kernel(Some(kernel_index), kernel);
@@ -206,7 +175,7 @@ impl Assembler {
     pub fn with_module_and_options(
         mut self,
         module: impl Compile,
-        options: CompileOpts,
+        options: CompileOptions,
     ) -> Result<Self, Report> {
         self.add_module_with_options(module, options)?;
 
@@ -218,7 +187,7 @@ impl Assembler {
     /// The given module must be a library module, or an error will be returned.
     #[inline]
     pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
-        self.add_module_with_options(module, CompileOpts::for_library())
+        self.add_module_with_options(module, CompileOptions::for_library())
     }
 
     /// Adds `module` to the module graph of the assembler, using the provided options.
@@ -227,7 +196,7 @@ impl Assembler {
     pub fn add_module_with_options(
         &mut self,
         module: impl Compile,
-        options: CompileOpts,
+        options: CompileOptions,
     ) -> Result<(), Report> {
         let kind = options.kind;
         if kind != ModuleKind::Library {
@@ -355,9 +324,9 @@ impl Assembler {
         source: impl Compile,
         context: &mut AssemblyContext,
     ) -> Result<Program, Report> {
-        let opts = CompileOpts {
+        let opts = CompileOptions {
             warnings_as_errors: context.warnings_as_errors(),
-            ..CompileOpts::default()
+            ..CompileOptions::default()
         };
         self.assemble_with_options_in_context(source, opts, context)
     }
@@ -373,7 +342,7 @@ impl Assembler {
     pub fn assemble_with_options(
         &mut self,
         source: impl Compile,
-        options: CompileOpts,
+        options: CompileOptions,
     ) -> Result<Program, Report> {
         let mut context = AssemblyContext::default();
         context.set_warnings_as_errors(options.warnings_as_errors);
@@ -387,7 +356,7 @@ impl Assembler {
     pub fn assemble_with_options_in_context(
         &mut self,
         source: impl Compile,
-        options: CompileOpts,
+        options: CompileOptions,
         context: &mut AssemblyContext,
     ) -> Result<Program, Report> {
         if options.kind != ModuleKind::Executable {
@@ -396,7 +365,7 @@ impl Assembler {
             ));
         }
 
-        let program = source.compile_with_options(CompileOpts {
+        let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
             // module as #exec
             path: Some(LibraryPath::from(LibraryNamespace::Exec)),
@@ -437,7 +406,7 @@ impl Assembler {
     pub fn assemble_module(
         &mut self,
         module: impl Compile,
-        options: CompileOpts,
+        options: CompileOptions,
         context: &mut AssemblyContext,
     ) -> Result<Vec<RpoDigest>, Report> {
         match context.kind() {
@@ -472,7 +441,7 @@ impl Assembler {
         self.module_graph.recompute()?;
         self.assemble_graph(context)?;
 
-        self.module_exports(module_id)
+        self.get_module_exports(module_id)
     }
 
     /// Compiles the given kernel module, returning both the compiled kernel and its index in the
@@ -513,7 +482,7 @@ impl Assembler {
     /// Get the set of procedure roots for all exports of the given module
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
-    fn module_exports(&mut self, module: ModuleIndex) -> Result<Vec<RpoDigest>, Report> {
+    fn get_module_exports(&mut self, module: ModuleIndex) -> Result<Vec<RpoDigest>, Report> {
         assert!(self.module_graph.contains_module(module), "invalid module index");
 
         let mut exports = Vec::new();

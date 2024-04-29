@@ -5,7 +5,7 @@ use crate::{
         reporting::{set_hook, ReportHandlerOpts},
         Report, SourceFile,
     },
-    Compile, CompileOpts, Library, LibraryPath, RpoDigest,
+    Compile, CompileOptions, Library, LibraryPath, RpoDigest,
 };
 
 #[cfg(feature = "std")]
@@ -222,7 +222,7 @@ impl TestContext {
     /// valid.
     #[track_caller]
     pub fn parse_program(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOpts {
+        source.compile_with_options(CompileOptions {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..Default::default()
         })
@@ -235,9 +235,9 @@ impl TestContext {
     #[allow(unused)]
     #[track_caller]
     pub fn parse_kernel(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOpts {
+        source.compile_with_options(CompileOptions {
             warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOpts::for_kernel()
+            ..CompileOptions::for_kernel()
         })
     }
 
@@ -247,9 +247,9 @@ impl TestContext {
     /// valid.
     #[track_caller]
     pub fn parse_module(&mut self, source: impl Compile) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOpts {
+        source.compile_with_options(CompileOptions {
             warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOpts::for_library()
+            ..CompileOptions::for_library()
         })
     }
 
@@ -260,9 +260,9 @@ impl TestContext {
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<Box<Module>, Report> {
-        source.compile_with_options(CompileOpts {
+        source.compile_with_options(CompileOptions {
             warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOpts::new(ModuleKind::Library, path).unwrap()
+            ..CompileOptions::new(ModuleKind::Library, path).unwrap()
         })
     }
 
@@ -286,9 +286,9 @@ impl TestContext {
     ) -> Result<(), Report> {
         self.assembler.add_module_with_options(
             source,
-            CompileOpts {
+            CompileOptions {
                 path: Some(path),
-                ..CompileOpts::for_library()
+                ..CompileOptions::for_library()
             },
         )
     }
@@ -322,10 +322,10 @@ impl TestContext {
         let mut context = AssemblyContext::for_library(&path);
         context.set_warnings_as_errors(self.assembler.warnings_as_errors());
 
-        let options = CompileOpts {
+        let options = CompileOptions {
             path: Some(path),
             warnings_as_errors: self.assembler.warnings_as_errors(),
-            ..CompileOpts::for_library()
+            ..CompileOptions::for_library()
         };
         self.assembler.assemble_module(module, options, &mut context)
     }

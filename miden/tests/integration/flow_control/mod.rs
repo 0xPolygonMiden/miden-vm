@@ -402,7 +402,7 @@ fn procref() {
     // obtain procedures' MAST roots by compiling them as module
     let module_path = "test::foo".parse::<LibraryPath>().unwrap();
     let mut context = AssemblyContext::for_library(&module_path);
-    let opts = assembly::CompileOpts::new(ModuleKind::Library, module_path).unwrap();
+    let opts = assembly::CompileOptions::new(ModuleKind::Library, module_path).unwrap();
     let mast_roots = assembler.assemble_module(module_source, opts, &mut context).unwrap();
 
     let source = "
