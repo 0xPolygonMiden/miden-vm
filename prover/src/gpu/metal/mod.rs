@@ -1,7 +1,6 @@
 //! This module contains GPU acceleration logic for Apple Silicon devices.
 //! For now, the logic is limited to GPU accelerating trace and constraint commitments,
 //! using the RPO 256 or RPX 256 hash functions.
-mod tests;
 
 use crate::{
     crypto::{RandomCoin, Rpo256},
@@ -30,6 +29,9 @@ use winter_prover::{
     ConstraintCompositionCoefficients, DefaultConstraintEvaluator, EvaluationFrame, Prover,
     StarkDomain, TraceInfo, TraceLayout, TraceLde, TracePolyTable,
 };
+
+#[cfg(test)]
+mod tests;
 
 // CONSTANTS
 // ================================================================================================
