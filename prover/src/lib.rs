@@ -18,7 +18,7 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
-use tracing::instrument;
+use tracing::{instrument, Level};
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
@@ -27,8 +27,6 @@ use winter_prover::{
 
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
-
-#[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 mod gpu;
 
 // EXPORTS
@@ -102,7 +100,7 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::MetalExecutionProver::new(prover, HashFn::Rpo256);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
             prover.prove(trace)
         }
         HashFunction::Rpx256 => {
@@ -112,7 +110,7 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::MetalExecutionProver::new(prover, HashFn::Rpx256);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
             prover.prove(trace)
         }
     }
