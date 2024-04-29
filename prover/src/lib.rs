@@ -8,9 +8,12 @@ extern crate std;
 
 use air::{ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
+#[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+use miden_gpu::HashFn;
 use processor::{
     crypto::{
-        Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, WinterRandomCoin,
+        Blake3_192, Blake3_256, ElementHasher, RandomCoin, Rpo256, RpoRandomCoin, Rpx256,
+        RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
     ExecutionTrace,
@@ -24,8 +27,6 @@ use winter_prover::{
 
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
-
-#[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 mod gpu;
 
 // EXPORTS
@@ -99,7 +100,17 @@ where
                 stack_outputs.clone(),
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::MetalRpoExecutionProver(prover);
+            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
+            prover.prove(trace)
+        }
+        HashFunction::Rpx256 => {
+            let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
+                options,
+                stack_inputs,
+                stack_outputs.clone(),
+            );
+            #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
+            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
             prover.prove(trace)
         }
     }

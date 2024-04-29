@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 use vm_core::{
-    crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256},
+    crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256, Rpx256},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 use winter_air::proof::StarkProof;
@@ -47,6 +47,7 @@ impl ExecutionProof {
             HashFunction::Blake3_192 => self.proof.security_level::<Blake3_192>(true),
             HashFunction::Blake3_256 => self.proof.security_level::<Blake3_256>(true),
             HashFunction::Rpo256 => self.proof.security_level::<Rpo256>(true),
+            HashFunction::Rpx256 => self.proof.security_level::<Rpx256>(true),
         }
     }
 
@@ -94,6 +95,8 @@ pub enum HashFunction {
     Blake3_256 = 0x01,
     /// RPO hash function with 256-bit output.
     Rpo256 = 0x02,
+    /// RPX hash function with 256-bit output.
+    Rpx256 = 0x03,
 }
 
 impl Default for HashFunction {
@@ -109,6 +112,7 @@ impl HashFunction {
             HashFunction::Blake3_192 => Blake3_192::COLLISION_RESISTANCE,
             HashFunction::Blake3_256 => Blake3_256::COLLISION_RESISTANCE,
             HashFunction::Rpo256 => Rpo256::COLLISION_RESISTANCE,
+            HashFunction::Rpx256 => Rpx256::COLLISION_RESISTANCE,
         }
     }
 }
@@ -121,6 +125,7 @@ impl TryFrom<u8> for HashFunction {
             0x00 => Ok(Self::Blake3_192),
             0x01 => Ok(Self::Blake3_256),
             0x02 => Ok(Self::Rpo256),
+            0x03 => Ok(Self::Rpx256),
             _ => Err(DeserializationError::InvalidValue(format!(
                 "the hash function representation {repr} is not valid!"
             ))),

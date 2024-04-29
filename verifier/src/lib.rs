@@ -9,8 +9,8 @@ use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use alloc::vec;
 use core::fmt;
 use vm_core::crypto::{
-    hash::{Blake3_192, Blake3_256, Rpo256},
-    random::{RpoRandomCoin, WinterRandomCoin},
+    hash::{Blake3_192, Blake3_256, Rpo256, Rpx256},
+    random::{RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
 };
 use winter_verifier::verify as verify_proof;
 
@@ -52,7 +52,7 @@ pub use air::ExecutionProof;
 /// # Errors
 /// Returns an error if:
 /// - The provided proof does not prove a correct execution of the program.
-/// - The the protocol parameters used to generate the proof is not in the set of acceptable
+/// - The protocol parameters used to generate the proof are not in the set of acceptable
 ///   parameters.
 #[tracing::instrument("verify_program", skip_all)]
 pub fn verify(
@@ -82,6 +82,13 @@ pub fn verify(
                 ProvingOptions::RECURSIVE_128_BITS,
             ]);
             verify_proof::<ProcessorAir, Rpo256, RpoRandomCoin>(proof, pub_inputs, &opts)
+        }
+        HashFunction::Rpx256 => {
+            let opts = AcceptableOptions::OptionSet(vec![
+                ProvingOptions::RECURSIVE_96_BITS,
+                ProvingOptions::RECURSIVE_128_BITS,
+            ]);
+            verify_proof::<ProcessorAir, Rpx256, RpxRandomCoin>(proof, pub_inputs, &opts)
         }
     }
     .map_err(VerificationError::VerifierError)?;

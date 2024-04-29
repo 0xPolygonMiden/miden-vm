@@ -66,13 +66,14 @@ pub mod crypto {
         pub use miden_crypto::hash::{
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
+            rpx::{Rpx256, RpxDigest},
             ElementHasher, Hasher,
         };
     }
 
     pub mod random {
         pub use miden_crypto::rand::{
-            RandomCoin, RandomCoinError, RpoRandomCoin, WinterRandomCoin,
+            RandomCoin, RandomCoinError, RpoRandomCoin, RpxRandomCoin, WinterRandomCoin,
         };
     }
 
