@@ -1,4 +1,5 @@
 use crate::*;
+use alloc::vec::Vec;
 use air::{ProvingOptions, StarkField};
 use gpu::metal::{MetalExecutionProver, DIGEST_SIZE, RATE};
 use processor::{
