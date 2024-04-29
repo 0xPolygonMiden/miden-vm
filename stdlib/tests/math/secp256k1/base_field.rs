@@ -297,7 +297,8 @@ impl Neg for BaseField {
 impl Sub for BaseField {
     type Output = BaseField;
 
-    /// Computes modular subtraction of one secp256k1 base field element, from another one, in Montgomery form
+    /// Computes modular subtraction of one secp256k1 base field element, from another one, in
+    /// Montgomery form
     ///
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/base_field.py#L98-L102
     fn sub(self, rhs: Self) -> Self::Output {

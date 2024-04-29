@@ -1,10 +1,6 @@
-use super::{
-    AssemblyContext, AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList,
-    Instruction, Operation,
-};
-use alloc::string::ToString;
-use alloc::vec::Vec;
-use vm_core::{AdviceInjector, AssemblyOp};
+use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction};
+use alloc::{borrow::Borrow, string::ToString, vec::Vec};
+use vm_core::{code_blocks::CodeBlock, AdviceInjector, AssemblyOp, Operation};
 
 // SPAN BUILDER
 // ================================================================================================
@@ -24,9 +20,8 @@ pub struct SpanBuilder {
     last_asmop_pos: usize,
 }
 
+/// Constructors
 impl SpanBuilder {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
     /// Returns a new [SpanBuilder] instantiated with the specified optional wrapper.
     ///
     /// If the wrapper is provided, the prologue of the wrapper is immediately appended to the
@@ -43,26 +38,10 @@ impl SpanBuilder {
             None => Self::default(),
         }
     }
+}
 
-    // OPERATIONS
-    // --------------------------------------------------------------------------------------------
-
-    /// Adds the specified operation to the list of span operations and returns Ok(None).
-    pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblyError> {
-        self.ops.push(op);
-        Ok(None)
-    }
-
-    /// Adds the specified sequence operations to the list of span operations and returns Ok(None).
-    pub fn add_ops<I, O>(&mut self, ops: I) -> Result<Option<CodeBlock>, AssemblyError>
-    where
-        I: IntoIterator<Item = O>,
-        O: Borrow<Operation>,
-    {
-        self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
-        Ok(None)
-    }
-
+/// Operations
+impl SpanBuilder {
     /// Adds the specified operation to the list of span operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
@@ -82,10 +61,10 @@ impl SpanBuilder {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
     }
+}
 
-    // DECORATORS
-    // --------------------------------------------------------------------------------------------
-
+/// Decorators
+impl SpanBuilder {
     /// Add ths specified decorator to the list of span decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
@@ -101,7 +80,7 @@ impl SpanBuilder {
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
     pub fn track_instruction(&mut self, instruction: &Instruction, ctx: &AssemblyContext) {
-        let context_name = ctx.current_context_name().to_string();
+        let context_name = ctx.unwrap_current_procedure().name().to_string();
         let num_cycles = 0;
         let op = instruction.to_string();
         let should_break = instruction.should_break();
@@ -132,10 +111,10 @@ impl SpanBuilder {
             assembly_op.set_num_cycles(cycle_count as u8)
         }
     }
+}
 
-    // SPAN CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
+/// Span Constructors
+impl SpanBuilder {
     /// Creates a new SPAN block from the operations and decorators currently in this builder and
     /// appends the block to the provided target.
     ///
@@ -158,8 +137,8 @@ impl SpanBuilder {
     /// appends the block to the provided target.
     ///
     /// The main differences from the `extract_span_int()` method above are:
-    /// - Operations contained in the epilogue of the span builder are appended to the list of
-    ///   ops which go into the new SPAN block.
+    /// - Operations contained in the epilogue of the span builder are appended to the list of ops
+    ///   which go into the new SPAN block.
     /// - The span builder is consumed in the process.
     pub fn extract_final_span_into(mut self, target: &mut Vec<CodeBlock>) {
         self.ops.append(&mut self.epilogue);

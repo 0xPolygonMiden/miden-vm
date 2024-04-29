@@ -1,6 +1,8 @@
 use core::cmp;
 use processor::ExecutionError;
-use test_utils::{proptest::prelude::*, rand::rand_value, Felt, TestError, U32_BOUND, ZERO};
+use test_utils::{
+    expect_exec_error, proptest::prelude::*, rand::rand_value, Felt, U32_BOUND, ZERO,
+};
 
 // ADDITION
 // ------------------------------------------------------------------------------------------------
@@ -517,7 +519,7 @@ fn checked_and_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), ZERO)));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(b0), ZERO));
 }
 
 #[test]
@@ -555,7 +557,7 @@ fn checked_or_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), ZERO)));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(b0), ZERO));
 }
 
 #[test]
@@ -593,7 +595,7 @@ fn checked_xor_fail() {
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(Felt::new(b0), ZERO)));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(b0), ZERO));
 }
 
 #[test]

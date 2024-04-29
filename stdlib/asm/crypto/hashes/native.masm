@@ -1,3 +1,15 @@
+#! Prepares the top of the stack with the hasher initial state.
+#!
+#! This procedures does not handle padding, therefore, the user is expected to
+#! consume an amount of data which is a multiple of the rate (2 words).
+#!
+#! Input: []
+#! Ouptut: [PERM, PERM, PERM, ...]
+#! Cycles: 12
+export.init_no_padding
+   padw padw padw
+end
+
 #! Given the hasher state, returns the hash output
 #!
 #! Input: [C, B, A, ...]

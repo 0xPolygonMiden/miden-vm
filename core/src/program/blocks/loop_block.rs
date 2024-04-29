@@ -1,5 +1,7 @@
-use super::{fmt, hasher, CodeBlock, Digest, Felt, Operation};
 use alloc::boxed::Box;
+use core::fmt;
+
+use super::{hasher, CodeBlock, Digest, Felt, Operation};
 
 // LOOP BLOCK
 // ================================================================================================
@@ -50,8 +52,16 @@ impl Loop {
     }
 }
 
+impl crate::prettier::PrettyPrint for Loop {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        indent(4, const_text("while.true") + nl() + self.body.render()) + nl() + const_text("end")
+    }
+}
+
 impl fmt::Display for Loop {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "while.true {} end", self.body)
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
     }
 }

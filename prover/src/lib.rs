@@ -1,4 +1,10 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+
+#[cfg_attr(all(feature = "metal", target_arch = "aarch64", target_os = "macos"), macro_use)]
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use air::{ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
@@ -9,7 +15,7 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
-use tracing::{event, instrument, Level};
+use tracing::instrument;
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
@@ -38,8 +44,8 @@ pub use winter_prover::StarkProof;
 /// Executes and proves the specified `program` and returns the result together with a STARK-based
 /// proof of the program's execution.
 ///
-/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
-///   inputs for the VM.
+/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret) inputs
+///   for the VM.
 /// * `options` defines parameters for STARK proof generation.
 ///
 /// # Errors
@@ -60,8 +66,8 @@ where
     let trace =
         processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
     #[cfg(feature = "std")]
-    event!(
-        Level::INFO,
+    tracing::event!(
+        tracing::Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
         trace.layout().main_trace_width(),
         trace.trace_len_summary().padded_trace_len(),

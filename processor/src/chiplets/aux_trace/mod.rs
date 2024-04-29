@@ -1,6 +1,5 @@
-use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
-
 use alloc::vec::Vec;
+
 use miden_air::trace::{
     chiplets::{
         bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN,
@@ -14,8 +13,9 @@ use miden_air::trace::{
     },
     main_trace::MainTrace,
 };
-
 use vm_core::{Operation, Word, ONE, ZERO};
+
+use super::{super::trace::AuxColumnBuilder, Felt, FieldElement};
 
 // CONSTANTS
 // ================================================================================================

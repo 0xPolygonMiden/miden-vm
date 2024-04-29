@@ -1,5 +1,6 @@
-use super::super::{ExecutionError, Felt, Word};
 use alloc::vec::Vec;
+
+use super::super::{ExecutionError, Felt, Word};
 
 /// Gets as input a vector containing a secret key, and a word representing a message and outputs a
 /// vector of values to be pushed onto the advice stack.
@@ -66,7 +67,7 @@ pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> 
 }
 
 #[cfg(not(feature = "std"))]
-pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> {
+pub fn falcon_sign(_pk_sk: &[Felt], _msg: Word) -> Result<Vec<Felt>, ExecutionError> {
     Err(ExecutionError::FailedSignatureGeneration(
         "RPO Falcon512 signature generation is not available in no_std context",
     ))

@@ -1,14 +1,13 @@
-use super::{
-    field_ops::append_pow2_op,
-    push_u32_value, validate_param, AssemblyError, CodeBlock, Felt,
-    Operation::{self, *},
-    SpanBuilder, ZERO,
+use super::{field_ops::append_pow2_op, push_u32_value, validate_param, SpanBuilder};
+use crate::{
+    diagnostics::{RelatedError, Report},
+    AssemblyContext, AssemblyError, Span, MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE,
 };
-use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};
-use vm_core::AdviceInjector::{U32Clo, U32Clz, U32Cto, U32Ctz};
-
-// ENUMS
-// ================================================================================================
+use vm_core::{
+    AdviceInjector, Felt,
+    Operation::{self, *},
+    ZERO,
+};
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
 #[derive(PartialEq, Eq)]
@@ -24,10 +23,10 @@ pub enum U32OpMode {
 ///
 /// Implemented by executing DUP U32SPLIT SWAP DROP EQZ on each element in the word
 /// and combining the results using AND operation (total of 23 VM cycles)
-pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32testw(span_builder: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
-         // Test the fourth element
+        // Test the fourth element
         Dup3, U32split, Swap, Drop, Eqz,
 
         // Test the third element
@@ -39,17 +38,14 @@ pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         // Test the first element
         Dup1, U32split, Swap, Drop, Eqz, And,
     ];
-    span.add_ops(ops)
+    span_builder.push_ops(ops);
 }
 
 /// Translates u32assertw assembly instruction to VM operations.
 ///
 /// Implemented by executing `U32ASSERT2` on each pair of elements in the word.
 /// Total of 6 VM cycles.
-pub fn u32assertw(
-    span: &mut SpanBuilder,
-    err_code: Felt,
-) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32assertw(span_builder: &mut SpanBuilder, err_code: Felt) {
     #[rustfmt::skip]
     let ops = [
         // Test the first and the second elements
@@ -64,7 +60,7 @@ pub fn u32assertw(
         // Move the elements back into place
         MovUp3, MovUp3,
     ];
-    span.add_ops(ops)
+    span_builder.push_ops(ops);
 }
 
 // ARITHMETIC OPERATIONS
@@ -80,12 +76,8 @@ pub fn u32assertw(
 /// - u32wrapping_add.b: 3 cycles
 /// - u32overflowing_add: 1 cycles
 /// - u32overflowing_add.b: 2 cycles
-pub fn u32add(
-    span: &mut SpanBuilder,
-    op_mode: U32OpMode,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_arithmetic_operation(span, U32add, op_mode, imm)
+pub fn u32add(span_builder: &mut SpanBuilder, op_mode: U32OpMode, imm: Option<u32>) {
+    handle_arithmetic_operation(span_builder, U32add, op_mode, imm);
 }
 
 /// Translates u32sub assembly instructions to VM operations.
@@ -98,12 +90,8 @@ pub fn u32add(
 /// - u32wrapping_sub.b: 3 cycles
 /// - u32overflowing_sub: 1 cycles
 /// - u32overflowing_sub.b: 2 cycles
-pub fn u32sub(
-    span: &mut SpanBuilder,
-    op_mode: U32OpMode,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_arithmetic_operation(span, U32sub, op_mode, imm)
+pub fn u32sub(span_builder: &mut SpanBuilder, op_mode: U32OpMode, imm: Option<u32>) {
+    handle_arithmetic_operation(span_builder, U32sub, op_mode, imm);
 }
 
 /// Translates u32mul assembly instructions to VM operations.
@@ -116,12 +104,8 @@ pub fn u32sub(
 /// - u32wrapping_mul.b: 3 cycles
 /// - u32overflowing_mul: 1 cycles
 /// - u32overflowing_mul.b: 2 cycles
-pub fn u32mul(
-    span: &mut SpanBuilder,
-    op_mode: U32OpMode,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_arithmetic_operation(span, U32mul, op_mode, imm)
+pub fn u32mul(span_builder: &mut SpanBuilder, op_mode: U32OpMode, imm: Option<u32>) {
+    handle_arithmetic_operation(span_builder, U32mul, op_mode, imm);
 }
 
 /// Translates u32div assembly instructions to VM operations.
@@ -132,11 +116,13 @@ pub fn u32mul(
 ///    - 4 cycles if b is 1
 ///    - 3 cycles if b is not 1
 pub fn u32div(
-    span: &mut SpanBuilder,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_division(span, imm)?;
-    span.add_op(Drop)
+    span_builder: &mut SpanBuilder,
+    ctx: &AssemblyContext,
+    imm: Option<Span<u32>>,
+) -> Result<(), AssemblyError> {
+    handle_division(span_builder, ctx, imm)?;
+    span_builder.push_op(Drop);
+    Ok(())
 }
 
 /// Translates u32mod assembly instructions to VM operations.
@@ -147,11 +133,13 @@ pub fn u32div(
 ///    - 5 cycles if b is 1
 ///    - 4 cycles if b is not 1
 pub fn u32mod(
-    span: &mut SpanBuilder,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_division(span, imm)?;
-    span.add_ops([Swap, Drop])
+    span_builder: &mut SpanBuilder,
+    ctx: &AssemblyContext,
+    imm: Option<Span<u32>>,
+) -> Result<(), AssemblyError> {
+    handle_division(span_builder, ctx, imm)?;
+    span_builder.push_ops([Swap, Drop]);
+    Ok(())
 }
 
 /// Translates u32divmod assembly instructions to VM operations.
@@ -162,57 +150,11 @@ pub fn u32mod(
 ///    - 3 cycles if b is 1
 ///    - 2 cycles if b is not 1
 pub fn u32divmod(
-    span: &mut SpanBuilder,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_division(span, imm)
-}
-
-// ARITHMETIC OPERATIONS - HELPERS
-// ================================================================================================
-
-/// Handles U32ADD, U32SUB, and U32MUL operations in wrapping, and overflowing modes, including
-/// handling of immediate parameters.
-///
-/// Specifically handles these specific inputs per the spec.
-/// - Wrapping: does not check if the inputs are u32 values; overflow or underflow bits are
-///   discarded.
-/// - Overflowing: does not check if the inputs are u32 values; overflow or underflow bits are
-///   pushed onto the stack.
-fn handle_arithmetic_operation(
-    span: &mut SpanBuilder,
-    op: Operation,
-    op_mode: U32OpMode,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    if let Some(imm) = imm {
-        push_u32_value(span, imm);
-    }
-
-    span.push_op(op);
-
-    // in the wrapping mode, drop high 32 bits
-    if matches!(op_mode, U32OpMode::Wrapping) {
-        span.add_op(Drop)
-    } else {
-        Ok(None)
-    }
-}
-
-/// Handles common parts of u32div, u32mod, and u32divmod operations, including handling of
-/// immediate parameters.
-fn handle_division(
-    span: &mut SpanBuilder,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    if let Some(imm) = imm {
-        if imm == 0 {
-            return Err(AssemblyError::division_by_zero());
-        }
-        push_u32_value(span, imm);
-    }
-
-    span.add_op(U32div)
+    span_builder: &mut SpanBuilder,
+    ctx: &AssemblyContext,
+    imm: Option<Span<u32>>,
+) -> Result<(), AssemblyError> {
+    handle_division(span_builder, ctx, imm)
 }
 
 // BITWISE OPERATIONS
@@ -224,7 +166,7 @@ fn handle_division(
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
 ///
 /// This takes 5 VM cycles.
-pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32not(span_builder: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         // Perform the operation
@@ -236,7 +178,7 @@ pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
         // Drop the underflow flag
         Drop,
     ];
-    span.add_ops(ops)
+    span_builder.push_ops(ops);
 }
 
 /// Translates u32shl assembly instructions to VM operations.
@@ -247,13 +189,12 @@ pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// VM cycles per mode:
 /// - u32shl: 18 cycles
 /// - u32shl.b: 3 cycles
-pub fn u32shl(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBlock>, AssemblyError> {
-    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm)?;
+pub fn u32shl(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, imm)?;
     if imm != Some(0) {
-        span.add_ops([U32mul, Drop])
-    } else {
-        Ok(None)
+        span_builder.push_ops([U32mul, Drop]);
     }
+    Ok(())
 }
 
 /// Translates u32shr assembly instructions to VM operations.
@@ -264,13 +205,12 @@ pub fn u32shl(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBloc
 /// VM cycles per mode:
 /// - u32shr: 18 cycles
 /// - u32shr.b: 3 cycles
-pub fn u32shr(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBlock>, AssemblyError> {
-    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm)?;
+pub fn u32shr(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span_builder, imm)?;
     if imm != Some(0) {
-        span.add_ops([U32div, Drop])
-    } else {
-        Ok(None)
+        span_builder.push_ops([U32div, Drop]);
     }
+    Ok(())
 }
 
 /// Translates u32rotl assembly instructions to VM operations.
@@ -281,16 +221,12 @@ pub fn u32shr(span: &mut SpanBuilder, imm: Option<u8>) -> Result<Option<CodeBloc
 /// VM cycles per mode:
 /// - u32rotl: 18 cycles
 /// - u32rotl.b: 3 cycles
-pub fn u32rotl(
-    span: &mut SpanBuilder,
-    imm: Option<u8>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
-    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span, imm)?;
+pub fn u32rotl(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
+    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span_builder, imm)?;
     if imm != Some(0) {
-        span.add_ops([U32mul, Add])
-    } else {
-        Ok(None)
+        span_builder.push_ops([U32mul, Add]);
     }
+    Ok(())
 }
 
 /// Translates u32rotr assembly instructions to VM operations.
@@ -301,32 +237,30 @@ pub fn u32rotl(
 /// VM cycles per mode:
 /// - u32rotr: 22 cycles
 /// - u32rotr.b: 3 cycles
-pub fn u32rotr(
-    span: &mut SpanBuilder,
-    imm: Option<u8>,
-) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32rotr(span_builder: &mut SpanBuilder, imm: Option<u8>) -> Result<(), AssemblyError> {
     match imm {
         Some(0) => {
             // if rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
-            return Ok(None);
+            span_builder.push_op(Noop);
+            return Ok(());
         }
         Some(imm) => {
             validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
-            span.push_op(Push(Felt::new(1 << (32 - imm))));
+            span_builder.push_op(Push(Felt::new(1 << (32 - imm))));
         }
         None => {
-            span.push_ops([Push(Felt::new(32)), Swap, U32sub, Drop]);
-            append_pow2_op(span);
+            span_builder.push_ops([Push(Felt::new(32)), Swap, U32sub, Drop]);
+            append_pow2_op(span_builder);
         }
     }
-    span.add_ops([U32mul, Add])
+    span_builder.push_ops([U32mul, Add]);
+    Ok(())
 }
 
 /// Translates u32popcnt assembly instructions to VM operations.
 ///
 /// This operation takes 33 cycles.
-pub fn u32popcnt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32popcnt(span_builder: &mut SpanBuilder) {
     #[rustfmt::skip]
     let ops = [
         // i = i - ((i >> 1) & 0x55555555);
@@ -355,7 +289,7 @@ pub fn u32popcnt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
         U32mul, Drop,
         Push(Felt::new(1 << 24)), U32div, Drop
     ];
-    span.add_ops(ops)
+    span_builder.push_ops(ops);
 }
 
 /// Translates `u32clz` assembly instruction to VM operations. `u32clz` counts the number of
@@ -363,11 +297,11 @@ pub fn u32popcnt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 /// provider).
 ///
 /// This operation takes 37 VM cycles.
-pub fn u32clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.push_advice_injector(U32Clz);
+pub fn u32clz(span: &mut SpanBuilder) {
+    span.push_advice_injector(AdviceInjector::U32Clz);
     span.push_op(AdvPop); // [clz, n, ...]
 
-    calculate_clz(span)
+    calculate_clz(span);
 }
 
 /// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
@@ -375,11 +309,11 @@ pub fn u32clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// provider).
 ///
 /// This operation takes 34 VM cycles.
-pub fn u32ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.push_advice_injector(U32Ctz);
+pub fn u32ctz(span: &mut SpanBuilder) {
+    span.push_advice_injector(AdviceInjector::U32Ctz);
     span.push_op(AdvPop); // [ctz, n, ...]
 
-    calculate_ctz(span)
+    calculate_ctz(span);
 }
 
 /// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
@@ -387,11 +321,11 @@ pub fn u32ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// provider).
 ///
 /// This operation takes 36 VM cycles.
-pub fn u32clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.push_advice_injector(U32Clo);
+pub fn u32clo(span: &mut SpanBuilder) {
+    span.push_advice_injector(AdviceInjector::U32Clo);
     span.push_op(AdvPop); // [clo, n, ...]
 
-    calculate_clo(span)
+    calculate_clo(span);
 }
 
 /// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
@@ -399,11 +333,59 @@ pub fn u32clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// provider).
 ///
 /// This operation takes 33 VM cycles.
-pub fn u32cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.push_advice_injector(U32Cto);
+pub fn u32cto(span: &mut SpanBuilder) {
+    span.push_advice_injector(AdviceInjector::U32Cto);
     span.push_op(AdvPop); // [cto, n, ...]
 
-    calculate_cto(span)
+    calculate_cto(span);
+}
+
+/// Specifically handles these specific inputs per the spec.
+/// - Wrapping: does not check if the inputs are u32 values; overflow or underflow bits are
+///   discarded.
+/// - Overflowing: does not check if the inputs are u32 values; overflow or underflow bits are
+///   pushed onto the stack.
+fn handle_arithmetic_operation(
+    span_builder: &mut SpanBuilder,
+    op: Operation,
+    op_mode: U32OpMode,
+    imm: Option<u32>,
+) {
+    if let Some(imm) = imm {
+        push_u32_value(span_builder, imm);
+    }
+
+    span_builder.push_op(op);
+
+    // in the wrapping mode, drop high 32 bits
+    if matches!(op_mode, U32OpMode::Wrapping) {
+        span_builder.push_op(Drop);
+    }
+}
+
+/// Handles common parts of u32div, u32mod, and u32divmod operations, including handling of
+/// immediate parameters.
+fn handle_division(
+    span_builder: &mut SpanBuilder,
+    ctx: &AssemblyContext,
+    imm: Option<Span<u32>>,
+) -> Result<(), AssemblyError> {
+    if let Some(imm) = imm {
+        if imm == 0 {
+            let source_file = ctx.unwrap_current_procedure().source_file();
+            let error =
+                Report::new(crate::parser::ParsingError::DivisionByZero { span: imm.span() });
+            return if let Some(source_file) = source_file {
+                Err(AssemblyError::Other(RelatedError::new(error.with_source_code(source_file))))
+            } else {
+                Err(AssemblyError::Other(RelatedError::new(error)))
+            };
+        }
+        push_u32_value(span_builder, imm.into_inner());
+    }
+
+    span_builder.push_op(U32div);
+    Ok(())
 }
 
 // BITWISE OPERATIONS - HELPERS
@@ -412,20 +394,20 @@ pub fn u32cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// Mutate the first two elements of the stack from `[b, a, ..]` into `[2^b, a, ..]`, with `b`
 /// either as a provided immediate value, or as an element that already exists in the stack.
 fn prepare_bitwise<const MAX_VALUE: u8>(
-    span: &mut SpanBuilder,
+    span_builder: &mut SpanBuilder,
     imm: Option<u8>,
 ) -> Result<(), AssemblyError> {
     match imm {
         Some(0) => {
             // if shift/rotation is performed by 0, do nothing (Noop)
-            span.push_op(Noop);
+            span_builder.push_op(Noop);
         }
         Some(imm) => {
             validate_param(imm, 1..=MAX_VALUE)?;
-            span.push_op(Push(Felt::new(1 << imm)));
+            span_builder.push_op(Push(Felt::new(1 << imm)));
         }
         None => {
-            append_pow2_op(span);
+            append_pow2_op(span_builder);
         }
     }
     Ok(())
@@ -467,7 +449,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 /// `[clz, n, ... ] -> [clz, ... ]`
 ///
 /// VM cycles: 36
-fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+fn calculate_clz(span: &mut SpanBuilder) {
     // [clz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -481,29 +463,29 @@ fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     let ops_group_2 = [
         Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clz), n, clz, ...]
 
-        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...] 
-                        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz` 
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clz), pow2(32 - clz), n, clz, ...]
+                        // `2^32 - pow2(32 - clz)` is equal to `clz` leading ones and `32 - clz`
                         // zeros:
                         // 1111111111...1110000...0
                         // └─ `clz` ones ─┘
 
-        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...] 
-                                              // pow2(32 - clz) / 2 is equal to `clz` leading 
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clz) / 2, 2^32 - pow2(32 - clz), n, clz, ...]
+                                              // pow2(32 - clz) / 2 is equal to `clz` leading
                                               // zeros, `1` one and all other zeros.
 
-        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...] 
+        Swap, Dup1, Add, // [bit_mask, pow2(32 - clz) / 2, n, clz, ...]
                          // 1111111111...111000...0 <-- bitmask
                          // └─  clz ones ─┘│
                          //                └─ additional one
 
-        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz] 
-                        // If calcualtion of `clz` is correct, m should be equal to 
+        MovUp2, U32and, // [m, pow2(32 - clz) / 2, clz]
+                        // If calcualtion of `clz` is correct, m should be equal to
                         // pow2(32 - clz) / 2
 
         Eq, Assert(0) // [clz, ...]
     ];
 
-    span.add_ops(ops_group_2)
+    span.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Clo`
@@ -542,7 +524,7 @@ fn calculate_clz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 /// `[clo, n, ... ] -> [clo, ... ]`
 ///
 /// VM cycles: 35
-fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+fn calculate_clo(span: &mut SpanBuilder) {
     // [clo, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -556,29 +538,29 @@ fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     let ops_group_2 = [
         Push(Felt::new(u32::MAX as u64 + 1)), // [2^32, pow2(32 - clo), n, clo, ...]
 
-        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...] 
-                        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo` 
+        Dup1, Neg, Add, // [2^32 - pow2(32 - clo), pow2(32 - clo), n, clo, ...]
+                        // `2^32 - pow2(32 - clo)` is equal to `clo` leading ones and `32 - clo`
                         // zeros:
                         // 11111111...1110000...0
                         // └─ clo ones ─┘
 
-        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...] 
-                                              // pow2(32 - clo) / 2 is equal to `clo` leading 
+        Swap, Push(2u8.into()), U32div, Drop, // [pow2(32 - clo) / 2, 2^32 - pow2(32 - clo), n, clo, ...]
+                                              // pow2(32 - clo) / 2 is equal to `clo` leading
                                               // zeros, `1` one and all other zeros.
 
-        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...] 
+        Dup1, Add, // [bit_mask, 2^32 - pow2(32 - clo), n, clo, ...]
                    // 111111111...111000...0 <-- bitmask
                    // └─ clo ones ─┘│
                    //               └─ additional one
 
-        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo] 
-                        // If calcualtion of `clo` is correct, m should be equal to 
+        MovUp2, U32and, // [m, 2^32 - pow2(32 - clo), clo]
+                        // If calcualtion of `clo` is correct, m should be equal to
                         // 2^32 - pow2(32 - clo)
 
         Eq, Assert(0) // [clo, ...]
     ];
 
-    span.add_ops(ops_group_2)
+    span.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Ctz`
@@ -617,7 +599,7 @@ fn calculate_clo(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 /// `[ctz, n, ... ] -> [ctz, ... ]`
 ///
 /// VM cycles: 33
-fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+fn calculate_ctz(span: &mut SpanBuilder) {
     // [ctz, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -630,29 +612,29 @@ fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
     #[rustfmt::skip]
     let ops_group_2 = [
         Dup0, // [pow2(ctz), pow2(ctz), n, ctz, ...]
-              // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
+        // pow2(ctz) is equal to all zeros with only one on the `ctz`'th trailing position
 
         Pad, Incr, Neg, Add, // [pow2(ctz) - 1, pow2(ctz), n, ctz, ...]
 
         Swap, U32split, Drop, // [pow2(ctz), pow2(ctz) - 1, n, ctz, ...]
-                              // We need to drop the high bits of `pow2(ctz)` because if `ctz` 
+                              // We need to drop the high bits of `pow2(ctz)` because if `ctz`
                               // equals 32 `pow2(ctz)` will exceed the u32. Also in that case there
                               // is no need to check the dividing one, since it is absent (value is
-                              // all 0's). 
+                              // all 0's).
 
         Dup0, MovUp2, Add, // [bit_mask, pow2(ctz), n, ctz]
                            // 00..001111111111...11 <-- bitmask
                            //       │└─ ctz ones ─┘
                            //       └─ additional one
-                           
+
         MovUp2, U32and, // [m, pow2(ctz), ctz]
-                        // If calcualtion of `ctz` is correct, m should be equal to 
+                        // If calcualtion of `ctz` is correct, m should be equal to
                         // pow2(ctz)
 
         Eq, Assert(0), // [ctz, ...]
     ];
 
-    span.add_ops(ops_group_2)
+    span.push_ops(ops_group_2);
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Cto`
@@ -691,7 +673,7 @@ fn calculate_ctz(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 /// `[cto, n, ... ] -> [cto, ... ]`
 ///
 /// VM cycles: 32
-fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+fn calculate_cto(span: &mut SpanBuilder) {
     // [cto, n, ...]
     #[rustfmt::skip]
     let ops_group_1 = [
@@ -709,24 +691,24 @@ fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
         Pad, Incr, Neg, Add, // [pow2(cto) - 1, pow2(cto), n, cto, ...]
 
         Swap, U32split, Drop, // [pow2(cto), pow2(cto) - 1, n, cto, ...]
-                              // We need to drop the high bits of `pow2(cto)` because if `cto` 
+                              // We need to drop the high bits of `pow2(cto)` because if `cto`
                               // equals 32 `pow2(cto)` will exceed the u32. Also in that case there
-                              // is no need to check the dividing zero, since it is absent (value 
-                              // is all 1's). 
+                              // is no need to check the dividing zero, since it is absent (value
+                              // is all 1's).
 
         Dup1, Add, // [bit_mask, pow2(cto) - 1, n, cto]
                    // 00..001111111111...11 <-- bitmask
                    //       │└─ cto ones ─┘
                    //       └─ additional one
-                           
+
         MovUp2, U32and, // [m, pow2(cto) - 1, cto]
-                        // If calcualtion of `cto` is correct, m should be equal to 
+                        // If calcualtion of `cto` is correct, m should be equal to
                         // pow2(cto) - 1
 
         Eq, Assert(0), // [cto, ...]
     ];
 
-    span.add_ops(ops_group_2)
+    span.push_ops(ops_group_2);
 }
 
 // COMPARISON OPERATIONS
@@ -735,44 +717,40 @@ fn calculate_cto(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyEr
 /// Translates u32lt assembly instructions to VM operations.
 ///
 /// This operation takes 3 cycles.
-pub fn u32lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    compute_lt(span);
-
-    Ok(None)
+pub fn u32lt(span_builder: &mut SpanBuilder) {
+    compute_lt(span_builder);
 }
 
 /// Translates u32lte assembly instructions to VM operations.
 ///
 /// This operation takes 5 cycles.
-pub fn u32lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32lte(span_builder: &mut SpanBuilder) {
     // Compute the lt with reversed number to get a gt check
-    span.push_op(Swap);
-    compute_lt(span);
+    span_builder.push_op(Swap);
+    compute_lt(span_builder);
 
     // Flip the final results to get the lte results.
-    span.add_op(Not)
+    span_builder.push_op(Not);
 }
 
 /// Translates u32gt assembly instructions to VM operations.
 ///
 /// This operation takes 4 cycles.
-pub fn u32gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub fn u32gt(span_builder: &mut SpanBuilder) {
     // Reverse the numbers so we can get a gt check.
-    span.push_op(Swap);
+    span_builder.push_op(Swap);
 
-    compute_lt(span);
-
-    Ok(None)
+    compute_lt(span_builder);
 }
 
 /// Translates u32gte assembly instructions to VM operations.
 ///
 /// This operation takes 4 cycles.
-pub fn u32gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    compute_lt(span);
+pub fn u32gte(span_builder: &mut SpanBuilder) {
+    compute_lt(span_builder);
 
     // Flip the final results to get the gte results.
-    span.add_op(Not)
+    span_builder.push_op(Not);
 }
 
 /// Translates u32min assembly instructions to VM operations.
@@ -782,11 +760,11 @@ pub fn u32gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// Then we finally drop the top element to keep the min.
 ///
 /// This operation takes 8 cycles.
-pub fn u32min(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    compute_max_and_min(span);
+pub fn u32min(span_builder: &mut SpanBuilder) {
+    compute_max_and_min(span_builder);
 
     // Drop the max and keep the min
-    span.add_op(Drop)
+    span_builder.push_op(Drop);
 }
 
 /// Translates u32max assembly instructions to VM operations.
@@ -796,11 +774,11 @@ pub fn u32min(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 /// Then we finally drop the 2nd element to keep the max.
 ///
 /// This operation takes 9 cycles.
-pub fn u32max(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    compute_max_and_min(span);
+pub fn u32max(span_builder: &mut SpanBuilder) {
+    compute_max_and_min(span_builder);
 
     // Drop the min and keep the max
-    span.add_ops([Swap, Drop])
+    span_builder.push_ops([Swap, Drop]);
 }
 
 // COMPARISON OPERATIONS - HELPERS
@@ -808,8 +786,8 @@ pub fn u32max(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError
 
 /// Inserts the VM operations to check if the second element is less than
 /// the top element. This takes 3 cycles.
-fn compute_lt(span: &mut SpanBuilder) {
-    span.push_ops([
+fn compute_lt(span_builder: &mut SpanBuilder) {
+    span_builder.push_ops([
         U32sub, Swap, Drop, // Perform the operations
     ])
 }
@@ -817,12 +795,12 @@ fn compute_lt(span: &mut SpanBuilder) {
 /// Duplicate the top two elements in the stack and determine the min and max between them.
 ///
 /// The maximum number will be at the top of the stack and minimum will be at the 2nd index.
-fn compute_max_and_min(span: &mut SpanBuilder) {
+fn compute_max_and_min(span_builder: &mut SpanBuilder) {
     // Copy top two elements of the stack.
-    span.push_ops([Dup1, Dup1]);
+    span_builder.push_ops([Dup1, Dup1]);
 
     #[rustfmt::skip]
-    span.push_ops([
+    span_builder.push_ops([
         U32sub, Swap, Drop,
 
         // Check the underflow flag, if it's zero

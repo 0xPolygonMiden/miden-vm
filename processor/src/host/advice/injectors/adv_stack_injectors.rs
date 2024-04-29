@@ -27,8 +27,8 @@ type QuadFelt = QuadExtension<Felt>;
 /// # Errors
 /// Returns an error if:
 /// - Merkle tree for the specified root cannot be found in the advice provider.
-/// - The specified depth is either zero or greater than the depth of the Merkle tree
-///   identified by the specified root.
+/// - The specified depth is either zero or greater than the depth of the Merkle tree identified by
+///   the specified root.
 /// - Value of the node at the specified depth and index is not known to the advice provider.
 pub(crate) fn copy_merkle_node_to_adv_stack<S: ProcessState, A: AdviceProvider>(
     advice_provider: &mut A,
@@ -199,14 +199,13 @@ pub(crate) fn push_ext2_inv_result<S: ProcessState, A: AdviceProvider>(
 ///   Operand stack: [output_size, input_size, input_start_ptr, ...]
 ///   Advice stack: [coefficients...]
 ///
-/// - `input_size` is the number of evaluations (each evaluation is 2 base field elements).
-///   Must be a power of 2 and greater 1.
-/// - `output_size` is the number of coefficients in the interpolated polynomial (each
-///   coefficient is 2 base field elements). Must be smaller than or equal to the number of
-///   input evaluations.
+/// - `input_size` is the number of evaluations (each evaluation is 2 base field elements). Must be
+///   a power of 2 and greater 1.
+/// - `output_size` is the number of coefficients in the interpolated polynomial (each coefficient
+///   is 2 base field elements). Must be smaller than or equal to the number of input evaluations.
 /// - `input_start_ptr` is the memory address of the first evaluation.
-/// - `coefficients` are the coefficients of the interpolated polynomial such that lowest
-///   degree coefficients are located at the top of the advice stack.
+/// - `coefficients` are the coefficients of the interpolated polynomial such that lowest degree
+///   coefficients are located at the top of the advice stack.
 ///
 /// # Errors
 /// Returns an error if:

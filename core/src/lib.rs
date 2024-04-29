@@ -1,10 +1,53 @@
 #![no_std]
 
+#[macro_use]
+extern crate alloc;
+
 #[cfg(feature = "std")]
 extern crate std;
 
-#[macro_use]
-extern crate alloc;
+/// This is an implementation of `std::assert_matches::assert_matches`
+/// so it can be removed when that feature stabilizes upstream
+#[macro_export]
+macro_rules! assert_matches {
+    ($left:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )? $(,)?) => {
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                panic!(r#"
+assertion failed: `(left matches right)`
+    left: `{:?}`,
+    right: `{}`"#, left_val, stringify!($($pattern)|+ $(if $guard)?));
+            }
+        }
+    };
+
+    ($left:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )?, $msg:literal $(,)?) => {
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                panic!(concat!(r#"
+assertion failed: `(left matches right)`
+    left: `{:?}`,
+    right: `{}`
+"#, $msg), left_val, stringify!($($pattern)|+ $(if $guard)?));
+            }
+        }
+    };
+
+    ($left:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )?, $msg:literal, $($arg:tt)+) => {
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                panic!(concat!(r#"
+assertion failed: `(left matches right)`
+    left: `{:?}`,
+    right: `{}`
+"#, $msg), left_val, stringify!($($pattern)|+ $(if $guard)?), $($arg)+);
+            }
+        }
+    }
+}
 
 pub mod chiplets;
 pub mod errors;
@@ -42,6 +85,10 @@ pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
     polynom, ExtensionOf, FieldElement, StarkField, ToElements,
 };
+
+pub mod prettier {
+    pub use miden_formatting::{prettier::*, pretty_via_display, pretty_via_to_string};
+}
 
 mod program;
 pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};

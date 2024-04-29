@@ -219,8 +219,8 @@ impl Mul for ScalarField {
         c[8..16].copy_from_slice(&d[0..8]);
 
         let mut one = Self::one().limbs;
-        for i in 0..8 {
-            one[i] *= pc;
+        for limb in one.iter_mut() {
+            *limb *= pc;
         }
 
         pc = 0;

@@ -1,4 +1,7 @@
-use assembly::{LibraryNamespace, MaslLibrary, Version};
+use assembly::{
+    diagnostics::{IntoDiagnostic, Report},
+    LibraryNamespace, MaslLibrary, Version,
+};
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -20,7 +23,7 @@ pub struct BundleCmd {
 }
 
 impl BundleCmd {
-    pub fn execute(&self) -> Result<(), String> {
+    pub fn execute(&self) -> Result<(), Report> {
         println!("============================================================");
         println!("Build library");
         println!("============================================================");
@@ -36,19 +39,12 @@ impl BundleCmd {
         };
 
         let library_namespace =
-            LibraryNamespace::try_from(namespace.clone()).expect("invalid base namespace");
-        let version = Version::try_from(self.version.as_ref()).expect("invalid cargo version");
-        let with_source_locations = true;
-        let stdlib = MaslLibrary::read_from_dir(
-            self.dir.clone(),
-            library_namespace,
-            with_source_locations,
-            version,
-        )
-        .map_err(|e| e.to_string())?;
+            namespace.parse::<LibraryNamespace>().expect("invalid base namespace");
+        let version = self.version.parse::<Version>().expect("invalid cargo version");
+        let stdlib = MaslLibrary::read_from_dir(&self.dir, library_namespace, version)?;
 
         // write the masl output
-        stdlib.write_to_dir(self.dir.clone()).map_err(|e| e.to_string())?;
+        stdlib.write_to_dir(self.dir.clone()).into_diagnostic()?;
 
         println!("Built library {}", namespace);
 

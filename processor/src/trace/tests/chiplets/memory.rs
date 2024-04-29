@@ -8,8 +8,8 @@ use miden_air::trace::chiplets::{
     MEMORY_V_COL_RANGE,
 };
 
-/// Tests the generation of the `b_chip` bus column when only memory lookups are included. It ensures
-/// that trace generation is correct when all of the following are true.
+/// Tests the generation of the `b_chip` bus column when only memory lookups are included. It
+/// ensures that trace generation is correct when all of the following are true.
 ///
 /// - All possible memory operations are called by the stack.
 /// - Some requests from the Stack and responses from Memory occur at the same cycle.

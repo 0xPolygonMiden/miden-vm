@@ -60,15 +60,15 @@ pub trait Host {
     /// Handles the event emitted from the VM.
     fn on_event<S: ProcessState>(
         &mut self,
-        process: &S,
-        event_id: u32,
+        _process: &S,
+        _event_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Event with id {} emitted at step {} in context {}",
-            event_id,
-            process.clk(),
-            process.ctx()
+            _event_id,
+            _process.clk(),
+            _process.ctx()
         );
         Ok(HostResponse::None)
     }
@@ -76,26 +76,26 @@ pub trait Host {
     /// Handles the debug request from the VM.
     fn on_debug<S: ProcessState>(
         &mut self,
-        process: &S,
-        options: &DebugOptions,
+        _process: &S,
+        _options: &DebugOptions,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
-        debug::print_debug_info(process, options);
+        debug::print_debug_info(_process, _options);
         Ok(HostResponse::None)
     }
 
     /// Handles the trace emmited from the VM.
     fn on_trace<S: ProcessState>(
         &mut self,
-        process: &S,
-        trace_id: u32,
+        _process: &S,
+        _trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         #[cfg(feature = "std")]
         std::println!(
             "Trace with id {} emitted at step {} in context {}",
-            trace_id,
-            process.clk(),
-            process.ctx()
+            _trace_id,
+            _process.clk(),
+            _process.ctx()
         );
         Ok(HostResponse::None)
     }
@@ -152,8 +152,8 @@ pub trait Host {
     /// # Errors
     /// Returns an error if:
     /// - A Merkle tree for the specified root cannot be found in this advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
     fn get_adv_merkle_path<S: ProcessState>(
         &mut self,
@@ -216,7 +216,7 @@ where
 // HOST RESPONSE
 // ================================================================================================
 
-/// Response returned by the host upon successful execution of a [HostFunction].
+/// Response returned by the host upon successful execution of a [Host] function.
 #[derive(Debug)]
 pub enum HostResponse {
     MerklePath(MerklePath),

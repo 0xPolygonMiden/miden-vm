@@ -18,7 +18,8 @@ impl Scalar {
         }
     }
 
-    /// ECExt5 Scalar N = 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
+    /// ECExt5 Scalar N =
+    /// 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
     /// in radix-2^32 form
     ///
     /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L23-L32
@@ -131,21 +132,21 @@ impl Scalar {
     /// Given a scalar in radix-2^32 form, this routine converts it to Montgomery form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L235-L242
-    fn to_mont(&self) -> Self {
+    fn convert_to_mont(self) -> Self {
         self.mont_mul(&Self::get_r2())
     }
 
     /// Given a scalar in Montgomery form, this routine converts it to radix-2^32 form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L245-L251
-    fn from_mont(&self) -> Self {
+    fn convert_from_mont(&self) -> Self {
         self.mont_mul(&Self::one())
     }
 
     /// Raises scalar field element to n -th power | n = exp i.e. represented in radix-2^32 form
     fn pow(self, exp: Self) -> Self {
-        let s_mont = self.to_mont();
-        let mut r_mont = Self::one().to_mont();
+        let s_mont = self.convert_to_mont();
+        let mut r_mont = Self::one().convert_to_mont();
 
         for i in exp.limbs.iter().rev() {
             for j in (0u32..32).rev() {
@@ -155,7 +156,7 @@ impl Scalar {
                 }
             }
         }
-        r_mont.from_mont()
+        r_mont.convert_from_mont()
     }
 
     /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod N )
@@ -192,10 +193,6 @@ impl PartialEq for Scalar {
         }
 
         !flg
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !(*self == *other)
     }
 }
 
@@ -270,8 +267,8 @@ fn test_ec_ext5_scalar_mont_mul() {
     let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
-    for i in 0..10 {
-        assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+    for (i, limb) in c.limbs.iter().enumerate() {
+        assert_eq!(strace[i].as_int(), *limb as u64);
     }
 }
 
@@ -299,22 +296,22 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
             rand_value::<u32>() >> 1,
         ],
     };
-    let b = a.to_mont();
-    let c = b.from_mont();
+    let b = a.convert_to_mont();
+    let c = b.convert_from_mont();
 
     assert_eq!(a, c);
 
     let mut stack = [0u64; 10];
-    for i in 0..10 {
-        stack[i] = a.limbs[i] as u64;
+    for (i, limb) in a.limbs.iter().enumerate() {
+        stack[i] = *limb as u64;
     }
     stack.reverse();
 
     let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
-    for i in 0..10 {
-        assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+    for (i, limb) in c.limbs.iter().enumerate() {
+        assert_eq!(strace[i].as_int(), *limb as u64);
     }
 }
 
@@ -344,15 +341,15 @@ fn test_ec_ext5_scalar_inv() {
     let b = a.inv();
 
     let mut stack = [0u64; 10];
-    for i in 0..10 {
-        stack[i] = a.limbs[i] as u64;
+    for (i, limb) in a.limbs.iter().enumerate() {
+        stack[i] = *limb as u64;
     }
     stack.reverse();
 
     let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
-    for i in 0..10 {
-        assert_eq!(strace[i].as_int(), b.limbs[i] as u64);
+    for (i, limb) in b.limbs.iter().enumerate() {
+        assert_eq!(strace[i].as_int(), *limb as u64);
     }
 }

@@ -61,8 +61,8 @@ where
     /// # Errors
     /// Returns an error if:
     /// - Merkle tree for the specified root cannot be found in the advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     ///
     /// # Panics
@@ -110,8 +110,8 @@ where
     /// To perform the operation we do the following:
     /// 1. Update the node at the specified index in the Merkle tree with the specified root, and
     ///    get the Merkle path to it.
-    /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this
-    ///    we need to provide the old and the new node value.
+    /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this we
+    ///    need to provide the old and the new node value.
     /// 3. Verify that the computed old root is equal to the input root provided via the stack.
     /// 4. Replace the old node value with the computed new root.
     ///
@@ -126,8 +126,8 @@ where
     /// # Errors
     /// Returns an error if:
     /// - Merkle tree for the specified root cannot be found in the advice provider.
-    /// - The specified depth is either zero or greater than the depth of the Merkle tree
-    ///   identified by the specified root.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree identified
+    ///   by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     ///
     /// # Panics

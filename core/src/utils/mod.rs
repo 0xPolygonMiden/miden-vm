@@ -1,19 +1,20 @@
 use crate::Felt;
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 use core::{
-    fmt::{self, Debug, Write},
+    fmt::Debug,
     ops::{Bound, Range},
 };
 
 // RE-EXPORTS
 // ================================================================================================
 
-pub use winter_utils::{group_slice_elements, group_vector_elements};
-
 pub use miden_crypto::utils::{
     collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable, SliceReader,
 };
+#[cfg(feature = "std")]
+pub use winter_utils::ReadAdapter;
+pub use winter_utils::{group_slice_elements, group_vector_elements};
 
 pub mod math {
     pub use math::{batch_inversion, log2};
@@ -129,22 +130,4 @@ fn debug_assert_is_checked() {
 // FORMATTING
 // ================================================================================================
 
-/// Utility to convert a sequence of bytes to hex.
-pub fn to_hex(bytes: &[u8]) -> Result<String, fmt::Error> {
-    let mut s = String::with_capacity(bytes.len() * 2);
-
-    for byte in bytes {
-        write!(s, "{byte:02x}")?;
-    }
-
-    Ok(s)
-}
-
-/// Writes a hex string representation of provided bytes into the formatter.
-pub fn write_hex_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8]) -> fmt::Result {
-    write!(f, "0x")?;
-    for byte in bytes {
-        write!(f, "{byte:02x}")?;
-    }
-    Ok(())
-}
+pub use miden_formatting::hex::{to_hex, DisplayHex, ToHex};

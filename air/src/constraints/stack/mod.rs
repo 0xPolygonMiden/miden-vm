@@ -35,10 +35,10 @@ pub const NUM_GENERAL_CONSTRAINTS: usize = 17;
 /// The degrees of constraints in the general stack operations. Each operation being executed
 /// either shifts the stack to the left, right or doesn't effect it at all. Therefore, majority
 /// of the general transitions of a stack item would be common across the operations and composite
-/// flags were introduced to compute the individual stack item transition. A particular item lets say
-/// at depth ith in the next stack frame can be transitioned into from ith depth (no shift op) or
-/// (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the VM
-/// would require only 16 general constraints to encompass all the 16 stack positions.
+/// flags were introduced to compute the individual stack item transition. A particular item lets
+/// say at depth ith in the next stack frame can be transitioned into from ith depth (no shift op)
+/// or (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the
+/// VM would require only 16 general constraints to encompass all the 16 stack positions.
 /// The last constraint checks if the top element in the stack is a binary or not.
 pub const CONSTRAINT_DEGREES: [usize; NUM_GENERAL_CONSTRAINTS] = [
     // Each degree are being multiplied with the respective composite flags which are of degree 7.

@@ -1,12 +1,12 @@
 #![no_std]
 
+extern crate alloc;
+
 #[cfg(feature = "std")]
 extern crate std;
 
-#[macro_use]
-extern crate alloc;
-
 use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
+use alloc::vec;
 use core::fmt;
 use vm_core::crypto::{
     hash::{Blake3_192, Blake3_256, Rpo256},

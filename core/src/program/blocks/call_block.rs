@@ -1,5 +1,5 @@
-use super::{fmt, hasher, Digest, Felt, Operation};
-use crate::utils::to_hex;
+use super::{hasher, Digest, Felt, Operation};
+use core::fmt;
 
 // CALL BLOCK
 // ================================================================================================
@@ -79,17 +79,23 @@ impl Call {
     }
 }
 
+impl crate::prettier::PrettyPrint for Call {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        use miden_formatting::hex::ToHex;
+
+        let doc = if self.is_syscall {
+            const_text("syscall")
+        } else {
+            const_text("call")
+        };
+        doc + const_text(".") + text(self.fn_hash.as_bytes().to_hex_with_prefix())
+    }
+}
+
 impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_syscall {
-            write!(f, "syscall.0x")?;
-        } else {
-            write!(f, "call.0x")?;
-        }
-
-        let hex = to_hex(&self.fn_hash.as_bytes())?;
-        f.write_str(&hex)?;
-
-        Ok(())
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
     }
 }

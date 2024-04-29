@@ -70,9 +70,18 @@ impl Program {
     }
 }
 
+impl crate::prettier::PrettyPrint for Program {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        indent(4, const_text("begin") + nl() + self.root.render()) + nl() + const_text("end")
+    }
+}
+
 impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "begin {} end", self.root)
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
     }
 }
 

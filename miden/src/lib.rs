@@ -5,8 +5,9 @@
 // ================================================================================================
 
 pub use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyError, ParsingError,
+    self,
+    ast::{Module, ModuleKind},
+    diagnostics, Assembler, AssemblyError,
 };
 pub use processor::{
     crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost,

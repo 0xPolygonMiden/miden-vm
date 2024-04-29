@@ -13,9 +13,10 @@ use test_utils::{
 #[test]
 #[ignore]
 fn stark_verifier_e2f4() {
-    // An example MASM program to be verified inside Miden VM
-    // Note that output stack-overflow is not yet supported because of the way we handle public inputs
-    // in the STARK verifier is not yet general enough. Thus the output stack should be of size exactly 16.
+    // An example MASM program to be verified inside Miden VM.
+    // Note that output stack-overflow is not yet supported because of the way we handle public
+    // inputs in the STARK verifier is not yet general enough. Thus the output stack should be
+    // of size exactly 16.
     let example_source = "begin
             repeat.32
                 swap dup.1 add
@@ -50,7 +51,7 @@ pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
 ) -> Result<VerifierData, VerifierError> {
-    let program = Assembler::default().compile(source).unwrap();
+    let program = Assembler::default().assemble(source).unwrap();
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);

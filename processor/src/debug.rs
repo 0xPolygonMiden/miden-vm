@@ -1,11 +1,15 @@
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::fmt;
+
+use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
+
 use crate::{
     range::RangeChecker, system::ContextId, Chiplets, ChipletsLengths, Decoder, ExecutionError,
     Felt, Host, Process, Stack, System, TraceLenSummary,
 };
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use core::fmt;
-use vm_core::{AssemblyOp, Operation, StackOutputs, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -103,7 +107,8 @@ impl VmStateIterator {
             let b = assembly_ops[self.asmop_idx - 1].0 as u32;
             (
                 &assembly_ops[self.asmop_idx - 1],
-                // difference between current clock cycle and start clock cycle of the current asmop
+                // difference between current clock cycle and start clock cycle of the current
+                // asmop
                 (a.max(b) - a.min(b)) as u8,
             )
         } else {

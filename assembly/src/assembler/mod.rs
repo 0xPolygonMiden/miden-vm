@@ -1,107 +1,277 @@
-use super::{
-    ast::{instrument, Instruction, ModuleAst, Node, ProcedureAst, ProgramAst},
-    crypto::hash::RpoDigest,
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, Library, LibraryError,
-    LibraryPath, Module, NamedProcedure, Operation, Procedure, ProcedureId, ProcedureName, Program,
-    ONE, ZERO,
+use crate::{
+    ast::{
+        self, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind,
+        ModuleKind, ProcedureIndex,
+    },
+    diagnostics::{tracing::instrument, Report},
+    sema::SemanticAnalysisError,
+    AssemblyError, Compile, CompileOptions, Felt, Library, LibraryNamespace, LibraryPath,
+    RpoDigest, Spanned, ONE, ZERO,
 };
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use core::{borrow::Borrow, cell::RefCell};
-use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
-
-mod instruction;
-
-mod module_provider;
-use module_provider::ModuleProvider;
-
-mod span_builder;
-use span_builder::SpanBuilder;
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use vm_core::{
+    code_blocks::CodeBlock, utils::group_vector_elements, CodeBlockTable, Decorator, DecoratorList,
+    Kernel, Operation, Program,
+};
 
 mod context;
-pub use context::AssemblyContext;
-
-mod procedure_cache;
-use procedure_cache::ProcedureCache;
-
+mod id;
+mod instruction;
+mod module_graph;
+mod procedure;
+mod span_builder;
 #[cfg(test)]
 mod tests;
 
-// ASSEMBLER
+pub use self::context::AssemblyContext;
+pub use self::id::{GlobalProcedureIndex, ModuleIndex};
+pub(crate) use self::module_graph::ProcedureCache;
+pub use self::procedure::Procedure;
+
+use self::context::ProcedureContext;
+use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
+use self::span_builder::SpanBuilder;
+
+// ARTIFACT KIND
 // ================================================================================================
-/// Miden Assembler which can be used to convert Miden assembly source code into program MAST.
-///
-/// The assembler can be instantiated in several ways using a "builder" pattern. Specifically:
-/// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
-///   instantiated with a default empty kernel. Programs compiled using such assembler
-///   cannot make calls to kernel procedures via `syscall` instruction.
-#[derive(Default)]
-pub struct Assembler {
-    kernel: Kernel,
-    module_provider: ModuleProvider,
-    proc_cache: RefCell<ProcedureCache>,
-    in_debug_mode: bool,
+
+/// Represents the type of artifact produced by an [Assembler].
+#[derive(Default, Copy, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum ArtifactKind {
+    /// Produce an executable program.
+    ///
+    /// This is the default artifact produced by the assembler, and is the only artifact that is
+    /// useful on its own.
+    #[default]
+    Executable,
+    /// Produce a MAST library
+    ///
+    /// The assembler will produce MAST in binary form which can be packaged and distributed.
+    /// These artifacts can then be loaded by the VM with an executable program that references
+    /// the contents of the library, without having to compile them together.
+    Library,
+    /// Produce a MAST kernel module
+    ///
+    /// The assembler will produce MAST for a kernel module, which is essentially the same as
+    /// [crate::Library], however additional constraints are imposed on compilation to ensure that
+    /// the produced kernel is valid.
+    Kernel,
 }
 
-impl Assembler {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
+// ASSEMBLER
+// ================================================================================================
 
-    /// Puts the assembler into the debug mode.
-    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
-        self.in_debug_mode = in_debug_mode;
+/// The [Assembler] is the primary interface for compiling Miden Assembly to the Miden Abstract
+/// Syntax Tree (MAST).
+///
+/// # Usage
+///
+/// Depending on your needs, there are multiple ways of using the assembler, and whether or not you
+/// want to provide a custom kernel.
+///
+/// By default, an empty kernel is provided. However, you may provide your own using
+/// [Assembler::with_kernel] or [Assembler::with_kernel_from_source].
+///
+/// <div class="warning">
+/// Programs compiled with an empty kernel cannot use the `syscall` instruction.
+/// </div>
+///
+/// * If you have a single executable module you want to compile, just call [Assembler::compile] or
+/// [Assembler::compile_ast], depending on whether you have source code in raw or parsed form.
+///
+/// * If you want to link your executable to a few other modules that implement supporting
+/// procedures, build the assembler with them first, using the various builder methods on
+/// [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
+/// [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
+pub struct Assembler {
+    /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
+    /// as a baseline.
+    module_graph: Box<ModuleGraph>,
+    /// The global procedure cache for this assembler.
+    procedure_cache: ProcedureCache,
+    /// Whether to treat warning diagnostics as errors
+    warnings_as_errors: bool,
+    /// Whether the assembler enables extra debugging information.
+    in_debug_mode: bool,
+    /// Whether the assembler allows unknown invocation targets in compiled code.
+    allow_phantom_calls: bool,
+}
+
+impl Default for Assembler {
+    fn default() -> Self {
+        Self {
+            module_graph: Default::default(),
+            procedure_cache: Default::default(),
+            warnings_as_errors: false,
+            in_debug_mode: false,
+            allow_phantom_calls: true,
+        }
+    }
+}
+
+/// Builder
+impl Assembler {
+    /// Start building an [Assembler]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Start building an [Assembler] with the given [Kernel].
+    pub fn with_kernel(kernel: Kernel) -> Self {
+        let mut assembler = Self::new();
+        assembler.module_graph.set_kernel(None, kernel);
+        assembler
+    }
+
+    /// Start building an [Assembler], with a kernel given by compiling the given source module.
+    ///
+    /// # Errors
+    /// Returns an error if compiling kernel source results in an error.
+    pub fn with_kernel_from_module(module: impl Compile) -> Result<Self, Report> {
+        let mut assembler = Self::new();
+        let opts = CompileOptions::for_kernel();
+        let module = module.compile_with_options(opts)?;
+        let (kernel_index, kernel) = assembler.assemble_kernel_module(module)?;
+        assembler.module_graph.set_kernel(Some(kernel_index), kernel);
+
+        Ok(assembler)
+    }
+
+    /// Sets the default behavior of this assembler with regard to warning diagnostics.
+    ///
+    /// When true, any warning diagnostics that are emitted will be promoted to errors.
+    pub fn with_warnings_as_errors(mut self, yes: bool) -> Self {
+        self.warnings_as_errors = yes;
         self
     }
 
+    /// Puts the assembler into the debug mode.
+    pub fn with_debug_mode(mut self, yes: bool) -> Self {
+        self.in_debug_mode = yes;
+        self
+    }
+
+    /// Sets whether to allow phantom calls.
+    pub fn with_phantom_calls(mut self, yes: bool) -> Self {
+        self.allow_phantom_calls = yes;
+        self
+    }
+
+    /// Adds `module` to the module graph of the assembler.
+    ///
+    /// The given module must be a library module, or an error will be returned.
+    #[inline]
+    pub fn with_module(mut self, module: impl Compile) -> Result<Self, Report> {
+        self.add_module(module)?;
+
+        Ok(self)
+    }
+
+    /// Adds `module` to the module graph of the assembler with the given options.
+    ///
+    /// The given module must be a library module, or an error will be returned.
+    #[inline]
+    pub fn with_module_and_options(
+        mut self,
+        module: impl Compile,
+        options: CompileOptions,
+    ) -> Result<Self, Report> {
+        self.add_module_with_options(module, options)?;
+
+        Ok(self)
+    }
+
+    /// Adds `module` to the module graph of the assembler.
+    ///
+    /// The given module must be a library module, or an error will be returned.
+    #[inline]
+    pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
+        self.add_module_with_options(module, CompileOptions::for_library())
+    }
+
+    /// Adds `module` to the module graph of the assembler, using the provided options.
+    ///
+    /// The given module must be a library or kernel module, or an error will be returned
+    pub fn add_module_with_options(
+        &mut self,
+        module: impl Compile,
+        options: CompileOptions,
+    ) -> Result<(), Report> {
+        let kind = options.kind;
+        if kind != ModuleKind::Library {
+            return Err(Report::msg(
+                "only library modules are supported by `add_module_with_options`",
+            ));
+        }
+
+        let module = module.compile_with_options(options)?;
+        assert_eq!(module.kind(), kind, "expected module kind to match compilation options");
+
+        self.module_graph.add_module(module)?;
+
+        Ok(())
+    }
+
     /// Adds the library to provide modules for the compilation.
-    pub fn with_library<L>(mut self, library: &L) -> Result<Self, AssemblyError>
+    pub fn with_library<L>(mut self, library: &L) -> Result<Self, Report>
     where
-        L: Library,
+        L: ?Sized + Library + 'static,
     {
-        self.module_provider.add_library(library)?;
+        self.add_library(library)?;
+
+        Ok(self)
+    }
+
+    /// Adds the library to provide modules for the compilation.
+    pub fn add_library<L>(&mut self, library: &L) -> Result<(), Report>
+    where
+        L: ?Sized + Library + 'static,
+    {
+        let namespace = library.root_ns();
+        library.modules().try_for_each(|module| {
+            if !module.is_in_namespace(namespace) {
+                return Err(Report::new(AssemblyError::InconsistentNamespace {
+                    expected: namespace.clone(),
+                    actual: module.namespace().clone(),
+                }));
+            }
+
+            self.add_module(module)?;
+
+            Ok(())
+        })
+    }
+
+    /// Adds a library bundle to provide modules for the compilation.
+    pub fn with_libraries<'a, I, L>(mut self, libraries: I) -> Result<Self, Report>
+    where
+        L: ?Sized + Library + 'static,
+        I: IntoIterator<Item = &'a L>,
+    {
+        self.add_libraries(libraries)?;
         Ok(self)
     }
 
     /// Adds a library bundle to provide modules for the compilation.
-    pub fn with_libraries<I, L>(self, mut libraries: I) -> Result<Self, AssemblyError>
+    pub fn add_libraries<'a, I, L>(&mut self, libraries: I) -> Result<(), Report>
     where
-        L: Library,
-        I: Iterator<Item = L>,
+        L: ?Sized + Library + 'static,
+        I: IntoIterator<Item = &'a L>,
     {
-        libraries.try_fold(self, |slf, library| slf.with_library(&library))
+        for library in libraries {
+            self.add_library(library)?;
+        }
+        Ok(())
     }
+}
 
-    /// Sets the kernel for the assembler to the kernel defined by the provided source.
-    ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    ///
-    /// # Panics
-    /// Panics if the assembler has already been used to compile programs.
-    pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
-        let kernel_ast = ModuleAst::parse(kernel_source)?;
-        self.with_kernel_module(kernel_ast)
+/// Queries
+impl Assembler {
+    /// Returns true if this assembler promotes warning diagnostics as errors by default.
+    pub fn warnings_as_errors(&self) -> bool {
+        self.warnings_as_errors
     }
-
-    /// Sets the kernel for the assembler to the kernel defined by the provided module.
-    ///
-    /// # Errors
-    /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
-        // compile the kernel; this adds all exported kernel procedures to the procedure cache
-        let mut context = AssemblyContext::for_module(true);
-        let kernel = Module::kernel(module);
-        self.compile_module(&kernel.ast, Some(&kernel.path), &mut context)?;
-
-        // convert the context into Kernel; this builds the kernel from hashes of procedures
-        // exported form the kernel module
-        self.kernel = context.into_kernel();
-
-        Ok(self)
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
 
     /// Returns true if this assembler was instantiated in debug mode.
     pub fn in_debug_mode(&self) -> bool {
@@ -112,257 +282,460 @@ impl Assembler {
     ///
     /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
     pub fn kernel(&self) -> &Kernel {
-        &self.kernel
+        self.module_graph.kernel()
     }
 
-    // PROGRAM COMPILER
-    // --------------------------------------------------------------------------------------------
+    /// Returns true if this assembler was instantiated with phantom calls enabled.
+    pub fn allow_phantom_calls(&self) -> bool {
+        self.allow_phantom_calls
+    }
 
-    /// Compiles the provided source code into a [Program]. The resulting program can be executed
+    #[cfg(any(test, feature = "testing"))]
+    #[doc(hidden)]
+    pub fn procedure_cache(&self) -> &ProcedureCache {
+        &self.procedure_cache
+    }
+
+    #[cfg(any(test, feature = "testing"))]
+    #[doc(hidden)]
+    pub fn module_graph(&self) -> &ModuleGraph {
+        &self.module_graph
+    }
+}
+
+/// Compilation/Assembly
+impl Assembler {
+    /// Compiles the provided module into a [Program]. The resulting program can be executed
     /// on Miden VM.
     ///
     /// # Errors
+    ///
     /// Returns an error if parsing or compilation of the specified program fails.
-    pub fn compile<S>(&self, source: S) -> Result<Program, AssemblyError>
-    where
-        S: AsRef<str>,
-    {
-        // parse the program into an AST
-        let source = source.as_ref();
-        let program = ProgramAst::parse(source)?;
+    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
+        let mut context = AssemblyContext::default();
+        context.set_warnings_as_errors(self.warnings_as_errors);
 
-        // compile the program and return
-        self.compile_ast(&program)
+        self.assemble_in_context(source, &mut context)
     }
 
-    /// Compiles the provided abstract syntax tree into a [Program]. The resulting program can be
-    /// executed on Miden VM.
-    ///
-    /// # Errors
-    /// Returns an error if the compilation of the specified program fails.
-    #[instrument("compile_ast", skip_all)]
-    pub fn compile_ast(&self, program: &ProgramAst) -> Result<Program, AssemblyError> {
-        // compile the program
-        let mut context = AssemblyContext::for_program(Some(program));
-        let program_root = self.compile_in_context(program, &mut context)?;
-
-        // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache.borrow())?;
-
-        // build and return the program
-        Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
-    }
-
-    /// Compiles the provided [ProgramAst] into a program and returns the program root
-    /// ([CodeBlock]). Mutates the provided context by adding all of the call targets of
-    /// the program to the [CallSet].
-    ///
-    /// # Errors
-    /// - If the provided context is not appropriate for compiling a program.
-    /// - If any of the local procedures defined in the program are exported.
-    /// - If compilation of any of the local procedures fails.
-    /// - if compilation of the program body fails.
-    pub fn compile_in_context(
-        &self,
-        program: &ProgramAst,
+    /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
+    pub fn assemble_in_context(
+        &mut self,
+        source: impl Compile,
         context: &mut AssemblyContext,
-    ) -> Result<CodeBlock, AssemblyError> {
-        // check to ensure that the context is appropriate for compiling a program
-        if context.current_context_name() != ProcedureName::main().as_str() {
-            return Err(AssemblyError::InvalidProgramAssemblyContext);
-        }
-
-        // compile all local procedures; this will add the procedures to the specified context
-        for proc_ast in program.procedures() {
-            if proc_ast.is_export {
-                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
-            }
-            self.compile_procedure(proc_ast, context)?;
-        }
-
-        // compile the program body
-        let program_root = self.compile_body(program.body().nodes().iter(), context, None)?;
-
-        Ok(program_root)
+    ) -> Result<Program, Report> {
+        let opts = CompileOptions {
+            warnings_as_errors: context.warnings_as_errors(),
+            ..CompileOptions::default()
+        };
+        self.assemble_with_options_in_context(source, opts, context)
     }
 
-    // MODULE COMPILER
-    // --------------------------------------------------------------------------------------------
+    /// Compiles the provided module into a [Program] using the provided options.
+    ///
+    /// The resulting program can be executed on Miden VM.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified program fails, or the options
+    /// are invalid.
+    pub fn assemble_with_options(
+        &mut self,
+        source: impl Compile,
+        options: CompileOptions,
+    ) -> Result<Program, Report> {
+        let mut context = AssemblyContext::default();
+        context.set_warnings_as_errors(options.warnings_as_errors);
 
-    /// Compiles all procedures in the specified module and adds them to the procedure cache.
+        self.assemble_with_options_in_context(source, options, &mut context)
+    }
+
+    /// Like [Assembler::compile_with_opts], but additionally uses the provided [AssemblyContext]
+    /// to configure the assembler.
+    #[instrument("assemble_with_opts_in_context", skip_all)]
+    pub fn assemble_with_options_in_context(
+        &mut self,
+        source: impl Compile,
+        options: CompileOptions,
+        context: &mut AssemblyContext,
+    ) -> Result<Program, Report> {
+        if options.kind != ModuleKind::Executable {
+            return Err(Report::msg(
+                "invalid compile options: assemble_with_opts_in_context requires that the kind be 'executable'",
+            ));
+        }
+
+        let program = source.compile_with_options(CompileOptions {
+            // Override the module name so that we always compile the executable
+            // module as #exec
+            path: Some(LibraryPath::from(LibraryNamespace::Exec)),
+            ..options
+        })?;
+        assert!(program.is_executable());
+
+        // Remove any previously compiled executable module and clean up graph
+        let prev_program = self.module_graph.find_module_index(program.path());
+        if let Some(module_index) = prev_program {
+            self.module_graph.remove_module(module_index);
+            self.procedure_cache.remove_module(module_index);
+        }
+
+        // Recompute graph with executable module, and start compiling
+        let module_index = self.module_graph.add_module(program)?;
+        self.module_graph.recompute()?;
+
+        // Find the executable entrypoint
+        let entrypoint = self.module_graph[module_index]
+            .index_of(|p| p.is_main())
+            .map(|index| GlobalProcedureIndex {
+                module: module_index,
+                index,
+            })
+            .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
+
+        self.compile_program(entrypoint, context)
+    }
+
+    /// Compile and assembles all procedures in the specified module, adding them to the procedure
+    /// cache.
+    ///
     /// Returns a vector of procedure digests for all exported procedures in the module.
     ///
-    /// # Errors
-    /// - If a module with the same path already exists in the module stack of the
-    ///   [AssemblyContext].
-    /// - If a lock to the [ProcedureCache] can not be attained.
-    #[instrument(level = "trace",
-                 name = "compile_module",
-                 fields(module = path.unwrap_or(&LibraryPath::anon_path()).path()), skip_all)]
-    pub fn compile_module(
-        &self,
-        module: &ModuleAst,
-        path: Option<&LibraryPath>,
+    /// The provided context is used to determine what type of module to assemble, i.e. either
+    /// a kernel or library module.
+    pub fn assemble_module(
+        &mut self,
+        module: impl Compile,
+        options: CompileOptions,
         context: &mut AssemblyContext,
-    ) -> Result<Vec<RpoDigest>, AssemblyError> {
-        // a variable to track MAST roots of all procedures exported from this module
-        let mut proc_roots = Vec::new();
-        context.begin_module(path.unwrap_or(&LibraryPath::anon_path()), module)?;
-
-        // process all re-exported procedures
-        for reexporteed_proc in module.reexported_procs().iter() {
-            // make sure the re-exported procedure is loaded into the procedure cache
-            let ref_proc_id = reexporteed_proc.proc_id();
-            self.ensure_procedure_is_in_cache(&ref_proc_id, context).map_err(|_| {
-                AssemblyError::ReExportedProcModuleNotFound(reexporteed_proc.clone())
-            })?;
-
-            // if the library path is provided, build procedure ID for the alias and add it to the
-            // procedure cache
-            let proc_mast_root = if let Some(path) = path {
-                let proc_name = reexporteed_proc.name();
-                let alias_proc_id = ProcedureId::from_name(proc_name, path);
-                self.proc_cache
-                    .try_borrow_mut()
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .insert_proc_alias(alias_proc_id, ref_proc_id)?
-            } else {
-                self.proc_cache
-                    .try_borrow_mut()
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .get_proc_root_by_id(&ref_proc_id)
-                    .expect("procedure ID not in cache")
-            };
-
-            // add the MAST root of the re-exported procedure to the set of procedures exported
-            // from this module
-            proc_roots.push(proc_mast_root);
-        }
-
-        // compile all local (internal end exported) procedures in the module; once the compilation
-        // is complete, we get all compiled procedures (and their combined callset) from the
-        // context
-        for proc_ast in module.procs().iter() {
-            self.compile_procedure(proc_ast, context)?;
-        }
-        let (module_procs, module_callset) = context.complete_module()?;
-
-        // add the compiled procedures to the assembler's cache. the procedures are added to the
-        // cache only if:
-        // - a procedure is exported from the module, or
-        // - a procedure is present in the combined callset - i.e., it is an internal procedure
-        //   which has been invoked via a local call instruction.
-        for (proc_index, proc) in module_procs.into_iter().enumerate() {
-            if proc.is_export() {
-                proc_roots.push(proc.mast_root());
+    ) -> Result<Vec<RpoDigest>, Report> {
+        match context.kind() {
+            _ if options.kind.is_executable() => {
+                return Err(Report::msg(
+                    "invalid compile options: expected configuration for library or kernel module ",
+                ))
             }
-
-            if proc.is_export() || module_callset.contains(&proc.mast_root()) {
-                // build the procedure ID if this module has the library path
-                let proc_id = build_procedure_id(path, &proc, proc_index);
-
-                // this is safe because we fail if the cache is borrowed.
-                self.proc_cache
-                    .try_borrow_mut()
-                    .map_err(|_| AssemblyError::InvalidCacheLock)?
-                    .insert(proc, proc_id)?;
+            ArtifactKind::Executable => {
+                return Err(Report::msg(
+                    "invalid context: expected context configured for library or kernel modules",
+                ))
             }
+            ArtifactKind::Kernel if !options.kind.is_kernel() => {
+                return Err(Report::msg(
+                    "invalid context: cannot assemble a kernel from a module compiled as a library",
+                ))
+            }
+            ArtifactKind::Library if !options.kind.is_library() => {
+                return Err(Report::msg(
+                    "invalid context: cannot assemble a library from a module compiled as a kernel",
+                ))
+            }
+            ArtifactKind::Kernel | ArtifactKind::Library => (),
         }
 
-        Ok(proc_roots)
+        // Compile module
+        let module = module.compile_with_options(options)?;
+
+        // Recompute graph with the provided module, and start assembly
+        let module_id = self.module_graph.add_module(module)?;
+        self.module_graph.recompute()?;
+        self.assemble_graph(context)?;
+
+        self.get_module_exports(module_id)
     }
 
-    // PROCEDURE COMPILER
-    // --------------------------------------------------------------------------------------------
+    /// Compiles the given kernel module, returning both the compiled kernel and its index in the
+    /// graph.
+    fn assemble_kernel_module(
+        &mut self,
+        module: Box<ast::Module>,
+    ) -> Result<(ModuleIndex, Kernel), Report> {
+        if !module.is_kernel() {
+            return Err(Report::msg(format!("expected kernel module, got {}", module.kind())));
+        }
 
-    /// Compiles procedure AST into MAST and adds the complied procedure to the provided context.
+        let mut context = AssemblyContext::for_kernel(module.path());
+        context.set_warnings_as_errors(self.warnings_as_errors);
+
+        let kernel_index = self.module_graph.add_module(module)?;
+        self.module_graph.recompute()?;
+        let kernel_module = self.module_graph[kernel_index].clone();
+        let mut kernel = Vec::new();
+        for (index, _syscall) in kernel_module
+            .procedures()
+            .enumerate()
+            .filter(|(_, p)| p.visibility().is_syscall())
+        {
+            let gid = GlobalProcedureIndex {
+                module: kernel_index,
+                index: ProcedureIndex::new(index),
+            };
+            let compiled = self.compile_subgraph(gid, false, &mut context)?;
+            kernel.push(compiled.code().hash());
+        }
+
+        Kernel::new(&kernel)
+            .map(|kernel| (kernel_index, kernel))
+            .map_err(|err| Report::new(AssemblyError::Kernel(err)))
+    }
+
+    /// Get the set of procedure roots for all exports of the given module
+    ///
+    /// Returns an error if the provided Miden Assembly is invalid.
+    fn get_module_exports(&mut self, module: ModuleIndex) -> Result<Vec<RpoDigest>, Report> {
+        assert!(self.module_graph.contains_module(module), "invalid module index");
+
+        let mut exports = Vec::new();
+        for (index, procedure) in self.module_graph[module].procedures().enumerate() {
+            // Only add exports to the code block table, locals will
+            // be added if they are in the call graph rooted at those
+            // procedures
+            if !procedure.visibility().is_exported() {
+                continue;
+            }
+            let gid = match procedure {
+                Export::Procedure(_) => GlobalProcedureIndex {
+                    module,
+                    index: ProcedureIndex::new(index),
+                },
+                Export::Alias(ref alias) => {
+                    self.module_graph.find(alias.source_file(), alias.target())?
+                }
+            };
+            let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
+                Export::Procedure(ref proc) => {
+                    panic!(
+                        "compilation apparently succeeded, but did not find a \
+                                entry in the procedure cache for '{}'",
+                        proc.name()
+                    )
+                }
+                Export::Alias(ref alias) => {
+                    panic!(
+                        "compilation apparently succeeded, but did not find a \
+                                entry in the procedure cache for alias '{}', i.e. '{}'",
+                        alias.name(),
+                        alias.target()
+                    );
+                }
+            });
+
+            exports.push(proc.code().hash());
+        }
+
+        Ok(exports)
+    }
+
+    /// Compile the provided [Module] into a [Program].
+    ///
+    /// Returns an error if the provided Miden Assembly is invalid.
+    fn compile_program(
+        &mut self,
+        entrypoint: GlobalProcedureIndex,
+        context: &mut AssemblyContext,
+    ) -> Result<Program, Report> {
+        // Raise an error if we are called with an invalid entrypoint
+        assert!(self.module_graph[entrypoint].name().is_main());
+
+        // Compile the module graph rooted at the entrypoint
+        let entry = self.compile_subgraph(entrypoint, true, context)?;
+
+        // Construct the code block table by taking the call set of the
+        // executable entrypoint and adding the code blocks of all those
+        // procedures to the table.
+        let mut code_blocks = CodeBlockTable::default();
+        for callee in entry.callset().iter() {
+            let code_block = self
+                .procedure_cache
+                .get_by_mast_root(callee)
+                .map(|p| p.code().clone())
+                .ok_or(AssemblyError::UndefinedCallSetProcedure { digest: *callee })?;
+            code_blocks.insert(code_block);
+        }
+
+        let body = entry.code().clone();
+        Ok(Program::with_kernel(body, self.module_graph.kernel().clone(), code_blocks))
+    }
+
+    /// Compile all of the uncompiled procedures in the module graph, placing them
+    /// in the procedure cache once compiled.
+    ///
+    /// Returns an error if any of the provided Miden Assembly is invalid.
+    fn assemble_graph(&mut self, context: &mut AssemblyContext) -> Result<(), Report> {
+        let mut worklist = self.module_graph.topological_sort().to_vec();
+        assert!(!worklist.is_empty());
+        self.process_graph_worklist(&mut worklist, context, None).map(|_| ())
+    }
+
+    /// Compile the uncompiled procedure in the module graph which are members of the subgraph
+    /// rooted at `root`, placing them in the procedure cache once compiled.
+    ///
+    /// Returns an error if any of the provided Miden Assembly is invalid.
+    fn compile_subgraph(
+        &mut self,
+        root: GlobalProcedureIndex,
+        is_entrypoint: bool,
+        context: &mut AssemblyContext,
+    ) -> Result<Arc<Procedure>, Report> {
+        let mut worklist = self.module_graph.topological_sort_from_root(root).map_err(|cycle| {
+            let iter = cycle.into_node_ids();
+            let mut nodes = Vec::with_capacity(iter.len());
+            for node in iter {
+                let module = self.module_graph[node.module].path();
+                let proc = self.module_graph[node].name();
+                nodes.push(format!("{}::{}", module, proc));
+            }
+            AssemblyError::Cycle { nodes }
+        })?;
+
+        assert!(!worklist.is_empty());
+
+        let compiled = if is_entrypoint {
+            self.process_graph_worklist(&mut worklist, context, Some(root))?
+        } else {
+            let _ = self.process_graph_worklist(&mut worklist, context, None)?;
+            self.procedure_cache.get(root)
+        };
+
+        Ok(compiled.expect("compilation succeeded but root not found in cache"))
+    }
+
+    fn process_graph_worklist(
+        &mut self,
+        worklist: &mut Vec<GlobalProcedureIndex>,
+        context: &mut AssemblyContext,
+        entrypoint: Option<GlobalProcedureIndex>,
+    ) -> Result<Option<Arc<Procedure>>, Report> {
+        // Process the topological ordering in reverse order (bottom-up), so that
+        // each procedure is compiled with all of its dependencies fully compiled
+        let mut compiled_entrypoint = None;
+        while let Some(procedure_gid) = worklist.pop() {
+            // If we have already compiled this procedure, do not recompile
+            if let Some(proc) = self.procedure_cache.get(procedure_gid) {
+                self.module_graph.register_mast_root(procedure_gid, proc.mast_root())?;
+                continue;
+            }
+            let is_entry = entrypoint == Some(procedure_gid);
+
+            // Fetch procedure metadata from the graph
+            let module = &self.module_graph[procedure_gid.module];
+            let ast = &module[procedure_gid.index];
+            let num_locals = ast.num_locals();
+            let name = FullyQualifiedProcedureName {
+                span: ast.span(),
+                module: module.path().clone(),
+                name: ast.name().clone(),
+            };
+            let pctx = ProcedureContext::new(procedure_gid, name, ast.visibility())
+                .with_num_locals(num_locals as u16)
+                .with_span(ast.span())
+                .with_source_file(ast.source_file());
+
+            // Compile this procedure
+            let procedure = self.compile_procedure(pctx, context)?;
+
+            // Cache the compiled procedure, unless it's the program entrypoint
+            if is_entry {
+                compiled_entrypoint = Some(Arc::from(procedure));
+            } else {
+                // Make the MAST root available to all dependents
+                let digest = procedure.mast_root();
+                self.module_graph.register_mast_root(procedure_gid, digest)?;
+
+                self.procedure_cache.insert(procedure_gid, Arc::from(procedure))?;
+            }
+        }
+
+        Ok(compiled_entrypoint)
+    }
+
+    /// Compiles a single Miden Assembly procedure to its MAST representation.
     fn compile_procedure(
         &self,
-        proc: &ProcedureAst,
+        procedure: ProcedureContext,
         context: &mut AssemblyContext,
-    ) -> Result<(), AssemblyError> {
-        context.begin_proc(&proc.name, proc.is_export, proc.num_locals)?;
-        let code = if proc.num_locals > 0 {
+    ) -> Result<Box<Procedure>, Report> {
+        // Make sure the current procedure context is available during codegen
+        let gid = procedure.id();
+        let num_locals = procedure.num_locals();
+        context.set_current_procedure(procedure);
+
+        let proc = self.module_graph[gid].unwrap_procedure();
+        let code = if num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
             // - to allocate procedure locals we need to increment fmp by the number of locals
             // - to deallocate procedure locals we need to decrement it by the same amount
-            let num_locals = Felt::from(proc.num_locals);
+            let num_locals = Felt::from(num_locals);
             let wrapper = BodyWrapper {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.body.nodes().iter(), context, Some(wrapper))?
+            self.compile_body(proc.iter(), context, Some(wrapper))?
         } else {
-            self.compile_body(proc.body.nodes().iter(), context, None)?
+            self.compile_body(proc.iter(), context, None)?
         };
 
-        context.complete_proc(code);
-
-        Ok(())
+        let pctx = context.take_current_procedure().unwrap();
+        Ok(pctx.into_procedure(code))
     }
 
-    // CODE BODY COMPILER
-    // --------------------------------------------------------------------------------------------
-
-    /// TODO: add comments
-    fn compile_body<A, N>(
+    fn compile_body<'a, I>(
         &self,
-        body: A,
+        body: I,
         context: &mut AssemblyContext,
         wrapper: Option<BodyWrapper>,
-    ) -> Result<CodeBlock, AssemblyError>
+    ) -> Result<CodeBlock, Report>
     where
-        A: Iterator<Item = N>,
-        N: Borrow<Node>,
+        I: Iterator<Item = &'a ast::Op>,
     {
+        use ast::Op;
+
         let mut blocks: Vec<CodeBlock> = Vec::new();
         let mut span = SpanBuilder::new(wrapper);
 
-        for node in body {
-            match node.borrow() {
-                Node::Instruction(inner) => {
-                    if let Some(block) = self.compile_instruction(inner, &mut span, context)? {
+        for op in body {
+            match op {
+                Op::Inst(inst) => {
+                    if let Some(block) = self.compile_instruction(inst, &mut span, context)? {
                         span.extract_span_into(&mut blocks);
                         blocks.push(block);
                     }
                 }
 
-                Node::IfElse {
-                    true_case,
-                    false_case,
+                Op::If {
+                    then_blk, else_blk, ..
                 } => {
                     span.extract_span_into(&mut blocks);
 
-                    let true_case = self.compile_body(true_case.nodes().iter(), context, None)?;
-
+                    let then_blk = self.compile_body(then_blk.iter(), context, None)?;
                     // else is an exception because it is optional; hence, will have to be replaced
                     // by noop span
-                    let false_case = if !false_case.nodes().is_empty() {
-                        self.compile_body(false_case.nodes().iter(), context, None)?
-                    } else {
+                    let else_blk = if else_blk.is_empty() {
                         CodeBlock::new_span(vec![Operation::Noop])
+                    } else {
+                        self.compile_body(else_blk.iter(), context, None)?
                     };
 
-                    let block = CodeBlock::new_split(true_case, false_case);
+                    let block = CodeBlock::new_split(then_blk, else_blk);
 
                     blocks.push(block);
                 }
 
-                Node::Repeat { times, body } => {
+                Op::Repeat { count, body, .. } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(body.nodes().iter(), context, None)?;
+                    let block = self.compile_body(body.iter(), context, None)?;
 
-                    for _ in 0..*times {
+                    for _ in 0..*count {
                         blocks.push(block.clone());
                     }
                 }
 
-                Node::While { body } => {
+                Op::While { body, .. } => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(body.nodes().iter(), context, None)?;
+                    let block = self.compile_body(body.iter(), context, None)?;
                     let block = CodeBlock::new_loop(block);
 
                     blocks.push(block);
@@ -378,57 +751,30 @@ impl Assembler {
         })
     }
 
-    // PROCEDURE CACHE
-    // --------------------------------------------------------------------------------------------
-
-    /// Ensures that a procedure with the specified [ProcedureId] exists in the cache. Otherwise,
-    /// attempt to fetch it from the module provider, compile, and check again.
-    ///
-    /// If `Ok` is returned, the procedure can be safely unwrapped from the cache.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the internal procedure cache is mutably borrowed somewhere.
-    fn ensure_procedure_is_in_cache(
+    pub(super) fn resolve_target(
         &self,
-        proc_id: &ProcedureId,
-        context: &mut AssemblyContext,
-    ) -> Result<(), AssemblyError> {
-        if !self.proc_cache.borrow().contains_id(proc_id) {
-            // if procedure is not in cache, try to get its module and compile it
-            let module = self.module_provider.get_module(proc_id).ok_or_else(|| {
-                let proc_name = context.get_imported_procedure_name(proc_id);
-                AssemblyError::imported_proc_module_not_found(proc_id, proc_name)
-            })?;
-            self.compile_module(&module.ast, Some(&module.path), context)?;
-            // if the procedure is still not in cache, then there was some error
-            if !self.proc_cache.borrow().contains_id(proc_id) {
-                return Err(AssemblyError::imported_proc_not_found_in_module(
-                    proc_id,
-                    &module.path,
-                ));
-            }
+        kind: InvokeKind,
+        target: &InvocationTarget,
+        context: &AssemblyContext,
+    ) -> Result<RpoDigest, AssemblyError> {
+        let current_proc = context.unwrap_current_procedure();
+        let caller = CallerInfo {
+            span: target.span(),
+            source_file: current_proc.source_file(),
+            module: current_proc.id().module,
+            kind,
+        };
+        let resolved = self.module_graph.resolve_target(&caller, target)?;
+        match resolved {
+            ResolvedTarget::Phantom(digest) | ResolvedTarget::Cached { digest, .. } => Ok(digest),
+            ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => Ok(self
+                .procedure_cache
+                .get(gid)
+                .map(|p| p.mast_root())
+                .expect("expected callee to have been compiled already")),
         }
-
-        Ok(())
-    }
-
-    // CODE BLOCK BUILDER
-    // --------------------------------------------------------------------------------------------
-    /// Returns the [CodeBlockTable] associated with the [AssemblyContext].
-    ///
-    /// # Errors
-    /// Returns an error if a required procedure is not found in the [Assembler] procedure cache.
-    pub fn build_cb_table(
-        &self,
-        context: AssemblyContext,
-    ) -> Result<CodeBlockTable, AssemblyError> {
-        context.into_cb_table(&self.proc_cache.borrow())
     }
 }
-
-// BODY WRAPPER
-// ================================================================================================
 
 /// Contains a set of operations which need to be executed before and after a sequence of AST
 /// nodes (i.e., code body).
@@ -436,9 +782,6 @@ struct BodyWrapper {
     prologue: Vec<Operation>,
     epilogue: Vec<Operation>,
 }
-
-// HELPER FUNCTIONS
-// ================================================================================================
 
 fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     debug_assert!(!blocks.is_empty(), "cannot combine empty block list");
@@ -507,23 +850,4 @@ fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
         }
     });
     CodeBlock::new_span_with_decorators(ops, decorators)
-}
-
-/// Builds a procedure ID based on the provided parameters.
-///
-/// Returns [ProcedureId] if `path` is provided, [None] otherwise.
-fn build_procedure_id(
-    path: Option<&LibraryPath>,
-    proc: &NamedProcedure,
-    proc_index: usize,
-) -> Option<ProcedureId> {
-    let mut proc_id = None;
-    if let Some(path) = path {
-        if proc.is_export() {
-            proc_id = Some(ProcedureId::from_name(proc.name(), path));
-        } else {
-            proc_id = Some(ProcedureId::from_index(proc_index as u16, path))
-        }
-    }
-    proc_id
 }

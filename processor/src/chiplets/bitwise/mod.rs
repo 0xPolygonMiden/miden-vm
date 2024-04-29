@@ -33,10 +33,10 @@ const INIT_TRACE_CAPACITY: usize = 128;
 /// In the above, the meaning of the columns is as follows:
 /// - Selector column s is used to specify the bitwise operator for each row.
 /// - Columns `a` and `b` contain accumulated 4-bit limbs of input values. Specifically, at the
-///   first row, the values of columns `a` and `b` are set to the most significant 4-bit limb
-///   of each input value. With all subsequent rows, the next most significant limb is appended
-///   to each column for the corresponding value. Thus, by the 8th row, columns `a` and `b`
-///   contain full input values for the bitwise operation.
+///   first row, the values of columns `a` and `b` are set to the most significant 4-bit limb of
+///   each input value. With all subsequent rows, the next most significant limb is appended to each
+///   column for the corresponding value. Thus, by the 8th row, columns `a` and `b` contain full
+///   input values for the bitwise operation.
 /// - Columns `a0` through `a3` and `b0` through `b3` contain bits of the least significant 4-bit
 ///   limb of the values in `a` and `b` columns respectively.
 /// - Column `zp` contains the accumulated result of applying the bitwise operation to 4-bit limbs,

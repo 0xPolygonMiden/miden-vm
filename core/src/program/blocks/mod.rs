@@ -125,16 +125,24 @@ impl CodeBlock {
     }
 }
 
+impl crate::prettier::PrettyPrint for CodeBlock {
+    fn render(&self) -> crate::prettier::Document {
+        match self {
+            Self::Span(block) => block.render(),
+            Self::Join(block) => block.render(),
+            Self::Split(block) => block.render(),
+            Self::Loop(block) => block.render(),
+            Self::Call(block) => block.render(),
+            Self::Dyn(block) => block.render(),
+            Self::Proxy(block) => block.render(),
+        }
+    }
+}
+
 impl fmt::Display for CodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CodeBlock::Span(block) => write!(f, "{block}"),
-            CodeBlock::Join(block) => write!(f, "{block}"),
-            CodeBlock::Split(block) => write!(f, "{block}"),
-            CodeBlock::Loop(block) => write!(f, "{block}"),
-            CodeBlock::Call(block) => write!(f, "{block}"),
-            CodeBlock::Dyn(block) => write!(f, "{block}",),
-            CodeBlock::Proxy(block) => write!(f, "{block}"),
-        }
+        use crate::prettier::PrettyPrint;
+
+        self.pretty_print(f)
     }
 }

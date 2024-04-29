@@ -1,4 +1,7 @@
-use super::{fmt, Digest, Felt, Operation};
+use miden_formatting::prettier::PrettyPrint;
+
+use super::{Digest, Felt, Operation};
+use core::fmt;
 
 // CONSTANTS
 // ================================================================================================
@@ -60,10 +63,15 @@ impl Default for Dyn {
     }
 }
 
+impl crate::prettier::PrettyPrint for Dyn {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        const_text("dyn")
+    }
+}
+
 impl fmt::Display for Dyn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "dyn")?;
-
-        Ok(())
+        self.pretty_print(f)
     }
 }

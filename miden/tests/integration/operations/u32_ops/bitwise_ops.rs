@@ -2,7 +2,7 @@ use super::test_input_out_of_bounds;
 use processor::math::Felt;
 use processor::ExecutionError;
 use test_utils::{
-    build_op_test, proptest::prelude::*, rand::rand_value, TestError, U32_BOUND, ZERO,
+    build_op_test, expect_exec_error, proptest::prelude::*, rand::rand_value, U32_BOUND, ZERO,
 };
 
 // U32 OPERATIONS TESTS - MANUAL - BITWISE OPERATIONS
@@ -45,16 +45,10 @@ fn u32and_fail() {
     let asm_op = "u32and";
 
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
-        Felt::new(U32_BOUND),
-        ZERO,
-    )));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
 
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
-        Felt::new(U32_BOUND),
-        ZERO,
-    )));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
 }
 
 #[test]
@@ -94,16 +88,10 @@ fn u32or_fail() {
     let asm_op = "u32or";
 
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
-        Felt::new(U32_BOUND),
-        ZERO,
-    )));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
 
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
-        Felt::new(U32_BOUND),
-        ZERO,
-    )));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
 }
 
 #[test]
@@ -142,16 +130,10 @@ fn u32xor_fail() {
     let asm_op = "u32xor";
 
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
-        Felt::new(U32_BOUND),
-        ZERO,
-    )));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
 
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError(ExecutionError::NotU32Value(
-        Felt::new(U32_BOUND),
-        ZERO,
-    )));
+    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
 }
 
 #[test]
@@ -247,14 +229,14 @@ fn u32shl_b() {
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     test.expect_stack(&[a.wrapping_shl(b) as u64]);
 
-    // // --- test random values ---------------------------------------------------------------------
+    // --- test random values ---------------------------------------------------------------------
     // let a = rand_value::<u32>();
     // let b = rand_value::<u32>() % 32;
 
     // let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     // test.expect_stack(&[a.wrapping_shl(b) as u64]);
 
-    // // --- test out of bounds input (should not fail) --------------------------------------------
+    // --- test out of bounds input (should not fail) ---------------------------------------------
     // let b = 1;
     // let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
     // assert!(test.execute().is_ok());
