@@ -9,8 +9,8 @@ use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use alloc::vec;
 use core::fmt;
 use vm_core::crypto::{
-    hash::{Blake3_192, Blake3_256, Rpo256},
-    random::{RpoRandomCoin, WinterRandomCoin},
+    hash::{Blake3_192, Blake3_256, Rpo256, Rpx256},
+    random::{RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
 };
 use winter_verifier::verify as verify_proof;
 
@@ -23,8 +23,6 @@ pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }
 pub use air::ExecutionProof;
-use vm_core::crypto::hash::Rpx256;
-use vm_core::crypto::random::RpxRandomCoin;
 
 // VERIFIER
 // ================================================================================================

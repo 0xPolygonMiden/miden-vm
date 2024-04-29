@@ -1,5 +1,6 @@
-//! This module contains GPU acceleration logic for Apple Silicon devices. For now the
-//! logic is limited to GPU accelerating RPO 256 trace commitments.
+//! This module contains GPU acceleration logic for Apple Silicon devices.
+//! For now, the logic is limited to GPU accelerating trace and constraint commitments,
+//! using the RPO 256 or RPX 256 hash functions.
 
 use super::{
     crypto::{RandomCoin, Rpo256, RpoDigest},
@@ -9,8 +10,7 @@ use super::{
 };
 use elsa::FrozenVec;
 use miden_gpu::{
-    metal::utils::page_aligned_uninit_vector,
-    metal::{build_merkle_tree, RowHasher},
+    metal::{build_merkle_tree, utils::page_aligned_uninit_vector, RowHasher},
     HashFn,
 };
 use pollster::block_on;
@@ -40,22 +40,22 @@ const DIGEST_SIZE: usize = Rpo256::DIGEST_RANGE.end - Rpo256::DIGEST_RANGE.start
 // ================================================================================================
 
 /// Wraps an [ExecutionProver] and provides GPU acceleration for building trace commitments.
-pub(crate) struct MetalExecutionProver<R, H, D>
+pub(crate) struct MetalExecutionProver<H, D, R>
 where
+    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H>,
-    H: Hasher + ElementHasher<BaseField = R::BaseField>,
-    D: Digest,
 {
     pub execution_prover: ExecutionProver<H, R>,
     pub metal_hash_fn: HashFn,
     phantom_data: PhantomData<D>,
 }
 
-impl<R, H, D> MetalExecutionProver<R, H, D>
+impl<H, D, R> MetalExecutionProver<H, D, R>
 where
+    H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
+    D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H>,
-    H: Hasher + ElementHasher<BaseField = R::BaseField>,
-    D: Digest,
 {
     pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn) -> Self {
         MetalExecutionProver {
@@ -66,11 +66,11 @@ where
     }
 }
 
-impl<R, H, D> Prover for MetalExecutionProver<R, H, D>
+impl<H, D, R> Prover for MetalExecutionProver<H, D, R>
 where
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
+    R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
@@ -186,8 +186,8 @@ where
         let tree_nodes = build_merkle_tree(&row_hashes, self.metal_hash_fn);
         // aggregate segments at the same time as the GPU generates the merkle tree nodes
         let composed_evaluations = RowMatrix::<E>::from_segments(segments, num_base_columns);
-        let nodes = block_on(tree_nodes).into_iter().map(|dig| D::from(&dig)).collect();
-        let leaves = row_hashes.into_iter().map(|dig| D::from(&dig)).collect();
+        let nodes = block_on(tree_nodes).into_iter().map(|dig| H::Digest::from(&dig)).collect();
+        let leaves = row_hashes.into_iter().map(|dig| H::Digest::from(&dig)).collect();
         let commitment = MerkleTree::<H>::from_raw_parts(nodes, leaves).unwrap();
         let constraint_commitment = ConstraintCommitment::new(composed_evaluations, commitment);
         event!(
@@ -638,11 +638,7 @@ mod tests {
         let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
         let cpu_prover = create_test_prover::<R, H>(is_rpx);
-        let gpu_prover = MetalExecutionProver::<R, H, D> {
-            execution_prover: create_test_prover::<R, H>(is_rpx),
-            metal_hash_fn: hash_fn,
-            phantom_data: Default::default(),
-        };
+        let gpu_prover = MetalExecutionProver::new(create_test_prover::<R, H>(is_rpx), hash_fn);
         let num_rows = 1 << 8;
         let trace_info = get_trace_info(1, num_rows);
         let trace = gen_random_trace(num_rows, RATE + 1);
@@ -673,11 +669,7 @@ mod tests {
         let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
         let cpu_prover = create_test_prover::<R, H>(is_rpx);
-        let gpu_prover = MetalExecutionProver::<R, H, D> {
-            execution_prover: create_test_prover::<R, H>(is_rpx),
-            metal_hash_fn: hash_fn,
-            phantom_data: Default::default(),
-        };
+        let gpu_prover = MetalExecutionProver::new(create_test_prover::<R, H>(is_rpx), hash_fn);
         let num_rows = 1 << 8;
         let trace_info = get_trace_info(1, num_rows);
         let trace = gen_random_trace(num_rows, RATE);
@@ -708,11 +700,7 @@ mod tests {
         let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
         let cpu_prover = create_test_prover::<R, H>(is_rpx);
-        let gpu_prover = MetalExecutionProver::<R, H, D> {
-            execution_prover: create_test_prover::<R, H>(is_rpx),
-            metal_hash_fn: hash_fn,
-            phantom_data: Default::default(),
-        };
+        let gpu_prover = MetalExecutionProver::new(create_test_prover::<R, H>(is_rpx), hash_fn);
         let num_rows = 1 << 8;
         let ce_blowup_factor = 2;
         let values = get_random_values::<CubeFelt>(num_rows * ce_blowup_factor);
@@ -741,11 +729,7 @@ mod tests {
         let is_rpx = matches!(hash_fn, HashFn::Rpx256);
 
         let cpu_prover = create_test_prover::<R, H>(is_rpx);
-        let gpu_prover = MetalExecutionProver::<R, H, D> {
-            execution_prover: create_test_prover::<R, H>(is_rpx),
-            metal_hash_fn: hash_fn,
-            phantom_data: Default::default(),
-        };
+        let gpu_prover = MetalExecutionProver::new(create_test_prover::<R, H>(is_rpx), hash_fn);
         let num_rows = 1 << 8;
         let ce_blowup_factor = 8;
         let values = get_random_values::<Felt>(num_rows * ce_blowup_factor);

@@ -125,6 +125,7 @@ impl TryFrom<u8> for HashFunction {
             0x00 => Ok(Self::Blake3_192),
             0x01 => Ok(Self::Blake3_256),
             0x02 => Ok(Self::Rpo256),
+            0x03 => Ok(Self::Rpx256),
             _ => Err(DeserializationError::InvalidValue(format!(
                 "the hash function representation {repr} is not valid!"
             ))),
