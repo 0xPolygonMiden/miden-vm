@@ -1,6 +1,6 @@
 use crate::*;
-use alloc::vec::Vec;
 use air::{ProvingOptions, StarkField};
+use alloc::vec::Vec;
 use gpu::metal::{MetalExecutionProver, DIGEST_SIZE, RATE};
 use processor::{
     crypto::{Hasher, RpoDigest, RpoRandomCoin, Rpx256, RpxDigest, RpxRandomCoin},

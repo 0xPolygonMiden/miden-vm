@@ -18,7 +18,7 @@ use processor::{
     math::{Felt, FieldElement},
     ExecutionTrace,
 };
-use tracing::{instrument, Level};
+use tracing::instrument;
 use winter_prover::{
     matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
     DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,

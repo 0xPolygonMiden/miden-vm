@@ -19,7 +19,7 @@ use processor::{
     crypto::{ElementHasher, Hasher},
     ONE,
 };
-use std::{marker::PhantomData, time::Instant, boxed::Box, vec::Vec};
+use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 use tracing::{event, Level};
 use winter_prover::{
     crypto::{Digest, MerkleTree},
