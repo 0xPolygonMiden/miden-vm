@@ -12,8 +12,9 @@ use test_utils::crypto::Rpo256;
 use test_utils::rand::rand_value;
 use test_utils::{
     crypto::{rpo_falcon512::Polynomial, rpo_falcon512::SecretKey, MerkleStore},
+    expect_exec_error,
     rand::rand_vector,
-    FieldElement, ProgramInfo, QuadFelt, TestError, Word, WORD_SIZE,
+    FieldElement, ProgramInfo, QuadFelt, Word, WORD_SIZE,
 };
 
 /// Modulus used for rpo falcon 512.
@@ -90,10 +91,10 @@ fn test_falcon512_diff_mod_q() {
 
     // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
     let expanded_answer = (v as i64
-        - (u as i64 + -1 * (w as i64).rem_euclid(M as i64)).rem_euclid(M as i64))
+        - (u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64))
     .rem_euclid(M as i64);
     let simplified_answer = (v + w + J - u).rem_euclid(M);
-    assert_eq!(expanded_answer, simplified_answer.try_into().unwrap());
+    assert_eq!(expanded_answer, i64::try_from(simplified_answer).unwrap());
 
     test1.expect_stack(&[simplified_answer]);
 }
@@ -136,9 +137,9 @@ fn test_falcon512_probabilistic_product() {
     let advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h and place it on the stack.
-    let binding = Rpo256::hash_elements(&*to_elements(h.clone()));
+    let binding = Rpo256::hash_elements(&to_elements(h.clone()));
     let h_hash = binding.as_elements();
-    let h_hash_copy: Vec<u64> = h_hash.into_iter().map(|felt| (*felt).into()).collect();
+    let h_hash_copy: Vec<u64> = h_hash.iter().map(|felt| (*felt).into()).collect();
     let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
 
     let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
@@ -162,17 +163,20 @@ fn test_falcon512_probabilistic_product_failure() {
     let advice_stack: Vec<u64> = h_array.iter().map(|&e| e.into()).collect();
 
     // Compute hash of h and place it on the stack.
-    let binding = Rpo256::hash_elements(&*to_elements(h.clone()));
+    let binding = Rpo256::hash_elements(&to_elements(h.clone()));
     let h_hash = binding.as_elements();
-    let h_hash_copy: Vec<u64> = h_hash.into_iter().map(|felt| (*felt).into()).collect();
+    let h_hash_copy: Vec<u64> = h_hash.iter().map(|felt| (*felt).into()).collect();
 
     let stack_init = vec![h_hash_copy[0], h_hash_copy[1], h_hash_copy[2], h_hash_copy[3]];
     let test = build_test!(PROBABILISTIC_PRODUCT_SOURCE, &stack_init, &advice_stack);
-    test.expect_error(TestError::ExecutionError(ExecutionError::FailedAssertion {
-        clk: 17472,
-        err_code: 0,
-        err_msg: None,
-    }));
+    expect_exec_error!(
+        test,
+        ExecutionError::FailedAssertion {
+            clk: 17490,
+            err_code: 0,
+            err_msg: None,
+        }
+    );
 }
 
 #[test]
@@ -309,5 +313,5 @@ pub fn mul_modulo_p(a: Polynomial<Felt>, b: Polynomial<Felt>) -> [u64; 1024] {
 }
 
 pub fn to_elements(poly: Polynomial<Felt>) -> Vec<Felt> {
-    poly.coefficients.iter().map(|&a| Felt::from(a)).collect()
+    poly.coefficients.to_vec()
 }

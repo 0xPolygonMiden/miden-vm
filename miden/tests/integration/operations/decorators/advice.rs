@@ -8,8 +8,9 @@ use test_utils::serde::Serializable;
 use test_utils::{
     build_test,
     crypto::{MerkleStore, RpoDigest},
+    expect_exec_error,
     rand::rand_value,
-    Felt, TestError,
+    Felt,
 };
 
 const ADVICE_PUSH_SIG: &str = "
@@ -428,9 +429,7 @@ fn advice_push_sig_rpo_falcon_512_bad_key_value() {
 
     let test =
         build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
-    test.expect_error(TestError::ExecutionError(ExecutionError::MalformedSignatureKey(
-        "RPO Falcon512",
-    )));
+    expect_exec_error!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
 }
 
 #[test]
@@ -469,7 +468,5 @@ fn advice_push_sig_rpo_falcon_512_bad_key_length() {
     let test =
         build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
 
-    test.expect_error(TestError::ExecutionError(ExecutionError::MalformedSignatureKey(
-        "RPO Falcon512",
-    )));
+    expect_exec_error!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
 }
