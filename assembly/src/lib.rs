@@ -32,7 +32,7 @@ pub mod testing;
 mod tests;
 
 pub use self::assembler::{ArtifactKind, Assembler, AssemblyContext};
-pub use self::compile::{Compile, Options as CompileOpts};
+pub use self::compile::{Compile, Options as CompileOptions};
 pub use self::errors::AssemblyError;
 pub use self::library::{
     Library, LibraryError, LibraryNamespace, LibraryPath, MaslLibrary, PathError, Version,

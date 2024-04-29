@@ -275,7 +275,7 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program or Assembly error.
     pub fn compile(&self) -> Result<Program, Report> {
-        use assembly::{ast::ModuleKind, CompileOpts};
+        use assembly::{ast::ModuleKind, CompileOptions};
         let assembler = if let Some(kernel) = self.kernel.as_ref() {
             assembly::Assembler::with_kernel_from_module(kernel).expect("invalid kernel")
         } else {
@@ -288,7 +288,7 @@ impl Test {
                 assembler
                     .with_module_and_options(
                         source,
-                        CompileOpts::new(ModuleKind::Library, path.clone()).unwrap(),
+                        CompileOptions::new(ModuleKind::Library, path.clone()).unwrap(),
                     )
                     .expect("invalid masm source code")
             })
