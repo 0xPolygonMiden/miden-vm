@@ -4,13 +4,10 @@ use vm_core::FieldElement;
 use winter_prover::math::log2;
 
 mod lagrange_ker;
-pub use lagrange_ker::EqFunction;
+pub use lagrange_ker::{inner_product, EqFunction};
 
 mod error;
-use self::{
-    error::Error,
-    lagrange_ker::{compute_lagrange_basis_evals_at, inner_product},
-};
+use self::{error::Error, lagrange_ker::compute_lagrange_basis_evals_at};
 
 // MULTI-LINEAR POLYNOMIAL
 // ================================================================================================

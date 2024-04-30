@@ -88,13 +88,13 @@ mod test {
         let claim = values.iter().fold(ZERO, |acc, &x| x + acc);
 
         let ml = MultiLinearPoly::from_evaluations(values.to_vec()).expect("should not fail");
-        let mut mls = vec![ml];
+        let mls = vec![ml];
         let virtual_poly = ProjectionComposition::new(0);
 
         // Prover
         let prover = SumCheckProver::new(virtual_poly, PlainClaimBuilder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let proof = prover.prove(claim, &mut mls, &mut coin).unwrap();
+        let proof = prover.prove(claim, mls, &mut coin).unwrap();
 
         // Verifier
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
@@ -114,13 +114,13 @@ mod test {
 
         let ml_0 = MultiLinearPoly::from_evaluations(values_0.to_vec()).expect("should not fail");
         let ml_1 = MultiLinearPoly::from_evaluations(values_1.to_vec()).expect("should not fail");
-        let mut mls = vec![ml_0, ml_1];
+        let mls = vec![ml_0, ml_1];
         let virtual_poly = ProductComposition;
 
         // Prover
         let prover = SumCheckProver::new(virtual_poly, PlainClaimBuilder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let proof = prover.prove(claim, &mut mls, &mut coin).unwrap();
+        let proof = prover.prove(claim, mls, &mut coin).unwrap();
 
         // Verifier
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
@@ -144,13 +144,13 @@ mod test {
 
         let ml_0 = MultiLinearPoly::from_evaluations(values_0.to_vec()).expect("should not fail");
         let ml_1 = MultiLinearPoly::from_evaluations(values_1.to_vec()).expect("should not fail");
-        let mut mls = vec![ml_0, ml_1];
+        let mls = vec![ml_0, ml_1];
         let virtual_poly = ProductComposition;
 
         // Prover
         let prover = SumCheckProver::new(virtual_poly, PlainClaimBuilder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let proof = prover.prove(claim, &mut mls, &mut coin).unwrap();
+        let proof = prover.prove(claim, mls, &mut coin).unwrap();
 
         // Verifier
         let plain_query_builder = ProjectionPolyQueryBuilder::default();

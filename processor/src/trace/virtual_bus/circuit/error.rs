@@ -2,12 +2,6 @@
 pub enum ProverError {
     #[error("failed to generate multi-linear from the given evaluations")]
     FailedToGenerateML,
-    #[error("the inputs to the circuit's input layer have incompatible lengths")]
-    MismatchingLengthsCircuitInputs,
-    #[error("the inputs to the circuit's input layer must have power-of-two lengths")]
-    InputsMustBePowerTwo,
-    #[error("the inputs to the circuit's input layer must have at least two evaluations")]
-    InputsAtLeastTwo,
     #[error("failed to generate the sum-check proof")]
     FailedToProveSumCheck,
     #[error("failed to generate the random challenge")]

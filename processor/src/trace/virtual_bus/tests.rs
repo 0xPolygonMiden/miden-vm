@@ -27,16 +27,16 @@ fn test_vb_prover_verifier() {
 
     // this should be generated using the transcript up to when the prover sends the commitment
     // to the main trace.
-    let alphas: Vec<Felt> = vec![test_utils::rand::rand_value()];
+    let log_up_randomness: Vec<Felt> = vec![test_utils::rand::rand_value()];
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_prover = VirtualBusProver::new(alphas.clone()).unwrap();
-    let proof = vb_prover.prove(&trace, &mut transcript).unwrap();
+    let vb_prover = VirtualBusProver::new().unwrap();
+    let proof = vb_prover.prove(&trace, log_up_randomness.clone(), &mut transcript).unwrap();
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_verifier = VirtualBusVerifier::new(alphas).unwrap();
+    let vb_verifier = VirtualBusVerifier::new(log_up_randomness).unwrap();
     let final_opening_claim = vb_verifier.verify(proof, &mut transcript);
     assert!(final_opening_claim.is_ok())
 }
@@ -59,16 +59,16 @@ fn test_vb_prover_verifier_failure() {
 
     // this should be generated using the transcript up to when the prover sends the commitment
     // to the main trace.
-    let alphas: Vec<Felt> = vec![test_utils::rand::rand_value()];
+    let log_up_randomness: Vec<Felt> = vec![test_utils::rand::rand_value()];
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_prover = VirtualBusProver::new(alphas.clone()).unwrap();
-    let proof = vb_prover.prove(&trace, &mut transcript).unwrap();
+    let vb_prover = VirtualBusProver::new().unwrap();
+    let proof = vb_prover.prove(&trace, log_up_randomness.clone(), &mut transcript).unwrap();
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_verifier = VirtualBusVerifier::new(alphas).unwrap();
+    let vb_verifier = VirtualBusVerifier::new(log_up_randomness).unwrap();
     let final_opening_claim = vb_verifier.verify(proof, &mut transcript);
     assert!(final_opening_claim.is_err())
 }

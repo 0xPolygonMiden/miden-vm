@@ -1,7 +1,12 @@
 use crate::trace::virtual_bus::multilinear::EqFunction;
 use crate::trace::virtual_bus::{multilinear::CompositionPolynomial, sum_check::RoundProof};
-use alloc::{borrow::ToOwned, sync::Arc, vec::Vec};
-use miden_air::trace::TRACE_WIDTH;
+use alloc::borrow::ToOwned;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
+use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
+use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
+use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
 use vm_core::{Felt, FieldElement};
 
 mod error;
@@ -11,6 +16,7 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
+use super::multilinear::inner_product;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
@@ -239,4 +245,118 @@ pub fn gkr_merge_composition_from_composition_polys<E: FieldElement<BaseField = 
         right_denominator,
         left_denominator,
     )
+}
+
+/// A composition polynomial used in the GKR protocol for its final sum-check.
+#[derive(Clone)]
+pub struct GkrCompositionMerge2<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    pub sum_check_combining_randomness: E,
+    pub tensored_merge_randomness: Vec<E>,
+    pub log_up_randomness: Vec<E>,
+}
+
+impl<E> GkrCompositionMerge2<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    pub fn new(
+        combining_randomness: E,
+        merge_randomness: Vec<E>,
+        log_up_randomness: Vec<E>,
+    ) -> Self {
+        let tensored_merge_randomness =
+            EqFunction::ml_at(merge_randomness.clone()).evaluations().to_vec();
+
+        Self {
+            sum_check_combining_randomness: combining_randomness,
+            tensored_merge_randomness,
+            log_up_randomness,
+        }
+    }
+}
+
+impl<E> CompositionPolynomial<E> for GkrCompositionMerge2<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    fn num_variables(&self) -> u32 {
+        TRACE_WIDTH as u32
+    }
+
+    fn max_degree(&self) -> u32 {
+        // TODOP: Make a static computation?
+        // Computed as:
+        // 1 + max(left_numerator_degree + right_denom_degree, right_numerator_degree + left_denom_degree)
+        5
+    }
+
+    fn evaluate(&self, query: &[E]) -> E {
+        // TODOP: Don't repeat the logic from `FractionalSumCircuit::new()`
+        let eval_left_numerator = {
+            let f_m = {
+                let mem_selec0 = query[CHIPLETS_OFFSET];
+                let mem_selec1 = query[CHIPLETS_OFFSET + 1];
+                let mem_selec2 = query[CHIPLETS_OFFSET + 2];
+                mem_selec0 * mem_selec1 * (E::ONE - mem_selec2)
+            };
+            let f_rc = {
+                let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
+                let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
+                let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
+
+                (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
+            };
+
+            inner_product(&[query[M_COL_IDX], f_m, f_m, f_rc], &self.tensored_merge_randomness)
+        };
+        let eval_right_numerator = {
+            let f_rc = {
+                let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
+                let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
+                let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
+
+                (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
+            };
+
+            inner_product(&[f_rc, f_rc, f_rc, E::ZERO], &self.tensored_merge_randomness)
+        };
+        let eval_left_denominator = {
+            let alphas = &self.log_up_randomness;
+
+            let table_denom = alphas[0] - query[V_COL_IDX];
+            let memory_denom_0 = -(alphas[0] - query[MEMORY_D0_COL_IDX]);
+            let memory_denom_1 = -(alphas[0] - query[MEMORY_D1_COL_IDX]);
+            let stack_value_denom_0 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET]);
+
+            inner_product(
+                &[table_denom, memory_denom_0, memory_denom_1, stack_value_denom_0],
+                &self.tensored_merge_randomness,
+            )
+        };
+
+        let eval_right_denominator = {
+            let alphas = &self.log_up_randomness;
+
+            let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);
+            let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
+            let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
+
+            inner_product(
+                &[stack_value_denom_1, stack_value_denom_2, stack_value_denom_3, E::ONE],
+                &self.tensored_merge_randomness,
+            )
+        };
+        // TODOP: Use a better constant name than TRACE_WIDTH;
+        let eq_eval = query[TRACE_WIDTH];
+
+        eq_eval
+            * ((eval_left_numerator * eval_right_denominator
+                + eval_right_numerator * eval_left_denominator)
+                + eval_left_denominator
+                    * eval_right_denominator
+                    * self.sum_check_combining_randomness)
+    }
 }

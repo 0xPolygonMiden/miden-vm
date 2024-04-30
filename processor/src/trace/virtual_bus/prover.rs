@@ -1,11 +1,10 @@
 use super::{
     circuit::GkrCircuitProof,
     error::{Error, ProverError},
-    generate,
-    multilinear::{CompositionPolynomial, MultiLinearPoly},
+    multilinear::MultiLinearPoly,
     prove,
 };
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
@@ -40,7 +39,8 @@ where
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 {
-    composition_polynomials: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
+    // TODOP: Remove `VirtualBusProver` entirely?
+    _temp: PhantomData<E>,
     _challenger: PhantomData<C>,
 }
 
@@ -70,30 +70,23 @@ where
     ///
     /// [1]: https://eprint.iacr.org/2023/1284
     /// [2]: https://dl.acm.org/doi/10.1145/2699436
-    pub fn new(log_up_randomness: Vec<E>) -> Result<Self, Error> {
-        let (_claim, composition_polynomials) = generate(log_up_randomness)?;
-
+    pub fn new() -> Result<Self, Error> {
         Ok(Self {
-            composition_polynomials,
+            _temp: PhantomData,
             _challenger: PhantomData,
         })
-    }
-
-    /// Returns the composition polynomials of the left/right numerators/denominators of
-    /// the GKR-LogUp relation.
-    fn composition_polynomials(&self) -> Vec<Vec<Arc<dyn CompositionPolynomial<E>>>> {
-        self.composition_polynomials.clone()
     }
 
     /// Proves the GKR-LogUp relation.
     pub fn prove(
         &self,
         trace: &MainTrace,
+        log_up_randomness: Vec<E>,
         transcript: &mut C,
     ) -> Result<GkrCircuitProof<E>, ProverError> {
         // TODO: Optimize this so that we can work with base field element directly and thus save
         // on memory usage.
-        let mut mls: Vec<MultiLinearPoly<E>> = trace
+        let main_trace_columns: Vec<MultiLinearPoly<E>> = trace
             .columns()
             .map(|col| {
                 let mut values: Vec<E> = col.iter().map(|value| E::from(*value)).collect();
@@ -104,7 +97,7 @@ where
             })
             .collect();
 
-        prove(self.composition_polynomials(), &mut mls, transcript)
+        prove(main_trace_columns, log_up_randomness, transcript)
             .map_err(|_| ProverError::FailedToGenerateProof)
     }
 }
