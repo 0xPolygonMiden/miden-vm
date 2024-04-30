@@ -33,7 +33,6 @@ pub use prover::VirtualBusProver;
 mod verifier;
 pub use verifier::VirtualBusVerifier;
 mod error;
-mod sub_bus;
 
 #[cfg(test)]
 mod tests;
