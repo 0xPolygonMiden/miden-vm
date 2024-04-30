@@ -1,12 +1,10 @@
 use super::{
     circuit::GkrCircuitProof,
     error::{Error, VerifierError},
-    generate,
-    multilinear::CompositionPolynomial,
     sum_check::FinalOpeningClaim,
     verify,
 };
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
@@ -19,8 +17,7 @@ where
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 {
-    claim: E,
-    composition_polynomials: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
+    log_up_randomness: Vec<E>,
     _challenger: PhantomData<C>,
 }
 
@@ -32,24 +29,15 @@ where
 {
     /// Constructs a new [`VirtualBusVerifier`] given a set of random values for the GKR-LogUp relation.
     pub fn new(log_up_randomness: Vec<E>) -> Result<Self, Error> {
-        let (claim, composition_polynomials) = generate(log_up_randomness)?;
-
         Ok(Self {
-            claim,
-            composition_polynomials,
+            log_up_randomness,
             _challenger: PhantomData,
         })
     }
 
     /// Returns the claim of the GKR-LogUp relation.
-    pub fn claim(&self) -> Result<E, Error> {
-        Ok(self.claim)
-    }
-
-    /// Returns the composition polynomials of the left/right numerators/denominators of
-    /// the GKR-LogUp relation.
-    pub fn composition_polynomials(&self) -> Vec<Vec<Arc<dyn CompositionPolynomial<E>>>> {
-        self.composition_polynomials.clone()
+    pub fn claim(&self) -> E {
+        E::ZERO
     }
 
     /// Verifies the GKR-LogUp relation. This output, in the case the proof is accepted,
@@ -60,7 +48,7 @@ where
         proof: GkrCircuitProof<E>,
         transcript: &mut C,
     ) -> Result<FinalOpeningClaim<E>, VerifierError> {
-        verify(self.claim, proof, self.composition_polynomials(), transcript)
+        verify(self.claim(), proof, self.log_up_randomness.clone(), transcript)
             .map_err(|_| VerifierError::FailedToVerifyProof)
     }
 }

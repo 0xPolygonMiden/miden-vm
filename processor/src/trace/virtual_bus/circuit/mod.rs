@@ -1,7 +1,5 @@
 use crate::trace::virtual_bus::multilinear::EqFunction;
 use crate::trace::virtual_bus::{multilinear::CompositionPolynomial, sum_check::RoundProof};
-use alloc::borrow::ToOwned;
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
@@ -51,35 +49,6 @@ pub struct FinalLayerProof<E: FieldElement> {
 pub struct GkrClaim<E: FieldElement + 'static> {
     pub evaluation_point: Vec<E>,
     pub claimed_evaluation: (E, E),
-}
-
-/// A composition polynomial that projects into a specific component.
-#[derive(Clone, Copy, Debug)]
-pub struct ProjectionComposition {
-    coordinate: usize,
-}
-
-impl ProjectionComposition {
-    pub fn new(coordinate: usize) -> Self {
-        Self { coordinate }
-    }
-}
-
-impl<E> CompositionPolynomial<E> for ProjectionComposition
-where
-    E: FieldElement,
-{
-    fn num_variables(&self) -> u32 {
-        1
-    }
-
-    fn max_degree(&self) -> u32 {
-        1
-    }
-
-    fn evaluate(&self, query: &[E]) -> E {
-        query[self.coordinate]
-    }
 }
 
 /// A composition polynomial used in the GKR protocol for all of its sum-checks except the final one.
@@ -135,130 +104,10 @@ where
 {
     pub sum_check_combining_randomness: E,
     pub tensored_merge_randomness: Vec<E>,
-    pub degree: u32,
-
-    pub eq_composer: Arc<dyn CompositionPolynomial<E>>,
-    pub right_numerator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-    pub left_numerator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-    pub right_denominator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-    pub left_denominator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-}
-
-impl<E> GkrCompositionMerge<E>
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    pub fn new(
-        combining_randomness: E,
-        merge_randomness: Vec<E>,
-        eq_composer: Arc<dyn CompositionPolynomial<E>>,
-        right_numerator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-        left_numerator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-        right_denominator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-        left_denominator_composer: Vec<Arc<dyn CompositionPolynomial<E>>>,
-    ) -> Self {
-        let tensored_merge_randomness =
-            EqFunction::ml_at(merge_randomness.clone()).evaluations().to_vec();
-
-        let max_left_num = left_numerator_composer.iter().map(|c| c.max_degree()).max().unwrap();
-        let max_right_num = right_numerator_composer.iter().map(|c| c.max_degree()).max().unwrap();
-        let max_left_denom =
-            left_denominator_composer.iter().map(|c| c.max_degree()).max().unwrap();
-        let max_right_denom =
-            right_denominator_composer.iter().map(|c| c.max_degree()).max().unwrap();
-        let degree =
-            1 + core::cmp::max(max_left_num + max_right_denom, max_right_num + max_left_denom);
-
-        Self {
-            sum_check_combining_randomness: combining_randomness,
-            eq_composer,
-            degree,
-            right_numerator_composer,
-            left_numerator_composer,
-            right_denominator_composer,
-            left_denominator_composer,
-            tensored_merge_randomness,
-        }
-    }
-}
-
-impl<E> CompositionPolynomial<E> for GkrCompositionMerge<E>
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    fn num_variables(&self) -> u32 {
-        TRACE_WIDTH as u32
-    }
-
-    fn max_degree(&self) -> u32 {
-        self.degree
-    }
-
-    fn evaluate(&self, query: &[E]) -> E {
-        let eval_right_numerator =
-            self.right_numerator_composer.iter().enumerate().fold(E::ZERO, |acc, (i, ml)| {
-                acc + ml.evaluate(query) * self.tensored_merge_randomness[i]
-            });
-        let eval_left_numerator =
-            self.left_numerator_composer.iter().enumerate().fold(E::ZERO, |acc, (i, ml)| {
-                acc + ml.evaluate(query) * self.tensored_merge_randomness[i]
-            });
-        let eval_right_denominator = self
-            .right_denominator_composer
-            .iter()
-            .enumerate()
-            .fold(E::ZERO, |acc, (i, ml)| {
-                acc + ml.evaluate(query) * self.tensored_merge_randomness[i]
-            });
-        let eval_left_denominator =
-            self.left_denominator_composer.iter().enumerate().fold(E::ZERO, |acc, (i, ml)| {
-                acc + ml.evaluate(query) * self.tensored_merge_randomness[i]
-            });
-        let eq_eval = self.eq_composer.evaluate(query);
-        eq_eval
-            * ((eval_left_numerator * eval_right_denominator
-                + eval_right_numerator * eval_left_denominator)
-                + eval_left_denominator
-                    * eval_right_denominator
-                    * self.sum_check_combining_randomness)
-    }
-}
-
-/// Generates a [GkrCompositionMerge] given the sum-check randomness so-far and the random value
-/// for batching two sum-checks to one.
-pub fn gkr_merge_composition_from_composition_polys<E: FieldElement<BaseField = Felt> + 'static>(
-    composition_polys: &[Vec<Arc<dyn CompositionPolynomial<E>>>],
-    sum_check_batch_randomness: E,
-    merge_randomness: Vec<E>,
-) -> GkrCompositionMerge<E> {
-    let eq_composer = Arc::new(ProjectionComposition::new(TRACE_WIDTH));
-    let left_numerator = composition_polys[0].to_owned();
-    let right_numerator = composition_polys[1].to_owned();
-    let left_denominator = composition_polys[2].to_owned();
-    let right_denominator = composition_polys[3].to_owned();
-    GkrCompositionMerge::new(
-        sum_check_batch_randomness,
-        merge_randomness,
-        eq_composer,
-        right_numerator,
-        left_numerator,
-        right_denominator,
-        left_denominator,
-    )
-}
-
-/// A composition polynomial used in the GKR protocol for its final sum-check.
-#[derive(Clone)]
-pub struct GkrCompositionMerge2<E>
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    pub sum_check_combining_randomness: E,
-    pub tensored_merge_randomness: Vec<E>,
     pub log_up_randomness: Vec<E>,
 }
 
-impl<E> GkrCompositionMerge2<E>
+impl<E> GkrCompositionMerge<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -278,7 +127,7 @@ where
     }
 }
 
-impl<E> CompositionPolynomial<E> for GkrCompositionMerge2<E>
+impl<E> CompositionPolynomial<E> for GkrCompositionMerge<E>
 where
     E: FieldElement<BaseField = Felt>,
 {

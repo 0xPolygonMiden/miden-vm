@@ -3,7 +3,6 @@ use alloc::{sync::Arc, vec::Vec};
 use vm_core::FieldElement;
 
 mod range_checker;
-pub use range_checker::*;
 
 /// Defines a sub-bus of the global virtual bus
 pub trait BusBuilder<E: FieldElement> {

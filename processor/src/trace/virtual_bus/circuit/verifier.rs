@@ -1,15 +1,14 @@
 use super::{
-    error::VerifierError, gkr_merge_composition_from_composition_polys, FinalLayerProof,
-    GkrCircuitProof, GkrComposition,
+    error::VerifierError, FinalLayerProof, GkrCircuitProof, GkrComposition, GkrCompositionMerge,
 };
 use crate::trace::virtual_bus::{
-    multilinear::{CompositionPolynomial, EqFunction},
+    multilinear::EqFunction,
     sum_check::{
         CompositionPolyQueryBuilder, FinalOpeningClaim, Proof as SumCheckFullProof, RoundClaim,
     },
     SumCheckVerifier,
 };
-use alloc::{borrow::ToOwned, sync::Arc, vec::Vec};
+use alloc::{borrow::ToOwned, vec::Vec};
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -21,7 +20,7 @@ pub fn verify<
 >(
     claim: E,
     proof: GkrCircuitProof<E>,
-    composition_polys: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
+    log_up_randomness: Vec<E>,
     transcript: &mut C,
 ) -> Result<FinalOpeningClaim<E>, VerifierError> {
     let GkrCircuitProof {
@@ -88,8 +87,8 @@ pub fn verify<
     // verify the proof of the final GKR layer and pass final opening claim for verification
     // to the STARK
     verify_sum_check_proof_last(
-        composition_polys,
         final_layer_proof,
+        log_up_randomness,
         &rand,
         reduced_claim,
         transcript,
@@ -130,8 +129,8 @@ pub fn verify_sum_check_proof_last<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    composition_polys: Vec<Vec<Arc<dyn CompositionPolynomial<E>>>>,
     proof: FinalLayerProof<E>,
+    log_up_randomness: Vec<E>,
     gkr_eval_point: &[E],
     claim: (E, E),
     transcript: &mut C,
@@ -160,11 +159,8 @@ pub fn verify_sum_check_proof_last<
         .map_err(|_| VerifierError::FailedToVerifySumCheck)?;
 
     // verify the second part of the sum-check protocol
-    let gkr_composition = gkr_merge_composition_from_composition_polys(
-        &composition_polys,
-        r_sum_check,
-        rand_merge.clone(),
-    );
+    let gkr_composition =
+        GkrCompositionMerge::new(r_sum_check, rand_merge.clone(), log_up_randomness);
     let verifier = SumCheckVerifier::new(
         gkr_composition,
         GkrMergeQueryBuilder::new(gkr_eval_point.to_owned(), rand_merge),

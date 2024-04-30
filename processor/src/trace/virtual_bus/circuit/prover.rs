@@ -1,6 +1,6 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
-    FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge2,
+    FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -384,7 +384,7 @@ fn prove_final_circuit_layer<
 
     // create the composed multi-linear for the second sum-check protocol using the randomness
     // sampled during the first one
-    let gkr_composition = GkrCompositionMerge2::new(r_sum_check, rand_merge, log_up_randomness);
+    let gkr_composition = GkrCompositionMerge::new(r_sum_check, rand_merge, log_up_randomness);
 
     // include the partially evaluated at the first sum-check randomness EQ multi-linear
     mls.push(merged_mls[4].clone());
