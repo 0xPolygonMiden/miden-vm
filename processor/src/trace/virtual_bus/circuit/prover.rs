@@ -12,6 +12,7 @@ use core::marker::PhantomData;
 use miden_air::trace::{
     chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
     decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
+    main_trace::MainTrace,
     range::{M_COL_IDX, V_COL_IDX},
     CHIPLETS_OFFSET,
 };
@@ -305,10 +306,23 @@ pub fn prove<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    main_trace_columns: Vec<MultiLinearPoly<E>>,
+    trace: &MainTrace,
     log_up_randomness: Vec<E>,
     transcript: &mut C,
 ) -> Result<GkrCircuitProof<E>, ProverError> {
+    // TODO: Optimize this so that we can work with base field element directly and thus save
+    // on memory usage.
+    let main_trace_columns: Vec<MultiLinearPoly<E>> = trace
+        .columns()
+        .map(|col| {
+            let mut values: Vec<E> = col.iter().map(|value| E::from(*value)).collect();
+            if let Some(value) = values.last_mut() {
+                *value = E::ZERO
+            }
+            MultiLinearPoly::from_evaluations(values).unwrap()
+        })
+        .collect();
+
     // evaluate the GKR fractional sum circuit
     let mut circuit = FractionalSumCircuit::new(&main_trace_columns, &log_up_randomness)?;
 

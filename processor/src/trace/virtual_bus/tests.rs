@@ -1,6 +1,4 @@
-use crate::{
-    trace::virtual_bus::prover::VirtualBusProver, verify_virtual_bus, DefaultHost, ExecutionTrace, Process
-};
+use crate::{prove_virtual_bus, verify_virtual_bus, DefaultHost, ExecutionTrace, Process};
 use alloc::vec::Vec;
 use miden_air::{
     trace::{main_trace::MainTrace, range::M_COL_IDX},
@@ -30,8 +28,7 @@ fn test_vb_prover_verifier() {
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_prover = VirtualBusProver::new().unwrap();
-    let proof = vb_prover.prove(&trace, log_up_randomness.clone(), &mut transcript).unwrap();
+    let proof = prove_virtual_bus(&trace, log_up_randomness.clone(), &mut transcript).unwrap();
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
@@ -61,8 +58,7 @@ fn test_vb_prover_verifier_failure() {
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_prover = VirtualBusProver::new().unwrap();
-    let proof = vb_prover.prove(&trace, log_up_randomness.clone(), &mut transcript).unwrap();
+    let proof = prove_virtual_bus(&trace, log_up_randomness.clone(), &mut transcript).unwrap();
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());

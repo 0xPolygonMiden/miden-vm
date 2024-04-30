@@ -28,9 +28,5 @@ mod sum_check;
 mod univariate;
 pub use sum_check::{SumCheckProver, SumCheckVerifier};
 
-mod prover;
-pub use prover::VirtualBusProver;
-mod error;
-
 #[cfg(test)]
 mod tests;
