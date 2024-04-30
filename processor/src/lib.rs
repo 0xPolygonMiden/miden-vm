@@ -58,8 +58,7 @@ use chiplets::Chiplets;
 mod trace;
 use trace::TraceFragment;
 pub use trace::{
-    prove as prove_virtual_bus, verify as verify_virtual_bus, ChipletsLengths, ExecutionTrace,
-    TraceLenSummary,
+    prove_virtual_bus, verify_virtual_bus, ChipletsLengths, ExecutionTrace, TraceLenSummary,
 };
 
 mod errors;

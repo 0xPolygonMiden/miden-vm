@@ -22,11 +22,14 @@
 //! [2]: https://eprint.iacr.org/2023/1284
 
 mod circuit;
-mod multilinear;
 pub use circuit::{prove, verify};
+
+mod multilinear;
+
 mod sum_check;
-mod univariate;
 pub use sum_check::{SumCheckProver, SumCheckVerifier};
+
+mod univariate;
 
 #[cfg(test)]
 mod tests;
