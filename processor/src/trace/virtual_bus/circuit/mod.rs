@@ -17,6 +17,77 @@ pub use verifier::verify;
 use super::multilinear::inner_product;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
+// TODOP: Document (and rename)
+const NUM_ITEMS_PER_INPUT: usize = 4;
+struct LayerGatesInputs<E: FieldElement> {
+    pub partial_left_numerator: [E; NUM_ITEMS_PER_INPUT],
+    pub partial_right_numerator: [E; NUM_ITEMS_PER_INPUT],
+    pub partial_left_denominator: [E; NUM_ITEMS_PER_INPUT],
+    pub partial_right_denominator: [E; NUM_ITEMS_PER_INPUT],
+}
+
+impl<E: FieldElement> LayerGatesInputs<E> {
+    pub fn from_main_trace_query(query: &[E], log_up_randomness: &[E]) -> Self {
+        Self {
+            partial_left_numerator: Self::left_numerator(query),
+            partial_right_numerator: Self::right_numerator(query),
+            partial_left_denominator: Self::left_denominator(query, log_up_randomness),
+            partial_right_denominator: Self::right_denominator(query, log_up_randomness),
+        }
+    }
+
+    fn left_numerator(query: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+        let f_m = {
+            let mem_selec0 = query[CHIPLETS_OFFSET];
+            let mem_selec1 = query[CHIPLETS_OFFSET + 1];
+            let mem_selec2 = query[CHIPLETS_OFFSET + 2];
+            mem_selec0 * mem_selec1 * (E::ONE - mem_selec2)
+        };
+        let f_rc = {
+            let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
+            let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
+            let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
+
+            (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
+        };
+
+        [query[M_COL_IDX], f_m, f_m, f_rc]
+    }
+
+    fn right_numerator(query: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+        let f_rc = {
+            let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
+            let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
+            let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
+
+            (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
+        };
+
+        [f_rc, f_rc, f_rc, E::ZERO]
+    }
+
+    fn left_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+        let alphas = log_up_randomness;
+
+        let table_denom = alphas[0] - query[V_COL_IDX];
+        let memory_denom_0 = -(alphas[0] - query[MEMORY_D0_COL_IDX]);
+        let memory_denom_1 = -(alphas[0] - query[MEMORY_D1_COL_IDX]);
+        let stack_value_denom_0 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET]);
+
+        [table_denom, memory_denom_0, memory_denom_1, stack_value_denom_0]
+    }
+
+    fn right_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+        let alphas = log_up_randomness;
+
+        let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);
+        let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
+        let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
+
+        [stack_value_denom_1, stack_value_denom_2, stack_value_denom_3, E::ONE]
+    }
+}
+
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
 pub struct GkrCircuitProof<E: FieldElement + 'static> {
@@ -143,61 +214,22 @@ where
     }
 
     fn evaluate(&self, query: &[E]) -> E {
-        // TODOP: Don't repeat the logic from `FractionalSumCircuit::new()`
-        let eval_left_numerator = {
-            let f_m = {
-                let mem_selec0 = query[CHIPLETS_OFFSET];
-                let mem_selec1 = query[CHIPLETS_OFFSET + 1];
-                let mem_selec2 = query[CHIPLETS_OFFSET + 2];
-                mem_selec0 * mem_selec1 * (E::ONE - mem_selec2)
-            };
-            let f_rc = {
-                let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
-                let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
-                let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
+        let LayerGatesInputs {
+            partial_left_numerator,
+            partial_right_numerator,
+            partial_left_denominator,
+            partial_right_denominator,
+        } = LayerGatesInputs::from_main_trace_query(&query, &self.log_up_randomness);
 
-                (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
-            };
+        let eval_left_numerator =
+            inner_product(&partial_left_numerator, &self.tensored_merge_randomness);
+        let eval_right_numerator =
+            inner_product(&partial_right_numerator, &self.tensored_merge_randomness);
+        let eval_left_denominator =
+            inner_product(&partial_left_denominator, &self.tensored_merge_randomness);
+        let eval_right_denominator =
+            inner_product(&partial_right_denominator, &self.tensored_merge_randomness);
 
-            inner_product(&[query[M_COL_IDX], f_m, f_m, f_rc], &self.tensored_merge_randomness)
-        };
-        let eval_right_numerator = {
-            let f_rc = {
-                let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
-                let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
-                let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
-
-                (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
-            };
-
-            inner_product(&[f_rc, f_rc, f_rc, E::ZERO], &self.tensored_merge_randomness)
-        };
-        let eval_left_denominator = {
-            let alphas = &self.log_up_randomness;
-
-            let table_denom = alphas[0] - query[V_COL_IDX];
-            let memory_denom_0 = -(alphas[0] - query[MEMORY_D0_COL_IDX]);
-            let memory_denom_1 = -(alphas[0] - query[MEMORY_D1_COL_IDX]);
-            let stack_value_denom_0 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET]);
-
-            inner_product(
-                &[table_denom, memory_denom_0, memory_denom_1, stack_value_denom_0],
-                &self.tensored_merge_randomness,
-            )
-        };
-
-        let eval_right_denominator = {
-            let alphas = &self.log_up_randomness;
-
-            let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);
-            let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
-            let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
-
-            inner_product(
-                &[stack_value_denom_1, stack_value_denom_2, stack_value_denom_3, E::ONE],
-                &self.tensored_merge_randomness,
-            )
-        };
         // TODOP: Use a better constant name than TRACE_WIDTH;
         let eq_eval = query[TRACE_WIDTH];
 

@@ -1,6 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
     FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
+    LayerGatesInputs, NUM_ITEMS_PER_INPUT,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -9,13 +10,7 @@ use crate::trace::virtual_bus::{
 };
 use alloc::{borrow::ToOwned, vec::Vec};
 use core::marker::PhantomData;
-use miden_air::trace::{
-    chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
-    decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
-    main_trace::MainTrace,
-    range::{M_COL_IDX, V_COL_IDX},
-    CHIPLETS_OFFSET,
-};
+use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -167,83 +162,25 @@ struct CircuitInputs<E: FieldElement> {
 impl<E: FieldElement> CircuitInputs<E> {
     fn new(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Result<Self, ProverError> {
         let num_evaluations = columns[0].num_evaluations();
-        // TODOP: Use proper constant for capacity (instead of 4)
-        let mut left_numerator = Vec::with_capacity(num_evaluations * 4);
-        let mut right_numerator = Vec::with_capacity(num_evaluations * 4);
-        let mut left_denominator = Vec::with_capacity(num_evaluations * 4);
-        let mut right_denominator = Vec::with_capacity(num_evaluations * 4);
+        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
+        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
+        let mut left_denominator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
+        let mut right_denominator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
 
         for i in 0..num_evaluations {
             let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
 
-            // TODOP: Abstract this away
+            let LayerGatesInputs {
+                partial_left_numerator,
+                partial_right_numerator,
+                partial_left_denominator,
+                partial_right_denominator,
+            } = LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
 
-            // left numerator
-            {
-                let f_m = {
-                    let mem_selec0 = query[CHIPLETS_OFFSET];
-                    let mem_selec1 = query[CHIPLETS_OFFSET + 1];
-                    let mem_selec2 = query[CHIPLETS_OFFSET + 2];
-                    mem_selec0 * mem_selec1 * (E::ONE - mem_selec2)
-                };
-                let f_rc = {
-                    let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
-                    let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
-                    let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
-
-                    (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
-                };
-
-                left_numerator.push(query[M_COL_IDX]);
-                left_numerator.push(f_m);
-                left_numerator.push(f_m);
-                left_numerator.push(f_rc);
-            }
-
-            // right numerator
-            {
-                let f_rc = {
-                    let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
-                    let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
-                    let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
-
-                    (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
-                };
-
-                right_numerator.push(f_rc);
-                right_numerator.push(f_rc);
-                right_numerator.push(f_rc);
-                right_numerator.push(E::ZERO);
-            }
-
-            // left denominator
-            {
-                let alphas = log_up_randomness;
-
-                let table_denom = alphas[0] - query[V_COL_IDX];
-                let memory_denom_0 = -(alphas[0] - query[MEMORY_D0_COL_IDX]);
-                let memory_denom_1 = -(alphas[0] - query[MEMORY_D1_COL_IDX]);
-                let stack_value_denom_0 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET]);
-
-                left_denominator.push(table_denom);
-                left_denominator.push(memory_denom_0);
-                left_denominator.push(memory_denom_1);
-                left_denominator.push(stack_value_denom_0);
-            }
-
-            // right denominator
-            {
-                let alphas = log_up_randomness;
-
-                let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);
-                let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
-                let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
-
-                right_denominator.push(stack_value_denom_1);
-                right_denominator.push(stack_value_denom_2);
-                right_denominator.push(stack_value_denom_3);
-                right_denominator.push(E::ONE);
-            }
+            left_numerator.extend(partial_left_numerator);
+            right_numerator.extend(partial_right_numerator);
+            left_denominator.extend(partial_left_denominator);
+            right_denominator.extend(partial_right_denominator);
         }
 
         Ok(Self {
