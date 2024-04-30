@@ -30,8 +30,6 @@ pub use sum_check::{SumCheckProver, SumCheckVerifier};
 
 mod prover;
 pub use prover::VirtualBusProver;
-mod verifier;
-pub use verifier::VirtualBusVerifier;
 mod error;
 
 #[cfg(test)]

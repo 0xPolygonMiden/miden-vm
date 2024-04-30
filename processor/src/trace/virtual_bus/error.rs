@@ -11,9 +11,3 @@ pub enum ProverError {
     #[error("failed to generate a proof for the virtual bus relation")]
     FailedToGenerateProof,
 }
-
-#[derive(Debug, thiserror::Error)]
-pub enum VerifierError {
-    #[error("failed to generate a proof for the virtual bus relation")]
-    FailedToVerifyProof,
-}

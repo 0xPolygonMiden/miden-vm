@@ -1,6 +1,5 @@
 use crate::{
-    trace::virtual_bus::{prover::VirtualBusProver, verifier::VirtualBusVerifier},
-    DefaultHost, ExecutionTrace, Process,
+    trace::virtual_bus::prover::VirtualBusProver, verify_virtual_bus, DefaultHost, ExecutionTrace, Process
 };
 use alloc::vec::Vec;
 use miden_air::{
@@ -36,8 +35,7 @@ fn test_vb_prover_verifier() {
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_verifier = VirtualBusVerifier::new(log_up_randomness).unwrap();
-    let final_opening_claim = vb_verifier.verify(proof, &mut transcript);
+    let final_opening_claim = verify_virtual_bus(proof, log_up_randomness, &mut transcript);
     assert!(final_opening_claim.is_ok())
 }
 
@@ -68,8 +66,7 @@ fn test_vb_prover_verifier_failure() {
 
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
-    let vb_verifier = VirtualBusVerifier::new(log_up_randomness).unwrap();
-    let final_opening_claim = vb_verifier.verify(proof, &mut transcript);
+    let final_opening_claim = verify_virtual_bus(proof, log_up_randomness, &mut transcript);
     assert!(final_opening_claim.is_err())
 }
 

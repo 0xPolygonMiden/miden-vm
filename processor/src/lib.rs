@@ -58,7 +58,7 @@ use chiplets::Chiplets;
 mod trace;
 use trace::TraceFragment;
 pub use trace::{
-    ChipletsLengths, ExecutionTrace, TraceLenSummary, VirtualBusProver, VirtualBusVerifier,
+    ChipletsLengths, ExecutionTrace, TraceLenSummary, VirtualBusProver, verify as verify_virtual_bus,
 };
 
 mod errors;
