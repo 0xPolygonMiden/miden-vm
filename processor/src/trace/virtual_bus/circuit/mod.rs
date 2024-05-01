@@ -221,7 +221,7 @@ where
             partial_right_numerator,
             partial_left_denominator,
             partial_right_denominator,
-        } = LayerGatesInputs::from_main_trace_query(&query, &self.log_up_randomness);
+        } = LayerGatesInputs::from_main_trace_query(query, &self.log_up_randomness);
 
         let eval_left_numerator =
             inner_product(&partial_left_numerator, &self.tensored_merge_randomness);
