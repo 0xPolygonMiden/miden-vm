@@ -64,11 +64,11 @@ fn test_falcon512_norm_sq() {
     ";
 
     // normalize(e) = e^2 - phi * (2*q*e - q^2) where phi := (e > (q - 1)/2)
-    let upper = rand::thread_rng().gen_range(Q..M);
+    let upper = rand::thread_rng().gen_range(Q + 1..M);
     let test_upper = build_test!(source, &[upper]);
     test_upper.expect_stack(&[(M - upper) * (M - upper)]);
 
-    let lower = rand::thread_rng().gen_range(0..Q);
+    let lower = rand::thread_rng().gen_range(0..=Q);
     let test_lower = build_test!(source, &[lower]);
     test_lower.expect_stack(&[lower * lower])
 }
