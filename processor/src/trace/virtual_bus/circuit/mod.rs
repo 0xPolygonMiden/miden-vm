@@ -17,13 +17,16 @@ pub use verifier::verify;
 use super::multilinear::inner_product;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
-// TODOP: Document (and rename)
-const NUM_ITEMS_PER_INPUT: usize = 4;
+/// Defines the number of elements for the partial left/right numerator/denominators of
+/// [`LayerGatesInputs`].
+const NUM_ELEMENTS_PER_GATE_INPUT: usize = 4;
+
+/// Holds the contribution of one main trace row to the input layer's gates inputs.
 struct LayerGatesInputs<E: FieldElement> {
-    pub partial_left_numerator: [E; NUM_ITEMS_PER_INPUT],
-    pub partial_right_numerator: [E; NUM_ITEMS_PER_INPUT],
-    pub partial_left_denominator: [E; NUM_ITEMS_PER_INPUT],
-    pub partial_right_denominator: [E; NUM_ITEMS_PER_INPUT],
+    pub partial_left_numerator: [E; NUM_ELEMENTS_PER_GATE_INPUT],
+    pub partial_right_numerator: [E; NUM_ELEMENTS_PER_GATE_INPUT],
+    pub partial_left_denominator: [E; NUM_ELEMENTS_PER_GATE_INPUT],
+    pub partial_right_denominator: [E; NUM_ELEMENTS_PER_GATE_INPUT],
 }
 
 impl<E: FieldElement> LayerGatesInputs<E> {
@@ -36,7 +39,7 @@ impl<E: FieldElement> LayerGatesInputs<E> {
         }
     }
 
-    fn left_numerator(query: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+    fn left_numerator(query: &[E]) -> [E; NUM_ELEMENTS_PER_GATE_INPUT] {
         let f_m = {
             let mem_selec0 = query[CHIPLETS_OFFSET];
             let mem_selec1 = query[CHIPLETS_OFFSET + 1];
@@ -54,7 +57,7 @@ impl<E: FieldElement> LayerGatesInputs<E> {
         [query[M_COL_IDX], f_m, f_m, f_rc]
     }
 
-    fn right_numerator(query: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+    fn right_numerator(query: &[E]) -> [E; NUM_ELEMENTS_PER_GATE_INPUT] {
         let f_rc = {
             let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
             let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
@@ -66,7 +69,7 @@ impl<E: FieldElement> LayerGatesInputs<E> {
         [f_rc, f_rc, f_rc, E::ZERO]
     }
 
-    fn left_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+    fn left_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ELEMENTS_PER_GATE_INPUT] {
         let alphas = log_up_randomness;
 
         let table_denom = alphas[0] - query[V_COL_IDX];
@@ -77,7 +80,7 @@ impl<E: FieldElement> LayerGatesInputs<E> {
         [table_denom, memory_denom_0, memory_denom_1, stack_value_denom_0]
     }
 
-    fn right_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ITEMS_PER_INPUT] {
+    fn right_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ELEMENTS_PER_GATE_INPUT] {
         let alphas = log_up_randomness;
 
         let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);

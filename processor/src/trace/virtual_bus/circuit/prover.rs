@@ -1,7 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
     FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs, NUM_ITEMS_PER_INPUT,
+    LayerGatesInputs, NUM_ELEMENTS_PER_GATE_INPUT,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -151,7 +151,7 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
     }
 }
 
-// TODOP: Document
+/// Holds the inputs to [`FractionalSumCircuit`]
 struct CircuitInputs<E: FieldElement> {
     left_numerator: MultiLinearPoly<E>,
     right_numerator: MultiLinearPoly<E>,
@@ -162,10 +162,12 @@ struct CircuitInputs<E: FieldElement> {
 impl<E: FieldElement> CircuitInputs<E> {
     fn new(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Result<Self, ProverError> {
         let num_evaluations = columns[0].num_evaluations();
-        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
-        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
-        let mut left_denominator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
-        let mut right_denominator = Vec::with_capacity(num_evaluations * NUM_ITEMS_PER_INPUT);
+        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
+        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
+        let mut left_denominator =
+            Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
+        let mut right_denominator =
+            Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
 
         for i in 0..num_evaluations {
             let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
@@ -268,7 +270,7 @@ pub fn prove<
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-    let num_rounds_before_merge = NUM_ITEMS_PER_INPUT.ilog2() as usize;
+    let num_rounds_before_merge = NUM_ELEMENTS_PER_GATE_INPUT.ilog2() as usize;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,
