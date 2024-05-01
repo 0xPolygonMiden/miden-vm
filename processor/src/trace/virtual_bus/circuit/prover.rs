@@ -268,9 +268,7 @@ pub fn prove<
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-
-    // TODOP: Use a constant or something. This is log_2(composition_polynomials[0].len()).
-    let num_rounds_before_merge = 2;
+    let num_rounds_before_merge = NUM_ITEMS_PER_INPUT.ilog2() as usize;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,
