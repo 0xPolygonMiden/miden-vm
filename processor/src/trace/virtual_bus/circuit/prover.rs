@@ -338,6 +338,7 @@ fn prove_final_circuit_layer<
     let gkr_composition = GkrCompositionMerge::new(r_sum_check, rand_merge, log_up_randomness);
 
     // include the partially evaluated at the first sum-check randomness EQ multi-linear
+    // TODO: Find a better way than to push the evaluation of `EqFunction` here.
     mls.push(merged_mls[4].clone());
 
     // run the second sum-check protocol

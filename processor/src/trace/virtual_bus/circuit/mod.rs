@@ -233,7 +233,6 @@ where
         let eval_right_denominator =
             inner_product(&partial_right_denominator, &self.tensored_merge_randomness);
 
-        // TODOP: Use a better constant name than TRACE_WIDTH;
         let eq_eval = query[TRACE_WIDTH];
 
         eq_eval
