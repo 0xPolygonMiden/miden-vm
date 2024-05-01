@@ -175,11 +175,7 @@ fn build_kernel_procedure_table_inclusions<E>(main_trace: &MainTrace, alphas: &[
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let selector0 = main_trace.chiplet_selector_0(row);
-    let selector1 = main_trace.chiplet_selector_1(row);
-    let selector2 = main_trace.chiplet_selector_2(row);
-
-    if selector0 == ONE && selector1 == ONE && selector2 == ONE {
+    if main_trace.is_kernel_row(row) {
         let addr = main_trace.chiplet_kernel_addr(row);
         let addr_nxt = main_trace.chiplet_kernel_addr(row + 1);
         let addr_delta = addr_nxt - addr;
@@ -245,31 +241,15 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BusColumnBuilder
     where
         E: FieldElement<BaseField = Felt>,
     {
-        let selector0 = main_trace.chiplet_selector_0(row);
-        let selector1 = main_trace.chiplet_selector_1(row);
-        let selector2 = main_trace.chiplet_selector_2(row);
-        let selector3 = main_trace.chiplet_selector_3(row);
-        let selector4 = main_trace.chiplet_selector_4(row);
-
-        if selector0 == ZERO {
-            build_hasher_chiplet_responses(main_trace, row, alphas, selector1, selector2, selector3)
-        } else if selector1 == ZERO {
-            debug_assert_eq!(selector0, ONE);
-            build_bitwise_chiplet_responses(main_trace, row, selector2, alphas)
-        } else if selector2 == ZERO {
-            debug_assert_eq!(selector0, ONE);
-            debug_assert_eq!(selector1, ONE);
-            build_memory_chiplet_responses(main_trace, row, selector3, alphas)
-        } else if selector3 == ZERO {
-            debug_assert_eq!(selector0, ONE);
-            debug_assert_eq!(selector1, ONE);
-            debug_assert_eq!(selector2, ONE);
-            build_kernel_chiplet_responses(main_trace, row, selector4, alphas)
+        if main_trace.is_hash_row(row) {
+            build_hasher_chiplet_responses(main_trace, row, alphas)
+        } else if main_trace.is_bitwise_row(row) {
+            build_bitwise_chiplet_responses(main_trace, row, alphas)
+        } else if main_trace.is_memory_row(row) {
+            build_memory_chiplet_responses(main_trace, row, alphas)
+        } else if main_trace.is_kernel_row(row) {
+            build_kernel_chiplet_responses(main_trace, row, alphas)
         } else {
-            debug_assert_eq!(selector0, ONE);
-            debug_assert_eq!(selector1, ONE);
-            debug_assert_eq!(selector2, ONE);
-            debug_assert_eq!(selector3, ONE);
             E::ONE
         }
     }
@@ -742,15 +722,15 @@ fn build_hasher_chiplet_responses<E>(
     // TODO: change type of the `row` variable to `u32`
     row: usize,
     alphas: &[E],
-    selector1: Felt,
-    selector2: Felt,
-    selector3: Felt,
 ) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
     let mut multiplicand = E::ONE;
     let selector0 = main_trace.chiplet_selector_0(row);
+    let selector1 = main_trace.chiplet_selector_1(row);
+    let selector2 = main_trace.chiplet_selector_2(row);
+    let selector3 = main_trace.chiplet_selector_3(row);
     let op_label = get_op_label(selector0, selector1, selector2, selector3);
 
     // f_bp, f_mp, f_mv or f_mu == 1
@@ -839,15 +819,11 @@ where
 }
 
 /// Builds the response from the bitwise chiplet at `row`.
-fn build_bitwise_chiplet_responses<E>(
-    main_trace: &MainTrace,
-    row: usize,
-    is_xor: Felt,
-    alphas: &[E],
-) -> E
+fn build_bitwise_chiplet_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
+    let is_xor = main_trace.chiplet_selector_2(row);
     if row % BITWISE_OP_CYCLE_LEN == BITWISE_OP_CYCLE_LEN - 1 {
         let op_label = get_op_label(ONE, ZERO, is_xor, ZERO);
 
@@ -866,15 +842,11 @@ where
 }
 
 /// Builds the response from the memory chiplet at `row`.
-fn build_memory_chiplet_responses<E>(
-    main_trace: &MainTrace,
-    row: usize,
-    is_read: Felt,
-    alphas: &[E],
-) -> E
+fn build_memory_chiplet_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
+    let is_read = main_trace.chiplet_selector_3(row);
     let op_label = get_op_label(ONE, ONE, ZERO, is_read);
 
     let ctx = main_trace.chiplet_memory_ctx(row);
@@ -897,12 +869,7 @@ where
 }
 
 /// Builds the response from the kernel chiplet at `row`.
-fn build_kernel_chiplet_responses<E>(
-    main_trace: &MainTrace,
-    row: usize,
-    kernel_chiplet_selector: Felt,
-    alphas: &[E],
-) -> E
+fn build_kernel_chiplet_responses<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -920,6 +887,7 @@ where
         + alphas[4].mul_base(root2)
         + alphas[5].mul_base(root3);
 
+    let kernel_chiplet_selector = main_trace.chiplet_selector_4(row);
     v.mul_base(kernel_chiplet_selector) + E::from(ONE - kernel_chiplet_selector)
 }
 
