@@ -210,7 +210,6 @@ where
     }
 
     fn max_degree(&self) -> u32 {
-        // TODOP: Make a static computation?
         // Computed as:
         // 1 + max(left_numerator_degree + right_denom_degree, right_numerator_degree + left_denom_degree)
         5
