@@ -68,7 +68,10 @@ impl<E: FieldElement> LayerGatesInputs<E> {
             (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
         };
 
-        [f_rc, f_rc, f_rc, E::ZERO]
+        let padding = E::ZERO;
+
+        // the last numerator/denominator pair is unused, so is padded with 0 and 1, respectively.
+        [f_rc, f_rc, f_rc, padding]
     }
 
     fn left_denominator(query: &[E], log_up_randomness: &[E]) -> [E; NUM_ELEMENTS_PER_GATE_INPUT] {
@@ -89,7 +92,10 @@ impl<E: FieldElement> LayerGatesInputs<E> {
         let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
         let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
 
-        [stack_value_denom_1, stack_value_denom_2, stack_value_denom_3, E::ONE]
+        let padding = E::ONE;
+
+        // the last numerator/denominator pair is unused, so is padded with 0 and 1, respectively.
+        [stack_value_denom_1, stack_value_denom_2, stack_value_denom_3, padding]
     }
 }
 
