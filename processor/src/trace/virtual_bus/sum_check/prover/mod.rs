@@ -121,7 +121,7 @@ where
     pub fn prove(
         &self,
         claim: E,
-        mls: &mut [MultiLinearPoly<E>],
+        mut mls: Vec<MultiLinearPoly<E>>,
         coin: &mut C,
     ) -> Result<Proof<E>, Error> {
         let num_rounds = mls[0].num_variables();
@@ -131,7 +131,7 @@ where
                 claim: _claim,
             },
             round_proofs,
-        ) = self.prove_rounds(claim, mls, num_rounds, coin)?;
+        ) = self.prove_rounds(claim, &mut mls, num_rounds, coin)?;
 
         let openings = mls.iter_mut().map(|ml| ml.evaluations()[0]).collect();
         let openings_claim = self.final_claim_builder.build_claim(openings, &eval_point);
