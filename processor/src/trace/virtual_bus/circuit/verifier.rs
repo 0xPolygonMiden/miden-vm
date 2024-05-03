@@ -18,6 +18,7 @@ pub fn verify<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
+    claim: E,
     proof: GkrCircuitProof<E>,
     log_up_randomness: Vec<E>,
     transcript: &mut C,
@@ -39,7 +40,7 @@ pub fn verify<
     }
 
     // check that the output matches the expected `claim`
-    if (p0 * q1 + p1 * q0) / (q0 * q1) != E::ZERO {
+    if (p0 * q1 + p1 * q0) / (q0 * q1) != claim {
         return Err(VerifierError::MismatchingCircuitOutput);
     }
 
