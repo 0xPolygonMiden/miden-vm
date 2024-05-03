@@ -5,6 +5,7 @@ use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
+use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
 mod error;
@@ -20,6 +21,7 @@ use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 /// Defines the number of elements for the partial left/right numerator/denominators of
 /// [`LayerGatesInputs`].
 const NUM_ELEMENTS_PER_GATE_INPUT: usize = 4;
+const_assert!(NUM_ELEMENTS_PER_GATE_INPUT.is_power_of_two());
 
 /// Holds the contribution of one main trace row to the input layer's gates inputs.
 struct LayerGatesInputs<E: FieldElement> {
