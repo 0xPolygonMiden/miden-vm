@@ -17,6 +17,7 @@ fn main() {
     //
     // To accomplish that goal, we set a `nightly` configuration variable, which can then be
     // referenced in `#[cfg]` directives, e.g. `#[cfg(nightly)]` or `#[cfg(not(nightly))]`.
+    println!("cargo:rustc-check-cfg=cfg(nightly)");
     if let Channel::Nightly = version_meta().unwrap().channel {
         println!("cargo:rustc-cfg=nightly")
     }
