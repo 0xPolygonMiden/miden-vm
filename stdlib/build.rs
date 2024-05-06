@@ -19,7 +19,6 @@ const DOC_DIR_PATH: &str = "./docs";
 
 /// Read and parse the contents from `./asm` into a `LibraryContents` struct, serializing it into
 /// `assets` folder under `std` namespace.
-#[cfg(not(feature = "docs-rs"))]
 fn main() -> Result<()> {
     // re-build the `[OUT_DIR]/assets/std.masl` file iff something in the `./asm` directory
     // or its builder changed:
