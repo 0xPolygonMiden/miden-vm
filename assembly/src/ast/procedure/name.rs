@@ -194,7 +194,9 @@ impl ProcedureName {
     /// It is expected that the caller has already validated that the name meets all validity
     /// criteria for procedure names, for example, the parser only lexes/parses valid identifiers,
     /// so by construction all such identifiers are valid.
-    pub(crate) fn new_unchecked(name: Ident) -> Self {
+    ///
+    /// NOTE: This function is perma-unstable, it may be removed or modified at any time.
+    pub fn new_unchecked(name: Ident) -> Self {
         Self(name)
     }
 
