@@ -258,6 +258,9 @@ impl PrettyPrint for Instruction {
             Self::MTreeSet => const_text("mtree_set"),
             Self::MTreeMerge => const_text("mtree_merge"),
             Self::MTreeVerify => const_text("mtree_verify"),
+            Self::MTreeVerifyWithError(err_code) => {
+                flatten(const_text("mtree_verify.err") + const_text("=") + display(err_code))
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => const_text("fri_ext2fold4"),

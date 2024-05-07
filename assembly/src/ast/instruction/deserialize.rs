@@ -272,6 +272,9 @@ impl Deserializable for Instruction {
             OpCode::MTreeSet => Ok(Self::MTreeSet),
             OpCode::MTreeMerge => Ok(Self::MTreeMerge),
             OpCode::MTreeVerify => Ok(Self::MTreeVerify),
+            OpCode::MTreeVerifyWithError => {
+                Ok(Self::MTreeVerifyWithError(source.read_u32()?.into()))
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             OpCode::FriExt2Fold4 => Ok(Self::FriExt2Fold4),

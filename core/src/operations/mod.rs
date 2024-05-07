@@ -402,7 +402,10 @@ pub enum Operation {
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
     /// merkle sets). If the prover is not able to provide the required path, the operation fails.
     /// The state of the stack does not change.
-    MpVerify,
+    ///
+    /// The internal value specifies an error code associated with the error in case when the
+    /// assertion fails.
+    MpVerify(u32),
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
@@ -534,7 +537,7 @@ impl Operation {
             Self::U32madd       => 0b0100_1110,
 
             Self::HPerm         => 0b0101_0000,
-            Self::MpVerify      => 0b0101_0001,
+            Self::MpVerify(_)   => 0b0101_0001,
             Self::Pipe          => 0b0101_0010,
             Self::MStream       => 0b0101_0011,
             Self::Split         => 0b0101_0100,
@@ -713,7 +716,7 @@ impl fmt::Display for Operation {
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::HPerm => write!(f, "hperm"),
-            Self::MpVerify => write!(f, "mpverify"),
+            Self::MpVerify(err_code) => write!(f, "mpverify({err_code})"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::RCombBase => write!(f, "rcomb1"),

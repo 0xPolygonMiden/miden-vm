@@ -295,7 +295,8 @@ where
         | AssertzWithError(ref code)
         | U32AssertWithError(ref code)
         | U32Assert2WithError(ref code)
-        | U32AssertWWithError(ref code) => visitor.visit_immediate_error_code(code),
+        | U32AssertWWithError(ref code)
+        | MTreeVerifyWithError(ref code) => visitor.visit_immediate_error_code(code),
         AddImm(ref imm) | SubImm(ref imm) | MulImm(ref imm) | DivImm(ref imm) | ExpImm(ref imm)
         | EqImm(ref imm) | NeqImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
         U32WrappingAddImm(ref imm)
@@ -734,7 +735,8 @@ where
         | AssertzWithError(ref mut code)
         | U32AssertWithError(ref mut code)
         | U32Assert2WithError(ref mut code)
-        | U32AssertWWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
+        | U32AssertWWithError(ref mut code)
+        | MTreeVerifyWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
         AddImm(ref mut imm) | SubImm(ref mut imm) | MulImm(ref mut imm) | DivImm(ref mut imm)
         | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | Push(ref mut imm) => {
             visitor.visit_mut_immediate_felt(imm)

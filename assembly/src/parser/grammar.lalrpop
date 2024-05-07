@@ -397,7 +397,7 @@ MacroInst: SmallOpsVec = {
 #[inline]
 Inst: Instruction = {
     AdviceInjector,
-    Assert,
+    MaybeWithError,
     Call,
     Debug,
     InstWithFeltImmediate,
@@ -441,7 +441,6 @@ Inst: Instruction = {
     "mtree_get" => Instruction::MTreeGet,
     "mtree_merge" => Instruction::MTreeMerge,
     "mtree_set" => Instruction::MTreeSet,
-    "mtree_verify" => Instruction::MTreeVerify,
     "neg" => Instruction::Neg,
     "not" => Instruction::Not,
     "or" => Instruction::Or,
@@ -502,7 +501,7 @@ AdviceInjector: Instruction = {
 }
 
 #[inline]
-Assert: Instruction = {
+MaybeWithError: Instruction = {
     "assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertWithError).unwrap_or(Instruction::Assert),
     "assertz" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertzWithError).unwrap_or(Instruction::Assertz),
     "assert_eq" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertEqWithError).unwrap_or(Instruction::AssertEq),
@@ -510,6 +509,7 @@ Assert: Instruction = {
     "u32assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32AssertWithError).unwrap_or(Instruction::U32Assert),
     "u32assert2" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32Assert2WithError).unwrap_or(Instruction::U32Assert2),
     "u32assertw" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32AssertWWithError).unwrap_or(Instruction::U32AssertW),
+    "mtree_verify" <error_code:MaybeAssertCode> => error_code.map(Instruction::MTreeVerifyWithError).unwrap_or(Instruction::MTreeVerify),
 }
 
 MaybeAssertCode: Option<Immediate<u32>> = {

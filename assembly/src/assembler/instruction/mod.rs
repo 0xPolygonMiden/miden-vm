@@ -349,7 +349,10 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(span_builder),
             Instruction::MTreeSet => crypto_ops::mtree_set(span_builder),
             Instruction::MTreeMerge => crypto_ops::mtree_merge(span_builder),
-            Instruction::MTreeVerify => crypto_ops::mtree_verify(span_builder),
+            Instruction::MTreeVerify => span_builder.push_op(MpVerify(0)),
+            Instruction::MTreeVerifyWithError(err_code) => {
+                span_builder.push_op(MpVerify(err_code.expect_value()))
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => span_builder.push_op(FriE2F4),
