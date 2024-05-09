@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.9.2 (2024-04-25) - `air` and `processor` crates only
+## 0.9.2 (2024-05-09) - `assembly` crate only
+- Remove usage of `group_vector_elements()` from `combine_blocks()` (#1331).
 
+## 0.9.2 (2024-04-25) - `air` and `processor` crates only
 - Allowed enabling debug mode via `ExecutionOptions` (#1316).
 
 ## 0.9.1 (2024-04-04)
