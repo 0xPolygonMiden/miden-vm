@@ -77,7 +77,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
 /// - parent_block_id: contains the ID of the current block. Note: the current block's ID is the
 ///   parent block's ID from the perspective of the block being added to the table.
 /// - block_hash: these 4 columns hold the hash of the current block's child which will be executed
-///   at some point in time in the future
+///   at some point in time in the future.
 /// - is_first_child: set to true if the table row being added represents the first child of the
 ///   current block. If the current block has only one child, set to false.
 /// - is_loop_body: Set to true when the current block block is a LOOP code block (and hence, the
