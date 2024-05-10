@@ -199,7 +199,7 @@ where
 }
 
 /// Computes the row (optionally) to add to the block hash table when encountering a `LOOP`
-/// operation.
+/// operation. That is, a loop will have a child to execute when the top of the stack is 1.
 fn get_row_from_loop<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> Option<E>
 where
     E: FieldElement<BaseField = Felt>,
@@ -224,7 +224,10 @@ where
     }
 }
 
-/// Computes the row to add to the block hash table when encountering a `REPEAT` operation.
+/// Computes the row to add to the block hash table when encountering a `REPEAT` operation. A
+/// `REPEAT` marks the start of a new loop iteration, and hence the loop's child block needs to be
+/// added to the block hash table once again (since it was removed in the previous `END`
+/// instruction).
 fn get_row_from_repeat<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
