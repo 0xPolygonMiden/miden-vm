@@ -12,12 +12,12 @@ pub use miden_crypto::utils::{
     collections, uninit_vector, ByteReader, ByteWriter, Deserializable, DeserializationError,
     Serializable, SliceReader,
 };
+pub use winter_utils::group_slice_elements;
 #[cfg(feature = "std")]
 pub use winter_utils::ReadAdapter;
-pub use winter_utils::{group_slice_elements, group_vector_elements};
 
 pub mod math {
-    pub use math::{batch_inversion, log2};
+    pub use math::batch_inversion;
 }
 
 // TO ELEMENTS

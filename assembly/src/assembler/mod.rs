@@ -10,8 +10,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use vm_core::{
-    code_blocks::CodeBlock, utils::group_vector_elements, CodeBlockTable, Decorator, DecoratorList,
-    Kernel, Operation, Program,
+    code_blocks::CodeBlock, CodeBlockTable, Decorator, DecoratorList, Kernel, Operation, Program,
 };
 
 mod context;
@@ -810,13 +809,13 @@ fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     while blocks.len() > 1 {
         let last_block = if blocks.len() % 2 == 0 { None } else { blocks.pop() };
 
-        let mut grouped_blocks = Vec::new();
-        core::mem::swap(&mut blocks, &mut grouped_blocks);
-        let mut grouped_blocks = group_vector_elements::<CodeBlock, 2>(grouped_blocks);
-        grouped_blocks.drain(0..).for_each(|pair| {
-            blocks.push(CodeBlock::new_join(pair));
-        });
+        let mut source_blocks = Vec::new();
+        core::mem::swap(&mut blocks, &mut source_blocks);
 
+        let mut source_block_iter = source_blocks.drain(0..);
+        while let (Some(left), Some(right)) = (source_block_iter.next(), source_block_iter.next()) {
+            blocks.push(CodeBlock::new_join([left, right]));
+        }
         if let Some(block) = last_block {
             blocks.push(block);
         }

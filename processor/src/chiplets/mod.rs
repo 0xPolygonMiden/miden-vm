@@ -393,7 +393,7 @@ impl Chiplets {
 
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)
-            .map(|_| Felt::zeroed_vector(trace_len))
+            .map(|_| vec![Felt::ZERO; trace_len])
             .collect::<Vec<_>>()
             .try_into()
             .expect("failed to convert vector to array");

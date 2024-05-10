@@ -48,10 +48,10 @@ pub const DECODER_OP_BITS_RANGE: Range<usize> =
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_span() {
     let program = CodeBlock::new_span(vec![Operation::Add, Operation::Mul]);
-    let mut trace = build_trace_from_block(&program, &[]);
+    let trace = build_trace_from_block(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -113,10 +113,10 @@ pub fn b_chip_span() {
 pub fn b_chip_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
     let program = CodeBlock::new_span(ops);
-    let mut trace = build_trace_from_block(&program, &[]);
+    let trace = build_trace_from_block(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -200,10 +200,10 @@ pub fn b_chip_merge() {
     let t_branch = CodeBlock::new_span(vec![Operation::Add]);
     let f_branch = CodeBlock::new_span(vec![Operation::Mul]);
     let program = CodeBlock::new_split(t_branch, f_branch);
-    let mut trace = build_trace_from_block(&program, &[]);
+    let trace = build_trace_from_block(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -306,7 +306,7 @@ pub fn b_chip_merge() {
 pub fn b_chip_permutation() {
     let program = CodeBlock::new_span(vec![Operation::HPerm]);
     let stack = vec![8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
-    let mut trace = build_trace_from_block(&program, &stack);
+    let trace = build_trace_from_block(&program, &stack);
 
     let mut hperm_state: [Felt; STATE_WIDTH] = stack
         .iter()
@@ -315,7 +315,7 @@ pub fn b_chip_permutation() {
         .try_into()
         .expect("failed to convert vector to array");
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -427,10 +427,10 @@ fn b_chip_mpverify() {
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
-    let mut trace =
+    let trace =
         build_trace_from_ops_with_inputs(vec![Operation::MpVerify], stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());
@@ -573,10 +573,10 @@ fn b_chip_mrupdate() {
     let store = MerkleStore::from(&tree);
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
-    let mut trace =
+    let trace =
         build_trace_from_ops_with_inputs(vec![Operation::MrUpdate], stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());

@@ -14,7 +14,8 @@ pub use decorators::{
 /// These operations take exactly one cycle to execute.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
-    // ----- system operations --------------------------------------------------------------------
+    // ----- system operations
+    // --------------------------------------------------------------------
     /// Advances cycle counter, but does not change the state of user stack.
     Noop,
 
@@ -43,7 +44,8 @@ pub enum Operation {
     /// instruction.
     Clk,
 
-    // ----- flow control operations --------------------------------------------------------------
+    // ----- flow control operations
+    // --------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
 
@@ -79,7 +81,8 @@ pub enum Operation {
     /// by the VM (HALT operation itself excepted).
     Halt,
 
-    // ----- field operations ---------------------------------------------------------------------
+    // ----- field operations
+    // ---------------------------------------------------------------------
     /// Pops two elements off the stack, adds them, and pushes the result back onto the stack.
     Add,
 
@@ -139,13 +142,15 @@ pub enum Operation {
     /// shifted to the right by one bit.
     Expacc,
 
-    // ----- ext2 operations ----------------------------------------------------------------------
+    // ----- ext2 operations
+    // ----------------------------------------------------------------------
     /// Computes the product of two elements in the extension field of degree 2 and pushes the
     /// result back onto the stack as the third and fourth elements. Pushes 0 onto the stack as
     /// the first and second elements.
     Ext2Mul,
 
-    // ----- u32 operations -----------------------------------------------------------------------
+    // ----- u32 operations
+    // -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
     U32split,
@@ -210,7 +215,8 @@ pub enum Operation {
     /// If either of the elements is greater than or equal to 2^32, execution fails.
     U32xor,
 
-    // ----- stack manipulation -------------------------------------------------------------------
+    // ----- stack manipulation
+    // -------------------------------------------------------------------
     /// Pushes 0 onto the stack.
     Pad,
 
@@ -326,7 +332,8 @@ pub enum Operation {
     /// If the popped element is neither 0 nor 1, execution fails.
     CSwapW,
 
-    // ----- input / output -----------------------------------------------------------------------
+    // ----- input / output
+    // -----------------------------------------------------------------------
     /// Pushes the immediate value onto the stack.
     Push(Felt),
 
@@ -380,7 +387,8 @@ pub enum Operation {
     /// - All other stack elements remain the same.
     Pipe,
 
-    // ----- cryptographic operations -------------------------------------------------------------
+    // ----- cryptographic operations
+    // -------------------------------------------------------------
     /// Performs a Rescue Prime Optimized permutation on the top 3 words of the operand stack,
     /// where the top 2 words are the rate (words C and B), the deepest word is the capacity (word
     /// A), and the digest output is the middle word E.

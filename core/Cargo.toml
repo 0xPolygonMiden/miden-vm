@@ -27,12 +27,13 @@ std = [
 ]
 
 [dependencies]
-math = { package = "winter-math", version = "0.8", default-features = false }
-miden-crypto = { version = "0.9", default-features = false }
+math = { package = "winter-math", version = "0.9", default-features = false }
+#miden-crypto = { version = "0.9", default-features = false }
+miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "al-migrate-winterfell" }
 miden-formatting = { version = "0.1", default-features = false }
 thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.8", default-features = false }
+winter-utils = { package = "winter-utils", version = "0.9", default-features = false }
 
 [dev-dependencies]
 proptest = "1.3"
-rand_utils = { version = "0.8", package = "winter-rand-utils" }
+rand_utils = { version = "0.9", package = "winter-rand-utils" }

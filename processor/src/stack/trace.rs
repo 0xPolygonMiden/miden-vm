@@ -1,9 +1,8 @@
-use super::{
-    super::utils::get_trace_len, Felt, FieldElement, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO,
-};
+use super::{super::utils::get_trace_len, Felt, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
 use crate::utils::math::batch_inversion;
 use alloc::vec::Vec;
 use miden_air::trace::stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE};
+use vm_core::FieldElement;
 
 // STACK TRACE
 // ================================================================================================
@@ -231,7 +230,7 @@ fn init_stack_columns(
 ) -> [Vec<Felt>; STACK_TOP_SIZE] {
     let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(STACK_TOP_SIZE);
     for i in 0..STACK_TOP_SIZE {
-        let mut column = Felt::zeroed_vector(init_trace_capacity);
+        let mut column = vec![Felt::ZERO; init_trace_capacity];
         if i < init_values.len() {
             column[0] = init_values[i];
         }
@@ -248,15 +247,15 @@ fn init_helper_columns(
     init_overflow_addr: Felt,
 ) -> [Vec<Felt>; NUM_STACK_HELPER_COLS] {
     // initialize b0 to the initial stack depth.
-    let mut b0 = Felt::zeroed_vector(init_trace_capacity);
+    let mut b0 = vec![Felt::ZERO; init_trace_capacity];
     b0[0] = Felt::new(init_depth as u64);
 
     // initialize b1 to the address of the last row in the stack overflow table.
-    let mut b1 = Felt::zeroed_vector(init_trace_capacity);
+    let mut b1 = vec![Felt::ZERO; init_trace_capacity];
     b1[0] = init_overflow_addr;
 
     // if the overflow table is not empty, set h0 to (init_depth - 16)
-    let mut h0 = Felt::zeroed_vector(init_trace_capacity);
+    let mut h0 = vec![Felt::ZERO; init_trace_capacity];
     // TODO: change type of `init_depth` to `u32`
     h0[0] = Felt::try_from((init_depth - STACK_TOP_SIZE) as u64)
         .expect("value is greater than or equal to the field modulus");
