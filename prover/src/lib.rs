@@ -19,6 +19,7 @@ use processor::{
     ExecutionTrace,
 };
 use tracing::instrument;
+use winter_air::AuxRandElements;
 use winter_prover::{
     matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
     DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
