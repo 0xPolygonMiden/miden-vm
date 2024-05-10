@@ -113,6 +113,16 @@ where
 {
     let current_block_id = main_trace.addr(row + 1);
     let block_hash = main_trace.decoder_hasher_state_first_half(row);
+
+    // A block can only be a first child of a JOIN block; every other control block only executes
+    // one child. Hence, it is easier to identify the conditions that only a "second child" (i.e. a
+    // JOIN block's second child, as well as all other control block's child) can find itself in.
+    // That is, when the opcode of the next row is:
+    // - END: this marks the end of the parent block, which only a second child can be in
+    // - REPEAT: this means that the current block is the child of a LOOP block, and hence a "second
+    //   child"
+    // - HALT: The end of the program, which a first child can't find itself in (since the second
+    //   child needs to execute first)
     let is_first_child = op_code_next != END && op_code_next != REPEAT && op_code_next != HALT;
     let is_loop_body = main_trace
         .is_loop_body_flag(row)
