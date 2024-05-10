@@ -38,22 +38,21 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
 
     /// Removes a row from the block hash table.
     fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        let op_code_felt = main_trace.get_op_code(i);
-        let op_code = op_code_felt.as_int() as u8;
-
-        let op_code_felt_next = main_trace.get_op_code(i + 1);
-        let op_code_next = op_code_felt_next.as_int() as u8;
+        let op_code = main_trace.get_op_code(i).as_int() as u8;
 
         match op_code {
-            END => get_row_from_end(main_trace, i, alphas, op_code_next),
+            END => {
+                let op_code_next = main_trace.get_op_code(i + 1).as_int() as u8;
+
+                get_row_from_end(main_trace, i, alphas, op_code_next)
+            }
             _ => E::ONE,
         }
     }
 
     /// Adds a row to the block hash table.
     fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        let op_code_felt = main_trace.get_op_code(i);
-        let op_code = op_code_felt.as_int() as u8;
+        let op_code = main_trace.get_op_code(i).as_int() as u8;
 
         match op_code {
             JOIN => {
