@@ -74,7 +74,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
 /// a single field element representing all the columns (which is achieved by taking a random linear
 /// combination of all the columns). The columns are defined as follows:
 ///
-/// - current_block_id: contains the ID of the current block. Note: the current block's ID is the
+/// - parent_block_id: contains the ID of the current block. Note: the current block's ID is the
 ///   parent block's ID from the perspective of the block being added to the table.
 /// - block_hash: these 4 columns hold the hash of the current block's child which will be executed
 ///   at some point in time in the future
@@ -84,7 +84,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
 ///   current block's child being added to the table is the body of a loop).
 #[inline(always)]
 fn block_hash_table_row<E>(
-    current_block_id: Felt,
+    parent_block_id: Felt,
     child_block_hash: Word,
     is_first_child: bool,
     is_loop_body: bool,
@@ -94,7 +94,7 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     alphas[0]
-        + alphas[1].mul_base(current_block_id)
+        + alphas[1].mul_base(parent_block_id)
         + alphas[2].mul_base(child_block_hash[0])
         + alphas[3].mul_base(child_block_hash[1])
         + alphas[4].mul_base(child_block_hash[2])
@@ -111,7 +111,7 @@ fn get_row_from_end<E>(main_trace: &MainTrace, row: usize, alphas: &[E], op_code
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let current_block_id = main_trace.addr(row + 1);
+    let parent_block_id = main_trace.addr(row + 1);
     let block_hash = main_trace.decoder_hasher_state_first_half(row);
 
     // A block can only be a first child of a JOIN block; every other control block only executes
@@ -129,7 +129,7 @@ where
         .try_into()
         .expect("expected loop body flag to be a boolean");
 
-    block_hash_table_row(current_block_id, block_hash, is_first_child, is_loop_body, alphas)
+    block_hash_table_row(parent_block_id, block_hash, is_first_child, is_loop_body, alphas)
 }
 
 /// Computes the 2 rows to add to the block hash table when encountering a `JOIN` operation.
@@ -137,14 +137,14 @@ fn get_rows_from_join<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> (E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let current_block_id = main_trace.addr(row + 1);
+    let parent_block_id = main_trace.addr(row + 1);
     let is_loop_body = false;
 
     let left_child_row = {
         let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
         let is_first_child = true;
         block_hash_table_row(
-            current_block_id,
+            parent_block_id,
             left_child_block_hash,
             is_first_child,
             is_loop_body,
@@ -155,7 +155,7 @@ where
         let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
         let is_first_child = false;
         block_hash_table_row(
-            current_block_id,
+            parent_block_id,
             right_child_block_hash,
             is_first_child,
             is_loop_body,
@@ -172,7 +172,7 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let stack_top = main_trace.stack_element(0, row);
-    let current_block_id = main_trace.addr(row + 1);
+    let parent_block_id = main_trace.addr(row + 1);
     // Note: only one child of a split block is executed. Hence, `is_first_child` is always false.
     let is_first_child = false;
     let is_loop_body = false;
@@ -180,7 +180,7 @@ where
     if stack_top == ONE {
         let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
         block_hash_table_row(
-            current_block_id,
+            parent_block_id,
             left_child_block_hash,
             is_first_child,
             is_loop_body,
@@ -189,7 +189,7 @@ where
     } else {
         let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
         block_hash_table_row(
-            current_block_id,
+            parent_block_id,
             right_child_block_hash,
             is_first_child,
             is_loop_body,
@@ -207,13 +207,13 @@ where
     let stack_top = main_trace.stack_element(0, row);
 
     if stack_top == ONE {
-        let current_block_id = main_trace.addr(row + 1);
+        let parent_block_id = main_trace.addr(row + 1);
         let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
         let is_first_child = false;
         let is_loop_body = true;
 
         Some(block_hash_table_row(
-            current_block_id,
+            parent_block_id,
             child_block_hash,
             is_first_child,
             is_loop_body,
@@ -232,12 +232,12 @@ fn get_row_from_repeat<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let current_block_id = main_trace.addr(row + 1);
+    let parent_block_id = main_trace.addr(row + 1);
     let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
     let is_first_child = false;
     let is_loop_body = true;
 
-    block_hash_table_row(current_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
+    block_hash_table_row(parent_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
 }
 
 /// Computes the row to add to the block hash table when encountering a `DYN` operation.
@@ -245,7 +245,7 @@ fn get_row_from_dyn<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
-    let current_block_id = main_trace.addr(row + 1);
+    let parent_block_id = main_trace.addr(row + 1);
     let is_first_child = false;
     let is_loop_body = false;
     let child_block_hash = {
@@ -258,5 +258,5 @@ where
         [s3, s2, s1, s0]
     };
 
-    block_hash_table_row(current_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
+    block_hash_table_row(parent_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
 }
