@@ -56,11 +56,15 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
         let op_code = op_code_felt.as_int() as u8;
 
         match op_code {
-            JOIN => get_block_hash_table_inclusion_multiplicand_join(main_trace, i, alphas),
-            SPLIT => get_block_hash_table_inclusion_multiplicand_split(main_trace, i, alphas),
-            LOOP => get_block_hash_table_inclusion_multiplicand_loop(main_trace, i, alphas),
-            REPEAT => get_block_hash_table_inclusion_multiplicand_repeat(main_trace, i, alphas),
-            DYN => get_block_hash_table_inclusion_multiplicand_dyn(main_trace, i, alphas),
+            JOIN => {
+                let (left_child_row, right_child_row) = get_rows_from_join(main_trace, i, alphas);
+
+                left_child_row * right_child_row
+            }
+            SPLIT => get_row_from_split(main_trace, i, alphas),
+            LOOP => get_row_from_loop(main_trace, i, alphas).unwrap_or(E::ONE),
+            REPEAT => get_row_from_repeat(main_trace, i, alphas),
+            DYN => get_row_from_dyn(main_trace, i, alphas),
             _ => E::ONE,
         }
     }
@@ -103,12 +107,15 @@ where
 // ================================================================================================
 
 /// Computes the multiplicand representing the removal of a row from the block hash table.
-fn get_block_hash_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
+fn get_block_hash_table_removal_multiplicand<E>(
     main_trace: &MainTrace,
     row: usize,
     alphas: &[E],
     op_code_next: u8,
-) -> E {
+) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let current_block_id = main_trace.addr(row + 1);
     let block_hash = main_trace.decoder_hasher_state_first_half(row);
     let is_first_child = op_code_next != END && op_code_next != REPEAT && op_code_next != HALT;
@@ -122,12 +129,10 @@ fn get_block_hash_table_removal_multiplicand<E: FieldElement<BaseField = Felt>>(
 
 /// Computes the multiplicand representing the inclusion of a new row representing a JOIN block
 /// to the block hash table.
-/// TODOP: get_row_add_join() -> (E, E)
-fn get_block_hash_table_inclusion_multiplicand_join<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    row: usize,
-    alphas: &[E],
-) -> E {
+fn get_rows_from_join<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> (E, E)
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let current_block_id = main_trace.addr(row + 1);
     let is_loop_body = false;
 
@@ -154,18 +159,15 @@ fn get_block_hash_table_inclusion_multiplicand_join<E: FieldElement<BaseField = 
         )
     };
 
-    // Note: multiplying 2 rows has the effect of adding both rows to the table. This is derived
-    // from how multiset checks are defined.
-    left_child_row * right_child_row
+    (left_child_row, right_child_row)
 }
 
 /// Computes the multiplicand representing the inclusion of a new row representing a SPLIT block
 /// to the block hash table.
-fn get_block_hash_table_inclusion_multiplicand_split<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    row: usize,
-    alphas: &[E],
-) -> E {
+fn get_row_from_split<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let stack_top = main_trace.stack_element(0, row);
     let current_block_id = main_trace.addr(row + 1);
     // Note: only one child of a split block is executed. Hence, `is_first_child` is always false.
@@ -195,11 +197,10 @@ fn get_block_hash_table_inclusion_multiplicand_split<E: FieldElement<BaseField =
 
 /// Computes the multiplicand representing the inclusion of a new row representing a LOOP block
 /// to the block hash table.
-fn get_block_hash_table_inclusion_multiplicand_loop<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    row: usize,
-    alphas: &[E],
-) -> E {
+fn get_row_from_loop<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> Option<E>
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let stack_top = main_trace.stack_element(0, row);
 
     if stack_top == ONE {
@@ -209,25 +210,24 @@ fn get_block_hash_table_inclusion_multiplicand_loop<E: FieldElement<BaseField = 
         let is_first_child = false;
         let is_loop_body = true;
 
-        block_hash_table_row(
+        Some(block_hash_table_row(
             current_block_id,
             child_block_hash,
             is_first_child,
             is_loop_body,
             alphas,
-        )
+        ))
     } else {
-        E::ONE
+        None
     }
 }
 
 /// Computes the multiplicand representing the inclusion of a new row representing a REPEAT
 /// to the block hash table.
-fn get_block_hash_table_inclusion_multiplicand_repeat<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    row: usize,
-    alphas: &[E],
-) -> E {
+fn get_row_from_repeat<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let current_block_id = main_trace.addr(row + 1);
     let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
     let is_first_child = false;
@@ -238,11 +238,10 @@ fn get_block_hash_table_inclusion_multiplicand_repeat<E: FieldElement<BaseField 
 
 /// Computes the multiplicand representing the inclusion of a new row representing a DYN block
 /// to the block hash table.
-fn get_block_hash_table_inclusion_multiplicand_dyn<E: FieldElement<BaseField = Felt>>(
-    main_trace: &MainTrace,
-    row: usize,
-    alphas: &[E],
-) -> E {
+fn get_row_from_dyn<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
+where
+    E: FieldElement<BaseField = Felt>,
+{
     let current_block_id = main_trace.addr(row + 1);
     let is_first_child = false;
     let is_loop_body = false;
