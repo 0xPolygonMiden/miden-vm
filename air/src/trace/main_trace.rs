@@ -18,7 +18,7 @@ use super::{
 };
 use alloc::vec::Vec;
 use core::ops::{Deref, Range};
-use vm_core::{utils::range, Felt, ONE, ZERO};
+use vm_core::{utils::range, Felt, Word, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -107,10 +107,23 @@ impl MainTrace {
     }
 
     /// Returns the first half of the hasher state at row i.
-    pub fn decoder_hasher_state_first_half(&self, i: usize) -> [Felt; DIGEST_LEN] {
+    pub fn decoder_hasher_state_first_half(&self, i: usize) -> Word {
         let mut state = [ZERO; DIGEST_LEN];
         for (col, s) in state.iter_mut().enumerate() {
             *s = self.columns.get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + col)[i];
+        }
+        state
+    }
+
+    /// Returns the second half of the hasher state at row i.
+    pub fn decoder_hasher_state_second_half(&self, i: usize) -> Word {
+        const SECOND_WORD_OFFSET: usize = 4;
+        let mut state = [ZERO; DIGEST_LEN];
+        for (col, s) in state.iter_mut().enumerate() {
+            *s = self
+                .columns
+                .get_column(DECODER_TRACE_OFFSET + HASHER_STATE_OFFSET + SECOND_WORD_OFFSET + col)
+                [i];
         }
         state
     }

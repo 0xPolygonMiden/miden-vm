@@ -45,7 +45,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
         let op_code_next = op_code_felt_next.as_int() as u8;
 
         match op_code {
-            END => get_block_hash_table_removal_multiplicand(main_trace, i, alphas, op_code_next),
+            END => get_row_from_end(main_trace, i, alphas, op_code_next),
             _ => E::ONE,
         }
     }
@@ -59,6 +59,7 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
             JOIN => {
                 let (left_child_row, right_child_row) = get_rows_from_join(main_trace, i, alphas);
 
+                // Note: this adds the 2 rows separately to the block hash table.
                 left_child_row * right_child_row
             }
             SPLIT => get_row_from_split(main_trace, i, alphas),
@@ -106,13 +107,8 @@ where
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Computes the multiplicand representing the removal of a row from the block hash table.
-fn get_block_hash_table_removal_multiplicand<E>(
-    main_trace: &MainTrace,
-    row: usize,
-    alphas: &[E],
-    op_code_next: u8,
-) -> E
+/// Computes the row to be removed from the block hash table when encountering an `END` operation.
+fn get_row_from_end<E>(main_trace: &MainTrace, row: usize, alphas: &[E], op_code_next: u8) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
@@ -127,8 +123,7 @@ where
     block_hash_table_row(current_block_id, block_hash, is_first_child, is_loop_body, alphas)
 }
 
-/// Computes the multiplicand representing the inclusion of a new row representing a JOIN block
-/// to the block hash table.
+/// Computes the 2 rows to add to the block hash table when encountering a `JOIN` operation.
 fn get_rows_from_join<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> (E, E)
 where
     E: FieldElement<BaseField = Felt>,
@@ -137,7 +132,7 @@ where
     let is_loop_body = false;
 
     let left_child_row = {
-        let left_child_block_hash = main_trace.decoder_hasher_state(row)[0..4].try_into().unwrap();
+        let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
         let is_first_child = true;
         block_hash_table_row(
             current_block_id,
@@ -148,7 +143,7 @@ where
         )
     };
     let right_child_row = {
-        let right_child_block_hash = main_trace.decoder_hasher_state(row)[4..8].try_into().unwrap();
+        let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
         let is_first_child = false;
         block_hash_table_row(
             current_block_id,
@@ -162,8 +157,7 @@ where
     (left_child_row, right_child_row)
 }
 
-/// Computes the multiplicand representing the inclusion of a new row representing a SPLIT block
-/// to the block hash table.
+/// Computes the row to add to the block hash table when encountering a `SPLIT` operation.
 fn get_row_from_split<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -175,7 +169,7 @@ where
     let is_loop_body = false;
 
     if stack_top == ONE {
-        let left_child_block_hash = main_trace.decoder_hasher_state(row)[0..4].try_into().unwrap();
+        let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
         block_hash_table_row(
             current_block_id,
             left_child_block_hash,
@@ -184,7 +178,7 @@ where
             alphas,
         )
     } else {
-        let right_child_block_hash = main_trace.decoder_hasher_state(row)[4..8].try_into().unwrap();
+        let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
         block_hash_table_row(
             current_block_id,
             right_child_block_hash,
@@ -195,8 +189,8 @@ where
     }
 }
 
-/// Computes the multiplicand representing the inclusion of a new row representing a LOOP block
-/// to the block hash table.
+/// Computes the row (optionally) to add to the block hash table when encountering a `LOOP`
+/// operation.
 fn get_row_from_loop<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> Option<E>
 where
     E: FieldElement<BaseField = Felt>,
@@ -205,8 +199,7 @@ where
 
     if stack_top == ONE {
         let current_block_id = main_trace.addr(row + 1);
-        // TODOP: Add method to main_trace instead
-        let child_block_hash = main_trace.decoder_hasher_state(row)[0..4].try_into().unwrap();
+        let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
         let is_first_child = false;
         let is_loop_body = true;
 
@@ -222,8 +215,7 @@ where
     }
 }
 
-/// Computes the multiplicand representing the inclusion of a new row representing a REPEAT
-/// to the block hash table.
+/// Computes the row to add to the block hash table when encountering a `REPEAT` operation.
 fn get_row_from_repeat<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
@@ -236,8 +228,7 @@ where
     block_hash_table_row(current_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
 }
 
-/// Computes the multiplicand representing the inclusion of a new row representing a DYN block
-/// to the block hash table.
+/// Computes the row to add to the block hash table when encountering a `DYN` operation.
 fn get_row_from_dyn<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
