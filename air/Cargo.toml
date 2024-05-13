@@ -31,7 +31,7 @@ internals = []
 
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.9", default-features = false }
-winter-air = { package = "winter-air", version = "0.8", default-features = false }
+winter-air = { package = "winter-air", version = "0.9", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.8", default-features = false }
 
 [dev-dependencies]
