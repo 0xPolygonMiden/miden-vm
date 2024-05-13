@@ -26,7 +26,7 @@ std = ["vm-core/std", "winter-prover/std"]
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.9", default-features = false }
 miden-air = { package = "miden-air", path = "../air", version = "0.9", default-features = false }
-winter-prover = { package = "winter-prover", version = "0.8", default-features = false }
+winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
 
 [dev-dependencies]
 logtest = { version = "2.0", default-features = false }
