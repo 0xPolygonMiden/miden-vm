@@ -37,15 +37,11 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
     }
 
     /// Removes a row from the block hash table.
-    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        let op_code = main_trace.get_op_code(i).as_int() as u8;
+    fn get_requests_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
+        let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
-            END => {
-                let op_code_next = main_trace.get_op_code(i + 1).as_int() as u8;
-
-                get_row_from_end(main_trace, i, alphas, op_code_next)
-            }
+            END => get_row_from_end(main_trace, row, alphas),
             _ => E::ONE,
         }
     }
@@ -107,10 +103,11 @@ where
 // ================================================================================================
 
 /// Computes the row to be removed from the block hash table when encountering an `END` operation.
-fn get_row_from_end<E>(main_trace: &MainTrace, row: usize, alphas: &[E], op_code_next: u8) -> E
+fn get_row_from_end<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
 where
     E: FieldElement<BaseField = Felt>,
 {
+    let op_code_next = main_trace.get_op_code(row + 1).as_int() as u8;
     let parent_block_id = main_trace.addr(row + 1);
     let block_hash = main_trace.decoder_hasher_state_first_half(row);
 
