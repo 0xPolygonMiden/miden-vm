@@ -1,7 +1,6 @@
 use alloc::{borrow::ToOwned, vec::Vec};
 use core::ops::Index;
 use vm_core::FieldElement;
-use winter_prover::math::log2;
 
 mod lagrange_ker;
 pub use lagrange_ker::{inner_product, EqFunction};
@@ -29,7 +28,7 @@ impl<E: FieldElement> MultiLinearPoly<E> {
             return Err(Error::EvaluationsNotPowerOfTwo);
         }
         Ok(Self {
-            num_variables: log2(evaluations.len()) as usize,
+            num_variables: (evaluations.len().ilog2()) as usize,
             evaluations,
         })
     }
