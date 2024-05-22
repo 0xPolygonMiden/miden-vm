@@ -60,8 +60,7 @@ pub enum Instruction {
     Gte,
     IsOdd,
 
-    // ----- ext2 operations
-    // ----------------------------------------------------------------------
+    // ----- ext2 operations ----------------------------------------------------------------------
     Ext2Add,
     Ext2Sub,
     Ext2Mul,
@@ -69,8 +68,7 @@ pub enum Instruction {
     Ext2Neg,
     Ext2Inv,
 
-    // ----- u32 manipulation
-    // ---------------------------------------------------------------------
+    // ----- u32 manipulation ---------------------------------------------------------------------
     U32Test,
     U32TestW,
     U32Assert,
@@ -127,8 +125,7 @@ pub enum Instruction {
     U32Min,
     U32Max,
 
-    // ----- stack manipulation
-    // -------------------------------------------------------------------
+    // ----- stack manipulation -------------------------------------------------------------------
     Drop,
     DropW,
     PadW,
@@ -208,8 +205,7 @@ pub enum Instruction {
     CDrop,
     CDropW,
 
-    // ----- input / output operations
-    // ------------------------------------------------------------
+    // ----- input / output operations ------------------------------------------------------------
     Push(ImmFelt),
     PushU8(u8),
     PushU16(u16),
@@ -247,8 +243,7 @@ pub enum Instruction {
 
     AdvInject(AdviceInjectorNode),
 
-    // ----- cryptographic operations
-    // -------------------------------------------------------------
+    // ----- cryptographic operations -------------------------------------------------------------
     Hash,
     HMerge,
     HPerm,
@@ -257,13 +252,11 @@ pub enum Instruction {
     MTreeMerge,
     MTreeVerify,
 
-    // ----- STARK proof verification
-    // -------------------------------------------------------------
+    // ----- STARK proof verification -------------------------------------------------------------
     FriExt2Fold4,
     RCombBase,
 
-    // ----- exec / call
-    // --------------------------------------------------------------------------
+    // ----- exec / call --------------------------------------------------------------------------
     Exec(InvocationTarget),
     Call(InvocationTarget),
     SysCall(InvocationTarget),
@@ -271,13 +264,11 @@ pub enum Instruction {
     DynCall,
     ProcRef(InvocationTarget),
 
-    // ----- debug decorators
-    // ---------------------------------------------------------------------
+    // ----- debug decorators ---------------------------------------------------------------------
     Breakpoint,
     Debug(DebugOptions),
 
-    // ----- event decorators
-    // ---------------------------------------------------------------------
+    // ----- event decorators ---------------------------------------------------------------------
     Emit(ImmU32),
     Trace(ImmU32),
 }
