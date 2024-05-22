@@ -85,7 +85,7 @@ impl ExecutionTrace {
             TRACE_WIDTH,
             AUX_TRACE_WIDTH,
             AUX_TRACE_RAND_ELEMENTS,
-            trace_len_summary.padded_trace_len(),
+            main_trace.num_rows(),
             vec![],
         );
 
