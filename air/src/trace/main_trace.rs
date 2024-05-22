@@ -291,6 +291,11 @@ impl MainTrace {
         self.columns.get_column(CHIPLETS_OFFSET + 4)[i]
     }
 
+    /// Returns `true` if a row is part of the hash chiplet.
+    pub fn is_hash_row(&self, i: usize) -> bool {
+        self.chiplet_selector_0(i) == ZERO
+    }
+
     /// Returns the (full) state of the hasher chiplet at row i.
     pub fn chiplet_hasher_state(&self, i: usize) -> [Felt; STATE_WIDTH] {
         let mut state = [ZERO; STATE_WIDTH];
@@ -306,6 +311,11 @@ impl MainTrace {
         self.columns.get(HASHER_NODE_INDEX_COL_IDX, i)
     }
 
+    /// Returns `true` if a row is part of the bitwise chiplet.
+    pub fn is_bitwise_row(&self, i: usize) -> bool {
+        self.chiplet_selector_0(i) == ONE && self.chiplet_selector_1(i) == ZERO
+    }
+
     /// Returns the bitwise column holding the aggregated value of input `a` at row i.
     pub fn chiplet_bitwise_a(&self, i: usize) -> Felt {
         self.columns.get_column(BITWISE_A_COL_IDX)[i]
@@ -319,6 +329,13 @@ impl MainTrace {
     /// Returns the bitwise column holding the aggregated value of the output at row i.
     pub fn chiplet_bitwise_z(&self, i: usize) -> Felt {
         self.columns.get_column(BITWISE_OUTPUT_COL_IDX)[i]
+    }
+
+    /// Returns `true` if a row is part of the memory chiplet.
+    pub fn is_memory_row(&self, i: usize) -> bool {
+        self.chiplet_selector_0(i) == ONE
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ZERO
     }
 
     /// Returns the i-th row of the chiplet column containing memory context.
@@ -356,6 +373,14 @@ impl MainTrace {
         self.columns.get_column(MEMORY_V_COL_RANGE.start + 3)[i]
     }
 
+    /// Returns `true` if a row is part of the kernel chiplet.
+    pub fn is_kernel_row(&self, i: usize) -> bool {
+        self.chiplet_selector_0(i) == ONE
+            && self.chiplet_selector_1(i) == ONE
+            && self.chiplet_selector_2(i) == ONE
+            && self.chiplet_selector_3(i) == ZERO
+    }
+
     /// Returns the i-th row of the kernel chiplet `addr` column.
     pub fn chiplet_kernel_addr(&self, i: usize) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 5)[i]
@@ -383,14 +408,6 @@ impl MainTrace {
     /// procedure root.
     pub fn chiplet_kernel_root_3(&self, i: usize) -> Felt {
         self.columns.get_column(CHIPLETS_OFFSET + 9)[i]
-    }
-
-    /// Returns `true` if a row is part of the kernel chiplet.
-    pub fn is_kernel_row(&self, i: usize) -> bool {
-        self.chiplet_selector_0(i) == ONE
-            && self.chiplet_selector_1(i) == ONE
-            && self.chiplet_selector_2(i) == ONE
-            && self.chiplet_selector_3(i) == ZERO
     }
 
     //  MERKLE PATH HASHING SELECTORS
