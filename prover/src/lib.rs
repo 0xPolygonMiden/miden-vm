@@ -6,7 +6,7 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{ProcessorAir, PublicInputs};
+use air::{AuxRandElements, ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
@@ -19,7 +19,6 @@ use processor::{
     ExecutionTrace,
 };
 use tracing::instrument;
-use winter_air::AuxRandElements;
 use winter_prover::{
     matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
     DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,

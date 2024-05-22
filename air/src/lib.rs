@@ -42,7 +42,7 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::FieldExtension;
+pub use winter_air::{FieldExtension, AuxRandElements};
 
 // PROCESSOR AIR
 // ================================================================================================
