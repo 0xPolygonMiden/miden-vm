@@ -40,8 +40,11 @@ fn main() -> io::Result<()> {
     let build_dir = env::var("OUT_DIR").unwrap();
     stdlib.write_to_dir(Path::new(&build_dir).join(ASL_DIR_PATH))?;
 
-    // updates the documentation of these modules
-    build_stdlib_docs(&docs, DOC_DIR_PATH)?;
+    // updates the documentation of these modules. Only do so when this is not docs.rs building the
+    // documentation.
+    if env::var("DOCS_RS").is_err() {
+        build_stdlib_docs(&docs, DOC_DIR_PATH)?;
+    }
 
     Ok(())
 }
