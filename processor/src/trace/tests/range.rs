@@ -13,11 +13,11 @@ use vm_core::{ExtensionOf, Operation};
 fn b_range_trace_stack() {
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_range = aux_columns.get_column(B_RANGE_COL_IDX);
 
     assert_eq!(trace.length(), b_range.len());
@@ -81,11 +81,11 @@ fn b_range_trace_mem() {
         Operation::Drop,
         Operation::MLoadW,
     ];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_range = aux_columns.get_column(B_RANGE_COL_IDX);
 
     assert_eq!(trace.length(), b_range.len());

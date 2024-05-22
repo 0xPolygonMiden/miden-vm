@@ -13,8 +13,8 @@ use vm_core::{
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
-    Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,
-    ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree,
+    Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
+    TransitionConstraintDegree,
 };
 use winter_prover::matrix::ColMatrix;
 
@@ -42,7 +42,7 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::FieldExtension;
+pub use winter_air::{AuxRandElements, FieldExtension};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -63,6 +63,8 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
+    type GkrProof = ();
+    type GkrVerifier = ();
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 
@@ -109,6 +111,7 @@ impl Air for ProcessorAir {
             aux_degrees,
             num_main_assertions,
             num_aux_assertions,
+            None,
             options,
         )
         .set_num_transition_exemptions(2);
@@ -163,7 +166,7 @@ impl Air for ProcessorAir {
 
     fn get_aux_assertions<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
-        aux_rand_elements: &winter_air::AuxTraceRandElements<E>,
+        aux_rand_elements: &[E],
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
@@ -237,7 +240,7 @@ impl Air for ProcessorAir {
         main_frame: &EvaluationFrame<F>,
         aux_frame: &EvaluationFrame<E>,
         _periodic_values: &[F],
-        aux_rand_elements: &AuxTraceRandElements<E>,
+        aux_rand_elements: &[E],
         result: &mut [E],
     ) where
         F: FieldElement<BaseField = Felt>,

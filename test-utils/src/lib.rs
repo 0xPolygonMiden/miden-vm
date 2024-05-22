@@ -37,7 +37,7 @@ pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,
-    utils::{collections, group_slice_elements, group_vector_elements, IntoBytes, ToElements},
+    utils::{collections, group_slice_elements, IntoBytes, ToElements},
     Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 

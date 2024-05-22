@@ -3,7 +3,7 @@ use vm_core::{
     crypto::hash::{Blake3_192, Blake3_256, Hasher, Rpo256, Rpx256},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
-use winter_air::proof::StarkProof;
+use winter_air::proof::Proof;
 
 // EXECUTION PROOF
 // ================================================================================================
@@ -14,7 +14,7 @@ use winter_air::proof::StarkProof;
 /// proof. However, the proof does not contain public inputs needed to verify the proof.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionProof {
-    pub proof: StarkProof,
+    pub proof: Proof,
     pub hash_fn: HashFunction,
 }
 
@@ -24,7 +24,7 @@ impl ExecutionProof {
 
     /// Creates a new instance of [ExecutionProof] from the specified STARK proof and hash
     /// function.
-    pub const fn new(proof: StarkProof, hash_fn: HashFunction) -> Self {
+    pub const fn new(proof: Proof, hash_fn: HashFunction) -> Self {
         Self { proof, hash_fn }
     }
 
@@ -32,7 +32,7 @@ impl ExecutionProof {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the underlying STARK proof.
-    pub const fn stark_proof(&self) -> &StarkProof {
+    pub const fn stark_proof(&self) -> &Proof {
         &self.proof
     }
 
@@ -69,7 +69,7 @@ impl ExecutionProof {
             return Err(DeserializationError::UnexpectedEOF);
         }
         let hash_fn = HashFunction::try_from(source[0])?;
-        let proof = StarkProof::from_bytes(&source[1..])?;
+        let proof = Proof::from_bytes(&source[1..])?;
         Ok(Self::new(proof, hash_fn))
     }
 
@@ -77,7 +77,7 @@ impl ExecutionProof {
     // --------------------------------------------------------------------------------------------
 
     /// Returns components of this execution proof.
-    pub fn into_parts(self) -> (HashFunction, StarkProof) {
+    pub fn into_parts(self) -> (HashFunction, Proof) {
         (self.hash_fn, self.proof)
     }
 }
@@ -157,7 +157,7 @@ impl Serializable for ExecutionProof {
 
 impl Deserializable for ExecutionProof {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let proof = StarkProof::read_from(source)?;
+        let proof = Proof::read_from(source)?;
         let hash_fn = HashFunction::read_from(source)?;
 
         Ok(ExecutionProof { proof, hash_fn })
