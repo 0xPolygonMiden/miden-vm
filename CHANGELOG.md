@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.2 (2024-05-22) - `stdlib` crate only
+- Skip writing MASM documentation to file when building on docs.rs (#1341).
+
 ## 0.9.2 (2024-05-09) - `assembly` crate only
 - Remove usage of `group_vector_elements()` from `combine_blocks()` (#1331).
 
