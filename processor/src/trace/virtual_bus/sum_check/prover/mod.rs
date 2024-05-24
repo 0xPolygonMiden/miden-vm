@@ -260,9 +260,9 @@ where
 /// the previous one using only additions. This is the purpose of `deltas`, to hold the increments
 /// added to each multi-linear to compute the evaluation at the next point, and `evals_x` to hold
 /// the current evaluation at `x` in {2, ... , d_max}.
-fn sumcheck_round<E: FieldElement>(
-    composition_poly: &dyn CompositionPolynomial<E>,
-    mls: &mut [MultiLinearPoly<E>],
+fn sumcheck_round<E: FieldElement, P: CompositionPolynomial<E>>(
+    composition_poly: &P,
+    mls: &[MultiLinearPoly<E>],
 ) -> UnivariatePolyEvals<E> {
     let num_ml = mls.len();
     let num_vars = mls[0].num_variables();
