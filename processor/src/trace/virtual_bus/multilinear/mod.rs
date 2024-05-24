@@ -1,4 +1,4 @@
-use alloc::{borrow::ToOwned, vec::Vec};
+use alloc::vec::Vec;
 use core::ops::Index;
 use vm_core::FieldElement;
 
@@ -68,7 +68,7 @@ impl<E: FieldElement> MultiLinearPoly<E> {
             *res = self.evaluations[i << 1]
                 + round_challenge * (self.evaluations[(i << 1) + 1] - self.evaluations[i << 1]);
         }
-        *self = Self::from_evaluations(result.to_owned())
+        *self = Self::from_evaluations(result)
             .expect("should not fail given that it is a multi-linear");
     }
 
