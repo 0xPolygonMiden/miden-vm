@@ -6,7 +6,7 @@ use processor::{
 };
 use test_utils::{
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
-    group_vector_elements,
+    group_slice_elements,
     math::fft,
     Felt, FieldElement, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
@@ -169,7 +169,6 @@ fn verify_proof(
 }
 
 /// Partial implementation for verification in the case of folding factor 4
-
 pub struct FriVerifierFold4Ext2 {
     domain_size: usize,
     domain_generator: Felt,
@@ -412,7 +411,7 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
             let layer_proof = layer_proofs.remove(0);
 
             let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
-            let x = group_vector_elements::<QuadExt, N>(query.clone());
+            let x = group_slice_elements::<QuadExt, N>(&query);
             assert_eq!(x.len(), unbatched_proof.len());
 
             let nodes: Vec<[Felt; 4]> = unbatched_proof

@@ -8,7 +8,6 @@ use crate::{
 use alloc::vec::Vec;
 
 use vm_core::{ExtensionOf, ZERO};
-use winter_air::AuxTraceRandElements;
 
 // CONSTANTS
 // ================================================================================================
@@ -110,14 +109,14 @@ pub fn get_aux_transition_constraint_degrees() -> Vec<TransitionConstraintDegree
 pub fn enforce_aux_constraints<F, E>(
     main_frame: &EvaluationFrame<F>,
     aux_frame: &EvaluationFrame<E>,
-    aux_rand_elements: &AuxTraceRandElements<E>,
+    aux_rand_elements: &[E],
     result: &mut [E],
 ) where
     F: FieldElement<BaseField = Felt>,
     E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
 {
     // Get the first random element for this segment.
-    let alpha = aux_rand_elements.get_segment_elements(0)[0];
+    let alpha = aux_rand_elements[0];
 
     // Enforce b_range.
     enforce_b_range(main_frame, aux_frame, alpha, result);

@@ -6,7 +6,7 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{ProcessorAir, PublicInputs};
+use air::{AuxRandElements, ProcessorAir, PublicInputs};
 use core::marker::PhantomData;
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
@@ -20,9 +20,9 @@ use processor::{
 };
 use tracing::instrument;
 use winter_prover::{
-    matrix::ColMatrix, AuxTraceRandElements, ConstraintCompositionCoefficients,
-    DefaultConstraintEvaluator, DefaultTraceLde, ProofOptions as WinterProofOptions, Prover,
-    StarkDomain, TraceInfo, TracePolyTable,
+    matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
+    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
+    TracePolyTable,
 };
 
 #[cfg(feature = "std")]
@@ -37,7 +37,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     Program, StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::StarkProof;
+pub use winter_prover::Proof;
 
 // PROVER
 // ================================================================================================
@@ -70,7 +70,7 @@ where
     tracing::event!(
         tracing::Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
-        trace.layout().main_trace_width(),
+        trace.info().main_trace_width(),
         trace.trace_len_summary().padded_trace_len(),
         trace.trace_len_summary().padding_percentage(),
         now.elapsed().as_millis()
@@ -177,7 +177,7 @@ where
 impl<H, R> Prover for ExecutionProver<H, R>
 where
     H: ElementHasher<BaseField = Felt>,
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
@@ -219,9 +219,20 @@ where
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
-        aux_rand_elements: AuxTraceRandElements<E>,
+        aux_rand_elements: Option<AuxRandElements<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
         DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
+    }
+
+    fn build_aux_trace<E>(
+        &self,
+        trace: &Self::Trace,
+        aux_rand_elements: &AuxRandElements<E>,
+    ) -> ColMatrix<E>
+    where
+        E: FieldElement<BaseField = Self::BaseField>,
+    {
+        trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
 }

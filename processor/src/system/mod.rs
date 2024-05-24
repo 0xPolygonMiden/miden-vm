@@ -59,7 +59,7 @@ impl System {
     pub fn new(init_trace_capacity: usize) -> Self {
         // set the first value of the fmp trace to 2^30.
         let fmp = Felt::new(FMP_MIN);
-        let mut fmp_trace = Felt::zeroed_vector(init_trace_capacity);
+        let mut fmp_trace = vec![Felt::ZERO; init_trace_capacity];
         fmp_trace[0] = fmp;
 
         Self {
@@ -68,15 +68,15 @@ impl System {
             fmp,
             in_syscall: false,
             fn_hash: EMPTY_WORD,
-            clk_trace: Felt::zeroed_vector(init_trace_capacity),
-            ctx_trace: Felt::zeroed_vector(init_trace_capacity),
+            clk_trace: vec![Felt::ZERO; init_trace_capacity],
+            ctx_trace: vec![Felt::ZERO; init_trace_capacity],
             fmp_trace,
-            in_syscall_trace: Felt::zeroed_vector(init_trace_capacity),
+            in_syscall_trace: vec![Felt::ZERO; init_trace_capacity],
             fn_hash_trace: [
-                Felt::zeroed_vector(init_trace_capacity),
-                Felt::zeroed_vector(init_trace_capacity),
-                Felt::zeroed_vector(init_trace_capacity),
-                Felt::zeroed_vector(init_trace_capacity),
+                vec![Felt::ZERO; init_trace_capacity],
+                vec![Felt::ZERO; init_trace_capacity],
+                vec![Felt::ZERO; init_trace_capacity],
+                vec![Felt::ZERO; init_trace_capacity],
             ],
         }
     }

@@ -2,7 +2,7 @@ use super::{
     super::{
         tests::{build_trace_from_block, build_trace_from_ops},
         utils::build_span_with_respan_ops,
-        Trace, NUM_RAND_ROWS,
+        NUM_RAND_ROWS,
     },
     Felt,
 };
@@ -21,9 +21,9 @@ use vm_core::{code_blocks::CodeBlock, FieldElement, Operation, Word, ONE, ZERO};
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
-    let mut trace = build_trace_from_ops(ops, &[]);
+    let trace = build_trace_from_ops(ops, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
@@ -67,9 +67,9 @@ fn decoder_p1_join() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1, span2]);
 
-    let mut trace = build_trace_from_block(&program, &[]);
+    let trace = build_trace_from_block(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let a_9 = Felt::new(9);
@@ -127,9 +127,9 @@ fn decoder_p1_split() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1, span2);
 
-    let mut trace = build_trace_from_block(&program, &[1]);
+    let trace = build_trace_from_block(&program, &[1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let a_9 = Felt::new(9);
@@ -175,9 +175,9 @@ fn decoder_p1_loop_with_repeat() {
     let body = CodeBlock::new_join([span1, span2]);
     let program = CodeBlock::new_loop(body);
 
-    let mut trace = build_trace_from_block(&program, &[0, 1, 1]);
+    let trace = build_trace_from_block(&program, &[0, 1, 1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
@@ -289,9 +289,9 @@ fn decoder_p1_loop_with_repeat() {
 fn decoder_p2_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
     let span = CodeBlock::new_span(ops);
-    let mut trace = build_trace_from_block(&span, &[]);
+    let trace = build_trace_from_block(&span, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values =
@@ -321,9 +321,9 @@ fn decoder_p2_join() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
-    let mut trace = build_trace_from_block(&program, &[]);
+    let trace = build_trace_from_block(&program, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
@@ -374,9 +374,9 @@ fn decoder_p2_split_true() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2);
 
-    let mut trace = build_trace_from_block(&program, &[1]);
+    let trace = build_trace_from_block(&program, &[1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
@@ -418,9 +418,9 @@ fn decoder_p2_split_false() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1, span2.clone());
 
-    let mut trace = build_trace_from_block(&program, &[0]);
+    let trace = build_trace_from_block(&program, &[0]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
@@ -463,9 +463,9 @@ fn decoder_p2_loop_with_repeat() {
     let body = CodeBlock::new_join([span1.clone(), span2.clone()]);
     let program = CodeBlock::new_loop(body.clone());
 
-    let mut trace = build_trace_from_block(&program, &[0, 1, 1]);
+    let trace = build_trace_from_block(&program, &[0, 1, 1]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
@@ -561,10 +561,10 @@ fn decoder_p2_loop_with_repeat() {
 fn decoder_p3_trace_empty_table() {
     let stack = [1, 2];
     let operations = vec![Operation::Add];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
 
     // no rows should have been added or removed from the op group table, and thus, all values
     // in the column must be ONE
@@ -592,9 +592,9 @@ fn decoder_p3_trace_one_batch() {
         Operation::Mul,
         Operation::Add,
     ];
-    let mut trace = build_trace_from_ops(ops.clone(), &stack);
+    let trace = build_trace_from_ops(ops.clone(), &stack);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p3 = aux_columns.get_column(P3_COL_IDX);
 
     // make sure the first entry is ONE
@@ -644,9 +644,9 @@ fn decoder_p3_trace_one_batch() {
 #[allow(clippy::needless_range_loop)]
 fn decoder_p3_trace_two_batches() {
     let (ops, iv) = build_span_with_respan_ops();
-    let mut trace = build_trace_from_ops(ops, &[]);
+    let trace = build_trace_from_ops(ops, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p3 = aux_columns.get_column(P3_COL_IDX);
 
     // make sure the first entry is ONE
