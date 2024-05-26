@@ -59,6 +59,9 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
     }
 }
 
+// BLOCK HASH TABLE ROW
+// ================================================================================================
+
 /// Describes a single entry in the block hash table. An entry in the block hash table is a tuple
 /// (parent_id, block_hash, is_first_child, is_loop_body), where each column is defined as follows:
 /// - parent_block_id: contains the ID of the current block. Note: the current block's ID is the
