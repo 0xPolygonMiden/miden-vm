@@ -16,9 +16,11 @@ use super::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
     STACK_TRACE_OFFSET,
 };
-use alloc::vec::Vec;
 use core::ops::{Deref, Range};
 use vm_core::{utils::range, Felt, Word, ONE, ZERO};
+
+#[cfg(any(test, feature = "internals"))]
+use alloc::vec::Vec;
 
 // CONSTANTS
 // ================================================================================================
