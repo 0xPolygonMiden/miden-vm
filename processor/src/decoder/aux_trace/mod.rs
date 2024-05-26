@@ -7,6 +7,9 @@ use vm_core::{FieldElement, Operation};
 mod block_hash_table;
 use block_hash_table::BlockHashTableColumnBuilder;
 
+#[cfg(test)]
+pub use block_hash_table::BlockHashTableRow;
+
 mod block_stack_table;
 use block_stack_table::BlockStackColumnBuilder;
 

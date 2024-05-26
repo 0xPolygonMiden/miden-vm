@@ -1,4 +1,4 @@
-use vm_core::Word;
+use vm_core::{Word, ZERO};
 
 use super::{
     AuxColumnBuilder, Felt, FieldElement, MainTrace, DYN, END, HALT, JOIN, LOOP, ONE, REPEAT, SPLIT,
@@ -23,17 +23,7 @@ pub struct BlockHashTableColumnBuilder {}
 
 impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableColumnBuilder {
     fn init_responses(&self, main_trace: &MainTrace, alphas: &[E]) -> E {
-        let row_index = (0..main_trace.num_rows())
-            .find(|row| main_trace.get_op_code(*row) == Felt::from(HALT))
-            .expect("execution trace must include at least one occurrence of HALT");
-        let program_hash = main_trace.decoder_hasher_state_first_half(row_index);
-
-        // Computes the initialization value for the block hash table.
-        alphas[0]
-            + alphas[2].mul_base(program_hash[0])
-            + alphas[3].mul_base(program_hash[1])
-            + alphas[4].mul_base(program_hash[2])
-            + alphas[5].mul_base(program_hash[3])
+        BlockHashTableRow::table_init(main_trace).collapse(alphas)
     }
 
     /// Removes a row from the block hash table.
@@ -41,35 +31,36 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
         let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
-            END => get_row_from_end(main_trace, row, alphas),
+            END => BlockHashTableRow::from_end(main_trace, row).collapse(alphas),
             _ => E::ONE,
         }
     }
 
     /// Adds a row to the block hash table.
-    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], i: usize) -> E {
-        let op_code = main_trace.get_op_code(i).as_int() as u8;
+    fn get_responses_at(&self, main_trace: &MainTrace, alphas: &[E], row: usize) -> E {
+        let op_code = main_trace.get_op_code(row).as_int() as u8;
 
         match op_code {
             JOIN => {
-                let (left_child_row, right_child_row) = get_rows_from_join(main_trace, i, alphas);
+                let left_child_row = BlockHashTableRow::from_join(main_trace, row, true);
+                let right_child_row = BlockHashTableRow::from_join(main_trace, row, false);
 
                 // Note: this adds the 2 rows separately to the block hash table.
-                left_child_row * right_child_row
+                left_child_row.collapse(alphas) * right_child_row.collapse(alphas)
             }
-            SPLIT => get_row_from_split(main_trace, i, alphas),
-            LOOP => get_row_from_loop(main_trace, i, alphas).unwrap_or(E::ONE),
-            REPEAT => get_row_from_repeat(main_trace, i, alphas),
-            DYN => get_row_from_dyn(main_trace, i, alphas),
+            SPLIT => BlockHashTableRow::from_split(main_trace, row).collapse(alphas),
+            LOOP => BlockHashTableRow::from_loop(main_trace, row)
+                .map(|row| row.collapse(alphas))
+                .unwrap_or(E::ONE),
+            REPEAT => BlockHashTableRow::from_repeat(main_trace, row).collapse(alphas),
+            DYN => BlockHashTableRow::from_dyn(main_trace, row).collapse(alphas),
             _ => E::ONE,
         }
     }
 }
 
-/// Builds a row for the block hash table. Since the block hash table is a virtual table, a "row" is
-/// a single field element representing all the columns (which is achieved by taking a random linear
-/// combination of all the columns). The columns are defined as follows:
-///
+/// Describes a single entry in the block hash table. An entry in the block hash table is a tuple
+/// (parent_id, block_hash, is_first_child, is_loop_body), where each column is defined as follows:
 /// - parent_block_id: contains the ID of the current block. Note: the current block's ID is the
 ///   parent block's ID from the perspective of the block being added to the table.
 /// - block_hash: these 4 columns hold the hash of the current block's child which will be executed
@@ -78,182 +69,198 @@ impl<E: FieldElement<BaseField = Felt>> AuxColumnBuilder<E> for BlockHashTableCo
 ///   current block. If the current block has only one child, set to false.
 /// - is_loop_body: Set to true when the current block block is a LOOP code block (and hence, the
 ///   current block's child being added to the table is the body of a loop).
-#[inline(always)]
-fn block_hash_table_row<E>(
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockHashTableRow {
     parent_block_id: Felt,
     child_block_hash: Word,
     is_first_child: bool,
     is_loop_body: bool,
-    alphas: &[E],
-) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    alphas[0]
-        + alphas[1].mul_base(parent_block_id)
-        + alphas[2].mul_base(child_block_hash[0])
-        + alphas[3].mul_base(child_block_hash[1])
-        + alphas[4].mul_base(child_block_hash[2])
-        + alphas[5].mul_base(child_block_hash[3])
-        + alphas[6].mul_base(is_first_child.into())
-        + alphas[7].mul_base(is_loop_body.into())
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
+impl BlockHashTableRow {
+    // CONSTRUCTORS
+    // ----------------------------------------------------------------------------------------------
 
-/// Computes the row to be removed from the block hash table when encountering an `END` operation.
-fn get_row_from_end<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let op_code_next = main_trace.get_op_code(row + 1).as_int() as u8;
-    let parent_block_id = main_trace.addr(row + 1);
-    let block_hash = main_trace.decoder_hasher_state_first_half(row);
+    // Computes the initial row in the block hash table.
+    pub fn table_init(main_trace: &MainTrace) -> Self {
+        let program_hash = {
+            let row_with_halt = (0..main_trace.num_rows())
+                .find(|row| main_trace.get_op_code(*row) == Felt::from(HALT))
+                .expect("execution trace must include at least one occurrence of HALT");
 
-    // A block can only be a first child of a JOIN block; every other control block only executes
-    // one child. Hence, it is easier to identify the conditions that only a "second child" (i.e. a
-    // JOIN block's second child, as well as all other control block's child) can find itself in.
-    // That is, when the opcode of the next row is:
-    // - END: this marks the end of the parent block, which only a second child can be in
-    // - REPEAT: this means that the current block is the child of a LOOP block, and hence a "second
-    //   child"
-    // - HALT: The end of the program, which a first child can't find itself in (since the second
-    //   child needs to execute first)
-    let is_first_child = op_code_next != END && op_code_next != REPEAT && op_code_next != HALT;
-    let is_loop_body = main_trace
-        .is_loop_body_flag(row)
-        .try_into()
-        .expect("expected loop body flag to be a boolean");
+            main_trace.decoder_hasher_state_first_half(row_with_halt)
+        };
 
-    block_hash_table_row(parent_block_id, block_hash, is_first_child, is_loop_body, alphas)
-}
-
-/// Computes the 2 rows to add to the block hash table when encountering a `JOIN` operation.
-fn get_rows_from_join<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> (E, E)
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let parent_block_id = main_trace.addr(row + 1);
-    let is_loop_body = false;
-
-    let left_child_row = {
-        let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
-        let is_first_child = true;
-        block_hash_table_row(
-            parent_block_id,
-            left_child_block_hash,
-            is_first_child,
-            is_loop_body,
-            alphas,
-        )
-    };
-    let right_child_row = {
-        let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
-        let is_first_child = false;
-        block_hash_table_row(
-            parent_block_id,
-            right_child_block_hash,
-            is_first_child,
-            is_loop_body,
-            alphas,
-        )
-    };
-
-    (left_child_row, right_child_row)
-}
-
-/// Computes the row to add to the block hash table when encountering a `SPLIT` operation.
-fn get_row_from_split<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let stack_top = main_trace.stack_element(0, row);
-    let parent_block_id = main_trace.addr(row + 1);
-    // Note: only one child of a split block is executed. Hence, `is_first_child` is always false.
-    let is_first_child = false;
-    let is_loop_body = false;
-
-    if stack_top == ONE {
-        let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
-        block_hash_table_row(
-            parent_block_id,
-            left_child_block_hash,
-            is_first_child,
-            is_loop_body,
-            alphas,
-        )
-    } else {
-        let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
-        block_hash_table_row(
-            parent_block_id,
-            right_child_block_hash,
-            is_first_child,
-            is_loop_body,
-            alphas,
-        )
+        Self {
+            parent_block_id: ZERO,
+            child_block_hash: program_hash,
+            is_first_child: false,
+            is_loop_body: false,
+        }
     }
-}
 
-/// Computes the row (optionally) to add to the block hash table when encountering a `LOOP`
-/// operation. That is, a loop will have a child to execute when the top of the stack is 1.
-fn get_row_from_loop<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> Option<E>
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let stack_top = main_trace.stack_element(0, row);
-
-    if stack_top == ONE {
+    /// Computes the row to be removed from the block hash table when encountering an `END`
+    /// operation.
+    pub fn from_end(main_trace: &MainTrace, row: usize) -> Self {
+        let op_code_next = main_trace.get_op_code(row + 1).as_int() as u8;
         let parent_block_id = main_trace.addr(row + 1);
         let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
-        let is_first_child = false;
-        let is_loop_body = true;
 
-        Some(block_hash_table_row(
+        // A block can only be a first child of a JOIN block; every other control block only
+        // executes one child. Hence, it is easier to identify the conditions that only a
+        // "second child" (i.e. a JOIN block's second child, as well as all other control
+        // block's child) can find itself in. That is, when the opcode of the next row is:
+        // - END: this marks the end of the parent block, which only a second child can be in
+        // - REPEAT: this means that the current block is the child of a LOOP block, and hence a
+        //   "second child"
+        // - HALT: The end of the program, which a first child can't find itself in (since the
+        //   second child needs to execute first)
+        let is_first_child = op_code_next != END && op_code_next != REPEAT && op_code_next != HALT;
+        let is_loop_body = main_trace
+            .is_loop_body_flag(row)
+            .try_into()
+            .expect("expected loop body flag to be a boolean");
+
+        Self {
             parent_block_id,
             child_block_hash,
             is_first_child,
             is_loop_body,
-            alphas,
-        ))
-    } else {
-        None
+        }
     }
-}
 
-/// Computes the row to add to the block hash table when encountering a `REPEAT` operation. A
-/// `REPEAT` marks the start of a new loop iteration, and hence the loop's child block needs to be
-/// added to the block hash table once again (since it was removed in the previous `END`
-/// instruction).
-fn get_row_from_repeat<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let parent_block_id = main_trace.addr(row + 1);
-    let child_block_hash = main_trace.decoder_hasher_state_first_half(row);
-    let is_first_child = false;
-    let is_loop_body = true;
+    /// Computes the row corresponding to the left or right child to add to the block hash table
+    /// when encountering a `JOIN` operation.
+    pub fn from_join(main_trace: &MainTrace, row: usize, is_first_child: bool) -> Self {
+        let child_block_hash = if is_first_child {
+            main_trace.decoder_hasher_state_first_half(row)
+        } else {
+            main_trace.decoder_hasher_state_second_half(row)
+        };
 
-    block_hash_table_row(parent_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
-}
+        Self {
+            parent_block_id: main_trace.addr(row + 1),
+            child_block_hash,
+            is_first_child,
+            is_loop_body: false,
+        }
+    }
 
-/// Computes the row to add to the block hash table when encountering a `DYN` operation.
-fn get_row_from_dyn<E>(main_trace: &MainTrace, row: usize, alphas: &[E]) -> E
-where
-    E: FieldElement<BaseField = Felt>,
-{
-    let parent_block_id = main_trace.addr(row + 1);
-    let is_first_child = false;
-    let is_loop_body = false;
-    let child_block_hash = {
-        // Note: the child block hash is found on the stack, and hence in reverse order.
-        let s0 = main_trace.stack_element(0, row);
-        let s1 = main_trace.stack_element(1, row);
-        let s2 = main_trace.stack_element(2, row);
-        let s3 = main_trace.stack_element(3, row);
+    /// Computes the row to add to the block hash table when encountering a `SPLIT` operation.
+    pub fn from_split(main_trace: &MainTrace, row: usize) -> Self {
+        let stack_top = main_trace.stack_element(0, row);
+        let parent_block_id = main_trace.addr(row + 1);
+        // Note: only one child of a split block is executed. Hence, `is_first_child` is always
+        // false.
+        let is_first_child = false;
+        let is_loop_body = false;
 
-        [s3, s2, s1, s0]
-    };
+        if stack_top == ONE {
+            let left_child_block_hash = main_trace.decoder_hasher_state_first_half(row);
+            Self {
+                parent_block_id,
+                child_block_hash: left_child_block_hash,
+                is_first_child,
+                is_loop_body,
+            }
+        } else {
+            let right_child_block_hash = main_trace.decoder_hasher_state_second_half(row);
 
-    block_hash_table_row(parent_block_id, child_block_hash, is_first_child, is_loop_body, alphas)
+            Self {
+                parent_block_id,
+                child_block_hash: right_child_block_hash,
+                is_first_child,
+                is_loop_body,
+            }
+        }
+    }
+
+    /// Computes the row (optionally) to add to the block hash table when encountering a `LOOP`
+    /// operation. That is, a loop will have a child to execute when the top of the stack is 1.
+    pub fn from_loop(main_trace: &MainTrace, row: usize) -> Option<Self> {
+        let stack_top = main_trace.stack_element(0, row);
+
+        if stack_top == ONE {
+            Some(Self {
+                parent_block_id: main_trace.addr(row + 1),
+                child_block_hash: main_trace.decoder_hasher_state_first_half(row),
+                is_first_child: false,
+                is_loop_body: true,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Computes the row to add to the block hash table when encountering a `REPEAT` operation. A
+    /// `REPEAT` marks the start of a new loop iteration, and hence the loop's child block needs to
+    /// be added to the block hash table once again (since it was removed in the previous `END`
+    /// instruction).
+    pub fn from_repeat(main_trace: &MainTrace, row: usize) -> Self {
+        Self {
+            parent_block_id: main_trace.addr(row + 1),
+            child_block_hash: main_trace.decoder_hasher_state_first_half(row),
+            is_first_child: false,
+            is_loop_body: true,
+        }
+    }
+
+    /// Computes the row to add to the block hash table when encountering a `DYN` operation.
+    pub fn from_dyn(main_trace: &MainTrace, row: usize) -> Self {
+        let child_block_hash = {
+            // Note: the child block hash is found on the stack, and hence in reverse order.
+            let s0 = main_trace.stack_element(0, row);
+            let s1 = main_trace.stack_element(1, row);
+            let s2 = main_trace.stack_element(2, row);
+            let s3 = main_trace.stack_element(3, row);
+
+            [s3, s2, s1, s0]
+        };
+
+        Self {
+            parent_block_id: main_trace.addr(row + 1),
+            child_block_hash,
+            is_first_child: false,
+            is_loop_body: false,
+        }
+    }
+
+    // COLLAPSE
+    // ----------------------------------------------------------------------------------------------
+
+    /// Collapses this row to a single field element in the field specified by E by taking a random
+    /// linear combination of all the columns. This requires 8 alpha values, which are assumed to
+    /// have been drawn randomly.
+    pub fn collapse<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        let is_first_child = if self.is_first_child { ONE } else { ZERO };
+        let is_loop_body = if self.is_loop_body { ONE } else { ZERO };
+        alphas[0]
+            + alphas[1].mul_base(self.parent_block_id)
+            + alphas[2].mul_base(self.child_block_hash[0])
+            + alphas[3].mul_base(self.child_block_hash[1])
+            + alphas[4].mul_base(self.child_block_hash[2])
+            + alphas[5].mul_base(self.child_block_hash[3])
+            + alphas[6].mul_base(is_first_child)
+            + alphas[7].mul_base(is_loop_body)
+    }
+
+    // TEST
+    // ----------------------------------------------------------------------------------------------
+
+    /// Returns a new [BlockHashTableRow] instantiated with the specified parameters. This is
+    /// used for test purpose only.
+    #[cfg(test)]
+    pub fn new_test(
+        parent_id: Felt,
+        block_hash: Word,
+        is_first_child: bool,
+        is_loop_body: bool,
+    ) -> Self {
+        Self {
+            parent_block_id: parent_id,
+            child_block_hash: block_hash,
+            is_first_child,
+            is_loop_body,
+        }
+    }
 }

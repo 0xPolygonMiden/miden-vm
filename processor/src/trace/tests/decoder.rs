@@ -6,7 +6,10 @@ use super::{
     },
     Felt,
 };
-use crate::{decoder::build_op_group, ContextId};
+use crate::{
+    decoder::{build_op_group, BlockHashTableRow},
+    ContextId,
+};
 use miden_air::trace::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
     AUX_TRACE_RAND_ELEMENTS,
@@ -295,7 +298,7 @@ fn decoder_p2_span_with_respan() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values =
-        [BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false).to_value(&alphas)];
+        [BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false).collapse(&alphas)];
 
     // make sure the first entry is initialized to program hash
     let mut expected_value = row_values[0];
@@ -327,9 +330,9 @@ fn decoder_p2_join() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, span1.hash().into(), true, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -380,8 +383,8 @@ fn decoder_p2_split_true() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span1.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, span1.hash().into(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -424,8 +427,8 @@ fn decoder_p2_split_false() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -471,12 +474,12 @@ fn decoder_p2_loop_with_repeat() {
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
     let a_33 = Felt::new(33); // address of the JOIN block in the second iteration
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, body.hash().into(), false, true).to_value(&alphas),
-        BlockHashTableRow::new_test(a_9, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_9, span2.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_33, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_33, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(ONE, body.hash().into(), false, true).collapse(&alphas),
+        BlockHashTableRow::new_test(a_9, span1.hash().into(), true, false).collapse(&alphas),
+        BlockHashTableRow::new_test(a_9, span2.hash().into(), false, false).collapse(&alphas),
+        BlockHashTableRow::new_test(a_33, span1.hash().into(), true, false).collapse(&alphas),
+        BlockHashTableRow::new_test(a_33, span2.hash().into(), false, false).collapse(&alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -765,51 +768,6 @@ impl BlockStackTableRow {
             + alphas[9].mul_base(self.parent_fn_hash[1])
             + alphas[10].mul_base(self.parent_fn_hash[2])
             + alphas[11].mul_base(self.parent_fn_hash[3])
-    }
-}
-
-/// Describes a single entry in the block hash table. An entry in the block hash table is a tuple
-/// (parent_id, block_hash, is_first_child, is_loop_body).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BlockHashTableRow {
-    parent_id: Felt,
-    block_hash: Word,
-    is_first_child: bool,
-    is_loop_body: bool,
-}
-
-impl BlockHashTableRow {
-    /// Returns a new [BlockHashTableRow] instantiated with the specified parameters. This is
-    /// used for test purpose only.
-    pub fn new_test(
-        parent_id: Felt,
-        block_hash: Word,
-        is_first_child: bool,
-        is_loop_body: bool,
-    ) -> Self {
-        Self {
-            parent_id,
-            block_hash,
-            is_first_child,
-            is_loop_body,
-        }
-    }
-}
-
-impl BlockHashTableRow {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 8 alpha values.
-    pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
-        let is_first_child = if self.is_first_child { ONE } else { ZERO };
-        let is_loop_body = if self.is_loop_body { ONE } else { ZERO };
-        alphas[0]
-            + alphas[1].mul_base(self.parent_id)
-            + alphas[2].mul_base(self.block_hash[0])
-            + alphas[3].mul_base(self.block_hash[1])
-            + alphas[4].mul_base(self.block_hash[2])
-            + alphas[5].mul_base(self.block_hash[3])
-            + alphas[6].mul_base(is_first_child)
-            + alphas[7].mul_base(is_loop_body)
     }
 }
 
