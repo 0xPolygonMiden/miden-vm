@@ -29,18 +29,17 @@ mod error;
 /// then engages in an IP to convince the Verifier that the above relation holds for the given
 /// `f_i` and `v`. More precisely:
 ///
-/// 0. Denote by w(x_0,\cdots, x_{\nu - 1}) := g(f_0((x_0,\cdots, x_{\nu - 1})),
-///                                                       \cdots , f_c((x_0,\cdots, x_{\nu - 1}))).
+/// 0. Denote by w(x_0,\cdots, x_{\nu - 1}) := g(f_0((x_0,\cdots, x_{\nu - 1})), \cdots ,
+///    f_c((x_0,\cdots, x_{\nu - 1}))).
 ///
-/// 1. In the first round, the Prover sends the polynomial defined by:
-///         s_0(X_0) := \sum_{(x_{1},\cdots, x_{\nu - 1})  w(X_0, x_{1}, \cdots, x_{\nu - 1})
+/// 1. In the first round, the Prover sends the polynomial defined by: s_0(X_0) :=
+///    \sum_{(x_{1},\cdots, x_{\nu - 1})  w(X_0, x_{1}, \cdots, x_{\nu - 1})
 ///
 /// 2. The Verifier then checks that s_0(0) + s_0(1) = v rejecting if not.
 ///
 /// 3. The Verifier samples a random challenge `r_0 ∈ 𝔽` and sends it to the Prover.
 ///
-/// 4. For each i in 1...(\nu - 1):
-///     a. The Prover sends the univariate polynomial defined by:
+/// 4. For each i in 1...(\nu - 1): a. The Prover sends the univariate polynomial defined by:
 ///
 ///         s_i(X_i) := \sum_{(x_{i + 1},\cdots, x_{\nu - 1})
 ///                                  w(r_0,\cdots, r_{i - 1}, X_i, x_{i + 1}, \cdots, x_{\nu - 1}).
@@ -63,9 +62,10 @@ mod error;
 ///
 /// 2. The Prover has each `f_i` in its evaluation form over the hyper-cube \{0 , 1\}^{\nu}.
 ///
-/// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the current
-/// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i - 1}).
-/// This also means that the Verifier can skip point 4.b.
+/// 3. An optimization is for the Prover to not send `s_i(0)` as it can be recovered from the
+///    current
+/// reduced claim s_{i - 1}(r_{i - 1}) using the relation s_{i}(0) = s_{i}(1) - s_{i - 1}(r_{i -
+/// 1}). This also means that the Verifier can skip point 4.b.
 pub struct SumCheckProver<E, P, C, H, V>
 where
     E: FieldElement,
@@ -105,7 +105,8 @@ where
     /// More specifically, executes the sum-check protocol for the following relation
     ///
     /// v = \sum_{(x_0,\cdots, x_{\nu - 1}) \in \{0 , 1\}^{\nu}}
-    ///                     g(f_0((x_0,\cdots, x_{\nu - 1})), \cdots , f_c((x_0,\cdots, x_{\nu - 1})))
+    ///                     g(f_0((x_0,\cdots, x_{\nu - 1})), \cdots , f_c((x_0,\cdots, x_{\nu -
+    /// 1})))
     ///
     /// where:
     ///
@@ -253,7 +254,8 @@ where
 /// we can write
 ///
 ///     f_i(X_i, x_{i + 1}, \cdots, x_{\nu - 1}) =
-///        (1 - X_i) . f_i(0, x_{i + 1}, \cdots, x_{\nu - 1}) + X_i . f_i(1, x_{i + 1}, \cdots, x_{\nu - 1})
+///        (1 - X_i) . f_i(0, x_{i + 1}, \cdots, x_{\nu - 1}) + X_i . f_i(1, x_{i + 1}, \cdots,
+/// x_{\nu - 1})
 ///
 /// Note that we omitted writing the folding randomness for readability.
 /// Since the evaluation domain is {0, 1, ... , d_max}, we can compute the evaluations based on

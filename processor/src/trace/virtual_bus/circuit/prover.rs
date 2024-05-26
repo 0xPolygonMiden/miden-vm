@@ -1,7 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
     FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs, NUM_ELEMENTS_PER_GATE_INPUT,
+    LayerGatesInputs, NUM_GATES_PER_QUERY,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -16,9 +16,10 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 
 /// Layered circuit for computing a sum of fractions.
 ///
-/// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) / (c * d)
-/// which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the [`FractionalSumCircuit`]
-/// is built. Due to the uniformity of the circuit, each of the circuit layers collect all the:
+/// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) /
+/// (c * d) which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the
+/// [`FractionalSumCircuit`] is built. Due to the uniformity of the circuit, each of the circuit
+/// layers collect all the:
 ///
 /// 1. `a`'s into a [`MultiLinearPoly`] called `p_0`.
 /// 2. `b`'s into a [`MultiLinearPoly`] called `p_1`.
@@ -27,17 +28,22 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 ///
 /// The relation between two subsequent layers is given by the formula
 ///
-/// p_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_1[layer](x_0, x_1, ..., x_{ν - 2}, 0)
-///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_0[layer](x_0, x_1, ..., x_{ν - 2}, 0)
+/// p_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 2}, 0)
+///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_0[layer](x_0,
+///                                    x_1, ..., x_{ν - 2}, 0)
 ///
-/// p_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_1[layer](x_0, x_1, ..., x_{ν - 2}, 1)
-///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1)
+/// p_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 2}, 1)
+///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_0[layer](x_0,
+///                                    x_1, ..., x_{ν - 2}, 1)
 ///
 /// and
 ///
-/// q_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_1[layer](x_0, x_1, ..., x_{ν - 1}, 0)
-///                                  
-/// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
+/// q_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 0)                                  
+/// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
@@ -50,7 +56,8 @@ pub struct FractionalSumCircuit<E: FieldElement> {
 }
 
 impl<E: FieldElement> FractionalSumCircuit<E> {
-    /// Computes The values of the gate outputs for each of the layers of the fractional sum circuit.
+    /// Computes The values of the gate outputs for each of the layers of the fractional sum
+    /// circuit.
     pub fn new(
         columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
@@ -162,27 +169,25 @@ struct CircuitInputs<E: FieldElement> {
 impl<E: FieldElement> CircuitInputs<E> {
     fn new(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Result<Self, ProverError> {
         let num_evaluations = columns[0].num_evaluations();
-        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
-        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
-        let mut left_denominator =
-            Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
-        let mut right_denominator =
-            Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
+        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut left_denominator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut right_denominator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
 
         for i in 0..num_evaluations {
             let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
 
             let LayerGatesInputs {
-                partial_left_numerator,
-                partial_right_numerator,
-                partial_left_denominator,
-                partial_right_denominator,
+                query_left_numerators,
+                query_right_numerators,
+                query_left_denominators,
+                query_right_denominators,
             } = LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
 
-            left_numerator.extend(partial_left_numerator);
-            right_numerator.extend(partial_right_numerator);
-            left_denominator.extend(partial_left_denominator);
-            right_denominator.extend(partial_right_denominator);
+            left_numerator.extend(query_left_numerators);
+            right_numerator.extend(query_right_numerators);
+            left_denominator.extend(query_left_denominators);
+            right_denominator.extend(query_right_denominators);
         }
 
         Ok(Self {
@@ -208,7 +213,8 @@ impl<E: FieldElement> CircuitInputs<E> {
 /// Each individual component of the quadruple [p_0, p_1, q_0, q_1] is of the form:
 ///
 /// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) =
-/// \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1}))
+/// \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν
+/// - 1}))
 ///
 /// where:
 ///
@@ -233,7 +239,8 @@ impl<E: FieldElement> CircuitInputs<E> {
 /// After these μ rounds, and using the resulting [`RoundClaim`], we run the second and final
 /// sum-check protocol for ν rounds on the composed multi-linear polynomial given by
 ///
-/// \sum_{y ∈ {0,1}^μ} EQ(ρ', y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1}))
+/// \sum_{y ∈ {0,1}^μ} EQ(ρ', y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... ,
+/// x_{ν - 1}))
 ///
 /// where ρ' is the randomness sampled during the first sum-check protocol.
 ///
@@ -270,7 +277,7 @@ pub fn prove<
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-    let num_rounds_before_merge = NUM_ELEMENTS_PER_GATE_INPUT.ilog2() as usize;
+    let num_rounds_before_merge = NUM_GATES_PER_QUERY.ilog2() as usize;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,

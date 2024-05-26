@@ -170,7 +170,8 @@ pub fn verify_sum_check_proof_last<
         .map_err(|_| VerifierError::FailedToVerifySumCheck)
 }
 
-/// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final one.
+/// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final
+/// one.
 #[derive(Default)]
 struct GkrQueryBuilder<E> {
     gkr_eval_point: Vec<E>,

@@ -4,7 +4,8 @@ use alloc::vec::Vec;
 /// The EQ (equality) function is the binary function defined by
 ///
 /// EQ:    {0 , 1}^ν ⛌ {0 , 1}^ν ⇾ {0 , 1}
-///   ((x_0, ..., x_{ν - 1}), (y_0, ..., y_{ν - 1})) ↦ \prod_{i = 0}^{ν - 1} (x_i * y_i + (1 - x_i) * (1 - y_i))
+///   ((x_0, ..., x_{ν - 1}), (y_0, ..., y_{ν - 1})) ↦ \prod_{i = 0}^{ν - 1} (x_i * y_i + (1 - x_i)
+/// * (1 - y_i))
 ///
 /// Taking It's multi-linear extension EQ^{~}, we can define a basis for the set of multi-linear
 /// polynomials in ν variables by
