@@ -9,7 +9,7 @@ use crate::trace::virtual_bus::{
     SumCheckProver,
 };
 use alloc::{borrow::ToOwned, vec::Vec};
-use core::marker::PhantomData;
+use core::{marker::PhantomData, ops::Add};
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
@@ -500,6 +500,34 @@ impl<E: FieldElement> FinalClaimBuilder for SimpleGkrFinalClaimBuilder<E> {
         FinalOpeningClaim {
             eval_point: evaluation_point.to_vec(),
             openings: (openings[..openings.len() - 1]).to_vec(),
+        }
+    }
+}
+
+/// TODOP: Document, and move to different file?
+pub struct ProjectiveCoordinates<E: FieldElement> {
+    numerator: E,
+    denominator: E,
+}
+
+impl<E: FieldElement> Add for ProjectiveCoordinates<E> {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        let numerator = self.numerator * other.denominator + other.numerator * self.denominator;
+        let denominator = self.denominator * other.denominator;
+
+        Self::new(numerator, denominator)
+    }
+}
+
+impl<E: FieldElement> ProjectiveCoordinates<E> {
+    pub fn new(numerator: E, denominator: E) -> Self {
+        assert_ne!(denominator, E::ZERO);
+
+        Self {
+            numerator,
+            denominator,
         }
     }
 }
