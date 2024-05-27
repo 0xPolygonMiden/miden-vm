@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push:
+    branches: [main, next]
+  pull_request:
+    types: [opened, reopened, synchronize] 
+
+jobs:
+  test:
+    name: test ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, nightly]
+        os: [ubuntu, windows-2022]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@main
+      - uses: taiki-e/install-action@nextest 
+      - name: Perform tests
+        run: |
+          rustup update --no-self-update ${{matrix.toolchain}} 
+          make test
