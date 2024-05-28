@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use vm_core::FieldElement;
 
 mod prover;
-pub use prover::{FinalClaimBuilder, SumCheckProver};
+pub use prover::{Error as SumCheckProverError, FinalClaimBuilder, SumCheckProver};
 mod verifier;
 pub use verifier::{CompositionPolyQueryBuilder, SumCheckVerifier};
 

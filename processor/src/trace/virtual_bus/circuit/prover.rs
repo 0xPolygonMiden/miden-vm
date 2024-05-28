@@ -501,9 +501,7 @@ fn prove_final_circuit_layer<
 
     // run the second sum-check protocol
     let main_prover = SumCheckProver::new(gkr_composition, SimpleGkrFinalClaimBuilder(PhantomData));
-    let after_merge_proof = main_prover
-        .prove(claim, mls, transcript)
-        .map_err(|_| ProverError::FailedToProveSumCheck)?;
+    let after_merge_proof = main_prover.prove(claim, mls, transcript)?;
 
     Ok(FinalLayerProof {
         before_merge_proof,
@@ -602,9 +600,7 @@ fn sum_check_prover_plain_partial<
 
     // run the sum-check protocol
     let main_prover = SumCheckProver::new(composer, SimpleGkrFinalClaimBuilder(PhantomData));
-    let proof = main_prover
-        .prove_rounds(claim, ml_polys, num_rounds, transcript)
-        .map_err(|_| ProverError::FailedToProveSumCheck)?;
+    let proof = main_prover.prove_rounds(claim, ml_polys, num_rounds, transcript)?;
 
     Ok((proof, r_batch))
 }
@@ -629,9 +625,7 @@ fn sum_check_prover_plain_full<
 
     // run the sum-check protocol
     let main_prover = SumCheckProver::new(composer, SimpleGkrFinalClaimBuilder(PhantomData));
-    let proof = main_prover
-        .prove(claim_, ml_polys, transcript)
-        .map_err(|_| ProverError::FailedToProveSumCheck)?;
+    let proof = main_prover.prove(claim_, ml_polys, transcript)?;
 
     Ok((proof, r_batch))
 }
