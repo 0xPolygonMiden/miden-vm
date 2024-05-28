@@ -1,4 +1,3 @@
-use self::error::Error;
 use super::{FinalOpeningClaim, Proof, RoundClaim, RoundProof};
 use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
 use alloc::vec::Vec;
@@ -7,6 +6,7 @@ use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
 mod error;
+pub use self::error::Error;
 
 /// A struct that contains relevant information for the execution of the multivariate sum-check
 /// protocol verifier. The protocol is described in [`SumCheckProver`].

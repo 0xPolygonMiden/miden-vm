@@ -5,7 +5,7 @@ use vm_core::FieldElement;
 mod prover;
 pub use prover::{Error as SumCheckProverError, FinalClaimBuilder, SumCheckProver};
 mod verifier;
-pub use verifier::{CompositionPolyQueryBuilder, SumCheckVerifier};
+pub use verifier::{CompositionPolyQueryBuilder, Error as SumCheckVerifierError, SumCheckVerifier};
 
 /// A sum-check round proof.
 ///

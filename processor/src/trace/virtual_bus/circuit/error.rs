@@ -1,4 +1,5 @@
 use crate::trace::virtual_bus::sum_check::SumCheckProverError;
+use crate::trace::virtual_bus::sum_check::SumCheckVerifierError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProverError {
@@ -19,5 +20,5 @@ pub enum VerifierError {
     #[error("failed to generate the random challenge")]
     FailedToGenerateChallenge,
     #[error("failed to verify the sum-check proof")]
-    FailedToVerifySumCheck,
+    FailedToVerifySumCheck(#[from] SumCheckVerifierError),
 }

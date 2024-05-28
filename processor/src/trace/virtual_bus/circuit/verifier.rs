@@ -120,7 +120,7 @@ pub fn verify_sum_check_proof_before_last<
         SumCheckVerifier::new(composition_poly, GkrQueryBuilder::new(gkr_eval_point.to_owned()));
     verifier
         .verify(reduced_claim, proof.clone(), transcript)
-        .map_err(|_| VerifierError::FailedToVerifySumCheck)
+        .map_err(VerifierError::FailedToVerifySumCheck)
 }
 
 /// Verifies the final sum-check proof as part of the GKR proof.
@@ -154,9 +154,7 @@ pub fn verify_sum_check_proof_last<
     let RoundClaim {
         eval_point: rand_merge,
         claim,
-    } = verifier
-        .verify_rounds(reduced_claim, before_merge_proof, transcript)
-        .map_err(|_| VerifierError::FailedToVerifySumCheck)?;
+    } = verifier.verify_rounds(reduced_claim, before_merge_proof, transcript)?;
 
     // verify the second part of the sum-check protocol
     let gkr_composition =
@@ -167,7 +165,7 @@ pub fn verify_sum_check_proof_last<
     );
     verifier
         .verify(claim, after_merge_proof, transcript)
-        .map_err(|_| VerifierError::FailedToVerifySumCheck)
+        .map_err(VerifierError::FailedToVerifySumCheck)
 }
 
 /// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final
