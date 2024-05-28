@@ -173,8 +173,8 @@ impl<E: FieldElement> FractionalSumCircuit2<E> {
         let mut layer_evaluations = Vec::new();
 
         let mut current_layer = Layer::input_layer(columns, log_up_randomness);
-        // TODOP: Use constant name for `4`
-        while current_layer.num_gates() > 4 {
+        // TODOP: Use constant name for `1`
+        while current_layer.num_gates() > 1 {
             let next_layer = Self::compute_layer(&current_layer);
 
             layer_evaluations.push(current_layer.into());
