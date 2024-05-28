@@ -54,8 +54,8 @@ end
 #! Input: [start_addr, end_addr, ...]
 #! Output: [H, ...]
 #! Cycles:
-#! even words: 48 cycles + 3 * words
-#! odd words: 60 cycles + 3 * words
+#! even words: 50 cycles + 3 * words
+#! odd words: 62 cycles + 3 * words
 export.hash_memory
   # enforce `start_addr < end_addr`
   dup.1 dup.1 u32assert2 u32gt assert
@@ -72,8 +72,8 @@ export.hash_memory
   movup.2
   # stack: [start_addr, end_addr, is_odd, ...]
 
-  # prepare hasher state (12 cycles)
-  dup.2 push.0.0.0 padw padw
+  # prepare hasher state (14 cycles)
+  dup.2 mul.4 push.0.0.0 padw padw
   # stack: [C, B, A, start_addr, end_addr, is_odd, ...]
 
   # (4 + 3 * words cycles)
@@ -89,7 +89,7 @@ export.hash_memory
     dup.13 mem_loadw
 
     # set the padding (9 cycles)
-    swapw dropw push.1.0.0.0
+    swapw dropw push.0.0.0.0
 
     # (1 cycles)
     hperm

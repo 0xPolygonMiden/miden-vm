@@ -84,8 +84,8 @@ end
 #! Input: [num_words, write_ptr, ...]
 #! Output: [HASH, write_ptr', ...]
 #! Cycles:
-#!  even num_words: 48 + 9 * num_words / 2
-#!  odd num_words: 65 + 9 * round_down(num_words / 2)
+#!  even num_words: 50 + 9 * num_words / 2
+#!  odd num_words: 67 + 9 * round_down(num_words / 2)
 export.pipe_words_to_memory.0
   # check if there is an odd number of words (6 cycles)
   dup is_odd
@@ -99,10 +99,11 @@ export.pipe_words_to_memory.0
   sub dup.1 add swap
   # => [write_ptr, end_ptr, needs_padding, ...]
 
-  # Prepare the capacity word. For rescue prime optimized the first element is
-  # set to `1` when padding is used and `0` otherwse, this is determined by the
-  # `needs_padding` flag. (4 cycles)
-  dup.2 push.0.0.0
+  # Prepare the capacity word. We use the padding rule which sets the first capacity
+  # element to `len % 8` where `len` is the length of the hashed sequence. Since `len % 8`
+  # is either equal to 0 or 4,  this is determined by the `needs_padding` flag multiplied
+  # by 4. (6 cycles)
+  dup.2 mul.4 push.0.0.0
   # => [A, write_ptr, end_ptr, needs_padding, ...]
 
   # set initial hasher state (8 cycles)
@@ -141,7 +142,7 @@ export.pipe_words_to_memory.0
     # => [B', A, write_ptr+1, ...]
 
     # Push padding word (4 cycles)
-    push.1.0.0.0
+    push.0.0.0.0
     # => [C, B', A, write_ptr+1, ...]
 
     # Run RPO permutation (1 cycles)
