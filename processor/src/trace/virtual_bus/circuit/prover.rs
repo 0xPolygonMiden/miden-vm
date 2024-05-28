@@ -160,6 +160,7 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
 }
 
 // TODOP: Rename `FractionalSumCircuitEvaluation`?
+// TODOP: Document all
 struct FractionalSumCircuit2<E: FieldElement> {
     layer_evaluations: Vec<LayerEvaluationPolys<E>>,
 }
@@ -198,6 +199,41 @@ impl<E: FieldElement> FractionalSumCircuit2<E> {
             .collect();
 
         Layer::new(new_layer_gates)
+    }
+
+    // TODOP: use `u32` instead right? We do that somewhere else too
+    pub fn num_layers(&self) -> usize {
+        self.layer_evaluations.len()
+    }
+
+    pub fn get_layer(&self, layer_idx: usize) -> &LayerEvaluationPolys<E> {
+        &self.layer_evaluations[layer_idx]
+    }
+
+    // TODOP: Document
+    // TODOP: `evaluate_output_layer` assumes the order of outputs; find a better way
+    pub fn output_layer(&self) -> [E; 4] {
+        let last_layer = self.layer_evaluations.last().expect("circuit has at least one layer");
+
+        [
+            last_layer.left_numerators[0],
+            last_layer.right_numerators[0],
+            last_layer.left_denominators[0],
+            last_layer.right_denominators[0],
+        ]
+    }
+
+    // TODOP: Document (treat output layer as 2 polys, etc)
+    pub fn evaluate_output_layer(&self, query: E) -> (E, E) {
+        let output_layer = self.output_layer();
+
+        let numerators = MultiLinearPoly::from_evaluations(vec![output_layer[0], output_layer[1]])
+            .expect("2 is a power of 2");
+        let denominators =
+            MultiLinearPoly::from_evaluations(vec![output_layer[2], output_layer[3]])
+                .expect("2 is a power of 2");
+
+        (numerators.evaluate(&[query]), denominators.evaluate(&[query]))
     }
 }
 
@@ -383,7 +419,7 @@ pub fn prove<
         .collect();
 
     // evaluate the GKR fractional sum circuit
-    let mut circuit = FractionalSumCircuit::new(&main_trace_columns, &log_up_randomness)?;
+    let mut circuit = FractionalSumCircuit2::new(&main_trace_columns, &log_up_randomness)?;
 
     // run the GKR prover for all layers except the input layer
     let (before_final_layer_proofs, gkr_claim) =
@@ -420,7 +456,7 @@ fn prove_final_circuit_layer<
     mut mls: Vec<MultiLinearPoly<E>>,
     num_rounds_merge: usize,
     gkr_claim: GkrClaim<E>,
-    circuit: &mut FractionalSumCircuit<E>,
+    circuit: &mut FractionalSumCircuit2<E>,
     transcript: &mut C,
 ) -> Result<FinalLayerProof<E>, ProverError> {
     // parse the [GkrClaim] resulting from the previous GKR layer
@@ -433,12 +469,14 @@ fn prove_final_circuit_layer<
     let poly_x = EqFunction::ml_at(evaluation_point.clone());
 
     // get the multi-linears of the 4 merge polynomials
-    let poly_a = circuit.p_0_vec[0].to_owned();
-    let poly_b = circuit.p_1_vec[0].to_owned();
-    let poly_c = circuit.q_0_vec[0].to_owned();
-    let poly_d = circuit.q_1_vec[0].to_owned();
-    let mut merged_mls = vec![poly_a, poly_b, poly_c, poly_d, poly_x];
-
+    let layer = circuit.get_layer(0);
+    let mut merged_mls = vec![
+        layer.left_numerators.clone(),
+        layer.right_numerators.clone(),
+        layer.left_denominators.clone(),
+        layer.right_denominators.clone(),
+        poly_x,
+    ];
     // run the first sum-check protocol
     let ((round_claim, before_merge_proof), r_sum_check) = sum_check_prover_plain_partial(
         claimed_evaluation,
@@ -479,21 +517,13 @@ fn prove_before_final_circuit_layers<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    circuit: &mut FractionalSumCircuit<E>,
+    circuit: &mut FractionalSumCircuit2<E>,
     transcript: &mut C,
 ) -> Result<(BeforeFinalLayerProof<E>, GkrClaim<E>), ProverError> {
     // absorb the circuit output layer. This corresponds to sending the four values of the output
     // layer to the verifier. The verifier then replies with a challenge `r` in order to evaluate
     // `p` and `q` at `r` as multi-linears.
-    let num_layers = circuit.p_0_vec.len();
-    let data = vec![
-        circuit.p_0_vec[num_layers - 1][0],
-        circuit.p_1_vec[num_layers - 1][0],
-        circuit.q_0_vec[num_layers - 1][0],
-        circuit.q_1_vec[num_layers - 1][0],
-    ];
-    // generate the challenge `r`
-    transcript.reseed(H::hash_elements(&data));
+    transcript.reseed(H::hash_elements(&circuit.output_layer()));
 
     // generate the challenge and reduce [p0, p1, q0, q1] to [pr, qr]
     let r = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
@@ -501,17 +531,20 @@ fn prove_before_final_circuit_layers<
 
     let mut proof_layers: Vec<SumCheckProof<E>> = Vec::new();
     let mut rand = vec![r];
-    for layer_id in (1..num_layers - 1).rev() {
+    for layer_idx in (1..circuit.num_layers() - 1).rev() {
         // construct the Lagrange kernel evaluated at the previous GKR round randomness
         let poly_x = EqFunction::ml_at(rand.clone());
 
         // construct the vector of multi-linear polynomials
         // TODO: avoid unnecessary allocation
-        let poly_a = circuit.p_0_vec[layer_id].to_owned();
-        let poly_b = circuit.p_1_vec[layer_id].to_owned();
-        let poly_c = circuit.q_0_vec[layer_id].to_owned();
-        let poly_d = circuit.q_1_vec[layer_id].to_owned();
-        let mls = vec![poly_a, poly_b, poly_c, poly_d, poly_x];
+        let layer = circuit.get_layer(layer_idx);
+        let mls = vec![
+            layer.left_numerators.clone(),
+            layer.right_numerators.clone(),
+            layer.left_denominators.clone(),
+            layer.right_denominators.clone(),
+            poly_x,
+        ];
 
         // run the sumcheck protocol
         let (proof, _) = sum_check_prover_plain_full(claim, mls, transcript)?;
