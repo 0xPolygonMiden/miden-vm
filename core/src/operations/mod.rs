@@ -129,7 +129,7 @@ pub enum Operation {
     ///
     /// The top 4 elements of the stack are expected to be arranged as follows (form the top):
     /// - least significant bit of the exponent in the previous trace if there's an expacc call,
-    /// otherwise ZERO
+    ///   otherwise ZERO
     /// - exponent of base number `a` for this turn
     /// - accumulated power of base number `a` so far
     /// - number which needs to be shifted to the right
