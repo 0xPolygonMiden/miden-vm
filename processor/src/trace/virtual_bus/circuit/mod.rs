@@ -15,6 +15,8 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
+use self::prover::CircuitGateInput;
+
 use super::multilinear::inner_product;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
@@ -25,8 +27,8 @@ const_assert!(NUM_GATES_PER_QUERY.is_power_of_two());
 
 /// Holds the contribution of one main trace row (or more generally "query") to the input layer's
 /// gates inputs.
+// TODOP: Rename
 struct LayerGatesInputs<E: FieldElement> {
-    // TODOP: Rename all to *s (make plural)
     pub query_left_numerators: [E; NUM_GATES_PER_QUERY],
     pub query_right_numerators: [E; NUM_GATES_PER_QUERY],
     pub query_left_denominators: [E; NUM_GATES_PER_QUERY],
@@ -100,6 +102,59 @@ impl<E: FieldElement> LayerGatesInputs<E> {
             stack_value_denom_3,
             padding,
         ]
+    }
+}
+
+// TODOP: This is just 1 gate's evaluation of the input layer. Put it closer to
+// `FractionalSumCircuit2`, and make it clear that it's just useful in constructing that.
+struct LayerGatesInputs2<E: FieldElement> {
+    // TODOP: rename
+    pub query_gate_evals: Vec<CircuitGateInput<E>>,
+}
+
+impl<E: FieldElement> LayerGatesInputs2<E> {
+    pub fn from_main_trace_query(query: &[E], log_up_randomness: &[E]) -> Self {
+        // numerators
+        let multiplicity = query[M_COL_IDX];
+        let f_m = {
+            let mem_selec0 = query[CHIPLETS_OFFSET];
+            let mem_selec1 = query[CHIPLETS_OFFSET + 1];
+            let mem_selec2 = query[CHIPLETS_OFFSET + 2];
+            mem_selec0 * mem_selec1 * (E::ONE - mem_selec2)
+        };
+
+        let f_rc = {
+            let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
+            let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
+            let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
+
+            (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
+        };
+
+        // denominators
+        let alphas = log_up_randomness;
+
+        let table_denom = alphas[0] - query[V_COL_IDX];
+        let memory_denom_0 = -(alphas[0] - query[MEMORY_D0_COL_IDX]);
+        let memory_denom_1 = -(alphas[0] - query[MEMORY_D1_COL_IDX]);
+        let stack_value_denom_0 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET]);
+        let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);
+        let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
+        let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
+
+        Self {
+            query_gate_evals: vec![
+                CircuitGateInput::new(multiplicity, table_denom),
+                CircuitGateInput::new(f_m, memory_denom_0),
+                CircuitGateInput::new(f_m, memory_denom_1),
+                CircuitGateInput::new(f_rc, stack_value_denom_0),
+                CircuitGateInput::new(f_rc, stack_value_denom_1),
+                CircuitGateInput::new(f_rc, stack_value_denom_2),
+                CircuitGateInput::new(f_rc, stack_value_denom_3),
+                // padding
+                CircuitGateInput::new(E::ZERO, E::ONE),
+            ],
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
     FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs, NUM_GATES_PER_QUERY,
+    LayerGatesInputs, LayerGatesInputs2, NUM_GATES_PER_QUERY,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -47,6 +47,7 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
+// TODOP: REMOVE in favor of `FractionalSumCircuit2`
 #[derive(Debug)]
 pub struct FractionalSumCircuit<E: FieldElement> {
     p_0_vec: Vec<MultiLinearPoly<E>>,
@@ -62,18 +63,18 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
         columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
     ) -> Result<Self, ProverError> {
-        let circuit_inputs = CircuitInputs::new(columns, log_up_randomness)?;
+        let input_layer = LayerEvaluationPolys::input_layer(columns, log_up_randomness)?;
 
-        let num_layers = circuit_inputs.num_variables();
+        let num_layers = input_layer.num_variables();
         let mut p_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
         let mut p_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
         let mut q_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
         let mut q_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
 
-        p_0_vec.push(circuit_inputs.left_numerator);
-        p_1_vec.push(circuit_inputs.right_numerator);
-        q_0_vec.push(circuit_inputs.left_denominator);
-        q_1_vec.push(circuit_inputs.right_denominator);
+        p_0_vec.push(input_layer.left_numerators);
+        p_1_vec.push(input_layer.right_numerators);
+        q_0_vec.push(input_layer.left_denominators);
+        q_1_vec.push(input_layer.right_denominators);
 
         for i in 0..num_layers {
             let (output_p_0, output_p_1, output_q_0, output_q_1) =
@@ -158,21 +159,102 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
     }
 }
 
-/// Holds the inputs to [`FractionalSumCircuit`]
-struct CircuitInputs<E: FieldElement> {
-    left_numerator: MultiLinearPoly<E>,
-    right_numerator: MultiLinearPoly<E>,
-    left_denominator: MultiLinearPoly<E>,
-    right_denominator: MultiLinearPoly<E>,
+// TODOP: Rename `FractionalSumCircuitEvaluation`?
+struct FractionalSumCircuit2<E: FieldElement> {
+    layer_evaluations: Vec<LayerEvaluationPolys<E>>,
 }
 
-impl<E: FieldElement> CircuitInputs<E> {
-    fn new(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Result<Self, ProverError> {
+impl<E: FieldElement> FractionalSumCircuit2<E> {
+    pub fn new(
+        columns: &[MultiLinearPoly<E>],
+        log_up_randomness: &[E],
+    ) -> Result<Self, ProverError> {
+        let mut layer_evaluations = Vec::new();
+
+        let mut current_layer = Layer::input_layer(columns, log_up_randomness);
+        // TODOP: Use constant name for `4`
+        while current_layer.num_gates() > 4 {
+            let next_layer = Self::compute_layer(&current_layer);
+
+            layer_evaluations.push(current_layer.into());
+
+            current_layer = next_layer;
+        }
+
+        Ok(Self { layer_evaluations })
+    }
+
+    fn compute_layer(prev_layer: &Layer<E>) -> Layer<E> {
+        // TODOP: Use method instead of `gate_evals`?
+        let new_layer_gates = prev_layer
+            .gate_evals
+            .chunks_exact(2)
+            .map(|gate_inputs| {
+                let left = gate_inputs[0];
+                let right = gate_inputs[1];
+
+                left + right
+            })
+            .collect();
+
+        Layer::new(new_layer_gates)
+    }
+}
+
+// TODOP: Document
+// TODOP: Name explicitly `LayerCircuitRepr` vs `LayerGkrRepr`?
+struct Layer<E: FieldElement> {
+    // TODOP: rename?
+    gate_evals: Vec<CircuitGateInput<E>>,
+}
+
+impl<E: FieldElement> Layer<E> {
+    pub fn new(gate_evals: Vec<CircuitGateInput<E>>) -> Self {
+        Self { gate_evals }
+    }
+    // TODOP: columns can probably be `&[Vec<E>]` or equivalent
+    pub fn input_layer(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Self {
         let num_evaluations = columns[0].num_evaluations();
-        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-        let mut left_denominator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-        let mut right_denominator = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        // TODOP: Verify that capacity is correct
+        let mut gate_evals = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+
+        for i in 0..num_evaluations {
+            let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
+
+            // TODOP: Don't destructure `LayerGatesInputs`
+            let LayerGatesInputs2 { query_gate_evals } =
+                LayerGatesInputs2::from_main_trace_query(&query, log_up_randomness);
+
+            gate_evals.extend(query_gate_evals);
+        }
+
+        Self { gate_evals }
+    }
+
+    pub fn num_gates(&self) -> usize {
+        self.gate_evals.len()
+    }
+}
+
+// TODOP: Rework doc
+/// Holds a layer of [`FractionalSumCircuit`] in GKR representation.
+struct LayerEvaluationPolys<E: FieldElement> {
+    left_numerators: MultiLinearPoly<E>,
+    right_numerators: MultiLinearPoly<E>,
+    left_denominators: MultiLinearPoly<E>,
+    right_denominators: MultiLinearPoly<E>,
+}
+
+impl<E: FieldElement> LayerEvaluationPolys<E> {
+    fn input_layer(
+        columns: &[MultiLinearPoly<E>],
+        log_up_randomness: &[E],
+    ) -> Result<Self, ProverError> {
+        let num_evaluations = columns[0].num_evaluations();
+        let mut left_numerators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut right_numerators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut left_denominators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut right_denominators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
 
         for i in 0..num_evaluations {
             let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
@@ -184,27 +266,58 @@ impl<E: FieldElement> CircuitInputs<E> {
                 query_right_denominators,
             } = LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
 
-            left_numerator.extend(query_left_numerators);
-            right_numerator.extend(query_right_numerators);
-            left_denominator.extend(query_left_denominators);
-            right_denominator.extend(query_right_denominators);
+            left_numerators.extend(query_left_numerators);
+            right_numerators.extend(query_right_numerators);
+            left_denominators.extend(query_left_denominators);
+            right_denominators.extend(query_right_denominators);
         }
 
         Ok(Self {
-            left_numerator: MultiLinearPoly::from_evaluations(left_numerator)
+            left_numerators: MultiLinearPoly::from_evaluations(left_numerators)
                 .map_err(|_| ProverError::FailedToGenerateML)?,
-            right_numerator: MultiLinearPoly::from_evaluations(right_numerator)
+            right_numerators: MultiLinearPoly::from_evaluations(right_numerators)
                 .map_err(|_| ProverError::FailedToGenerateML)?,
-            left_denominator: MultiLinearPoly::from_evaluations(left_denominator)
+            left_denominators: MultiLinearPoly::from_evaluations(left_denominators)
                 .map_err(|_| ProverError::FailedToGenerateML)?,
 
-            right_denominator: MultiLinearPoly::from_evaluations(right_denominator)
+            right_denominators: MultiLinearPoly::from_evaluations(right_denominators)
                 .map_err(|_| ProverError::FailedToGenerateML)?,
         })
     }
 
     fn num_variables(&self) -> usize {
-        self.left_numerator.num_variables()
+        self.left_numerators.num_variables()
+    }
+}
+
+impl<E: FieldElement> From<Layer<E>> for LayerEvaluationPolys<E> {
+    fn from(layer: Layer<E>) -> Self {
+        let mut left_numerators = Vec::new();
+        let mut left_denominators = Vec::new();
+        let mut right_numerators = Vec::new();
+        let mut right_denominators = Vec::new();
+
+        // TODOP: Don't use `gate_evals` directly
+        for chunk in layer.gate_evals.chunks_exact(2) {
+            let left_gate_input = chunk[0];
+            let right_gate_input = chunk[1];
+
+            left_numerators.push(left_gate_input.numerator);
+            left_denominators.push(left_gate_input.denominator);
+            right_numerators.push(right_gate_input.numerator);
+            right_denominators.push(right_gate_input.denominator);
+        }
+
+        Self {
+            left_numerators: MultiLinearPoly::from_evaluations(left_numerators)
+                .expect("evaluations guaranteed to be a power of two"),
+            right_numerators: MultiLinearPoly::from_evaluations(right_numerators)
+                .expect("evaluations guaranteed to be a power of two"),
+            left_denominators: MultiLinearPoly::from_evaluations(left_denominators)
+                .expect("evaluations guaranteed to be a power of two"),
+            right_denominators: MultiLinearPoly::from_evaluations(right_denominators)
+                .expect("evaluations guaranteed to be a power of two"),
+        }
     }
 }
 
@@ -512,12 +625,13 @@ impl<E: FieldElement> FinalClaimBuilder for SimpleGkrFinalClaimBuilder<E> {
 }
 
 /// TODOP: Document, and move to different file?
-pub struct ProjectiveCoordinates<E: FieldElement> {
+#[derive(Debug, Clone, Copy)]
+pub struct CircuitGateInput<E: FieldElement> {
     numerator: E,
     denominator: E,
 }
 
-impl<E: FieldElement> Add for ProjectiveCoordinates<E> {
+impl<E: FieldElement> Add for CircuitGateInput<E> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -528,7 +642,7 @@ impl<E: FieldElement> Add for ProjectiveCoordinates<E> {
     }
 }
 
-impl<E: FieldElement> ProjectiveCoordinates<E> {
+impl<E: FieldElement> CircuitGateInput<E> {
     pub fn new(numerator: E, denominator: E) -> Self {
         assert_ne!(denominator, E::ZERO);
 
