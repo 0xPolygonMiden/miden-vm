@@ -1,4 +1,5 @@
-use vm_core::{AdviceInjector, Operation::*};
+use super::SpanBuilder;
+use vm_core::{AdviceInjector, Felt, Operation::*};
 
 use super::BasicBlockBuilder;
 use crate::AssemblyError;
@@ -28,14 +29,15 @@ use crate::AssemblyError;
 pub(super) fn hash(block_builder: &mut BasicBlockBuilder) {
     #[rustfmt::skip]
     let ops = [
-        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation
-        Pad, Incr, Pad, Pad, Pad,
+        // add 4 elements to the stack to be used as the capacity elements for the RPO permutation.
+        // Since we are hashing 4 field elements, the first capacity element is set to 4.
+        Push(Felt::from(4_u32)), Pad, Pad, Pad,
 
         // swap capacity elements such that they are below the elements to be hashed
         SwapW,
 
-        // Duplicate capacity elements in the rate portion of the stack
-        Dup7, Dup7, Dup7, Dup7,
+        // add 4 ZERO elements for the second half of the rate portion
+        Pad, Dup7, Dup7, Dup7,
 
         // Apply a hashing permutation on the top 12 elements in the stack
         HPerm,
