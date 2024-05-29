@@ -5,13 +5,13 @@ use test_utils::{build_expected_hash, build_expected_perm, expect_exec_error};
 fn test_invalid_end_addr() {
     // end_addr can not be smaller than start_addr
     let empty_range = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.0999 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
     let test = build_test!(empty_range, &[]);
@@ -26,13 +26,13 @@ fn test_invalid_end_addr() {
 
     // address range can not contain zero elements
     let empty_range = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1000 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
     let test = build_test!(empty_range, &[]);
@@ -69,13 +69,13 @@ fn test_hash_empty() {
 
     // checks the hash compute from 8 zero elements is the same when using hash_memory
     let two_zeros = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1002 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
 
@@ -110,7 +110,7 @@ fn test_single_iteration() {
     // Note: This is testing the hashing of two words, so no padding is added
     // here
     let one_element = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         # insert 1 to memory
@@ -119,7 +119,7 @@ fn test_single_iteration() {
         push.1002 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
 
@@ -139,7 +139,7 @@ fn test_hash_one_word() {
 
     // checks the hash of 1 is the same when using hash_memory
     let one_element = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1.1000 mem_store # push data to memory
@@ -147,7 +147,7 @@ fn test_hash_one_word() {
         push.1001 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
 
@@ -158,7 +158,7 @@ fn test_hash_one_word() {
 fn test_hash_even_words() {
     // checks the hash of two words
     let even_words = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
@@ -167,7 +167,7 @@ fn test_hash_even_words() {
         push.1002 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
 
@@ -183,7 +183,7 @@ fn test_hash_even_words() {
 fn test_hash_odd_words() {
     // checks the hash of three words
     let odd_words = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
@@ -193,7 +193,7 @@ fn test_hash_odd_words() {
         push.1003 # end address
         push.1000 # start address
 
-        exec.native::hash_memory
+        exec.rpo::hash_memory
     end
     ";
 
@@ -207,9 +207,9 @@ fn test_hash_odd_words() {
 }
 
 #[test]
-fn test_hash_memory_even() {
+fn test_absorb_double_words_from_memory() {
     let even_words = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
@@ -218,7 +218,7 @@ fn test_hash_memory_even() {
         push.1002      # end address
         push.1000      # start address
         padw padw padw # hasher state
-        exec.native::hash_memory_even
+        exec.rpo::absorb_double_words_from_memory
     end
     ";
 
@@ -237,9 +237,9 @@ fn test_hash_memory_even() {
 }
 
 #[test]
-fn test_state_to_digest() {
+fn test_squeeze_digest() {
     let even_words = "
-    use.std::crypto::hashes::native
+    use.std::crypto::hashes::rpo
 
     begin
         push.1.0.0.0.1000 mem_storew dropw
@@ -250,9 +250,9 @@ fn test_state_to_digest() {
         push.1004      # end address
         push.1000      # start address
         padw padw padw # hasher state
-        exec.native::hash_memory_even
+        exec.rpo::absorb_double_words_from_memory
 
-        exec.native::state_to_digest
+        exec.rpo::squeeze_digest
     end
     ";
 

@@ -133,6 +133,7 @@ fn test_pipe_words_to_memory() {
             push.1  # number of words
 
             exec.mem::pipe_words_to_memory
+            dropw swapw dropw
         end",
         mem_addr
     );
@@ -155,6 +156,7 @@ fn test_pipe_words_to_memory() {
             push.3  # number of words
 
             exec.mem::pipe_words_to_memory
+            dropw swapw dropw
         end",
         mem_addr
     );
