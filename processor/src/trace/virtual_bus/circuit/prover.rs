@@ -14,17 +14,17 @@ use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
-/// Layered circuit for computing a sum of fractions.
+/// Evaluation of a layered circuit for computing a sum of fractions.
 ///
 /// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) /
 /// (c * d) which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the
 /// [`EvaluatedCircuit`] is built. Due to the uniformity of the circuit, each of the circuit
 /// layers collect all the:
 ///
-/// 1. `a`'s into a [`MultiLinearPoly`] called `p_0`.
-/// 2. `b`'s into a [`MultiLinearPoly`] called `p_1`.
-/// 3. `c`'s into a [`MultiLinearPoly`] called `q_0`.
-/// 4. `d`'s into a [`MultiLinearPoly`] called `q_1`.
+/// 1. `a`'s into a [`MultiLinearPoly`] called `left_numerators`.
+/// 2. `b`'s into a [`MultiLinearPoly`] called `right_numerators`.
+/// 3. `c`'s into a [`MultiLinearPoly`] called `left_denominators`.
+/// 4. `d`'s into a [`MultiLinearPoly`] called `right_denominators`.
 ///
 /// The relation between two subsequent layers is given by the formula
 ///
@@ -44,15 +44,18 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 /// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 0)                                  
 /// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
 /// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
+/// 
+/// This logic is encoded in [`ProjectiveCoordinates`].
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
-// TODOP: Document all
 struct EvaluatedCircuit<E: FieldElement> {
     layer_polys: Vec<LayerPolys<E>>,
 }
 
 impl<E: FieldElement> EvaluatedCircuit<E> {
+    /// Creates a new [`EvaluatedCircuit`] by evaluating the circuit where the input layer is
+    /// defined from the main trace columns.
     pub fn new(
         main_trace_columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
@@ -71,17 +74,21 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         Ok(Self { layer_polys })
     }
 
-    // TODOP: use `u32` instead right? We do that somewhere else too
+    /// Returns the number of layers in the circuit.
     pub fn num_layers(&self) -> usize {
         self.layer_polys.len()
     }
 
+    /// Returns a layer of the evaluated circuit.
+    /// 
+    /// Note that the return type is [`LayerPolys`] as opposed to [`Layer`], since the evaluated
+    /// circuit is stored in a representation which can be proved using GKR.
     pub fn get_layer(&self, layer_idx: usize) -> &LayerPolys<E> {
         &self.layer_polys[layer_idx]
     }
 
-    // TODOP: Document
-    // TODOP: `evaluate_output_layer` assumes the order of outputs; find a better way
+    /// Returns the evaluation of the output layer of the circuit, where the return value `ret` is
+    /// to be interpreted as: `(ret[0] / ret[2]) + (ret[1] / ret[3])`.
     pub fn output_layer(&self) -> [E; 4] {
         let last_layer = self.layer_polys.last().expect("circuit has at least one layer");
 
@@ -93,7 +100,8 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         ]
     }
 
-    // TODOP: Document (treat output layer as 2 polys, etc)
+    /// Evaluates the output layer at `query`, where the numerators of the output layer are treated
+    /// as evaluations of a multilinear polynomial, and similarly for the denominators.
     pub fn evaluate_output_layer(&self, query: E) -> (E, E) {
         let output_layer = self.output_layer();
 
@@ -191,7 +199,6 @@ pub struct LayerPolys<E: FieldElement> {
 // TODOP: Rework `Layer` abstraction?
 impl<E: FieldElement> From<Layer<E>> for LayerPolys<E> {
     fn from(layer: Layer<E>) -> Self {
-        // TODOP: Don't use `gate_evals` directly
         layer.nodes.into()
     }
 }
