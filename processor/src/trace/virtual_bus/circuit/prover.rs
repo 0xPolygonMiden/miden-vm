@@ -1,7 +1,8 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError,
     main_trace_query_to_input_layer_gates, BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof,
-    GkrClaim, GkrComposition, GkrCompositionMerge, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
+    GkrClaim, GkrComposition, GkrCompositionMerge, ProjectiveCoordinates,
+    NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -9,7 +10,7 @@ use crate::trace::virtual_bus::{
     SumCheckProver,
 };
 use alloc::vec::Vec;
-use core::{marker::PhantomData, ops::Add};
+use core::marker::PhantomData;
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
@@ -44,7 +45,7 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 /// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 0)                                  
 /// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
 /// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
-/// 
+///
 /// This logic is encoded in [`ProjectiveCoordinates`].
 ///
 /// This means that layer ν will be the output layer and will consist of four values
@@ -80,7 +81,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     }
 
     /// Returns a layer of the evaluated circuit.
-    /// 
+    ///
     /// Note that the return type is [`LayerPolys`] as opposed to [`Layer`], since the evaluated
     /// circuit is stored in a representation which can be proved using GKR.
     pub fn get_layer(&self, layer_idx: usize) -> &LayerPolys<E> {
@@ -187,8 +188,15 @@ impl<E: FieldElement> Layer<E> {
     }
 }
 
-// TODOP: Rework doc
-/// Holds a layer of [`EvaluatedCircuit`] in GKR representation.
+/// Holds a layer of [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
+/// using GKR.
+///
+/// Specifically, each element of a [`ProjectiveCoordinate`] pair `[(a, b), (c, d)]` in a
+/// [`Layer`]'s is added to the definition of a different [`MultiLinearPoly`]:
+/// - a -> `left_numerators`
+/// - b -> `left_denominators`
+/// - c -> `right_numerators`
+/// - d -> `right_denominators`
 pub struct LayerPolys<E: FieldElement> {
     pub left_numerators: MultiLinearPoly<E>,
     pub right_numerators: MultiLinearPoly<E>,
@@ -196,7 +204,6 @@ pub struct LayerPolys<E: FieldElement> {
     pub right_denominators: MultiLinearPoly<E>,
 }
 
-// TODOP: Rework `Layer` abstraction?
 impl<E: FieldElement> From<Layer<E>> for LayerPolys<E> {
     fn from(layer: Layer<E>) -> Self {
         layer.nodes.into()
@@ -535,35 +542,6 @@ impl<E: FieldElement> FinalClaimBuilder for SimpleGkrFinalClaimBuilder<E> {
         FinalOpeningClaim {
             eval_point: evaluation_point.to_vec(),
             openings: (openings[..openings.len() - 1]).to_vec(),
-        }
-    }
-}
-
-/// TODOP: Document, and move to different file?
-#[derive(Debug, Clone, Copy)]
-pub struct ProjectiveCoordinates<E: FieldElement> {
-    numerator: E,
-    denominator: E,
-}
-
-impl<E: FieldElement> Add for ProjectiveCoordinates<E> {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        let numerator = self.numerator * other.denominator + other.numerator * self.denominator;
-        let denominator = self.denominator * other.denominator;
-
-        Self::new(numerator, denominator)
-    }
-}
-
-impl<E: FieldElement> ProjectiveCoordinates<E> {
-    pub fn new(numerator: E, denominator: E) -> Self {
-        assert_ne!(denominator, E::ZERO);
-
-        Self {
-            numerator,
-            denominator,
         }
     }
 }

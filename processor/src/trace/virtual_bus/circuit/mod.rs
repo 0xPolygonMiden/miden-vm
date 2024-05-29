@@ -1,3 +1,5 @@
+use core::ops::Add;
+
 use crate::trace::virtual_bus::multilinear::EqFunction;
 use crate::trace::virtual_bus::{multilinear::CompositionPolynomial, sum_check::RoundProof};
 use alloc::vec::Vec;
@@ -16,13 +18,51 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
-use self::prover::ProjectiveCoordinates;
-
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
 /// Defines the number of input layer elements that is generated from a single main trace row.
 const NUM_CIRCUIT_INPUTS_PER_TRACE_ROW: usize = 8;
 const_assert!(NUM_CIRCUIT_INPUTS_PER_TRACE_ROW.is_power_of_two());
+
+/// Represents a fraction `numerator / denominator` as a pair `(numerator, denominator)`. This is
+/// the type for the gates' inputs in [`prover::EvaluatedCircuit`].
+/// 
+/// Hence, addition is defined in the natural way fractions are added together: `a/b + c/d = (ad +
+/// bc) / bd`.
+#[derive(Debug, Clone, Copy)]
+pub struct ProjectiveCoordinates<E: FieldElement> {
+    numerator: E,
+    denominator: E,
+}
+
+impl<E> ProjectiveCoordinates<E>
+where
+    E: FieldElement,
+{
+    /// Creates new projective coordinates from a numerator and a denominator.
+    pub fn new(numerator: E, denominator: E) -> Self {
+        assert_ne!(denominator, E::ZERO);
+
+        Self {
+            numerator,
+            denominator,
+        }
+    }
+}
+
+impl<E> Add for ProjectiveCoordinates<E>
+where
+    E: FieldElement,
+{
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        let numerator = self.numerator * other.denominator + other.numerator * self.denominator;
+        let denominator = self.denominator * other.denominator;
+
+        Self::new(numerator, denominator)
+    }
+}
 
 /// Converts a main trace row (or more generally "query") to gates of the input layer.
 fn main_trace_query_to_input_layer_gates<E>(
