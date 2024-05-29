@@ -5,7 +5,7 @@ use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
-use prover::LayerEvaluationPolys;
+use prover::LayerPolys;
 use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
@@ -16,7 +16,7 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
-use self::prover::CircuitGateInput;
+use self::prover::ProjectiveCoordinates;
 
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
@@ -28,7 +28,7 @@ const_assert!(NUM_CIRCUIT_INPUTS_PER_TRACE_ROW.is_power_of_two());
 fn main_trace_query_to_input_layer_gates<E>(
     query: &[E],
     log_up_randomness: &[E],
-) -> [CircuitGateInput<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
+) -> [ProjectiveCoordinates<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
 where
     E: FieldElement,
 {
@@ -61,15 +61,15 @@ where
     let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
 
     [
-        CircuitGateInput::new(multiplicity, table_denom),
-        CircuitGateInput::new(f_m, memory_denom_0),
-        CircuitGateInput::new(f_m, memory_denom_1),
-        CircuitGateInput::new(f_rc, stack_value_denom_0),
-        CircuitGateInput::new(f_rc, stack_value_denom_1),
-        CircuitGateInput::new(f_rc, stack_value_denom_2),
-        CircuitGateInput::new(f_rc, stack_value_denom_3),
+        ProjectiveCoordinates::new(multiplicity, table_denom),
+        ProjectiveCoordinates::new(f_m, memory_denom_0),
+        ProjectiveCoordinates::new(f_m, memory_denom_1),
+        ProjectiveCoordinates::new(f_rc, stack_value_denom_0),
+        ProjectiveCoordinates::new(f_rc, stack_value_denom_1),
+        ProjectiveCoordinates::new(f_rc, stack_value_denom_2),
+        ProjectiveCoordinates::new(f_rc, stack_value_denom_3),
         // padding
-        CircuitGateInput::new(E::ZERO, E::ONE),
+        ProjectiveCoordinates::new(E::ZERO, E::ONE),
     ]
 }
 
@@ -200,7 +200,7 @@ where
     }
 
     fn evaluate(&self, query: &[E]) -> E {
-        let LayerEvaluationPolys {
+        let LayerPolys {
             left_numerators,
             right_numerators,
             left_denominators,

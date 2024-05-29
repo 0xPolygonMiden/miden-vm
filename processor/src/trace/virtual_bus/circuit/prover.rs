@@ -18,7 +18,7 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 ///
 /// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) /
 /// (c * d) which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the
-/// [`FractionalSumCircuit`] is built. Due to the uniformity of the circuit, each of the circuit
+/// [`EvaluatedCircuit`] is built. Due to the uniformity of the circuit, each of the circuit
 /// layers collect all the:
 ///
 /// 1. `a`'s into a [`MultiLinearPoly`] called `p_0`.
@@ -47,60 +47,43 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
-// TODOP: Rename `FractionalSumCircuitEvaluation`?
 // TODOP: Document all
-struct FractionalSumCircuit<E: FieldElement> {
-    layer_evaluations: Vec<LayerEvaluationPolys<E>>,
+struct EvaluatedCircuit<E: FieldElement> {
+    layer_polys: Vec<LayerPolys<E>>,
 }
 
-impl<E: FieldElement> FractionalSumCircuit<E> {
+impl<E: FieldElement> EvaluatedCircuit<E> {
     pub fn new(
-        columns: &[MultiLinearPoly<E>],
+        main_trace_columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
     ) -> Result<Self, ProverError> {
-        let mut layer_evaluations = Vec::new();
+        let mut layer_polys = Vec::new();
 
-        let mut current_layer = Layer::input_layer(columns, log_up_randomness);
-        while current_layer.num_gates() > 1 {
-            let next_layer = Self::compute_layer(&current_layer);
+        let mut current_layer = Self::generate_input_layer(main_trace_columns, log_up_randomness);
+        while current_layer.num_nodes() > 1 {
+            let next_layer = Self::compute_next_layer(&current_layer);
 
-            layer_evaluations.push(current_layer.into());
+            layer_polys.push(current_layer.into());
 
             current_layer = next_layer;
         }
 
-        Ok(Self { layer_evaluations })
-    }
-
-    fn compute_layer(prev_layer: &Layer<E>) -> Layer<E> {
-        // TODOP: Use method instead of `gate_evals`?
-        let new_layer_gates = prev_layer
-            .gate_evals
-            .chunks_exact(2)
-            .map(|gate_inputs| {
-                let left = gate_inputs[0];
-                let right = gate_inputs[1];
-
-                left + right
-            })
-            .collect();
-
-        Layer::new(new_layer_gates)
+        Ok(Self { layer_polys })
     }
 
     // TODOP: use `u32` instead right? We do that somewhere else too
     pub fn num_layers(&self) -> usize {
-        self.layer_evaluations.len()
+        self.layer_polys.len()
     }
 
-    pub fn get_layer(&self, layer_idx: usize) -> &LayerEvaluationPolys<E> {
-        &self.layer_evaluations[layer_idx]
+    pub fn get_layer(&self, layer_idx: usize) -> &LayerPolys<E> {
+        &self.layer_polys[layer_idx]
     }
 
     // TODOP: Document
     // TODOP: `evaluate_output_layer` assumes the order of outputs; find a better way
     pub fn output_layer(&self) -> [E; 4] {
-        let last_layer = self.layer_evaluations.last().expect("circuit has at least one layer");
+        let last_layer = self.layer_polys.last().expect("circuit has at least one layer");
 
         [
             last_layer.left_numerators[0],
@@ -122,46 +105,83 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
 
         (numerators.evaluate(&[query]), denominators.evaluate(&[query]))
     }
+
+    // HELPERS
+    // -------------------------------------------------------------------------------------------
+
+    /// Generates the input layer of the circuit from the main trace columns and some randomness
+    /// provided by the verifier.
+    fn generate_input_layer(
+        main_trace_columns: &[MultiLinearPoly<E>],
+        log_up_randomness: &[E],
+    ) -> Layer<E> {
+        let num_evaluations = main_trace_columns[0].num_evaluations();
+        // TODOP: Verify that capacity is correct
+        let mut nodes = Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
+
+        for i in 0..num_evaluations {
+            let nodes_from_trace_row = {
+                let query: Vec<E> = main_trace_columns.iter().map(|ml| ml[i]).collect();
+                main_trace_query_to_input_layer_gates(&query, log_up_randomness)
+            };
+
+            nodes.extend(nodes_from_trace_row);
+        }
+
+        Layer::new(nodes)
+    }
+
+    /// Computes the subsequent layer of the circuit from a given layer.
+    fn compute_next_layer(prev_layer: &Layer<E>) -> Layer<E> {
+        let new_layer_gates = prev_layer
+            .nodes()
+            .chunks_exact(2)
+            .map(|gate_inputs| {
+                let left = gate_inputs[0];
+                let right = gate_inputs[1];
+
+                left + right
+            })
+            .collect();
+
+        Layer::new(new_layer_gates)
+    }
 }
 
-// TODOP: Document
-// TODOP: Name explicitly `LayerCircuitRepr` vs `LayerGkrRepr`?
+/// Represents a layer in a [`EvaluatedCircuit`].
+///
+/// A layer is made up of a set of `n` projective coordinates, where `n` is a power of two. This is
+/// the natural circuit representation of a layer, where each consecutive pair of projective
+/// coordinates are summed to yield an element in the subsequent layer of a
+/// [`EvaluatedCircuit`]. However, a [`Layer`] needs to be first converted to a [`LayerPolys`]
+/// before the evaluation of the layer can be proved using GKR.
 struct Layer<E: FieldElement> {
-    // TODOP: rename?
-    gate_evals: Vec<CircuitGateInput<E>>,
+    nodes: Vec<ProjectiveCoordinates<E>>,
 }
 
 impl<E: FieldElement> Layer<E> {
-    pub fn new(gate_evals: Vec<CircuitGateInput<E>>) -> Self {
-        Self { gate_evals }
-    }
-    // TODOP: columns can probably be `&[Vec<E>]` or equivalent
-    pub fn input_layer(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Self {
-        let num_evaluations = columns[0].num_evaluations();
-        // TODOP: Verify that capacity is correct
-        let mut gate_evals =
-            Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
+    /// Creates a new [`Layer`] from a set of projective coordinates.
+    ///
+    /// Panics if the number of projective coordinates is not a power of two.
+    pub fn new(gate_evals: Vec<ProjectiveCoordinates<E>>) -> Self {
+        assert!(gate_evals.len().is_power_of_two());
 
-        for i in 0..num_evaluations {
-            let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
-
-            // TODOP: rename `query_gate_evals`
-            let query_gate_evals = main_trace_query_to_input_layer_gates(&query, log_up_randomness);
-
-            gate_evals.extend(query_gate_evals);
-        }
-
-        Self { gate_evals }
+        Self { nodes: gate_evals }
     }
 
-    pub fn num_gates(&self) -> usize {
-        self.gate_evals.len()
+    pub fn nodes(&self) -> &[ProjectiveCoordinates<E>] {
+        &self.nodes
+    }
+
+    /// Returns the number of nodes, or projective coordinates, in the layer.
+    pub fn num_nodes(&self) -> usize {
+        self.nodes.len()
     }
 }
 
 // TODOP: Rework doc
-/// Holds a layer of [`FractionalSumCircuit`] in GKR representation.
-pub struct LayerEvaluationPolys<E: FieldElement> {
+/// Holds a layer of [`EvaluatedCircuit`] in GKR representation.
+pub struct LayerPolys<E: FieldElement> {
     pub left_numerators: MultiLinearPoly<E>,
     pub right_numerators: MultiLinearPoly<E>,
     pub left_denominators: MultiLinearPoly<E>,
@@ -169,18 +189,18 @@ pub struct LayerEvaluationPolys<E: FieldElement> {
 }
 
 // TODOP: Rework `Layer` abstraction?
-impl<E: FieldElement> From<Layer<E>> for LayerEvaluationPolys<E> {
+impl<E: FieldElement> From<Layer<E>> for LayerPolys<E> {
     fn from(layer: Layer<E>) -> Self {
         // TODOP: Don't use `gate_evals` directly
-        layer.gate_evals.into()
+        layer.nodes.into()
     }
 }
 
-impl<E> From<Vec<CircuitGateInput<E>>> for LayerEvaluationPolys<E>
+impl<E> From<Vec<ProjectiveCoordinates<E>>> for LayerPolys<E>
 where
     E: FieldElement,
 {
-    fn from(gate_inputs: Vec<CircuitGateInput<E>>) -> Self {
+    fn from(gate_inputs: Vec<ProjectiveCoordinates<E>>) -> Self {
         let mut left_numerators = Vec::new();
         let mut left_denominators = Vec::new();
         let mut right_numerators = Vec::new();
@@ -209,11 +229,11 @@ where
     }
 }
 
-impl<E, const N: usize> From<[CircuitGateInput<E>; N]> for LayerEvaluationPolys<E>
+impl<E, const N: usize> From<[ProjectiveCoordinates<E>; N]> for LayerPolys<E>
 where
     E: FieldElement,
 {
-    fn from(gate_inputs: [CircuitGateInput<E>; N]) -> Self {
+    fn from(gate_inputs: [ProjectiveCoordinates<E>; N]) -> Self {
         gate_inputs.to_vec().into()
     }
 }
@@ -239,7 +259,7 @@ where
 ///
 /// The composition polynomials `g` are provided as inputs and then used in order to compute
 /// the evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting
-/// evaluations are then used in order to evaluate [`FractionalSumCircuit`].
+/// evaluations are then used in order to evaluate [`EvaluatedCircuit`].
 /// At this point, the GKR protocol is used to prove the correctness of circuit evaluation. It
 /// should be noted that the input layer, which corresponds to the last layer treated by the GKR
 /// protocol, is handled differently from the other layers.
@@ -280,7 +300,7 @@ pub fn prove<
         .collect();
 
     // evaluate the GKR fractional sum circuit
-    let mut circuit = FractionalSumCircuit::new(&main_trace_columns, &log_up_randomness)?;
+    let mut circuit = EvaluatedCircuit::new(&main_trace_columns, &log_up_randomness)?;
 
     // run the GKR prover for all layers except the input layer
     let (before_final_layer_proofs, gkr_claim) =
@@ -317,7 +337,7 @@ fn prove_final_circuit_layer<
     mut mls: Vec<MultiLinearPoly<E>>,
     num_rounds_merge: usize,
     gkr_claim: GkrClaim<E>,
-    circuit: &mut FractionalSumCircuit<E>,
+    circuit: &mut EvaluatedCircuit<E>,
     transcript: &mut C,
 ) -> Result<FinalLayerProof<E>, ProverError> {
     // parse the [GkrClaim] resulting from the previous GKR layer
@@ -376,7 +396,7 @@ fn prove_before_final_circuit_layers<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    circuit: &mut FractionalSumCircuit<E>,
+    circuit: &mut EvaluatedCircuit<E>,
     transcript: &mut C,
 ) -> Result<(BeforeFinalLayerProof<E>, GkrClaim<E>), ProverError> {
     // absorb the circuit output layer. This corresponds to sending the four values of the output
@@ -514,12 +534,12 @@ impl<E: FieldElement> FinalClaimBuilder for SimpleGkrFinalClaimBuilder<E> {
 
 /// TODOP: Document, and move to different file?
 #[derive(Debug, Clone, Copy)]
-pub struct CircuitGateInput<E: FieldElement> {
+pub struct ProjectiveCoordinates<E: FieldElement> {
     numerator: E,
     denominator: E,
 }
 
-impl<E: FieldElement> Add for CircuitGateInput<E> {
+impl<E: FieldElement> Add for ProjectiveCoordinates<E> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -530,7 +550,7 @@ impl<E: FieldElement> Add for CircuitGateInput<E> {
     }
 }
 
-impl<E: FieldElement> CircuitGateInput<E> {
+impl<E: FieldElement> ProjectiveCoordinates<E> {
     pub fn new(numerator: E, denominator: E) -> Self {
         assert_ne!(denominator, E::ZERO);
 
