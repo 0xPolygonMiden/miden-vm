@@ -1,14 +1,14 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
     FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs, LayerGatesInputs2, NUM_GATES_PER_QUERY,
+    LayerGatesInputs2, NUM_GATES_PER_QUERY,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
     sum_check::{FinalClaimBuilder, FinalOpeningClaim, RoundClaim, RoundProof},
     SumCheckProver,
 };
-use alloc::{borrow::ToOwned, vec::Vec};
+use alloc::vec::Vec;
 use core::{marker::PhantomData, ops::Add};
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
@@ -47,125 +47,13 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
-// TODOP: REMOVE in favor of `FractionalSumCircuit2`
-#[derive(Debug)]
-pub struct FractionalSumCircuit<E: FieldElement> {
-    p_0_vec: Vec<MultiLinearPoly<E>>,
-    p_1_vec: Vec<MultiLinearPoly<E>>,
-    q_0_vec: Vec<MultiLinearPoly<E>>,
-    q_1_vec: Vec<MultiLinearPoly<E>>,
-}
-
-impl<E: FieldElement> FractionalSumCircuit<E> {
-    /// Computes The values of the gate outputs for each of the layers of the fractional sum
-    /// circuit.
-    pub fn new(
-        columns: &[MultiLinearPoly<E>],
-        log_up_randomness: &[E],
-    ) -> Result<Self, ProverError> {
-        let input_layer = LayerEvaluationPolys::input_layer(columns, log_up_randomness)?;
-
-        let num_layers = input_layer.num_variables();
-        let mut p_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-        let mut p_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-        let mut q_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-        let mut q_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-
-        p_0_vec.push(input_layer.left_numerators);
-        p_1_vec.push(input_layer.right_numerators);
-        q_0_vec.push(input_layer.left_denominators);
-        q_1_vec.push(input_layer.right_denominators);
-
-        for i in 0..num_layers {
-            let (output_p_0, output_p_1, output_q_0, output_q_1) =
-                FractionalSumCircuit::compute_layer(
-                    &p_0_vec[i],
-                    &p_1_vec[i],
-                    &q_0_vec[i],
-                    &q_1_vec[i],
-                )?;
-            p_0_vec.push(output_p_0);
-            p_1_vec.push(output_p_1);
-            q_0_vec.push(output_q_0);
-            q_1_vec.push(output_q_1);
-        }
-
-        Ok(FractionalSumCircuit {
-            p_0_vec,
-            p_1_vec,
-            q_0_vec,
-            q_1_vec,
-        })
-    }
-
-    /// Computes the output values of the layer given a set of input values
-    #[allow(clippy::type_complexity)]
-    fn compute_layer(
-        inp_p_0: &MultiLinearPoly<E>,
-        inp_p_1: &MultiLinearPoly<E>,
-        inp_q_0: &MultiLinearPoly<E>,
-        inp_q_1: &MultiLinearPoly<E>,
-    ) -> Result<
-        (MultiLinearPoly<E>, MultiLinearPoly<E>, MultiLinearPoly<E>, MultiLinearPoly<E>),
-        ProverError,
-    > {
-        let len = inp_q_0.num_evaluations();
-        let outp_p_0 = (0..len / 2)
-            .map(|i| inp_p_0[i] * inp_q_1[i] + inp_p_1[i] * inp_q_0[i])
-            .collect::<Vec<E>>();
-        let outp_p_1 = (len / 2..len)
-            .map(|i| inp_p_0[i] * inp_q_1[i] + inp_p_1[i] * inp_q_0[i])
-            .collect::<Vec<E>>();
-        let outp_q_0 = (0..len / 2).map(|i| inp_q_0[i] * inp_q_1[i]).collect::<Vec<E>>();
-        let outp_q_1 = (len / 2..len).map(|i| inp_q_0[i] * inp_q_1[i]).collect::<Vec<E>>();
-
-        Ok((
-            MultiLinearPoly::from_evaluations(outp_p_0)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            MultiLinearPoly::from_evaluations(outp_p_1)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            MultiLinearPoly::from_evaluations(outp_q_0)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            MultiLinearPoly::from_evaluations(outp_q_1)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-        ))
-    }
-
-    /// Given a value r, computes the evaluation of the last layer at r when interpreted as (two)
-    /// multilinear polynomials.
-    pub fn evaluate_output_layer(&self, r: E) -> (E, E) {
-        let len = self.p_0_vec.len();
-        assert_eq!(self.p_0_vec[len - 1].num_variables(), 0);
-        assert_eq!(self.p_1_vec[len - 1].num_variables(), 0);
-        assert_eq!(self.q_0_vec[len - 1].num_variables(), 0);
-        assert_eq!(self.q_1_vec[len - 1].num_variables(), 0);
-
-        let mut p = self.p_0_vec[len - 1].clone();
-        p.extend(&self.p_1_vec[len - 1]);
-        let mut q = self.q_0_vec[len - 1].clone();
-        q.extend(&self.q_1_vec[len - 1]);
-
-        (p.evaluate(&[r]), q.evaluate(&[r]))
-    }
-
-    /// Outputs the value of the circuit output layer.
-    pub fn output_layer(&self) -> [E; 4] {
-        let len = self.p_0_vec.len();
-        let poly_a = self.p_0_vec[len - 1][0];
-        let poly_b = self.p_1_vec[len - 1][0];
-        let poly_c = self.q_0_vec[len - 1][0];
-        let poly_d = self.q_1_vec[len - 1][0];
-        [poly_a, poly_b, poly_c, poly_d]
-    }
-}
-
 // TODOP: Rename `FractionalSumCircuitEvaluation`?
 // TODOP: Document all
-struct FractionalSumCircuit2<E: FieldElement> {
+struct FractionalSumCircuit<E: FieldElement> {
     layer_evaluations: Vec<LayerEvaluationPolys<E>>,
 }
 
-impl<E: FieldElement> FractionalSumCircuit2<E> {
+impl<E: FieldElement> FractionalSumCircuit<E> {
     pub fn new(
         columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
@@ -281,51 +169,6 @@ struct LayerEvaluationPolys<E: FieldElement> {
     right_denominators: MultiLinearPoly<E>,
 }
 
-impl<E: FieldElement> LayerEvaluationPolys<E> {
-    fn input_layer(
-        columns: &[MultiLinearPoly<E>],
-        log_up_randomness: &[E],
-    ) -> Result<Self, ProverError> {
-        let num_evaluations = columns[0].num_evaluations();
-        let mut left_numerators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-        let mut right_numerators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-        let mut left_denominators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-        let mut right_denominators = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
-
-        for i in 0..num_evaluations {
-            let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
-
-            let LayerGatesInputs {
-                query_left_numerators,
-                query_right_numerators,
-                query_left_denominators,
-                query_right_denominators,
-            } = LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
-
-            left_numerators.extend(query_left_numerators);
-            right_numerators.extend(query_right_numerators);
-            left_denominators.extend(query_left_denominators);
-            right_denominators.extend(query_right_denominators);
-        }
-
-        Ok(Self {
-            left_numerators: MultiLinearPoly::from_evaluations(left_numerators)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            right_numerators: MultiLinearPoly::from_evaluations(right_numerators)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            left_denominators: MultiLinearPoly::from_evaluations(left_denominators)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-
-            right_denominators: MultiLinearPoly::from_evaluations(right_denominators)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-        })
-    }
-
-    fn num_variables(&self) -> usize {
-        self.left_numerators.num_variables()
-    }
-}
-
 impl<E: FieldElement> From<Layer<E>> for LayerEvaluationPolys<E> {
     fn from(layer: Layer<E>) -> Self {
         let mut left_numerators = Vec::new();
@@ -419,7 +262,7 @@ pub fn prove<
         .collect();
 
     // evaluate the GKR fractional sum circuit
-    let mut circuit = FractionalSumCircuit2::new(&main_trace_columns, &log_up_randomness)?;
+    let mut circuit = FractionalSumCircuit::new(&main_trace_columns, &log_up_randomness)?;
 
     // run the GKR prover for all layers except the input layer
     let (before_final_layer_proofs, gkr_claim) =
@@ -456,7 +299,7 @@ fn prove_final_circuit_layer<
     mut mls: Vec<MultiLinearPoly<E>>,
     num_rounds_merge: usize,
     gkr_claim: GkrClaim<E>,
-    circuit: &mut FractionalSumCircuit2<E>,
+    circuit: &mut FractionalSumCircuit<E>,
     transcript: &mut C,
 ) -> Result<FinalLayerProof<E>, ProverError> {
     // parse the [GkrClaim] resulting from the previous GKR layer
@@ -515,7 +358,7 @@ fn prove_before_final_circuit_layers<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    circuit: &mut FractionalSumCircuit2<E>,
+    circuit: &mut FractionalSumCircuit<E>,
     transcript: &mut C,
 ) -> Result<(BeforeFinalLayerProof<E>, GkrClaim<E>), ProverError> {
     // absorb the circuit output layer. This corresponds to sending the four values of the output
