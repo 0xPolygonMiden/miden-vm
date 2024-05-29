@@ -10,13 +10,13 @@ export.init_no_padding
    padw padw padw
 end
 
-#! Given the hasher state, returns the hash output
+#! Given the hasher state, returns the hash output.
 #!
 #! Input: [C, B, A, ...]
 #! Ouptut: [HASH, ...]
-#! Where: For the native RPO hasher HASH is B.
+#! where: For the native RPO hasher HASH is B.
 #! Cycles: 9
-export.state_to_digest
+export.squeeze_digest
   # drop the first rate word (4 cycles)
   dropw
 
@@ -38,7 +38,7 @@ end
 #! Cycles: 4 + 3 * words, where `words` is the `start_addr - end_addr - 1`
 #!
 #! Where `A` is the capacity word that will be used by the hashing function, and `B'` the hash output.
-export.hash_memory_even
+export.absorb_double_words_from_memory
   dup.13 dup.13 neq  # (4 cycles )
   while.true
     mem_stream hperm # (2 cycles)
@@ -54,8 +54,8 @@ end
 #! Input: [start_addr, end_addr, ...]
 #! Output: [H, ...]
 #! Cycles:
-#! even words: 50 cycles + 3 * words
-#! odd words: 62 cycles + 3 * words
+#! even words: 49 cycles + 3 * words
+#! odd words: 61 cycles + 3 * words
 export.hash_memory
   # enforce `start_addr < end_addr`
   dup.1 dup.1 u32assert2 u32gt assert
@@ -77,25 +77,25 @@ export.hash_memory
   # stack: [C, B, A, start_addr, end_addr, is_odd, ...]
 
   # (4 + 3 * words cycles)
-  exec.hash_memory_even
+  exec.absorb_double_words_from_memory
 
   # (1 cycles)
   movup.14
 
   # handle the odd element, if any (12 cycles)
   if.true
-    # start_addr and end_addr are equal after calling `hash_memory_even`, and both point
-    # to the last element. Load the last word (2 cycles)
-    dup.13 mem_loadw
+    # start_addr and end_addr are equal after calling `absorb_double_words_from_memory`, and both point
+    # to the last element. Load the last word (6 cycles)
+    dropw dup.9 mem_loadw
 
-    # set the padding (9 cycles)
-    swapw dropw push.0.0.0.0
+    # set the padding (4 cycles)
+    padw
 
     # (1 cycles)
     hperm
   end
 
-  exec.state_to_digest
+  exec.squeeze_digest
 
   # drop start_addr/end_addr (4 cycles)
   movup.4 drop movup.4 drop

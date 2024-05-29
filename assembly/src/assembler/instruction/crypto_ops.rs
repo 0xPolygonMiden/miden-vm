@@ -14,10 +14,10 @@ use vm_core::{AdviceInjector, Felt, Operation::*};
 /// To perform the operation we do the following:
 /// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
 ///    then reordering the stack and pushing an additional 4 elements so that the stack looks like:
-///    [0, 0, 0, 1, a3, a2, a1, a0, 0, 0, 0, 1, ...].  The first capacity element is set to ONE as
-///    we are hashing a number of elements which is not a multiple of the rate width. We also set
-///    the next element in the rate after `A` to ONE.  All other capacity and rate elements are set
-///    to ZERO, in accordance with the RPO rules.
+///    [0, 0, 0, 0, a3, a2, a1, a0, 0, 0, 0, 4, ...].  The first capacity element is set to Felt(4)
+///    as we are hashing a number of elements which is equal to 4 modulo the rate width, while the
+///    other capacity elements are set to ZERO. A sequence of 4 ZERO elements is used as padding.
+///    The padding rule used follows the one described in this [work](https://eprint.iacr.org/2023/1045).
 /// 2. Append the HPERM operation, which performs a permutation of RPO on the top 12 elements and
 ///    leaves the an output of [D, C, B, ...] on the stack.  C is our 1-to-1 has result.
 /// 3. Drop D and B to achieve our result [C, ...]
