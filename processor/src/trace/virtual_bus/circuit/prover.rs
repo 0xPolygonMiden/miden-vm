@@ -1,7 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
     FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs2, NUM_GATES_PER_QUERY,
+    LayerGatesInputs, NUM_GATES_PER_QUERY,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -146,8 +146,8 @@ impl<E: FieldElement> Layer<E> {
             let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
 
             // TODOP: Don't destructure `LayerGatesInputs`
-            let LayerGatesInputs2 { query_gate_evals } =
-                LayerGatesInputs2::from_main_trace_query(&query, log_up_randomness);
+            let LayerGatesInputs { query_gate_evals } =
+                LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
 
             gate_evals.extend(query_gate_evals);
         }
@@ -162,22 +162,29 @@ impl<E: FieldElement> Layer<E> {
 
 // TODOP: Rework doc
 /// Holds a layer of [`FractionalSumCircuit`] in GKR representation.
-struct LayerEvaluationPolys<E: FieldElement> {
-    left_numerators: MultiLinearPoly<E>,
-    right_numerators: MultiLinearPoly<E>,
-    left_denominators: MultiLinearPoly<E>,
-    right_denominators: MultiLinearPoly<E>,
+pub struct LayerEvaluationPolys<E: FieldElement> {
+    pub left_numerators: MultiLinearPoly<E>,
+    pub right_numerators: MultiLinearPoly<E>,
+    pub left_denominators: MultiLinearPoly<E>,
+    pub right_denominators: MultiLinearPoly<E>,
 }
 
+// TODOP: Rework `Layer` abstraction?
 impl<E: FieldElement> From<Layer<E>> for LayerEvaluationPolys<E> {
     fn from(layer: Layer<E>) -> Self {
+        // TODOP: Don't use `gate_evals` directly
+        layer.gate_evals.into()
+    }
+}
+
+impl<E: FieldElement> From<Vec<CircuitGateInput<E>>> for LayerEvaluationPolys<E> {
+    fn from(gate_inputs: Vec<CircuitGateInput<E>>) -> Self {
         let mut left_numerators = Vec::new();
         let mut left_denominators = Vec::new();
         let mut right_numerators = Vec::new();
         let mut right_denominators = Vec::new();
 
-        // TODOP: Don't use `gate_evals` directly
-        for chunk in layer.gate_evals.chunks_exact(2) {
+        for chunk in gate_inputs.chunks_exact(2) {
             let left_gate_input = chunk[0];
             let right_gate_input = chunk[1];
 

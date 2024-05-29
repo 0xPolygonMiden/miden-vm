@@ -59,6 +59,16 @@ impl<E: FieldElement> MultiLinearPoly<E> {
         inner_product(&self.evaluations, &tensored_query)
     }
 
+    /// Similar to [`Self::evaluate`], except that the query was already turned into the Lagrange
+    /// kernel (i.e. the [`lagrange_ker::EqFunction`] evaluated at every point in the set
+    /// `{0 , 1}^ν`).
+    ///
+    /// This is more efficient than [`Self::evaluate`] when multiple different [`MultiLinearPoly`]
+    /// need to be evaluated at the same query point.
+    pub fn evaluate_with_lagrange_kernel(&self, lagrange_kernel: &[E]) -> E {
+        inner_product(&self.evaluations, lagrange_kernel)
+    }
+
     /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
     /// (1 - r_0) * f(0, y_1, ..., y_{ν - 1}) + r_0 * f(1, y_1, ..., y_{ν - 1}) and assigns
     /// the resulting multi-linear, defined over a domain of half the size, to `self`.

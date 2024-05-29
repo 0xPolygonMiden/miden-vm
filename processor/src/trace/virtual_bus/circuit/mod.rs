@@ -5,6 +5,7 @@ use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
+use prover::LayerEvaluationPolys;
 use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
@@ -17,7 +18,6 @@ pub use verifier::verify;
 
 use self::prover::CircuitGateInput;
 
-use super::multilinear::inner_product;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
 /// Defines the number of elements for the partial left/right numerator/denominators of
@@ -27,92 +27,15 @@ const_assert!(NUM_GATES_PER_QUERY.is_power_of_two());
 
 /// Holds the contribution of one main trace row (or more generally "query") to the input layer's
 /// gates inputs.
-// TODOP: Rename
-struct LayerGatesInputs<E: FieldElement> {
-    pub query_left_numerators: [E; NUM_GATES_PER_QUERY],
-    pub query_right_numerators: [E; NUM_GATES_PER_QUERY],
-    pub query_left_denominators: [E; NUM_GATES_PER_QUERY],
-    pub query_right_denominators: [E; NUM_GATES_PER_QUERY],
-}
-
-impl<E: FieldElement> LayerGatesInputs<E> {
-    pub fn from_main_trace_query(query: &[E], log_up_randomness: &[E]) -> Self {
-        let (partial_left_numerator, partial_right_numerator): (Vec<E>, Vec<E>) = Self::numerators(query)
-                .chunks_exact(2)
-                // TODOP: Rename `chunk`
-                .map(|chunk| (chunk[0], chunk[1]))
-                .unzip();
-        let (partial_left_denominator, partial_right_denominator): (Vec<E>, Vec<E>) =
-            Self::denominators(query, log_up_randomness)
-                .chunks_exact(2)
-                // TODOP: Rename `chunk`
-                .map(|chunk| (chunk[0], chunk[1]))
-                .unzip();
-
-        Self {
-            query_left_numerators: partial_left_numerator.try_into().unwrap(),
-            query_right_numerators: partial_right_numerator.try_into().unwrap(),
-            query_left_denominators: partial_left_denominator.try_into().unwrap(),
-            query_right_denominators: partial_right_denominator.try_into().unwrap(),
-        }
-    }
-
-    fn numerators(query: &[E]) -> [E; NUM_GATES_PER_QUERY * 2] {
-        let f_m = {
-            let mem_selec0 = query[CHIPLETS_OFFSET];
-            let mem_selec1 = query[CHIPLETS_OFFSET + 1];
-            let mem_selec2 = query[CHIPLETS_OFFSET + 2];
-            mem_selec0 * mem_selec1 * (E::ONE - mem_selec2)
-        };
-
-        let f_rc = {
-            let op_bit_4 = query[DECODER_OP_BITS_OFFSET + 4];
-            let op_bit_5 = query[DECODER_OP_BITS_OFFSET + 5];
-            let op_bit_6 = query[DECODER_OP_BITS_OFFSET + 6];
-
-            (E::ONE - op_bit_4) * (E::ONE - op_bit_5) * op_bit_6
-        };
-
-        let padding = E::ZERO;
-
-        // the last numerator is unused, so is padded with 0.
-        [query[M_COL_IDX], f_m, f_m, f_rc, f_rc, f_rc, f_rc, padding]
-    }
-
-    fn denominators(query: &[E], log_up_randomness: &[E]) -> [E; NUM_GATES_PER_QUERY * 2] {
-        let alphas = log_up_randomness;
-
-        let table_denom = alphas[0] - query[V_COL_IDX];
-        let memory_denom_0 = -(alphas[0] - query[MEMORY_D0_COL_IDX]);
-        let memory_denom_1 = -(alphas[0] - query[MEMORY_D1_COL_IDX]);
-        let stack_value_denom_0 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET]);
-        let stack_value_denom_1 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 1]);
-        let stack_value_denom_2 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 2]);
-        let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
-
-        let padding = E::ONE;
-
-        [
-            table_denom,
-            memory_denom_0,
-            memory_denom_1,
-            stack_value_denom_0,
-            stack_value_denom_1,
-            stack_value_denom_2,
-            stack_value_denom_3,
-            padding,
-        ]
-    }
-}
-
 // TODOP: This is just 1 gate's evaluation of the input layer. Put it closer to
 // `FractionalSumCircuit2`, and make it clear that it's just useful in constructing that.
-struct LayerGatesInputs2<E: FieldElement> {
+// TODOP: Rename
+struct LayerGatesInputs<E: FieldElement> {
     // TODOP: rename
     pub query_gate_evals: Vec<CircuitGateInput<E>>,
 }
 
-impl<E: FieldElement> LayerGatesInputs2<E> {
+impl<E: FieldElement> LayerGatesInputs<E> {
     pub fn from_main_trace_query(query: &[E], log_up_randomness: &[E]) -> Self {
         // numerators
         let multiplicity = query[M_COL_IDX];
@@ -285,21 +208,24 @@ where
     }
 
     fn evaluate(&self, query: &[E]) -> E {
-        let LayerGatesInputs {
-            query_left_numerators,
-            query_right_numerators,
-            query_left_denominators,
-            query_right_denominators,
-        } = LayerGatesInputs::from_main_trace_query(query, &self.log_up_randomness);
+        // TODOP: cleanup
+        let LayerEvaluationPolys {
+            left_numerators,
+            right_numerators,
+            left_denominators,
+            right_denominators,
+        } = LayerGatesInputs::from_main_trace_query(query, &self.log_up_randomness)
+            .query_gate_evals
+            .into();
 
         let eval_left_numerator =
-            inner_product(&query_left_numerators, &self.tensored_merge_randomness);
+            left_numerators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
         let eval_right_numerator =
-            inner_product(&query_right_numerators, &self.tensored_merge_randomness);
+            right_numerators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
         let eval_left_denominator =
-            inner_product(&query_left_denominators, &self.tensored_merge_randomness);
+            left_denominators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
         let eval_right_denominator =
-            inner_product(&query_right_denominators, &self.tensored_merge_randomness);
+            right_denominators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
 
         let eq_eval = query[TRACE_WIDTH];
 
