@@ -72,11 +72,24 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
     /// (1 - r_0) * f(0, y_1, ..., y_{ν - 1}) + r_0 * f(1, y_1, ..., y_{ν - 1}) and assigns
     /// the resulting multi-linear, defined over a domain of half the size, to `self`.
-    pub fn bind(&mut self, round_challenge: E) {
+    pub fn bind_left(&mut self, round_challenge: E) {
         let mut result = vec![E::ZERO; 1 << (self.num_variables() - 1)];
         for (i, res) in result.iter_mut().enumerate() {
             *res = self.evaluations[i << 1]
                 + round_challenge * (self.evaluations[(i << 1) + 1] - self.evaluations[i << 1]);
+        }
+        *self = Self::from_evaluations(result)
+            .expect("should not fail given that it is a multi-linear");
+    }
+
+    /// Computes f(y_1, ..., y_{ν - 1}, r_0) using the linear interpolation formula
+    /// (1 - r_0) * f(y_1, ..., y_{ν - 1}, 0) + r_0 * f(y_1, ..., y_{ν - 1}, 1) and assigns
+    /// the resulting multi-linear, defined over a domain of half the size, to `self`.
+    pub fn bind_right(&mut self, round_challenge: E) {
+        let mut result = vec![E::ZERO; 1 << (self.num_variables() - 1)];
+        for (i, res) in result.iter_mut().enumerate() {
+            *res = (E::ONE - round_challenge) * self.evaluations[i]
+                + round_challenge * self.evaluations[i + (1 << (self.num_variables() - 1))];
         }
         *self = Self::from_evaluations(result)
             .expect("should not fail given that it is a multi-linear");

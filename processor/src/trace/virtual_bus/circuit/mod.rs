@@ -26,7 +26,7 @@ const_assert!(NUM_CIRCUIT_INPUTS_PER_TRACE_ROW.is_power_of_two());
 
 /// Represents a fraction `numerator / denominator` as a pair `(numerator, denominator)`. This is
 /// the type for the gates' inputs in [`prover::EvaluatedCircuit`].
-/// 
+///
 /// Hence, addition is defined in the natural way fractions are added together: `a/b + c/d = (ad +
 /// bc) / bd`.
 #[derive(Debug, Clone, Copy)]
