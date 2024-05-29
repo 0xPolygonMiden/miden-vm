@@ -1,7 +1,7 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
-    FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs, NUM_GATES_PER_QUERY,
+    super::sum_check::Proof as SumCheckProof, error::ProverError,
+    main_trace_query_to_input_layer_gates, BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof,
+    GkrClaim, GkrComposition, GkrCompositionMerge, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -61,7 +61,6 @@ impl<E: FieldElement> FractionalSumCircuit<E> {
         let mut layer_evaluations = Vec::new();
 
         let mut current_layer = Layer::input_layer(columns, log_up_randomness);
-        // TODOP: Use constant name for `1`
         while current_layer.num_gates() > 1 {
             let next_layer = Self::compute_layer(&current_layer);
 
@@ -140,14 +139,14 @@ impl<E: FieldElement> Layer<E> {
     pub fn input_layer(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Self {
         let num_evaluations = columns[0].num_evaluations();
         // TODOP: Verify that capacity is correct
-        let mut gate_evals = Vec::with_capacity(num_evaluations * NUM_GATES_PER_QUERY);
+        let mut gate_evals =
+            Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
 
         for i in 0..num_evaluations {
             let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
 
-            // TODOP: Don't destructure `LayerGatesInputs`
-            let LayerGatesInputs { query_gate_evals } =
-                LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
+            // TODOP: rename `query_gate_evals`
+            let query_gate_evals = main_trace_query_to_input_layer_gates(&query, log_up_randomness);
 
             gate_evals.extend(query_gate_evals);
         }
@@ -177,7 +176,10 @@ impl<E: FieldElement> From<Layer<E>> for LayerEvaluationPolys<E> {
     }
 }
 
-impl<E: FieldElement> From<Vec<CircuitGateInput<E>>> for LayerEvaluationPolys<E> {
+impl<E> From<Vec<CircuitGateInput<E>>> for LayerEvaluationPolys<E>
+where
+    E: FieldElement,
+{
     fn from(gate_inputs: Vec<CircuitGateInput<E>>) -> Self {
         let mut left_numerators = Vec::new();
         let mut left_denominators = Vec::new();
@@ -204,6 +206,15 @@ impl<E: FieldElement> From<Vec<CircuitGateInput<E>>> for LayerEvaluationPolys<E>
             right_denominators: MultiLinearPoly::from_evaluations(right_denominators)
                 .expect("evaluations guaranteed to be a power of two"),
         }
+    }
+}
+
+impl<E, const N: usize> From<[CircuitGateInput<E>; N]> for LayerEvaluationPolys<E>
+where
+    E: FieldElement,
+{
+    fn from(gate_inputs: [CircuitGateInput<E>; N]) -> Self {
+        gate_inputs.to_vec().into()
     }
 }
 
@@ -276,7 +287,7 @@ pub fn prove<
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-    let num_rounds_before_merge = NUM_GATES_PER_QUERY.ilog2() as usize;
+    let num_rounds_before_merge = (NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2).ilog2() as usize;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,
