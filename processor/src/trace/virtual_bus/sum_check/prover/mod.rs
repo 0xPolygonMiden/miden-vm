@@ -202,7 +202,7 @@ where
                 reduce_claim(&round_proofs[i - 1], current_round_claim, round_challenge);
 
             // fold each multi-linear using the round challenge
-            mls.iter_mut().for_each(|ml| ml.bind_right(round_challenge));
+            mls.iter_mut().for_each(|ml| ml.bind_left(round_challenge));
 
             // run the i-th round of the protocol using the folded multi-linears for the new reduced
             // claim. This basically computes the s_i polynomial.
@@ -278,10 +278,10 @@ fn sumcheck_round<E: FieldElement, P: CompositionPolynomial<E>>(
     let total_evals = (0..1 << num_rounds).map(|i| {
         for (j, ml) in mls.iter().enumerate() {
             // Holds `f(x_{i+1}, ..., x_v, 0)`
-            evals_zero[j] = ml.evaluations()[i];
+            evals_zero[j] = ml.evaluations()[2 * i];
 
             // Holds `f(x_{i+1}, ..., x_v, 1)`
-            evals_one[j] = ml.evaluations()[i + (1 << num_vars - 1)];
+            evals_one[j] = ml.evaluations()[2 * i + 1];
         }
 
         let mut total_evals = vec![E::ZERO; composition_poly.max_degree() as usize];
