@@ -397,14 +397,14 @@ MacroInst: SmallOpsVec = {
 #[inline]
 Inst: Instruction = {
     AdviceInjector,
-    MaybeWithError,
     Call,
     Debug,
-    InstWithFeltImmediate,
-    InstWithU32Immediate,
     InstWithBitSizeImmediate,
+    InstWithErrorCode,
+    InstWithFeltImmediate,
     InstWithLocalIndex,
     InstWithStackIndex,
+    InstWithU32Immediate,
     ProcRef,
     "adv_pipe" => Instruction::AdvPipe,
     "adv_loadw" => Instruction::AdvLoadW,
@@ -501,7 +501,7 @@ AdviceInjector: Instruction = {
 }
 
 #[inline]
-MaybeWithError: Instruction = {
+InstWithErrorCode: Instruction = {
     "assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertWithError).unwrap_or(Instruction::Assert),
     "assertz" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertzWithError).unwrap_or(Instruction::Assertz),
     "assert_eq" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertEqWithError).unwrap_or(Instruction::AssertEq),
