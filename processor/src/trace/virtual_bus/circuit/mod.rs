@@ -7,7 +7,6 @@ use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
-use prover::LayerPolys;
 use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
@@ -123,8 +122,13 @@ fn compute_input_gates_values<E>(
 where
     E: FieldElement,
 {
-    let [numerators, denominators] = evaluate_fractions_at_main_trace_query(&query, log_up_randomness);
-    let input_gates_values: Vec<Node<E>> = numerators.iter().zip(denominators.iter()).map(|(n,d)| Node::new(*n, *d)).collect();
+    let [numerators, denominators] =
+        evaluate_fractions_at_main_trace_query(&query, log_up_randomness);
+    let input_gates_values: Vec<Node<E>> = numerators
+        .iter()
+        .zip(denominators.iter())
+        .map(|(n, d)| Node::new(*n, *d))
+        .collect();
     input_gates_values.try_into().unwrap()
 }
 
@@ -261,8 +265,8 @@ where
         let numerators = MultiLinearPoly::from_evaluations(numerators.to_vec()).unwrap();
         let denominators = MultiLinearPoly::from_evaluations(denominators.to_vec()).unwrap();
 
-        let (numerators_even, numerators_odd) = numerators.projections_lower_variable();
-        let (denominators_even, denominators_odd) = denominators.projections_lower_variable();
+        let (numerators_even, numerators_odd) = numerators.project_lower_variable();
+        let (denominators_even, denominators_odd) = denominators.project_lower_variable();
 
         let eval_numerators_even =
             numerators_even.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);

@@ -1,5 +1,8 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError, evaluate_fractions_at_main_trace_query, BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge, Node, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW
+    super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError,
+    BeforeFinalLayerProof, FinalLayerProof,
+    GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge, Node,
+    NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -90,11 +93,12 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     pub fn output_layer(&self) -> [E; 4] {
         let last_layer = self.layer_polys.last().expect("circuit has at least one layer");
 
+        // TODO: Just send the  poly ?
         [
-            last_layer.left_numerators[0],
-            last_layer.right_numerators[0],
-            last_layer.left_denominators[0],
-            last_layer.right_denominators[0],
+            last_layer.numerators[0],
+            last_layer.numerators[1],
+            last_layer.denominators[0],
+            last_layer.denominators[1],
         ]
     }
 
@@ -123,7 +127,8 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     ) -> CircuitLayer<E> {
         let num_evaluations = main_trace_columns[0].num_evaluations();
         // TODOP: Verify that capacity is correct
-        let mut input_layer_nodes = Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
+        let mut input_layer_nodes =
+            Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
 
         for i in 0..num_evaluations {
             let nodes_from_trace_row = {
@@ -148,7 +153,6 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
 
                 let gate_output = left + right;
                 gate_output
-
             })
             .collect();
 
@@ -185,34 +189,6 @@ impl<E: FieldElement> CircuitLayer<E> {
     pub fn num_nodes(&self) -> usize {
         self.nodes.len()
     }
-
-    pub fn to_multilinears(&self) -> Vec<MultiLinearPoly<E>> {
-        let mut left_numerators = Vec::new();
-        let mut left_denominators = Vec::new();
-        let mut right_numerators = Vec::new();
-        let mut right_denominators = Vec::new();
-
-        for chunk in self.nodes.chunks_exact(2) {
-            let left_gate_input = chunk[0];
-            let right_gate_input = chunk[1];
-
-            left_numerators.push(left_gate_input.numerator);
-            left_denominators.push(left_gate_input.denominator);
-            right_numerators.push(right_gate_input.numerator);
-            right_denominators.push(right_gate_input.denominator);
-        }
-
-        vec![
-            MultiLinearPoly::from_evaluations(left_numerators)
-                .expect("evaluations guaranteed to be a power of two"),
-            MultiLinearPoly::from_evaluations(right_numerators)
-                .expect("evaluations guaranteed to be a power of two"),
-            MultiLinearPoly::from_evaluations(left_denominators)
-                .expect("evaluations guaranteed to be a power of two"),
-            MultiLinearPoly::from_evaluations(right_denominators)
-                .expect("evaluations guaranteed to be a power of two"),
-        ]
-    }
 }
 
 /// Holds a layer of [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
@@ -225,10 +201,8 @@ impl<E: FieldElement> CircuitLayer<E> {
 /// - c -> `right_numerators`
 /// - d -> `right_denominators`
 pub struct LayerPolys<E: FieldElement> {
-    pub left_numerators: MultiLinearPoly<E>,
-    pub right_numerators: MultiLinearPoly<E>,
-    pub left_denominators: MultiLinearPoly<E>,
-    pub right_denominators: MultiLinearPoly<E>,
+    pub numerators: MultiLinearPoly<E>,
+    pub denominators: MultiLinearPoly<E>,
 }
 
 impl<E: FieldElement> From<CircuitLayer<E>> for LayerPolys<E> {
@@ -242,29 +216,18 @@ where
     E: FieldElement,
 {
     fn from(gate_inputs: Vec<Node<E>>) -> Self {
-        let mut left_numerators = Vec::new();
-        let mut left_denominators = Vec::new();
-        let mut right_numerators = Vec::new();
-        let mut right_denominators = Vec::new();
+        let mut numerators = Vec::new();
+        let mut denominators = Vec::new();
 
-        for chunk in gate_inputs.chunks_exact(2) {
-            let left_gate_input = chunk[0];
-            let right_gate_input = chunk[1];
-
-            left_numerators.push(left_gate_input.numerator);
-            left_denominators.push(left_gate_input.denominator);
-            right_numerators.push(right_gate_input.numerator);
-            right_denominators.push(right_gate_input.denominator);
+        for gate in gate_inputs {
+            numerators.push(gate.numerator);
+            denominators.push(gate.denominator);
         }
 
         Self {
-            left_numerators: MultiLinearPoly::from_evaluations(left_numerators)
+            numerators: MultiLinearPoly::from_evaluations(numerators)
                 .expect("evaluations guaranteed to be a power of two"),
-            right_numerators: MultiLinearPoly::from_evaluations(right_numerators)
-                .expect("evaluations guaranteed to be a power of two"),
-            left_denominators: MultiLinearPoly::from_evaluations(left_denominators)
-                .expect("evaluations guaranteed to be a power of two"),
-            right_denominators: MultiLinearPoly::from_evaluations(right_denominators)
+            denominators: MultiLinearPoly::from_evaluations(denominators)
                 .expect("evaluations guaranteed to be a power of two"),
         }
     }
@@ -392,13 +355,10 @@ fn prove_final_circuit_layer<
 
     // get the multi-linears of the 4 merge polynomials
     let layer = circuit.get_layer(0);
-    let mut merged_mls = vec![
-        layer.left_numerators.clone(),
-        layer.right_numerators.clone(),
-        layer.left_denominators.clone(),
-        layer.right_denominators.clone(),
-        poly_x,
-    ];
+    let (even_numerator, odd_numerator) = layer.numerators.project_lower_variable();
+    let (even_denominator, odd_denominator) = layer.denominators.project_lower_variable();
+    let mut merged_mls =
+        vec![even_numerator, odd_numerator, even_denominator, odd_denominator, poly_x];
     // run the first sum-check protocol
     let ((round_claim, before_merge_proof), r_sum_check) = sum_check_prover_plain_partial(
         claimed_evaluation,
@@ -458,13 +418,9 @@ fn prove_before_final_circuit_layers<
         // construct the vector of multi-linear polynomials
         // TODO: avoid unnecessary allocation
         let layer = circuit.get_layer(layer_idx);
-        let mls = vec![
-            layer.left_numerators.clone(),
-            layer.right_numerators.clone(),
-            layer.left_denominators.clone(),
-            layer.right_denominators.clone(),
-            poly_x,
-        ];
+        let (even_numerator, odd_numerator) = layer.numerators.project_lower_variable();
+        let (even_denominator, odd_denominator) = layer.denominators.project_lower_variable();
+        let mls = vec![even_numerator, odd_numerator, even_denominator, odd_denominator, poly_x];
 
         // run the sumcheck protocol
         let (proof, _) = sum_check_prover_plain_full(claim, mls, transcript)?;
