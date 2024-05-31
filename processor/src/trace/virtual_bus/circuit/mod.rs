@@ -134,13 +134,13 @@ where
 
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
-pub struct GkrCircuitProof<E: FieldElement + 'static> {
+pub struct GkrCircuitProof<E: FieldElement> {
     circuit_outputs: [E; 4],
     before_final_layer_proofs: BeforeFinalLayerProof<E>,
     final_layer_proof: FinalLayerProof<E>,
 }
 
-impl<E: FieldElement + 'static> GkrCircuitProof<E> {
+impl<E: FieldElement> GkrCircuitProof<E> {
     pub fn get_final_opening_claim(&self) -> FinalOpeningClaim<E> {
         self.final_layer_proof.after_merge_proof.openings_claim.clone()
     }
@@ -148,7 +148,7 @@ impl<E: FieldElement + 'static> GkrCircuitProof<E> {
 
 /// A set of sum-check proofs for all GKR layers but for the input circuit layer.
 #[derive(Debug)]
-pub struct BeforeFinalLayerProof<E: FieldElement + 'static> {
+pub struct BeforeFinalLayerProof<E: FieldElement> {
     pub proof: Vec<SumCheckProof<E>>,
 }
 
@@ -161,7 +161,7 @@ pub struct FinalLayerProof<E: FieldElement> {
 
 /// Represents a claim to be proven by a subsequent call to the sum-check protocol.
 #[derive(Debug)]
-pub struct GkrClaim<E: FieldElement + 'static> {
+pub struct GkrClaim<E: FieldElement> {
     pub evaluation_point: Vec<E>,
     pub claimed_evaluation: (E, E),
 }
