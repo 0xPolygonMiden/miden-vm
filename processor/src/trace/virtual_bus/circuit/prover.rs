@@ -1,8 +1,5 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, error::ProverError,
-    main_trace_query_to_input_layer_gates, BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof,
-    GkrClaim, GkrComposition, GkrCompositionMerge, ProjectiveCoordinates,
-    NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
+    super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError, evaluate_fractions_at_main_trace_query, BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge, Node, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -123,37 +120,39 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     fn generate_input_layer(
         main_trace_columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
-    ) -> Layer<E> {
+    ) -> CircuitLayer<E> {
         let num_evaluations = main_trace_columns[0].num_evaluations();
         // TODOP: Verify that capacity is correct
-        let mut nodes = Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
+        let mut input_layer_nodes = Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
 
         for i in 0..num_evaluations {
             let nodes_from_trace_row = {
                 let query: Vec<E> = main_trace_columns.iter().map(|ml| ml[i]).collect();
-                main_trace_query_to_input_layer_gates(&query, log_up_randomness)
+                compute_input_gates_values(&query, log_up_randomness)
             };
 
-            nodes.extend(nodes_from_trace_row);
+            input_layer_nodes.extend(nodes_from_trace_row);
         }
 
-        Layer::new(nodes)
+        CircuitLayer::new(input_layer_nodes)
     }
 
     /// Computes the subsequent layer of the circuit from a given layer.
-    fn compute_next_layer(prev_layer: &Layer<E>) -> Layer<E> {
-        let new_layer_gates = prev_layer
+    fn compute_next_layer(prev_layer: &CircuitLayer<E>) -> CircuitLayer<E> {
+        let next_layer_nodes = prev_layer
             .nodes()
             .chunks_exact(2)
             .map(|gate_inputs| {
                 let left = gate_inputs[0];
                 let right = gate_inputs[1];
 
-                left + right
+                let gate_output = left + right;
+                gate_output
+
             })
             .collect();
 
-        Layer::new(new_layer_gates)
+        CircuitLayer::new(next_layer_nodes)
     }
 }
 
@@ -164,27 +163,55 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
 /// coordinates are summed to yield an element in the subsequent layer of a
 /// [`EvaluatedCircuit`]. However, a [`Layer`] needs to be first converted to a [`LayerPolys`]
 /// before the evaluation of the layer can be proved using GKR.
-struct Layer<E: FieldElement> {
-    nodes: Vec<ProjectiveCoordinates<E>>,
+struct CircuitLayer<E: FieldElement> {
+    nodes: Vec<Node<E>>,
 }
 
-impl<E: FieldElement> Layer<E> {
+impl<E: FieldElement> CircuitLayer<E> {
     /// Creates a new [`Layer`] from a set of projective coordinates.
     ///
     /// Panics if the number of projective coordinates is not a power of two.
-    pub fn new(gate_evals: Vec<ProjectiveCoordinates<E>>) -> Self {
+    pub fn new(gate_evals: Vec<Node<E>>) -> Self {
         assert!(gate_evals.len().is_power_of_two());
 
         Self { nodes: gate_evals }
     }
 
-    pub fn nodes(&self) -> &[ProjectiveCoordinates<E>] {
+    pub fn nodes(&self) -> &[Node<E>] {
         &self.nodes
     }
 
     /// Returns the number of nodes, or projective coordinates, in the layer.
     pub fn num_nodes(&self) -> usize {
         self.nodes.len()
+    }
+
+    pub fn to_multilinears(&self) -> Vec<MultiLinearPoly<E>> {
+        let mut left_numerators = Vec::new();
+        let mut left_denominators = Vec::new();
+        let mut right_numerators = Vec::new();
+        let mut right_denominators = Vec::new();
+
+        for chunk in self.nodes.chunks_exact(2) {
+            let left_gate_input = chunk[0];
+            let right_gate_input = chunk[1];
+
+            left_numerators.push(left_gate_input.numerator);
+            left_denominators.push(left_gate_input.denominator);
+            right_numerators.push(right_gate_input.numerator);
+            right_denominators.push(right_gate_input.denominator);
+        }
+
+        vec![
+            MultiLinearPoly::from_evaluations(left_numerators)
+                .expect("evaluations guaranteed to be a power of two"),
+            MultiLinearPoly::from_evaluations(right_numerators)
+                .expect("evaluations guaranteed to be a power of two"),
+            MultiLinearPoly::from_evaluations(left_denominators)
+                .expect("evaluations guaranteed to be a power of two"),
+            MultiLinearPoly::from_evaluations(right_denominators)
+                .expect("evaluations guaranteed to be a power of two"),
+        ]
     }
 }
 
@@ -204,17 +231,17 @@ pub struct LayerPolys<E: FieldElement> {
     pub right_denominators: MultiLinearPoly<E>,
 }
 
-impl<E: FieldElement> From<Layer<E>> for LayerPolys<E> {
-    fn from(layer: Layer<E>) -> Self {
+impl<E: FieldElement> From<CircuitLayer<E>> for LayerPolys<E> {
+    fn from(layer: CircuitLayer<E>) -> Self {
         layer.nodes.into()
     }
 }
 
-impl<E> From<Vec<ProjectiveCoordinates<E>>> for LayerPolys<E>
+impl<E> From<Vec<Node<E>>> for LayerPolys<E>
 where
     E: FieldElement,
 {
-    fn from(gate_inputs: Vec<ProjectiveCoordinates<E>>) -> Self {
+    fn from(gate_inputs: Vec<Node<E>>) -> Self {
         let mut left_numerators = Vec::new();
         let mut left_denominators = Vec::new();
         let mut right_numerators = Vec::new();
@@ -243,11 +270,11 @@ where
     }
 }
 
-impl<E, const N: usize> From<[ProjectiveCoordinates<E>; N]> for LayerPolys<E>
+impl<E, const N: usize> From<[Node<E>; N]> for LayerPolys<E>
 where
     E: FieldElement,
 {
-    fn from(gate_inputs: [ProjectiveCoordinates<E>; N]) -> Self {
+    fn from(gate_inputs: [Node<E>; N]) -> Self {
         gate_inputs.to_vec().into()
     }
 }

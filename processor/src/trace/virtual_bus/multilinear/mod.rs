@@ -94,6 +94,16 @@ impl<E: FieldElement> MultiLinearPoly<E> {
         *self = Self::from_evaluations(result)
             .expect("should not fail given that it is a multi-linear");
     }
+
+    pub fn projections_lower_variable(&self) -> (Self, Self) {
+        let mut p0 = Vec::with_capacity(self.num_evaluations()/2);
+        let mut p1 = Vec::with_capacity(self.num_evaluations()/2);
+        for chunk in self.evaluations.chunks_exact(2){
+            p0.push(chunk[0]);
+            p1.push(chunk[1]);
+        }
+        return (MultiLinearPoly::from_evaluations(p0).unwrap(), MultiLinearPoly::from_evaluations(p1).unwrap());
+    }
 }
 
 impl<E: FieldElement> Index<usize> for MultiLinearPoly<E> {

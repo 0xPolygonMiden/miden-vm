@@ -18,6 +18,7 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
+use super::multilinear::MultiLinearPoly;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
 /// Defines the number of input layer elements that is generated from a single main trace row.
@@ -30,12 +31,12 @@ const_assert!(NUM_CIRCUIT_INPUTS_PER_TRACE_ROW.is_power_of_two());
 /// Hence, addition is defined in the natural way fractions are added together: `a/b + c/d = (ad +
 /// bc) / bd`.
 #[derive(Debug, Clone, Copy)]
-pub struct ProjectiveCoordinates<E: FieldElement> {
+pub struct Node<E: FieldElement> {
     numerator: E,
     denominator: E,
 }
 
-impl<E> ProjectiveCoordinates<E>
+impl<E> Node<E>
 where
     E: FieldElement,
 {
@@ -50,7 +51,7 @@ where
     }
 }
 
-impl<E> Add for ProjectiveCoordinates<E>
+impl<E> Add for Node<E>
 where
     E: FieldElement,
 {
@@ -65,10 +66,10 @@ where
 }
 
 /// Converts a main trace row (or more generally "query") to gates of the input layer.
-fn main_trace_query_to_input_layer_gates<E>(
+fn evaluate_fractions_at_main_trace_query<E>(
     query: &[E],
     log_up_randomness: &[E],
-) -> [ProjectiveCoordinates<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
+) -> [[E; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]; 2]
 where
     E: FieldElement,
 {
@@ -101,16 +102,30 @@ where
     let stack_value_denom_3 = -(alphas[0] - query[DECODER_USER_OP_HELPERS_OFFSET + 3]);
 
     [
-        ProjectiveCoordinates::new(multiplicity, table_denom),
-        ProjectiveCoordinates::new(f_m, memory_denom_0),
-        ProjectiveCoordinates::new(f_m, memory_denom_1),
-        ProjectiveCoordinates::new(f_rc, stack_value_denom_0),
-        ProjectiveCoordinates::new(f_rc, stack_value_denom_1),
-        ProjectiveCoordinates::new(f_rc, stack_value_denom_2),
-        ProjectiveCoordinates::new(f_rc, stack_value_denom_3),
-        // padding
-        ProjectiveCoordinates::new(E::ZERO, E::ONE),
+        [multiplicity, f_m, f_m, f_rc, f_rc, f_rc, f_rc, E::ZERO],
+        [
+            table_denom,
+            memory_denom_0,
+            memory_denom_1,
+            stack_value_denom_0,
+            stack_value_denom_1,
+            stack_value_denom_2,
+            stack_value_denom_3,
+            E::ONE,
+        ],
     ]
+}
+
+fn compute_input_gates_values<E>(
+    query: &[E],
+    log_up_randomness: &[E],
+) -> [Node<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
+where
+    E: FieldElement,
+{
+    let [numerators, denominators] = evaluate_fractions_at_main_trace_query(&query, log_up_randomness);
+    let input_gates_values: Vec<Node<E>> = numerators.iter().zip(denominators.iter()).map(|(n,d)| Node::new(*n, *d)).collect();
+    input_gates_values.try_into().unwrap()
 }
 
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
@@ -240,29 +255,32 @@ where
     }
 
     fn evaluate(&self, query: &[E]) -> E {
-        let LayerPolys {
-            left_numerators,
-            right_numerators,
-            left_denominators,
-            right_denominators,
-        } = main_trace_query_to_input_layer_gates(query, &self.log_up_randomness).into();
+        let [numerators, denominators] =
+            evaluate_fractions_at_main_trace_query(query, &self.log_up_randomness);
 
-        let eval_left_numerator =
-            left_numerators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
-        let eval_right_numerator =
-            right_numerators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
-        let eval_left_denominator =
-            left_denominators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
-        let eval_right_denominator =
-            right_denominators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let numerators = MultiLinearPoly::from_evaluations(numerators.to_vec()).unwrap();
+        let denominators = MultiLinearPoly::from_evaluations(denominators.to_vec()).unwrap();
+
+        let (numerators_even, numerators_odd) = numerators.projections_lower_variable();
+        let (denominators_even, denominators_odd) = denominators.projections_lower_variable();
+
+        let eval_numerators_even =
+            numerators_even.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let eval_numerators_odd =
+            numerators_odd.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+
+        let eval_denominators_even =
+            denominators_even.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let eval_denominators_odd =
+            denominators_odd.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
 
         let eq_eval = query[TRACE_WIDTH];
 
         eq_eval
-            * ((eval_left_numerator * eval_right_denominator
-                + eval_right_numerator * eval_left_denominator)
-                + eval_left_denominator
-                    * eval_right_denominator
+            * ((eval_numerators_even * eval_denominators_odd
+                + eval_numerators_odd * eval_denominators_even)
+                + eval_denominators_even
+                    * eval_denominators_odd
                     * self.sum_check_combining_randomness)
     }
 }
