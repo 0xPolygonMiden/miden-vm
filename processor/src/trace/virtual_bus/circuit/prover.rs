@@ -437,9 +437,8 @@ fn prove_before_final_circuit_layers<
         claim = (p0 + r_layer * (p1 - p0), q0 + r_layer * (q1 - q0));
 
         // collect the randomness used for the current layer
-        let mut ext = proof.openings_claim.eval_point.clone();
-        //ext.push(r_layer);
-        ext.insert(0, r_layer);
+        let mut ext = vec![r_layer];
+        ext.extend_from_slice(&proof.openings_claim.eval_point);
         rand = ext;
 
         proof_layers.push(proof);

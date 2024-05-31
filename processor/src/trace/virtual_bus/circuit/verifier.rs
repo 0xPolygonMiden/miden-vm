@@ -79,9 +79,8 @@ pub fn verify<
 
         // collect the randomness used for the current layer
         let rand_sumcheck = eval_point;
-        let mut ext = rand_sumcheck;
-        //ext.push(r_layer);
-        ext.insert(0, r_layer);
+        let mut ext = vec![r_layer];
+        ext.extend_from_slice(&rand_sumcheck);
         rand = ext;
     }
 
