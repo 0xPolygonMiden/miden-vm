@@ -262,28 +262,27 @@ where
         let numerators = MultiLinearPoly::from_evaluations(numerators.to_vec()).unwrap();
         let denominators = MultiLinearPoly::from_evaluations(denominators.to_vec()).unwrap();
 
-        // TODOP: left/right terminology instead?
-        let (numerators_even, numerators_odd) = numerators.project_least_significant_variable();
-        let (denominators_even, denominators_odd) =
+        let (left_numerators, right_numerators) = numerators.project_least_significant_variable();
+        let (left_denominators, right_denominators) =
             denominators.project_least_significant_variable();
 
-        let eval_numerators_even =
-            numerators_even.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
-        let eval_numerators_odd =
-            numerators_odd.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let eval_left_numerators =
+            left_numerators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let eval_right_numerators =
+            right_numerators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
 
-        let eval_denominators_even =
-            denominators_even.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
-        let eval_denominators_odd =
-            denominators_odd.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let eval_left_denominators =
+            left_denominators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
+        let eval_right_denominators =
+            right_denominators.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);
 
         let eq_eval = query[TRACE_WIDTH];
 
         eq_eval
-            * ((eval_numerators_even * eval_denominators_odd
-                + eval_numerators_odd * eval_denominators_even)
-                + eval_denominators_even
-                    * eval_denominators_odd
+            * ((eval_left_numerators * eval_right_denominators
+                + eval_right_numerators * eval_left_denominators)
+                + eval_left_denominators
+                    * eval_right_denominators
                     * self.sum_check_combining_randomness)
     }
 }
