@@ -114,9 +114,8 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         log_up_randomness: &[E],
     ) -> CircuitLayer<E> {
         let num_evaluations = main_trace_columns[0].num_evaluations();
-        // TODOP: Verify that capacity is correct
         let mut input_layer_nodes =
-            Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2);
+            Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW);
 
         for i in 0..num_evaluations {
             let nodes_from_trace_row = {
