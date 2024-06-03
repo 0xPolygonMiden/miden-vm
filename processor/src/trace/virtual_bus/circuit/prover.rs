@@ -1,8 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError,
-    BeforeFinalLayerProof, FinalLayerProof,
-    GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge, Node,
-    NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
+    BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition,
+    GkrCompositionMerge, Node, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -90,28 +89,17 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
 
     /// Returns the evaluation of the output layer of the circuit, where the return value `ret` is
     /// to be interpreted as: `(ret[0] / ret[2]) + (ret[1] / ret[3])`.
-    pub fn output_layer(&self) -> [E; 4] {
-        let last_layer = self.layer_polys.last().expect("circuit has at least one layer");
-
-        // TODO: Just send the  poly ?
-        [
-            last_layer.numerators[0],
-            last_layer.numerators[1],
-            last_layer.denominators[0],
-            last_layer.denominators[1],
-        ]
+    pub fn output_layer(&self) -> &LayerPolys<E> {
+        self.layer_polys.last().expect("circuit has at least one layer")
     }
 
     /// Evaluates the output layer at `query`, where the numerators of the output layer are treated
     /// as evaluations of a multilinear polynomial, and similarly for the denominators.
     pub fn evaluate_output_layer(&self, query: E) -> (E, E) {
-        let output_layer = self.output_layer();
-
-        let numerators = MultiLinearPoly::from_evaluations(vec![output_layer[0], output_layer[1]])
-            .expect("2 is a power of 2");
-        let denominators =
-            MultiLinearPoly::from_evaluations(vec![output_layer[2], output_layer[3]])
-                .expect("2 is a power of 2");
+        let LayerPolys {
+            numerators,
+            denominators,
+        } = self.output_layer();
 
         (numerators.evaluate(&[query]), denominators.evaluate(&[query]))
     }
@@ -200,6 +188,7 @@ impl<E: FieldElement> CircuitLayer<E> {
 /// - b -> `left_denominators`
 /// - c -> `right_numerators`
 /// - d -> `right_denominators`
+#[derive(Clone, Debug)]
 pub struct LayerPolys<E: FieldElement> {
     pub numerators: MultiLinearPoly<E>,
     pub denominators: MultiLinearPoly<E>,
@@ -325,7 +314,7 @@ pub fn prove<
     let circuit_outputs = circuit.output_layer();
 
     Ok(GkrCircuitProof {
-        circuit_outputs,
+        circuit_outputs: circuit_outputs.clone(),
         before_final_layer_proofs,
         final_layer_proof,
     })
@@ -355,8 +344,9 @@ fn prove_final_circuit_layer<
 
     // get the multi-linears of the 4 merge polynomials
     let layer = circuit.get_layer(0);
-    let (even_numerator, odd_numerator) = layer.numerators.project_lower_variable();
-    let (even_denominator, odd_denominator) = layer.denominators.project_lower_variable();
+    let (even_numerator, odd_numerator) = layer.numerators.project_least_significant_variable();
+    let (even_denominator, odd_denominator) =
+        layer.denominators.project_least_significant_variable();
     let mut merged_mls =
         vec![even_numerator, odd_numerator, even_denominator, odd_denominator, poly_x];
     // run the first sum-check protocol
@@ -403,7 +393,13 @@ fn prove_before_final_circuit_layers<
     // absorb the circuit output layer. This corresponds to sending the four values of the output
     // layer to the verifier. The verifier then replies with a challenge `r` in order to evaluate
     // `p` and `q` at `r` as multi-linears.
-    transcript.reseed(H::hash_elements(&circuit.output_layer()));
+    let LayerPolys {
+        numerators,
+        denominators,
+    } = circuit.output_layer();
+    let mut evaluations = numerators.evaluations().to_vec();
+    evaluations.extend_from_slice(denominators.evaluations());
+    transcript.reseed(H::hash_elements(&evaluations));
 
     // generate the challenge and reduce [p0, p1, q0, q1] to [pr, qr]
     let r = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
@@ -418,8 +414,9 @@ fn prove_before_final_circuit_layers<
         // construct the vector of multi-linear polynomials
         // TODO: avoid unnecessary allocation
         let layer = circuit.get_layer(layer_idx);
-        let (even_numerator, odd_numerator) = layer.numerators.project_lower_variable();
-        let (even_denominator, odd_denominator) = layer.denominators.project_lower_variable();
+        let (even_numerator, odd_numerator) = layer.numerators.project_least_significant_variable();
+        let (even_denominator, odd_denominator) =
+            layer.denominators.project_least_significant_variable();
         let mls = vec![even_numerator, odd_numerator, even_denominator, odd_denominator, poly_x];
 
         // run the sumcheck protocol

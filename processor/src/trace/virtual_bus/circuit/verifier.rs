@@ -1,5 +1,6 @@
 use super::{
-    error::VerifierError, FinalLayerProof, GkrCircuitProof, GkrComposition, GkrCompositionMerge,
+    error::VerifierError, prover::LayerPolys, FinalLayerProof, GkrCircuitProof, GkrComposition,
+    GkrCompositionMerge,
 };
 use crate::trace::virtual_bus::{
     multilinear::EqFunction,
@@ -29,10 +30,14 @@ pub fn verify<
         final_layer_proof,
     } = proof;
 
-    let p0 = circuit_outputs[0];
-    let p1 = circuit_outputs[1];
-    let q0 = circuit_outputs[2];
-    let q1 = circuit_outputs[3];
+    let LayerPolys {
+        numerators,
+        denominators,
+    } = circuit_outputs;
+    let p0 = numerators.evaluations()[0];
+    let p1 = numerators.evaluations()[1];
+    let q0 = denominators.evaluations()[0];
+    let q1 = denominators.evaluations()[1];
 
     // make sure that both denominators are not equal to E::ZERO
     if q0 == E::ZERO || q1 == E::ZERO {
@@ -45,7 +50,9 @@ pub fn verify<
     }
 
     // generate the random challenge to reduce two claims into a single claim
-    transcript.reseed(H::hash_elements(&circuit_outputs));
+    let mut evaluations = numerators.evaluations().to_vec();
+    evaluations.extend_from_slice(denominators.evaluations());
+    transcript.reseed(H::hash_elements(&evaluations));
     let r = transcript.draw().map_err(|_| VerifierError::FailedToGenerateChallenge)?;
 
     // reduce the claim

@@ -7,6 +7,7 @@ use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
+use prover::LayerPolys;
 use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
@@ -135,7 +136,7 @@ where
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
 pub struct GkrCircuitProof<E: FieldElement> {
-    circuit_outputs: [E; 4],
+    circuit_outputs: LayerPolys<E>,
     before_final_layer_proofs: BeforeFinalLayerProof<E>,
     final_layer_proof: FinalLayerProof<E>,
 }
@@ -265,8 +266,9 @@ where
         let numerators = MultiLinearPoly::from_evaluations(numerators.to_vec()).unwrap();
         let denominators = MultiLinearPoly::from_evaluations(denominators.to_vec()).unwrap();
 
-        let (numerators_even, numerators_odd) = numerators.project_lower_variable();
-        let (denominators_even, denominators_odd) = denominators.project_lower_variable();
+        let (numerators_even, numerators_odd) = numerators.project_least_significant_variable();
+        let (denominators_even, denominators_odd) =
+            denominators.project_least_significant_variable();
 
         let eval_numerators_even =
             numerators_even.evaluate_with_lagrange_kernel(&self.tensored_merge_randomness);

@@ -72,7 +72,7 @@ impl<E: FieldElement> MultiLinearPoly<E> {
     /// Computes f(r_0, y_1, ..., y_{ν - 1}) using the linear interpolation formula
     /// (1 - r_0) * f(0, y_1, ..., y_{ν - 1}) + r_0 * f(1, y_1, ..., y_{ν - 1}) and assigns
     /// the resulting multi-linear, defined over a domain of half the size, to `self`.
-    pub fn bind_left(&mut self, round_challenge: E) {
+    pub fn bind_least_significant_variable(&mut self, round_challenge: E) {
         let mut result = vec![E::ZERO; 1 << (self.num_variables() - 1)];
         for (i, res) in result.iter_mut().enumerate() {
             *res = self.evaluations[i << 1]
@@ -82,30 +82,19 @@ impl<E: FieldElement> MultiLinearPoly<E> {
             .expect("should not fail given that it is a multi-linear");
     }
 
-    /// Computes f(y_1, ..., y_{ν - 1}, r_0) using the linear interpolation formula
-    /// (1 - r_0) * f(y_1, ..., y_{ν - 1}, 0) + r_0 * f(y_1, ..., y_{ν - 1}, 1) and assigns
-    /// the resulting multi-linear, defined over a domain of half the size, to `self`.
-    #[allow(dead_code)]
-    pub fn bind_right(&mut self, round_challenge: E) {
-        let mut result = vec![E::ZERO; 1 << (self.num_variables() - 1)];
-        for (i, res) in result.iter_mut().enumerate() {
-            *res = (E::ONE - round_challenge) * self.evaluations[i]
-                + round_challenge * self.evaluations[i + (1 << (self.num_variables() - 1))];
-        }
-        *self = Self::from_evaluations(result)
-            .expect("should not fail given that it is a multi-linear");
-    }
-
     /// Given the multilinear polynomial f(y_0, y_1, ..., y_{ν - 1}), returns two polynomials:
     /// f(0, y_1, ..., y_{ν - 1}) and f(1, y_1, ..., y_{ν - 1}).
-    pub fn project_lower_variable(&self) -> (Self, Self) {
-        let mut p0 = Vec::with_capacity(self.num_evaluations()/2);
-        let mut p1 = Vec::with_capacity(self.num_evaluations()/2);
-        for chunk in self.evaluations.chunks_exact(2){
+    pub fn project_least_significant_variable(&self) -> (Self, Self) {
+        let mut p0 = Vec::with_capacity(self.num_evaluations() / 2);
+        let mut p1 = Vec::with_capacity(self.num_evaluations() / 2);
+        for chunk in self.evaluations.chunks_exact(2) {
             p0.push(chunk[0]);
             p1.push(chunk[1]);
         }
-        return (MultiLinearPoly::from_evaluations(p0).unwrap(), MultiLinearPoly::from_evaluations(p1).unwrap());
+        return (
+            MultiLinearPoly::from_evaluations(p0).unwrap(),
+            MultiLinearPoly::from_evaluations(p1).unwrap(),
+        );
     }
 }
 
