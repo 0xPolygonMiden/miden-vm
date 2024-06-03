@@ -45,11 +45,11 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 /// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
 /// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
 ///
-/// This logic is encoded in [`ProjectiveCoordinates`].
+/// This logic is encoded in [`CircuitWire`].
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
-struct EvaluatedCircuit<E: FieldElement> {
+pub struct EvaluatedCircuit<E: FieldElement> {
     layer_polys: Vec<CircuitLayerPolys<E>>,
 }
 
@@ -145,14 +145,14 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     }
 }
 
-// TODOP: fix docs
 /// Represents a layer in a [`EvaluatedCircuit`].
 ///
-/// A layer is made up of a set of `n` projective coordinates, where `n` is a power of two. This is
-/// the natural circuit representation of a layer, where each consecutive pair of projective
-/// coordinates are summed to yield an element in the subsequent layer of a
-/// [`EvaluatedCircuit`]. However, a [`Layer`] needs to be first converted to a [`LayerPolys`]
-/// before the evaluation of the layer can be proved using GKR.
+/// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
+/// circuit representation of a layer, where each consecutive pair of wires are summed to yield an
+/// wire in the subsequent layer of a [`EvaluatedCircuit`].
+///
+/// Note that a [`Layer`] needs to be first converted to a [`LayerPolys`] before the evaluation of
+/// the layer can be proved using GKR.
 struct CircuitLayer<E: FieldElement> {
     wires: Vec<CircuitWire<E>>,
 }
@@ -178,17 +178,13 @@ impl<E: FieldElement> CircuitLayer<E> {
     }
 }
 
-// TODOP: fix docs
 /// Holds a layer of [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
 /// using GKR.
 ///
-/// Specifically, each element of a [`ProjectiveCoordinate`] pair `[(a, b), (c, d)]` in a
-/// [`Layer`]'s is added to the definition of a different [`MultiLinearPoly`]:
-/// - a -> `left_numerators`
-/// - b -> `left_denominators`
-/// - c -> `right_numerators`
-/// - d -> `right_denominators`
-// What is `LayerPolys`?
+/// Specifically, each element of a [`CircuitWire`] pair `[(a, b), (c, d)]` in a [`Layer`]'s is
+/// added to the definition one of two [`MultiLinearPoly`]:
+/// - `numerators`: [a, c]
+/// - `denominators`: [b, d]
 #[derive(Clone, Debug)]
 pub struct CircuitLayerPolys<E: FieldElement> {
     pub numerators: MultiLinearPoly<E>,
@@ -242,7 +238,7 @@ where
 ///
 /// The composition polynomials `g` are provided as inputs and then used in order to compute
 /// the evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting
-/// evaluations are then used in order to evaluate [`EvaluatedCircuit`].
+/// evaluations are then used in order to evaluate the circuit.
 /// At this point, the GKR protocol is used to prove the correctness of circuit evaluation. It
 /// should be noted that the input layer, which corresponds to the last layer treated by the GKR
 /// protocol, is handled differently from the other layers.
