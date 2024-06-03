@@ -65,6 +65,7 @@ where
     }
 }
 
+// TODOP: Rename
 /// Converts a main trace row (or more generally "query") to gates of the input layer.
 fn evaluate_fractions_at_main_trace_query<E>(
     query: &[E],
@@ -116,6 +117,7 @@ where
     ]
 }
 
+// TODOP: Rename/remove
 fn compute_input_gates_values<E>(
     query: &[E],
     log_up_randomness: &[E],
