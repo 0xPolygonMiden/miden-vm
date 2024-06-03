@@ -111,10 +111,6 @@ impl<E: FieldElement> Index<usize> for MultiLinearPoly<E> {
 
 /// A multi-variate polynomial for composing individual multi-linear polynomials.
 pub trait CompositionPolynomial<E: FieldElement> {
-    /// The number of variables when interpreted as a multi-variate polynomial.
-    #[allow(dead_code)]
-    fn num_variables(&self) -> u32;
-
     /// Maximum degree in all variables.
     fn max_degree(&self) -> u32;
 

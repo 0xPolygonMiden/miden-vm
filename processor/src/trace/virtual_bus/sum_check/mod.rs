@@ -206,10 +206,6 @@ mod test {
     where
         E: FieldElement,
     {
-        fn num_variables(&self) -> u32 {
-            1
-        }
-
         fn max_degree(&self) -> u32 {
             1
         }
@@ -226,10 +222,6 @@ mod test {
     where
         E: FieldElement,
     {
-        fn num_variables(&self) -> u32 {
-            2
-        }
-
         fn max_degree(&self) -> u32 {
             2
         }

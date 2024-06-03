@@ -167,6 +167,7 @@ pub struct GkrClaim<E: FieldElement> {
     pub claimed_evaluation: (E, E),
 }
 
+// TODOP: Document better. Num variables = 5
 /// A composition polynomial used in the GKR protocol for all of its sum-checks except the final
 /// one.
 #[derive(Clone)]
@@ -192,10 +193,6 @@ impl<E> CompositionPolynomial<E> for GkrComposition<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
-    fn num_variables(&self) -> u32 {
-        5
-    }
-
     fn max_degree(&self) -> u32 {
         3
     }
@@ -213,6 +210,7 @@ where
     }
 }
 
+// TODOP: Document that the multilinears are the trace rows (TRACE_WIDTH + 1 vars)
 /// A composition polynomial used in the GKR protocol for its final sum-check.
 #[derive(Clone)]
 pub struct GkrCompositionMerge<E>
@@ -248,13 +246,6 @@ impl<E> CompositionPolynomial<E> for GkrCompositionMerge<E>
 where
     E: FieldElement<BaseField = Felt>,
 {
-    fn num_variables(&self) -> u32 {
-        // TODOP: This is wrong; it's TRACE_WIDTH + 1
-        // `num_variables` is never used, and should be removed. This information should be conveyed
-        // in docs instead.
-        TRACE_WIDTH as u32
-    }
-
     fn max_degree(&self) -> u32 {
         // Computed as:
         // 1 + max(left_numerator_degree + right_denom_degree, right_numerator_degree +
