@@ -96,6 +96,8 @@ impl<E: FieldElement> MultiLinearPoly<E> {
             .expect("should not fail given that it is a multi-linear");
     }
 
+    /// Given the multilinear polynomial f(y_0, y_1, ..., y_{ν - 1}), returns two polynomials:
+    /// f(0, y_1, ..., y_{ν - 1}) and f(1, y_1, ..., y_{ν - 1}).
     pub fn project_lower_variable(&self) -> (Self, Self) {
         let mut p0 = Vec::with_capacity(self.num_evaluations()/2);
         let mut p1 = Vec::with_capacity(self.num_evaluations()/2);
