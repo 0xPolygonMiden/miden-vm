@@ -65,7 +65,9 @@ where
     }
 }
 
-// TODOP: Rename
+// TODOP: Rename, and shouldn't return `[[E; NUM_WIRES_PER_TRACE_ROW]; 2]`. This is used to build
+// `MultiLinearPoly` in `GkrCompositionMerge`, which is hacky (i.e. copies the logic from
+// `LayerPolys`).
 /// Converts a main trace row (or more generally "query") to gates of the input layer.
 fn evaluate_fractions_at_main_trace_query<E>(
     query: &[E],
