@@ -21,9 +21,9 @@ pub use verifier::verify;
 use super::multilinear::MultiLinearPoly;
 use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 
-/// Defines the number of input layer elements that is generated from a single main trace row.
-const NUM_CIRCUIT_INPUTS_PER_TRACE_ROW: usize = 8;
-const_assert!(NUM_CIRCUIT_INPUTS_PER_TRACE_ROW.is_power_of_two());
+/// Defines the number of wires in the input layer that are generated from a single main trace row.
+const NUM_WIRES_PER_TRACE_ROW: usize = 8;
+const_assert!(NUM_WIRES_PER_TRACE_ROW.is_power_of_two());
 
 /// Represents a fraction `numerator / denominator` as a pair `(numerator, denominator)`. This is
 /// the type for the gates' inputs in [`prover::EvaluatedCircuit`].
@@ -69,7 +69,7 @@ where
 fn evaluate_fractions_at_main_trace_query<E>(
     query: &[E],
     log_up_randomness: &[E],
-) -> [[E; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]; 2]
+) -> [[E; NUM_WIRES_PER_TRACE_ROW]; 2]
 where
     E: FieldElement,
 {
@@ -119,7 +119,7 @@ where
 fn compute_input_gates_values<E>(
     query: &[E],
     log_up_randomness: &[E],
-) -> [CircuitWire<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
+) -> [CircuitWire<E>; NUM_WIRES_PER_TRACE_ROW]
 where
     E: FieldElement,
 {

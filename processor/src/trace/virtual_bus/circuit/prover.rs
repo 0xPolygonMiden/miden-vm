@@ -1,7 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError,
     BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition,
-    GkrCompositionMerge, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
+    GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -115,7 +115,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     ) -> CircuitLayer<E> {
         let num_evaluations = main_trace_columns[0].num_evaluations();
         let mut input_layer_nodes =
-            Vec::with_capacity(num_evaluations * NUM_CIRCUIT_INPUTS_PER_TRACE_ROW);
+            Vec::with_capacity(num_evaluations * NUM_WIRES_PER_TRACE_ROW);
 
         for i in 0..num_evaluations {
             let nodes_from_trace_row = {
@@ -292,7 +292,7 @@ pub fn prove<
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-    let num_rounds_before_merge = (NUM_CIRCUIT_INPUTS_PER_TRACE_ROW / 2).ilog2() as usize;
+    let num_rounds_before_merge = (NUM_WIRES_PER_TRACE_ROW / 2).ilog2() as usize;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,
