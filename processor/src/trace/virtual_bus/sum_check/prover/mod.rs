@@ -202,7 +202,8 @@ where
                 reduce_claim(&round_proofs[i - 1], current_round_claim, round_challenge);
 
             // fold each multi-linear using the round challenge
-            mls.iter_mut().for_each(|ml| ml.bind_left(round_challenge));
+            mls.iter_mut()
+                .for_each(|ml| ml.bind_least_significant_variable(round_challenge));
 
             // run the i-th round of the protocol using the folded multi-linears for the new reduced
             // claim. This basically computes the s_i polynomial.
@@ -222,7 +223,8 @@ where
         // generate the last random challenge
         let round_challenge = coin.draw().map_err(|_| Error::FailedToGenerateChallenge)?;
         // fold each multi-linear using the last random challenge
-        mls.iter_mut().for_each(|ml| ml.bind_left(round_challenge));
+        mls.iter_mut()
+            .for_each(|ml| ml.bind_least_significant_variable(round_challenge));
 
         let round_claim =
             reduce_claim(&round_proofs[num_rounds - 1], current_round_claim, round_challenge);
