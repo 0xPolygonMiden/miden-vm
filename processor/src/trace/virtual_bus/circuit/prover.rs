@@ -1,7 +1,7 @@
 use super::{
     super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError,
-    BeforeFinalLayerProof, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition,
-    GkrCompositionMerge, Node, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
+    BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition,
+    GkrCompositionMerge, NUM_CIRCUIT_INPUTS_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -50,7 +50,7 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
 struct EvaluatedCircuit<E: FieldElement> {
-    layer_polys: Vec<LayerPolys<E>>,
+    layer_polys: Vec<CircuitLayerPolys<E>>,
 }
 
 impl<E: FieldElement> EvaluatedCircuit<E> {
@@ -63,10 +63,10 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         let mut layer_polys = Vec::new();
 
         let mut current_layer = Self::generate_input_layer(main_trace_columns, log_up_randomness);
-        while current_layer.num_nodes() > 1 {
+        while current_layer.num_wires() > 1 {
             let next_layer = Self::compute_next_layer(&current_layer);
 
-            layer_polys.push(current_layer.into());
+            layer_polys.push(CircuitLayerPolys::from_circuit_layer(current_layer));
 
             current_layer = next_layer;
         }
@@ -83,20 +83,20 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     ///
     /// Note that the return type is [`LayerPolys`] as opposed to [`Layer`], since the evaluated
     /// circuit is stored in a representation which can be proved using GKR.
-    pub fn get_layer(&self, layer_idx: usize) -> &LayerPolys<E> {
+    pub fn get_layer(&self, layer_idx: usize) -> &CircuitLayerPolys<E> {
         &self.layer_polys[layer_idx]
     }
 
     /// Returns the evaluation of the output layer of the circuit, where the return value `ret` is
     /// to be interpreted as: `(ret[0] / ret[2]) + (ret[1] / ret[3])`.
-    pub fn output_layer(&self) -> &LayerPolys<E> {
+    pub fn output_layer(&self) -> &CircuitLayerPolys<E> {
         self.layer_polys.last().expect("circuit has at least one layer")
     }
 
     /// Evaluates the output layer at `query`, where the numerators of the output layer are treated
     /// as evaluations of a multilinear polynomial, and similarly for the denominators.
     pub fn evaluate_output_layer(&self, query: E) -> (E, E) {
-        let LayerPolys {
+        let CircuitLayerPolys {
             numerators,
             denominators,
         } = self.output_layer();
@@ -133,14 +133,14 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     /// Computes the subsequent layer of the circuit from a given layer.
     fn compute_next_layer(prev_layer: &CircuitLayer<E>) -> CircuitLayer<E> {
         let next_layer_nodes = prev_layer
-            .nodes()
+            .wires()
             .chunks_exact(2)
-            .map(|gate_inputs| {
-                let left = gate_inputs[0];
-                let right = gate_inputs[1];
+            .map(|input_wires| {
+                let left_input_wire = input_wires[0];
+                let right_input_wire = input_wires[1];
 
-                let gate_output = left + right;
-                gate_output
+                let output_wire = left_input_wire + right_input_wire;
+                output_wire
             })
             .collect();
 
@@ -148,6 +148,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     }
 }
 
+// TODOP: fix docs
 /// Represents a layer in a [`EvaluatedCircuit`].
 ///
 /// A layer is made up of a set of `n` projective coordinates, where `n` is a power of two. This is
@@ -156,29 +157,31 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
 /// [`EvaluatedCircuit`]. However, a [`Layer`] needs to be first converted to a [`LayerPolys`]
 /// before the evaluation of the layer can be proved using GKR.
 struct CircuitLayer<E: FieldElement> {
-    nodes: Vec<Node<E>>,
+    wires: Vec<CircuitWire<E>>,
 }
 
 impl<E: FieldElement> CircuitLayer<E> {
     /// Creates a new [`Layer`] from a set of projective coordinates.
     ///
     /// Panics if the number of projective coordinates is not a power of two.
-    pub fn new(gate_evals: Vec<Node<E>>) -> Self {
-        assert!(gate_evals.len().is_power_of_two());
+    pub fn new(wires: Vec<CircuitWire<E>>) -> Self {
+        assert!(wires.len().is_power_of_two());
 
-        Self { nodes: gate_evals }
+        Self { wires }
     }
 
-    pub fn nodes(&self) -> &[Node<E>] {
-        &self.nodes
+    /// Returns the wires that make up this circuit layer.
+    pub fn wires(&self) -> &[CircuitWire<E>] {
+        &self.wires
     }
 
-    /// Returns the number of nodes, or projective coordinates, in the layer.
-    pub fn num_nodes(&self) -> usize {
-        self.nodes.len()
+    /// Returns the number of wires in the layer.
+    pub fn num_wires(&self) -> usize {
+        self.wires.len()
     }
 }
 
+// TODOP: fix docs
 /// Holds a layer of [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
 /// using GKR.
 ///
@@ -188,29 +191,28 @@ impl<E: FieldElement> CircuitLayer<E> {
 /// - b -> `left_denominators`
 /// - c -> `right_numerators`
 /// - d -> `right_denominators`
+// What is `LayerPolys`?
 #[derive(Clone, Debug)]
-pub struct LayerPolys<E: FieldElement> {
+pub struct CircuitLayerPolys<E: FieldElement> {
     pub numerators: MultiLinearPoly<E>,
     pub denominators: MultiLinearPoly<E>,
 }
 
-impl<E: FieldElement> From<CircuitLayer<E>> for LayerPolys<E> {
-    fn from(layer: CircuitLayer<E>) -> Self {
-        layer.nodes.into()
-    }
-}
-
-impl<E> From<Vec<Node<E>>> for LayerPolys<E>
+impl<E> CircuitLayerPolys<E>
 where
     E: FieldElement,
 {
-    fn from(gate_inputs: Vec<Node<E>>) -> Self {
+    fn from_circuit_layer(layer: CircuitLayer<E>) -> Self {
+        Self::from_wires(layer.wires)
+    }
+
+    pub fn from_wires(wires: Vec<CircuitWire<E>>) -> Self {
         let mut numerators = Vec::new();
         let mut denominators = Vec::new();
 
-        for gate in gate_inputs {
-            numerators.push(gate.numerator);
-            denominators.push(gate.denominator);
+        for wire in wires {
+            numerators.push(wire.numerator);
+            denominators.push(wire.denominator);
         }
 
         Self {
@@ -219,15 +221,6 @@ where
             denominators: MultiLinearPoly::from_evaluations(denominators)
                 .expect("evaluations guaranteed to be a power of two"),
         }
-    }
-}
-
-impl<E, const N: usize> From<[Node<E>; N]> for LayerPolys<E>
-where
-    E: FieldElement,
-{
-    fn from(gate_inputs: [Node<E>; N]) -> Self {
-        gate_inputs.to_vec().into()
     }
 }
 
@@ -393,7 +386,7 @@ fn prove_before_final_circuit_layers<
     // absorb the circuit output layer. This corresponds to sending the four values of the output
     // layer to the verifier. The verifier then replies with a challenge `r` in order to evaluate
     // `p` and `q` at `r` as multi-linears.
-    let LayerPolys {
+    let CircuitLayerPolys {
         numerators,
         denominators,
     } = circuit.output_layer();

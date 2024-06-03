@@ -7,7 +7,7 @@ use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
-use prover::LayerPolys;
+use prover::CircuitLayerPolys;
 use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
@@ -31,12 +31,12 @@ const_assert!(NUM_CIRCUIT_INPUTS_PER_TRACE_ROW.is_power_of_two());
 /// Hence, addition is defined in the natural way fractions are added together: `a/b + c/d = (ad +
 /// bc) / bd`.
 #[derive(Debug, Clone, Copy)]
-pub struct Node<E: FieldElement> {
+pub struct CircuitWire<E: FieldElement> {
     numerator: E,
     denominator: E,
 }
 
-impl<E> Node<E>
+impl<E> CircuitWire<E>
 where
     E: FieldElement,
 {
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<E> Add for Node<E>
+impl<E> Add for CircuitWire<E>
 where
     E: FieldElement,
 {
@@ -119,16 +119,16 @@ where
 fn compute_input_gates_values<E>(
     query: &[E],
     log_up_randomness: &[E],
-) -> [Node<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
+) -> [CircuitWire<E>; NUM_CIRCUIT_INPUTS_PER_TRACE_ROW]
 where
     E: FieldElement,
 {
     let [numerators, denominators] =
         evaluate_fractions_at_main_trace_query(&query, log_up_randomness);
-    let input_gates_values: Vec<Node<E>> = numerators
+    let input_gates_values: Vec<CircuitWire<E>> = numerators
         .iter()
         .zip(denominators.iter())
-        .map(|(n, d)| Node::new(*n, *d))
+        .map(|(n, d)| CircuitWire::new(*n, *d))
         .collect();
     input_gates_values.try_into().unwrap()
 }
@@ -136,7 +136,7 @@ where
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
 pub struct GkrCircuitProof<E: FieldElement> {
-    circuit_outputs: LayerPolys<E>,
+    circuit_outputs: CircuitLayerPolys<E>,
     before_final_layer_proofs: BeforeFinalLayerProof<E>,
     final_layer_proof: FinalLayerProof<E>,
 }
@@ -250,7 +250,8 @@ where
 {
     fn num_variables(&self) -> u32 {
         // TODOP: This is wrong; it's TRACE_WIDTH + 1
-        // `num_variables` is never used, and should be removed. This information should be conveyed in docs instead.
+        // `num_variables` is never used, and should be removed. This information should be conveyed
+        // in docs instead.
         TRACE_WIDTH as u32
     }
 

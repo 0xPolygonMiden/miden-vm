@@ -1,6 +1,6 @@
 use super::{
-    error::VerifierError, prover::LayerPolys, FinalLayerProof, GkrCircuitProof, GkrComposition,
-    GkrCompositionMerge,
+    error::VerifierError, prover::CircuitLayerPolys, FinalLayerProof, GkrCircuitProof,
+    GkrComposition, GkrCompositionMerge,
 };
 use crate::trace::virtual_bus::{
     multilinear::EqFunction,
@@ -30,7 +30,7 @@ pub fn verify<
         final_layer_proof,
     } = proof;
 
-    let LayerPolys {
+    let CircuitLayerPolys {
         numerators,
         denominators,
     } = circuit_outputs;
