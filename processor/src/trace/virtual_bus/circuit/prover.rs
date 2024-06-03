@@ -87,8 +87,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         &self.layer_polys[layer_idx]
     }
 
-    /// Returns the evaluation of the output layer of the circuit, where the return value `ret` is
-    /// to be interpreted as: `(ret[0] / ret[2]) + (ret[1] / ret[3])`.
+    /// Returns the numerator/denominator polynomials representing the output layer of the circuit.
     pub fn output_layer(&self) -> &CircuitLayerPolys<E> {
         self.layer_polys.last().expect("circuit has at least one layer")
     }
@@ -114,8 +113,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         log_up_randomness: &[E],
     ) -> CircuitLayer<E> {
         let num_evaluations = main_trace_columns[0].num_evaluations();
-        let mut input_layer_nodes =
-            Vec::with_capacity(num_evaluations * NUM_WIRES_PER_TRACE_ROW);
+        let mut input_layer_nodes = Vec::with_capacity(num_evaluations * NUM_WIRES_PER_TRACE_ROW);
 
         for i in 0..num_evaluations {
             let nodes_from_trace_row = {
@@ -405,11 +403,14 @@ fn prove_before_final_circuit_layers<
 
         // construct the vector of multi-linear polynomials
         // TODO: avoid unnecessary allocation
+        // TODOP: rename `next_layer`, and loop over `0, ...` instead of `1, ..`
         let layer = circuit.get_layer(layer_idx);
-        let (even_numerator, odd_numerator) = layer.numerators.project_least_significant_variable();
-        let (even_denominator, odd_denominator) =
+        let (left_numerators, right_numerators) =
+            layer.numerators.project_least_significant_variable();
+        let (left_denominators, right_denominators) =
             layer.denominators.project_least_significant_variable();
-        let mls = vec![even_numerator, odd_numerator, even_denominator, odd_denominator, poly_x];
+        let mls =
+            vec![left_numerators, right_numerators, left_denominators, right_denominators, poly_x];
 
         // run the sumcheck protocol
         let (proof, _) = sum_check_prover_plain_full(claim, mls, transcript)?;
@@ -419,11 +420,20 @@ fn prove_before_final_circuit_layers<
         let r_layer = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
 
         // reduce the claim
-        let p0 = proof.openings_claim.openings[0];
-        let p1 = proof.openings_claim.openings[1];
-        let q0 = proof.openings_claim.openings[2];
-        let q1 = proof.openings_claim.openings[3];
-        claim = (p0 + r_layer * (p1 - p0), q0 + r_layer * (q1 - q0));
+        claim = {
+            let left_numerators_opening = proof.openings_claim.openings[0];
+            let right_numerators_opening = proof.openings_claim.openings[1];
+            let left_denominators_opening = proof.openings_claim.openings[2];
+            let right_denominators_opening = proof.openings_claim.openings[3];
+
+            reduce_layer_claim(
+                left_numerators_opening,
+                right_numerators_opening,
+                left_denominators_opening,
+                right_denominators_opening,
+                r_layer,
+            )
+        };
 
         // collect the randomness used for the current layer
         let mut ext = vec![r_layer];
@@ -442,6 +452,48 @@ fn prove_before_final_circuit_layers<
             claimed_evaluation: claim,
         },
     ))
+}
+
+/// We receive our 4 multilinear polynomials which were evaluated at a random point:
+/// `left_numerators` (or `p0`), `right_numerators` (or `p1`), `left_denominators` (or `q0`), and
+/// `right_denominators` (or `q1`). We'll call the 4 evaluations at a random point `p0(r)`, `p1(r)`,
+/// `q0(r)`, and `q1(r)`, respectively, where `r` is the random point. Note that `r` is a shorthand
+/// for a tuple of random values `(r_0, ... r_{l-1})`, where `2^{l + 1}` is the number of wires in
+/// the layer.
+///
+/// It is important to recall how `p0` and `p1` were constructed (and analogously for `q0` and
+/// `q1`). They are the `numerators` layer polynomial (or `p`) evaluations `p(0, r)` and `p(1, r)`,
+/// obtained from [`MultiLinearPoly::project_least_significant_variable`]. Hence, `[p0, p1]` form
+/// the evaluations of polynomial `p'(x_0) = p(x_0, r)`. Then, the round claim for `numerators`,
+/// defined as `p(r_layer, r)`, is simply `p'(r_layer)`.
+fn reduce_layer_claim<E>(
+    left_numerators_opening: E,
+    right_numerators_opening: E,
+    left_denominators_opening: E,
+    right_denominators_opening: E,
+    r_layer: E,
+) -> (E, E)
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    // This is the `numerators` layer polynomial `f(x_0) = numerators(x_0, rx_0, ..., rx_{l-1})`,
+    // where `rx_0, ..., rx_{l-1}` are the random variables that were sampled during the sumcheck
+    // round for this layer.
+    let numerators_univariate =
+        MultiLinearPoly::from_evaluations(vec![left_numerators_opening, right_numerators_opening])
+            .unwrap();
+
+    // This is analogous to `numerators_univariate`, but for the `denominators` layer polynomial
+    let denominators_univariate = MultiLinearPoly::from_evaluations(vec![
+        left_denominators_opening,
+        right_denominators_opening,
+    ])
+    .unwrap();
+
+    (
+        numerators_univariate.evaluate(&[r_layer]),
+        denominators_univariate.evaluate(&[r_layer]),
+    )
 }
 
 /// Runs the first sum-check prover for the input layer.
