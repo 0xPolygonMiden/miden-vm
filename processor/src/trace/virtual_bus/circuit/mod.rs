@@ -249,6 +249,8 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     fn num_variables(&self) -> u32 {
+        // TODOP: This is wrong; it's TRACE_WIDTH + 1
+        // `num_variables` is never used, and should be removed. This information should be conveyed in docs instead.
         TRACE_WIDTH as u32
     }
 
@@ -266,6 +268,7 @@ where
         let numerators = MultiLinearPoly::from_evaluations(numerators.to_vec()).unwrap();
         let denominators = MultiLinearPoly::from_evaluations(denominators.to_vec()).unwrap();
 
+        // TODOP: left/right terminology instead?
         let (numerators_even, numerators_odd) = numerators.project_least_significant_variable();
         let (denominators_even, denominators_odd) =
             denominators.project_least_significant_variable();
