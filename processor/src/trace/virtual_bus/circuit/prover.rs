@@ -1,7 +1,7 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, compute_input_layer_wires_at_main_trace_query, error::ProverError,
-    BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition,
-    GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
+    super::sum_check::Proof as SumCheckProof, compute_input_layer_wires_at_main_trace_query,
+    error::ProverError, BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof,
+    GkrClaim, GkrComposition, GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
@@ -74,17 +74,21 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         Ok(Self { layer_polys })
     }
 
-    /// Returns the number of layers in the circuit.
-    pub fn num_layers(&self) -> usize {
-        self.layer_polys.len()
-    }
-
     /// Returns a layer of the evaluated circuit.
     ///
     /// Note that the return type is [`LayerPolys`] as opposed to [`Layer`], since the evaluated
     /// circuit is stored in a representation which can be proved using GKR.
     pub fn get_layer(&self, layer_idx: usize) -> &CircuitLayerPolys<E> {
         &self.layer_polys[layer_idx]
+    }
+
+    /// Returns all layers of the evaluated circuit, starting from the input layer.
+    ///
+    /// Note that the return type is a slice of [`CircuitLayerPolys`] as opposed to
+    /// [`CircuitLayer`], since the evaluated layers are stored in a representation which can be
+    /// proved using GKR.
+    pub fn layers(&self) -> &[CircuitLayerPolys<E>] {
+        &self.layer_polys
     }
 
     /// Returns the numerator/denominator polynomials representing the output layer of the circuit.
@@ -393,18 +397,18 @@ fn prove_before_final_circuit_layers<
 
     let mut proof_layers: Vec<SumCheckProof<E>> = Vec::new();
     let mut rand = vec![r];
-    for layer_idx in (1..circuit.num_layers() - 1).rev() {
+
+    // Loop over all inner layers, from output to input
+    for inner_layer in circuit.layers().iter().skip(1).rev().skip(1) {
         // construct the Lagrange kernel evaluated at the previous GKR round randomness
         let poly_x = EqFunction::ml_at(rand.clone());
 
         // construct the vector of multi-linear polynomials
         // TODO: avoid unnecessary allocation
-        // TODOP: rename `next_layer`, and loop over `0, ...` instead of `1, ..`
-        let layer = circuit.get_layer(layer_idx);
         let (left_numerators, right_numerators) =
-            layer.numerators.project_least_significant_variable();
+            inner_layer.numerators.project_least_significant_variable();
         let (left_denominators, right_denominators) =
-            layer.denominators.project_least_significant_variable();
+            inner_layer.denominators.project_least_significant_variable();
         let mls =
             vec![left_numerators, right_numerators, left_denominators, right_denominators, poly_x];
 
