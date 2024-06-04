@@ -223,43 +223,43 @@ where
 
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
-/// Each individual component of the quadruple [p_0, p_1, q_0, q_1] is of the form:
+/// For the input layer of the circuit, each individual component of the quadruple 
+/// [p_0, p_1, q_0, q_1] is of the form:
 ///
-/// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) =
-/// \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν
+/// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) = \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0,
+/// ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν
 /// - 1}))
 ///
 /// where:
 ///
 /// 1. μ is the log_2 of the number of different numerator/denominator expressions divided by two.
 /// 2. [y] := \sum_{j = 0}^{μ - 1} y_j * 2^j
-/// 3. κ is the number of multi-linears (i.e., main trace columns) involved in the computation
-/// of the circuit (i.e., virtual bus).
+/// 3. κ is the number of multi-linears (i.e., main trace columns) involved in the computation of
+/// the circuit (i.e., virtual bus).
 /// 4. ν is the log_2 of the trace length.
 ///
 /// The above `m` is usually referred to as the merge of the individual composed multi-linear
 /// polynomials  g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1})).
 ///
-/// The composition polynomials `g` are provided as inputs and then used in order to compute
-/// the evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting
-/// evaluations are then used in order to evaluate the circuit.
-/// At this point, the GKR protocol is used to prove the correctness of circuit evaluation. It
-/// should be noted that the input layer, which corresponds to the last layer treated by the GKR
-/// protocol, is handled differently from the other layers.
-/// More specifically, the sum-check protocol used for the input layer is composed of two sum-check
-/// protocols, the first one works directly with the evaluations of the `m`'s over {0, 1}^{μ + ν}
-/// and runs for μ rounds.
-/// After these μ rounds, and using the resulting [`RoundClaim`], we run the second and final
-/// sum-check protocol for ν rounds on the composed multi-linear polynomial given by
+/// The composition polynomials `g` are provided as inputs and then used in order to compute the
+/// evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting evaluations
+/// are then used in order to evaluate the circuit. At this point, the GKR protocol is used to prove
+/// the correctness of circuit evaluation. It should be noted that the input layer, which
+/// corresponds to the last layer treated by the GKR protocol, is handled differently from the other
+/// layers. More specifically, the sum-check protocol used for the input layer is composed of two
+/// sum-check protocols, the first one works directly with the evaluations of the `m`'s over {0,
+/// 1}^{μ + ν} and runs for μ rounds. After these μ rounds, and using the resulting [`RoundClaim`],
+/// we run the second and final sum-check protocol for ν rounds on the composed multi-linear
+/// polynomial given by
 ///
 /// \sum_{y ∈ {0,1}^μ} EQ(ρ', y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... ,
 /// x_{ν - 1}))
 ///
 /// where ρ' is the randomness sampled during the first sum-check protocol.
 ///
-/// As part of the final sum-check protocol, the openings {f_j(ρ)} are provided as part of
-/// a [`FinalOpeningClaim`]. This latter claim will be proven by the STARK prover later on using
-/// the auxiliary trace.
+/// As part of the final sum-check protocol, the openings {f_j(ρ)} are provided as part of a
+/// [`FinalOpeningClaim`]. This latter claim will be proven by the STARK prover later on using the
+/// auxiliary trace.
 pub fn prove<
     E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
