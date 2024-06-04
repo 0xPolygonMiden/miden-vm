@@ -223,7 +223,7 @@ where
 
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
-/// For the input layer of the circuit, each individual component of the quadruple 
+/// For the input layer of the circuit, each individual component of the quadruple
 /// [p_0, p_1, q_0, q_1] is of the form:
 ///
 /// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) = \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0,
