@@ -16,7 +16,6 @@ use super::{
     CHIPLETS_OFFSET, CLK_COL_IDX, CTX_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX, FN_HASH_OFFSET,
     STACK_TRACE_OFFSET,
 };
-use alloc::vec::Vec;
 use core::ops::{Deref, Range};
 use vm_core::{utils::range, Felt, ONE, ZERO};
 
@@ -60,7 +59,7 @@ impl MainTrace {
     }
 
     #[cfg(any(test, feature = "internals"))]
-    pub fn get_column_range(&self, range: Range<usize>) -> Vec<Vec<Felt>> {
+    pub fn get_column_range(&self, range: Range<usize>) -> alloc::vec::Vec<alloc::vec::Vec<Felt>> {
         range.fold(vec![], |mut acc, col_idx| {
             acc.push(self.get_column(col_idx).to_vec());
             acc
