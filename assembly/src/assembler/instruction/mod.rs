@@ -99,9 +99,13 @@ impl Assembler {
             Instruction::Neq => span_builder.push_ops([Eq, Not]),
             Instruction::NeqImm(imm) => field_ops::neq_imm(span_builder, imm.expect_value()),
             Instruction::Lt => field_ops::lt(span_builder),
+            Instruction::LtImm(imm) => field_ops::lt_imm(span_builder, imm.expect_value()),
             Instruction::Lte => field_ops::lte(span_builder),
+            Instruction::LteImm(imm) => field_ops::lte_imm(span_builder, imm.expect_value()),
             Instruction::Gt => field_ops::gt(span_builder),
+            Instruction::GtImm(imm) => field_ops::gt_imm(span_builder, imm.expect_value()),
             Instruction::Gte => field_ops::gte(span_builder),
+            Instruction::GteImm(imm) => field_ops::gte_imm(span_builder, imm.expect_value()),
             Instruction::IsOdd => field_ops::is_odd(span_builder),
 
             // ----- ext2 instructions ------------------------------------------------------------

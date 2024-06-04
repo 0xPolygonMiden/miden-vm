@@ -297,7 +297,8 @@ where
         | U32AssertWWithError(ref code)
         | MTreeVerifyWithError(ref code) => visitor.visit_immediate_error_code(code),
         AddImm(ref imm) | SubImm(ref imm) | MulImm(ref imm) | DivImm(ref imm) | ExpImm(ref imm)
-        | EqImm(ref imm) | NeqImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
+        | EqImm(ref imm) | NeqImm(ref imm) | LtImm(ref imm) | LteImm(ref imm) | GtImm(ref imm)
+        | GteImm(ref imm) | Push(ref imm) => visitor.visit_immediate_felt(imm),
         U32WrappingAddImm(ref imm)
         | U32OverflowingAddImm(ref imm)
         | U32WrappingSubImm(ref imm)
@@ -737,7 +738,8 @@ where
         | U32AssertWWithError(ref mut code)
         | MTreeVerifyWithError(ref mut code) => visitor.visit_mut_immediate_error_code(code),
         AddImm(ref mut imm) | SubImm(ref mut imm) | MulImm(ref mut imm) | DivImm(ref mut imm)
-        | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | Push(ref mut imm) => {
+        | ExpImm(ref mut imm) | EqImm(ref mut imm) | NeqImm(ref mut imm) | LtImm(ref mut imm)
+        | LteImm(ref mut imm) | GtImm(ref mut imm) | GteImm(ref mut imm) | Push(ref mut imm) => {
             visitor.visit_mut_immediate_felt(imm)
         }
         U32WrappingAddImm(ref mut imm)

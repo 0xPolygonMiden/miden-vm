@@ -353,6 +353,16 @@ pub fn lt(span_builder: &mut SpanBuilder) {
     set_result(span_builder);
 }
 
+/// Appends a sequence of operations to pop the top element off the stack and do a "less than"
+/// comparison with a provided immediate value. The stack is expected to be arranged as [a, ...]
+/// (from the top). A value of 1 is pushed onto the stack if a < imm. Otherwise, 0 is pushed.
+///
+/// This operation takes 15 VM cycles.
+pub fn lt_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+    span_builder.push_op(Push(imm));
+    lt(span_builder);
+}
+
 /// Appends a sequence of operations to pop the top 2 elements off the stack and do a "less
 /// than or equal" comparison. The stack is expected to be arranged as [b, a, ...] (from the top).
 /// A value of 1 is pushed onto the stack if a <= b. Otherwise, 0 is pushed.
@@ -375,6 +385,17 @@ pub fn lte(span_builder: &mut SpanBuilder) {
     // combine low-bit and high-bit results
     // 2 cycles
     set_result(span_builder);
+}
+
+/// Appends a sequence of operations to pop the top element off the stack and do a "less than or
+/// equal" comparison with a provided immediate value. The stack is expected to be arranged as
+/// [a, ...] (from the top). A value of 1 is pushed onto the stack if a <= imm. Otherwise, 0 is
+/// pushed.
+///
+/// This operation takes 16 VM cycles.
+pub fn lte_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+    span_builder.push_op(Push(imm));
+    lte(span_builder);
 }
 
 /// Appends a sequence of operations to pop the top 2 elements off the stack and do a "greater
@@ -401,6 +422,16 @@ pub fn gt(span_builder: &mut SpanBuilder) {
     set_result(span_builder);
 }
 
+/// Appends a sequence of operations to pop the top element off the stack and do a "greater than"
+/// comparison with a provided immediate value. The stack is expected to be arranged as [a, ...]
+/// (from the top). A value of 1 is pushed onto the stack if a > imm. Otherwise, 0 is pushed.
+///
+/// This operation takes 16 VM cycles.
+pub fn gt_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+    span_builder.push_op(Push(imm));
+    gt(span_builder);
+}
+
 /// Appends a sequence of operations to pop the top 2 elements off the stack and do a "greater
 /// than or equal" comparison. The stack is expected to be arranged as [b, a, ...] (from the top).
 /// A value of 1 is pushed onto the stack if a >= b. Otherwise, 0 is pushed.
@@ -423,6 +454,17 @@ pub fn gte(span_builder: &mut SpanBuilder) {
     // combine low-bit and high-bit results
     // 2 cycles
     set_result(span_builder);
+}
+
+/// Appends a sequence of operations to pop the top element off the stack and do a "greater than
+/// or equal" comparison with a provided immediate value. The stack is expected to be arranged as
+/// [a, ...] (from the top). A value of 1 is pushed onto the stack if a >= imm. Otherwise, 0 is
+/// pushed.
+///
+/// This operation takes 17 VM cycles.
+pub fn gte_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+    span_builder.push_op(Push(imm));
+    gte(span_builder);
 }
 
 /// Checks if the top element in the stack is an odd number or not.
