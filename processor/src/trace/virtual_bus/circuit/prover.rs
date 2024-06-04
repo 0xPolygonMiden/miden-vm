@@ -136,8 +136,8 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
                 let left_input_wire = input_wires[0];
                 let right_input_wire = input_wires[1];
 
-                let output_wire = left_input_wire + right_input_wire;
-                output_wire
+                // output wire
+                left_input_wire + right_input_wire
             })
             .collect();
 

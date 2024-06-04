@@ -91,10 +91,11 @@ impl<E: FieldElement> MultiLinearPoly<E> {
             p0.push(chunk[0]);
             p1.push(chunk[1]);
         }
-        return (
+
+        (
             MultiLinearPoly::from_evaluations(p0).unwrap(),
             MultiLinearPoly::from_evaluations(p1).unwrap(),
-        );
+        )
     }
 }
 

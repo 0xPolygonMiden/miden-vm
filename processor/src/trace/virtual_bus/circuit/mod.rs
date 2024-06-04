@@ -127,7 +127,7 @@ where
     E: FieldElement,
 {
     let [numerators, denominators] =
-        evaluate_fractions_at_main_trace_query(&query, log_up_randomness);
+        evaluate_fractions_at_main_trace_query(query, log_up_randomness);
     let input_gates_values: Vec<CircuitWire<E>> = numerators
         .into_iter()
         .zip(denominators)
