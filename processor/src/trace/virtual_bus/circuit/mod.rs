@@ -65,10 +65,8 @@ where
     }
 }
 
-// TODOP: Rename, and shouldn't return `[[E; NUM_WIRES_PER_TRACE_ROW]; 2]`. This is used to build
-// `MultiLinearPoly` in `GkrCompositionMerge`, which is hacky (i.e. copies the logic from
-// `LayerPolys`).
-/// Converts a main trace row (or more generally "query") to gates of the input layer.
+/// Converts a main trace row (or more generally "query") to numerators and denominators of the
+/// input layer.
 fn evaluate_fractions_at_main_trace_query<E>(
     query: &[E],
     log_up_randomness: &[E],
@@ -119,8 +117,9 @@ where
     ]
 }
 
-// TODOP: Rename/remove
-fn compute_input_gates_values<E>(
+/// Computes the wires added to the input layer that come from a given main trace row (or more
+/// generally, "query").
+fn compute_input_layer_wires_at_main_trace_query<E>(
     query: &[E],
     log_up_randomness: &[E],
 ) -> [CircuitWire<E>; NUM_WIRES_PER_TRACE_ROW]
@@ -130,9 +129,9 @@ where
     let [numerators, denominators] =
         evaluate_fractions_at_main_trace_query(&query, log_up_randomness);
     let input_gates_values: Vec<CircuitWire<E>> = numerators
-        .iter()
-        .zip(denominators.iter())
-        .map(|(n, d)| CircuitWire::new(*n, *d))
+        .into_iter()
+        .zip(denominators)
+        .map(|(numerator, denominator)| CircuitWire::new(numerator, denominator))
         .collect();
     input_gates_values.try_into().unwrap()
 }
@@ -171,7 +170,6 @@ pub struct GkrClaim<E: FieldElement> {
     pub claimed_evaluation: (E, E),
 }
 
-// TODOP: Document better. Num variables = 5
 /// A composition polynomial used in the GKR protocol for all of its sum-checks except the final
 /// one.
 #[derive(Clone)]
@@ -214,7 +212,6 @@ where
     }
 }
 
-// TODOP: Document that the multilinears are the trace rows (TRACE_WIDTH + 1 vars)
 /// A composition polynomial used in the GKR protocol for its final sum-check.
 #[derive(Clone)]
 pub struct GkrCompositionMerge<E>

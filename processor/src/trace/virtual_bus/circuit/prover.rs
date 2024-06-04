@@ -1,5 +1,5 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, compute_input_gates_values, error::ProverError,
+    super::sum_check::Proof as SumCheckProof, compute_input_layer_wires_at_main_trace_query, error::ProverError,
     BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition,
     GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
 };
@@ -118,7 +118,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         for i in 0..num_evaluations {
             let nodes_from_trace_row = {
                 let query: Vec<E> = main_trace_columns.iter().map(|ml| ml[i]).collect();
-                compute_input_gates_values(&query, log_up_randomness)
+                compute_input_layer_wires_at_main_trace_query(&query, log_up_randomness)
             };
 
             input_layer_nodes.extend(nodes_from_trace_row);
