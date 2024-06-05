@@ -6,6 +6,9 @@ use crate::{DecoratorList, Kernel, Operation};
 mod basic_block;
 pub use basic_block::BasicBlockNode;
 
+mod join;
+pub use join::JoinNode;
+
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
 }
@@ -102,18 +105,19 @@ pub enum MastNode {
 
 /// Constructors
 impl MastNode {
-    /// Returns a new [`BasicBlockNode`] instantiated with the provided operations.
     pub fn new_basic_block(operations: Vec<Operation>) -> Self {
         Self::Block(BasicBlockNode::new(operations))
     }
 
-    /// Returns a new [`BasicBlockNode`] instantiated with the provided operations and decorator
-    /// list.
     pub fn new_basic_block_with_decorators(
         operations: Vec<Operation>,
         decorators: DecoratorList,
     ) -> Self {
         Self::Block(BasicBlockNode::with_decorators(operations, decorators))
+    }
+
+    pub fn new_join(children: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
+        Self::Join(JoinNode::new(children, mast_forest))
     }
 }
 
@@ -128,28 +132,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.digest(),
             MastNode::External(external_digest) => *external_digest,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct JoinNode {
-    children: [MastNodeId; 2],
-    digest: RpoDigest,
-}
-
-impl JoinNode {
-    pub fn first(&self) -> MastNodeId {
-        self.children[0]
-    }
-
-    pub fn second(&self) -> MastNodeId {
-        self.children[1]
-    }
-}
-
-impl MerkleTreeNode for JoinNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
     }
 }
 
