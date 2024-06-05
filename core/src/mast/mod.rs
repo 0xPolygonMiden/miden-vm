@@ -6,6 +6,9 @@ use crate::{DecoratorList, Kernel, Operation};
 mod basic_block_node;
 pub use basic_block_node::BasicBlockNode;
 
+mod call_node;
+pub use call_node::CallNode;
+
 mod join_node;
 pub use join_node::JoinNode;
 
@@ -133,6 +136,14 @@ impl MastNode {
     pub fn new_loop(body: MastNodeId, mast_forest: &MastForest) -> Self {
         Self::Loop(LoopNode::new(body, mast_forest))
     }
+
+    pub fn new_call(callee: MastNodeId, mast_forest: &MastForest) -> Self {
+        Self::Call(CallNode::new(callee, mast_forest))
+    }
+
+    pub fn new_syscall(callee: MastNodeId, mast_forest: &MastForest) -> Self {
+        Self::Call(CallNode::new_syscall(callee, mast_forest))
+    }
 }
 
 impl MerkleTreeNode for MastNode {
@@ -146,46 +157,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.digest(),
             MastNode::External(external_digest) => *external_digest,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CallNode {
-    // Q: This prevents encoding `DYN_DIGEST`
-    callee: MastNodeId,
-    is_syscall: bool,
-    digest: RpoDigest,
-}
-
-impl CallNode {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-    /// The domain of the call block (used for control block hashing).
-    pub const CALL_DOMAIN: Felt = Felt::new(Operation::Call.op_code() as u64);
-    /// The domain of the syscall block (used for control block hashing).
-    pub const SYSCALL_DOMAIN: Felt = Felt::new(Operation::SysCall.op_code() as u64);
-
-    pub fn callee(&self) -> MastNodeId {
-        self.callee
-    }
-
-    pub fn is_syscall(&self) -> bool {
-        self.is_syscall
-    }
-
-    /// Returns the domain of the call node.
-    pub fn hash_domain(&self) -> Felt {
-        if self.is_syscall() {
-            Self::SYSCALL_DOMAIN
-        } else {
-            Self::CALL_DOMAIN
-        }
-    }
-}
-
-impl MerkleTreeNode for CallNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
     }
 }
 
