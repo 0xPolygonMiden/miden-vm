@@ -3,14 +3,17 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{DecoratorList, Kernel, Operation};
 
-mod basic_block;
-pub use basic_block::BasicBlockNode;
+mod basic_block_node;
+pub use basic_block_node::BasicBlockNode;
 
-mod join;
-pub use join::JoinNode;
+mod join_node;
+pub use join_node::JoinNode;
 
-mod split;
-pub use split::SplitNode;
+mod split_node;
+pub use split_node::SplitNode;
+
+mod loop_node;
+pub use loop_node::LoopNode;
 
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
@@ -126,6 +129,10 @@ impl MastNode {
     pub fn new_split(branches: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
         Self::Split(SplitNode::new(branches, mast_forest))
     }
+
+    pub fn new_loop(body: MastNodeId, mast_forest: &MastForest) -> Self {
+        Self::Loop(LoopNode::new(body, mast_forest))
+    }
 }
 
 impl MerkleTreeNode for MastNode {
@@ -139,24 +146,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.digest(),
             MastNode::External(external_digest) => *external_digest,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoopNode {
-    body: MastNodeId,
-    digest: RpoDigest,
-}
-
-impl LoopNode {
-    pub fn body(&self) -> MastNodeId {
-        self.body
-    }
-}
-
-impl MerkleTreeNode for LoopNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
     }
 }
 
