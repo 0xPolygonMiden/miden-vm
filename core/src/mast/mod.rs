@@ -9,6 +9,9 @@ pub use basic_block::BasicBlockNode;
 mod join;
 pub use join::JoinNode;
 
+mod split;
+pub use split::SplitNode;
+
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
 }
@@ -119,6 +122,10 @@ impl MastNode {
     pub fn new_join(children: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
         Self::Join(JoinNode::new(children, mast_forest))
     }
+
+    pub fn new_split(branches: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
+        Self::Split(SplitNode::new(branches, mast_forest))
+    }
 }
 
 impl MerkleTreeNode for MastNode {
@@ -132,28 +139,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.digest(),
             MastNode::External(external_digest) => *external_digest,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SplitNode {
-    branches: [MastNodeId; 2],
-    digest: RpoDigest,
-}
-
-impl SplitNode {
-    pub fn on_true(&self) -> MastNodeId {
-        self.branches[0]
-    }
-
-    pub fn on_false(&self) -> MastNodeId {
-        self.branches[1]
-    }
-}
-
-impl MerkleTreeNode for SplitNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
     }
 }
 
