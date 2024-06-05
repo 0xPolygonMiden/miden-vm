@@ -158,8 +158,8 @@ end
 #! Input: [num_words, write_ptr, COM, ...]
 #! Output: [write_ptr', ...]
 #! Cycles:
-#!  even num_words: 67 + 9 * num_words / 2
-#!  odd num_words: 84 + 9 * round_down(num_words / 2)
+#!  even num_words: 62 + 9 * num_words / 2
+#!  odd num_words: 79 + 9 * round_down(num_words / 2)
 export.pipe_preimage_to_memory.0
   # Copies the advice stack data to memory
   exec.pipe_words_to_memory

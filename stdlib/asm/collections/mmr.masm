@@ -165,7 +165,7 @@ export.unpack
   # => [C, B, A, mmr_ptr+17, HASH, ...]
 
   # drop anything but the hash result, word B (11 cycles)
-  dropw swapw dropw movup.4 drop
+  exec.rpo::squeeze_digest movup.4 drop
   # => [B, HASH, ...]
 
   # assert on the resulting hash (11 cycles)

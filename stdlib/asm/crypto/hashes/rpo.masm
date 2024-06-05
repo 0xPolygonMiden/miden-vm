@@ -27,7 +27,7 @@ export.squeeze_digest
   dropw
 end
 
-#! Hashes the memory `start_addr` to `end_addr`.
+#! Hashes the memory `start_addr` to `end_addr` given an RPO state specified by 3 words.
 #!
 #! This requires that `end_addr=start_addr + 2n + 1`, otherwise the procedure will enter an infinite
 #! loop. `end_addr` is not inclusive.
