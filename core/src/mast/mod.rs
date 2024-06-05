@@ -7,13 +7,16 @@ pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
 }
 
-// TODOP: equality can only be checked by accessing the node it refers too,
-// and should be a node digest equality checks.
-// Otherwise our mapping `node_hash -> MastNodeId` breaks
-// And e.g. 2 dyn nodes would be considered "not equal"
+/// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
+/// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
+///
+/// Note that since a [`MastForest`] enforces the invariant that equal [`MastNode`]s MUST have equal
+/// [`MastNodeId`]s, [`MastNodeId`] equality can be used to determine equality of the underlying
+/// [`MastNode`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MastNodeId(usize);
 
+#[derive(Debug, Default)]
 pub struct MastForest {
     /// All of the blocks local to the trees comprising the MAST forest
     nodes: Vec<MastNode>,
@@ -32,6 +35,32 @@ pub struct MastForest {
 }
 
 impl MastForest {
+    /// Creates a new empty [`MastForest`].
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
+    /// 
+    /// If a [`MastNode`] which is equal to the current node was previously added, the previously
+    /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
+    /// [`MastNode`]s have equal [`MastNodeId`]s.
+    pub fn add_node(&mut self, node: MastNode) -> MastNodeId {
+        let node_digest = node.digest();
+
+        if let Some(node_id) = self.node_id_by_hash.get(&node_digest) {
+            // node already exists in the forest; return previously assigned id
+            *node_id
+        } else {
+            let new_node_id = MastNodeId(self.nodes.len());
+
+            self.node_id_by_hash.insert(node.digest(), new_node_id);
+            self.nodes.push(node);
+
+            new_node_id
+        }
+    }
+
     pub fn kernel(&self) -> &Kernel {
         &self.kernel
     }

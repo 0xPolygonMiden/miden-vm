@@ -679,6 +679,18 @@ impl Assembler {
         Ok(pctx.into_procedure(code))
     }
 
+    // I think we need
+    //  mast_forest: &mut MastForest
+    // and we return
+    //  -> Result<MastNodeId, Report>
+    // i.e.
+    // add all the new compiled `MastNode`s to the forest, and return the `MastNodeId` of the root
+    //
+    // Q: Determine where in the assembler the `MastForest` is created, and probably start there
+    //
+    // Note: Add a method similar to `SpanBuilder::extract_span_into()` which extracts a `MastNode`
+    //  - unclear if we should return a `MastNode`, or pass in `MastForest`
+    // TODO: Determine the `MastForest` API for adding a `MastNode`, and getting its `MastNodeId`
     fn compile_body<'a, I>(
         &self,
         body: I,
