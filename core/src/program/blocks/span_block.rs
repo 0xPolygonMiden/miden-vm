@@ -380,7 +380,7 @@ impl OpBatchAccumulator {
 /// up to 9 operations per group, and 8 groups per batch).
 ///
 /// After the operations have been grouped, computes the hash of the block.
-fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
+pub fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     let mut batch_acc = OpBatchAccumulator::new();
     let mut batches = Vec::<OpBatch>::new();
     let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();

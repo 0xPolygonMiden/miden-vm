@@ -65,7 +65,7 @@ impl SpanBuilder {
 
 /// Decorators
 impl SpanBuilder {
-    /// Add ths specified decorator to the list of span decorators.
+    /// Add the specified decorator to the list of span decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
     }

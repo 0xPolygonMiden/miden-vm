@@ -17,7 +17,7 @@ pub use join_block::Join;
 pub use loop_block::Loop;
 pub use proxy_block::Proxy;
 pub use span_block::{
-    get_span_op_group_count, OpBatch, Span, BATCH_SIZE as OP_BATCH_SIZE,
+    batch_ops, get_span_op_group_count, OpBatch, Span, BATCH_SIZE as OP_BATCH_SIZE,
     GROUP_SIZE as OP_GROUP_SIZE,
 };
 pub use split_block::Split;

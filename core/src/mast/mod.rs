@@ -1,7 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{program::blocks::OpBatch, DecoratorIterator, DecoratorList, Kernel, Operation};
+use crate::{DecoratorList, Kernel, Operation};
+
+mod basic_block;
+pub use basic_block::BasicBlockNode;
 
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
@@ -41,7 +44,7 @@ impl MastForest {
     }
 
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
-    /// 
+    ///
     /// If a [`MastNode`] which is equal to the current node was previously added, the previously
     /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
     /// [`MastNode`]s have equal [`MastNodeId`]s.
@@ -97,6 +100,23 @@ pub enum MastNode {
     External(RpoDigest),
 }
 
+/// Constructors
+impl MastNode {
+    /// Returns a new [`BasicBlockNode`] instantiated with the provided operations.
+    pub fn new_basic_block(operations: Vec<Operation>) -> Self {
+        Self::Block(BasicBlockNode::new(operations))
+    }
+
+    /// Returns a new [`BasicBlockNode`] instantiated with the provided operations and decorator
+    /// list.
+    pub fn new_basic_block_with_decorators(
+        operations: Vec<Operation>,
+        decorators: DecoratorList,
+    ) -> Self {
+        Self::Block(BasicBlockNode::with_decorators(operations, decorators))
+    }
+}
+
 impl MerkleTreeNode for MastNode {
     fn digest(&self) -> RpoDigest {
         match self {
@@ -108,38 +128,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.digest(),
             MastNode::External(external_digest) => *external_digest,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BasicBlockNode {
-    /// The primitive operations contained in this basic block.
-    ///
-    /// The operations are broken up into batches of 8 groups,
-    /// with each group containing up to 9 operations, or a
-    /// single immediates. Thus the maximum size of each batch
-    /// is 72 operations. Multiple batches are used for blocks
-    /// consisting of more than 72 operations.
-    batches: Vec<OpBatch>,
-    digest: RpoDigest,
-    decorators: DecoratorList,
-}
-
-impl BasicBlockNode {
-    pub fn op_batches(&self) -> &[OpBatch] {
-        &self.batches
-    }
-
-    /// Returns a [`DecoratorIterator`] which allows us to iterate through the decorator list of
-    /// this span block while executing operation batches of this span block
-    pub fn decorator_iter(&self) -> DecoratorIterator {
-        DecoratorIterator::new(&self.decorators)
-    }
-}
-
-impl MerkleTreeNode for BasicBlockNode {
-    fn digest(&self) -> RpoDigest {
-        self.digest
     }
 }
 
