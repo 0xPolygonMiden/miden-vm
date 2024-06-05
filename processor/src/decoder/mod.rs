@@ -12,7 +12,10 @@ use miden_air::trace::{
 };
 use vm_core::{
     code_blocks::get_span_op_group_count,
-    mast::{CallNode, DynNode, JoinNode, LoopNode, MastForest, MerkleTreeNode, SplitNode},
+    mast::{
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, MerkleTreeNode,
+        SplitNode,
+    },
     stack::STACK_TOP_SIZE,
     AssemblyOp,
 };
@@ -504,6 +507,39 @@ where
     // SPAN BLOCK
     // --------------------------------------------------------------------------------------------
 
+    /// Starts decoding a BASIC BLOCK node.
+    pub(super) fn start_basic_block_node(
+        &mut self,
+        basic_block: &BasicBlockNode,
+    ) -> Result<(), ExecutionError> {
+        // use the hasher to compute the hash of the SPAN block; the row address returned by the
+        // hasher is used as the ID of the block; hash of a SPAN block is computed by sequentially
+        // hashing operation batches. Thus, the result of the hash is expected to be in row
+        // addr + (num_batches * 8) - 1.
+        let op_batches = basic_block.op_batches();
+        let addr = self.chiplets.hash_span_block(op_batches, basic_block.digest());
+
+        // start decoding the first operation batch; this also appends a row with SPAN operation
+        // to the decoder trace. we also need the total number of operation groups so that we can
+        // set the value of the group_count register at the beginning of the SPAN.
+        let num_op_groups = get_span_op_group_count(op_batches);
+        self.decoder
+            .start_basic_block(&op_batches[0], Felt::new(num_op_groups as u64), addr);
+        self.execute_op(Operation::Noop)
+    }
+
+    /// Ends decoding a BASIC BLOCK node.
+    pub(super) fn end_basic_block_node(
+        &mut self,
+        block: &BasicBlockNode,
+    ) -> Result<(), ExecutionError> {
+        // this appends a row with END operation to the decoder trace. when END operation is
+        // executed the rest of the VM state does not change
+        self.decoder.end_basic_block(block.digest().into());
+
+        self.execute_op(Operation::Noop)
+    }
+
     /// Starts decoding a SPAN block.
     pub(super) fn start_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the SPAN block; the row address returned by the
@@ -517,7 +553,8 @@ where
         // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
         let num_op_groups = get_span_op_group_count(op_batches);
-        self.decoder.start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
+        self.decoder
+            .start_basic_block(&op_batches[0], Felt::new(num_op_groups as u64), addr);
         self.execute_op(Operation::Noop)
     }
 
@@ -530,7 +567,7 @@ where
     pub(super) fn end_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
-        self.decoder.end_span(block.hash().into());
+        self.decoder.end_basic_block(block.hash().into());
 
         self.execute_op(Operation::Noop)
     }
@@ -752,7 +789,7 @@ impl Decoder {
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a SPAN block defined by the specified operation batches.
-    pub fn start_span(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
+    pub fn start_basic_block(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
         debug_assert!(self.span_context.is_none(), "already in span");
         let parent_addr = self.block_stack.push(addr, BlockType::Span, None);
 
@@ -841,7 +878,7 @@ impl Decoder {
     }
 
     /// Ends decoding of a SPAN block.
-    pub fn end_span(&mut self, block_hash: Word) {
+    pub fn end_basic_block(&mut self, block_hash: Word) {
         // remove the block from the stack of executing blocks and add an END row to the
         // execution trace
         let block_info = self.block_stack.pop();

@@ -24,8 +24,8 @@ use vm_core::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     mast::{
-        CallNode, DynNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, MerkleTreeNode,
-        SplitNode,
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId,
+        MerkleTreeNode, SplitNode,
     },
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
@@ -260,7 +260,7 @@ where
         let node = mast_forest.get_node_by_id(node_id);
 
         match node {
-            MastNode::Block(_) => todo!(),
+            MastNode::Block(node) => self.execute_basic_block_node(node),
             MastNode::Join(node) => self.execute_join_node(node, mast_forest),
             MastNode::Split(node) => self.execute_split_node(node, mast_forest),
             MastNode::Loop(node) => self.execute_loop_node(node, mast_forest),
@@ -386,6 +386,44 @@ where
         self.execute_mast_node(callee_id, mast_forest)?;
 
         self.end_dyn_node()
+    }
+
+    /// Executes the specified [`BasicBlockNode`] block.
+    #[inline(always)]
+    fn execute_basic_block_node(
+        &mut self,
+        basic_block: &BasicBlockNode,
+    ) -> Result<(), ExecutionError> {
+        self.start_basic_block_node(basic_block)?;
+
+        let mut op_offset = 0;
+        let mut decorators = basic_block.decorator_iter();
+
+        // execute the first operation batch
+        self.execute_op_batch(&basic_block.op_batches()[0], &mut decorators, op_offset)?;
+        op_offset += basic_block.op_batches()[0].ops().len();
+
+        // if the span contains more operation batches, execute them. each additional batch is
+        // preceded by a RESPAN operation; executing RESPAN operation does not change the state
+        // of the stack
+        for op_batch in basic_block.op_batches().iter().skip(1) {
+            self.respan(op_batch);
+            self.execute_op(Operation::Noop)?;
+            self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
+            op_offset += op_batch.ops().len();
+        }
+
+        self.end_basic_block_node(basic_block)?;
+
+        // execute any decorators which have not been executed during span ops execution; this
+        // can happen for decorators appearing after all operations in a block. these decorators
+        // are executed after SPAN block is closed to make sure the VM clock cycle advances beyond
+        // the last clock cycle of the SPAN block ops.
+        for decorator in decorators {
+            self.execute_decorator(decorator)?;
+        }
+
+        Ok(())
     }
 
     /// Executes the specified [CodeBlock].

@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::{program::blocks::OpBatch, Kernel, Operation};
+use crate::{program::blocks::OpBatch, DecoratorIterator, DecoratorList, Kernel, Operation};
 
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
@@ -60,7 +60,7 @@ pub enum MastNode {
 impl MerkleTreeNode for MastNode {
     fn digest(&self) -> RpoDigest {
         match self {
-            MastNode::Block(_) => todo!(),
+            MastNode::Block(node) => node.digest(),
             MastNode::Join(node) => node.digest(),
             MastNode::Split(node) => node.digest(),
             MastNode::Loop(node) => node.digest(),
@@ -80,6 +80,26 @@ pub struct BasicBlockNode {
     /// is 72 operations. Multiple batches are used for blocks
     /// consisting of more than 72 operations.
     batches: Vec<OpBatch>,
+    digest: RpoDigest,
+    decorators: DecoratorList,
+}
+
+impl BasicBlockNode {
+    pub fn op_batches(&self) -> &[OpBatch] {
+        &self.batches
+    }
+
+    /// Returns a [`DecoratorIterator`] which allows us to iterate through the decorator list of
+    /// this span block while executing operation batches of this span block
+    pub fn decorator_iter(&self) -> DecoratorIterator {
+        DecoratorIterator::new(&self.decorators)
+    }
+}
+
+impl MerkleTreeNode for BasicBlockNode {
+    fn digest(&self) -> RpoDigest {
+        self.digest
+    }
 }
 
 pub struct JoinNode {
