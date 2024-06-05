@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::hash::rpo::RpoDigest;
 
 use crate::{DecoratorList, Kernel, Operation};
 
@@ -8,6 +8,9 @@ pub use basic_block_node::BasicBlockNode;
 
 mod call_node;
 pub use call_node::CallNode;
+
+mod dyn_node;
+pub use dyn_node::DynNode;
 
 mod join_node;
 pub use join_node::JoinNode;
@@ -144,6 +147,14 @@ impl MastNode {
     pub fn new_syscall(callee: MastNodeId, mast_forest: &MastForest) -> Self {
         Self::Call(CallNode::new_syscall(callee, mast_forest))
     }
+
+    pub fn new_dyncall() -> Self {
+        Self::Dyn
+    }
+
+    pub fn new_external(code_hash: RpoDigest) -> Self {
+        Self::External(code_hash)
+    }
 }
 
 impl MerkleTreeNode for MastNode {
@@ -157,29 +168,5 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.digest(),
             MastNode::External(external_digest) => *external_digest,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DynNode;
-
-impl DynNode {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-    /// The domain of the Dyn block (used for control block hashing).
-    pub const DOMAIN: Felt = Felt::new(Operation::Dyn.op_code() as u64);
-}
-
-impl MerkleTreeNode for DynNode {
-    fn digest(&self) -> RpoDigest {
-        // The Dyn node is represented by a constant, which is set to be the hash of two empty
-        // words ([ZERO, ZERO, ZERO, ZERO]) with a domain value of `DYN_DOMAIN`, i.e.
-        // hasher::merge_in_domain(&[Digest::default(), Digest::default()], DynNode::DOMAIN)
-        RpoDigest::new([
-            Felt::new(8115106948140260551),
-            Felt::new(13491227816952616836),
-            Felt::new(15015806788322198710),
-            Felt::new(16575543461540527115),
-        ])
     }
 }
