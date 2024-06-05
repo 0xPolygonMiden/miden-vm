@@ -10,7 +10,12 @@ use miden_air::trace::{
         OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
 };
-use vm_core::{code_blocks::get_span_op_group_count, stack::STACK_TOP_SIZE, AssemblyOp};
+use vm_core::{
+    code_blocks::get_span_op_group_count,
+    mast::{JoinNode, MastForest, MerkleTreeNode},
+    stack::STACK_TOP_SIZE,
+    AssemblyOp,
+};
 
 mod trace;
 use trace::DecoderTrace;
@@ -44,6 +49,45 @@ where
 {
     // JOIN BLOCK
     // --------------------------------------------------------------------------------------------
+
+    /// Starts decoding of a JOIN node.
+    pub(super) fn start_join_node(
+        &mut self,
+        node: &JoinNode,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        // use the hasher to compute the hash of the JOIN block; the row address returned by the
+        // hasher is used as the ID of the block; the result of the hash is expected to be in
+        // row addr + 7.
+        let child1_hash = {
+            let child_node = mast_forest.get_node_by_id(node.first());
+
+            child_node.digest().into()
+        };
+        let child2_hash = {
+            let child_node = mast_forest.get_node_by_id(node.second());
+
+            child_node.digest().into()
+        };
+
+        let addr =
+            self.chiplets
+                .hash_control_block(child1_hash, child2_hash, Join::DOMAIN, node.digest());
+
+        // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
+        // trace. when JOIN operation is executed, the rest of the VM state does not change
+        self.decoder.start_join(child1_hash, child2_hash, addr);
+        self.execute_op(Operation::Noop)
+    }
+
+    ///  Ends decoding of a JOIN node.
+    pub(super) fn end_join_node(&mut self, node: &JoinNode) -> Result<(), ExecutionError> {
+        // this appends a row with END operation to the decoder trace. when END operation is
+        // executed the rest of the VM state does not change
+        self.decoder.end_control_block(node.digest().into());
+
+        self.execute_op(Operation::Noop)
+    }
 
     /// Starts decoding of a JOIN block.
     pub(super) fn start_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {

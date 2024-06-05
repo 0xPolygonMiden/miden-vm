@@ -14,6 +14,7 @@ use std::error::Error;
 // EXECUTION ERROR
 // ================================================================================================
 
+// TODOP: Rename some those that contain `CodeBlock` terminology
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
@@ -58,8 +59,10 @@ pub enum ExecutionError {
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreMergeFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
+    NoEntryPoint,
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
+    ProgramAlreadyExecuted,
     ProverError(ProverError),
     SmtNodeNotFound(Word),
     SmtNodePreImageNotValid(Word, usize),
@@ -168,6 +171,7 @@ impl Display for ExecutionError {
             MerkleStoreUpdateFailed(reason) => {
                 write!(f, "Advice provider Merkle store backend update failed: {reason}")
             }
+            NoEntryPoint => write!(f, "MAST forest has no entrypoint"),
             NotBinaryValue(v) => {
                 write!(f, "An operation expected a binary value, but received {v}")
             }
@@ -184,6 +188,9 @@ impl Display for ExecutionError {
             SmtNodePreImageNotValid(node, preimage_len) => {
                 let node_hex = to_hex(Felt::elements_as_bytes(node));
                 write!(f, "Invalid pre-image for node {node_hex}. Expected pre-image length to be a multiple of 8, but was {preimage_len}")
+            }
+            ProgramAlreadyExecuted => {
+                write!(f, "a program has already been executed in this process")
             }
             ProverError(error) => write!(f, "Proof generation failed: {error}"),
             SyscallTargetNotInKernel(proc) => {

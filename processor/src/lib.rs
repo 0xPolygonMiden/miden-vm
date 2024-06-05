@@ -23,6 +23,7 @@ use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
+    mast::{JoinNode, MastForest, MastNode, MastNodeId},
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 
@@ -222,6 +223,21 @@ where
     // PROGRAM EXECUTOR
     // --------------------------------------------------------------------------------------------
 
+    pub fn execute_mast_forest(
+        &mut self,
+        mast_forest: &MastForest,
+    ) -> Result<StackOutputs, ExecutionError> {
+        if self.system.clk() != 0 {
+            return Err(ExecutionError::ProgramAlreadyExecuted);
+        }
+
+        let entrypoint = mast_forest.entrypoint().ok_or(ExecutionError::NoEntryPoint)?;
+
+        self.execute_mast_node(entrypoint, mast_forest)?;
+
+        Ok(self.stack.build_stack_outputs())
+    }
+
     /// Executes the provided [Program] in this process.
     pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
         assert_eq!(self.system.clk(), 0, "a program has already been executed in this process");
@@ -232,6 +248,39 @@ where
 
     // CODE BLOCK EXECUTORS
     // --------------------------------------------------------------------------------------------
+
+    fn execute_mast_node(
+        &mut self,
+        node_id: MastNodeId,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        let node = mast_forest.get_node_by_id(node_id);
+
+        match node {
+            MastNode::Block(_) => todo!(),
+            MastNode::Join(join) => self.execute_join_node(join, mast_forest),
+            MastNode::Split(_) => todo!(),
+            MastNode::Loop(_) => todo!(),
+            MastNode::Call(_) => todo!(),
+            MastNode::Dyn(_) => todo!(),
+            MastNode::External(_) => todo!(),
+        }
+    }
+
+    #[inline(always)]
+    fn execute_join_node(
+        &mut self,
+        node: &JoinNode,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        self.start_join_node(node, mast_forest)?;
+
+        // execute first and then second child of the join block
+        self.execute_mast_node(node.first(), mast_forest)?;
+        self.execute_mast_node(node.second(), mast_forest)?;
+
+        self.end_join_node(node)
+    }
 
     /// Executes the specified [CodeBlock].
     ///
