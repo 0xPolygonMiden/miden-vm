@@ -1,10 +1,11 @@
 use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction};
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
-use vm_core::{code_blocks::CodeBlock, AdviceInjector, AssemblyOp, Operation};
+use vm_core::{code_blocks::CodeBlock, mast::MastNode, AdviceInjector, AssemblyOp, Operation};
 
 // SPAN BUILDER
 // ================================================================================================
 
+// TODOP: Rename `BasicBlockBuilder`
 /// A helper struct for constructing SPAN blocks while compiling procedure bodies.
 ///
 /// Operations and decorators can be added to a span builder via various `add_*()` and `push_*()`
@@ -143,5 +144,38 @@ impl SpanBuilder {
     pub fn extract_final_span_into(mut self, target: &mut Vec<CodeBlock>) {
         self.ops.append(&mut self.epilogue);
         self.extract_span_into(target);
+    }
+
+    /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
+    /// this builder. If the builder is empty, then no node is created and `None` is returned.
+    ///
+    /// This consumes all operations and decorators in the builder, but does not touch the
+    /// operations in the epilogue of the builder.
+    pub fn to_basic_block(&mut self) -> Option<MastNode> {
+        if !self.ops.is_empty() {
+            let ops = self.ops.drain(..).collect();
+            let decorators = self.decorators.drain(..).collect();
+
+            Some(MastNode::new_basic_block_with_decorators(ops, decorators))
+        } else if !self.decorators.is_empty() {
+            // this is a bug in the assembler. we shouldn't have decorators added without their
+            // associated operations
+            // TODO: change this to an error or allow decorators in empty span blocks
+            unreachable!("decorators in an empty SPAN block")
+        } else {
+            None
+        }
+    }
+
+    /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
+    /// this builder. If the builder is empty, then no node is created and `None` is returned.
+    /// 
+    /// The main differences with [`Self::to_basic_block`] are:
+    /// - Operations contained in the epilogue of the builder are appended to the list of ops which
+    ///   go into the new BASIC BLOCK node.
+    /// - The builder is consumed in the process.
+    pub fn into_basic_block(mut self) -> Option<MastNode> {
+        self.ops.append(&mut self.epilogue);
+        self.to_basic_block()
     }
 }
