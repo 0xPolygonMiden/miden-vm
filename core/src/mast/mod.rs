@@ -18,7 +18,7 @@ pub struct MastForest {
     /// All of the blocks local to the trees comprising the MAST forest
     nodes: Vec<MastNode>,
     node_id_by_hash: BTreeMap<RpoDigest, MastNodeId>,
-    roots: Vec<MastNodeId>,
+
     /// The "entrypoint", when set, is the root of the entire forest, i.e.
     /// a path exists from this node to all other roots in the forest. This
     /// corresponds to the executable entry point. When not set, the forest
@@ -32,8 +32,17 @@ pub struct MastForest {
 }
 
 impl MastForest {
+    pub fn kernel(&self) -> &Kernel {
+        &self.kernel
+    }
+
     pub fn entrypoint(&self) -> Option<MastNodeId> {
         self.entrypoint
+    }
+
+    /// A convenience method that provides the hash of the entrypoint, if any.
+    pub fn entrypoint_digest(&self) -> Option<RpoDigest> {
+        self.entrypoint.map(|entrypoint| self.get_node_by_id(entrypoint).digest())
     }
 
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> &MastNode {

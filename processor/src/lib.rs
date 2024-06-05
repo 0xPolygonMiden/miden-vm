@@ -124,6 +124,29 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
+#[tracing::instrument("execute_mast_program", skip_all)]
+pub fn execute_mast<H>(
+    program: &MastForest,
+    stack_inputs: StackInputs,
+    host: H,
+    options: ExecutionOptions,
+) -> Result<ExecutionTrace, ExecutionError>
+where
+    H: Host,
+{
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
+    let stack_outputs = process.execute_mast_forest(program)?;
+    let trace = ExecutionTrace::new(process, stack_outputs);
+    assert_eq!(
+        &program.entrypoint_digest().expect("program has no entrypoint"),
+        trace.program_hash(),
+        "inconsistent program hash"
+    );
+    Ok(trace)
+}
+
+/// Returns an execution trace resulting from executing the provided program against the provided
+/// inputs.
 #[tracing::instrument("execute_program", skip_all)]
 pub fn execute<H>(
     program: &Program,
@@ -358,7 +381,7 @@ where
         let callee_digest = {
             let callee = mast_forest.get_node_by_id(call_node.callee());
 
-            callee.digest().into()
+            callee.digest()
         };
 
         // if this is a syscall, make sure the call target exists in the kernel
