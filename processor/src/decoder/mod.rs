@@ -12,7 +12,7 @@ use miden_air::trace::{
 };
 use vm_core::{
     code_blocks::get_span_op_group_count,
-    mast::{JoinNode, MastForest, MerkleTreeNode},
+    mast::{CallNode, DynNode, JoinNode, LoopNode, MastForest, MerkleTreeNode, SplitNode},
     stack::STACK_TOP_SIZE,
     AssemblyOp,
 };
@@ -118,6 +118,51 @@ where
     // SPLIT BLOCK
     // --------------------------------------------------------------------------------------------
 
+    /// Starts decoding a SPLIT node. This also pops the value from the top of the stack and
+    /// returns it.
+    pub(super) fn start_split_node(
+        &mut self,
+        node: &SplitNode,
+        mast_forest: &MastForest,
+    ) -> Result<Felt, ExecutionError> {
+        let condition = self.stack.peek();
+
+        // use the hasher to compute the hash of the SPLIT block; the row address returned by the
+        // hasher is used as the ID of the block; the result of the hash is expected to be in
+        // row addr + 7.
+        let child1_hash = {
+            let child_node = mast_forest.get_node_by_id(node.on_true());
+
+            child_node.digest().into()
+        };
+        let child2_hash = {
+            let child_node = mast_forest.get_node_by_id(node.on_false());
+
+            child_node.digest().into()
+        };
+        let addr = self.chiplets.hash_control_block(
+            child1_hash,
+            child2_hash,
+            Split::DOMAIN,
+            node.digest(),
+        );
+
+        // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
+        // trace. we also pop the value off the top of the stack and return it.
+        self.decoder.start_split(child1_hash, child2_hash, addr);
+        self.execute_op(Operation::Drop)?;
+        Ok(condition)
+    }
+
+    /// Ends decoding of a SPLIT node.
+    pub(super) fn end_split_node(&mut self, block: &SplitNode) -> Result<(), ExecutionError> {
+        // this appends a row with END operation to the decoder trace. when END operation is
+        // executed the rest of the VM state does not change
+        self.decoder.end_control_block(block.digest().into());
+
+        self.execute_op(Operation::Noop)
+    }
+
     /// Starts decoding a SPLIT block. This also pops the value from the top of the stack and
     /// returns it.
     pub(super) fn start_split_block(&mut self, block: &Split) -> Result<Felt, ExecutionError> {
@@ -150,6 +195,63 @@ where
 
     // LOOP BLOCK
     // --------------------------------------------------------------------------------------------
+
+    /// Starts decoding a LOOP node. This also pops the value from the top of the stack and
+    /// returns it.
+    pub(super) fn start_loop_node(
+        &mut self,
+        node: &LoopNode,
+        mast_forest: &MastForest,
+    ) -> Result<Felt, ExecutionError> {
+        let condition = self.stack.peek();
+
+        // use the hasher to compute the hash of the LOOP block; for LOOP block there is no
+        // second child so we set the second hash to ZEROs; the row address returned by the
+        // hasher is used as the ID of the block; the result of the hash is expected to be in
+        // row addr + 7.
+        let body_hash = {
+            let body_node = mast_forest.get_node_by_id(node.body());
+
+            body_node.digest().into()
+        };
+        let addr =
+            self.chiplets
+                .hash_control_block(body_hash, EMPTY_WORD, Loop::DOMAIN, node.digest());
+
+        // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
+        // trace, but if the value on the top of the stack is not ONE, the block is not marked
+        // as the loop block, and the hash of the body will not be added to the block hash table.
+        // basically, if the top of the stack is ZERO, a LOOP operation should be immediately
+        // followed by an END operation.
+        self.decoder.start_loop(body_hash, addr, condition);
+        self.execute_op(Operation::Drop)?;
+        Ok(condition)
+    }
+
+    /// Ends decoding of a LOOP block. If pop_stack is set to true, this also removes the
+    /// value at the top of the stack.
+    pub(super) fn end_loop_node(
+        &mut self,
+        node: &LoopNode,
+        pop_stack: bool,
+    ) -> Result<(), ExecutionError> {
+        // this appends a row with END operation to the decoder trace.
+        self.decoder.end_control_block(node.digest().into());
+
+        // if we are exiting a loop, we also need to pop the top value off the stack (and this
+        // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
+        // entered the loop in the first place, the stack would have been popped when the LOOP
+        // operation was executed.
+        if pop_stack {
+            // make sure the condition at the top of the stack is set to ZERO
+            #[cfg(debug_assertions)]
+            debug_assert_eq!(ZERO, self.stack.peek());
+
+            self.execute_op(Operation::Drop)
+        } else {
+            self.execute_op(Operation::Noop)
+        }
+    }
 
     /// Starts decoding a LOOP block. This also pops the value from the top of the stack and
     /// returns it.
@@ -202,6 +304,87 @@ where
 
     // CALL BLOCK
     // --------------------------------------------------------------------------------------------
+
+    /// Starts decoding of a CALL or a SYSCALL node.
+    pub(super) fn start_call_node(
+        &mut self,
+        node: &CallNode,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
+        // returned by the hasher is used as the ID of the block; the result of the hash is
+        // expected to be in row addr + 7.
+        let callee_hash = {
+            let callee = mast_forest.get_node_by_id(node.callee());
+
+            callee.digest().into()
+        };
+        let addr = self.chiplets.hash_control_block(
+            callee_hash,
+            EMPTY_WORD,
+            node.hash_domain(),
+            node.digest(),
+        );
+
+        // start new execution context for the operand stack. this has the effect of resetting
+        // stack depth to 16.
+        let (stack_depth, next_overflow_addr) = self.stack.start_context();
+        debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
+
+        // update the system registers and start decoding the block; this appends a row with
+        // CALL/SYSCALL operation to the decoder trace and records information about the current
+        // execution context in the block stack table. this info will be used to restore the
+        // context after the function returns.
+        let ctx_info = ExecutionContextInfo::new(
+            self.system.ctx(),
+            self.system.fn_hash(),
+            self.system.fmp(),
+            stack_depth as u32,
+            next_overflow_addr,
+        );
+
+        if node.is_syscall() {
+            self.system.start_syscall();
+            self.decoder.start_syscall(callee_hash, addr, ctx_info);
+        } else {
+            self.system.start_call(callee_hash);
+            self.decoder.start_call(callee_hash, addr, ctx_info);
+        }
+
+        // the rest of the VM state does not change
+        self.execute_op(Operation::Noop)
+    }
+
+    /// Ends decoding of a CALL or a SYSCALL block.
+    pub(super) fn end_call_node(&mut self, node: &CallNode) -> Result<(), ExecutionError> {
+        // when a CALL block ends, stack depth must be exactly 16
+        let stack_depth = self.stack.depth();
+        if stack_depth > STACK_TOP_SIZE {
+            return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
+        }
+
+        // this appends a row with END operation to the decoder trace; the returned value contains
+        // information about the execution context prior to execution of the CALL block
+        let ctx_info = self
+            .decoder
+            .end_control_block(node.digest().into())
+            .expect("no execution context");
+
+        // when returning from a function call or a syscall, restore the context of the system
+        // registers and the operand stack to what it was prior to the call.
+        self.system.restore_context(
+            ctx_info.parent_ctx,
+            ctx_info.parent_fmp,
+            ctx_info.parent_fn_hash,
+        );
+        self.stack.restore_context(
+            ctx_info.parent_stack_depth as usize,
+            ctx_info.parent_next_overflow_addr,
+        );
+
+        // the rest of the VM state does not change
+        self.execute_op(Operation::Noop)
+    }
 
     /// Starts decoding of a CALL or a SYSCALL block.
     pub(super) fn start_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
@@ -275,6 +458,25 @@ where
 
     // DYN BLOCK
     // --------------------------------------------------------------------------------------------
+
+    /// Starts decoding of a DYN node.
+    pub(super) fn start_dyn_node(&mut self, callee_hash: Word) -> Result<(), ExecutionError> {
+        let addr =
+            self.chiplets
+                .hash_control_block(EMPTY_WORD, EMPTY_WORD, Dyn::DOMAIN, DynNode.digest());
+
+        self.decoder.start_dyn(callee_hash, addr);
+        self.execute_op(Operation::Noop)
+    }
+
+    /// Ends decoding of a DYN node.
+    pub(super) fn end_dyn_node(&mut self) -> Result<(), ExecutionError> {
+        // this appends a row with END operation to the decoder trace. when the END operation is
+        // executed the rest of the VM state does not change
+        self.decoder.end_control_block(DynNode.digest().into());
+
+        self.execute_op(Operation::Noop)
+    }
 
     /// Starts decoding of a DYN block.
     pub(super) fn start_dyn_block(

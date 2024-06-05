@@ -23,7 +23,10 @@ use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
-    mast::{JoinNode, MastForest, MastNode, MastNodeId},
+    mast::{
+        CallNode, DynNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId, MerkleTreeNode,
+        SplitNode,
+    },
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 
@@ -258,11 +261,11 @@ where
 
         match node {
             MastNode::Block(_) => todo!(),
-            MastNode::Join(join) => self.execute_join_node(join, mast_forest),
-            MastNode::Split(_) => todo!(),
-            MastNode::Loop(_) => todo!(),
-            MastNode::Call(_) => todo!(),
-            MastNode::Dyn(_) => todo!(),
+            MastNode::Join(node) => self.execute_join_node(node, mast_forest),
+            MastNode::Split(node) => self.execute_split_node(node, mast_forest),
+            MastNode::Loop(node) => self.execute_loop_node(node, mast_forest),
+            MastNode::Call(node) => self.execute_call_node(node, mast_forest),
+            MastNode::Dyn => self.execute_dyn_node(mast_forest),
             MastNode::External(_) => todo!(),
         }
     }
@@ -280,6 +283,109 @@ where
         self.execute_mast_node(node.second(), mast_forest)?;
 
         self.end_join_node(node)
+    }
+
+    #[inline(always)]
+    fn execute_split_node(
+        &mut self,
+        node: &SplitNode,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        // start the SPLIT block; this also pops the stack and returns the popped element
+        let condition = self.start_split_node(node, mast_forest)?;
+
+        // execute either the true or the false branch of the split block based on the condition
+        if condition == ONE {
+            self.execute_mast_node(node.on_true(), mast_forest)?;
+        } else if condition == ZERO {
+            self.execute_mast_node(node.on_false(), mast_forest)?;
+        } else {
+            return Err(ExecutionError::NotBinaryValue(condition));
+        }
+
+        self.end_split_node(node)
+    }
+
+    /// Executes the specified [Loop] block.
+    #[inline(always)]
+    fn execute_loop_node(
+        &mut self,
+        node: &LoopNode,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        // start the LOOP block; this also pops the stack and returns the popped element
+        let condition = self.start_loop_node(node, mast_forest)?;
+
+        // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
+        if condition == ONE {
+            // execute the loop body at least once
+            self.execute_mast_node(node.body(), mast_forest)?;
+
+            // keep executing the loop body until the condition on the top of the stack is no
+            // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
+            // which drops the condition from the stack
+            while self.stack.peek() == ONE {
+                self.decoder.repeat();
+                self.execute_op(Operation::Drop)?;
+                self.execute_mast_node(node.body(), mast_forest)?;
+            }
+
+            // end the LOOP block and drop the condition from the stack
+            self.end_loop_node(node, true)
+        } else if condition == ZERO {
+            // end the LOOP block, but don't drop the condition from the stack because it was
+            // already dropped when we started the LOOP block
+            self.end_loop_node(node, false)
+        } else {
+            Err(ExecutionError::NotBinaryValue(condition))
+        }
+    }
+
+    /// Executes the specified [Call] block.
+    #[inline(always)]
+    fn execute_call_node(
+        &mut self,
+        call_node: &CallNode,
+        mast_forest: &MastForest,
+    ) -> Result<(), ExecutionError> {
+        let callee_digest = {
+            let callee = mast_forest.get_node_by_id(call_node.callee());
+
+            callee.digest().into()
+        };
+
+        // if this is a syscall, make sure the call target exists in the kernel
+        if call_node.is_syscall() {
+            self.chiplets.access_kernel_proc(callee_digest)?;
+        }
+
+        self.start_call_node(call_node, mast_forest)?;
+
+        // if this is a dyncall, execute the dynamic code block
+        // TODOP: change to `matches!(call_node.callee(), DynNode)`
+        if callee_digest == DynNode.digest() {
+            self.execute_dyn_node(mast_forest)?;
+        } else {
+            self.execute_mast_node(call_node.callee(), mast_forest)?;
+        }
+
+        self.end_call_node(call_node)
+    }
+
+    /// Executes the specified [DynNode] node.
+    #[inline(always)]
+    fn execute_dyn_node(&mut self, mast_forest: &MastForest) -> Result<(), ExecutionError> {
+        // get target hash from the stack
+        let callee_hash = self.stack.get_word(0);
+        self.start_dyn_node(callee_hash)?;
+
+        // get dynamic code from the code block table and execute it
+        let callee_id = mast_forest
+            .get_node_id_by_digest(callee_hash.into())
+            .ok_or_else(|| ExecutionError::DynamicCodeBlockNotFound(callee_hash.into()))?;
+        self.execute_mast_node(callee_id, mast_forest)?;
+
+        self.end_dyn_node()
     }
 
     /// Executes the specified [CodeBlock].
