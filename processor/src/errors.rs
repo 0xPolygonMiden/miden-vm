@@ -5,7 +5,7 @@ use super::{
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
-use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
+use vm_core::{mast::MastNode, stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]
@@ -68,6 +68,7 @@ pub enum ExecutionError {
     SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
+    UnexecutableMastNode(MastNode),
 }
 
 impl Display for ExecutionError {
@@ -199,6 +200,9 @@ impl Display for ExecutionError {
             }
             UnexecutableCodeBlock(block) => {
                 write!(f, "Execution reached unexecutable code block {block:?}")
+            }
+            UnexecutableMastNode(mast_node) => {
+                write!(f, "Execution reached unexecutable MAST node {mast_node:?}")
             }
         }
     }

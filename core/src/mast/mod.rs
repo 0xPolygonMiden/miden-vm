@@ -11,7 +11,7 @@ pub trait MerkleTreeNode {
 // and should be a node digest equality checks.
 // Otherwise our mapping `node_hash -> MastNodeId` breaks
 // And e.g. 2 dyn nodes would be considered "not equal"
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MastNodeId(usize);
 
 pub struct MastForest {
@@ -45,6 +45,8 @@ impl MastForest {
     }
 }
 
+// TODOP: Implement `Eq` only as a hash check on all nodes?
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
     Block(BasicBlockNode),
     Join(JoinNode),
@@ -66,11 +68,12 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => node.digest(),
             MastNode::Call(node) => node.digest(),
             MastNode::Dyn => DynNode.digest(),
-            MastNode::External(_) => todo!(),
+            MastNode::External(external_digest) => *external_digest,
         }
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BasicBlockNode {
     /// The primitive operations contained in this basic block.
     ///
@@ -102,6 +105,7 @@ impl MerkleTreeNode for BasicBlockNode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {
     children: [MastNodeId; 2],
     digest: RpoDigest,
@@ -123,6 +127,7 @@ impl MerkleTreeNode for JoinNode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitNode {
     branches: [MastNodeId; 2],
     digest: RpoDigest,
@@ -144,6 +149,7 @@ impl MerkleTreeNode for SplitNode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoopNode {
     body: MastNodeId,
     digest: RpoDigest,
@@ -161,6 +167,7 @@ impl MerkleTreeNode for LoopNode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallNode {
     // Q: This prevents encoding `DYN_DIGEST`
     callee: MastNodeId,
@@ -200,6 +207,7 @@ impl MerkleTreeNode for CallNode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DynNode;
 
 impl DynNode {
