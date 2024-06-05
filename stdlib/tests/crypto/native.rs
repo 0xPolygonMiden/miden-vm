@@ -50,13 +50,15 @@ fn test_invalid_end_addr() {
 fn test_hash_empty() {
     // computes the hash for 8 consecutive zeros using mem_stream directly
     let two_zeros_mem_stream = "
+    use.std::crypto::hashes::rpo
+
     begin
         # mem_stream state
         push.1000 padw padw padw
         mem_stream hperm
 
         # drop everything except the hash
-        dropw swapw dropw movup.4 drop
+        exec.rpo::squeeze_digest movup.4 drop
     end
     ";
 
@@ -86,6 +88,8 @@ fn test_hash_empty() {
 fn test_single_iteration() {
     // computes the hash of 1 using mem_stream
     let one_memstream = "
+    use.std::crypto::hashes::rpo
+
     begin
         # insert 1 to memory
         push.1.1000 mem_store
@@ -95,7 +99,7 @@ fn test_single_iteration() {
         mem_stream hperm
 
         # drop everything except the hash
-        dropw swapw dropw movup.4 drop
+        exec.rpo::squeeze_digest movup.4 drop
     end
     ";
 

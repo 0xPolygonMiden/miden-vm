@@ -122,13 +122,14 @@ fn test_pipe_words_to_memory() {
     let mem_addr = 1000;
     let one_word = format!(
         "use.std::mem
+        use.std::crypto::hashes::rpo
 
         begin
             push.{} # target address
             push.1  # number of words
 
             exec.mem::pipe_words_to_memory
-            dropw swapw dropw
+            exec.rpo::squeeze_digest
         end",
         mem_addr
     );
@@ -145,13 +146,14 @@ fn test_pipe_words_to_memory() {
 
     let three_words = format!(
         "use.std::mem
+        use.std::crypto::hashes::rpo
 
         begin
             push.{} # target address
             push.3  # number of words
 
             exec.mem::pipe_words_to_memory
-            dropw swapw dropw
+            exec.rpo::squeeze_digest
         end",
         mem_addr
     );
