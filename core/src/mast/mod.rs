@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::rpo::RpoDigest;
 
@@ -93,14 +95,24 @@ impl MastForest {
         self.entrypoint.map(|entrypoint| self.get_node_by_id(entrypoint).digest())
     }
 
+    #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> &MastNode {
         let idx: usize = node_id.0.try_into().expect("u32 expected to fit in usize");
 
         &self.nodes[idx]
     }
 
+    #[inline(always)]
     pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
         self.node_id_by_hash.get(&digest).copied()
+    }
+}
+
+impl Index<MastNodeId> for MastForest {
+    type Output = MastNode;
+
+    fn index(&self, node_id: MastNodeId) -> &Self::Output {
+        self.get_node_by_id(node_id)
     }
 }
 
