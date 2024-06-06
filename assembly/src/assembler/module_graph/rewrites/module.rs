@@ -18,8 +18,8 @@ use crate::{
 /// added to a [ModuleGraph]. These rewrites include:
 ///
 /// * Resolving, at least partially, all of the invocation targets in procedures of the module, and
-/// rewriting those targets as concretely as possible OR as phantom calls representing procedures
-/// referenced by MAST root for which we have no definition.
+///   rewriting those targets as concretely as possible OR as phantom calls representing procedures
+///   referenced by MAST root for which we have no definition.
 pub struct ModuleRewriter<'a, 'b: 'a> {
     resolver: &'a NameResolver<'b>,
     module_id: ModuleIndex,

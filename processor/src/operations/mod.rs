@@ -146,7 +146,7 @@ where
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
-            Operation::MpVerify => self.op_mpverify()?,
+            Operation::MpVerify(err_code) => self.op_mpverify(err_code)?,
             Operation::MrUpdate => self.op_mrupdate()?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::RCombBase => self.op_rcomb_base()?,

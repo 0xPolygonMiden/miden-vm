@@ -386,6 +386,10 @@ impl Serializable for Instruction {
             Self::MTreeSet => OpCode::MTreeSet.write_into(target),
             Self::MTreeMerge => OpCode::MTreeMerge.write_into(target),
             Self::MTreeVerify => OpCode::MTreeVerify.write_into(target),
+            Self::MTreeVerifyWithError(err_code) => {
+                OpCode::MTreeVerifyWithError.write_into(target);
+                target.write_u32(err_code.expect_value());
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),

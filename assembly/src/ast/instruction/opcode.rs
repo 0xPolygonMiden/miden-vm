@@ -241,6 +241,7 @@ pub enum OpCode {
     MTreeSet,
     MTreeMerge,
     MTreeVerify,
+    MTreeVerifyWithError,
 
     // ----- STARK proof verification ------------------------------------------------------------
     FriExt2Fold4,

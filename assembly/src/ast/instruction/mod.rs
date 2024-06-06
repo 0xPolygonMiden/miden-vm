@@ -251,6 +251,7 @@ pub enum Instruction {
     MTreeSet,
     MTreeMerge,
     MTreeVerify,
+    MTreeVerifyWithError(ErrorCode),
 
     // ----- STARK proof verification ------------------------------------------------------------
     FriExt2Fold4,

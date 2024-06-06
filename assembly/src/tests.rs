@@ -1121,6 +1121,31 @@ end";
     Ok(())
 }
 
+#[test]
+fn mtree_verify_with_code() -> TestResult {
+    let source = source_file!(
+        "\
+    const.ERR1=1
+
+    begin
+        mtree_verify
+        mtree_verify.err=ERR1
+        mtree_verify.err=2
+    end
+    "
+    );
+
+    let mut context = TestContext::default();
+    let program = context.assemble(source)?;
+
+    let expected = "\
+begin
+    span mpverify(0) mpverify(1) mpverify(2) end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
 // NESTED CONTROL BLOCKS
 // ================================================================================================
 
