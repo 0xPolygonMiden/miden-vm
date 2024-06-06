@@ -31,8 +31,8 @@ pub trait MerkleTreeNode {
 /// Note that since a [`MastForest`] enforces the invariant that equal [`MastNode`]s MUST have equal
 /// [`MastNodeId`]s, [`MastNodeId`] equality can be used to determine equality of the underlying
 /// [`MastNode`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MastNodeId(usize);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MastNodeId(u32);
 
 #[derive(Debug, Default)]
 pub struct MastForest {
@@ -70,7 +70,8 @@ impl MastForest {
             // node already exists in the forest; return previously assigned id
             *node_id
         } else {
-            let new_node_id = MastNodeId(self.nodes.len());
+            let new_node_id =
+                MastNodeId(self.nodes.len().try_into().expect("u32 expected to fit in usize"));
 
             self.node_id_by_hash.insert(node.digest(), new_node_id);
             self.nodes.push(node);
@@ -93,7 +94,9 @@ impl MastForest {
     }
 
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> &MastNode {
-        &self.nodes[node_id.0]
+        let idx: usize = node_id.0.try_into().expect("u32 expected to fit in usize");
+
+        &self.nodes[idx]
     }
 
     pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
