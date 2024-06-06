@@ -169,7 +169,7 @@ impl SpanBuilder {
 
     /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
     /// this builder. If the builder is empty, then no node is created and `None` is returned.
-    /// 
+    ///
     /// The main differences with [`Self::to_basic_block`] are:
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
