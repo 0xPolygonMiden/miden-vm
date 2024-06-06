@@ -1,4 +1,4 @@
-use core::ops::Index;
+use core::{fmt, ops::Index};
 
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::rpo::RpoDigest;
@@ -36,7 +36,7 @@ pub trait MerkleTreeNode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct MastForest {
     /// All of the blocks local to the trees comprising the MAST forest
     nodes: Vec<MastNode>,
@@ -54,12 +54,17 @@ pub struct MastForest {
     kernel: Kernel,
 }
 
+/// Constructors
 impl MastForest {
     /// Creates a new empty [`MastForest`].
     pub fn new() -> Self {
         Self::default()
     }
+}
 
+/// Mutators
+impl MastForest {
+    // TODOP: Rename `ensure_node()` to be clear that it doesn't always add?
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
     ///
     /// If a [`MastNode`] which is equal to the current node was previously added, the previously
@@ -82,6 +87,27 @@ impl MastForest {
         }
     }
 
+    /// Sets the kernel for this forest.
+    ///
+    /// The kernel MUST have been compiled using this [`MastForest`]; that is, all kernel procedures
+    /// must be present in this forest.
+    pub fn set_kernel(&mut self, kernel: Kernel) {
+        #[cfg(debug_assertions)]
+        for proc_hash in kernel.proc_hashes() {
+            assert!(self.node_id_by_hash.contains_key(proc_hash));
+        }
+
+        self.kernel = kernel;
+    }
+
+    /// Sets the entrypoint for this forest.
+    pub fn set_entrypoint(&mut self, entrypoint: MastNodeId) {
+        self.entrypoint = Some(entrypoint);
+    }
+}
+
+/// Public accessors
+impl MastForest {
     pub fn kernel(&self) -> &Kernel {
         &self.kernel
     }
@@ -116,6 +142,12 @@ impl Index<MastNodeId> for MastForest {
     }
 }
 
+impl fmt::Display for MastForest {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
 // TODOP: Implement `Eq` only as a hash check on all nodes?
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
@@ -143,12 +175,20 @@ impl MastNode {
         Self::Block(BasicBlockNode::with_decorators(operations, decorators))
     }
 
-    pub fn new_join(children: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
-        Self::Join(JoinNode::new(children, mast_forest))
+    pub fn new_join(
+        left_child: MastNodeId,
+        right_child: MastNodeId,
+        mast_forest: &MastForest,
+    ) -> Self {
+        Self::Join(JoinNode::new([left_child, right_child], mast_forest))
     }
 
-    pub fn new_split(branches: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
-        Self::Split(SplitNode::new(branches, mast_forest))
+    pub fn new_split(
+        if_branch: MastNodeId,
+        else_branch: MastNodeId,
+        mast_forest: &MastForest,
+    ) -> Self {
+        Self::Split(SplitNode::new([if_branch, else_branch], mast_forest))
     }
 
     pub fn new_loop(body: MastNodeId, mast_forest: &MastForest) -> Self {
@@ -163,12 +203,23 @@ impl MastNode {
         Self::Call(CallNode::new_syscall(callee, mast_forest))
     }
 
-    pub fn new_dyncall() -> Self {
+    pub fn new_dynexec() -> Self {
         Self::Dyn
+    }
+
+    pub fn new_dyncall(dyn_node_id: MastNodeId, mast_forest: &MastForest) -> Self {
+        Self::Call(CallNode::new(dyn_node_id, mast_forest))
     }
 
     pub fn new_external(code_hash: RpoDigest) -> Self {
         Self::External(code_hash)
+    }
+}
+
+/// Public accessors
+impl MastNode {
+    pub fn is_basic_block(&self) -> bool {
+        matches!(self, Self::Block(_))
     }
 }
 

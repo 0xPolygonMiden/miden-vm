@@ -13,7 +13,7 @@ use crate::diagnostics::reporting::set_panic_hook;
 
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
-use vm_core::{utils::DisplayHex, Program};
+use vm_core::{mast::MastForest, utils::DisplayHex};
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics
@@ -307,8 +307,8 @@ impl TestContext {
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
     /// module represented in `source`.
     #[track_caller]
-    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
-        self.assembler.assemble(source)
+    pub fn assemble(&mut self, source: impl Compile) -> Result<MastForest, Report> {
+        self.assembler.clone().assemble(source)
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning
@@ -318,6 +318,7 @@ impl TestContext {
         &mut self,
         path: LibraryPath,
         module: impl Compile,
+        mast_forest: &mut MastForest,
     ) -> Result<Vec<RpoDigest>, Report> {
         let mut context = AssemblyContext::for_library(&path);
         context.set_warnings_as_errors(self.assembler.warnings_as_errors());
@@ -327,7 +328,7 @@ impl TestContext {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..CompileOptions::for_library()
         };
-        self.assembler.assemble_module(module, options, &mut context)
+        self.assembler.assemble_module(module, options, &mut context, mast_forest)
     }
 
     /// Get a reference to the [ProcedureCache] of the [Assembler] constructed by this context.
@@ -343,10 +344,11 @@ impl TestContext {
     pub fn display_digest_from_cache(
         &self,
         name: &FullyQualifiedProcedureName,
+        mast_forest: &MastForest,
     ) -> impl fmt::Display {
         self.procedure_cache()
             .get_by_name(name)
-            .map(|p| p.code().hash())
+            .map(|p| p.mast_root(mast_forest))
             .map(DisplayDigest)
             .unwrap_or_else(|| panic!("procedure '{}' is not in the procedure cache", name))
     }

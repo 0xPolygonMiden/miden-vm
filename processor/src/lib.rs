@@ -16,17 +16,15 @@ use miden_air::trace::{
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
     chiplets::hasher::Digest, crypto::merkle::SMT_DEPTH, errors::InputError,
-    utils::DeserializationError, AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program,
-    ProgramInfo, QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    utils::DeserializationError, AdviceInjector, AssemblyOp, Felt, Kernel, MastForest, MastNode,
+    MastNodeId, MerkleTreeNode, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
+    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     code_blocks::{
         Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
-    mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, MastNode, MastNodeId,
-        MerkleTreeNode, SplitNode,
-    },
+    mast::{BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, SplitNode},
     CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 
@@ -175,6 +173,28 @@ where
     if result.is_ok() {
         assert_eq!(
             program.hash(),
+            process.decoder.program_hash().into(),
+            "inconsistent program hash"
+        );
+    }
+    VmStateIterator::new(process, result)
+}
+
+/// Returns an iterator which allows callers to step through the execution and inspect VM state at
+/// each execution step.
+pub fn execute_mast_forest_iter<H>(
+    program: &MastForest,
+    stack_inputs: StackInputs,
+    host: H,
+) -> VmStateIterator
+where
+    H: Host,
+{
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
+    let result = process.execute_mast_forest(program);
+    if result.is_ok() {
+        assert_eq!(
+            program.entrypoint_digest().expect("MAST forest has no entrypoint"),
             process.decoder.program_hash().into(),
             "inconsistent program hash"
         );

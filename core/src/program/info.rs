@@ -1,3 +1,5 @@
+use crate::MastForest;
+
 use super::{
     super::{ToElements, WORD_SIZE},
     ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel, Program,
@@ -57,6 +59,19 @@ impl From<Program> for ProgramInfo {
     fn from(program: Program) -> Self {
         let Program { root, kernel, .. } = program;
         let program_hash = root.hash();
+
+        Self {
+            program_hash,
+            kernel,
+        }
+    }
+}
+
+// TODOP: Remove; temporary solution
+impl From<MastForest> for ProgramInfo {
+    fn from(mast_forest: MastForest) -> Self {
+        let program_hash = mast_forest.entrypoint_digest().unwrap();
+        let kernel = mast_forest.kernel().clone();
 
         Self {
             program_hash,

@@ -83,6 +83,7 @@ pub mod crypto {
 }
 
 pub mod mast;
+pub use mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
 
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},

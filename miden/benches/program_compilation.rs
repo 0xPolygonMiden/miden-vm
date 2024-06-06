@@ -15,7 +15,7 @@ fn program_compilation(c: &mut Criterion) {
                 exec.sha256::hash_2to1
             end";
         bench.iter(|| {
-            let mut assembler = Assembler::default()
+            let assembler = Assembler::default()
                 .with_library(&StdLibrary::default())
                 .expect("failed to load stdlib");
             assembler.assemble(source).expect("Failed to compile test source.")

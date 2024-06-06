@@ -57,6 +57,7 @@ impl BasicBlockNode {
     }
 }
 
+/// Public accessors
 impl BasicBlockNode {
     pub fn op_batches(&self) -> &[OpBatch] {
         &self.op_batches
@@ -66,6 +67,11 @@ impl BasicBlockNode {
     /// this span block while executing operation batches of this span block
     pub fn decorator_iter(&self) -> DecoratorIterator {
         DecoratorIterator::new(&self.decorators)
+    }
+
+    /// Returns a list of decorators in this span block
+    pub fn decorators(&self) -> &DecoratorList {
+        &self.decorators
     }
 }
 

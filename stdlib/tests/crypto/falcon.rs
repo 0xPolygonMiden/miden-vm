@@ -210,8 +210,9 @@ fn falcon_prove_verify() {
     let host = DefaultHost::new(advice_provider);
 
     let options = ProvingOptions::with_96_bit_security(false);
-    let (stack_outputs, proof) = test_utils::prove(&program, stack_inputs.clone(), host, options)
-        .expect("failed to generate proof");
+    let (stack_outputs, proof) =
+        test_utils::prove_mast_forest(&program, stack_inputs.clone(), host, options)
+            .expect("failed to generate proof");
 
     let program_info = ProgramInfo::from(program);
     let result = test_utils::verify(program_info, stack_inputs, stack_outputs, proof);

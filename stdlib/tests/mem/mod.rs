@@ -22,7 +22,7 @@ fn test_memcopy() {
     end
     ";
 
-    let mut assembler = assembly::Assembler::default()
+    let assembler = assembly::Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib");
 
@@ -34,7 +34,7 @@ fn test_memcopy() {
         DefaultHost::default(),
         ExecutionOptions::default(),
     );
-    process.execute(&program).unwrap();
+    process.execute_mast_forest(&program).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), 1000),

@@ -6,7 +6,7 @@ use crate::{
     diagnostics::SourceFile,
     AssemblyError, LibraryPath, RpoDigest, SourceSpan, Span, Spanned,
 };
-use vm_core::code_blocks::CodeBlock;
+use vm_core::mast::{MastForest, MastNodeId};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -168,6 +168,7 @@ impl AssemblyContext {
         &mut self,
         callee: &Procedure,
         inlined: bool,
+        mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
         let context = self.unwrap_current_procedure_mut();
 
@@ -176,7 +177,7 @@ impl AssemblyContext {
 
         // If the callee is not being inlined, add it to our callset
         if !inlined {
-            context.insert_callee(callee.mast_root());
+            context.insert_callee(callee.mast_root(mast_forest));
         }
 
         Ok(())
@@ -264,7 +265,7 @@ impl ProcedureContext {
         self.visibility.is_syscall()
     }
 
-    pub fn into_procedure(self, code: CodeBlock) -> Box<Procedure> {
+    pub fn into_procedure(self, code: MastNodeId) -> Box<Procedure> {
         let procedure = Procedure::new(self.name, self.visibility, self.num_locals as u32, code)
             .with_span(self.span)
             .with_source_file(self.source_file)

@@ -1,4 +1,5 @@
 use alloc::{rc::Rc, string::ToString, vec::Vec};
+use vm_core::mast::MastForest;
 
 use crate::{
     assert_diagnostic_lines,
@@ -226,8 +227,9 @@ fn simple_main_call() -> TestResult {
 #[test]
 fn call_without_path() -> TestResult {
     let mut context = TestContext::default();
+    let mut mast_forest = MastForest::new();
+
     // compile first module
-    //context.add_module_from_source(
     context.assemble_module(
         "account_code1".parse().unwrap(),
         source_file!(
@@ -241,12 +243,12 @@ fn call_without_path() -> TestResult {
     end
     "
         ),
+        &mut mast_forest,
     )?;
 
     //---------------------------------------------------------------------------------------------
 
     // compile second module
-    //context.add_module_from_source(
     context.assemble_module(
         "account_code2".parse().unwrap(),
         source_file!(
@@ -260,6 +262,7 @@ fn call_without_path() -> TestResult {
     end
     "
         ),
+        &mut mast_forest,
     )?;
 
     //---------------------------------------------------------------------------------------------
@@ -1180,7 +1183,7 @@ fn program_with_one_procedure() -> TestResult {
     let source =
         source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
+    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1201,7 +1204,7 @@ fn program_with_one_empty_procedure() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("proc.foo end begin exec.foo end");
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
+    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1222,8 +1225,8 @@ fn program_with_nested_procedure() -> TestResult {
         begin push.2 push.4 add exec.foo push.11 exec.bar sub end"
     );
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
-    let bar = context.display_digest_from_cache(&"#exec::bar".parse().unwrap());
+    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
+    let bar = context.display_digest_from_cache(&"#exec::bar".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1263,7 +1266,7 @@ fn program_with_proc_locals() -> TestResult {
         end"
     );
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
+    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1391,7 +1394,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     let ast = context.parse_program(source)?;
 
     // phantom calls not allowed
-    let mut assembler = Assembler::default().with_debug_mode(true);
+    let assembler = Assembler::default().with_debug_mode(true);
 
     let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(false);
     let err = assembler
@@ -1409,6 +1412,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     );
 
     // phantom calls allowed
+    let assembler = Assembler::default().with_debug_mode(true);
     let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(true);
     assembler.assemble_in_context(ast, &mut context)?;
     Ok(())
@@ -1449,8 +1453,8 @@ fn program_with_one_import_and_hex_call() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let iszero_unsafe =
-        context.display_digest_from_cache(&"dummy::math::u256::iszero_unsafe".parse().unwrap());
+    let iszero_unsafe = context
+        .display_digest_from_cache(&"dummy::math::u256::iszero_unsafe".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1577,10 +1581,10 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         end"#
     ));
     let program = context.assemble(source)?;
-    let checked_eqz =
-        context.display_digest_from_cache(&"dummy1::math::u64::checked_eqz".parse().unwrap());
-    let notchecked_eqz =
-        context.display_digest_from_cache(&"dummy1::math::u64::unchecked_eqz".parse().unwrap());
+    let checked_eqz = context
+        .display_digest_from_cache(&"dummy1::math::u64::checked_eqz".parse().unwrap(), &program);
+    let notchecked_eqz = context
+        .display_digest_from_cache(&"dummy1::math::u64::unchecked_eqz".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1649,10 +1653,10 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let checked_eqz =
-        context.display_digest_from_cache(&"dummy2::math::u64::checked_eqz".parse().unwrap());
-    let notchecked_eqz =
-        context.display_digest_from_cache(&"dummy2::math::u64::unchecked_eqz".parse().unwrap());
+    let checked_eqz = context
+        .display_digest_from_cache(&"dummy2::math::u64::checked_eqz".parse().unwrap(), &program);
+    let notchecked_eqz = context
+        .display_digest_from_cache(&"dummy2::math::u64::unchecked_eqz".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin
@@ -1720,8 +1724,8 @@ fn module_alias() -> TestResult {
     );
 
     let program = context.assemble(source)?;
-    let checked_add =
-        context.display_digest_from_cache(&"dummy::math::u64::checked_add".parse().unwrap());
+    let checked_add = context
+        .display_digest_from_cache(&"dummy::math::u64::checked_add".parse().unwrap(), &program);
     let expected = format!(
         "\
 begin

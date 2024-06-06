@@ -17,7 +17,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use vm_core::chiplets::hasher::apply_permutation;
+use vm_core::{chiplets::hasher::apply_permutation, mast::MastForest};
 
 // EXPORTS
 // ================================================================================================
@@ -31,7 +31,7 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
-pub use prover::{prove, MemAdviceProvider, ProvingOptions};
+pub use prover::{prove, prove_mast_forest, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
 pub use vm_core::{
@@ -234,7 +234,7 @@ impl Test {
             host,
             ExecutionOptions::default(),
         );
-        process.execute(&program).unwrap();
+        process.execute_mast_forest(&program).unwrap();
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
@@ -274,14 +274,14 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Compiles a test's source and returns the resulting Program or Assembly error.
-    pub fn compile(&self) -> Result<Program, Report> {
+    pub fn compile(&self) -> Result<MastForest, Report> {
         use assembly::{ast::ModuleKind, CompileOptions};
         let assembler = if let Some(kernel) = self.kernel.as_ref() {
             assembly::Assembler::with_kernel_from_module(kernel).expect("invalid kernel")
         } else {
             assembly::Assembler::default()
         };
-        let mut assembler = self
+        let assembler = self
             .add_modules
             .iter()
             .fold(assembler, |assembler, (path, source)| {
@@ -305,7 +305,12 @@ impl Test {
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
+        processor::execute_mast(
+            &program,
+            self.stack_inputs.clone(),
+            host,
+            ExecutionOptions::default(),
+        )
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -321,7 +326,7 @@ impl Test {
             host,
             ExecutionOptions::default(),
         );
-        process.execute(&program)?;
+        process.execute_mast_forest(&program)?;
         Ok(process)
     }
 
@@ -332,8 +337,13 @@ impl Test {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        let (mut stack_outputs, proof) =
-            prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
+        let (mut stack_outputs, proof) = prover::prove_mast_forest(
+            &program,
+            stack_inputs.clone(),
+            host,
+            ProvingOptions::default(),
+        )
+        .unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -351,7 +361,7 @@ impl Test {
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        processor::execute_iter(&program, self.stack_inputs.clone(), host)
+        processor::execute_mast_forest_iter(&program, self.stack_inputs.clone(), host)
     }
 
     /// Returns the last state of the stack after executing a test.

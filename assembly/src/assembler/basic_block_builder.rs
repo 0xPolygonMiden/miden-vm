@@ -1,11 +1,13 @@
 use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction};
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
-use vm_core::{code_blocks::CodeBlock, mast::MastNode, AdviceInjector, AssemblyOp, Operation};
+use vm_core::{
+    mast::{MastForest, MastNode, MastNodeId},
+    AdviceInjector, AssemblyOp, Operation,
+};
 
-// SPAN BUILDER
+// BASIC BLOCK BUILDER
 // ================================================================================================
 
-// TODOP: Rename `BasicBlockBuilder`
 /// A helper struct for constructing SPAN blocks while compiling procedure bodies.
 ///
 /// Operations and decorators can be added to a span builder via various `add_*()` and `push_*()`
@@ -14,7 +16,7 @@ use vm_core::{code_blocks::CodeBlock, mast::MastNode, AdviceInjector, AssemblyOp
 /// The same span builder can be used to construct many blocks. It is expected that when the last
 /// SPAN block in a procedure's body is constructed `extract_final_span_into()` will be used.
 #[derive(Default)]
-pub struct SpanBuilder {
+pub struct BasicBlockBuilder {
     ops: Vec<Operation>,
     decorators: DecoratorList,
     epilogue: Vec<Operation>,
@@ -22,7 +24,7 @@ pub struct SpanBuilder {
 }
 
 /// Constructors
-impl SpanBuilder {
+impl BasicBlockBuilder {
     /// Returns a new [SpanBuilder] instantiated with the specified optional wrapper.
     ///
     /// If the wrapper is provided, the prologue of the wrapper is immediately appended to the
@@ -42,7 +44,7 @@ impl SpanBuilder {
 }
 
 /// Operations
-impl SpanBuilder {
+impl BasicBlockBuilder {
     /// Adds the specified operation to the list of span operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
@@ -65,7 +67,7 @@ impl SpanBuilder {
 }
 
 /// Decorators
-impl SpanBuilder {
+impl BasicBlockBuilder {
     /// Add the specified decorator to the list of span decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
@@ -115,48 +117,21 @@ impl SpanBuilder {
 }
 
 /// Span Constructors
-impl SpanBuilder {
-    /// Creates a new SPAN block from the operations and decorators currently in this builder and
-    /// appends the block to the provided target.
-    ///
-    /// This consumes all operations and decorators in the builder, but does not touch the
-    /// operations in the epilogue of the builder.
-    pub fn extract_span_into(&mut self, target: &mut Vec<CodeBlock>) {
-        if !self.ops.is_empty() {
-            let ops = self.ops.drain(..).collect();
-            let decorators = self.decorators.drain(..).collect();
-            target.push(CodeBlock::new_span_with_decorators(ops, decorators));
-        } else if !self.decorators.is_empty() {
-            // this is a bug in the assembler. we shouldn't have decorators added without their
-            // associated operations
-            // TODO: change this to an error or allow decorators in empty span blocks
-            unreachable!("decorators in an empty SPAN block")
-        }
-    }
-
-    /// Creates a new SPAN block from the operations and decorators currently in this builder and
-    /// appends the block to the provided target.
-    ///
-    /// The main differences from the `extract_span_int()` method above are:
-    /// - Operations contained in the epilogue of the span builder are appended to the list of ops
-    ///   which go into the new SPAN block.
-    /// - The span builder is consumed in the process.
-    pub fn extract_final_span_into(mut self, target: &mut Vec<CodeBlock>) {
-        self.ops.append(&mut self.epilogue);
-        self.extract_span_into(target);
-    }
-
+impl BasicBlockBuilder {
     /// Creates and returns a new BASIC BLOCK node from the operations and decorators currently in
     /// this builder. If the builder is empty, then no node is created and `None` is returned.
     ///
     /// This consumes all operations and decorators in the builder, but does not touch the
     /// operations in the epilogue of the builder.
-    pub fn to_basic_block(&mut self) -> Option<MastNode> {
+    pub fn to_basic_block(&mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
-            Some(MastNode::new_basic_block_with_decorators(ops, decorators))
+            let basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
+            let basic_block_node_id = mast_forest.add_node(basic_block_node);
+
+            Some(basic_block_node_id)
         } else if !self.decorators.is_empty() {
             // this is a bug in the assembler. we shouldn't have decorators added without their
             // associated operations
@@ -174,8 +149,8 @@ impl SpanBuilder {
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
-    pub fn into_basic_block(mut self) -> Option<MastNode> {
+    pub fn into_basic_block(mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
         self.ops.append(&mut self.epilogue);
-        self.to_basic_block()
+        self.to_basic_block(mast_forest)
     }
 }

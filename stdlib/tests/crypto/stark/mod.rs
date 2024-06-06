@@ -5,7 +5,8 @@ use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
 use processor::DefaultHost;
 use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs, VerifierError,
+    prove_mast_forest, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs,
+    VerifierError,
 };
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
@@ -60,7 +61,8 @@ pub fn generate_recursive_verifier_data(
     let options =
         ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), host, options).unwrap();
+    let (stack_outputs, proof) =
+        prove_mast_forest(&program, stack_inputs.clone(), host, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 

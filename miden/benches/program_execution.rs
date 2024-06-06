@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use miden_vm::{execute, Assembler, DefaultHost, StackInputs};
-use processor::ExecutionOptions;
+use miden_vm::{Assembler, DefaultHost, StackInputs};
+use processor::{execute_mast, ExecutionOptions};
 use std::time::Duration;
 use stdlib::StdLibrary;
 
@@ -15,12 +15,12 @@ fn program_execution(c: &mut Criterion) {
             begin
                 exec.sha256::hash_2to1
             end";
-        let mut assembler = Assembler::default()
+        let assembler = Assembler::default()
             .with_library(&StdLibrary::default())
             .expect("failed to load stdlib");
         let program = assembler.assemble(source).expect("Failed to compile test source.");
         bench.iter(|| {
-            execute(
+            execute_mast(
                 &program,
                 StackInputs::default(),
                 DefaultHost::default(),

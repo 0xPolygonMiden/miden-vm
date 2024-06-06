@@ -1,4 +1,4 @@
-use super::{validate_param, AssemblyContext, SpanBuilder};
+use super::{validate_param, AssemblyContext, BasicBlockBuilder};
 use crate::{
     diagnostics::{RelatedError, Report},
     AssemblyError, Felt, Span, MAX_EXP_BITS, ONE, ZERO,
@@ -14,7 +14,7 @@ const TWO: Felt = Felt::new(2);
 /// Asserts that the top two words in the stack are equal.
 ///
 /// VM cycles: 11 cycles
-pub fn assertw(span_builder: &mut SpanBuilder, err_code: u32) {
+pub fn assertw(span_builder: &mut BasicBlockBuilder, err_code: u32) {
     span_builder.push_ops([
         MovUp4,
         Eq,
@@ -39,7 +39,7 @@ pub fn assertw(span_builder: &mut SpanBuilder, err_code: u32) {
 /// - else if imm = 1: INCR
 /// - else if imm = 2: INCR INCR
 /// - otherwise: PUSH(imm) ADD
-pub fn add_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+pub fn add_imm(span_builder: &mut BasicBlockBuilder, imm: Felt) {
     if imm == ZERO {
         span_builder.push_op(Noop);
     } else if imm == ONE {
@@ -55,7 +55,7 @@ pub fn add_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// stack. Specifically, the sequences are:
 /// - if imm = 0: NOOP
 /// - otherwise: PUSH(-imm) ADD
-pub fn sub_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+pub fn sub_imm(span_builder: &mut BasicBlockBuilder, imm: Felt) {
     if imm == ZERO {
         span_builder.push_op(Noop);
     } else {
@@ -68,7 +68,7 @@ pub fn sub_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// - if imm = 0: DROP PAD
 /// - else if imm = 1: NOOP
 /// - otherwise: PUSH(imm) MUL
-pub fn mul_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+pub fn mul_imm(span_builder: &mut BasicBlockBuilder, imm: Felt) {
     if imm == ZERO {
         span_builder.push_ops([Drop, Pad]);
     } else if imm == ONE {
@@ -87,7 +87,7 @@ pub fn mul_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// # Errors
 /// Returns an error if the immediate value is ZERO.
 pub fn div_imm(
-    span_builder: &mut SpanBuilder,
+    span_builder: &mut BasicBlockBuilder,
     ctx: &mut AssemblyContext,
     imm: Span<Felt>,
 ) -> Result<(), AssemblyError> {
@@ -114,14 +114,14 @@ pub fn div_imm(
 /// top of the stack.
 ///
 /// VM cycles: 16 cycles
-pub fn pow2(span_builder: &mut SpanBuilder) {
+pub fn pow2(span_builder: &mut BasicBlockBuilder) {
     append_pow2_op(span_builder);
 }
 
 /// Appends relevant operations to the span_builder block for the computation of power of 2.
 ///
 /// VM cycles: 16 cycles
-pub fn append_pow2_op(span_builder: &mut SpanBuilder) {
+pub fn append_pow2_op(span_builder: &mut BasicBlockBuilder) {
     // push base 2 onto the stack: [exp, ...] -> [2, exp, ...]
     span_builder.push_op(Push(2_u8.into()));
     // introduce initial value of acc onto the stack: [2, exp, ...] -> [1, 2, exp, ...]
@@ -149,7 +149,7 @@ pub fn append_pow2_op(span_builder: &mut SpanBuilder) {
 ///
 /// # Errors
 /// Returns an error if num_pow_bits is greater than 64.
-pub fn exp(span_builder: &mut SpanBuilder, num_pow_bits: u8) -> Result<(), AssemblyError> {
+pub fn exp(span_builder: &mut BasicBlockBuilder, num_pow_bits: u8) -> Result<(), AssemblyError> {
     validate_param(num_pow_bits, 0..=MAX_EXP_BITS)?;
 
     // arranging the stack to prepare it for expacc instruction.
@@ -178,7 +178,7 @@ pub fn exp(span_builder: &mut SpanBuilder, num_pow_bits: u8) -> Result<(), Assem
 /// - pow = 6: 10 cycles
 /// - pow = 7: 12 cycles
 /// - pow > 7: 9 + Ceil(log2(pow))
-pub fn exp_imm(span_builder: &mut SpanBuilder, pow: Felt) -> Result<(), AssemblyError> {
+pub fn exp_imm(span_builder: &mut BasicBlockBuilder, pow: Felt) -> Result<(), AssemblyError> {
     if pow.as_int() <= 7 {
         perform_exp_for_small_power(span_builder, pow.as_int());
         Ok(())
@@ -210,7 +210,7 @@ pub fn exp_imm(span_builder: &mut SpanBuilder, pow: Felt) -> Result<(), Assembly
 /// - pow = 5: 8 cycles
 /// - pow = 6: 10 cycles
 /// - pow = 7: 12 cycles
-fn perform_exp_for_small_power(span_builder: &mut SpanBuilder, pow: u64) {
+fn perform_exp_for_small_power(span_builder: &mut BasicBlockBuilder, pow: u64) {
     match pow {
         0 => {
             span_builder.push_op(Drop);
@@ -256,7 +256,7 @@ fn perform_exp_for_small_power(span_builder: &mut SpanBuilder, pow: u64) {
 ///
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-pub fn ilog2(span: &mut SpanBuilder) {
+pub fn ilog2(span: &mut BasicBlockBuilder) {
     span.push_advice_injector(AdviceInjector::ILog2);
     span.push_op(AdvPop); // [ilog2, n, ...]
 
@@ -296,7 +296,7 @@ pub fn ilog2(span: &mut SpanBuilder) {
 /// and the provided immediate value. Specifically, the sequences are:
 /// - if imm = 0: EQZ
 /// - otherwise: PUSH(imm) EQ
-pub fn eq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+pub fn eq_imm(span_builder: &mut BasicBlockBuilder, imm: Felt) {
     if imm == ZERO {
         span_builder.push_op(Eqz);
     } else {
@@ -308,7 +308,7 @@ pub fn eq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// and the provided immediate value. Specifically, the sequences are:
 /// - if imm = 0: EQZ NOT
 /// - otherwise: PUSH(imm) EQ NOT
-pub fn neq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
+pub fn neq_imm(span_builder: &mut BasicBlockBuilder, imm: Felt) {
     if imm == ZERO {
         span_builder.push_ops([Eqz, Not]);
     } else {
@@ -319,7 +319,7 @@ pub fn neq_imm(span_builder: &mut SpanBuilder, imm: Felt) {
 /// Appends a sequence of operations to check equality between two words at the top of the stack.
 ///
 /// This operation takes 15 VM cycles.
-pub fn eqw(span_builder: &mut SpanBuilder) {
+pub fn eqw(span_builder: &mut BasicBlockBuilder) {
     span_builder.push_ops([
         // duplicate first pair of for comparison(4th elements of each word) in reverse order
         // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
@@ -334,7 +334,7 @@ pub fn eqw(span_builder: &mut SpanBuilder) {
 /// of 1 is pushed onto the stack if a < b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 14 VM cycles.
-pub fn lt(span_builder: &mut SpanBuilder) {
+pub fn lt(span_builder: &mut BasicBlockBuilder) {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_builder);
@@ -358,7 +358,7 @@ pub fn lt(span_builder: &mut SpanBuilder) {
 /// A value of 1 is pushed onto the stack if a <= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 15 VM cycles.
-pub fn lte(span_builder: &mut SpanBuilder) {
+pub fn lte(span_builder: &mut BasicBlockBuilder) {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_builder);
@@ -382,7 +382,7 @@ pub fn lte(span_builder: &mut SpanBuilder) {
 /// of 1 is pushed onto the stack if a > b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 15 VM cycles.
-pub fn gt(span_builder: &mut SpanBuilder) {
+pub fn gt(span_builder: &mut BasicBlockBuilder) {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_builder);
@@ -406,7 +406,7 @@ pub fn gt(span_builder: &mut SpanBuilder) {
 /// A value of 1 is pushed onto the stack if a >= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 16 VM cycles.
-pub fn gte(span_builder: &mut SpanBuilder) {
+pub fn gte(span_builder: &mut BasicBlockBuilder) {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_builder);
@@ -428,7 +428,7 @@ pub fn gte(span_builder: &mut SpanBuilder) {
 /// Checks if the top element in the stack is an odd number or not.
 ///
 /// Vm cycles: 5
-pub fn is_odd(span_builder: &mut SpanBuilder) {
+pub fn is_odd(span_builder: &mut BasicBlockBuilder) {
     span_builder.push_ops([U32split, Drop, Pad, Incr, U32and]);
 }
 
@@ -441,7 +441,7 @@ pub fn is_odd(span_builder: &mut SpanBuilder) {
 /// After these operations, the stack state will be: [a_hi, a_lo, b_hi, b_lo, ...].
 ///
 /// This operation takes 3 cycles.
-fn split_elements(span_builder: &mut SpanBuilder) {
+fn split_elements(span_builder: &mut BasicBlockBuilder) {
     // stack: [b, a, ...] => [b_hi, b_lo, a, ...]
     span_builder.push_op(U32split);
     // => [a, b_hi, b_lo, ...]
@@ -460,7 +460,7 @@ fn split_elements(span_builder: &mut SpanBuilder) {
 /// The resulting stack after this operation is: [eq_flag, lt_flag, ...].
 ///
 /// This operation takes 3 cycles.
-fn check_lt_and_eq(span_builder: &mut SpanBuilder) {
+fn check_lt_and_eq(span_builder: &mut BasicBlockBuilder) {
     // calculate a - b
     // stack: [b, a, ...] => [underflow_flag, result, ...]
     span_builder.push_op(U32sub);
@@ -494,7 +494,7 @@ fn check_lt_and_eq(span_builder: &mut SpanBuilder) {
 /// - hi_flag_lt: 1 if a's high-bit values were less than b's (a_hi < b_hi); 0 otherwise
 ///
 /// This operation takes 6 cycles.
-fn check_lt_high_bits(span_builder: &mut SpanBuilder) {
+fn check_lt_high_bits(span_builder: &mut BasicBlockBuilder) {
     // reorder the stack to check a_hi < b_hi
     span_builder.push_op(MovUp2);
 
@@ -516,7 +516,7 @@ fn check_lt_high_bits(span_builder: &mut SpanBuilder) {
 /// condition will be true if the underflow flag is set.
 ///
 /// This operation takes 3 cycles.
-fn check_lt(span_builder: &mut SpanBuilder) {
+fn check_lt(span_builder: &mut BasicBlockBuilder) {
     // calculate a - b
     // stack: [b, a, ...] => [underflow_flag, result, ...]
     span_builder.push_op(U32sub);
@@ -538,7 +538,7 @@ fn check_lt(span_builder: &mut SpanBuilder) {
 /// - high-bit comparison flag: 1 if the lt/gt condition being checked was true; 0 otherwise
 ///
 /// This function takes 2 cycles.
-fn set_result(span_builder: &mut SpanBuilder) {
+fn set_result(span_builder: &mut BasicBlockBuilder) {
     // check if high bits are equal AND low bit comparison condition was true
     span_builder.push_op(And);
 
@@ -556,7 +556,7 @@ fn set_result(span_builder: &mut SpanBuilder) {
 /// there was no underflow and the result is 0.
 ///
 /// This function takes 4 cycles.
-fn check_lte(span_builder: &mut SpanBuilder) {
+fn check_lte(span_builder: &mut BasicBlockBuilder) {
     // calculate a - b
     // stack: [b, a, ...] => [underflow_flag, result, ...]
     span_builder.push_op(U32sub);
@@ -585,7 +585,7 @@ fn check_lte(span_builder: &mut SpanBuilder) {
 /// - hi_flag_gt: 1 if a's high-bit values were greater than b's (a_hi > b_hi); 0 otherwise
 ///
 /// This function takes 7 cycles.
-fn check_gt_high_bits(span_builder: &mut SpanBuilder) {
+fn check_gt_high_bits(span_builder: &mut BasicBlockBuilder) {
     // reorder the stack to check b_hi < a_hi
     span_builder.push_ops([Swap, MovDn2]);
 

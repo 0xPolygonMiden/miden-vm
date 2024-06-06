@@ -5,7 +5,7 @@ use crate::{
     diagnostics::SourceFile,
     LibraryPath, RpoDigest, SourceSpan, Spanned,
 };
-use vm_core::code_blocks::CodeBlock;
+use vm_core::mast::{MastForest, MastNodeId, MerkleTreeNode};
 
 pub type CallSet = BTreeSet<RpoDigest>;
 
@@ -28,8 +28,8 @@ pub struct Procedure {
     path: FullyQualifiedProcedureName,
     visibility: Visibility,
     num_locals: u32,
-    /// The MAST for this procedure
-    code: CodeBlock,
+    /// The MAST node id for the root of this procedure
+    code: MastNodeId,
     /// The set of MAST roots called by this procedure
     callset: CallSet,
 }
@@ -40,7 +40,7 @@ impl Procedure {
         path: FullyQualifiedProcedureName,
         visibility: Visibility,
         num_locals: u32,
-        code: CodeBlock,
+        code: MastNodeId,
     ) -> Self {
         Self {
             span: SourceSpan::default(),
@@ -103,13 +103,14 @@ impl Procedure {
     }
 
     /// Returns the root of this procedure's MAST.
-    pub fn mast_root(&self) -> RpoDigest {
-        self.code.hash()
+    pub fn mast_root(&self, mast_forest: &MastForest) -> RpoDigest {
+        let code_node = mast_forest.get_node_by_id(self.code);
+        code_node.digest()
     }
 
-    /// Returns a reference to the MAST of this procedure.
-    pub fn code(&self) -> &CodeBlock {
-        &self.code
+    /// Returns a reference to the MAST node ID of this procedure.
+    pub fn code(&self) -> MastNodeId {
+        self.code
     }
 
     /// Returns a reference to a set of all procedures (identified by their MAST roots) which may
