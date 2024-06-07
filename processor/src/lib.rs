@@ -300,7 +300,7 @@ where
         node_id: MastNodeId,
         mast_forest: &MastForest,
     ) -> Result<(), ExecutionError> {
-        let wrapper_node = mast_forest.get_node_by_id(node_id);
+        let wrapper_node = &mast_forest[node_id];
 
         match wrapper_node {
             MastNode::Block(node) => self.execute_basic_block_node(node),
@@ -399,7 +399,7 @@ where
         mast_forest: &MastForest,
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
-            let callee = mast_forest.get_node_by_id(call_node.callee());
+            let callee = &mast_forest[call_node.callee()];
 
             callee.digest()
         };

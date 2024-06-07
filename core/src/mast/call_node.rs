@@ -27,7 +27,7 @@ impl CallNode {
     /// Returns a new [`CallNode`] instantiated with the specified callee.
     pub fn new(callee: MastNodeId, mast_forest: &MastForest) -> Self {
         let digest = {
-            let callee_digest = mast_forest.get_node_by_id(callee).digest();
+            let callee_digest = mast_forest[callee].digest();
 
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::CALL_DOMAIN)
         };
@@ -43,7 +43,7 @@ impl CallNode {
     /// call.
     pub fn new_syscall(callee: MastNodeId, mast_forest: &MastForest) -> Self {
         let digest = {
-            let callee_digest = mast_forest.get_node_by_id(callee).digest();
+            let callee_digest = mast_forest[callee].digest();
 
             hasher::merge_in_domain(&[callee_digest, RpoDigest::default()], Self::SYSCALL_DOMAIN)
         };
@@ -109,7 +109,7 @@ impl<'a> PrettyPrint for CallNodePrettyPrint<'a> {
         use crate::prettier::*;
         use miden_formatting::hex::ToHex;
 
-        let callee_digest = self.mast_forest.get_node_by_id(self.call_node.callee).digest();
+        let callee_digest = self.mast_forest[self.call_node.callee].digest();
 
         let doc = if self.call_node.is_syscall {
             const_text("syscall")

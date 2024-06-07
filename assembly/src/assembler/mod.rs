@@ -572,7 +572,7 @@ impl Assembler {
                 }
             });
 
-            let proc_code_node = mast_forest.get_node_by_id(proc.code());
+            let proc_code_node = &mast_forest[proc.code()];
             exports.push(proc_code_node.digest());
         }
 
@@ -886,7 +886,7 @@ fn combine_mast_node_ids(
     let mut contiguous_basic_blocks: Vec<MastNodeId> = Vec::new();
 
     mast_node_ids.drain(0..).for_each(|mast_node_id| {
-        let mast_node = mast_forest.get_node_by_id(mast_node_id);
+        let mast_node = &mast_forest[mast_node_id];
         if mast_node.is_basic_block() {
             contiguous_basic_blocks.push(mast_node_id);
         } else {
@@ -946,7 +946,7 @@ fn combine_basic_blocks(
     let mut decorators = DecoratorList::new();
 
     mast_node_ids.drain(0..).for_each(|mast_node_id| {
-        let mast_node = mast_forest.get_node_by_id(mast_node_id);
+        let mast_node = &mast_forest[mast_node_id];
         if let MastNode::Block(basic_block) = mast_node {
             for decorator in basic_block.decorators() {
                 decorators.push((decorator.0 + ops.len(), decorator.1.clone()));

@@ -23,8 +23,8 @@ impl SplitNode {
 impl SplitNode {
     pub fn new(branches: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
         let digest = {
-            let if_branch_hash = mast_forest.get_node_by_id(branches[0]).digest();
-            let else_branch_hash = mast_forest.get_node_by_id(branches[1]).digest();
+            let if_branch_hash = mast_forest[branches[0]].digest();
+            let else_branch_hash = mast_forest[branches[1]].digest();
 
             hasher::merge_in_domain(&[if_branch_hash, else_branch_hash], Self::DOMAIN)
         };
@@ -76,8 +76,8 @@ impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let true_branch = self.mast_forest.get_node_by_id(self.split_node.on_true()).to_pretty_print(self.mast_forest);
-        let false_branch = self.mast_forest.get_node_by_id(self.split_node.on_false()).to_pretty_print(self.mast_forest);
+        let true_branch = self.mast_forest[self.split_node.on_true()].to_pretty_print(self.mast_forest);
+        let false_branch = self.mast_forest[self.split_node.on_false()].to_pretty_print(self.mast_forest);
 
         let mut doc = indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();
         doc += indent(4, const_text("else") + nl() + false_branch.render());

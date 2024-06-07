@@ -63,12 +63,12 @@ where
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let child1_hash = {
-            let child_node = mast_forest.get_node_by_id(node.first());
+            let child_node = &mast_forest[node.first()];
 
             child_node.digest().into()
         };
         let child2_hash = {
-            let child_node = mast_forest.get_node_by_id(node.second());
+            let child_node = &mast_forest[node.second()];
 
             child_node.digest().into()
         };
@@ -134,12 +134,12 @@ where
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let child1_hash = {
-            let child_node = mast_forest.get_node_by_id(node.on_true());
+            let child_node = &mast_forest[node.on_true()];
 
             child_node.digest().into()
         };
         let child2_hash = {
-            let child_node = mast_forest.get_node_by_id(node.on_false());
+            let child_node = &mast_forest[node.on_false()];
 
             child_node.digest().into()
         };
@@ -213,7 +213,7 @@ where
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = {
-            let body_node = mast_forest.get_node_by_id(node.body());
+            let body_node = &mast_forest[node.body()];
 
             body_node.digest().into()
         };
@@ -318,7 +318,7 @@ where
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
         let callee_hash = {
-            let callee = mast_forest.get_node_by_id(node.callee());
+            let callee = &mast_forest[node.callee()];
 
             callee.digest().into()
         };

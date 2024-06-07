@@ -104,7 +104,7 @@ impl Procedure {
 
     /// Returns the root of this procedure's MAST.
     pub fn mast_root(&self, mast_forest: &MastForest) -> RpoDigest {
-        let code_node = mast_forest.get_node_by_id(self.code);
+        let code_node = &mast_forest[self.code];
         code_node.digest()
     }
 

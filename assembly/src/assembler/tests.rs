@@ -133,7 +133,7 @@ fn nested_blocks() {
             .procedure_cache()
             .get_by_name(&"#exec::bar".parse().unwrap())
             .map(|p| {
-                let proc_node = program.get_node_by_id(p.code());
+                let proc_node = &program[p.code()];
                 MastNode::new_external(proc_node.digest())
             })
             .unwrap();
@@ -146,7 +146,7 @@ fn nested_blocks() {
             .procedure_cache()
             .get_by_name(&"foo::bar::baz".parse().unwrap())
             .map(|p| {
-                let proc_node = program.get_node_by_id(p.code());
+                let proc_node = &program[p.code()];
                 MastNode::new_external(proc_node.digest())
             })
             .unwrap();
@@ -220,7 +220,7 @@ fn nested_blocks() {
     );
     expected_mast_forest.set_entrypoint(combined_node_id);
 
-    let combined_node = expected_mast_forest.get_node_by_id(combined_node_id);
+    let combined_node = &expected_mast_forest[combined_node_id];
 
     assert_eq!(combined_node.digest(), program.entrypoint_digest().unwrap());
 }

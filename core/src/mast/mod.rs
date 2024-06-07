@@ -113,26 +113,41 @@ impl MastForest {
 
 /// Public accessors
 impl MastForest {
+    /// Returns the kernel associated with this forest.
     pub fn kernel(&self) -> &Kernel {
         &self.kernel
     }
 
+    /// Returns the entrypoint associated with this forest, if any.
+    /// 
+    /// If an entrypoint is present, then the forest is considered to be a "program".
     pub fn entrypoint(&self) -> Option<MastNodeId> {
         self.entrypoint
     }
 
     /// A convenience method that provides the hash of the entrypoint, if any.
     pub fn entrypoint_digest(&self) -> Option<RpoDigest> {
-        self.entrypoint.map(|entrypoint| self.get_node_by_id(entrypoint).digest())
+        self.entrypoint.map(|entrypoint| self[entrypoint].digest())
     }
 
+    /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else `None`.
+    /// 
+    /// This is the faillible version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
-    pub fn get_node_by_id(&self, node_id: MastNodeId) -> &MastNode {
+    pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         let idx: usize = node_id.0.try_into().expect("u32 expected to fit in usize");
 
-        &self.nodes[idx]
+        if idx < self.nodes.len() {
+            Some(&self.nodes[idx])
+        } else {
+            None
+        }
     }
 
+    /// Returns the [`MastNodeId`] associated with a given digest, if any.
+    /// 
+    /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
+    /// forest that hashes to this digest, then its id is returned.
     #[inline(always)]
     pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
         self.node_id_by_hash.get(&digest).copied()
@@ -143,7 +158,9 @@ impl Index<MastNodeId> for MastForest {
     type Output = MastNode;
 
     fn index(&self, node_id: MastNodeId) -> &Self::Output {
-        self.get_node_by_id(node_id)
+        let idx: usize = node_id.0.try_into().expect("u32 expected to fit in usize");
+
+        &self.nodes[idx]
     }
 }
 
@@ -152,10 +169,8 @@ impl crate::prettier::PrettyPrint for MastForest {
         use crate::prettier::*;
         // TODOP: How to render MAST forests without an entrypoint?
         let entrypoint = self
-            .get_node_by_id(
-                self.entrypoint.expect("can only render MAST forests with an entrypoint"),
-            )
-            .to_pretty_print(self);
+            [self.entrypoint.expect("can only render MAST forests with an entrypoint")]
+        .to_pretty_print(self);
 
         indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
     }

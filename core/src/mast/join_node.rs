@@ -23,8 +23,8 @@ impl JoinNode {
     /// Returns a new [`JoinNode`] instantiated with the specified children nodes.
     pub fn new(children: [MastNodeId; 2], mast_forest: &MastForest) -> Self {
         let digest = {
-            let left_child_hash = mast_forest.get_node_by_id(children[0]).digest();
-            let right_child_hash = mast_forest.get_node_by_id(children[1]).digest();
+            let left_child_hash = mast_forest[children[0]].digest();
+            let right_child_hash = mast_forest[children[1]].digest();
 
             hasher::merge_in_domain(&[left_child_hash, right_child_hash], Self::DOMAIN)
         };
@@ -77,8 +77,8 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let first_child = self.mast_forest.get_node_by_id(self.join_node.first()).to_pretty_print(self.mast_forest);
-        let second_child = self.mast_forest.get_node_by_id(self.join_node.second()).to_pretty_print(self.mast_forest);
+        let first_child = self.mast_forest[self.join_node.first()].to_pretty_print(self.mast_forest);
+        let second_child = self.mast_forest[self.join_node.second()].to_pretty_print(self.mast_forest);
 
         indent(
             4,
