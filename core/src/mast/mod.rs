@@ -1,8 +1,8 @@
 use core::{fmt, ops::Index};
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::rpo::RpoDigest;
-use miden_formatting::prettier::PrettyPrint;
+use miden_formatting::prettier::{Document, PrettyPrint};
 
 use crate::{DecoratorList, Kernel, Operation};
 
@@ -241,18 +241,27 @@ impl MastNode {
         matches!(self, Self::Block(_))
     }
 
+    // TODOP: Cleanup
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
         match self {
-            MastNode::Block(basic_block_node) => basic_block_node,
-            MastNode::Join(join_node) => join_node.to_pretty_print(mast_forest),
-            MastNode::Split(_) => todo!(),
-            MastNode::Loop(_) => todo!(),
-            MastNode::Call(_) => todo!(),
-            MastNode::Dyn => todo!(),
-            MastNode::External(_) => todo!(),
+            MastNode::Block(basic_block_node) => MastNodePrettyPrint::new(basic_block_node),
+            MastNode::Join(join_node) => {
+                MastNodePrettyPrint::new_box(Box::new(join_node.to_pretty_print(mast_forest)))
+            }
+            MastNode::Split(split_node) => {
+                MastNodePrettyPrint::new_box(Box::new(split_node.to_pretty_print(mast_forest)))
+            }
+            MastNode::Loop(loop_node) => {
+                MastNodePrettyPrint::new_box(Box::new(loop_node.to_pretty_print(mast_forest)))
+            }
+            MastNode::Call(call_node) => {
+                MastNodePrettyPrint::new_box(Box::new(call_node.to_pretty_print(mast_forest)))
+            }
+            MastNode::Dyn => MastNodePrettyPrint::new(&DynNode),
+            MastNode::External(external_node) => MastNodePrettyPrint::new(external_node),
         }
     }
 }
@@ -280,5 +289,27 @@ impl MerkleTreeNode for MastNode {
             MastNode::Dyn => DynNode.to_display(mast_forest),
             MastNode::External(node) => node.to_display(mast_forest),
         }
+    }
+}
+
+struct MastNodePrettyPrint<'a> {
+    node_pretty_print: Box<dyn PrettyPrint + 'a>,
+}
+
+impl<'a> MastNodePrettyPrint<'a> {
+    pub fn new(node: &'a dyn PrettyPrint) -> Self {
+        Self {
+            node_pretty_print: Box::new(node),
+        }
+    }
+
+    pub fn new_box(node_pretty_print: Box<dyn PrettyPrint + 'a>) -> Self {
+        Self { node_pretty_print }
+    }
+}
+
+impl<'a> PrettyPrint for MastNodePrettyPrint<'a> {
+    fn render(&self) -> Document {
+        self.node_pretty_print.render()
     }
 }
