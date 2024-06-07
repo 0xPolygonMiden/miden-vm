@@ -328,6 +328,25 @@ impl Assembler {
         self.assemble_in_context(source, &mut context)
     }
 
+    /// Compiles the provided source into a [`MastForest`], without consuming the assembler.
+    ///
+    /// Note that the state of any kernel used upon initialization will be wiped, so this function
+    /// should not be used to assemble multiple modules successively. Its main purpose is to allow
+    /// the caller to access the internal procedure cache and/or module graph after a single call to
+    /// `assemble_test`.
+    #[cfg(any(test, feature = "testing"))]
+    #[doc(hidden)]
+    pub fn assemble_test(&mut self, source: impl Compile) -> Result<MastForest, Report> {
+        let mut context = AssemblyContext::default();
+        context.set_warnings_as_errors(self.warnings_as_errors);
+        let opts = CompileOptions {
+            warnings_as_errors: context.warnings_as_errors(),
+            ..CompileOptions::default()
+        };
+
+        self.assemble_with_options_in_context_impl(source, opts, &mut context)
+    }
+
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
     pub fn assemble_in_context(
         self,
@@ -365,6 +384,19 @@ impl Assembler {
     #[instrument("assemble_with_opts_in_context", skip_all)]
     pub fn assemble_with_options_in_context(
         mut self,
+        source: impl Compile,
+        options: CompileOptions,
+        context: &mut AssemblyContext,
+    ) -> Result<MastForest, Report> {
+        self.assemble_with_options_in_context_impl(source, options, context)
+    }
+
+    /// Implementation of [`Self::assemble_with_options_in_context`] which doesn't consume `self`.
+    ///
+    /// The main purpose of this separation is to enable some tests to access the assembler state
+    /// after assembly.
+    fn assemble_with_options_in_context_impl(
+        &mut self,
         source: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
