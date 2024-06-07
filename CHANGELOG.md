@@ -1,6 +1,26 @@
 # Changelog
 
-## 0.9.0 (TBD)
+## 0.10.0 (TBD)
+
+#### Enhancements
+
+- Added error codes support for the `mtree_verify` instruction (#1328).
+- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
+
+## 0.9.2 (2024-05-22) - `stdlib` crate only
+- Skip writing MASM documentation to file when building on docs.rs (#1341).
+
+## 0.9.2 (2024-05-09) - `assembly` crate only
+- Remove usage of `group_vector_elements()` from `combine_blocks()` (#1331).
+
+## 0.9.2 (2024-04-25) - `air` and `processor` crates only
+- Allowed enabling debug mode via `ExecutionOptions` (#1316).
+
+## 0.9.1 (2024-04-04)
+
+- Added additional trait implementations to error types (#1306).
+
+## 0.9.0 (2024-04-03)
 
 #### Packaging
 - [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).

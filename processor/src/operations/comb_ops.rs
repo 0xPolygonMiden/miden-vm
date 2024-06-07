@@ -45,17 +45,17 @@ where
     /// Here:
     ///
     /// 1. Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current
-    ///  query i.e. T_i(x).
+    ///    query i.e. T_i(x).
     /// 2. (p0, p1) stands for an extension field element accumulating the values for the quotients
-    ///  with common denominator (x - z).
+    ///    with common denominator (x - z).
     /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
-    ///  with common denominator (x - gz).
+    ///    with common denominator (x - gz).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
-    ///  instruction.
-    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz
-    ///  i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
-    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching
-    ///  the trace polynomial quotients.
+    ///    instruction.
+    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz i.e. T_i(z):=
+    ///    (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
+    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching the
+    ///    trace polynomial quotients.
     ///
     /// The instruction also makes use of the helper registers to hold the values of T_i(z), T_i(gz)
     /// and alpha_i during the course of its execution.
@@ -173,10 +173,9 @@ where
 mod tests {
     use alloc::{borrow::ToOwned, vec::Vec};
 
+    use crate::{ContextId, Process, QuadFelt};
     use test_utils::{build_test, rand::rand_array};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
-
-    use crate::{ContextId, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {

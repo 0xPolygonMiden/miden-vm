@@ -104,9 +104,13 @@ impl Assembler {
             Instruction::Neq => span_builder.push_ops([Eq, Not]),
             Instruction::NeqImm(imm) => field_ops::neq_imm(span_builder, imm.expect_value()),
             Instruction::Lt => field_ops::lt(span_builder),
+            Instruction::LtImm(imm) => field_ops::lt_imm(span_builder, imm.expect_value()),
             Instruction::Lte => field_ops::lte(span_builder),
+            Instruction::LteImm(imm) => field_ops::lte_imm(span_builder, imm.expect_value()),
             Instruction::Gt => field_ops::gt(span_builder),
+            Instruction::GtImm(imm) => field_ops::gt_imm(span_builder, imm.expect_value()),
             Instruction::Gte => field_ops::gte(span_builder),
+            Instruction::GteImm(imm) => field_ops::gte_imm(span_builder, imm.expect_value()),
             Instruction::IsOdd => field_ops::is_odd(span_builder),
 
             // ----- ext2 instructions ------------------------------------------------------------
@@ -354,7 +358,10 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(span_builder),
             Instruction::MTreeSet => crypto_ops::mtree_set(span_builder),
             Instruction::MTreeMerge => crypto_ops::mtree_merge(span_builder),
-            Instruction::MTreeVerify => crypto_ops::mtree_verify(span_builder),
+            Instruction::MTreeVerify => span_builder.push_op(MpVerify(0)),
+            Instruction::MTreeVerifyWithError(err_code) => {
+                span_builder.push_op(MpVerify(err_code.expect_value()))
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             Instruction::FriExt2Fold4 => span_builder.push_op(FriE2F4),

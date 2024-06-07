@@ -15,7 +15,7 @@ use std::error::Error;
 // ================================================================================================
 
 // TODOP: Rename some those that contain `CodeBlock` terminology
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
     AdviceStackReadFailed(u32),
@@ -55,6 +55,7 @@ pub enum ExecutionError {
         value: Word,
         index: Felt,
         root: Digest,
+        err_code: u32,
     },
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreMergeFailed(MerkleError),
@@ -158,10 +159,15 @@ impl Display for ExecutionError {
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
             }
-            MerklePathVerificationFailed { value, index, root } => {
+            MerklePathVerificationFailed {
+                value,
+                index,
+                root,
+                err_code,
+            } => {
                 let value = to_hex(Felt::elements_as_bytes(value));
                 let root = to_hex(root.as_bytes());
-                write!(f, "Merkle path verification failed for value {value} at index {index}, in the Merkle tree with root {root}")
+                write!(f, "Merkle path verification failed for value {value} at index {index}, in the Merkle tree with root {root} (error code: {err_code})")
             }
             MerkleStoreLookupFailed(reason) => {
                 write!(f, "Advice provider Merkle store backend lookup failed: {reason}")
@@ -220,7 +226,7 @@ impl From<Ext2InttError> for ExecutionError {
 // EXT2INTT ERROR
 // ================================================================================================
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ext2InttError {
     DomainSizeNotPowerOf2(u64),
     DomainSizeTooSmall(u64),

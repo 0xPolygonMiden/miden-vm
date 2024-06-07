@@ -46,9 +46,13 @@ pub enum OpCode {
     NeqImm,
     Eqw,
     Lt,
+    LtImm,
     Lte,
+    LteImm,
     Gt,
+    GtImm,
     Gte,
+    GteImm,
     IsOdd,
 
     // ----- ext2 operations ---------------------------------------------------------------------
@@ -241,6 +245,7 @@ pub enum OpCode {
     MTreeSet,
     MTreeMerge,
     MTreeVerify,
+    MTreeVerifyWithError,
 
     // ----- STARK proof verification ------------------------------------------------------------
     FriExt2Fold4,

@@ -397,14 +397,14 @@ MacroInst: SmallOpsVec = {
 #[inline]
 Inst: Instruction = {
     AdviceInjector,
-    Assert,
     Call,
     Debug,
-    InstWithFeltImmediate,
-    InstWithU32Immediate,
     InstWithBitSizeImmediate,
+    InstWithErrorCode,
+    InstWithFeltImmediate,
     InstWithLocalIndex,
     InstWithStackIndex,
+    InstWithU32Immediate,
     ProcRef,
     "adv_pipe" => Instruction::AdvPipe,
     "adv_loadw" => Instruction::AdvLoadW,
@@ -427,21 +427,16 @@ Inst: Instruction = {
     "ext2neg" => Instruction::Ext2Neg,
     "ext2sub" => Instruction::Ext2Sub,
     "fri_ext2fold4" => Instruction::FriExt2Fold4,
-    "gt" => Instruction::Gt,
-    "gte" => Instruction::Gte,
     "hash" => Instruction::Hash,
     "hperm" => Instruction::HPerm,
     "hmerge" => Instruction::HMerge,
     "ilog2" => Instruction::ILog2,
     "inv" => Instruction::Inv,
     "is_odd" => Instruction::IsOdd,
-    "lt" => Instruction::Lt,
-    "lte" => Instruction::Lte,
     "mem_stream" => Instruction::MemStream,
     "mtree_get" => Instruction::MTreeGet,
     "mtree_merge" => Instruction::MTreeMerge,
     "mtree_set" => Instruction::MTreeSet,
-    "mtree_verify" => Instruction::MTreeVerify,
     "neg" => Instruction::Neg,
     "not" => Instruction::Not,
     "or" => Instruction::Or,
@@ -502,7 +497,7 @@ AdviceInjector: Instruction = {
 }
 
 #[inline]
-Assert: Instruction = {
+InstWithErrorCode: Instruction = {
     "assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertWithError).unwrap_or(Instruction::Assert),
     "assertz" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertzWithError).unwrap_or(Instruction::Assertz),
     "assert_eq" <error_code:MaybeAssertCode> => error_code.map(Instruction::AssertEqWithError).unwrap_or(Instruction::AssertEq),
@@ -510,6 +505,7 @@ Assert: Instruction = {
     "u32assert" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32AssertWithError).unwrap_or(Instruction::U32Assert),
     "u32assert2" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32Assert2WithError).unwrap_or(Instruction::U32Assert2),
     "u32assertw" <error_code:MaybeAssertCode> => error_code.map(Instruction::U32AssertWWithError).unwrap_or(Instruction::U32AssertW),
+    "mtree_verify" <error_code:MaybeAssertCode> => error_code.map(Instruction::MTreeVerifyWithError).unwrap_or(Instruction::MTreeVerify),
 }
 
 MaybeAssertCode: Option<Immediate<u32>> = {
@@ -596,6 +592,34 @@ FoldableInstWithFeltImmediate: SmallOpsVec = {
         match imm {
             Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::NeqImm(imm)))],
             None => smallvec![Op::Inst(Span::new(span, Instruction::Neq))],
+        }
+    },
+    <l:@L> "lt" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::LtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Lt))],
+        }
+    },
+    <l:@L> "lte" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::LteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Lte))],
+        }
+    },
+    <l:@L> "gt" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::GtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Gt))],
+        }
+    },
+    <l:@L> "gte" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::GteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Gte))],
         }
     },
     <l:@L> "add" <imm:MaybeImm<Felt>> <r:@R> => {
