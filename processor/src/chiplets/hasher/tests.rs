@@ -13,7 +13,7 @@ use vm_core::{
     chiplets::hasher,
     code_blocks::CodeBlock,
     crypto::merkle::{MerkleTree, NodeIndex},
-    Operation, ONE, ZERO,
+    MastForest, MastNode, MerkleTreeNode, Operation, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS
@@ -246,48 +246,58 @@ fn hash_memoization_control_blocks() {
     //        /      \
     //      Split1     Split2 (memoized)
 
-    let t_branch = CodeBlock::new_span(vec![Operation::Push(ZERO)]);
-    let f_branch = CodeBlock::new_span(vec![Operation::Push(ONE)]);
-    let split1_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
-    let split2_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
-    let join_block = CodeBlock::new_join([split1_block.clone(), split2_block.clone()]);
+    let mut mast_forest = MastForest::new();
+
+    let t_branch = MastNode::new_basic_block(vec![Operation::Push(ZERO)]);
+    let t_branch_id = mast_forest.add_node(t_branch.clone());
+
+    let f_branch = MastNode::new_basic_block(vec![Operation::Push(ONE)]);
+    let f_branch_id = mast_forest.add_node(f_branch.clone());
+
+    let split1 = MastNode::new_split(t_branch_id.clone(), f_branch_id.clone(), &mast_forest);
+    let split1_id = mast_forest.add_node(split1.clone());
+
+    let split2 = MastNode::new_split(t_branch_id.clone(), f_branch_id.clone(), &mast_forest);
+    let split2_id = mast_forest.add_node(split2.clone());
+
+    let join_node = MastNode::new_join(split1_id, split2_id, &mast_forest);
+    let _join_node_id = mast_forest.add_node(join_node.clone());
 
     let mut hasher = Hasher::default();
-    let h1: [Felt; DIGEST_LEN] = split1_block
-        .hash()
+    let h1: [Felt; DIGEST_LEN] = split1
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let h2: [Felt; DIGEST_LEN] = split2_block
-        .hash()
+    let h2: [Felt; DIGEST_LEN] = split2
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
 
-    let expected_hash = join_block.hash();
+    let expected_hash = join_node.digest();
 
     // builds the trace of the join block.
-    let (_, final_state) = hasher.hash_control_block(h1, h2, join_block.domain(), expected_hash);
+    let (_, final_state) = hasher.hash_control_block(h1, h2, join_node.domain(), expected_hash);
 
     // make sure the hash of the final state is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
     let h1: [Felt; DIGEST_LEN] = t_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
     let h2: [Felt; DIGEST_LEN] = f_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
 
-    let expected_hash = split1_block.hash();
+    let expected_hash = split1.digest();
 
     // builds the hash execution trace of the first split block from scratch.
-    let (addr, final_state) =
-        hasher.hash_control_block(h1, h2, split1_block.domain(), expected_hash);
+    let (addr, final_state) = hasher.hash_control_block(h1, h2, split1.domain(), expected_hash);
 
     let first_block_final_state = final_state;
 
@@ -299,21 +309,20 @@ fn hash_memoization_control_blocks() {
     let end_row = hasher.trace_len() - 1;
 
     let h1: [Felt; DIGEST_LEN] = t_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
     let h2: [Felt; DIGEST_LEN] = f_branch
-        .hash()
+        .digest()
         .as_elements()
         .try_into()
         .expect("Could not convert slice to array");
-    let expected_hash = split2_block.hash();
+    let expected_hash = split2.digest();
 
     // builds the hash execution trace of the second split block by copying it from the trace of
     // the first split block.
-    let (addr, final_state) =
-        hasher.hash_control_block(h1, h2, split2_block.domain(), expected_hash);
+    let (addr, final_state) = hasher.hash_control_block(h1, h2, split2.domain(), expected_hash);
 
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.

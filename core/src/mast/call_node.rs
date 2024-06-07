@@ -66,7 +66,7 @@ impl CallNode {
     }
 
     /// Returns the domain of the call node.
-    pub fn hash_domain(&self) -> Felt {
+    pub fn domain(&self) -> Felt {
         if self.is_syscall() {
             Self::SYSCALL_DOMAIN
         } else {

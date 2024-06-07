@@ -322,12 +322,9 @@ where
 
             callee.digest().into()
         };
-        let addr = self.chiplets.hash_control_block(
-            callee_hash,
-            EMPTY_WORD,
-            node.hash_domain(),
-            node.digest(),
-        );
+        let addr =
+            self.chiplets
+                .hash_control_block(callee_hash, EMPTY_WORD, node.domain(), node.digest());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.

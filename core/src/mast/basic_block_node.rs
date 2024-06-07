@@ -1,7 +1,7 @@
 use core::fmt;
 
 use alloc::vec::Vec;
-use miden_crypto::hash::rpo::RpoDigest;
+use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
@@ -23,6 +23,12 @@ pub struct BasicBlockNode {
     op_batches: Vec<OpBatch>,
     digest: RpoDigest,
     decorators: DecoratorList,
+}
+
+/// Constants
+impl BasicBlockNode {
+    /// The domain of the span block (used for control block hashing).
+    pub const DOMAIN: Felt = ZERO;
 }
 
 /// Constructors

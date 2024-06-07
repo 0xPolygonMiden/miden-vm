@@ -1,7 +1,7 @@
 use core::{fmt, ops::Index};
 
 use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
-use miden_crypto::hash::rpo::RpoDigest;
+use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::{Document, PrettyPrint};
 
 use crate::{DecoratorList, Kernel, Operation};
@@ -278,6 +278,18 @@ impl MastNode {
             }
             MastNode::Dyn => MastNodePrettyPrint::new(&DynNode),
             MastNode::Proxy(proxy_node) => MastNodePrettyPrint::new(proxy_node),
+        }
+    }
+
+    pub fn domain(&self) -> Felt {
+        match self {
+            MastNode::Block(_) => BasicBlockNode::DOMAIN,
+            MastNode::Join(_) => JoinNode::DOMAIN,
+            MastNode::Split(_) => SplitNode::DOMAIN,
+            MastNode::Loop(_) => LoopNode::DOMAIN,
+            MastNode::Call(call_node) => call_node.domain(),
+            MastNode::Dyn => DynNode::DOMAIN,
+            MastNode::Proxy(_) => panic!("Can't fetch `domain` for a `Proxy` block!"),
         }
     }
 }
