@@ -1,5 +1,4 @@
 use alloc::vec::Vec;
-
 use miden_air::trace::{
     chiplets::{
         bitwise::OP_CYCLE_LEN as BITWISE_OP_CYCLE_LEN,
