@@ -2,6 +2,7 @@ use core::{fmt, ops::Index};
 
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::rpo::RpoDigest;
+use miden_formatting::prettier::PrettyPrint;
 
 use crate::{DecoratorList, Kernel, Operation};
 
@@ -14,6 +15,9 @@ pub use call_node::CallNode;
 mod dyn_node;
 pub use dyn_node::DynNode;
 
+mod external_node;
+pub use external_node::ExternalNode;
+
 mod join_node;
 pub use join_node::JoinNode;
 
@@ -25,6 +29,7 @@ pub use loop_node::LoopNode;
 
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
+    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
 }
 
 /// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
@@ -142,13 +147,29 @@ impl Index<MastNodeId> for MastForest {
     }
 }
 
+impl crate::prettier::PrettyPrint for MastForest {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        // TODOP: How to render MAST forests without an entrypoint?
+        let entrypoint = self
+            .get_node_by_id(
+                self.entrypoint.expect("can only render MAST forests with an entrypoint"),
+            )
+            .to_pretty_print(self);
+
+        indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
+    }
+}
+
 impl fmt::Display for MastForest {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
     }
 }
 
 // TODOP: Implement `Eq` only as a hash check on all nodes?
+// As a blanket impl over `MerkleTreeNode::digest()`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
     Block(BasicBlockNode),
@@ -157,9 +178,7 @@ pub enum MastNode {
     Loop(LoopNode),
     Call(CallNode),
     Dyn,
-    /// A reference to a node whose definition is not
-    /// local to the containing `MastForest`.
-    External(RpoDigest),
+    External(ExternalNode),
 }
 
 /// Constructors
@@ -212,7 +231,7 @@ impl MastNode {
     }
 
     pub fn new_external(code_hash: RpoDigest) -> Self {
-        Self::External(code_hash)
+        Self::External(ExternalNode::new(code_hash))
     }
 }
 
@@ -220,6 +239,21 @@ impl MastNode {
 impl MastNode {
     pub fn is_basic_block(&self) -> bool {
         matches!(self, Self::Block(_))
+    }
+
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        match self {
+            MastNode::Block(basic_block_node) => basic_block_node,
+            MastNode::Join(join_node) => join_node.to_pretty_print(mast_forest),
+            MastNode::Split(_) => todo!(),
+            MastNode::Loop(_) => todo!(),
+            MastNode::Call(_) => todo!(),
+            MastNode::Dyn => todo!(),
+            MastNode::External(_) => todo!(),
+        }
     }
 }
 
@@ -232,7 +266,19 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => node.digest(),
             MastNode::Call(node) => node.digest(),
             MastNode::Dyn => DynNode.digest(),
-            MastNode::External(external_digest) => *external_digest,
+            MastNode::External(node) => node.digest(),
+        }
+    }
+
+    fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        match self {
+            MastNode::Block(node) => node.to_display(mast_forest),
+            MastNode::Join(node) => node.to_display(mast_forest),
+            MastNode::Split(node) => node.to_display(mast_forest),
+            MastNode::Loop(node) => node.to_display(mast_forest),
+            MastNode::Call(node) => node.to_display(mast_forest),
+            MastNode::Dyn => DynNode.to_display(mast_forest),
+            MastNode::External(node) => node.to_display(mast_forest),
         }
     }
 }

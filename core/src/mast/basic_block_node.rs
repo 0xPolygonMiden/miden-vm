@@ -1,9 +1,12 @@
+use core::fmt;
+
 use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
+use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     code_blocks::{batch_ops, OpBatch},
-    DecoratorIterator, DecoratorList, Operation,
+    DecoratorIterator, DecoratorList, MastForest, Operation,
 };
 
 use super::MerkleTreeNode;
@@ -79,6 +82,10 @@ impl MerkleTreeNode for BasicBlockNode {
     fn digest(&self) -> RpoDigest {
         self.digest
     }
+
+    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
+        self
+    }
 }
 
 /// Checks if a given decorators list is valid (only checked in debug mode)
@@ -96,5 +103,55 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
             operations.len() >= decorators.last().expect("empty decorators list").0,
             "last op index in decorator list should be less than or equal to the number of ops"
         );
+    }
+}
+
+impl PrettyPrint for BasicBlockNode {
+    #[rustfmt::skip]
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+
+        // e.g. `span a b c end`
+        let single_line = const_text("span")
+            + const_text(" ")
+            + self
+                .op_batches
+                .iter()
+                .flat_map(|batch| batch.ops().iter())
+                .map(|p| p.render())
+                .reduce(|acc, doc| acc + const_text(" ") + doc)
+                .unwrap_or_default()
+            + const_text(" ")
+            + const_text("end");
+
+        // e.g. `
+        // span
+        //     a
+        //     b
+        //     c
+        // end
+        // `
+        let multi_line = indent(
+            4,
+            const_text("span")
+                + nl()
+                + self
+                    .op_batches
+                    .iter()
+                    .flat_map(|batch| batch.ops().iter())
+                    .map(|p| p.render())
+                    .reduce(|acc, doc| acc + nl() + doc)
+                    .unwrap_or_default(),
+        ) + nl()
+            + const_text("end");
+
+        single_line | multi_line
+    }
+}
+
+impl fmt::Display for BasicBlockNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+        self.pretty_print(f)
     }
 }
