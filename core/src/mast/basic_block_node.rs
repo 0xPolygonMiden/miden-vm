@@ -111,8 +111,9 @@ impl PrettyPrint for BasicBlockNode {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
+        // TODOP: Change `span` -> `basic_block`
         // e.g. `span a b c end`
-        let single_line = const_text("basic_block")
+        let single_line = const_text("span")
             + const_text(" ")
             + self
                 .op_batches
@@ -125,7 +126,7 @@ impl PrettyPrint for BasicBlockNode {
             + const_text("end");
 
         // e.g. `
-        // basic_block
+        // span
         //     a
         //     b
         //     c
@@ -133,7 +134,7 @@ impl PrettyPrint for BasicBlockNode {
         // `
         let multi_line = indent(
             4,
-            const_text("basic_block")
+            const_text("span")
                 + nl()
                 + self
                     .op_batches
