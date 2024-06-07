@@ -73,7 +73,7 @@ impl<'a> crate::prettier::PrettyPrint for LoopNodePrettyPrint<'a> {
         let loop_body = self
             .mast_forest
             .get_node_by_id(self.loop_node.body)
-            .to_pretty_print(&self.mast_forest);
+            .to_pretty_print(self.mast_forest);
 
         indent(4, const_text("while.true") + nl() + loop_body.render()) + nl() + const_text("end")
     }

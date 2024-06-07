@@ -83,7 +83,7 @@ impl Assembler {
 
         let mast_root_node_id = mast_forest
             .get_node_id_by_digest(mast_root)
-            .expect(format!("MAST root {} not present in MAST forest", mast_root).as_str());
+            .unwrap_or_else(|| panic!("MAST root {} not present in MAST forest", mast_root));
 
         Ok(Some(mast_root_node_id))
     }

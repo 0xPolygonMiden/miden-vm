@@ -4,7 +4,6 @@ use miden_crypto::hash::rpo::RpoDigest;
 
 use crate::MerkleTreeNode;
 
-
 /// Block for a unknown function call.
 ///
 /// Proxy blocks are used to verify the integrity of a program's hash while keeping parts

@@ -300,21 +300,21 @@ where
         node_id: MastNodeId,
         mast_forest: &MastForest,
     ) -> Result<(), ExecutionError> {
-        let node = mast_forest.get_node_by_id(node_id);
+        let wrapper_node = mast_forest.get_node_by_id(node_id);
 
-        match node {
+        match wrapper_node {
             MastNode::Block(node) => self.execute_basic_block_node(node),
             MastNode::Join(node) => self.execute_join_node(node, mast_forest),
             MastNode::Split(node) => self.execute_split_node(node, mast_forest),
             MastNode::Loop(node) => self.execute_loop_node(node, mast_forest),
             MastNode::Call(node) => self.execute_call_node(node, mast_forest),
             MastNode::Dyn => self.execute_dyn_node(mast_forest),
-            MastNode::External(node_digest) => {
+            MastNode::External(external_node) => {
                 // TODOP: Is this how we do it? Is an `External` guaranteed to be part of the
                 // `MastForest`? The comments in `MastNode` suggest that it isn't.
-                match mast_forest.get_node_id_by_digest(*node_digest) {
+                match mast_forest.get_node_id_by_digest(external_node.digest()) {
                     Some(external_node_id) => self.execute_mast_node(external_node_id, mast_forest),
-                    None => Err(ExecutionError::UnexecutableMastNode(node.clone())),
+                    None => Err(ExecutionError::UnexecutableMastNode(wrapper_node.clone())),
                 }
             }
         }

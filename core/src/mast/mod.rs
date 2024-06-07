@@ -281,13 +281,13 @@ impl MerkleTreeNode for MastNode {
 
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         match self {
-            MastNode::Block(node) => node.to_display(mast_forest),
-            MastNode::Join(node) => node.to_display(mast_forest),
-            MastNode::Split(node) => node.to_display(mast_forest),
-            MastNode::Loop(node) => node.to_display(mast_forest),
-            MastNode::Call(node) => node.to_display(mast_forest),
-            MastNode::Dyn => DynNode.to_display(mast_forest),
-            MastNode::External(node) => node.to_display(mast_forest),
+            MastNode::Block(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Join(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Split(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
+            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
 }
@@ -311,5 +311,23 @@ impl<'a> MastNodePrettyPrint<'a> {
 impl<'a> PrettyPrint for MastNodePrettyPrint<'a> {
     fn render(&self) -> Document {
         self.node_pretty_print.render()
+    }
+}
+
+struct MastNodeDisplay<'a> {
+    node_display: Box<dyn fmt::Display + 'a>,
+}
+
+impl<'a> MastNodeDisplay<'a> {
+    pub fn new(node: impl fmt::Display + 'a) -> Self {
+        Self {
+            node_display: Box::new(node),
+        }
+    }
+}
+
+impl<'a> fmt::Display for MastNodeDisplay<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.node_display.fmt(f)
     }
 }

@@ -123,7 +123,7 @@ impl BasicBlockBuilder {
     ///
     /// This consumes all operations and decorators in the builder, but does not touch the
     /// operations in the epilogue of the builder.
-    pub fn to_basic_block(&mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
+    pub fn make_basic_block(&mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
@@ -151,6 +151,6 @@ impl BasicBlockBuilder {
     /// - The builder is consumed in the process.
     pub fn into_basic_block(mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
         self.ops.append(&mut self.epilogue);
-        self.to_basic_block(mast_forest)
+        self.make_basic_block(mast_forest)
     }
 }

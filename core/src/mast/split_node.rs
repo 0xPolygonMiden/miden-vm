@@ -76,8 +76,8 @@ impl<'a> PrettyPrint for SplitNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let true_branch = self.mast_forest.get_node_by_id(self.split_node.on_true()).to_pretty_print(&self.mast_forest);
-        let false_branch = self.mast_forest.get_node_by_id(self.split_node.on_false()).to_pretty_print(&self.mast_forest);
+        let true_branch = self.mast_forest.get_node_by_id(self.split_node.on_true()).to_pretty_print(self.mast_forest);
+        let false_branch = self.mast_forest.get_node_by_id(self.split_node.on_false()).to_pretty_print(self.mast_forest);
 
         let mut doc = indent(4, const_text("if.true") + nl() + true_branch.render()) + nl();
         doc += indent(4, const_text("else") + nl() + false_branch.render());

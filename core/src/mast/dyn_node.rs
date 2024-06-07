@@ -27,7 +27,7 @@ impl MerkleTreeNode for DynNode {
             Felt::new(16575543461540527115),
         ])
     }
-    
+
     fn to_display<'a>(&'a self, _mast_forest: &'a crate::MastForest) -> impl fmt::Display + 'a {
         self
     }

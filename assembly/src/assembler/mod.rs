@@ -760,7 +760,7 @@ impl Assembler {
                         mast_forest,
                     )? {
                         if let Some(basic_block_id) =
-                            basic_block_builder.to_basic_block(mast_forest)
+                            basic_block_builder.make_basic_block(mast_forest)
                         {
                             mast_node_ids.push(basic_block_id);
                         }
@@ -772,7 +772,8 @@ impl Assembler {
                 Op::If {
                     then_blk, else_blk, ..
                 } => {
-                    if let Some(basic_block_id) = basic_block_builder.to_basic_block(mast_forest) {
+                    if let Some(basic_block_id) = basic_block_builder.make_basic_block(mast_forest)
+                    {
                         mast_node_ids.push(basic_block_id);
                     }
 
@@ -796,7 +797,8 @@ impl Assembler {
                 }
 
                 Op::Repeat { count, body, .. } => {
-                    if let Some(basic_block_id) = basic_block_builder.to_basic_block(mast_forest) {
+                    if let Some(basic_block_id) = basic_block_builder.make_basic_block(mast_forest)
+                    {
                         mast_node_ids.push(basic_block_id);
                     }
 
@@ -809,7 +811,8 @@ impl Assembler {
                 }
 
                 Op::While { body, .. } => {
-                    if let Some(basic_block_id) = basic_block_builder.to_basic_block(mast_forest) {
+                    if let Some(basic_block_id) = basic_block_builder.make_basic_block(mast_forest)
+                    {
                         mast_node_ids.push(basic_block_id);
                     }
 

@@ -77,8 +77,8 @@ impl<'a> PrettyPrint for JoinNodePrettyPrint<'a> {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        let first_child = self.mast_forest.get_node_by_id(self.join_node.first()).to_pretty_print(&self.mast_forest);
-        let second_child = self.mast_forest.get_node_by_id(self.join_node.second()).to_pretty_print(&self.mast_forest);
+        let first_child = self.mast_forest.get_node_by_id(self.join_node.first()).to_pretty_print(self.mast_forest);
+        let second_child = self.mast_forest.get_node_by_id(self.join_node.second()).to_pretty_print(self.mast_forest);
 
         indent(
             4,
