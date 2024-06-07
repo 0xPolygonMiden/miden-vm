@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 (TBD)
+
+#### Enhancements
+
+- Added error codes support for the `mtree_verify` instruction (#1328).
+- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
+
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 - Skip writing MASM documentation to file when building on docs.rs (#1341).
 
@@ -25,8 +32,6 @@
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
 - [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
 - [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
-- Added error codes support for the `mtree_verify` instruction (#1328).
-- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
 
 ## 0.8.0 (02-26-2024)
 
