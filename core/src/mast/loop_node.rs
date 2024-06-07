@@ -15,7 +15,7 @@ pub struct LoopNode {
 
 /// Constants
 impl LoopNode {
-    /// The domain of the loop block (used for control block hashing).
+    /// The domain of the loop node (used for control block hashing).
     pub const DOMAIN: Felt = Felt::new(Operation::Loop.op_code() as u64);
 }
 
