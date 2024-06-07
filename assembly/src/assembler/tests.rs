@@ -218,6 +218,7 @@ fn nested_blocks() {
         vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id],
         &mut expected_mast_forest,
     );
+    expected_mast_forest.set_entrypoint(combined_node_id);
 
     let combined_node = expected_mast_forest.get_node_by_id(combined_node_id);
 
