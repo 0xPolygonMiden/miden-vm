@@ -251,7 +251,7 @@ impl Chiplets {
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
     pub fn hash_span_block(&mut self, op_batches: &[OpBatch], expected_hash: Digest) -> Felt {
-        let (addr, result) = self.hasher.hash_span_block(op_batches, expected_hash);
+        let (addr, result) = self.hasher.hash_basic_block(op_batches, expected_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());
