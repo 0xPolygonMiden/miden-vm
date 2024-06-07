@@ -5,10 +5,7 @@ use super::{
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 use alloc::vec::Vec;
 use test_utils::rand::rand_array;
-use vm_core::{
-    code_blocks::CodeBlock, CodeBlockTable, Kernel, MastForest, MastNode, Operation, StackOutputs,
-    Word, ONE, ZERO,
-};
+use vm_core::{Kernel, MastForest, MastNode, Operation, StackOutputs, Word, ONE, ZERO};
 
 mod chiplets;
 mod decoder;
@@ -53,7 +50,12 @@ pub fn build_trace_from_ops_with_inputs(
     let host = DefaultHost::new(advice_provider);
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    let program = CodeBlock::new_span(operations);
-    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
+
+    let mut mast_forest = MastForest::new();
+    let basic_block = MastNode::new_basic_block(operations);
+    let basic_block_id = mast_forest.add_node(basic_block);
+    mast_forest.set_entrypoint(basic_block_id);
+
+    process.execute_mast_forest(&mast_forest).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }
