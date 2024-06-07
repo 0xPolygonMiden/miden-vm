@@ -427,16 +427,12 @@ Inst: Instruction = {
     "ext2neg" => Instruction::Ext2Neg,
     "ext2sub" => Instruction::Ext2Sub,
     "fri_ext2fold4" => Instruction::FriExt2Fold4,
-    "gt" => Instruction::Gt,
-    "gte" => Instruction::Gte,
     "hash" => Instruction::Hash,
     "hperm" => Instruction::HPerm,
     "hmerge" => Instruction::HMerge,
     "ilog2" => Instruction::ILog2,
     "inv" => Instruction::Inv,
     "is_odd" => Instruction::IsOdd,
-    "lt" => Instruction::Lt,
-    "lte" => Instruction::Lte,
     "mem_stream" => Instruction::MemStream,
     "mtree_get" => Instruction::MTreeGet,
     "mtree_merge" => Instruction::MTreeMerge,
@@ -596,6 +592,34 @@ FoldableInstWithFeltImmediate: SmallOpsVec = {
         match imm {
             Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::NeqImm(imm)))],
             None => smallvec![Op::Inst(Span::new(span, Instruction::Neq))],
+        }
+    },
+    <l:@L> "lt" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::LtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Lt))],
+        }
+    },
+    <l:@L> "lte" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::LteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Lte))],
+        }
+    },
+    <l:@L> "gt" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::GtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Gt))],
+        }
+    },
+    <l:@L> "gte" <imm:MaybeImm<Felt>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::GteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::Gte))],
         }
     },
     <l:@L> "add" <imm:MaybeImm<Felt>> <r:@R> => {

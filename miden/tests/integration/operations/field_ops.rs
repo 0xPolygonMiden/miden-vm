@@ -544,6 +544,19 @@ fn eq() {
 }
 
 #[test]
+fn eq_b() {
+    let build_asm_op = |param: u64| format!("eq.{param}");
+
+    // --- test when two elements are equal ------------------------------------------------------
+    let test = build_op_test!(build_asm_op(100), &[100]);
+    test.expect_stack(&[1]);
+
+    // --- test when two elements are unequal ----------------------------------------------------
+    let test = build_op_test!(build_asm_op(25), &[100]);
+    test.expect_stack(&[0]);
+}
+
+#[test]
 fn eqw() {
     let asm_op = "eqw";
 
@@ -848,6 +861,9 @@ proptest! {
 /// both the high and low 32 bits, the upper 32 bits must not be all 1s. Therefore, for testing
 /// it's sufficient to use elements with one high bit and one low bit set.
 fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, expect_if_gt: u64) {
+    // create an operation with an immediate value
+    let build_asm_op = |param: u64| format!("{asm_op}.{param}");
+
     // create vars with a variety of high and low bit relationships for testing
     let low_bit = 1;
     let high_bit = 1 << 48;
@@ -865,30 +881,51 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
     // a is smaller in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
     test.expect_stack(&[expect_if_lt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_eq_lo_gt), &[smaller]);
+    test.expect_stack(&[expect_if_lt]);
 
     // a is smaller in the high bits and equal in the low bits
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_eq]);
     test.expect_stack(&[expect_if_lt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_gt_lo_eq), &[smaller]);
+    test.expect_stack(&[expect_if_lt]);
 
     // a is smaller in the high bits but bigger in the low bits
     let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
+    test.expect_stack(&[expect_if_lt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_gt_lo_lt), &[smaller]);
     test.expect_stack(&[expect_if_lt]);
 
     // --- a = b ----------------------------------------------------------------------------------
     // high and low bits are both set
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
     test.expect_stack(&[expect_if_eq]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(hi_gt_lo_eq), &[hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_eq]);
 
     // --- a > b ----------------------------------------------------------------------------------
     // a is bigger in the low bits (equal in high bits)
     let test = build_op_test!(asm_op, &[hi_eq_lo_gt, smaller]);
     test.expect_stack(&[expect_if_gt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(smaller), &[hi_eq_lo_gt]);
+    test.expect_stack(&[expect_if_gt]);
 
     // a is bigger in the high bits and equal in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_eq, smaller]);
     test.expect_stack(&[expect_if_gt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(smaller), &[hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_gt]);
 
     // a is bigger in the high bits but smaller in the low bits
     let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
+    test.expect_stack(&[expect_if_gt]);
+    // run the same test using instruction with an immediate value
+    let test = build_op_test!(build_asm_op(smaller), &[hi_gt_lo_lt]);
     test.expect_stack(&[expect_if_gt]);
 }

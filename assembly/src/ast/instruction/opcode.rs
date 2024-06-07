@@ -46,9 +46,13 @@ pub enum OpCode {
     NeqImm,
     Eqw,
     Lt,
+    LtImm,
     Lte,
+    LteImm,
     Gt,
+    GtImm,
     Gte,
+    GteImm,
     IsOdd,
 
     // ----- ext2 operations ---------------------------------------------------------------------

@@ -13,6 +13,7 @@
 - [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
 - [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
 - Added error codes support for the `mtree_verify` instruction (#1328).
+- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
 
 ## 0.8.0 (02-26-2024)
 
