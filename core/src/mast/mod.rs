@@ -15,8 +15,8 @@ pub use call_node::CallNode;
 mod dyn_node;
 pub use dyn_node::DynNode;
 
-mod external_node;
-pub use external_node::ExternalNode;
+mod proxy_node;
+pub use proxy_node::ProxyNode;
 
 mod join_node;
 pub use join_node::JoinNode;
@@ -119,7 +119,7 @@ impl MastForest {
     }
 
     /// Returns the entrypoint associated with this forest, if any.
-    /// 
+    ///
     /// If an entrypoint is present, then the forest is considered to be a "program".
     pub fn entrypoint(&self) -> Option<MastNodeId> {
         self.entrypoint
@@ -130,8 +130,9 @@ impl MastForest {
         self.entrypoint.map(|entrypoint| self[entrypoint].digest())
     }
 
-    /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else `None`.
-    /// 
+    /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
+    /// `None`.
+    ///
     /// This is the faillible version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
@@ -145,7 +146,7 @@ impl MastForest {
     }
 
     /// Returns the [`MastNodeId`] associated with a given digest, if any.
-    /// 
+    ///
     /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
     /// forest that hashes to this digest, then its id is returned.
     #[inline(always)]
@@ -193,7 +194,7 @@ pub enum MastNode {
     Loop(LoopNode),
     Call(CallNode),
     Dyn,
-    External(ExternalNode),
+    Proxy(ProxyNode),
 }
 
 /// Constructors
@@ -245,8 +246,8 @@ impl MastNode {
         Self::Call(CallNode::new(dyn_node_id, mast_forest))
     }
 
-    pub fn new_external(code_hash: RpoDigest) -> Self {
-        Self::External(ExternalNode::new(code_hash))
+    pub fn new_proxy(code_hash: RpoDigest) -> Self {
+        Self::Proxy(ProxyNode::new(code_hash))
     }
 }
 
@@ -276,7 +277,7 @@ impl MastNode {
                 MastNodePrettyPrint::new_box(Box::new(call_node.to_pretty_print(mast_forest)))
             }
             MastNode::Dyn => MastNodePrettyPrint::new(&DynNode),
-            MastNode::External(external_node) => MastNodePrettyPrint::new(external_node),
+            MastNode::Proxy(proxy_node) => MastNodePrettyPrint::new(proxy_node),
         }
     }
 }
@@ -290,7 +291,7 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => node.digest(),
             MastNode::Call(node) => node.digest(),
             MastNode::Dyn => DynNode.digest(),
-            MastNode::External(node) => node.digest(),
+            MastNode::Proxy(node) => node.digest(),
         }
     }
 
@@ -302,7 +303,7 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
-            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
+            MastNode::Proxy(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
 }

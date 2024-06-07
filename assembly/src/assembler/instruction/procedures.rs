@@ -85,7 +85,7 @@ impl Assembler {
             // For `exec`, we use a PROXY block to reflect that the root is
             // conceptually inlined at this location
             InvokeKind::Exec => {
-                let node = MastNode::new_external(mast_root);
+                let node = MastNode::new_proxy(mast_root);
                 mast_forest.add_node(node)
             }
             // For `call`, we just use the corresponding CALL block

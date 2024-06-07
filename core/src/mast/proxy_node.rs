@@ -11,18 +11,18 @@ use crate::MerkleTreeNode;
 ///
 /// Hash of a proxy block is not computed but is rather defined at instantiation time.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExternalNode {
+pub struct ProxyNode {
     digest: RpoDigest,
 }
 
-impl ExternalNode {
+impl ProxyNode {
     /// Returns a new [Proxy] block instantiated with the specified code hash.
     pub fn new(code_hash: RpoDigest) -> Self {
         Self { digest: code_hash }
     }
 }
 
-impl MerkleTreeNode for ExternalNode {
+impl MerkleTreeNode for ProxyNode {
     fn digest(&self) -> RpoDigest {
         self.digest
     }
@@ -32,7 +32,7 @@ impl MerkleTreeNode for ExternalNode {
     }
 }
 
-impl crate::prettier::PrettyPrint for ExternalNode {
+impl crate::prettier::PrettyPrint for ProxyNode {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
         use miden_formatting::hex::ToHex;
@@ -41,7 +41,7 @@ impl crate::prettier::PrettyPrint for ExternalNode {
     }
 }
 
-impl fmt::Display for ExternalNode {
+impl fmt::Display for ProxyNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)

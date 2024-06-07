@@ -309,11 +309,9 @@ where
             MastNode::Loop(node) => self.execute_loop_node(node, mast_forest),
             MastNode::Call(node) => self.execute_call_node(node, mast_forest),
             MastNode::Dyn => self.execute_dyn_node(mast_forest),
-            MastNode::External(external_node) => {
-                // TODOP: Is this how we do it? Is an `External` guaranteed to be part of the
-                // `MastForest`? The comments in `MastNode` suggest that it isn't.
-                match mast_forest.get_node_id_by_digest(external_node.digest()) {
-                    Some(external_node_id) => self.execute_mast_node(external_node_id, mast_forest),
+            MastNode::Proxy(proxy_node) => {
+                match mast_forest.get_node_id_by_digest(proxy_node.digest()) {
+                    Some(proxy_node_id) => self.execute_mast_node(proxy_node_id, mast_forest),
                     None => Err(ExecutionError::UnexecutableMastNode(wrapper_node.clone())),
                 }
             }

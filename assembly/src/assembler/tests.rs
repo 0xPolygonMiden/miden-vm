@@ -134,7 +134,7 @@ fn nested_blocks() {
             .get_by_name(&"#exec::bar".parse().unwrap())
             .map(|p| {
                 let proc_node = &program[p.code()];
-                MastNode::new_external(proc_node.digest())
+                MastNode::new_proxy(proc_node.digest())
             })
             .unwrap();
 
@@ -147,7 +147,7 @@ fn nested_blocks() {
             .get_by_name(&"foo::bar::baz".parse().unwrap())
             .map(|p| {
                 let proc_node = &program[p.code()];
-                MastNode::new_external(proc_node.digest())
+                MastNode::new_proxy(proc_node.digest())
             })
             .unwrap();
 
