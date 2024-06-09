@@ -182,13 +182,8 @@ impl<E: FieldElement> CircuitLayer<E> {
     }
 }
 
-/// Holds a layer of [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
+/// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
 /// using GKR.
-///
-/// Specifically, each element of a [`CircuitWire`] pair `[(a, b), (c, d)]` in a [`Layer`] is
-/// added to the definition one of two [`MultiLinearPoly`]:
-/// - `numerators`: [a, c]
-/// - `denominators`: [b, d]
 #[derive(Clone, Debug)]
 pub struct CircuitLayerPolys<E: FieldElement> {
     pub numerators: MultiLinearPoly<E>,
