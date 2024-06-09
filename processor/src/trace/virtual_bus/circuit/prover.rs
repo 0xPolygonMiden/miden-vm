@@ -182,8 +182,8 @@ impl<E: FieldElement> CircuitLayer<E> {
     }
 }
 
-/// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit evaluation
-/// using GKR.
+/// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
+/// evaluation using GKR.
 #[derive(Clone, Debug)]
 pub struct CircuitLayerPolys<E: FieldElement> {
     pub numerators: MultiLinearPoly<E>,
@@ -393,8 +393,8 @@ fn prove_before_final_circuit_layers<
     let mut proof_layers: Vec<SumCheckProof<E>> = Vec::new();
     let mut rand = vec![r];
 
-    // Loop over all inner layers, from output to input. 
-    // 
+    // Loop over all inner layers, from output to input.
+    //
     // In a layered circuit, each layer is defined in terms of its predecessor. The first inner
     // layer (starting from the output layer) is the first layer that has a predecessor. Here, we
     // loop over all inner layers in order to iteratively reduce a layer in terms of its successor
