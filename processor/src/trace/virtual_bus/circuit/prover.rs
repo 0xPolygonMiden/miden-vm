@@ -117,23 +117,23 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
         log_up_randomness: &[E],
     ) -> CircuitLayer<E> {
         let num_evaluations = main_trace_columns[0].num_evaluations();
-        let mut input_layer_nodes = Vec::with_capacity(num_evaluations * NUM_WIRES_PER_TRACE_ROW);
+        let mut input_layer_wires = Vec::with_capacity(num_evaluations * NUM_WIRES_PER_TRACE_ROW);
 
         for i in 0..num_evaluations {
-            let nodes_from_trace_row = {
+            let wires_from_trace_row = {
                 let query: Vec<E> = main_trace_columns.iter().map(|ml| ml[i]).collect();
                 compute_input_layer_wires_at_main_trace_query(&query, log_up_randomness)
             };
 
-            input_layer_nodes.extend(nodes_from_trace_row);
+            input_layer_wires.extend(wires_from_trace_row);
         }
 
-        CircuitLayer::new(input_layer_nodes)
+        CircuitLayer::new(input_layer_wires)
     }
 
     /// Computes the subsequent layer of the circuit from a given layer.
     fn compute_next_layer(prev_layer: &CircuitLayer<E>) -> CircuitLayer<E> {
-        let next_layer_nodes = prev_layer
+        let next_layer_wires = prev_layer
             .wires()
             .chunks_exact(2)
             .map(|input_wires| {
@@ -145,7 +145,7 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
             })
             .collect();
 
-        CircuitLayer::new(next_layer_nodes)
+        CircuitLayer::new(next_layer_wires)
     }
 }
 
