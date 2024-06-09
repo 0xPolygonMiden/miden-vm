@@ -393,7 +393,13 @@ fn prove_before_final_circuit_layers<
     let mut proof_layers: Vec<SumCheckProof<E>> = Vec::new();
     let mut rand = vec![r];
 
-    // Loop over all inner layers, from output to input
+    // Loop over all inner layers, from output to input. 
+    // 
+    // In a layered circuit, each layer is defined in terms of its predecessor. The first inner
+    // layer (starting from the output layer) is the first layer that has a predecessor. Here, we
+    // loop over all inner layers in order to iteratively reduce a layer in terms of its successor
+    // layer. Note that we don't include the input layer, since its predecessor layer will be
+    // reduced in terms of the input layer separately in `prove_final_circuit_layer`.
     for inner_layer in circuit.layers().iter().skip(1).rev().skip(1) {
         // construct the Lagrange kernel evaluated at the previous GKR round randomness
         let poly_x = EqFunction::ml_at(rand.clone());
