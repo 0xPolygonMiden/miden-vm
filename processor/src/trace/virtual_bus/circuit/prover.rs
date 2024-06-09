@@ -152,8 +152,8 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
 /// Represents a layer in a [`EvaluatedCircuit`].
 ///
 /// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
-/// circuit representation of a layer, where each consecutive pair of wires are summed to yield an
-/// wire in the subsequent layer of a [`EvaluatedCircuit`].
+/// circuit representation of a layer, where each consecutive pair of wires are summed to yield a
+/// wire in the subsequent layer of an [`EvaluatedCircuit`].
 ///
 /// Note that a [`Layer`] needs to be first converted to a [`LayerPolys`] before the evaluation of
 /// the layer can be proved using GKR.
@@ -290,7 +290,7 @@ pub fn prove<
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-    let num_rounds_before_merge = (NUM_WIRES_PER_TRACE_ROW / 2).ilog2() as usize;
+    let num_rounds_before_merge = NUM_WIRES_PER_TRACE_ROW.ilog2() as usize - 1;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,
@@ -334,11 +334,11 @@ fn prove_final_circuit_layer<
 
     // get the multi-linears of the 4 merge polynomials
     let layer = circuit.get_layer(0);
-    let (even_numerator, odd_numerator) = layer.numerators.project_least_significant_variable();
-    let (even_denominator, odd_denominator) =
+    let (left_numerators, right_numerators) = layer.numerators.project_least_significant_variable();
+    let (left_denominators, right_denominators) =
         layer.denominators.project_least_significant_variable();
     let mut merged_mls =
-        vec![even_numerator, odd_numerator, even_denominator, odd_denominator, poly_x];
+        vec![left_numerators, right_numerators, left_denominators, right_denominators, poly_x];
     // run the first sum-check protocol
     let ((round_claim, before_merge_proof), r_sum_check) = sum_check_prover_plain_partial(
         claimed_evaluation,
