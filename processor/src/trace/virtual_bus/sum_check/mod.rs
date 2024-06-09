@@ -3,9 +3,9 @@ use alloc::vec::Vec;
 use vm_core::FieldElement;
 
 mod prover;
-pub use prover::{FinalClaimBuilder, SumCheckProver};
+pub use prover::{Error as SumCheckProverError, FinalClaimBuilder, SumCheckProver};
 mod verifier;
-pub use verifier::{CompositionPolyQueryBuilder, SumCheckVerifier};
+pub use verifier::{CompositionPolyQueryBuilder, Error as SumCheckVerifierError, SumCheckVerifier};
 
 /// A sum-check round proof.
 ///
@@ -206,10 +206,6 @@ mod test {
     where
         E: FieldElement,
     {
-        fn num_variables(&self) -> u32 {
-            1
-        }
-
         fn max_degree(&self) -> u32 {
             1
         }
@@ -226,10 +222,6 @@ mod test {
     where
         E: FieldElement,
     {
-        fn num_variables(&self) -> u32 {
-            2
-        }
-
         fn max_degree(&self) -> u32 {
             2
         }

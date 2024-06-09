@@ -1,5 +1,6 @@
 use super::{
-    error::VerifierError, FinalLayerProof, GkrCircuitProof, GkrComposition, GkrCompositionMerge,
+    error::VerifierError, prover::CircuitLayerPolys, FinalLayerProof, GkrCircuitProof,
+    GkrComposition, GkrCompositionMerge,
 };
 use crate::trace::virtual_bus::{
     multilinear::EqFunction,
@@ -14,7 +15,7 @@ use winter_prover::crypto::{ElementHasher, RandomCoin};
 
 /// Verifies the validity of a GKR proof for the correct evaluation of a fractional sum circuit.
 pub fn verify<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -29,10 +30,14 @@ pub fn verify<
         final_layer_proof,
     } = proof;
 
-    let p0 = circuit_outputs[0];
-    let p1 = circuit_outputs[1];
-    let q0 = circuit_outputs[2];
-    let q1 = circuit_outputs[3];
+    let CircuitLayerPolys {
+        numerators,
+        denominators,
+    } = circuit_outputs;
+    let p0 = numerators.evaluations()[0];
+    let p1 = numerators.evaluations()[1];
+    let q0 = denominators.evaluations()[0];
+    let q1 = denominators.evaluations()[1];
 
     // make sure that both denominators are not equal to E::ZERO
     if q0 == E::ZERO || q1 == E::ZERO {
@@ -45,7 +50,9 @@ pub fn verify<
     }
 
     // generate the random challenge to reduce two claims into a single claim
-    transcript.reseed(H::hash_elements(&circuit_outputs));
+    let mut evaluations = numerators.evaluations().to_vec();
+    evaluations.extend_from_slice(denominators.evaluations());
+    transcript.reseed(H::hash_elements(&evaluations));
     let r = transcript.draw().map_err(|_| VerifierError::FailedToGenerateChallenge)?;
 
     // reduce the claim
@@ -79,8 +86,8 @@ pub fn verify<
 
         // collect the randomness used for the current layer
         let rand_sumcheck = eval_point;
-        let mut ext = rand_sumcheck;
-        ext.push(r_layer);
+        let mut ext = vec![r_layer];
+        ext.extend_from_slice(&rand_sumcheck);
         rand = ext;
     }
 
@@ -98,7 +105,7 @@ pub fn verify<
 /// Verifies sum-check proofs, as part of the GKR proof, for all GKR layers except for the last one
 /// i.e., the circuit input layer.
 pub fn verify_sum_check_proof_before_last<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -120,12 +127,12 @@ pub fn verify_sum_check_proof_before_last<
         SumCheckVerifier::new(composition_poly, GkrQueryBuilder::new(gkr_eval_point.to_owned()));
     verifier
         .verify(reduced_claim, proof.clone(), transcript)
-        .map_err(|_| VerifierError::FailedToVerifySumCheck)
+        .map_err(VerifierError::FailedToVerifySumCheck)
 }
 
 /// Verifies the final sum-check proof as part of the GKR proof.
 pub fn verify_sum_check_proof_last<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -154,9 +161,7 @@ pub fn verify_sum_check_proof_last<
     let RoundClaim {
         eval_point: rand_merge,
         claim,
-    } = verifier
-        .verify_rounds(reduced_claim, before_merge_proof, transcript)
-        .map_err(|_| VerifierError::FailedToVerifySumCheck)?;
+    } = verifier.verify_rounds(reduced_claim, before_merge_proof, transcript)?;
 
     // verify the second part of the sum-check protocol
     let gkr_composition =
@@ -167,10 +172,11 @@ pub fn verify_sum_check_proof_last<
     );
     verifier
         .verify(claim, after_merge_proof, transcript)
-        .map_err(|_| VerifierError::FailedToVerifySumCheck)
+        .map_err(VerifierError::FailedToVerifySumCheck)
 }
 
-/// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final one.
+/// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final
+/// one.
 #[derive(Default)]
 struct GkrQueryBuilder<E> {
     gkr_eval_point: Vec<E>,

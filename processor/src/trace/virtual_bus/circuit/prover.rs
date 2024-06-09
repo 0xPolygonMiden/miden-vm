@@ -1,247 +1,262 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, error::ProverError, BeforeFinalLayerProof,
-    FinalLayerProof, GkrCircuitProof, GkrClaim, GkrComposition, GkrCompositionMerge,
-    LayerGatesInputs, NUM_ELEMENTS_PER_GATE_INPUT,
+    super::sum_check::Proof as SumCheckProof, compute_input_layer_wires_at_main_trace_query,
+    error::ProverError, BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof,
+    GkrClaim, GkrComposition, GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
     multilinear::{EqFunction, MultiLinearPoly},
     sum_check::{FinalClaimBuilder, FinalOpeningClaim, RoundClaim, RoundProof},
     SumCheckProver,
 };
-use alloc::{borrow::ToOwned, vec::Vec};
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
-/// Layered circuit for computing a sum of fractions.
+/// Evaluation of a layered circuit for computing a sum of fractions.
 ///
-/// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) / (c * d)
-/// which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the [`FractionalSumCircuit`]
-/// is built. Due to the uniformity of the circuit, each of the circuit layers collect all the:
+/// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) /
+/// (c * d) which defines a "gate" ((a, b), (c, d)) --> (a * d + b * c, c * d) upon which the
+/// [`EvaluatedCircuit`] is built. Due to the uniformity of the circuit, each of the circuit
+/// layers collect all the:
 ///
-/// 1. `a`'s into a [`MultiLinearPoly`] called `p_0`.
-/// 2. `b`'s into a [`MultiLinearPoly`] called `p_1`.
-/// 3. `c`'s into a [`MultiLinearPoly`] called `q_0`.
-/// 4. `d`'s into a [`MultiLinearPoly`] called `q_1`.
+/// 1. `a`'s into a [`MultiLinearPoly`] called `left_numerators`.
+/// 2. `b`'s into a [`MultiLinearPoly`] called `right_numerators`.
+/// 3. `c`'s into a [`MultiLinearPoly`] called `left_denominators`.
+/// 4. `d`'s into a [`MultiLinearPoly`] called `right_denominators`.
 ///
 /// The relation between two subsequent layers is given by the formula
 ///
-/// p_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_1[layer](x_0, x_1, ..., x_{ν - 2}, 0)
-///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_0[layer](x_0, x_1, ..., x_{ν - 2}, 0)
+/// p_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 2}, 0)
+///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_0[layer](x_0,
+///                                    x_1, ..., x_{ν - 2}, 0)
 ///
-/// p_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_1[layer](x_0, x_1, ..., x_{ν - 2}, 1)
-///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1)
+/// p_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = p_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 2}, 1)
+///                                  + p_1[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_0[layer](x_0,
+///                                    x_1, ..., x_{ν - 2}, 1)
 ///
 /// and
 ///
-/// q_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) * q_1[layer](x_0, x_1, ..., x_{ν - 1}, 0)
-///                                  
-/// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) * q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
+/// q_0[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 0) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 0)                                  
+/// q_1[layer + 1](x_0, x_1, ..., x_{ν - 2}) = q_0[layer](x_0, x_1, ..., x_{ν - 2}, 1) *
+/// q_1[layer](x_0, x_1, ..., x_{ν - 1}, 1)
+///
+/// This logic is encoded in [`CircuitWire`].
 ///
 /// This means that layer ν will be the output layer and will consist of four values
 /// (p_0[ν - 1], p_1[ν - 1], p_0[ν - 1], p_1[ν - 1]) ∈ 𝔽^ν.
-#[derive(Debug)]
-pub struct FractionalSumCircuit<E: FieldElement> {
-    p_0_vec: Vec<MultiLinearPoly<E>>,
-    p_1_vec: Vec<MultiLinearPoly<E>>,
-    q_0_vec: Vec<MultiLinearPoly<E>>,
-    q_1_vec: Vec<MultiLinearPoly<E>>,
+pub struct EvaluatedCircuit<E: FieldElement> {
+    layer_polys: Vec<CircuitLayerPolys<E>>,
 }
 
-impl<E: FieldElement> FractionalSumCircuit<E> {
-    /// Computes The values of the gate outputs for each of the layers of the fractional sum circuit.
+impl<E: FieldElement> EvaluatedCircuit<E> {
+    /// Creates a new [`EvaluatedCircuit`] by evaluating the circuit where the input layer is
+    /// defined from the main trace columns.
     pub fn new(
-        columns: &[MultiLinearPoly<E>],
+        main_trace_columns: &[MultiLinearPoly<E>],
         log_up_randomness: &[E],
     ) -> Result<Self, ProverError> {
-        let circuit_inputs = CircuitInputs::new(columns, log_up_randomness)?;
+        let mut layer_polys = Vec::new();
 
-        let num_layers = circuit_inputs.num_variables();
-        let mut p_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-        let mut p_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-        let mut q_0_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
-        let mut q_1_vec: Vec<MultiLinearPoly<E>> = Vec::with_capacity(num_layers);
+        let mut current_layer = Self::generate_input_layer(main_trace_columns, log_up_randomness);
+        while current_layer.num_wires() > 1 {
+            let next_layer = Self::compute_next_layer(&current_layer);
 
-        p_0_vec.push(circuit_inputs.left_numerator);
-        p_1_vec.push(circuit_inputs.right_numerator);
-        q_0_vec.push(circuit_inputs.left_denominator);
-        q_1_vec.push(circuit_inputs.right_denominator);
+            layer_polys.push(CircuitLayerPolys::from_circuit_layer(current_layer));
 
-        for i in 0..num_layers {
-            let (output_p_0, output_p_1, output_q_0, output_q_1) =
-                FractionalSumCircuit::compute_layer(
-                    &p_0_vec[i],
-                    &p_1_vec[i],
-                    &q_0_vec[i],
-                    &q_1_vec[i],
-                )?;
-            p_0_vec.push(output_p_0);
-            p_1_vec.push(output_p_1);
-            q_0_vec.push(output_q_0);
-            q_1_vec.push(output_q_1);
+            current_layer = next_layer;
         }
 
-        Ok(FractionalSumCircuit {
-            p_0_vec,
-            p_1_vec,
-            q_0_vec,
-            q_1_vec,
-        })
+        Ok(Self { layer_polys })
     }
 
-    /// Computes the output values of the layer given a set of input values
-    #[allow(clippy::type_complexity)]
-    fn compute_layer(
-        inp_p_0: &MultiLinearPoly<E>,
-        inp_p_1: &MultiLinearPoly<E>,
-        inp_q_0: &MultiLinearPoly<E>,
-        inp_q_1: &MultiLinearPoly<E>,
-    ) -> Result<
-        (MultiLinearPoly<E>, MultiLinearPoly<E>, MultiLinearPoly<E>, MultiLinearPoly<E>),
-        ProverError,
-    > {
-        let len = inp_q_0.num_evaluations();
-        let outp_p_0 = (0..len / 2)
-            .map(|i| inp_p_0[i] * inp_q_1[i] + inp_p_1[i] * inp_q_0[i])
-            .collect::<Vec<E>>();
-        let outp_p_1 = (len / 2..len)
-            .map(|i| inp_p_0[i] * inp_q_1[i] + inp_p_1[i] * inp_q_0[i])
-            .collect::<Vec<E>>();
-        let outp_q_0 = (0..len / 2).map(|i| inp_q_0[i] * inp_q_1[i]).collect::<Vec<E>>();
-        let outp_q_1 = (len / 2..len).map(|i| inp_q_0[i] * inp_q_1[i]).collect::<Vec<E>>();
-
-        Ok((
-            MultiLinearPoly::from_evaluations(outp_p_0)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            MultiLinearPoly::from_evaluations(outp_p_1)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            MultiLinearPoly::from_evaluations(outp_q_0)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            MultiLinearPoly::from_evaluations(outp_q_1)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-        ))
+    /// Returns a layer of the evaluated circuit.
+    ///
+    /// Note that the return type is [`LayerPolys`] as opposed to [`Layer`], since the evaluated
+    /// circuit is stored in a representation which can be proved using GKR.
+    pub fn get_layer(&self, layer_idx: usize) -> &CircuitLayerPolys<E> {
+        &self.layer_polys[layer_idx]
     }
 
-    /// Given a value r, computes the evaluation of the last layer at r when interpreted as (two)
-    /// multilinear polynomials.
-    pub fn evaluate_output_layer(&self, r: E) -> (E, E) {
-        let len = self.p_0_vec.len();
-        assert_eq!(self.p_0_vec[len - 1].num_variables(), 0);
-        assert_eq!(self.p_1_vec[len - 1].num_variables(), 0);
-        assert_eq!(self.q_0_vec[len - 1].num_variables(), 0);
-        assert_eq!(self.q_1_vec[len - 1].num_variables(), 0);
-
-        let mut p = self.p_0_vec[len - 1].clone();
-        p.extend(&self.p_1_vec[len - 1]);
-        let mut q = self.q_0_vec[len - 1].clone();
-        q.extend(&self.q_1_vec[len - 1]);
-
-        (p.evaluate(&[r]), q.evaluate(&[r]))
+    /// Returns all layers of the evaluated circuit, starting from the input layer.
+    ///
+    /// Note that the return type is a slice of [`CircuitLayerPolys`] as opposed to
+    /// [`CircuitLayer`], since the evaluated layers are stored in a representation which can be
+    /// proved using GKR.
+    pub fn layers(&self) -> &[CircuitLayerPolys<E>] {
+        &self.layer_polys
     }
 
-    /// Outputs the value of the circuit output layer.
-    pub fn output_layer(&self) -> [E; 4] {
-        let len = self.p_0_vec.len();
-        let poly_a = self.p_0_vec[len - 1][0];
-        let poly_b = self.p_1_vec[len - 1][0];
-        let poly_c = self.q_0_vec[len - 1][0];
-        let poly_d = self.q_1_vec[len - 1][0];
-        [poly_a, poly_b, poly_c, poly_d]
+    /// Returns the numerator/denominator polynomials representing the output layer of the circuit.
+    pub fn output_layer(&self) -> &CircuitLayerPolys<E> {
+        self.layer_polys.last().expect("circuit has at least one layer")
     }
-}
 
-/// Holds the inputs to [`FractionalSumCircuit`]
-struct CircuitInputs<E: FieldElement> {
-    left_numerator: MultiLinearPoly<E>,
-    right_numerator: MultiLinearPoly<E>,
-    left_denominator: MultiLinearPoly<E>,
-    right_denominator: MultiLinearPoly<E>,
-}
+    /// Evaluates the output layer at `query`, where the numerators of the output layer are treated
+    /// as evaluations of a multilinear polynomial, and similarly for the denominators.
+    pub fn evaluate_output_layer(&self, query: E) -> (E, E) {
+        let CircuitLayerPolys {
+            numerators,
+            denominators,
+        } = self.output_layer();
 
-impl<E: FieldElement> CircuitInputs<E> {
-    fn new(columns: &[MultiLinearPoly<E>], log_up_randomness: &[E]) -> Result<Self, ProverError> {
-        let num_evaluations = columns[0].num_evaluations();
-        let mut left_numerator = Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
-        let mut right_numerator = Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
-        let mut left_denominator =
-            Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
-        let mut right_denominator =
-            Vec::with_capacity(num_evaluations * NUM_ELEMENTS_PER_GATE_INPUT);
+        (numerators.evaluate(&[query]), denominators.evaluate(&[query]))
+    }
+
+    // HELPERS
+    // -------------------------------------------------------------------------------------------
+
+    /// Generates the input layer of the circuit from the main trace columns and some randomness
+    /// provided by the verifier.
+    fn generate_input_layer(
+        main_trace_columns: &[MultiLinearPoly<E>],
+        log_up_randomness: &[E],
+    ) -> CircuitLayer<E> {
+        let num_evaluations = main_trace_columns[0].num_evaluations();
+        let mut input_layer_wires = Vec::with_capacity(num_evaluations * NUM_WIRES_PER_TRACE_ROW);
 
         for i in 0..num_evaluations {
-            let query: Vec<E> = columns.iter().map(|ml| ml[i]).collect();
+            let wires_from_trace_row = {
+                let query: Vec<E> = main_trace_columns.iter().map(|ml| ml[i]).collect();
+                compute_input_layer_wires_at_main_trace_query(&query, log_up_randomness)
+            };
 
-            let LayerGatesInputs {
-                partial_left_numerator,
-                partial_right_numerator,
-                partial_left_denominator,
-                partial_right_denominator,
-            } = LayerGatesInputs::from_main_trace_query(&query, log_up_randomness);
-
-            left_numerator.extend(partial_left_numerator);
-            right_numerator.extend(partial_right_numerator);
-            left_denominator.extend(partial_left_denominator);
-            right_denominator.extend(partial_right_denominator);
+            input_layer_wires.extend(wires_from_trace_row);
         }
 
-        Ok(Self {
-            left_numerator: MultiLinearPoly::from_evaluations(left_numerator)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            right_numerator: MultiLinearPoly::from_evaluations(right_numerator)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-            left_denominator: MultiLinearPoly::from_evaluations(left_denominator)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-
-            right_denominator: MultiLinearPoly::from_evaluations(right_denominator)
-                .map_err(|_| ProverError::FailedToGenerateML)?,
-        })
+        CircuitLayer::new(input_layer_wires)
     }
 
-    fn num_variables(&self) -> usize {
-        self.left_numerator.num_variables()
+    /// Computes the subsequent layer of the circuit from a given layer.
+    fn compute_next_layer(prev_layer: &CircuitLayer<E>) -> CircuitLayer<E> {
+        let next_layer_wires = prev_layer
+            .wires()
+            .chunks_exact(2)
+            .map(|input_wires| {
+                let left_input_wire = input_wires[0];
+                let right_input_wire = input_wires[1];
+
+                // output wire
+                left_input_wire + right_input_wire
+            })
+            .collect();
+
+        CircuitLayer::new(next_layer_wires)
+    }
+}
+
+/// Represents a layer in a [`EvaluatedCircuit`].
+///
+/// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
+/// circuit representation of a layer, where each consecutive pair of wires are summed to yield a
+/// wire in the subsequent layer of an [`EvaluatedCircuit`].
+///
+/// Note that a [`Layer`] needs to be first converted to a [`LayerPolys`] before the evaluation of
+/// the layer can be proved using GKR.
+struct CircuitLayer<E: FieldElement> {
+    wires: Vec<CircuitWire<E>>,
+}
+
+impl<E: FieldElement> CircuitLayer<E> {
+    /// Creates a new [`Layer`] from a set of projective coordinates.
+    ///
+    /// Panics if the number of projective coordinates is not a power of two.
+    pub fn new(wires: Vec<CircuitWire<E>>) -> Self {
+        assert!(wires.len().is_power_of_two());
+
+        Self { wires }
+    }
+
+    /// Returns the wires that make up this circuit layer.
+    pub fn wires(&self) -> &[CircuitWire<E>] {
+        &self.wires
+    }
+
+    /// Returns the number of wires in the layer.
+    pub fn num_wires(&self) -> usize {
+        self.wires.len()
+    }
+}
+
+/// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
+/// evaluation using GKR.
+#[derive(Clone, Debug)]
+pub struct CircuitLayerPolys<E: FieldElement> {
+    pub numerators: MultiLinearPoly<E>,
+    pub denominators: MultiLinearPoly<E>,
+}
+
+impl<E> CircuitLayerPolys<E>
+where
+    E: FieldElement,
+{
+    fn from_circuit_layer(layer: CircuitLayer<E>) -> Self {
+        Self::from_wires(layer.wires)
+    }
+
+    pub fn from_wires(wires: Vec<CircuitWire<E>>) -> Self {
+        let mut numerators = Vec::new();
+        let mut denominators = Vec::new();
+
+        for wire in wires {
+            numerators.push(wire.numerator);
+            denominators.push(wire.denominator);
+        }
+
+        Self {
+            numerators: MultiLinearPoly::from_evaluations(numerators)
+                .expect("evaluations guaranteed to be a power of two"),
+            denominators: MultiLinearPoly::from_evaluations(denominators)
+                .expect("evaluations guaranteed to be a power of two"),
+        }
     }
 }
 
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
-/// Each individual component of the quadruple [p_0, p_1, q_0, q_1] is of the form:
+/// For the input layer of the circuit, each individual component of the quadruple
+/// [p_0, p_1, q_0, q_1] is of the form:
 ///
-/// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) =
-/// \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1}))
+/// m(z_0, ... , z_{μ - 1}, x_0, ... , x_{ν - 1}) = \sum_{y ∈ {0,1}^μ} EQ(z, y) * g_{[y]}(f_0(x_0,
+/// ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν
+/// - 1}))
 ///
 /// where:
 ///
 /// 1. μ is the log_2 of the number of different numerator/denominator expressions divided by two.
 /// 2. [y] := \sum_{j = 0}^{μ - 1} y_j * 2^j
-/// 3. κ is the number of multi-linears (i.e., main trace columns) involved in the computation
-/// of the circuit (i.e., virtual bus).
+/// 3. κ is the number of multi-linears (i.e., main trace columns) involved in the computation of
+/// the circuit (i.e., virtual bus).
 /// 4. ν is the log_2 of the trace length.
 ///
 /// The above `m` is usually referred to as the merge of the individual composed multi-linear
 /// polynomials  g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1})).
 ///
-/// The composition polynomials `g` are provided as inputs and then used in order to compute
-/// the evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting
-/// evaluations are then used in order to evaluate [`FractionalSumCircuit`].
-/// At this point, the GKR protocol is used to prove the correctness of circuit evaluation. It
-/// should be noted that the input layer, which corresponds to the last layer treated by the GKR
-/// protocol, is handled differently from the other layers.
-/// More specifically, the sum-check protocol used for the input layer is composed of two sum-check
-/// protocols, the first one works directly with the evaluations of the `m`'s over {0, 1}^{μ + ν}
-/// and runs for μ rounds.
-/// After these μ rounds, and using the resulting [`RoundClaim`], we run the second and final
-/// sum-check protocol for ν rounds on the composed multi-linear polynomial given by
+/// The composition polynomials `g` are provided as inputs and then used in order to compute the
+/// evaluations of each of the four merge polynomials over {0, 1}^{μ + ν}. The resulting evaluations
+/// are then used in order to evaluate the circuit. At this point, the GKR protocol is used to prove
+/// the correctness of circuit evaluation. It should be noted that the input layer, which
+/// corresponds to the last layer treated by the GKR protocol, is handled differently from the other
+/// layers. More specifically, the sum-check protocol used for the input layer is composed of two
+/// sum-check protocols, the first one works directly with the evaluations of the `m`'s over {0,
+/// 1}^{μ + ν} and runs for μ rounds. After these μ rounds, and using the resulting [`RoundClaim`],
+/// we run the second and final sum-check protocol for ν rounds on the composed multi-linear
+/// polynomial given by
 ///
-/// \sum_{y ∈ {0,1}^μ} EQ(ρ', y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... , x_{ν - 1}))
+/// \sum_{y ∈ {0,1}^μ} EQ(ρ', y) * g_{[y]}(f_0(x_0, ... , x_{ν - 1}), ... , f_{κ - 1}(x_0, ... ,
+/// x_{ν - 1}))
 ///
 /// where ρ' is the randomness sampled during the first sum-check protocol.
 ///
-/// As part of the final sum-check protocol, the openings {f_j(ρ)} are provided as part of
-/// a [`FinalOpeningClaim`]. This latter claim will be proven by the STARK prover later on using
-/// the auxiliary trace.
+/// As part of the final sum-check protocol, the openings {f_j(ρ)} are provided as part of a
+/// [`FinalOpeningClaim`]. This latter claim will be proven by the STARK prover later on using the
+/// auxiliary trace.
 pub fn prove<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -263,14 +278,14 @@ pub fn prove<
         .collect();
 
     // evaluate the GKR fractional sum circuit
-    let mut circuit = FractionalSumCircuit::new(&main_trace_columns, &log_up_randomness)?;
+    let mut circuit = EvaluatedCircuit::new(&main_trace_columns, &log_up_randomness)?;
 
     // run the GKR prover for all layers except the input layer
     let (before_final_layer_proofs, gkr_claim) =
         prove_before_final_circuit_layers(&mut circuit, transcript)?;
 
     // run the GKR prover for the input layer
-    let num_rounds_before_merge = NUM_ELEMENTS_PER_GATE_INPUT.ilog2() as usize;
+    let num_rounds_before_merge = NUM_WIRES_PER_TRACE_ROW.ilog2() as usize - 1;
     let final_layer_proof = prove_final_circuit_layer(
         log_up_randomness,
         main_trace_columns,
@@ -284,7 +299,7 @@ pub fn prove<
     let circuit_outputs = circuit.output_layer();
 
     Ok(GkrCircuitProof {
-        circuit_outputs,
+        circuit_outputs: circuit_outputs.clone(),
         before_final_layer_proofs,
         final_layer_proof,
     })
@@ -292,7 +307,7 @@ pub fn prove<
 
 /// Proves the final GKR layer which corresponds to the input circuit layer.
 fn prove_final_circuit_layer<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -300,7 +315,7 @@ fn prove_final_circuit_layer<
     mut mls: Vec<MultiLinearPoly<E>>,
     num_rounds_merge: usize,
     gkr_claim: GkrClaim<E>,
-    circuit: &mut FractionalSumCircuit<E>,
+    circuit: &mut EvaluatedCircuit<E>,
     transcript: &mut C,
 ) -> Result<FinalLayerProof<E>, ProverError> {
     // parse the [GkrClaim] resulting from the previous GKR layer
@@ -313,12 +328,12 @@ fn prove_final_circuit_layer<
     let poly_x = EqFunction::ml_at(evaluation_point.clone());
 
     // get the multi-linears of the 4 merge polynomials
-    let poly_a = circuit.p_0_vec[0].to_owned();
-    let poly_b = circuit.p_1_vec[0].to_owned();
-    let poly_c = circuit.q_0_vec[0].to_owned();
-    let poly_d = circuit.q_1_vec[0].to_owned();
-    let mut merged_mls = vec![poly_a, poly_b, poly_c, poly_d, poly_x];
-
+    let layer = circuit.get_layer(0);
+    let (left_numerators, right_numerators) = layer.numerators.project_least_significant_variable();
+    let (left_denominators, right_denominators) =
+        layer.denominators.project_least_significant_variable();
+    let mut merged_mls =
+        vec![left_numerators, right_numerators, left_denominators, right_denominators, poly_x];
     // run the first sum-check protocol
     let ((round_claim, before_merge_proof), r_sum_check) = sum_check_prover_plain_partial(
         claimed_evaluation,
@@ -343,9 +358,7 @@ fn prove_final_circuit_layer<
 
     // run the second sum-check protocol
     let main_prover = SumCheckProver::new(gkr_composition, SimpleGkrFinalClaimBuilder(PhantomData));
-    let after_merge_proof = main_prover
-        .prove(claim, mls, transcript)
-        .map_err(|_| ProverError::FailedToProveSumCheck)?;
+    let after_merge_proof = main_prover.prove(claim, mls, transcript)?;
 
     Ok(FinalLayerProof {
         before_merge_proof,
@@ -355,25 +368,23 @@ fn prove_final_circuit_layer<
 
 /// Proves all GKR layers except for input layer.
 fn prove_before_final_circuit_layers<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    circuit: &mut FractionalSumCircuit<E>,
+    circuit: &mut EvaluatedCircuit<E>,
     transcript: &mut C,
 ) -> Result<(BeforeFinalLayerProof<E>, GkrClaim<E>), ProverError> {
     // absorb the circuit output layer. This corresponds to sending the four values of the output
     // layer to the verifier. The verifier then replies with a challenge `r` in order to evaluate
     // `p` and `q` at `r` as multi-linears.
-    let num_layers = circuit.p_0_vec.len();
-    let data = vec![
-        circuit.p_0_vec[num_layers - 1][0],
-        circuit.p_1_vec[num_layers - 1][0],
-        circuit.q_0_vec[num_layers - 1][0],
-        circuit.q_1_vec[num_layers - 1][0],
-    ];
-    // generate the challenge `r`
-    transcript.reseed(H::hash_elements(&data));
+    let CircuitLayerPolys {
+        numerators,
+        denominators,
+    } = circuit.output_layer();
+    let mut evaluations = numerators.evaluations().to_vec();
+    evaluations.extend_from_slice(denominators.evaluations());
+    transcript.reseed(H::hash_elements(&evaluations));
 
     // generate the challenge and reduce [p0, p1, q0, q1] to [pr, qr]
     let r = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
@@ -381,17 +392,26 @@ fn prove_before_final_circuit_layers<
 
     let mut proof_layers: Vec<SumCheckProof<E>> = Vec::new();
     let mut rand = vec![r];
-    for layer_id in (1..num_layers - 1).rev() {
+
+    // Loop over all inner layers, from output to input.
+    //
+    // In a layered circuit, each layer is defined in terms of its predecessor. The first inner
+    // layer (starting from the output layer) is the first layer that has a predecessor. Here, we
+    // loop over all inner layers in order to iteratively reduce a layer in terms of its successor
+    // layer. Note that we don't include the input layer, since its predecessor layer will be
+    // reduced in terms of the input layer separately in `prove_final_circuit_layer`.
+    for inner_layer in circuit.layers().iter().skip(1).rev().skip(1) {
         // construct the Lagrange kernel evaluated at the previous GKR round randomness
         let poly_x = EqFunction::ml_at(rand.clone());
 
         // construct the vector of multi-linear polynomials
         // TODO: avoid unnecessary allocation
-        let poly_a = circuit.p_0_vec[layer_id].to_owned();
-        let poly_b = circuit.p_1_vec[layer_id].to_owned();
-        let poly_c = circuit.q_0_vec[layer_id].to_owned();
-        let poly_d = circuit.q_1_vec[layer_id].to_owned();
-        let mls = vec![poly_a, poly_b, poly_c, poly_d, poly_x];
+        let (left_numerators, right_numerators) =
+            inner_layer.numerators.project_least_significant_variable();
+        let (left_denominators, right_denominators) =
+            inner_layer.denominators.project_least_significant_variable();
+        let mls =
+            vec![left_numerators, right_numerators, left_denominators, right_denominators, poly_x];
 
         // run the sumcheck protocol
         let (proof, _) = sum_check_prover_plain_full(claim, mls, transcript)?;
@@ -401,15 +421,24 @@ fn prove_before_final_circuit_layers<
         let r_layer = transcript.draw().map_err(|_| ProverError::FailedToGenerateChallenge)?;
 
         // reduce the claim
-        let p0 = proof.openings_claim.openings[0];
-        let p1 = proof.openings_claim.openings[1];
-        let q0 = proof.openings_claim.openings[2];
-        let q1 = proof.openings_claim.openings[3];
-        claim = (p0 + r_layer * (p1 - p0), q0 + r_layer * (q1 - q0));
+        claim = {
+            let left_numerators_opening = proof.openings_claim.openings[0];
+            let right_numerators_opening = proof.openings_claim.openings[1];
+            let left_denominators_opening = proof.openings_claim.openings[2];
+            let right_denominators_opening = proof.openings_claim.openings[3];
+
+            reduce_layer_claim(
+                left_numerators_opening,
+                right_numerators_opening,
+                left_denominators_opening,
+                right_denominators_opening,
+                r_layer,
+            )
+        };
 
         // collect the randomness used for the current layer
-        let mut ext = proof.openings_claim.eval_point.clone();
-        ext.push(r_layer);
+        let mut ext = vec![r_layer];
+        ext.extend_from_slice(&proof.openings_claim.eval_point);
         rand = ext;
 
         proof_layers.push(proof);
@@ -426,10 +455,52 @@ fn prove_before_final_circuit_layers<
     ))
 }
 
+/// We receive our 4 multilinear polynomials which were evaluated at a random point:
+/// `left_numerators` (or `p0`), `right_numerators` (or `p1`), `left_denominators` (or `q0`), and
+/// `right_denominators` (or `q1`). We'll call the 4 evaluations at a random point `p0(r)`, `p1(r)`,
+/// `q0(r)`, and `q1(r)`, respectively, where `r` is the random point. Note that `r` is a shorthand
+/// for a tuple of random values `(r_0, ... r_{l-1})`, where `2^{l + 1}` is the number of wires in
+/// the layer.
+///
+/// It is important to recall how `p0` and `p1` were constructed (and analogously for `q0` and
+/// `q1`). They are the `numerators` layer polynomial (or `p`) evaluations `p(0, r)` and `p(1, r)`,
+/// obtained from [`MultiLinearPoly::project_least_significant_variable`]. Hence, `[p0, p1]` form
+/// the evaluations of polynomial `p'(x_0) = p(x_0, r)`. Then, the round claim for `numerators`,
+/// defined as `p(r_layer, r)`, is simply `p'(r_layer)`.
+fn reduce_layer_claim<E>(
+    left_numerators_opening: E,
+    right_numerators_opening: E,
+    left_denominators_opening: E,
+    right_denominators_opening: E,
+    r_layer: E,
+) -> (E, E)
+where
+    E: FieldElement<BaseField = Felt>,
+{
+    // This is the `numerators` layer polynomial `f(x_0) = numerators(x_0, rx_0, ..., rx_{l-1})`,
+    // where `rx_0, ..., rx_{l-1}` are the random variables that were sampled during the sumcheck
+    // round for this layer.
+    let numerators_univariate =
+        MultiLinearPoly::from_evaluations(vec![left_numerators_opening, right_numerators_opening])
+            .unwrap();
+
+    // This is analogous to `numerators_univariate`, but for the `denominators` layer polynomial
+    let denominators_univariate = MultiLinearPoly::from_evaluations(vec![
+        left_denominators_opening,
+        right_denominators_opening,
+    ])
+    .unwrap();
+
+    (
+        numerators_univariate.evaluate(&[r_layer]),
+        denominators_univariate.evaluate(&[r_layer]),
+    )
+}
+
 /// Runs the first sum-check prover for the input layer.
 #[allow(clippy::type_complexity)]
 fn sum_check_prover_plain_partial<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -449,16 +520,14 @@ fn sum_check_prover_plain_partial<
 
     // run the sum-check protocol
     let main_prover = SumCheckProver::new(composer, SimpleGkrFinalClaimBuilder(PhantomData));
-    let proof = main_prover
-        .prove_rounds(claim, ml_polys, num_rounds, transcript)
-        .map_err(|_| ProverError::FailedToProveSumCheck)?;
+    let proof = main_prover.prove_rounds(claim, ml_polys, num_rounds, transcript)?;
 
     Ok((proof, r_batch))
 }
 
 /// Runs the sum-check prover used in all but the input layer.
 fn sum_check_prover_plain_full<
-    E: FieldElement<BaseField = Felt> + 'static,
+    E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
@@ -476,9 +545,7 @@ fn sum_check_prover_plain_full<
 
     // run the sum-check protocol
     let main_prover = SumCheckProver::new(composer, SimpleGkrFinalClaimBuilder(PhantomData));
-    let proof = main_prover
-        .prove(claim_, ml_polys, transcript)
-        .map_err(|_| ProverError::FailedToProveSumCheck)?;
+    let proof = main_prover.prove(claim_, ml_polys, transcript)?;
 
     Ok((proof, r_batch))
 }

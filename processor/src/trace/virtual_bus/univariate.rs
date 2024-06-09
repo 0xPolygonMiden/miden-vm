@@ -2,7 +2,8 @@ use alloc::vec::Vec;
 use vm_core::{polynom, FieldElement};
 use winter_prover::math::batch_inversion;
 
-/// The evaluations of a univariate polynomial of degree n at 0, 1, ..., n with the evaluation at 0 omitted.
+/// The evaluations of a univariate polynomial of degree n at 0, 1, ..., n with the evaluation at 0
+/// omitted.
 #[derive(Clone, Debug)]
 pub struct UnivariatePolyEvals<E> {
     pub(crate) partial_evaluations: Vec<E>,
@@ -61,7 +62,8 @@ impl<E: FieldElement> UnivariatePolyEvals<E> {
     }
 }
 
-/// The coefficients of a univariate polynomial of degree n with the linear term coefficient omitted.
+/// The coefficients of a univariate polynomial of degree n with the linear term coefficient
+/// omitted.
 #[derive(Clone, Debug)]
 pub struct UnivariatePolyCoef<E: FieldElement> {
     pub(crate) coefficients: Vec<E>,
@@ -102,12 +104,12 @@ impl<E: FieldElement> UnivariatePolyCoef<E> {
 /// More specifically, we use the representation given in [1], where `V^{-1}` is represented as
 /// `U * M` where:
 ///
-/// 1. `M` is a lower triangular matrix where its entries are given by
-///     M(i, j) = M(i - 1, j) - M(i - 1, j - 1) / (i - 1)
+/// 1. `M` is a lower triangular matrix where its entries are given by M(i, j) = M(i - 1, j) - M(i -
+///    1, j - 1) / (i - 1)
 /// with boundary conditions M(i, 1) = 1 and M(i, j) = 0 when j > i.
 ///
-/// 2. `U` is an upper triangular (involutory) matrix where its entries are given by
-///     U(i, j) = U(i, j - 1) - U(i - 1, j - 1)
+/// 2. `U` is an upper triangular (involutory) matrix where its entries are given by U(i, j) = U(i,
+///    j - 1) - U(i - 1, j - 1)
 /// with boundary condition U(1, j) = 1 and U(i, j) = 0 when i > j.
 ///
 /// Note that the matrix indexing in the formulas above matches the one in the reference and starts

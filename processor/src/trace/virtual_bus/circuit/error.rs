@@ -1,9 +1,12 @@
+use crate::trace::virtual_bus::sum_check::SumCheckProverError;
+use crate::trace::virtual_bus::sum_check::SumCheckVerifierError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ProverError {
     #[error("failed to generate multi-linear from the given evaluations")]
     FailedToGenerateML,
     #[error("failed to generate the sum-check proof")]
-    FailedToProveSumCheck,
+    FailedToProveSumCheck(#[from] SumCheckProverError),
     #[error("failed to generate the random challenge")]
     FailedToGenerateChallenge,
 }
@@ -17,5 +20,5 @@ pub enum VerifierError {
     #[error("failed to generate the random challenge")]
     FailedToGenerateChallenge,
     #[error("failed to verify the sum-check proof")]
-    FailedToVerifySumCheck,
+    FailedToVerifySumCheck(#[from] SumCheckVerifierError),
 }
