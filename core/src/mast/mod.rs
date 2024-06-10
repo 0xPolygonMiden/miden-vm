@@ -30,6 +30,9 @@ pub use split_node::SplitNode;
 mod loop_node;
 pub use loop_node::LoopNode;
 
+#[cfg(test)]
+mod tests;
+
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;

@@ -5,9 +5,6 @@ use alloc::vec::Vec;
 mod info;
 pub use info::ProgramInfo;
 
-#[cfg(test)]
-mod tests;
-
 // KERNEL
 // ================================================================================================
 
