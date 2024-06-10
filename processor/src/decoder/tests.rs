@@ -18,8 +18,8 @@ use miden_air::trace::{
 };
 use test_utils::rand::rand_value;
 use vm_core::{
-    code_blocks::OP_BATCH_SIZE, mast::BasicBlockNode, MastForest, MastNode, MerkleTreeNode,
-    EMPTY_WORD, ONE, ZERO,
+    mast::{BasicBlockNode, OP_BATCH_SIZE},
+    MastForest, MastNode, MerkleTreeNode, EMPTY_WORD, ONE, ZERO,
 };
 
 // CONSTANTS

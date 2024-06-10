@@ -21,8 +21,9 @@ pub use vm_core::{
     Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
-    code_blocks::{OpBatch, OP_BATCH_SIZE, OP_GROUP_SIZE},
-    mast::{BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, SplitNode},
+    mast::{
+        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, OpBatch, SplitNode, OP_GROUP_SIZE,
+    },
     Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 

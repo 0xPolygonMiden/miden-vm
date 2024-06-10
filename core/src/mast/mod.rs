@@ -7,7 +7,10 @@ use miden_formatting::prettier::{Document, PrettyPrint};
 use crate::{DecoratorList, Kernel, Operation};
 
 mod basic_block_node;
-pub use basic_block_node::BasicBlockNode;
+pub use basic_block_node::{
+    batch_ops, get_span_op_group_count, BasicBlockNode, OpBatch, BATCH_SIZE as OP_BATCH_SIZE,
+    GROUP_SIZE as OP_GROUP_SIZE,
+};
 
 mod call_node;
 pub use call_node::CallNode;

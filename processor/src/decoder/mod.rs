@@ -1,6 +1,6 @@
 use super::{
     ExecutionError, Felt, Host, OpBatch, Operation, Process, Word, EMPTY_WORD, MIN_TRACE_LEN, ONE,
-    OP_BATCH_SIZE, ZERO,
+    ZERO,
 };
 use alloc::vec::Vec;
 use miden_air::trace::{
@@ -11,10 +11,9 @@ use miden_air::trace::{
     },
 };
 use vm_core::{
-    code_blocks::get_span_op_group_count,
     mast::{
-        BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest, MerkleTreeNode,
-        SplitNode,
+        get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest,
+        MerkleTreeNode, SplitNode, OP_BATCH_SIZE,
     },
     stack::STACK_TOP_SIZE,
     AssemblyOp,

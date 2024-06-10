@@ -2,8 +2,6 @@ use super::{chiplets::hasher::Digest, errors, Felt};
 use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 use alloc::vec::Vec;
 
-pub mod blocks;
-
 mod info;
 pub use info::ProgramInfo;
 
