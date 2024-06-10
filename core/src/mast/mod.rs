@@ -4,7 +4,7 @@ use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::{Document, PrettyPrint};
 
-use crate::{DecoratorList, Kernel, Operation};
+use crate::{DecoratorList, Operation};
 
 mod basic_block_node;
 pub use basic_block_node::{
@@ -17,6 +17,9 @@ pub use call_node::CallNode;
 
 mod dyn_node;
 pub use dyn_node::DynNode;
+
+mod kernel;
+pub use kernel::Kernel;
 
 mod proxy_node;
 pub use proxy_node::ProxyNode;

@@ -1,9 +1,8 @@
-use crate::MastForest;
+use crate::{mast::Kernel, MastForest};
 
 use super::{
     super::{ToElements, WORD_SIZE},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel,
-    Serializable,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Serializable,
 };
 use alloc::vec::Vec;
 

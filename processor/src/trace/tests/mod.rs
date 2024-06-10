@@ -5,7 +5,7 @@ use super::{
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 use alloc::vec::Vec;
 use test_utils::rand::rand_array;
-use vm_core::{Kernel, MastForest, MastNode, Operation, StackOutputs, Word, ONE, ZERO};
+use vm_core::{mast::Kernel, MastForest, MastNode, Operation, StackOutputs, Word, ONE, ZERO};
 
 mod chiplets;
 mod decoder;

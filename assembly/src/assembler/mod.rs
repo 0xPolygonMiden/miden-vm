@@ -10,8 +10,8 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use vm_core::{
-    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
-    Decorator, DecoratorList, Kernel, Operation,
+    mast::{Kernel, MastForest, MastNode, MastNodeId, MerkleTreeNode},
+    Decorator, DecoratorList, Operation,
 };
 
 mod basic_block_builder;
