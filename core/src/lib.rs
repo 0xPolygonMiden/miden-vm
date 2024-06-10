@@ -94,9 +94,6 @@ pub mod prettier {
     pub use miden_formatting::{prettier::*, pretty_via_display, pretty_via_to_string};
 }
 
-pub mod program;
-pub use program::ProgramInfo;
-
 mod operations;
 pub use operations::{
     AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,

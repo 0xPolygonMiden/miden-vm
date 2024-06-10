@@ -1,13 +1,10 @@
-use crate::{mast::Kernel, MastForest};
-
-use super::{
-    super::{ToElements, WORD_SIZE},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Serializable,
-};
 use alloc::vec::Vec;
+use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-// PROGRAM INFO
-// ================================================================================================
+use crate::{utils::ToElements, MastForest};
+
+use super::Kernel;
 
 /// A program information set consisting of its MAST root and set of kernel procedure roots used
 /// for its compilation.
@@ -19,7 +16,7 @@ use alloc::vec::Vec;
 /// zero-knowledge properties.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProgramInfo {
-    program_hash: Digest,
+    program_hash: RpoDigest,
     kernel: Kernel,
 }
 
@@ -28,7 +25,7 @@ impl ProgramInfo {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new instance of a program info.
-    pub const fn new(program_hash: Digest, kernel: Kernel) -> Self {
+    pub const fn new(program_hash: RpoDigest, kernel: Kernel) -> Self {
         Self {
             program_hash,
             kernel,
@@ -39,7 +36,7 @@ impl ProgramInfo {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the program hash computed from its code block root.
-    pub const fn program_hash(&self) -> &Digest {
+    pub const fn program_hash(&self) -> &RpoDigest {
         &self.program_hash
     }
 
@@ -49,12 +46,12 @@ impl ProgramInfo {
     }
 
     /// Returns the list of procedures of the kernel used during the compilation.
-    pub fn kernel_procedures(&self) -> &[Digest] {
+    pub fn kernel_procedures(&self) -> &[RpoDigest] {
         self.kernel.proc_hashes()
     }
 }
 
-// TODOP: Remove; temporary solution
+// TODOP: use TryFrom instead
 impl From<MastForest> for ProgramInfo {
     fn from(mast_forest: MastForest) -> Self {
         let program_hash = mast_forest.entrypoint_digest().unwrap();
@@ -91,7 +88,7 @@ impl Deserializable for ProgramInfo {
 // TO ELEMENTS
 // ------------------------------------------------------------------------------------------------
 
-impl ToElements<Felt> for ProgramInfo {
+impl ToElements for ProgramInfo {
     fn to_elements(&self) -> Vec<Felt> {
         let num_kernel_proc_elements = self.kernel.proc_hashes().len() * WORD_SIZE;
         let mut result = Vec::with_capacity(WORD_SIZE + num_kernel_proc_elements);

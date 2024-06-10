@@ -15,10 +15,13 @@ use miden_air::trace::{
 };
 pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
-    chiplets::hasher::Digest, crypto::merkle::SMT_DEPTH, errors::InputError, mast::Kernel,
-    utils::DeserializationError, AdviceInjector, AssemblyOp, Felt, MastForest, MastNode,
-    MastNodeId, MerkleTreeNode, Operation, ProgramInfo, QuadExtension, StackInputs, StackOutputs,
-    Word, EMPTY_WORD, ONE, ZERO,
+    chiplets::hasher::Digest,
+    crypto::merkle::SMT_DEPTH,
+    errors::InputError,
+    mast::{Kernel, ProgramInfo},
+    utils::DeserializationError,
+    AdviceInjector, AssemblyOp, Felt, MastForest, MastNode, MastNodeId, MerkleTreeNode, Operation,
+    QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     mast::{

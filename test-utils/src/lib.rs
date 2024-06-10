@@ -17,7 +17,10 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use vm_core::{chiplets::hasher::apply_permutation, mast::MastForest};
+use vm_core::{
+    chiplets::hasher::apply_permutation,
+    mast::{MastForest, ProgramInfo},
+};
 
 // EXPORTS
 // ================================================================================================
@@ -33,7 +36,7 @@ pub use processor::{
 };
 pub use prover::{prove_mast_forest, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
-pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
+pub use verifier::{verify, AcceptableOptions, VerifierError};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,

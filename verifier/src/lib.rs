@@ -8,16 +8,19 @@ extern crate std;
 use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use alloc::vec;
 use core::fmt;
-use vm_core::crypto::{
-    hash::{Blake3_192, Blake3_256, Rpo256, Rpx256},
-    random::{RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
+use vm_core::{
+    crypto::{
+        hash::{Blake3_192, Blake3_256, Rpo256, Rpx256},
+        random::{RpoRandomCoin, RpxRandomCoin, WinterRandomCoin},
+    },
+    mast::ProgramInfo,
 };
 use winter_verifier::verify as verify_proof;
 
 // EXPORTS
 // ================================================================================================
 
-pub use vm_core::{chiplets::hasher::Digest, ProgramInfo, StackInputs, StackOutputs, Word};
+pub use vm_core::{chiplets::hasher::Digest, StackInputs, StackOutputs, Word};
 pub use winter_verifier::{AcceptableOptions, VerifierError};
 pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};

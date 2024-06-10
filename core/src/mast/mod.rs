@@ -18,6 +18,9 @@ pub use call_node::CallNode;
 mod dyn_node;
 pub use dyn_node::DynNode;
 
+mod info;
+pub use info::ProgramInfo;
+
 mod kernel;
 pub use kernel::Kernel;
 

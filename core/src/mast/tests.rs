@@ -1,7 +1,7 @@
 use crate::{
     chiplets::hasher,
-    mast::{DynNode, Kernel},
-    MerkleTreeNode, ProgramInfo, Word,
+    mast::{DynNode, Kernel, ProgramInfo},
+    MerkleTreeNode, Word,
 };
 use alloc::vec::Vec;
 use miden_crypto::{hash::rpo::RpoDigest, Felt};

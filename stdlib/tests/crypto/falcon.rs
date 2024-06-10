@@ -1,3 +1,4 @@
+use processor::ProgramInfo;
 use rand::{thread_rng, Rng};
 
 use assembly::{utils::Serializable, Assembler};
@@ -14,7 +15,7 @@ use test_utils::{
     crypto::{rpo_falcon512::Polynomial, rpo_falcon512::SecretKey, MerkleStore},
     expect_exec_error,
     rand::rand_vector,
-    FieldElement, ProgramInfo, QuadFelt, Word, WORD_SIZE,
+    FieldElement, QuadFelt, Word, WORD_SIZE,
 };
 
 /// Modulus used for rpo falcon 512.

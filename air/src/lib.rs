@@ -9,8 +9,9 @@ extern crate std;
 use alloc::vec::Vec;
 
 use vm_core::{
+    mast::ProgramInfo,
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
-    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
+    ExtensionOf, StackInputs, StackOutputs, ONE, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,

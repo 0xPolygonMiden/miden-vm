@@ -3,10 +3,9 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::DefaultHost;
+use processor::{DefaultHost, ProgramInfo};
 use test_utils::{
-    prove_mast_forest, AdviceInputs, MemAdviceProvider, ProgramInfo, ProvingOptions, StackInputs,
-    VerifierError,
+    prove_mast_forest, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
 };
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented

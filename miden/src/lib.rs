@@ -11,7 +11,7 @@ pub use assembly::{
 };
 pub use processor::{
     crypto, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost, ExecutionError,
-    ExecutionTrace, Host, Kernel, MemAdviceProvider, Operation, ProgramInfo, StackInputs, VmState,
+    ExecutionTrace, Host, Kernel, MemAdviceProvider, Operation, StackInputs, VmState,
     VmStateIterator, ZERO,
 };
 pub use prover::{
