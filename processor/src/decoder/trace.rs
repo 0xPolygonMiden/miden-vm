@@ -289,13 +289,13 @@ impl DecoderTrace {
     pub fn append_user_op(
         &mut self,
         op: Operation,
-        span_addr: Felt,
+        basic_block_addr: Felt,
         parent_addr: Felt,
         num_groups_left: Felt,
         group_ops_left: Felt,
         op_idx: Felt,
     ) {
-        self.addr_trace.push(span_addr);
+        self.addr_trace.push(basic_block_addr);
         self.append_opcode(op);
 
         self.hasher_trace[0].push(group_ops_left);
