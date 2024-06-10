@@ -1,7 +1,7 @@
 use super::{
     crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
-    CodeBlock, Digest, Felt, QuadFelt, Word,
+    Digest, Felt, QuadFelt, Word,
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
@@ -68,7 +68,6 @@ pub enum ExecutionError {
     SmtNodeNotFound(Word),
     SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
-    UnexecutableCodeBlock(CodeBlock),
     UnexecutableMastNode(MastNode),
 }
 
@@ -203,9 +202,6 @@ impl Display for ExecutionError {
             SyscallTargetNotInKernel(proc) => {
                 let hex = to_hex(proc.as_bytes());
                 write!(f, "Syscall failed: procedure with root {hex} was not found in the kernel")
-            }
-            UnexecutableCodeBlock(block) => {
-                write!(f, "Execution reached unexecutable code block {block:?}")
             }
             UnexecutableMastNode(mast_node) => {
                 write!(f, "Execution reached unexecutable MAST node {mast_node:?}")

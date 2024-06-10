@@ -17,15 +17,13 @@ pub use miden_air::{ExecutionOptions, ExecutionOptionsError};
 pub use vm_core::{
     chiplets::hasher::Digest, crypto::merkle::SMT_DEPTH, errors::InputError,
     utils::DeserializationError, AdviceInjector, AssemblyOp, Felt, Kernel, MastForest, MastNode,
-    MastNodeId, MerkleTreeNode, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
-    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    MastNodeId, MerkleTreeNode, Operation, ProgramInfo, QuadExtension, StackInputs, StackOutputs,
+    Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
-    code_blocks::{
-        Call, CodeBlock, Dyn, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
-    },
+    code_blocks::{OpBatch, OP_BATCH_SIZE, OP_GROUP_SIZE},
     mast::{BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, SplitNode},
-    CodeBlockTable, Decorator, DecoratorIterator, FieldElement, StackTopState,
+    Decorator, DecoratorIterator, FieldElement, StackTopState,
 };
 
 pub use winter_prover::matrix::ColMatrix;
@@ -143,43 +141,6 @@ where
     Ok(trace)
 }
 
-/// Returns an execution trace resulting from executing the provided program against the provided
-/// inputs.
-#[tracing::instrument("execute_program", skip_all)]
-pub fn execute<H>(
-    program: &Program,
-    stack_inputs: StackInputs,
-    host: H,
-    options: ExecutionOptions,
-) -> Result<ExecutionTrace, ExecutionError>
-where
-    H: Host,
-{
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
-    let stack_outputs = process.execute(program)?;
-    let trace = ExecutionTrace::new(process, stack_outputs);
-    assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
-    Ok(trace)
-}
-
-/// Returns an iterator which allows callers to step through the execution and inspect VM state at
-/// each execution step.
-pub fn execute_iter<H>(program: &Program, stack_inputs: StackInputs, host: H) -> VmStateIterator
-where
-    H: Host,
-{
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
-    let result = process.execute(program);
-    if result.is_ok() {
-        assert_eq!(
-            program.hash(),
-            process.decoder.program_hash().into(),
-            "inconsistent program hash"
-        );
-    }
-    VmStateIterator::new(process, result)
-}
-
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
 pub fn execute_mast_forest_iter<H>(
@@ -268,6 +229,7 @@ where
     // PROGRAM EXECUTOR
     // --------------------------------------------------------------------------------------------
 
+    /// Executes the provided [`MastForest`] in this process.
     pub fn execute_mast_forest(
         &mut self,
         mast_forest: &MastForest,
@@ -279,14 +241,6 @@ where
         let entrypoint = mast_forest.entrypoint().ok_or(ExecutionError::NoEntryPoint)?;
 
         self.execute_mast_node(entrypoint, mast_forest)?;
-
-        Ok(self.stack.build_stack_outputs())
-    }
-
-    /// Executes the provided [Program] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
-        assert_eq!(self.system.clk(), 0, "a program has already been executed in this process");
-        self.execute_code_block(program.root(), program.cb_table())?;
 
         Ok(self.stack.build_stack_outputs())
     }
@@ -461,186 +415,6 @@ where
         }
 
         self.end_basic_block_node(basic_block)?;
-
-        // execute any decorators which have not been executed during span ops execution; this
-        // can happen for decorators appearing after all operations in a block. these decorators
-        // are executed after SPAN block is closed to make sure the VM clock cycle advances beyond
-        // the last clock cycle of the SPAN block ops.
-        for decorator in decorators {
-            self.execute_decorator(decorator)?;
-        }
-
-        Ok(())
-    }
-
-    /// Executes the specified [CodeBlock].
-    ///
-    /// # Errors
-    /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    fn execute_code_block(
-        &mut self,
-        block: &CodeBlock,
-        cb_table: &CodeBlockTable,
-    ) -> Result<(), ExecutionError> {
-        match block {
-            CodeBlock::Join(block) => self.execute_join_block(block, cb_table),
-            CodeBlock::Split(block) => self.execute_split_block(block, cb_table),
-            CodeBlock::Loop(block) => self.execute_loop_block(block, cb_table),
-            CodeBlock::Call(block) => self.execute_call_block(block, cb_table),
-            CodeBlock::Dyn(block) => self.execute_dyn_block(block, cb_table),
-            CodeBlock::Span(block) => self.execute_span_block(block),
-            CodeBlock::Proxy(proxy) => match cb_table.get(proxy.hash()) {
-                Some(block) => self.execute_code_block(block, cb_table),
-                None => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
-            },
-        }
-    }
-
-    /// Executes the specified [Join] block.
-    #[inline(always)]
-    fn execute_join_block(
-        &mut self,
-        block: &Join,
-        cb_table: &CodeBlockTable,
-    ) -> Result<(), ExecutionError> {
-        self.start_join_block(block)?;
-
-        // execute first and then second child of the join block
-        self.execute_code_block(block.first(), cb_table)?;
-        self.execute_code_block(block.second(), cb_table)?;
-
-        self.end_join_block(block)
-    }
-
-    /// Executes the specified [Split] block.
-    #[inline(always)]
-    fn execute_split_block(
-        &mut self,
-        block: &Split,
-        cb_table: &CodeBlockTable,
-    ) -> Result<(), ExecutionError> {
-        // start the SPLIT block; this also pops the stack and returns the popped element
-        let condition = self.start_split_block(block)?;
-
-        // execute either the true or the false branch of the split block based on the condition
-        if condition == ONE {
-            self.execute_code_block(block.on_true(), cb_table)?;
-        } else if condition == ZERO {
-            self.execute_code_block(block.on_false(), cb_table)?;
-        } else {
-            return Err(ExecutionError::NotBinaryValue(condition));
-        }
-
-        self.end_split_block(block)
-    }
-
-    /// Executes the specified [Loop] block.
-    #[inline(always)]
-    fn execute_loop_block(
-        &mut self,
-        block: &Loop,
-        cb_table: &CodeBlockTable,
-    ) -> Result<(), ExecutionError> {
-        // start the LOOP block; this also pops the stack and returns the popped element
-        let condition = self.start_loop_block(block)?;
-
-        // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
-        if condition == ONE {
-            // execute the loop body at least once
-            self.execute_code_block(block.body(), cb_table)?;
-
-            // keep executing the loop body until the condition on the top of the stack is no
-            // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
-            // which drops the condition from the stack
-            while self.stack.peek() == ONE {
-                self.decoder.repeat();
-                self.execute_op(Operation::Drop)?;
-                self.execute_code_block(block.body(), cb_table)?;
-            }
-
-            // end the LOOP block and drop the condition from the stack
-            self.end_loop_block(block, true)
-        } else if condition == ZERO {
-            // end the LOOP block, but don't drop the condition from the stack because it was
-            // already dropped when we started the LOOP block
-            self.end_loop_block(block, false)
-        } else {
-            Err(ExecutionError::NotBinaryValue(condition))
-        }
-    }
-
-    /// Executes the specified [Call] block.
-    #[inline(always)]
-    fn execute_call_block(
-        &mut self,
-        block: &Call,
-        cb_table: &CodeBlockTable,
-    ) -> Result<(), ExecutionError> {
-        // if this is a syscall, make sure the call target exists in the kernel
-        if block.is_syscall() {
-            self.chiplets.access_kernel_proc(block.fn_hash())?;
-        }
-
-        self.start_call_block(block)?;
-
-        // if this is a dyncall, execute the dynamic code block
-        if block.fn_hash() == Dyn::dyn_hash() {
-            self.execute_dyn_block(&Dyn::new(), cb_table)?;
-        } else {
-            // get function body from the code block table and execute it
-            let fn_body = cb_table
-                .get(block.fn_hash())
-                .ok_or_else(|| ExecutionError::CodeBlockNotFound(block.fn_hash()))?;
-            self.execute_code_block(fn_body, cb_table)?;
-        }
-
-        self.end_call_block(block)
-    }
-
-    /// Executes the specified [Dyn] block.
-    #[inline(always)]
-    fn execute_dyn_block(
-        &mut self,
-        block: &Dyn,
-        cb_table: &CodeBlockTable,
-    ) -> Result<(), ExecutionError> {
-        // get target hash from the stack
-        let dyn_hash = self.stack.get_word(0);
-        self.start_dyn_block(block, dyn_hash)?;
-
-        // get dynamic code from the code block table and execute it
-        let dyn_digest = dyn_hash.into();
-        let dyn_code = cb_table
-            .get(dyn_digest)
-            .ok_or_else(|| ExecutionError::DynamicCodeBlockNotFound(dyn_digest))?;
-        self.execute_code_block(dyn_code, cb_table)?;
-
-        self.end_dyn_block(block)
-    }
-
-    /// Executes the specified [Span] block.
-    #[inline(always)]
-    fn execute_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
-        self.start_span_block(block)?;
-
-        let mut op_offset = 0;
-        let mut decorators = block.decorator_iter();
-
-        // execute the first operation batch
-        self.execute_op_batch(&block.op_batches()[0], &mut decorators, op_offset)?;
-        op_offset += block.op_batches()[0].ops().len();
-
-        // if the span contains more operation batches, execute them. each additional batch is
-        // preceded by a RESPAN operation; executing RESPAN operation does not change the state
-        // of the stack
-        for op_batch in block.op_batches().iter().skip(1) {
-            self.respan(op_batch);
-            self.execute_op(Operation::Noop)?;
-            self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
-            op_offset += op_batch.ops().len();
-        }
-
-        self.end_span_block(block)?;
 
         // execute any decorators which have not been executed during span ops execution; this
         // can happen for decorators appearing after all operations in a block. these decorators

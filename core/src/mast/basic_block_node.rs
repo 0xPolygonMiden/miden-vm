@@ -5,12 +5,41 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
-    code_blocks::{batch_ops, OpBatch},
+    program::blocks::{batch_ops, OpBatch},
     DecoratorIterator, DecoratorList, MastForest, Operation,
 };
 
 use super::MerkleTreeNode;
 
+/// Block for a linear sequence of operations (i.e., no branching or loops).
+///
+/// Executes its operations in order. Fails if any of the operations fails.
+///
+/// A basic block is composed of operation batches, operation batches are composed of operation
+/// groups, operation groups encode the VM's operations and immediate values. These values are
+/// created according to these rules:
+///
+/// - A basic block contains one or more batches.
+/// - A batch contains exactly 8 groups.
+/// - A group contains exactly 9 operations or 1 immediate value.
+/// - NOOPs are used to fill a group or batch when necessary.
+/// - An immediate value follows the operation that requires it, using the next available group in
+///   the batch. If there are no batches available in the group, then both the operation and its
+///   immediate are moved to the next batch.
+///
+/// Example: 8 pushes result in two operation batches:
+///
+/// - First batch: First group with 7 push opcodes and 2 zero-paddings packed together, followed by
+///   7 groups with their respective immediate values.
+/// - Second batch: First group with the last push opcode and 8 zero-paddings packed together,
+///   followed by one immediate and 6 padding groups.
+///
+/// The hash of a basic block is:
+///
+/// > hash(batches, domain=BASIC_BLOCK_DOMAIN)
+///
+/// Where `batches` is the concatenation of each `batch` in the basic block, and each batch is 8
+/// field elements (512 bits).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BasicBlockNode {
     /// The primitive operations contained in this basic block.
@@ -138,6 +167,8 @@ impl PrettyPrint for BasicBlockNode {
         //     c
         // end
         // `
+
+        // TODOP: Change these to `basic_block`
         let multi_line = indent(
             4,
             const_text("span")

@@ -1,10 +1,9 @@
 use alloc::vec::Vec;
-use core::fmt;
 
 use winter_utils::flatten_slice_elements;
 
-use super::{hasher, Digest, Felt, Operation};
-use crate::{DecoratorIterator, DecoratorList, ZERO};
+use super::{Digest, Felt};
+use crate::{chiplets::hasher, Operation, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -14,195 +13,6 @@ pub const GROUP_SIZE: usize = 9;
 
 /// Maximum number of groups per batch.
 pub const BATCH_SIZE: usize = 8;
-
-/// Maximum number of operations which can fit into a single operation batch.
-const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
-
-// SPAN BLOCK
-// ================================================================================================
-/// Block for a linear sequence of operations (i.e., no branching or loops).
-///
-/// Executes its operations in order. Fails if any of the operations fails.
-///
-/// A span is composed of operation batches, operation batches are composed of operation groups,
-/// operation groups encode the VM's operations and immediate values. These values are created
-/// according to these rules:
-///
-/// - A span contains one or more batches.
-/// - A batch contains exactly 8 groups.
-/// - A group contains exactly 9 operations or 1 immediate value.
-/// - NOOPs are used to fill a group or batch when necessary.
-/// - An immediate value follows the operation that requires it, using the next available group in
-///   the batch. If there are no batches available in the group, then both the operation and its
-///   immediate are moved to the next batch.
-///
-/// Example: 8 pushes result in two operation batches:
-///
-/// - First batch: First group with 7 push opcodes and 2 zero-paddings packed together, followed by
-///   7 groups with their respective immediate values.
-/// - Second batch: First group with the last push opcode and 8 zero-paddings packed together,
-///   followed by one immediate and 6 padding groups.
-///
-/// The hash of a span block is:
-///
-/// > hash(batches, domain=SPAN_DOMAIN)
-///
-/// Where `batches` is the concatenation of each `batch` in the span, and each batch is 8 field
-/// elements (512 bits).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Span {
-    op_batches: Vec<OpBatch>,
-    hash: Digest,
-    decorators: DecoratorList,
-}
-
-impl Span {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-    /// The domain of the span block (used for control block hashing).
-    pub const DOMAIN: Felt = ZERO;
-
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Returns a new [Span] block instantiated with the specified operations.
-    ///
-    /// # Errors (TODO)
-    /// Returns an error if:
-    /// - `operations` vector is empty.
-    /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>) -> Self {
-        assert!(!operations.is_empty()); // TODO: return error
-        Self::with_decorators(operations, DecoratorList::new())
-    }
-
-    /// Returns a new [Span] block instantiated with the specified operations and decorators.
-    ///
-    /// # Errors (TODO)
-    /// Returns an error if:
-    /// - `operations` vector is empty.
-    /// - `operations` vector contains any number of system operations.
-    pub fn with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
-        assert!(!operations.is_empty()); // TODO: return error
-
-        // validate decorators list (only in debug mode)
-        #[cfg(debug_assertions)]
-        validate_decorators(&operations, &decorators);
-
-        let (op_batches, hash) = batch_ops(operations);
-        Self {
-            op_batches,
-            hash,
-            decorators,
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a hash of this code block.
-    pub fn hash(&self) -> Digest {
-        self.hash
-    }
-
-    /// Returns list of operation batches contained in this span block.
-    pub fn op_batches(&self) -> &[OpBatch] {
-        &self.op_batches
-    }
-
-    // SPAN MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a new [Span] block instantiated with operations from this block repeated the
-    /// specified number of times.
-    #[must_use]
-    pub fn replicate(&self, num_copies: usize) -> Self {
-        let own_ops = self.get_ops();
-        let own_decorators = &self.decorators;
-        let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
-        let mut decorators = DecoratorList::new();
-
-        for i in 0..num_copies {
-            // replicate decorators of a span block
-            for decorator in own_decorators {
-                decorators.push((own_ops.len() * i + decorator.0, decorator.1.clone()))
-            }
-            ops.extend_from_slice(&own_ops);
-        }
-        Self::with_decorators(ops, decorators)
-    }
-
-    /// Returns a list of decorators in this span block
-    pub fn decorators(&self) -> &DecoratorList {
-        &self.decorators
-    }
-
-    /// Returns a [DecoratorIterator] which allows us to iterate through the decorator list of this
-    /// span block while executing operation batches of this span block
-    pub fn decorator_iter(&self) -> DecoratorIterator {
-        DecoratorIterator::new(&self.decorators)
-    }
-
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns a list of operations contained in this span block.
-    fn get_ops(&self) -> Vec<Operation> {
-        let mut ops = Vec::with_capacity(self.op_batches.len() * MAX_OPS_PER_BATCH);
-        for batch in self.op_batches.iter() {
-            ops.extend_from_slice(&batch.ops);
-        }
-        ops
-    }
-}
-
-impl crate::prettier::PrettyPrint for Span {
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-
-        // e.g. `span a b c end`
-        let single_line = const_text("span")
-            + const_text(" ")
-            + self
-                .op_batches
-                .iter()
-                .flat_map(|batch| batch.ops.iter())
-                .map(|p| p.render())
-                .reduce(|acc, doc| acc + const_text(" ") + doc)
-                .unwrap_or_default()
-            + const_text(" ")
-            + const_text("end");
-
-        // e.g. `
-        // span
-        //     a
-        //     b
-        //     c
-        // end
-        // `
-        let multi_line = indent(
-            4,
-            const_text("span")
-                + nl()
-                + self
-                    .op_batches
-                    .iter()
-                    .flat_map(|batch| batch.ops.iter())
-                    .map(|p| p.render())
-                    .reduce(|acc, doc| acc + nl() + doc)
-                    .unwrap_or_default(),
-        ) + nl()
-            + const_text("end");
-
-        single_line | multi_line
-    }
-}
-
-impl fmt::Display for Span {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use crate::prettier::PrettyPrint;
-        self.pretty_print(f)
-    }
-}
 
 // OPERATION BATCH
 // ================================================================================================
@@ -427,24 +237,6 @@ pub fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
     let last_batch_num_groups = op_batches.last().expect("no last group").num_groups();
     (op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
-}
-
-/// Checks if a given decorators list is valid (only checked in debug mode)
-/// - Assert the decorator list is in ascending order.
-/// - Assert the last op index in decorator list is less than or equal to the number of operations.
-#[cfg(debug_assertions)]
-fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
-    if !decorators.is_empty() {
-        // check if decorator list is sorted
-        for i in 0..(decorators.len() - 1) {
-            debug_assert!(decorators[i + 1].0 >= decorators[i].0, "unsorted decorators list");
-        }
-        // assert the last index in decorator list is less than operations vector length
-        debug_assert!(
-            operations.len() >= decorators.last().expect("empty decorators list").0,
-            "last op index in decorator list should be less than or equal to the number of ops"
-        );
-    }
 }
 
 // TESTS

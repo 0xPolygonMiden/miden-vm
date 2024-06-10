@@ -31,14 +31,14 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
-pub use prover::{prove, prove_mast_forest, MemAdviceProvider, ProvingOptions};
+pub use prover::{prove_mast_forest, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, IntoBytes, ToElements},
-    Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+    Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 pub mod math {

@@ -35,13 +35,22 @@ mod gpu;
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
-    Program, StackInputs, StackOutputs, Word,
+    StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::Proof;
 
 // PROVER
 // ================================================================================================
 
+/// Executes and proves the specified `program` and returns the result together with a STARK-based
+/// proof of the program's execution.
+///
+/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret) inputs
+///   for the VM.
+/// * `options` defines parameters for STARK proof generation.
+///
+/// # Errors
+/// Returns an error if program execution or STARK proof generation fails for any reason.
 #[instrument("prove_program", skip_all)]
 pub fn prove_mast_forest<H>(
     program: &MastForest,
@@ -57,84 +66,6 @@ where
     let now = Instant::now();
     let trace =
         processor::execute_mast(program, stack_inputs.clone(), host, *options.execution_options())?;
-    #[cfg(feature = "std")]
-    tracing::event!(
-        tracing::Level::INFO,
-        "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
-        trace.info().main_trace_width(),
-        trace.trace_len_summary().padded_trace_len(),
-        trace.trace_len_summary().padding_percentage(),
-        now.elapsed().as_millis()
-    );
-
-    let stack_outputs = trace.stack_outputs().clone();
-    let hash_fn = options.hash_fn();
-
-    // generate STARK proof
-    let proof = match hash_fn {
-        HashFunction::Blake3_192 => ExecutionProver::<Blake3_192, WinterRandomCoin<_>>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace),
-        HashFunction::Blake3_256 => ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
-            options,
-            stack_inputs,
-            stack_outputs.clone(),
-        )
-        .prove(trace),
-        HashFunction::Rpo256 => {
-            let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
-                options,
-                stack_inputs,
-                stack_outputs.clone(),
-            );
-            #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
-            prover.prove(trace)
-        }
-        HashFunction::Rpx256 => {
-            let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
-                options,
-                stack_inputs,
-                stack_outputs.clone(),
-            );
-            #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
-            let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
-            prover.prove(trace)
-        }
-    }
-    .map_err(ExecutionError::ProverError)?;
-    let proof = ExecutionProof::new(proof, hash_fn);
-
-    Ok((stack_outputs, proof))
-}
-
-/// Executes and proves the specified `program` and returns the result together with a STARK-based
-/// proof of the program's execution.
-///
-/// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret) inputs
-///   for the VM.
-/// * `options` defines parameters for STARK proof generation.
-///
-/// # Errors
-/// Returns an error if program execution or STARK proof generation fails for any reason.
-#[instrument("prove_program", skip_all)]
-pub fn prove<H>(
-    program: &Program,
-    stack_inputs: StackInputs,
-    host: H,
-    options: ProvingOptions,
-) -> Result<(StackOutputs, ExecutionProof), ExecutionError>
-where
-    H: Host,
-{
-    // execute the program to create an execution trace
-    #[cfg(feature = "std")]
-    let now = Instant::now();
-    let trace =
-        processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
     #[cfg(feature = "std")]
     tracing::event!(
         tracing::Level::INFO,

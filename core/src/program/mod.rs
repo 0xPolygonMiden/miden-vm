@@ -1,126 +1,14 @@
-use super::{
-    chiplets::hasher::{self, Digest},
-    errors, Felt, Operation,
-};
+use super::{chiplets::hasher::Digest, errors, Felt};
 use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
-use alloc::{collections::BTreeMap, vec::Vec};
-use core::fmt;
+use alloc::vec::Vec;
 
 pub mod blocks;
-use blocks::CodeBlock;
 
 mod info;
 pub use info::ProgramInfo;
 
 #[cfg(test)]
 mod tests;
-
-// PROGRAM
-// ================================================================================================
-/// A program which can be executed by the VM.
-///
-/// A program is described by a Merkelized Abstract Syntax Tree (MAST), where each node is a
-/// [CodeBlock]. Internal nodes describe control flow semantics of the program, while leaf nodes
-/// contain linear sequences of instructions which contain no control flow.
-#[derive(Clone, Debug)]
-pub struct Program {
-    root: CodeBlock,
-    kernel: Kernel,
-    cb_table: CodeBlockTable,
-}
-
-impl Program {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-    /// Instantiates a new [Program] from the specified code block.
-    pub fn new(root: CodeBlock) -> Self {
-        Self::with_kernel(root, Kernel::default(), CodeBlockTable::default())
-    }
-
-    /// Instantiates a new [Program] from the specified code block and associated code block table.
-    pub fn with_kernel(root: CodeBlock, kernel: Kernel, cb_table: CodeBlockTable) -> Self {
-        Self {
-            root,
-            kernel,
-            cb_table,
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the root code block of this program.
-    pub fn root(&self) -> &CodeBlock {
-        &self.root
-    }
-
-    /// Returns a hash of this program.
-    pub fn hash(&self) -> Digest {
-        self.root.hash()
-    }
-
-    /// Returns a kernel for this program.
-    pub fn kernel(&self) -> &Kernel {
-        &self.kernel
-    }
-
-    /// Returns code block table for this program.
-    pub fn cb_table(&self) -> &CodeBlockTable {
-        &self.cb_table
-    }
-}
-
-impl crate::prettier::PrettyPrint for Program {
-    fn render(&self) -> crate::prettier::Document {
-        use crate::prettier::*;
-
-        indent(4, const_text("begin") + nl() + self.root.render()) + nl() + const_text("end")
-    }
-}
-
-impl fmt::Display for Program {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use crate::prettier::PrettyPrint;
-        self.pretty_print(f)
-    }
-}
-
-// CODE BLOCK TABLE
-// ================================================================================================
-
-/// A map of code block hashes to their underlying code blocks.
-///
-/// This table is used to hold code blocks which are referenced from the program MAST but are
-/// actually not a part of the MAST itself. Thus, for example, multiple nodes in the MAST can
-/// reference the same code block in the table.
-#[derive(Clone, Debug, Default)]
-pub struct CodeBlockTable(BTreeMap<[u8; 32], CodeBlock>);
-
-impl CodeBlockTable {
-    /// Returns a code block for the specified hash, or None if the code block is not present
-    /// in this table.
-    pub fn get(&self, hash: Digest) -> Option<&CodeBlock> {
-        let key: [u8; 32] = hash.into();
-        self.0.get(&key)
-    }
-
-    /// Returns true if a code block with the specified hash is present in this table.
-    pub fn has(&self, hash: Digest) -> bool {
-        let key: [u8; 32] = hash.into();
-        self.0.contains_key(&key)
-    }
-
-    /// Inserts the provided code block into this table.
-    pub fn insert(&mut self, block: CodeBlock) {
-        let key: [u8; 32] = block.hash().into();
-        self.0.insert(key, block);
-    }
-
-    /// Returns true if this code block table is empty.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
 
 // KERNEL
 // ================================================================================================

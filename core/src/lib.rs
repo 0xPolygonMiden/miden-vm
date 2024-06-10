@@ -95,7 +95,7 @@ pub mod prettier {
 }
 
 pub mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};
+pub use program::{blocks as code_blocks, Kernel, ProgramInfo};
 
 mod operations;
 pub use operations::{

@@ -2,7 +2,7 @@ use crate::MastForest;
 
 use super::{
     super::{ToElements, WORD_SIZE},
-    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel, Program,
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Digest, Felt, Kernel,
     Serializable,
 };
 use alloc::vec::Vec;
@@ -52,18 +52,6 @@ impl ProgramInfo {
     /// Returns the list of procedures of the kernel used during the compilation.
     pub fn kernel_procedures(&self) -> &[Digest] {
         self.kernel.proc_hashes()
-    }
-}
-
-impl From<Program> for ProgramInfo {
-    fn from(program: Program) -> Self {
-        let Program { root, kernel, .. } = program;
-        let program_hash = root.hash();
-
-        Self {
-            program_hash,
-            kernel,
-        }
     }
 }
 
