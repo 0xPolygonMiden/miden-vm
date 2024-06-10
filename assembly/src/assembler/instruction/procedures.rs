@@ -86,7 +86,7 @@ impl Assembler {
             // conceptually inlined at this location
             InvokeKind::Exec => {
                 let node = MastNode::new_proxy(mast_root);
-                mast_forest.add_node(node)
+                mast_forest.ensure_node(node)
             }
             // For `call`, we just use the corresponding CALL block
             InvokeKind::Call => {
@@ -94,7 +94,7 @@ impl Assembler {
                     .get_node_id_by_digest(mast_root)
                     .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
                 let node = MastNode::new_call(callee_id, mast_forest);
-                mast_forest.add_node(node)
+                mast_forest.ensure_node(node)
             }
             // For `syscall`, we just use the corresponding SYSCALL block
             InvokeKind::SysCall => {
@@ -102,7 +102,7 @@ impl Assembler {
                     .get_node_id_by_digest(mast_root)
                     .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
                 let node = MastNode::new_syscall(callee_id, mast_forest);
-                mast_forest.add_node(node)
+                mast_forest.ensure_node(node)
             }
         };
 
@@ -114,7 +114,7 @@ impl Assembler {
         &self,
         mast_forest: &mut MastForest,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest.add_node(MastNode::Dyn);
+        let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
 
         Ok(Some(dyn_node_id))
     }
@@ -125,10 +125,10 @@ impl Assembler {
         mast_forest: &mut MastForest,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest.add_node(MastNode::Dyn);
+            let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
             let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest);
 
-            mast_forest.add_node(dyn_call_node)
+            mast_forest.ensure_node(dyn_call_node)
         };
 
         Ok(Some(dyn_call_node_id))

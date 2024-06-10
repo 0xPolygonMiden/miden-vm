@@ -81,13 +81,12 @@ impl MastForest {
 
 /// Mutators
 impl MastForest {
-    // TODOP: Rename `ensure_node()` to be clear that it doesn't always add?
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
     ///
     /// If a [`MastNode`] which is equal to the current node was previously added, the previously
     /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
     /// [`MastNode`]s have equal [`MastNodeId`]s.
-    pub fn add_node(&mut self, node: MastNode) -> MastNodeId {
+    pub fn ensure_node(&mut self, node: MastNode) -> MastNodeId {
         let node_digest = node.digest();
 
         if let Some(node_id) = self.node_id_by_hash.get(&node_digest) {

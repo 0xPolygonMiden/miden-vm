@@ -783,7 +783,7 @@ impl Assembler {
                     // by noop span
                     let else_blk = if else_blk.is_empty() {
                         let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
-                        mast_forest.add_node(basic_block_node)
+                        mast_forest.ensure_node(basic_block_node)
                     } else {
                         self.compile_body(else_blk.iter(), context, None, mast_forest)?
                     };
@@ -791,7 +791,7 @@ impl Assembler {
                     let split_node_id = {
                         let split_node = MastNode::new_split(then_blk, else_blk, mast_forest);
 
-                        mast_forest.add_node(split_node)
+                        mast_forest.ensure_node(split_node)
                     };
                     mast_node_ids.push(split_node_id);
                 }
@@ -821,7 +821,7 @@ impl Assembler {
 
                     let loop_node_id = {
                         let loop_node = MastNode::new_loop(loop_body_node_id, mast_forest);
-                        mast_forest.add_node(loop_node)
+                        mast_forest.ensure_node(loop_node)
                     };
                     mast_node_ids.push(loop_node_id);
                 }
@@ -834,7 +834,7 @@ impl Assembler {
 
         Ok(if mast_node_ids.is_empty() {
             let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
-            mast_forest.add_node(basic_block_node)
+            mast_forest.ensure_node(basic_block_node)
         } else {
             combine_mast_node_ids(mast_node_ids, mast_forest)
         })
@@ -917,7 +917,7 @@ fn combine_mast_node_ids(
             (source_mast_node_iter.next(), source_mast_node_iter.next())
         {
             let join_mast_node = MastNode::new_join(left, right, mast_forest);
-            let join_mast_node_id = mast_forest.add_node(join_mast_node);
+            let join_mast_node_id = mast_forest.ensure_node(join_mast_node);
 
             merged_mast_node_ids.push(join_mast_node_id);
         }
@@ -960,5 +960,5 @@ fn combine_basic_blocks(
     });
 
     let new_basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
-    mast_forest.add_node(new_basic_block_node)
+    mast_forest.ensure_node(new_basic_block_node)
 }

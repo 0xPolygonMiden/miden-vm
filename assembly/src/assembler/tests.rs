@@ -87,7 +87,7 @@ fn nested_blocks() {
             .map(|p| MastNode::new_syscall(p.code(), &assembler.mast_forest))
             .unwrap();
 
-        expected_mast_forest.add_node(syscall_foo_node)
+        expected_mast_forest.ensure_node(syscall_foo_node)
     };
 
     let program = r#"
@@ -138,7 +138,7 @@ fn nested_blocks() {
             })
             .unwrap();
 
-        expected_mast_forest.add_node(exec_bar_node)
+        expected_mast_forest.ensure_node(exec_bar_node)
     };
 
     let exec_foo_bar_baz_node_id = {
@@ -151,67 +151,67 @@ fn nested_blocks() {
             })
             .unwrap();
 
-        expected_mast_forest.add_node(exec_foo_bar_baz_node)
+        expected_mast_forest.ensure_node(exec_foo_bar_baz_node)
     };
 
     let before = {
         let before_node = MastNode::new_basic_block(vec![Operation::Push(2u32.into())]);
-        expected_mast_forest.add_node(before_node)
+        expected_mast_forest.ensure_node(before_node)
     };
 
     let r#true1 = {
         let r#true_node = MastNode::new_basic_block(vec![Operation::Push(3u32.into())]);
-        expected_mast_forest.add_node(r#true_node)
+        expected_mast_forest.ensure_node(r#true_node)
     };
     let r#false1 = {
         let r#false_node = MastNode::new_basic_block(vec![Operation::Push(5u32.into())]);
-        expected_mast_forest.add_node(r#false_node)
+        expected_mast_forest.ensure_node(r#false_node)
     };
     let r#if1 = {
         let r#if_node = MastNode::new_split(r#true1, r#false1, &expected_mast_forest);
-        expected_mast_forest.add_node(r#if_node)
+        expected_mast_forest.ensure_node(r#if_node)
     };
 
     let r#true3 = {
         let r#true_node = MastNode::new_basic_block(vec![Operation::Push(7u32.into())]);
-        expected_mast_forest.add_node(r#true_node)
+        expected_mast_forest.ensure_node(r#true_node)
     };
     let r#false3 = {
         let r#false_node = MastNode::new_basic_block(vec![Operation::Push(11u32.into())]);
-        expected_mast_forest.add_node(r#false_node)
+        expected_mast_forest.ensure_node(r#false_node)
     };
     let r#true2 = {
         let r#if_node = MastNode::new_split(r#true3, r#false3, &expected_mast_forest);
-        expected_mast_forest.add_node(r#if_node)
+        expected_mast_forest.ensure_node(r#if_node)
     };
 
     let r#while = {
         let push_basic_block_id = {
             let push_basic_block = MastNode::new_basic_block(vec![Operation::Push(23u32.into())]);
-            expected_mast_forest.add_node(push_basic_block)
+            expected_mast_forest.ensure_node(push_basic_block)
         };
         let body_node_id = {
             let body_node =
                 MastNode::new_join(exec_bar_node_id, push_basic_block_id, &expected_mast_forest);
 
-            expected_mast_forest.add_node(body_node)
+            expected_mast_forest.ensure_node(body_node)
         };
 
         let loop_node = MastNode::new_loop(body_node_id, &expected_mast_forest);
-        expected_mast_forest.add_node(loop_node)
+        expected_mast_forest.ensure_node(loop_node)
     };
     let push_13_basic_block_id = {
         let node = MastNode::new_basic_block(vec![Operation::Push(13u32.into())]);
-        expected_mast_forest.add_node(node)
+        expected_mast_forest.ensure_node(node)
     };
 
     let r#false2 = {
         let node = MastNode::new_join(push_13_basic_block_id, r#while, &expected_mast_forest);
-        expected_mast_forest.add_node(node)
+        expected_mast_forest.ensure_node(node)
     };
     let nested = {
         let node = MastNode::new_split(r#true2, r#false2, &expected_mast_forest);
-        expected_mast_forest.add_node(node)
+        expected_mast_forest.ensure_node(node)
     };
 
     let combined_node_id = combine_mast_node_ids(
