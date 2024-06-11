@@ -358,7 +358,7 @@ impl Assembler {
     /// to configure the assembler.
     #[instrument("assemble_with_opts_in_context", skip_all)]
     pub fn assemble_with_options_in_context(
-        mut self,
+        self,
         source: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
@@ -371,7 +371,7 @@ impl Assembler {
     /// The main purpose of this separation is to enable some tests to access the assembler state
     /// after assembly.
     fn assemble_with_options_in_context_impl(
-        &mut self,
+        mut self,
         source: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
