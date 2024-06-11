@@ -24,9 +24,6 @@ pub use info::ProgramInfo;
 mod kernel;
 pub use kernel::Kernel;
 
-mod proxy_node;
-pub use proxy_node::ProxyNode;
-
 mod join_node;
 pub use join_node::JoinNode;
 
@@ -205,7 +202,6 @@ pub enum MastNode {
     Loop(LoopNode),
     Call(CallNode),
     Dyn,
-    Proxy(ProxyNode),
 }
 
 /// Constructors
@@ -256,10 +252,6 @@ impl MastNode {
     pub fn new_dyncall(dyn_node_id: MastNodeId, mast_forest: &MastForest) -> Self {
         Self::Call(CallNode::new(dyn_node_id, mast_forest))
     }
-
-    pub fn new_proxy(code_hash: RpoDigest) -> Self {
-        Self::Proxy(ProxyNode::new(code_hash))
-    }
 }
 
 /// Public accessors
@@ -288,7 +280,6 @@ impl MastNode {
                 MastNodePrettyPrint::new_box(Box::new(call_node.to_pretty_print(mast_forest)))
             }
             MastNode::Dyn => MastNodePrettyPrint::new(&DynNode),
-            MastNode::Proxy(proxy_node) => MastNodePrettyPrint::new(proxy_node),
         }
     }
 
@@ -300,7 +291,6 @@ impl MastNode {
             MastNode::Loop(_) => LoopNode::DOMAIN,
             MastNode::Call(call_node) => call_node.domain(),
             MastNode::Dyn => DynNode::DOMAIN,
-            MastNode::Proxy(_) => panic!("Can't fetch `domain` for a `Proxy` block!"),
         }
     }
 }
@@ -314,7 +304,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => node.digest(),
             MastNode::Call(node) => node.digest(),
             MastNode::Dyn => DynNode.digest(),
-            MastNode::Proxy(node) => node.digest(),
         }
     }
 
@@ -326,7 +315,6 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
-            MastNode::Proxy(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
 }

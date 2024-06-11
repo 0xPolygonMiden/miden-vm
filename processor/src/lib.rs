@@ -266,12 +266,6 @@ where
             MastNode::Loop(node) => self.execute_loop_node(node, mast_forest),
             MastNode::Call(node) => self.execute_call_node(node, mast_forest),
             MastNode::Dyn => self.execute_dyn_node(mast_forest),
-            MastNode::Proxy(proxy_node) => {
-                match mast_forest.get_node_id_by_digest(proxy_node.digest()) {
-                    Some(proxy_node_id) => self.execute_mast_node(proxy_node_id, mast_forest),
-                    None => Err(ExecutionError::UnexecutableMastNode(wrapper_node.clone())),
-                }
-            }
         }
     }
 
