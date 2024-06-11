@@ -22,7 +22,7 @@ pub fn build_trace_from_program(program: &MastForest, stack_inputs: &[u64]) -> E
     let host = DefaultHost::default();
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute_mast_forest(program).unwrap();
+    process.execute(program).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }
 
@@ -56,6 +56,6 @@ pub fn build_trace_from_ops_with_inputs(
     let basic_block_id = mast_forest.ensure_node(basic_block);
     mast_forest.set_entrypoint(basic_block_id);
 
-    process.execute_mast_forest(&mast_forest).unwrap();
+    process.execute(&mast_forest).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }

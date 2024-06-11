@@ -15,7 +15,7 @@ fn test_event_handling() {
     // compile and execute program
     let program = Assembler::default().assemble(source).unwrap();
     let mut host = TestHost::default();
-    processor::execute_mast(&program, Default::default(), &mut host, Default::default()).unwrap();
+    processor::execute(&program, Default::default(), &mut host, Default::default()).unwrap();
 
     // make sure events were handled correctly
     let expected = vec![1, 2];
@@ -37,12 +37,12 @@ fn test_trace_handling() {
     let mut host = TestHost::default();
 
     // execute program with disabled tracing
-    processor::execute_mast(&program, Default::default(), &mut host, Default::default()).unwrap();
+    processor::execute(&program, Default::default(), &mut host, Default::default()).unwrap();
     let expected = Vec::<u32>::new();
     assert_eq!(host.trace_handler, expected);
 
     // execute program with enabled tracing
-    processor::execute_mast(
+    processor::execute(
         &program,
         Default::default(),
         &mut host,

@@ -237,7 +237,7 @@ impl Test {
             host,
             ExecutionOptions::default(),
         );
-        process.execute_mast_forest(&program).unwrap();
+        process.execute(&program).unwrap();
 
         // validate the memory state
         for data in expected_mem.chunks(WORD_SIZE) {
@@ -308,12 +308,7 @@ impl Test {
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        processor::execute_mast(
-            &program,
-            self.stack_inputs.clone(),
-            host,
-            ExecutionOptions::default(),
-        )
+        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
@@ -329,7 +324,7 @@ impl Test {
             host,
             ExecutionOptions::default(),
         );
-        process.execute_mast_forest(&program)?;
+        process.execute(&program)?;
         Ok(process)
     }
 
@@ -364,7 +359,7 @@ impl Test {
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        processor::execute_mast_forest_iter(&program, self.stack_inputs.clone(), host)
+        processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }
 
     /// Returns the last state of the stack after executing a test.

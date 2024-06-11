@@ -34,7 +34,7 @@ fn test_memcopy() {
         DefaultHost::default(),
         ExecutionOptions::default(),
     );
-    process.execute_mast_forest(&program).unwrap();
+    process.execute(&program).unwrap();
 
     assert_eq!(
         process.get_mem_value(ContextId::root(), 1000),

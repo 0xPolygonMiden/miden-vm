@@ -65,7 +65,7 @@ where
     #[cfg(feature = "std")]
     let now = Instant::now();
     let trace =
-        processor::execute_mast(program, stack_inputs.clone(), host, *options.execution_options())?;
+        processor::execute(program, stack_inputs.clone(), host, *options.execution_options())?;
     #[cfg(feature = "std")]
     tracing::event!(
         tracing::Level::INFO,

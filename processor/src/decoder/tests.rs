@@ -1348,7 +1348,7 @@ fn build_trace(stack_inputs: &[u64], program: &MastForest) -> (DecoderTrace, usi
     let host = DefaultHost::default();
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute_mast_forest(program).unwrap();
+    process.execute(program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1368,7 +1368,7 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &MastForest) -> (DecoderTrace,
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
 
-    process.execute_mast_forest(program).unwrap();
+    process.execute(program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1387,7 +1387,7 @@ fn build_call_trace(program: &MastForest, kernel: Kernel) -> (SystemTrace, Decod
     let stack_inputs = crate::StackInputs::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
 
-    process.execute_mast_forest(program).unwrap();
+    process.execute(program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

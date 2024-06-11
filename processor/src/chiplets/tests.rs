@@ -122,7 +122,7 @@ fn build_trace(
 
         mast_forest
     };
-    process.execute_mast_forest(&program).unwrap();
+    process.execute(&program).unwrap();
 
     let (trace, _, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

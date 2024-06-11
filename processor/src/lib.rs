@@ -125,7 +125,7 @@ pub struct ChipletsTrace {
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
 #[tracing::instrument("execute_mast_program", skip_all)]
-pub fn execute_mast<H>(
+pub fn execute<H>(
     program: &MastForest,
     stack_inputs: StackInputs,
     host: H,
@@ -135,7 +135,7 @@ where
     H: Host,
 {
     let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
-    let stack_outputs = process.execute_mast_forest(program)?;
+    let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(
         &program.entrypoint_digest().expect("program has no entrypoint"),
@@ -147,16 +147,12 @@ where
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_mast_forest_iter<H>(
-    program: &MastForest,
-    stack_inputs: StackInputs,
-    host: H,
-) -> VmStateIterator
+pub fn execute_iter<H>(program: &MastForest, stack_inputs: StackInputs, host: H) -> VmStateIterator
 where
     H: Host,
 {
     let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
-    let result = process.execute_mast_forest(program);
+    let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
             program.entrypoint_digest().expect("MAST forest has no entrypoint"),
@@ -234,10 +230,7 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [`MastForest`] in this process.
-    pub fn execute_mast_forest(
-        &mut self,
-        mast_forest: &MastForest,
-    ) -> Result<StackOutputs, ExecutionError> {
+    pub fn execute(&mut self, mast_forest: &MastForest) -> Result<StackOutputs, ExecutionError> {
         if self.system.clk() != 0 {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
