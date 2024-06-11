@@ -1227,25 +1227,6 @@ end"
     Ok(())
 }
 
-// TODO(pauls): Do we want to support this in the surface MASM syntax?
-#[test]
-#[ignore]
-fn program_with_one_empty_procedure() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.foo end begin exec.foo end");
-    let program = context.assemble(source);
-    let foo =
-        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
-    let expected = format!(
-        "\
-begin
-    proxy.{foo}
-end"
-    );
-    assert_str_eq!(format!("{}", program), expected);
-    Ok(())
-}
-
 #[test]
 fn program_with_nested_procedure() -> TestResult {
     let mut context = TestContext::default();
