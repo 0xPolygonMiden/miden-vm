@@ -879,38 +879,16 @@ fn combine_mast_node_ids(
 ) -> MastNodeId {
     debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
 
-    // merge consecutive basic block nodes.
-    let mut merged_mast_node_ids: Vec<MastNodeId> = Vec::with_capacity(mast_node_ids.len());
-    // Keep track of all the consecutive BASIC BLOCK nodes and are merged together when
-    // there is a discontinuity.
-    let mut contiguous_basic_blocks: Vec<MastNodeId> = Vec::new();
-
-    mast_node_ids.drain(0..).for_each(|mast_node_id| {
-        let mast_node = &mast_forest[mast_node_id];
-        if mast_node.is_basic_block() {
-            contiguous_basic_blocks.push(mast_node_id);
-        } else {
-            if !contiguous_basic_blocks.is_empty() {
-                merged_mast_node_ids
-                    .push(combine_basic_blocks(&mut contiguous_basic_blocks, mast_forest));
-            }
-            merged_mast_node_ids.push(mast_node_id);
-        }
-    });
-    if !contiguous_basic_blocks.is_empty() {
-        merged_mast_node_ids.push(combine_basic_blocks(&mut contiguous_basic_blocks, mast_forest));
-    }
-
     // build a binary tree of blocks joining them using JOIN blocks
-    while merged_mast_node_ids.len() > 1 {
-        let last_mast_node_id = if merged_mast_node_ids.len() % 2 == 0 {
+    while mast_node_ids.len() > 1 {
+        let last_mast_node_id = if mast_node_ids.len() % 2 == 0 {
             None
         } else {
-            merged_mast_node_ids.pop()
+            mast_node_ids.pop()
         };
 
         let mut source_mast_node_ids = Vec::new();
-        core::mem::swap(&mut merged_mast_node_ids, &mut source_mast_node_ids);
+        core::mem::swap(&mut mast_node_ids, &mut source_mast_node_ids);
 
         let mut source_mast_node_iter = source_mast_node_ids.drain(0..);
         while let (Some(left), Some(right)) =
@@ -919,46 +897,12 @@ fn combine_mast_node_ids(
             let join_mast_node = MastNode::new_join(left, right, mast_forest);
             let join_mast_node_id = mast_forest.ensure_node(join_mast_node);
 
-            merged_mast_node_ids.push(join_mast_node_id);
+            mast_node_ids.push(join_mast_node_id);
         }
         if let Some(mast_node_id) = last_mast_node_id {
-            merged_mast_node_ids.push(mast_node_id);
+            mast_node_ids.push(mast_node_id);
         }
     }
 
-    debug_assert!(!merged_mast_node_ids.is_empty(), "no blocks");
-    merged_mast_node_ids.remove(0)
-}
-
-/// Combines a vector of BASIC BLOCK nodes into a single BASIC BLOCK node.
-///
-/// # Panics
-/// Panics if any of the provided nodes is not a BASIC BLOCK node.
-fn combine_basic_blocks(
-    mast_node_ids: &mut Vec<MastNodeId>,
-    mast_forest: &mut MastForest,
-) -> MastNodeId {
-    if mast_node_ids.len() == 1 {
-        return mast_node_ids.remove(0);
-    }
-
-    let mut ops = Vec::<Operation>::new();
-    let mut decorators = DecoratorList::new();
-
-    mast_node_ids.drain(0..).for_each(|mast_node_id| {
-        let mast_node = &mast_forest[mast_node_id];
-        if let MastNode::Block(basic_block) = mast_node {
-            for decorator in basic_block.decorators() {
-                decorators.push((decorator.0 + ops.len(), decorator.1.clone()));
-            }
-            for batch in basic_block.op_batches() {
-                ops.extend_from_slice(batch.ops());
-            }
-        } else {
-            panic!("MAST node was expected to be a basic block, got {mast_node:?}.");
-        }
-    });
-
-    let new_basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
-    mast_forest.ensure_node(new_basic_block_node)
+    mast_node_ids.remove(0)
 }
