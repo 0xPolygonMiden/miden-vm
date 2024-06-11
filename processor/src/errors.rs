@@ -5,7 +5,7 @@ use super::{
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
-use vm_core::{mast::MastNode, stack::STACK_TOP_SIZE, utils::to_hex};
+use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]
@@ -14,16 +14,14 @@ use std::error::Error;
 // EXECUTION ERROR
 // ================================================================================================
 
-// TODOP: Rename some those that contain `CodeBlock` terminology
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
-    CodeBlockNotFound(Digest),
     CycleLimitExceeded(u32),
     DivideByZero(u32),
-    DynamicCodeBlockNotFound(Digest),
+    DynamicNodeNotFound(Digest),
     EventError(String),
     Ext2InttError(Ext2InttError),
     FailedAssertion {
@@ -60,7 +58,6 @@ pub enum ExecutionError {
     MerkleStoreLookupFailed(MerkleError),
     MerkleStoreMergeFailed(MerkleError),
     MerkleStoreUpdateFailed(MerkleError),
-    NoEntryPoint,
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
     ProgramAlreadyExecuted,
@@ -68,7 +65,6 @@ pub enum ExecutionError {
     SmtNodeNotFound(Word),
     SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
-    UnexecutableMastNode(MastNode),
 }
 
 impl Display for ExecutionError {
@@ -84,18 +80,11 @@ impl Display for ExecutionError {
             CallerNotInSyscall => {
                 write!(f, "Instruction `caller` used outside of kernel context")
             }
-            CodeBlockNotFound(digest) => {
-                let hex = to_hex(digest.as_bytes());
-                write!(
-                    f,
-                    "Failed to execute code block with root {hex}; the block could not be found"
-                )
-            }
             CycleLimitExceeded(max_cycles) => {
                 write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
             }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
-            DynamicCodeBlockNotFound(digest) => {
+            DynamicNodeNotFound(digest) => {
                 let hex = to_hex(digest.as_bytes());
                 write!(
                     f,
@@ -177,7 +166,6 @@ impl Display for ExecutionError {
             MerkleStoreUpdateFailed(reason) => {
                 write!(f, "Advice provider Merkle store backend update failed: {reason}")
             }
-            NoEntryPoint => write!(f, "MAST forest has no entrypoint"),
             NotBinaryValue(v) => {
                 write!(f, "An operation expected a binary value, but received {v}")
             }
@@ -202,9 +190,6 @@ impl Display for ExecutionError {
             SyscallTargetNotInKernel(proc) => {
                 let hex = to_hex(proc.as_bytes());
                 write!(f, "Syscall failed: procedure with root {hex} was not found in the kernel")
-            }
-            UnexecutableMastNode(mast_node) => {
-                write!(f, "Execution reached unexecutable MAST node {mast_node:?}")
             }
         }
     }

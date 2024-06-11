@@ -348,7 +348,6 @@ where
         self.start_call_node(call_node, program)?;
 
         // if this is a dyncall, execute the dynamic code block
-        // TODOP: change to `matches!(call_node.callee(), DynNode)`
         if callee_digest == DynNode.digest() {
             self.execute_dyn_node(program)?;
         } else {
@@ -368,7 +367,7 @@ where
         // get dynamic code from the code block table and execute it
         let callee_id = program
             .get_node_id_by_digest(callee_hash.into())
-            .ok_or_else(|| ExecutionError::DynamicCodeBlockNotFound(callee_hash.into()))?;
+            .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
         self.execute_mast_node(callee_id, program)?;
 
         self.end_dyn_node()

@@ -26,7 +26,6 @@ pub use loop_node::LoopNode;
 
 use crate::{DecoratorList, MastForest, MastNodeId, MerkleTreeNode, Operation};
 
-// TODOP: Implement `Eq` only as a hash check on all nodes?
 // As a blanket impl over `MerkleTreeNode::digest()`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
