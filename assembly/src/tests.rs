@@ -1258,10 +1258,6 @@ fn program_with_nested_procedure() -> TestResult {
         begin push.2 push.4 add exec.foo push.11 exec.bar sub end"
     );
     let program = context.assemble(source)?;
-    let foo =
-        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
-    let bar =
-        context.display_digest_from_cache(&"#exec::bar".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
@@ -1269,11 +1265,17 @@ begin
         join
             join
                 span push(2) push(4) add end
-                proxy.{foo}
+                span push(3) push(7) mul end
             end
             join
                 span push(11) end
-                proxy.{bar}
+                join
+                    join
+                        span push(5) end
+                        span push(3) push(7) mul end
+                    end
+                    span add end
+                end
             end
         end
         span neg add end
