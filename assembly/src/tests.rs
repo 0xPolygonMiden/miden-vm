@@ -1770,16 +1770,23 @@ fn module_alias() -> TestResult {
     );
 
     let program = context.assemble(source)?;
-    let checked_add = context.display_digest_from_cache(
-        &"dummy::math::u64::checked_add".parse().unwrap(),
-        program.mast_forest(),
-    );
     let expected = format!(
         "\
 begin
     join
         span pad incr pad push(2) pad end
-        proxy.{checked_add}
+        span
+            swap
+            movup3
+            u32assert2(0)
+            u32add
+            movup3
+            movup3
+            u32assert2(0)
+            u32add3
+            eqz
+            assert(0)
+        end
     end
 end"
     );
