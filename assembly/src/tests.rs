@@ -1465,24 +1465,41 @@ fn program_with_one_import_and_hex_call() -> TestResult {
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
-            call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
+            call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
         end"#
     ));
     let program = context.assemble(source)?;
 
-    let iszero_unsafe = context.display_digest_from_cache(
-        &"dummy::math::u256::iszero_unsafe".parse().unwrap(),
-        program.mast_forest(),
-    );
     let expected = format!(
         "\
 begin
     join
         join
             span push(4) push(3) end
-            proxy.{iszero_unsafe}
+            join
+                join
+                    join
+                        span eqz end
+                        span swap eqz and end
+                    end
+                    join
+                        span swap eqz and end
+                        span swap eqz and end
+                    end
+                end
+                join
+                    join
+                        span swap eqz and end
+                        span swap eqz and end
+                    end
+                    join
+                        span swap eqz and end
+                        span swap eqz and end
+                    end
+                end
+            end
         end
-        call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
+        call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
     end
 end"
     );
