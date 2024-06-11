@@ -62,7 +62,7 @@ fn nested_blocks() {
         }
     }
 
-    let mut assembler = Assembler::with_kernel_from_module(KERNEL)
+    let assembler = Assembler::with_kernel_from_module(KERNEL)
         .unwrap()
         .with_library(&DummyLibrary::default())
         .unwrap();
@@ -119,7 +119,7 @@ fn nested_blocks() {
         syscall.foo
     end"#;
 
-    let program = assembler.assemble_test(program).unwrap();
+    let program = assembler.assemble(program).unwrap();
 
     let exec_bar_node_id = {
         // bar procedure

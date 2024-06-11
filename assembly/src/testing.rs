@@ -309,7 +309,8 @@ impl TestContext {
     #[track_caller]
     pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
         self.assembler
-            .assemble_test(source)
+            .clone()
+            .assemble(source)
             .map(|mast_forest| mast_forest.try_into().unwrap())
     }
 
