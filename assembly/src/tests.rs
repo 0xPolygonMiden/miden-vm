@@ -1955,11 +1955,17 @@ begin
                 end
             else
                 join
-                    span mul push(8) push(8) end
-                    if.true
+                    join
                         span mul end
-                    else
-                        span noop end
+                        span push(8) end
+                    end
+                    join
+                        span push(8) end
+                        if.true
+                            span mul end
+                        else
+                            span noop end
+                        end
                     end
                 end
             end
