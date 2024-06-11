@@ -8,6 +8,7 @@ extern crate std;
 // IMPORTS
 // ================================================================================================
 
+use processor::Program;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
@@ -34,7 +35,7 @@ pub use processor::{
     AdviceInputs, AdviceProvider, ContextId, DefaultHost, ExecutionError, ExecutionOptions,
     ExecutionTrace, Process, ProcessState, StackInputs, VmStateIterator,
 };
-pub use prover::{prove_mast_forest, MemAdviceProvider, ProvingOptions};
+pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 pub use vm_core::{
@@ -227,7 +228,11 @@ impl Test {
         expected_mem: &[u64],
     ) {
         // compile the program
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self
+            .compile()
+            .expect("Failed to compile test source.")
+            .try_into()
+            .expect("test source has no entrypoint");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
 
         // execute the test
@@ -306,7 +311,11 @@ impl Test {
     /// resulting execution trace or error.
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self
+            .compile()
+            .expect("Failed to compile test source.")
+            .try_into()
+            .expect("test source has no entrypoint.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
@@ -316,7 +325,11 @@ impl Test {
     pub fn execute_process(
         &self,
     ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self
+            .compile()
+            .expect("Failed to compile test source.")
+            .try_into()
+            .expect("test source has no entrypoint.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let mut process = Process::new(
             program.kernel().clone(),
@@ -333,15 +346,14 @@ impl Test {
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self
+            .compile()
+            .expect("Failed to compile test source.")
+            .try_into()
+            .expect("test source has no entrypoint.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
-        let (mut stack_outputs, proof) = prover::prove_mast_forest(
-            &program,
-            stack_inputs.clone(),
-            host,
-            ProvingOptions::default(),
-        )
-        .unwrap();
+        let (mut stack_outputs, proof) =
+            prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
         let program_info = ProgramInfo::from(program);
         if test_fail {
@@ -357,7 +369,11 @@ impl Test {
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self
+            .compile()
+            .expect("Failed to compile test source.")
+            .try_into()
+            .expect("test source has no entrypoint.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }

@@ -162,6 +162,7 @@ impl Index<MastNodeId> for MastForest {
 // PROGRAM
 // ===============================================================================================
 
+#[derive(Clone, Debug)]
 pub struct Program {
     mast_forest: MastForest,
 }
@@ -179,6 +180,11 @@ impl Program {
 
 /// Public accessors
 impl Program {
+    /// Returns the underlying [`MastForest`].
+    pub fn mast_forest(&self) -> &MastForest {
+        &self.mast_forest
+    }
+
     /// Returns the kernel associated with this program.
     pub fn kernel(&self) -> &Kernel {
         &self.mast_forest.kernel
@@ -224,7 +230,6 @@ impl Index<MastNodeId> for Program {
 impl crate::prettier::PrettyPrint for Program {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
-        // TODOP: How to render MAST forests without an entrypoint?
         let entrypoint = self[self.entrypoint()].to_pretty_print(&self.mast_forest);
 
         indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
@@ -235,5 +240,19 @@ impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
+    }
+}
+
+impl TryFrom<MastForest> for Program {
+    type Error = ProgramError;
+
+    fn try_from(mast_forest: MastForest) -> Result<Self, Self::Error> {
+        Self::new(mast_forest)
+    }
+}
+
+impl From<Program> for MastForest {
+    fn from(program: Program) -> Self {
+        program.mast_forest
     }
 }

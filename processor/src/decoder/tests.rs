@@ -18,7 +18,7 @@ use miden_air::trace::{
 };
 use test_utils::rand::rand_value;
 use vm_core::{
-    mast::{BasicBlockNode, OP_BATCH_SIZE},
+    mast::{BasicBlockNode, Program, OP_BATCH_SIZE},
     MastForest, MastNode, MerkleTreeNode, EMPTY_WORD, ONE, ZERO,
 };
 
@@ -53,7 +53,7 @@ fn basic_block_one_group() {
         let basic_block_id = mast_forest.ensure_node(basic_block_node);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[], &program);
@@ -67,7 +67,7 @@ fn basic_block_one_group() {
     check_op_decoding(&trace, 5, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     check_hasher_state(
         &trace,
         vec![
@@ -100,7 +100,7 @@ fn basic_block_small() {
         let basic_block_id = mast_forest.ensure_node(basic_block_node);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[], &program);
@@ -117,7 +117,7 @@ fn basic_block_small() {
     check_op_decoding(&trace, 6, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     check_hasher_state(
         &trace,
         vec![
@@ -164,7 +164,7 @@ fn basic_block() {
         let basic_block_id = mast_forest.ensure_node(basic_block_node);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
     let (trace, trace_len) = build_trace(&[], &program);
 
@@ -191,7 +191,7 @@ fn basic_block() {
     check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     check_hasher_state(
         &trace,
         vec![
@@ -257,7 +257,7 @@ fn span_block_with_respan() {
         let basic_block_id = mast_forest.ensure_node(basic_block_node);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
     let (trace, trace_len) = build_trace(&[], &program);
 
@@ -286,7 +286,7 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     check_hasher_state(
         &trace,
         vec![
@@ -335,7 +335,7 @@ fn join_node() {
         let join_node_id = mast_forest.ensure_node(join_node);
         mast_forest.set_entrypoint(join_node_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[], &program);
@@ -372,7 +372,7 @@ fn join_node() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 6));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 7));
 
@@ -402,7 +402,7 @@ fn split_node_true() {
         let split_node_id = mast_forest.ensure_node(split_node);
         mast_forest.set_entrypoint(split_node_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[1], &program);
@@ -429,7 +429,7 @@ fn split_node_true() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 3));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 4));
 
@@ -456,7 +456,7 @@ fn split_node_false() {
         let split_node_id = mast_forest.ensure_node(split_node);
         mast_forest.set_entrypoint(split_node_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[0], &program);
@@ -483,7 +483,7 @@ fn split_node_false() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 3));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 4));
 
@@ -511,7 +511,7 @@ fn loop_node() {
         let loop_node_id = mast_forest.ensure_node(loop_node);
         mast_forest.set_entrypoint(loop_node_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[0, 1], &program);
@@ -540,7 +540,7 @@ fn loop_node() {
 
     // the hash of the program is located in the last END row; this row should also have is_loop
     // flag set to ONE
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 5));
     assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 5));
 
@@ -565,7 +565,7 @@ fn loop_node_skip() {
         let loop_node_id = mast_forest.ensure_node(loop_node);
         mast_forest.set_entrypoint(loop_node_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[0], &program);
@@ -584,7 +584,7 @@ fn loop_node_skip() {
 
     // the hash of the program is located in the last END row; is_loop is not set to ONE because
     // we didn't enter the loop's body
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 1));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 1));
 
@@ -609,7 +609,7 @@ fn loop_node_repeat() {
         let loop_node_id = mast_forest.ensure_node(loop_node);
         mast_forest.set_entrypoint(loop_node_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let (trace, trace_len) = build_trace(&[0, 1, 1], &program);
@@ -655,7 +655,7 @@ fn loop_node_repeat() {
 
     // the hash of the program is located in the last END row; this row should also have is_loop
     // flag set to ONE
-    let program_hash: Word = program.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 10));
     assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 10));
 
@@ -713,8 +713,10 @@ fn call_block() {
     let program_root_id = mast_forest.ensure_node(program_root);
     mast_forest.set_entrypoint(program_root_id);
 
+    let program = Program::new(mast_forest).unwrap();
+
     let (sys_trace, dec_trace,   trace_len) =
-        build_call_trace(&mast_forest, Kernel::default());
+        build_call_trace(&program, Kernel::default());
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -790,7 +792,7 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 16));
 
     // the program ends in the 17th row
-    let program_hash: Word = mast_forest.entrypoint_digest().unwrap().into();
+    let program_hash: Word = program.entrypoint_digest().into();
     assert_eq!(program_hash, get_hasher_state1(&dec_trace, 17));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 17));
 
@@ -937,8 +939,10 @@ fn syscall_block() {
     let program_root_node_id = mast_forest.ensure_node(program_root_node.clone());
     mast_forest.set_entrypoint(program_root_node_id);
 
+    let program = Program::new(mast_forest).unwrap();
+
     let (sys_trace, dec_trace,   trace_len) =
-        build_call_trace(&mast_forest, kernel);
+        build_call_trace(&program, kernel);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -1207,6 +1211,8 @@ fn dyn_block() {
     let program_root_node_id = mast_forest.ensure_node(program_root_node.clone());
     mast_forest.set_entrypoint(program_root_node_id);
 
+    let program = Program::new(mast_forest).unwrap();
+
     let (trace, trace_len) = build_dyn_trace(
         &[
             foo_root_node.digest()[0].as_int(),
@@ -1216,7 +1222,7 @@ fn dyn_block() {
             2,
             4,
         ],
-        &mast_forest,
+        &program,
     );
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -1314,7 +1320,7 @@ fn set_user_op_helpers_many() {
         let basic_block_id = mast_forest.ensure_node(basic_block);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        mast_forest.try_into().unwrap()
     };
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
@@ -1343,7 +1349,7 @@ fn set_user_op_helpers_many() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_trace(stack_inputs: &[u64], program: &MastForest) -> (DecoderTrace, usize) {
+fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
@@ -1362,7 +1368,7 @@ fn build_trace(stack_inputs: &[u64], program: &MastForest) -> (DecoderTrace, usi
     )
 }
 
-fn build_dyn_trace(stack_inputs: &[u64], program: &MastForest) -> (DecoderTrace, usize) {
+fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
@@ -1382,7 +1388,7 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &MastForest) -> (DecoderTrace,
     )
 }
 
-fn build_call_trace(program: &MastForest, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
+fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
     let host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());

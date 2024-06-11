@@ -1208,7 +1208,8 @@ fn program_with_one_procedure() -> TestResult {
     let source =
         source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
+    let foo =
+        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
@@ -1229,7 +1230,8 @@ fn program_with_one_empty_procedure() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("proc.foo end begin exec.foo end");
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
+    let foo =
+        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
@@ -1250,8 +1252,10 @@ fn program_with_nested_procedure() -> TestResult {
         begin push.2 push.4 add exec.foo push.11 exec.bar sub end"
     );
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
-    let bar = context.display_digest_from_cache(&"#exec::bar".parse().unwrap(), &program);
+    let foo =
+        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
+    let bar =
+        context.display_digest_from_cache(&"#exec::bar".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
@@ -1291,7 +1295,8 @@ fn program_with_proc_locals() -> TestResult {
         end"
     );
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), &program);
+    let foo =
+        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
@@ -1478,8 +1483,10 @@ fn program_with_one_import_and_hex_call() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let iszero_unsafe = context
-        .display_digest_from_cache(&"dummy::math::u256::iszero_unsafe".parse().unwrap(), &program);
+    let iszero_unsafe = context.display_digest_from_cache(
+        &"dummy::math::u256::iszero_unsafe".parse().unwrap(),
+        program.mast_forest(),
+    );
     let expected = format!(
         "\
 begin
@@ -1606,10 +1613,14 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         end"#
     ));
     let program = context.assemble(source)?;
-    let checked_eqz = context
-        .display_digest_from_cache(&"dummy1::math::u64::checked_eqz".parse().unwrap(), &program);
-    let notchecked_eqz = context
-        .display_digest_from_cache(&"dummy1::math::u64::unchecked_eqz".parse().unwrap(), &program);
+    let checked_eqz = context.display_digest_from_cache(
+        &"dummy1::math::u64::checked_eqz".parse().unwrap(),
+        program.mast_forest(),
+    );
+    let notchecked_eqz = context.display_digest_from_cache(
+        &"dummy1::math::u64::unchecked_eqz".parse().unwrap(),
+        program.mast_forest(),
+    );
     let expected = format!(
         "\
 begin
@@ -1678,10 +1689,14 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let checked_eqz = context
-        .display_digest_from_cache(&"dummy2::math::u64::checked_eqz".parse().unwrap(), &program);
-    let notchecked_eqz = context
-        .display_digest_from_cache(&"dummy2::math::u64::unchecked_eqz".parse().unwrap(), &program);
+    let checked_eqz = context.display_digest_from_cache(
+        &"dummy2::math::u64::checked_eqz".parse().unwrap(),
+        program.mast_forest(),
+    );
+    let notchecked_eqz = context.display_digest_from_cache(
+        &"dummy2::math::u64::unchecked_eqz".parse().unwrap(),
+        program.mast_forest(),
+    );
     let expected = format!(
         "\
 begin
@@ -1749,8 +1764,10 @@ fn module_alias() -> TestResult {
     );
 
     let program = context.assemble(source)?;
-    let checked_add = context
-        .display_digest_from_cache(&"dummy::math::u64::checked_add".parse().unwrap(), &program);
+    let checked_add = context.display_digest_from_cache(
+        &"dummy::math::u64::checked_add".parse().unwrap(),
+        program.mast_forest(),
+    );
     let expected = format!(
         "\
 begin

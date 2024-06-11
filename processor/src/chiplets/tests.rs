@@ -120,7 +120,7 @@ fn build_trace(
         let basic_block_id = mast_forest.ensure_node(basic_block);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        mast_forest.try_into().unwrap()
     };
     process.execute(&program).unwrap();
 

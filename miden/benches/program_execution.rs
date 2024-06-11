@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_vm::{Assembler, DefaultHost, StackInputs};
-use processor::{execute, ExecutionOptions};
+use processor::{execute, ExecutionOptions, Program};
 use std::time::Duration;
 use stdlib::StdLibrary;
 
@@ -18,7 +18,11 @@ fn program_execution(c: &mut Criterion) {
         let assembler = Assembler::default()
             .with_library(&StdLibrary::default())
             .expect("failed to load stdlib");
-        let program = assembler.assemble(source).expect("Failed to compile test source.");
+        let program: Program = assembler
+            .assemble(source)
+            .expect("Failed to compile test source.")
+            .try_into()
+            .expect("test source has no entrypoint.");
         bench.iter(|| {
             execute(
                 &program,

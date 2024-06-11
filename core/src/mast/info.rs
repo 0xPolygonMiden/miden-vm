@@ -2,9 +2,9 @@ use alloc::vec::Vec;
 use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::{utils::ToElements, MastForest};
+use crate::utils::ToElements;
 
-use super::Kernel;
+use super::{Kernel, Program};
 
 /// A program information set consisting of its MAST root and set of kernel procedure roots used
 /// for its compilation.
@@ -51,11 +51,10 @@ impl ProgramInfo {
     }
 }
 
-// TODOP: use TryFrom instead
-impl From<MastForest> for ProgramInfo {
-    fn from(mast_forest: MastForest) -> Self {
-        let program_hash = mast_forest.entrypoint_digest().unwrap();
-        let kernel = mast_forest.kernel().clone();
+impl From<Program> for ProgramInfo {
+    fn from(program: Program) -> Self {
+        let program_hash = program.entrypoint_digest();
+        let kernel = program.kernel().clone();
 
         Self {
             program_hash,

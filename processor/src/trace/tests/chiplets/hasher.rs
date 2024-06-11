@@ -22,6 +22,7 @@ use miden_air::trace::{
 use vm_core::{
     chiplets::hasher::apply_permutation,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
+    mast::Program,
     utils::range,
     MastForest, MastNode, Word,
 };
@@ -53,7 +54,7 @@ pub fn b_chip_span() {
         let basic_block_id = mast_forest.ensure_node(basic_block);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let trace = build_trace_from_program(&program, &[]);
@@ -127,7 +128,7 @@ pub fn b_chip_span_with_respan() {
         let basic_block_id = mast_forest.ensure_node(basic_block);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
     let trace = build_trace_from_program(&program, &[]);
 
@@ -227,7 +228,7 @@ pub fn b_chip_merge() {
 
         mast_forest.set_entrypoint(split_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
 
     let trace = build_trace_from_program(&program, &[]);
@@ -341,7 +342,7 @@ pub fn b_chip_permutation() {
         let basic_block_id = mast_forest.ensure_node(basic_block);
         mast_forest.set_entrypoint(basic_block_id);
 
-        mast_forest
+        Program::new(mast_forest).unwrap()
     };
     let stack = vec![8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
     let trace = build_trace_from_program(&program, &stack);

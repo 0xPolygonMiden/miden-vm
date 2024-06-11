@@ -1,4 +1,4 @@
-use processor::ProgramInfo;
+use processor::{Program, ProgramInfo};
 use rand::{thread_rng, Rng};
 
 use assembly::{utils::Serializable, Assembler};
@@ -199,11 +199,13 @@ fn falcon_prove_verify() {
     let message = rand_vector::<Felt>(4).try_into().unwrap();
     let (source, op_stack, _, _, advice_map) = generate_test(sk, message);
 
-    let program = Assembler::default()
+    let program: Program = Assembler::default()
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib")
         .assemble(source)
-        .expect("failed to compile test source");
+        .expect("failed to compile test source")
+        .try_into()
+        .expect("test source has no entrypoint");
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
@@ -211,9 +213,8 @@ fn falcon_prove_verify() {
     let host = DefaultHost::new(advice_provider);
 
     let options = ProvingOptions::with_96_bit_security(false);
-    let (stack_outputs, proof) =
-        test_utils::prove_mast_forest(&program, stack_inputs.clone(), host, options)
-            .expect("failed to generate proof");
+    let (stack_outputs, proof) = test_utils::prove(&program, stack_inputs.clone(), host, options)
+        .expect("failed to generate proof");
 
     let program_info = ProgramInfo::from(program);
     let result = test_utils::verify(program_info, stack_inputs, stack_outputs, proof);

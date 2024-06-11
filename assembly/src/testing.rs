@@ -13,7 +13,10 @@ use crate::diagnostics::reporting::set_panic_hook;
 
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
-use vm_core::{mast::MastForest, utils::DisplayHex};
+use vm_core::{
+    mast::{MastForest, Program},
+    utils::DisplayHex,
+};
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics
@@ -307,8 +310,11 @@ impl TestContext {
     /// NOTE: Any modules added by, e.g. `add_module`, will be available to the executable
     /// module represented in `source`.
     #[track_caller]
-    pub fn assemble(&mut self, source: impl Compile) -> Result<MastForest, Report> {
-        self.assembler.clone().assemble(source)
+    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
+        self.assembler
+            .clone()
+            .assemble(source)
+            .map(|mast_forest| mast_forest.try_into().unwrap())
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning

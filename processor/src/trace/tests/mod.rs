@@ -5,7 +5,10 @@ use super::{
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
 use alloc::vec::Vec;
 use test_utils::rand::rand_array;
-use vm_core::{mast::Kernel, MastForest, MastNode, Operation, StackOutputs, Word, ONE, ZERO};
+use vm_core::{
+    mast::{Kernel, Program},
+    MastForest, MastNode, Operation, StackOutputs, Word, ONE, ZERO,
+};
 
 mod chiplets;
 mod decoder;
@@ -17,7 +20,7 @@ mod stack;
 // ================================================================================================
 
 /// Builds a sample trace by executing the provided code block against the provided stack inputs.
-pub fn build_trace_from_program(program: &MastForest, stack_inputs: &[u64]) -> ExecutionTrace {
+pub fn build_trace_from_program(program: &Program, stack_inputs: &[u64]) -> ExecutionTrace {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
     let host = DefaultHost::default();
     let mut process =
@@ -35,7 +38,9 @@ pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> Execut
     let basic_block_id = mast_forest.ensure_node(basic_block);
     mast_forest.set_entrypoint(basic_block_id);
 
-    build_trace_from_program(&mast_forest, stack)
+    let program = Program::new(mast_forest).unwrap();
+
+    build_trace_from_program(&program, stack)
 }
 
 /// Builds a sample trace by executing a span block containing the specified operations. Unlike the
@@ -56,6 +61,8 @@ pub fn build_trace_from_ops_with_inputs(
     let basic_block_id = mast_forest.ensure_node(basic_block);
     mast_forest.set_entrypoint(basic_block_id);
 
-    process.execute(&mast_forest).unwrap();
+    let program = Program::new(mast_forest).unwrap();
+
+    process.execute(&program).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }

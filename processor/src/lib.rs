@@ -18,9 +18,9 @@ pub use vm_core::{
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
-    mast::{Kernel, ProgramInfo},
+    mast::{Kernel, MastForest, Program, ProgramInfo},
     utils::DeserializationError,
-    AdviceInjector, AssemblyOp, Felt, MastForest, MastNode, MastNodeId, MerkleTreeNode, Operation,
+    AdviceInjector, AssemblyOp, Felt, MastNode, MastNodeId, MerkleTreeNode, Operation,
     QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
@@ -126,7 +126,7 @@ pub struct ChipletsTrace {
 /// inputs.
 #[tracing::instrument("execute_mast_program", skip_all)]
 pub fn execute<H>(
-    program: &MastForest,
+    program: &Program,
     stack_inputs: StackInputs,
     host: H,
     options: ExecutionOptions,
@@ -137,17 +137,13 @@ where
     let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
-    assert_eq!(
-        &program.entrypoint_digest().expect("program has no entrypoint"),
-        trace.program_hash(),
-        "inconsistent program hash"
-    );
+    assert_eq!(&program.entrypoint_digest(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter<H>(program: &MastForest, stack_inputs: StackInputs, host: H) -> VmStateIterator
+pub fn execute_iter<H>(program: &Program, stack_inputs: StackInputs, host: H) -> VmStateIterator
 where
     H: Host,
 {
@@ -155,7 +151,7 @@ where
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
-            program.entrypoint_digest().expect("MAST forest has no entrypoint"),
+            program.entrypoint_digest(),
             process.decoder.program_hash().into(),
             "inconsistent program hash"
         );
@@ -229,15 +225,13 @@ where
     // PROGRAM EXECUTOR
     // --------------------------------------------------------------------------------------------
 
-    /// Executes the provided [`MastForest`] in this process.
-    pub fn execute(&mut self, mast_forest: &MastForest) -> Result<StackOutputs, ExecutionError> {
+    /// Executes the provided [`Program`] in this process.
+    pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
         if self.system.clk() != 0 {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        let entrypoint = mast_forest.entrypoint().ok_or(ExecutionError::NoEntryPoint)?;
-
-        self.execute_mast_node(entrypoint, mast_forest)?;
+        self.execute_mast_node(program.entrypoint(), program)?;
 
         Ok(self.stack.build_stack_outputs())
     }
@@ -248,17 +242,17 @@ where
     fn execute_mast_node(
         &mut self,
         node_id: MastNodeId,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
-        let wrapper_node = &mast_forest[node_id];
+        let wrapper_node = &program[node_id];
 
         match wrapper_node {
             MastNode::Block(node) => self.execute_basic_block_node(node),
-            MastNode::Join(node) => self.execute_join_node(node, mast_forest),
-            MastNode::Split(node) => self.execute_split_node(node, mast_forest),
-            MastNode::Loop(node) => self.execute_loop_node(node, mast_forest),
-            MastNode::Call(node) => self.execute_call_node(node, mast_forest),
-            MastNode::Dyn => self.execute_dyn_node(mast_forest),
+            MastNode::Join(node) => self.execute_join_node(node, program),
+            MastNode::Split(node) => self.execute_split_node(node, program),
+            MastNode::Loop(node) => self.execute_loop_node(node, program),
+            MastNode::Call(node) => self.execute_call_node(node, program),
+            MastNode::Dyn => self.execute_dyn_node(program),
         }
     }
 
@@ -266,13 +260,13 @@ where
     fn execute_join_node(
         &mut self,
         node: &JoinNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
-        self.start_join_node(node, mast_forest)?;
+        self.start_join_node(node, program)?;
 
         // execute first and then second child of the join block
-        self.execute_mast_node(node.first(), mast_forest)?;
-        self.execute_mast_node(node.second(), mast_forest)?;
+        self.execute_mast_node(node.first(), program)?;
+        self.execute_mast_node(node.second(), program)?;
 
         self.end_join_node(node)
     }
@@ -281,16 +275,16 @@ where
     fn execute_split_node(
         &mut self,
         node: &SplitNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
-        let condition = self.start_split_node(node, mast_forest)?;
+        let condition = self.start_split_node(node, program)?;
 
         // execute either the true or the false branch of the split block based on the condition
         if condition == ONE {
-            self.execute_mast_node(node.on_true(), mast_forest)?;
+            self.execute_mast_node(node.on_true(), program)?;
         } else if condition == ZERO {
-            self.execute_mast_node(node.on_false(), mast_forest)?;
+            self.execute_mast_node(node.on_false(), program)?;
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
         }
@@ -303,15 +297,15 @@ where
     fn execute_loop_node(
         &mut self,
         node: &LoopNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
-        let condition = self.start_loop_node(node, mast_forest)?;
+        let condition = self.start_loop_node(node, program)?;
 
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
         if condition == ONE {
             // execute the loop body at least once
-            self.execute_mast_node(node.body(), mast_forest)?;
+            self.execute_mast_node(node.body(), program)?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
@@ -319,7 +313,7 @@ where
             while self.stack.peek() == ONE {
                 self.decoder.repeat();
                 self.execute_op(Operation::Drop)?;
-                self.execute_mast_node(node.body(), mast_forest)?;
+                self.execute_mast_node(node.body(), program)?;
             }
 
             // end the LOOP block and drop the condition from the stack
@@ -338,10 +332,10 @@ where
     fn execute_call_node(
         &mut self,
         call_node: &CallNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
-            let callee = &mast_forest[call_node.callee()];
+            let callee = &program[call_node.callee()];
 
             callee.digest()
         };
@@ -351,14 +345,14 @@ where
             self.chiplets.access_kernel_proc(callee_digest)?;
         }
 
-        self.start_call_node(call_node, mast_forest)?;
+        self.start_call_node(call_node, program)?;
 
         // if this is a dyncall, execute the dynamic code block
         // TODOP: change to `matches!(call_node.callee(), DynNode)`
         if callee_digest == DynNode.digest() {
-            self.execute_dyn_node(mast_forest)?;
+            self.execute_dyn_node(program)?;
         } else {
-            self.execute_mast_node(call_node.callee(), mast_forest)?;
+            self.execute_mast_node(call_node.callee(), program)?;
         }
 
         self.end_call_node(call_node)
@@ -366,16 +360,16 @@ where
 
     /// Executes the specified [DynNode] node.
     #[inline(always)]
-    fn execute_dyn_node(&mut self, mast_forest: &MastForest) -> Result<(), ExecutionError> {
+    fn execute_dyn_node(&mut self, program: &Program) -> Result<(), ExecutionError> {
         // get target hash from the stack
         let callee_hash = self.stack.get_word(0);
         self.start_dyn_node(callee_hash)?;
 
         // get dynamic code from the code block table and execute it
-        let callee_id = mast_forest
+        let callee_id = program
             .get_node_id_by_digest(callee_hash.into())
             .ok_or_else(|| ExecutionError::DynamicCodeBlockNotFound(callee_hash.into()))?;
-        self.execute_mast_node(callee_id, mast_forest)?;
+        self.execute_mast_node(callee_id, program)?;
 
         self.end_dyn_node()
     }

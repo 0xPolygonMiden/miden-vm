@@ -16,7 +16,7 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace, MastForest,
+    ExecutionTrace, Program,
 };
 use tracing::instrument;
 use winter_prover::{
@@ -52,8 +52,8 @@ pub use winter_prover::Proof;
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
 #[instrument("prove_program", skip_all)]
-pub fn prove_mast_forest<H>(
-    program: &MastForest,
+pub fn prove<H>(
+    program: &Program,
     stack_inputs: StackInputs,
     host: H,
     options: ProvingOptions,

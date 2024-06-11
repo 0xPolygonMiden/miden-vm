@@ -12,8 +12,8 @@ use miden_air::trace::{
 };
 use vm_core::{
     mast::{
-        get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastForest,
-        MerkleTreeNode, SplitNode, OP_BATCH_SIZE,
+        get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode,
+        MerkleTreeNode, Program, SplitNode, OP_BATCH_SIZE,
     },
     stack::STACK_TOP_SIZE,
     AssemblyOp,
@@ -56,18 +56,18 @@ where
     pub(super) fn start_join_node(
         &mut self,
         node: &JoinNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the JOIN block; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let child1_hash = {
-            let child_node = &mast_forest[node.first()];
+            let child_node = &program[node.first()];
 
             child_node.digest().into()
         };
         let child2_hash = {
-            let child_node = &mast_forest[node.second()];
+            let child_node = &program[node.second()];
 
             child_node.digest().into()
         };
@@ -102,7 +102,7 @@ where
     pub(super) fn start_split_node(
         &mut self,
         node: &SplitNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<Felt, ExecutionError> {
         let condition = self.stack.peek();
 
@@ -110,12 +110,12 @@ where
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let child1_hash = {
-            let child_node = &mast_forest[node.on_true()];
+            let child_node = &program[node.on_true()];
 
             child_node.digest().into()
         };
         let child2_hash = {
-            let child_node = &mast_forest[node.on_false()];
+            let child_node = &program[node.on_false()];
 
             child_node.digest().into()
         };
@@ -150,7 +150,7 @@ where
     pub(super) fn start_loop_node(
         &mut self,
         node: &LoopNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<Felt, ExecutionError> {
         let condition = self.stack.peek();
 
@@ -159,7 +159,7 @@ where
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = {
-            let body_node = &mast_forest[node.body()];
+            let body_node = &program[node.body()];
 
             body_node.digest().into()
         };
@@ -212,13 +212,13 @@ where
     pub(super) fn start_call_node(
         &mut self,
         node: &CallNode,
-        mast_forest: &MastForest,
+        program: &Program,
     ) -> Result<(), ExecutionError> {
         // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
         let callee_hash = {
-            let callee = &mast_forest[node.callee()];
+            let callee = &program[node.callee()];
 
             callee.digest().into()
         };

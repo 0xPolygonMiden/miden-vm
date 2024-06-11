@@ -3,9 +3,9 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::{DefaultHost, ProgramInfo};
+use processor::{DefaultHost, Program, ProgramInfo};
 use test_utils::{
-    prove_mast_forest, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
+    prove, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
 };
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
@@ -51,7 +51,11 @@ pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
 ) -> Result<VerifierData, VerifierError> {
-    let program = Assembler::default().assemble(source).unwrap();
+    let program: Program = Assembler::default()
+        .assemble(source)
+        .unwrap()
+        .try_into()
+        .expect("test source has no entrypoint");
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
@@ -60,8 +64,7 @@ pub fn generate_recursive_verifier_data(
     let options =
         ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) =
-        prove_mast_forest(&program, stack_inputs.clone(), host, options).unwrap();
+    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), host, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 

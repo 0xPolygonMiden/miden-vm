@@ -15,7 +15,7 @@ pub use processor::{
     VmStateIterator, ZERO,
 };
 pub use prover::{
-    math, prove_mast_forest, Digest, ExecutionProof, FieldExtension, HashFunction, InputError,
-    Proof, ProvingOptions, StackOutputs, Word,
+    math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Proof,
+    ProvingOptions, StackOutputs, Word,
 };
 pub use verifier::{verify, VerificationError};
