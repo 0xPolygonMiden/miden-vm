@@ -4,7 +4,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::Operation;
 
-use super::MerkleTreeNode;
+use crate::MerkleTreeNode;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DynNode;

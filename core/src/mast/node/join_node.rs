@@ -4,7 +4,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{chiplets::hasher, prettier::PrettyPrint, Operation};
 
-use super::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JoinNode {

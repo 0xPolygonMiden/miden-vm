@@ -5,7 +5,7 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{chiplets::hasher, Operation};
 
-use super::{MastForest, MastNodeId, MerkleTreeNode};
+use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitNode {

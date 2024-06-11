@@ -5,9 +5,9 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, ZERO};
 use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
-use crate::{chiplets::hasher, DecoratorIterator, DecoratorList, MastForest, Operation};
-
-use super::MerkleTreeNode;
+use crate::{
+    chiplets::hasher, DecoratorIterator, DecoratorList, MastForest, MerkleTreeNode, Operation,
+};
 
 // CONSTANTS
 // ================================================================================================
