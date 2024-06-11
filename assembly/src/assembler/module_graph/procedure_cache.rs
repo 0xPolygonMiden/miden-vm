@@ -143,12 +143,6 @@ impl ProcedureCache {
         self.by_mast_root.contains_key(hash)
     }
 
-    /// Returns an iterator over the non-empty entries in the cache
-    #[cfg(test)]
-    pub fn entries(&self) -> impl Iterator<Item = Arc<Procedure>> + '_ {
-        self.cache.iter().flat_map(|m| m.iter().filter_map(|p| p.clone()))
-    }
-
     /// Inserts the given [Procedure] into this cache, using the [GlobalProcedureIndex] as the
     /// cache key.
     ///

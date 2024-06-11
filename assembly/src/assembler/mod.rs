@@ -302,12 +302,6 @@ impl Assembler {
 
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
-    pub fn procedure_cache(&self) -> &ProcedureCache {
-        &self.procedure_cache
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    #[doc(hidden)]
     pub fn module_graph(&self) -> &ModuleGraph {
         &self.module_graph
     }

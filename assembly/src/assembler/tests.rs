@@ -70,10 +70,6 @@ fn nested_blocks() {
     // The expected `MastForest` for the program (that we will build by hand)
     let mut expected_mast_forest = MastForest::new();
 
-    // the assembler should have a single kernel proc in its cache before the compilation of the
-    // source
-    assert_eq!(assembler.procedure_cache().len(), 1);
-
     // fetch the kernel digest and store into a syscall block
     //
     // Note: this assumes the current internal implementation detail that `assembler.mast_forest`
