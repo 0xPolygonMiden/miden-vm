@@ -3,6 +3,9 @@ use core::{fmt, ops::Index};
 use alloc::{collections::BTreeMap, vec::Vec};
 use miden_crypto::hash::rpo::RpoDigest;
 
+mod errors;
+pub use errors::ProgramError;
+
 mod info;
 pub use info::ProgramInfo;
 
@@ -31,6 +34,9 @@ pub trait MerkleTreeNode {
 /// [`MastNode`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
+
+// MAST FOREST
+// ===============================================================================================
 
 #[derive(Clone, Debug, Default)]
 pub struct MastForest {
@@ -109,8 +115,6 @@ impl MastForest {
     }
 
     /// Returns the entrypoint associated with this forest, if any.
-    ///
-    /// If an entrypoint is present, then the forest is considered to be a "program".
     pub fn entrypoint(&self) -> Option<MastNodeId> {
         self.entrypoint
     }
@@ -155,19 +159,79 @@ impl Index<MastNodeId> for MastForest {
     }
 }
 
-impl crate::prettier::PrettyPrint for MastForest {
+// PROGRAM
+// ===============================================================================================
+
+pub struct Program {
+    mast_forest: MastForest,
+}
+
+/// Constructors
+impl Program {
+    pub fn new(mast_forest: MastForest) -> Result<Self, ProgramError> {
+        if mast_forest.entrypoint().is_some() {
+            Ok(Self { mast_forest })
+        } else {
+            Err(ProgramError::NoEntrypoint)
+        }
+    }
+}
+
+/// Public accessors
+impl Program {
+    /// Returns the kernel associated with this program.
+    pub fn kernel(&self) -> &Kernel {
+        &self.mast_forest.kernel
+    }
+
+    /// Returns the entrypoint associated with this program.
+    pub fn entrypoint(&self) -> MastNodeId {
+        self.mast_forest.entrypoint.unwrap()
+    }
+
+    /// A convenience method that provides the hash of the entrypoint.
+    pub fn entrypoint_digest(&self) -> RpoDigest {
+        self.mast_forest.entrypoint_digest().unwrap()
+    }
+
+    /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
+    /// `None`.
+    ///
+    /// This is the faillible version of indexing (e.g. `program[node_id]`).
+    #[inline(always)]
+    pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
+        self.mast_forest.get_node_by_id(node_id)
+    }
+
+    /// Returns the [`MastNodeId`] associated with a given digest, if any.
+    ///
+    /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
+    /// forest that hashes to this digest, then its id is returned.
+    #[inline(always)]
+    pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
+        self.mast_forest.get_node_id_by_digest(digest)
+    }
+}
+
+impl Index<MastNodeId> for Program {
+    type Output = MastNode;
+
+    fn index(&self, node_id: MastNodeId) -> &Self::Output {
+        &self.mast_forest[node_id]
+    }
+}
+
+impl crate::prettier::PrettyPrint for Program {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
         // TODOP: How to render MAST forests without an entrypoint?
-        let entrypoint = self
-            [self.entrypoint.expect("can only render MAST forests with an entrypoint")]
-        .to_pretty_print(self);
+        let entrypoint = self[self.entrypoint()].to_pretty_print(&self.mast_forest);
 
         indent(4, const_text("begin") + nl() + entrypoint.render()) + nl() + const_text("end")
     }
 }
 
-impl fmt::Display for MastForest {
+impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
