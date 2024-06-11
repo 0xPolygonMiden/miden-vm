@@ -82,6 +82,11 @@ impl Assembler {
         }
 
         let mast_root_node_id = {
+            // Note that here we rely on the fact that we topologically sorted the procedures, such
+            // that when we assemble a procedure, all procedures that it calls will have been
+            // assembled, and hence be present in the `MastForest`. We currently assume that the
+            // `MastForest` contains all the procedures being called; "external procedures" only
+            // known by digest are not currently supported.
             let callee_id = mast_forest
                 .get_node_id_by_digest(mast_root)
                 .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
