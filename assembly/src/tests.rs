@@ -1631,23 +1631,15 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         end"#
     ));
     let program = context.assemble(source)?;
-    let checked_eqz = context.display_digest_from_cache(
-        &"dummy1::math::u64::checked_eqz".parse().unwrap(),
-        program.mast_forest(),
-    );
-    let notchecked_eqz = context.display_digest_from_cache(
-        &"dummy1::math::u64::unchecked_eqz".parse().unwrap(),
-        program.mast_forest(),
-    );
     let expected = format!(
         "\
 begin
     join
         join
             span push(4) push(3) end
-            proxy.{checked_eqz}
+            span u32assert2(0) eqz swap eqz and end
         end
-        proxy.{notchecked_eqz}
+        span eqz swap eqz and end
     end
 end"
     );
@@ -1707,23 +1699,15 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let checked_eqz = context.display_digest_from_cache(
-        &"dummy2::math::u64::checked_eqz".parse().unwrap(),
-        program.mast_forest(),
-    );
-    let notchecked_eqz = context.display_digest_from_cache(
-        &"dummy2::math::u64::unchecked_eqz".parse().unwrap(),
-        program.mast_forest(),
-    );
     let expected = format!(
         "\
 begin
     join
         join
             span push(4) push(3) end
-            proxy.{checked_eqz}
+            span u32assert2(0) eqz swap eqz and end
         end
-        proxy.{notchecked_eqz}
+        span eqz swap eqz and end
     end
 end"
     );
