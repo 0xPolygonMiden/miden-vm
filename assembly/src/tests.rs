@@ -1282,14 +1282,26 @@ fn program_with_proc_locals() -> TestResult {
         end"
     );
     let program = context.assemble(source)?;
-    let foo =
-        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
     join
         span push(4) push(3) push(2) end
-        proxy.{foo}
+        span
+            push(1)
+            fmpupdate
+            pad
+            fmpadd
+            mstore
+            drop
+            add
+            pad
+            fmpadd
+            mload
+            mul
+            push(18446744069414584320)
+            fmpupdate
+        end
     end
 end"
     );
