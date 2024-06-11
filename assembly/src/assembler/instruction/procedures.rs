@@ -81,28 +81,25 @@ impl Assembler {
             None => context.register_phantom_call(Span::new(span, mast_root))?,
         }
 
-        let mast_root_node_id = match kind {
-            // For `exec`, we use a PROXY block to reflect that the root is
-            // conceptually inlined at this location
-            InvokeKind::Exec => {
-                let node = MastNode::new_proxy(mast_root);
-                mast_forest.ensure_node(node)
-            }
-            // For `call`, we just use the corresponding CALL block
-            InvokeKind::Call => {
-                let callee_id = mast_forest
-                    .get_node_id_by_digest(mast_root)
-                    .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
-                let node = MastNode::new_call(callee_id, mast_forest);
-                mast_forest.ensure_node(node)
-            }
-            // For `syscall`, we just use the corresponding SYSCALL block
-            InvokeKind::SysCall => {
-                let callee_id = mast_forest
-                    .get_node_id_by_digest(mast_root)
-                    .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
-                let node = MastNode::new_syscall(callee_id, mast_forest);
-                mast_forest.ensure_node(node)
+        let mast_root_node_id = {
+            let callee_id = mast_forest
+                .get_node_id_by_digest(mast_root)
+                .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
+
+            match kind {
+                // For `exec`, we return the root of the procedure being exec'd, which has the
+                // effect of inlining it
+                InvokeKind::Exec => callee_id,
+                // For `call`, we just use the corresponding CALL block
+                InvokeKind::Call => {
+                    let node = MastNode::new_call(callee_id, mast_forest);
+                    mast_forest.ensure_node(node)
+                }
+                // For `syscall`, we just use the corresponding SYSCALL block
+                InvokeKind::SysCall => {
+                    let node = MastNode::new_syscall(callee_id, mast_forest);
+                    mast_forest.ensure_node(node)
+                }
             }
         };
 
