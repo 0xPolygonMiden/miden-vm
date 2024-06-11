@@ -80,14 +80,11 @@ fn nested_blocks() {
     // contains the MAST nodes for the kernel after a call to
     // `Assembler::with_kernel_from_module()`.
     let syscall_foo_node_id = {
-        let syscall_foo_node = assembler
-            .procedure_cache()
-            .entries()
-            .next()
-            .map(|p| MastNode::new_syscall(p.code(), &assembler.mast_forest))
-            .unwrap();
+        let kernel_foo_node = MastNode::new_basic_block(vec![Operation::Add]);
+        let kernel_foo_node_id = expected_mast_forest.ensure_node(kernel_foo_node);
 
-        expected_mast_forest.ensure_node(syscall_foo_node)
+        let syscall_node = MastNode::new_syscall(kernel_foo_node_id, &expected_mast_forest);
+        expected_mast_forest.ensure_node(syscall_node)
     };
 
     let program = r#"
@@ -129,29 +126,23 @@ fn nested_blocks() {
     let program = assembler.assemble_test(program).unwrap();
 
     let exec_bar_node_id = {
-        let exec_bar_node = assembler
-            .procedure_cache()
-            .get_by_name(&"#exec::bar".parse().unwrap())
-            .map(|p| {
-                let proc_node = &program[p.code()];
-                MastNode::new_proxy(proc_node.digest())
-            })
-            .unwrap();
+        // bar procedure
+        let basic_block_1 = MastNode::new_basic_block(vec![Operation::Push(17_u32.into())]);
+        let basic_block_1_id = expected_mast_forest.ensure_node(basic_block_1);
 
-        expected_mast_forest.ensure_node(exec_bar_node)
+        // Basic block representing the `foo` procedure
+        let basic_block_2 = MastNode::new_basic_block(vec![Operation::Push(19_u32.into())]);
+        let basic_block_2_id = expected_mast_forest.ensure_node(basic_block_2);
+
+        let join_node =
+            MastNode::new_join(basic_block_1_id, basic_block_2_id, &mut expected_mast_forest);
+        expected_mast_forest.ensure_node(join_node)
     };
 
     let exec_foo_bar_baz_node_id = {
-        let exec_foo_bar_baz_node = assembler
-            .procedure_cache()
-            .get_by_name(&"foo::bar::baz".parse().unwrap())
-            .map(|p| {
-                let proc_node = &program[p.code()];
-                MastNode::new_proxy(proc_node.digest())
-            })
-            .unwrap();
-
-        expected_mast_forest.ensure_node(exec_foo_bar_baz_node)
+        // basic block representing foo::bar.baz procedure
+        let basic_block = MastNode::new_basic_block(vec![Operation::Push(29_u32.into())]);
+        expected_mast_forest.ensure_node(basic_block)
     };
 
     let before = {
