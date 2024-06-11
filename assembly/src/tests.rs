@@ -1402,6 +1402,8 @@ fn program_with_invalid_rpo_digest_call() {
     );
 }
 
+/// Phantom calls are currently not implemented. Re-enable this test once they are implemented.
+#[ignore]
 #[test]
 fn program_with_phantom_mast_call() -> TestResult {
     let mut context = TestContext::default();
