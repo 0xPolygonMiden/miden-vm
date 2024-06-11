@@ -1214,14 +1214,12 @@ fn program_with_one_procedure() -> TestResult {
     let source =
         source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
     let program = context.assemble(source)?;
-    let foo =
-        context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
     let expected = format!(
         "\
 begin
     join
         span push(2) push(3) add end
-        proxy.{foo}
+        span push(3) push(7) mul end
     end
 end"
     );
@@ -1235,7 +1233,7 @@ end"
 fn program_with_one_empty_procedure() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("proc.foo end begin exec.foo end");
-    let program = context.assemble(source)?;
+    let program = context.assemble(source);
     let foo =
         context.display_digest_from_cache(&"#exec::foo".parse().unwrap(), program.mast_forest());
     let expected = format!(
