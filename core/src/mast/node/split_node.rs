@@ -31,7 +31,20 @@ impl SplitNode {
 
         Self { branches, digest }
     }
+}
 
+/// Public accessors
+impl SplitNode {
+    pub fn on_true(&self) -> MastNodeId {
+        self.branches[0]
+    }
+
+    pub fn on_false(&self) -> MastNodeId {
+        self.branches[1]
+    }
+}
+
+impl SplitNode {
     pub(super) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
@@ -40,16 +53,6 @@ impl SplitNode {
             split_node: self,
             mast_forest,
         }
-    }
-}
-
-impl SplitNode {
-    pub fn on_true(&self) -> MastNodeId {
-        self.branches[0]
-    }
-
-    pub fn on_false(&self) -> MastNodeId {
-        self.branches[1]
     }
 }
 
