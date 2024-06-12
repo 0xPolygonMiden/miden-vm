@@ -57,7 +57,7 @@ where
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
     R: RandomCoin<BaseField = Felt, Hasher = H>,
 {
-     pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn) -> Self {
+    pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn) -> Self {
         MetalExecutionProver {
             execution_prover,
             metal_hash_fn: hash_fn,
