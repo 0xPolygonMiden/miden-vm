@@ -1,0 +1,87 @@
+const.G=7
+
+# In this mock scheme, scalar multiplication `r * H` becomes `H^r` where `H` is an element
+# of a cyclic subgroup of the multiplicative group of the field i.e., the points we work 
+# with belong to a group Ǥ := {G^i: 0 < i < p}. We take G = Felt(7) i.e., a primitive element.
+# We will call scalars the exponents `i`.
+
+# Warning: This is an insecure scheme for a variety of reasons (e.g., small group size, 
+# Pohlig-Hellman advantage, ...) .
+
+#! Generates the public key, i.e., a group element H given a random scalar representing the private key.
+#! The private key is expected as input and is a random field element.
+#!
+#! Input: [r, ...]
+#! Output: [G^r, ...]
+export.gen_privatekey
+    # Check that 2 < r. The bound r < p is trivial.
+    dup push.2 gt assert
+    push.G swap exp
+end
+
+#! Given a random scalar r on the stack, computes the first point Ca of the cyphertext.
+#! Ca is computed using Ca = r*G, G is the generator of the multiplicative cyclic group.
+#! In multiplicative notation this is equivalent to Ca = G^r.
+#!
+#! Input: [r, ...]
+#! Output: [Ca, ...]
+export.encrypt_ca
+    # Check that 1 < r.
+    dup push.1 gt assert
+    push.G swap exp
+end
+
+
+#! Given public key, point H generated using gen_privatekey as a field element and message M,
+#! also a field element, and a random scalar r on stack, again a field element, this routine
+#! computes the second point Cb of the ciphertext as Cb = M + r*H. In multiplicative notation
+#! it will be Cb = H^r * M
+#!
+#! Input: [H, r, M, ...]
+#! Output: [Cb, ...]
+export.encrypt_cb
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul 
+end
+
+#! Rerandomises the first half of an ElGamal ciphertext i.e., Ca.
+#! Takes a random scalar r, a field element, to produce a rerandomised ciphertext Ca'.
+#! using the relation Ca' = r * G + Ca. In multiplicative notation it will be Ca' = G^r * Ca
+#!
+#! Input: [r, Ca, ...]
+#! Output: [Ca', ...]
+export.remask_ca
+    # Check that 1 < r.
+    dup push.1 gt assert
+    push.G swap exp
+    mul
+end
+
+#! Rerandomises the second half of an ElGamal ciphertext i.e., Cb.
+#! Given a public key H and a random scalar r outputs a rerandomised Cb using Cb' = r * H + Cb,
+#! which in multiplicative notation becomes Cb' = H^r * Cb.
+#!
+#! Input: [H0, r, Cb, ...]
+#! Output: [C', ...]
+export.remask_cb
+    swap
+    # Check that 1 < r.
+    dup push.1 gt assert
+    exp
+    mul
+end
+
+#! Given the secret key and a ciphertext encrypted using its corresponding public key returns
+#! the plaintext.
+#!
+#! Input: [sk, Cb, Ca, ...]
+#! Input: [m, ...]
+export.decrypt
+    movup.2
+    inv
+    swap exp
+    mul
+end
