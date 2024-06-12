@@ -141,8 +141,11 @@ impl Assembler {
         let module = module.compile_with_options(opts)?;
 
         let mut mast_forest = MastForest::new();
+
         let (kernel_index, kernel) = assembler.assemble_kernel_module(module, &mut mast_forest)?;
         assembler.module_graph.set_kernel(Some(kernel_index), kernel);
+        mast_forest.set_kernel(assembler.module_graph.kernel().clone());
+
         assembler.mast_forest = mast_forest;
 
         Ok(assembler)
@@ -578,8 +581,6 @@ impl Assembler {
         let entry_procedure = self.compile_subgraph(entrypoint, true, context, mast_forest)?;
 
         mast_forest.set_entrypoint(entry_procedure.code());
-        // TODOP: `set_kernel` should already have been set in `assemble_kernel_module()`
-        mast_forest.set_kernel(self.module_graph.kernel().clone());
 
         Ok(())
     }
