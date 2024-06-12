@@ -2,7 +2,7 @@ use super::cli::InputFile;
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use core::fmt;
-use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Host, Operation, Program, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
@@ -213,10 +213,11 @@ pub fn analyze<H>(
 where
     H: Host,
 {
-    let program = Assembler::default()
+    let program: Program = Assembler::default()
         .with_debug_mode(true)
         .with_library(&StdLibrary::default())?
-        .assemble(program)?;
+        .assemble(program)?
+        .try_into()?;
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);

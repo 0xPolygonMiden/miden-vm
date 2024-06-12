@@ -53,7 +53,7 @@ impl ProgramInfo {
 
 impl From<Program> for ProgramInfo {
     fn from(program: Program) -> Self {
-        let program_hash = program.entrypoint_digest();
+        let program_hash = program.hash();
         let kernel = program.kernel().clone();
 
         Self {

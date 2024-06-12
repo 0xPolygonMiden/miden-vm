@@ -1,6 +1,6 @@
 use assembly::diagnostics::{IntoDiagnostic, Report};
 use clap::Parser;
-use miden_vm::{ExecutionProof, Host, MastForestInfo, Program, ProvingOptions, StackInputs};
+use miden_vm::{ExecutionProof, Host, Program, ProgramInfo, ProvingOptions, StackInputs};
 use processor::{ExecutionOptions, ExecutionOptionsError, Felt, ONE, ZERO};
 
 use std::time::Instant;
@@ -147,7 +147,7 @@ impl ExampleOptions {
         // results in the expected output
         let proof = ExecutionProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
-        let program_info = MastForestInfo::from(program);
+        let program_info = ProgramInfo::from(program);
 
         match miden_vm::verify(program_info, stack_inputs, stack_outputs, proof) {
             Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
@@ -184,7 +184,7 @@ where
     );
 
     let kernel = miden_vm::Kernel::default();
-    let program_info = MastForestInfo::new(program.hash(), kernel);
+    let program_info = ProgramInfo::new(program.hash(), kernel);
 
     if fail {
         outputs.stack_mut()[0] += ONE;

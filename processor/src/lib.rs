@@ -137,7 +137,7 @@ where
     let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
-    assert_eq!(&program.entrypoint_digest(), trace.program_hash(), "inconsistent program hash");
+    assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
 
@@ -151,7 +151,7 @@ where
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
-            program.entrypoint_digest(),
+            program.hash(),
             process.decoder.program_hash().into(),
             "inconsistent program hash"
         );

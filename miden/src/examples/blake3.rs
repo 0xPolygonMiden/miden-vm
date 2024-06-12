@@ -44,11 +44,12 @@ fn generate_blake3_program(n: usize) -> Program {
         n
     );
 
-    Assembler::default()
+    let mast_forest = Assembler::default()
         .with_library(&StdLibrary::default())
         .unwrap()
         .assemble(program)
-        .unwrap()
+        .unwrap();
+    Program::new(mast_forest).unwrap()
 }
 
 /// Computes the `n`-th hash of blake3 1-to-1 hash chain

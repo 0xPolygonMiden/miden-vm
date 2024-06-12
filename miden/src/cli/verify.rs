@@ -1,7 +1,7 @@
 use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use miden_vm::{Kernel, MastForestInfo};
+use miden_vm::{Kernel, ProgramInfo};
 use std::{path::PathBuf, time::Instant};
 
 #[derive(Debug, Clone, Parser)]
@@ -48,7 +48,7 @@ impl VerifyCmd {
 
         // TODO accept kernel as CLI argument
         let kernel = Kernel::default();
-        let program_info = MastForestInfo::new(program_hash, kernel);
+        let program_info = ProgramInfo::new(program_hash, kernel);
 
         // verify proof
         let stack_outputs = outputs_data.stack_outputs().map_err(Report::msg)?;

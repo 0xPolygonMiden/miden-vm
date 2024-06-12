@@ -67,7 +67,7 @@ fn basic_block_one_group() {
     check_op_decoding(&trace, 5, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     check_hasher_state(
         &trace,
         vec![
@@ -117,7 +117,7 @@ fn basic_block_small() {
     check_op_decoding(&trace, 6, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     check_hasher_state(
         &trace,
         vec![
@@ -191,7 +191,7 @@ fn basic_block() {
     check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     check_hasher_state(
         &trace,
         vec![
@@ -286,7 +286,7 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     check_hasher_state(
         &trace,
         vec![
@@ -372,7 +372,7 @@ fn join_node() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 6));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 7));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 7));
 
@@ -429,7 +429,7 @@ fn split_node_true() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 3));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 4));
 
@@ -483,7 +483,7 @@ fn split_node_false() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 3));
 
     // at the end of the program, the hasher state is set to the hash of the entire program
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 4));
 
@@ -540,7 +540,7 @@ fn loop_node() {
 
     // the hash of the program is located in the last END row; this row should also have is_loop
     // flag set to ONE
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 5));
     assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 5));
 
@@ -584,7 +584,7 @@ fn loop_node_skip() {
 
     // the hash of the program is located in the last END row; is_loop is not set to ONE because
     // we didn't enter the loop's body
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 1));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&trace, 1));
 
@@ -655,7 +655,7 @@ fn loop_node_repeat() {
 
     // the hash of the program is located in the last END row; this row should also have is_loop
     // flag set to ONE
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 10));
     assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 10));
 
@@ -792,7 +792,7 @@ fn call_block() {
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 16));
 
     // the program ends in the 17th row
-    let program_hash: Word = program.entrypoint_digest().into();
+    let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&dec_trace, 17));
     assert_eq!(EMPTY_WORD, get_hasher_state2(&dec_trace, 17));
 

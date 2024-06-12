@@ -202,7 +202,7 @@ impl Program {
     }
 
     /// A convenience method that provides the hash of the entrypoint.
-    pub fn entrypoint_digest(&self) -> RpoDigest {
+    pub fn hash(&self) -> RpoDigest {
         self.mast_forest.entrypoint_digest().unwrap()
     }
 

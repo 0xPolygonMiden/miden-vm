@@ -1,5 +1,5 @@
 use assembly::{Assembler, Library, MaslLibrary};
-use miden_vm::{math::Felt, DefaultHost, StackInputs, Word};
+use miden_vm::{math::Felt, DefaultHost, Program, StackInputs, Word};
 use processor::ContextId;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use std::{collections::BTreeSet, path::PathBuf};
@@ -293,7 +293,11 @@ fn execute(
         .with_libraries(provided_libraries.iter())
         .map_err(|err| format!("{err}"))?;
 
-    let program = assembler.assemble(program).map_err(|err| format!("{err}"))?;
+    let program: Program = assembler
+        .assemble(program)
+        .map_err(|err| format!("{err}"))?
+        .try_into()
+        .map_err(|err| format!("{err}"))?;
 
     let stack_inputs = StackInputs::default();
     let host = DefaultHost::default();
