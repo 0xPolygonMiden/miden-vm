@@ -3,7 +3,7 @@ use core::fmt;
 
 use alloc::{boxed::Box, vec::Vec};
 pub use basic_block_node::{
-    batch_ops, get_span_op_group_count, BasicBlockNode, OpBatch, BATCH_SIZE as OP_BATCH_SIZE,
+    get_span_op_group_count, BasicBlockNode, OpBatch, BATCH_SIZE as OP_BATCH_SIZE,
     GROUP_SIZE as OP_GROUP_SIZE,
 };
 
