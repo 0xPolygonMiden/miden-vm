@@ -6,7 +6,7 @@ use super::{
 };
 use alloc::vec::Vec;
 use miden_air::trace::chiplets::hasher::{Digest, HasherState};
-use vm_core::mast::{Kernel, OpBatch};
+use vm_core::{mast::OpBatch, Kernel};
 
 mod bitwise;
 use bitwise::Bitwise;

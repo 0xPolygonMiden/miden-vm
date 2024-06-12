@@ -18,10 +18,10 @@ pub use vm_core::{
     chiplets::hasher::Digest,
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
-    mast::{Kernel, MastForest, Program, ProgramInfo},
+    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     utils::DeserializationError,
-    AdviceInjector, AssemblyOp, Felt, MastNode, MastNodeId, MerkleTreeNode, Operation,
-    QuadExtension, StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
+    StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     mast::{

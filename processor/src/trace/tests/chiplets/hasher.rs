@@ -22,9 +22,9 @@ use miden_air::trace::{
 use vm_core::{
     chiplets::hasher::apply_permutation,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
-    mast::Program,
+    mast::{MastForest, MastNode},
     utils::range,
-    MastForest, MastNode, Word,
+    Program, Word,
 };
 
 // CONSTANTS

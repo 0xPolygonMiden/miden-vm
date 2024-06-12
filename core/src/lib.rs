@@ -52,6 +52,12 @@ assertion failed: `(left matches right)`
 pub mod chiplets;
 pub mod errors;
 
+mod program;
+pub use program::{Program, ProgramInfo};
+
+mod kernel;
+pub use kernel::Kernel;
+
 pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
@@ -82,9 +88,7 @@ pub mod crypto {
     }
 }
 
-// TODOP: fix
 pub mod mast;
-pub use mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
 
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},

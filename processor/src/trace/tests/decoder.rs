@@ -16,7 +16,8 @@ use miden_air::trace::{
 };
 use test_utils::rand::rand_array;
 use vm_core::{
-    mast::Program, FieldElement, MastForest, MastNode, MerkleTreeNode, Operation, Word, ONE, ZERO,
+    mast::{MastForest, MastNode, MerkleTreeNode},
+    FieldElement, Operation, Program, Word, ONE, ZERO,
 };
 
 // BLOCK STACK TABLE TESTS

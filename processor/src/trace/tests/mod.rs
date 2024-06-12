@@ -6,8 +6,8 @@ use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, Stac
 use alloc::vec::Vec;
 use test_utils::rand::rand_array;
 use vm_core::{
-    mast::{Kernel, Program},
-    MastForest, MastNode, Operation, StackOutputs, Word, ONE, ZERO,
+    mast::{MastForest, MastNode},
+    Kernel, Operation, Program, StackOutputs, Word, ONE, ZERO,
 };
 
 mod chiplets;

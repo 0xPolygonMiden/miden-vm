@@ -2,7 +2,7 @@ use assembly::{ast::ModuleKind, Assembler, AssemblyContext, LibraryPath};
 use processor::ExecutionError;
 use stdlib::StdLibrary;
 use test_utils::{build_test, expect_exec_error, StackInputs, Test};
-use vm_core::MastForest;
+use vm_core::mast::MastForest;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================

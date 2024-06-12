@@ -12,7 +12,7 @@ use miden_air::trace::{
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
     STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
-use vm_core::{mast::ProgramInfo, stack::STACK_TOP_SIZE, StackOutputs, ZERO};
+use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
 
 mod utils;

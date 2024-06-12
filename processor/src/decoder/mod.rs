@@ -13,10 +13,10 @@ use miden_air::trace::{
 use vm_core::{
     mast::{
         get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode,
-        MerkleTreeNode, Program, SplitNode, OP_BATCH_SIZE,
+        MerkleTreeNode, SplitNode, OP_BATCH_SIZE,
     },
     stack::STACK_TOP_SIZE,
-    AssemblyOp,
+    AssemblyOp, Program,
 };
 
 mod trace;

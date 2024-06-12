@@ -5,7 +5,7 @@ use super::{
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
-use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex, MastNodeId};
+use vm_core::{mast::MastNodeId, stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]

@@ -1,6 +1,7 @@
 use alloc::string::String;
 
 use miden_formatting::hex::DisplayHex;
+use miette::Diagnostic;
 
 // INPUT ERROR
 // ================================================================================================
@@ -39,4 +40,14 @@ pub enum KernelError {
     DuplicatedProcedures,
     #[error("kernel can have at most {0} procedures, received {1}")]
     TooManyProcedures(usize, usize),
+}
+
+// PROGRAM ERROR
+// ================================================================================================
+
+#[derive(Clone, Debug, thiserror::Error, Diagnostic)]
+pub enum ProgramError {
+    #[error("tried to create a program from a MAST forest with no entrypoint")]
+    #[diagnostic()]
+    NoEntrypoint,
 }

@@ -18,7 +18,7 @@ use alloc::{
     vec::Vec,
 };
 use core::ops::Index;
-use vm_core::mast::Kernel;
+use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};
 

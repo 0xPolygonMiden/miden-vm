@@ -6,7 +6,9 @@ use miden_formatting::prettier::PrettyPrint;
 use winter_utils::flatten_slice_elements;
 
 use crate::{
-    chiplets::hasher, DecoratorIterator, DecoratorList, MastForest, MerkleTreeNode, Operation,
+    chiplets::hasher,
+    mast::{MastForest, MerkleTreeNode},
+    DecoratorIterator, DecoratorList, Operation,
 };
 
 // CONSTANTS

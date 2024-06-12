@@ -13,7 +13,7 @@ use crate::diagnostics::reporting::set_panic_hook;
 
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
-use vm_core::mast::{MastForest, Program};
+use vm_core::{mast::MastForest, Program};
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics

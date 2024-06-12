@@ -18,10 +18,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use vm_core::{
-    chiplets::hasher::apply_permutation,
-    mast::{MastForest, ProgramInfo},
-};
+use vm_core::{chiplets::hasher::apply_permutation, mast::MastForest, ProgramInfo};
 
 // EXPORTS
 // ================================================================================================

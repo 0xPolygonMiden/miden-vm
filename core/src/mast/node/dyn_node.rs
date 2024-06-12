@@ -2,9 +2,10 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
-use crate::Operation;
-
-use crate::MerkleTreeNode;
+use crate::{
+    mast::{MastForest, MerkleTreeNode},
+    Operation,
+};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DynNode;
@@ -28,7 +29,7 @@ impl MerkleTreeNode for DynNode {
         ])
     }
 
-    fn to_display<'a>(&'a self, _mast_forest: &'a crate::MastForest) -> impl fmt::Display + 'a {
+    fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
     }
 }

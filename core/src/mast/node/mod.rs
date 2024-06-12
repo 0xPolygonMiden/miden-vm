@@ -24,7 +24,10 @@ pub use split_node::SplitNode;
 mod loop_node;
 pub use loop_node::LoopNode;
 
-use crate::{DecoratorList, MastForest, MastNodeId, MerkleTreeNode, Operation};
+use crate::{
+    mast::{MastForest, MastNodeId, MerkleTreeNode},
+    DecoratorList, Operation,
+};
 
 // As a blanket impl over `MerkleTreeNode::digest()`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,7 +97,7 @@ impl MastNode {
     }
 
     // TODOP: Cleanup
-    pub(super) fn to_pretty_print<'a>(
+    pub(crate) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {

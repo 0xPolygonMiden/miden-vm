@@ -12,7 +12,8 @@ use test_utils::rand::rand_array;
 use vm_core::{
     chiplets::hasher,
     crypto::merkle::{MerkleTree, NodeIndex},
-    MastForest, MastNode, MerkleTreeNode, Operation, ONE, ZERO,
+    mast::{MastForest, MastNode, MerkleTreeNode},
+    Operation, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS
