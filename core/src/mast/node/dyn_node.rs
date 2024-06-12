@@ -46,3 +46,20 @@ impl fmt::Display for DynNode {
         self.pretty_print(f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use miden_crypto::hash::rpo::Rpo256;
+
+    use super::*;
+
+    /// Ensures that the hash of `DynNode` is indeed the hash of 2 empty words, in the `DynNode`
+    /// domain.
+    #[test]
+    pub fn test_dyn_node_digest() {
+        assert_eq!(
+            DynNode.digest(),
+            Rpo256::merge_in_domain(&[RpoDigest::default(), RpoDigest::default()], DynNode::DOMAIN)
+        );
+    }
+}
