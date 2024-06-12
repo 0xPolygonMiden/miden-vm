@@ -29,7 +29,6 @@ use crate::{
     DecoratorList, Operation,
 };
 
-// As a blanket impl over `MerkleTreeNode::digest()`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MastNode {
     Block(BasicBlockNode),
@@ -96,26 +95,27 @@ impl MastNode {
         matches!(self, Self::Block(_))
     }
 
-    // TODOP: Cleanup
     pub(crate) fn to_pretty_print<'a>(
         &'a self,
         mast_forest: &'a MastForest,
     ) -> impl PrettyPrint + 'a {
         match self {
-            MastNode::Block(basic_block_node) => MastNodePrettyPrint::new(basic_block_node),
+            MastNode::Block(basic_block_node) => {
+                MastNodePrettyPrint::new(Box::new(basic_block_node))
+            }
             MastNode::Join(join_node) => {
-                MastNodePrettyPrint::new_box(Box::new(join_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(join_node.to_pretty_print(mast_forest)))
             }
             MastNode::Split(split_node) => {
-                MastNodePrettyPrint::new_box(Box::new(split_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(split_node.to_pretty_print(mast_forest)))
             }
             MastNode::Loop(loop_node) => {
-                MastNodePrettyPrint::new_box(Box::new(loop_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(loop_node.to_pretty_print(mast_forest)))
             }
             MastNode::Call(call_node) => {
-                MastNodePrettyPrint::new_box(Box::new(call_node.to_pretty_print(mast_forest)))
+                MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
             }
-            MastNode::Dyn => MastNodePrettyPrint::new(&DynNode),
+            MastNode::Dyn => MastNodePrettyPrint::new(Box::new(DynNode)),
         }
     }
 
@@ -160,13 +160,7 @@ struct MastNodePrettyPrint<'a> {
 }
 
 impl<'a> MastNodePrettyPrint<'a> {
-    pub fn new(node: &'a dyn PrettyPrint) -> Self {
-        Self {
-            node_pretty_print: Box::new(node),
-        }
-    }
-
-    pub fn new_box(node_pretty_print: Box<dyn PrettyPrint + 'a>) -> Self {
+    pub fn new(node_pretty_print: Box<dyn PrettyPrint + 'a>) -> Self {
         Self { node_pretty_print }
     }
 }
