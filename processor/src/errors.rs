@@ -5,7 +5,7 @@ use super::{
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
-use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
+use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex, MastNodeId};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]
@@ -48,6 +48,9 @@ pub enum ExecutionError {
     },
     LogArgumentZero(u32),
     MalformedSignatureKey(&'static str),
+    MalformedMastForest {
+        node_id: MastNodeId,
+    },
     MemoryAddressOutOfBounds(u64),
     MerklePathVerificationFailed {
         value: Word,
@@ -144,6 +147,9 @@ impl Display for ExecutionError {
                 )
             }
             MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
+            MalformedMastForest { node_id } => {
+                write!(f, "Malformed MAST forest, node id {node_id} doesn't exist")
+            }
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
             }

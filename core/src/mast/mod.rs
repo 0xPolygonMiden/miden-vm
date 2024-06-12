@@ -35,6 +35,12 @@ pub trait MerkleTreeNode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
+impl fmt::Display for MastNodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "MastNodeId({})", self.0)
+    }
+}
+
 // MAST FOREST
 // ===============================================================================================
 

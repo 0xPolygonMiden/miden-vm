@@ -236,7 +236,7 @@ where
         Ok(self.stack.build_stack_outputs())
     }
 
-    // CODE BLOCK EXECUTORS
+    // NODE EXECUTORS
     // --------------------------------------------------------------------------------------------
 
     fn execute_mast_node(
@@ -244,7 +244,9 @@ where
         node_id: MastNodeId,
         program: &Program,
     ) -> Result<(), ExecutionError> {
-        let wrapper_node = &program[node_id];
+        let wrapper_node = &program
+            .get_node_by_id(node_id)
+            .ok_or(ExecutionError::MalformedMastForest { node_id })?;
 
         match wrapper_node {
             MastNode::Block(node) => self.execute_basic_block_node(node),
