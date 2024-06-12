@@ -39,7 +39,7 @@ fn simple_instructions() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad eqz assert(0) end
+    basic_block pad eqz assert(0) end
 end";
     assert_str_eq!(format!("{program}"), expected);
 
@@ -47,7 +47,7 @@ end";
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span push(10) push(50) push(2) u32madd drop end
+    basic_block push(10) push(50) push(2) u32madd drop end
 end";
     assert_str_eq!(format!("{program}"), expected);
 
@@ -55,7 +55,7 @@ end";
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span push(10) push(50) push(2) u32add3 drop end
+    basic_block push(10) push(50) push(2) u32add3 drop end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -68,7 +68,7 @@ fn empty_program() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin end");
     let program = context.assemble(source)?;
-    let expected = "begin span noop end end";
+    let expected = "begin basic_block noop end end";
     assert_eq!(expected, format!("{}", program));
     Ok(())
 }
@@ -83,9 +83,9 @@ fn empty_if() -> TestResult {
     let expected = "\
 begin
     if.true
-        span noop end
+        basic_block noop end
     else
-        span noop end
+        basic_block noop end
     end
 end";
     assert_str_eq!(format!("{}", program), expected);
@@ -102,7 +102,7 @@ fn empty_while() -> TestResult {
     let expected = "\
 begin
     while.true
-        span noop end
+        basic_block noop end
     end
 end";
     assert_str_eq!(format!("{}", program), expected);
@@ -118,27 +118,27 @@ fn empty_repeat() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span noop noop noop noop noop end
+    basic_block noop noop noop noop noop end
 end";
     assert_str_eq!(format!("{}", program), expected);
     Ok(())
 }
 
 #[test]
-fn single_span() -> TestResult {
+fn single_basic_block() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin push.1 push.2 add end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
 
 #[test]
-fn span_and_simple_if() -> TestResult {
+fn basic_block_and_simple_if() -> TestResult {
     let mut context = TestContext::default();
 
     // if with else
@@ -147,11 +147,11 @@ fn span_and_simple_if() -> TestResult {
     let expected = "\
 begin
     join
-        span push(2) push(3) end
+        basic_block push(2) push(3) end
         if.true
-            span add end
+            basic_block add end
         else
-            span mul end
+            basic_block mul end
         end
     end
 end";
@@ -163,11 +163,11 @@ end";
     let expected = "\
 begin
     join
-        span push(2) push(3) end
+        basic_block push(2) push(3) end
         if.true
-            span add end
+            basic_block add end
         else
-            span noop end
+            basic_block noop end
         end
     end
 end";
@@ -399,7 +399,7 @@ fn simple_constant() -> TestResult {
     );
     let expected = "\
 begin
-    span push(7) end
+    basic_block push(7) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -418,7 +418,7 @@ fn multiple_constants_push() -> TestResult {
     );
     let expected = "\
 begin
-    span push(21) push(64) push(44) push(72) end
+    basic_block push(21) push(64) push(44) push(72) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -437,7 +437,7 @@ fn constant_numeric_expression() -> TestResult {
     );
     let expected = "\
 begin
-    span push(26) end
+    basic_block push(26) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -458,7 +458,7 @@ fn constant_alphanumeric_expression() -> TestResult {
     );
     let expected = "\
 begin
-    span push(21) end
+    basic_block push(21) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -477,7 +477,7 @@ fn constant_hexadecimal_value() -> TestResult {
     );
     let expected = "\
 begin
-    span push(255) end
+    basic_block push(255) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -496,7 +496,7 @@ fn constant_field_division() -> TestResult {
     );
     let expected = "\
 begin
-    span push(2) end
+    basic_block push(2) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -907,7 +907,7 @@ fn assert_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span assert(0) assert(1) assert(2) end
+    basic_block assert(0) assert(1) assert(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -931,7 +931,7 @@ fn assertz_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span eqz assert(0) eqz assert(1) eqz assert(2) end
+    basic_block eqz assert(0) eqz assert(1) eqz assert(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -955,7 +955,7 @@ fn assert_eq_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span eq assert(0) eq assert(1) eq assert(2) end
+    basic_block eq assert(0) eq assert(1) eq assert(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -979,7 +979,7 @@ fn assert_eqw_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span
+    basic_block
         movup4
         eq
         assert(0)
@@ -1037,7 +1037,7 @@ fn u32assert_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span
+    basic_block
         pad
         u32assert2(0)
         drop
@@ -1071,7 +1071,7 @@ fn u32assert2_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span u32assert2(0) u32assert2(1) u32assert2(2) end
+    basic_block u32assert2(0) u32assert2(1) u32assert2(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1095,7 +1095,7 @@ fn u32assertw_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span
+    basic_block
         u32assert2(0)
         movup3
         movup3
@@ -1139,7 +1139,7 @@ fn mtree_verify_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span mpverify(0) mpverify(1) mpverify(2) end
+    basic_block mpverify(0) mpverify(1) mpverify(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1169,32 +1169,32 @@ fn nested_control_blocks() -> TestResult {
 begin
     join
         join
-            span push(2) push(3) end
+            basic_block push(2) push(3) end
             if.true
                 join
-                    span add end
+                    basic_block add end
                     while.true
-                        span push(7) push(11) add end
+                        basic_block push(7) push(11) add end
                     end
                 end
             else
                 join
                     join
-                        span mul end
-                        span push(8) end
+                        basic_block mul end
+                        basic_block push(8) end
                     end
                     join
-                        span push(8) end
+                        basic_block push(8) end
                         if.true
-                            span mul end
+                            basic_block mul end
                         else
-                            span noop end
+                            basic_block noop end
                         end
                     end
                 end
             end
         end
-        span push(3) add end
+        basic_block push(3) add end
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1214,8 +1214,8 @@ fn program_with_one_procedure() -> TestResult {
         "\
 begin
     join
-        span push(2) push(3) add end
-        span push(3) push(7) mul end
+        basic_block push(2) push(3) add end
+        basic_block push(3) push(7) mul end
     end
 end"
     );
@@ -1239,21 +1239,21 @@ begin
     join
         join
             join
-                span push(2) push(4) add end
-                span push(3) push(7) mul end
+                basic_block push(2) push(4) add end
+                basic_block push(3) push(7) mul end
             end
             join
-                span push(11) end
+                basic_block push(11) end
                 join
                     join
-                        span push(5) end
-                        span push(3) push(7) mul end
+                        basic_block push(5) end
+                        basic_block push(3) push(7) mul end
                     end
-                    span add end
+                    basic_block add end
                 end
             end
         end
-        span neg add end
+        basic_block neg add end
     end
 end"
     );
@@ -1282,8 +1282,8 @@ fn program_with_proc_locals() -> TestResult {
         "\
 begin
     join
-        span push(4) push(3) push(2) end
-        span
+        basic_block push(4) push(3) push(2) end
+        basic_block
             push(1)
             fmpupdate
             pad
@@ -1485,26 +1485,26 @@ fn program_with_one_import_and_hex_call() -> TestResult {
 begin
     join
         join
-            span push(4) push(3) end
+            basic_block push(4) push(3) end
             join
                 join
                     join
-                        span eqz end
-                        span swap eqz and end
+                        basic_block eqz end
+                        basic_block swap eqz and end
                     end
                     join
-                        span swap eqz and end
-                        span swap eqz and end
+                        basic_block swap eqz and end
+                        basic_block swap eqz and end
                     end
                 end
                 join
                     join
-                        span swap eqz and end
-                        span swap eqz and end
+                        basic_block swap eqz and end
+                        basic_block swap eqz and end
                     end
                     join
-                        span swap eqz and end
-                        span swap eqz and end
+                        basic_block swap eqz and end
+                        basic_block swap eqz and end
                     end
                 end
             end
@@ -1632,10 +1632,10 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
 begin
     join
         join
-            span push(4) push(3) end
-            span u32assert2(0) eqz swap eqz and end
+            basic_block push(4) push(3) end
+            basic_block u32assert2(0) eqz swap eqz and end
         end
-        span eqz swap eqz and end
+        basic_block eqz swap eqz and end
     end
 end"
     );
@@ -1700,10 +1700,10 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
 begin
     join
         join
-            span push(4) push(3) end
-            span u32assert2(0) eqz swap eqz and end
+            basic_block push(4) push(3) end
+            basic_block u32assert2(0) eqz swap eqz and end
         end
-        span eqz swap eqz and end
+        basic_block eqz swap eqz and end
     end
 end"
     );
@@ -1766,8 +1766,8 @@ fn module_alias() -> TestResult {
         "\
 begin
     join
-        span pad incr pad push(2) pad end
-        span
+        basic_block pad incr pad push(2) pad end
+        basic_block
             swap
             movup3
             u32assert2(0)
@@ -1915,7 +1915,7 @@ fn comment_simple() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1944,32 +1944,32 @@ fn comment_in_nested_control_blocks() -> TestResult {
 begin
     join
         join
-            span pad incr push(2) end
+            basic_block pad incr push(2) end
             if.true
                 join
-                    span add end
+                    basic_block add end
                     while.true
-                        span push(7) push(11) add end
+                        basic_block push(7) push(11) add end
                     end
                 end
             else
                 join
                     join
-                        span mul end
-                        span push(8) end
+                        basic_block mul end
+                        basic_block push(8) end
                     end
                     join
-                        span push(8) end
+                        basic_block push(8) end
                         if.true
-                            span mul end
+                            basic_block mul end
                         else
-                            span noop end
+                            basic_block noop end
                         end
                     end
                 end
             end
         end
-        span push(3) add end
+        basic_block push(3) add end
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1983,7 +1983,7 @@ fn comment_before_program() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1996,7 +1996,7 @@ fn comment_after_program() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())

@@ -66,7 +66,7 @@ pub struct BasicBlockNode {
 
 /// Constants
 impl BasicBlockNode {
-    /// The domain of the span block (used for control block hashing).
+    /// The domain of the basic block node (used for control block hashing).
     pub const DOMAIN: Felt = ZERO;
 }
 
@@ -112,12 +112,12 @@ impl BasicBlockNode {
     }
 
     /// Returns a [`DecoratorIterator`] which allows us to iterate through the decorator list of
-    /// this span block while executing operation batches of this span block
+    /// this basic block node while executing operation batches of this basic block node.
     pub fn decorator_iter(&self) -> DecoratorIterator {
         DecoratorIterator::new(&self.decorators)
     }
 
-    /// Returns a list of decorators in this span block
+    /// Returns a list of decorators in this basic block node.
     pub fn decorators(&self) -> &DecoratorList {
         &self.decorators
     }
@@ -156,9 +156,8 @@ impl PrettyPrint for BasicBlockNode {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
 
-        // TODOP: Change `span` -> `basic_block`
-        // e.g. `span a b c end`
-        let single_line = const_text("span")
+        // e.g. `basic_block a b c end`
+        let single_line = const_text("basic_block")
             + const_text(" ")
             + self
                 .op_batches
@@ -171,17 +170,16 @@ impl PrettyPrint for BasicBlockNode {
             + const_text("end");
 
         // e.g. `
-        // span
+        // basic_block
         //     a
         //     b
         //     c
         // end
         // `
 
-        // TODOP: Change these to `basic_block`
         let multi_line = indent(
             4,
-            const_text("span")
+            const_text("basic_block")
                 + nl()
                 + self
                     .op_batches
