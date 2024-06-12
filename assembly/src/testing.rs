@@ -13,7 +13,7 @@ use crate::diagnostics::reporting::set_panic_hook;
 
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
 use core::fmt;
-use vm_core::{mast::MastForest, Program};
+use vm_core::Program;
 
 /// Represents a pattern for matching text abstractly
 /// for use in asserting contents of complex diagnostics
@@ -321,7 +321,6 @@ impl TestContext {
         &mut self,
         path: LibraryPath,
         module: impl Compile,
-        mast_forest: &mut MastForest,
     ) -> Result<Vec<RpoDigest>, Report> {
         let mut context = AssemblyContext::for_library(&path);
         context.set_warnings_as_errors(self.assembler.warnings_as_errors());
@@ -331,6 +330,6 @@ impl TestContext {
             warnings_as_errors: self.assembler.warnings_as_errors(),
             ..CompileOptions::for_library()
         };
-        self.assembler.assemble_module(module, options, &mut context, mast_forest)
+        self.assembler.assemble_module(module, options, &mut context)
     }
 }

@@ -2,7 +2,6 @@ use assembly::{ast::ModuleKind, Assembler, AssemblyContext, LibraryPath};
 use processor::ExecutionError;
 use stdlib::StdLibrary;
 use test_utils::{build_test, expect_exec_error, StackInputs, Test};
-use vm_core::mast::MastForest;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -404,10 +403,7 @@ fn procref() {
     let module_path = "test::foo".parse::<LibraryPath>().unwrap();
     let mut context = AssemblyContext::for_library(&module_path);
     let opts = assembly::CompileOptions::new(ModuleKind::Library, module_path).unwrap();
-    let mut mast_forest = MastForest::new();
-    let mast_roots = assembler
-        .assemble_module(module_source, opts, &mut context, &mut mast_forest)
-        .unwrap();
+    let mast_roots = assembler.assemble_module(module_source, opts, &mut context).unwrap();
 
     let source = "
     use.std::math::u64

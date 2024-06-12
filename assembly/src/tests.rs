@@ -1,5 +1,4 @@
 use alloc::{rc::Rc, string::ToString, vec::Vec};
-use vm_core::mast::MastForest;
 
 use crate::{
     assert_diagnostic_lines,
@@ -227,7 +226,6 @@ fn simple_main_call() -> TestResult {
 #[test]
 fn call_without_path() -> TestResult {
     let mut context = TestContext::default();
-    let mut mast_forest = MastForest::new();
 
     // compile first module
     context.assemble_module(
@@ -243,7 +241,6 @@ fn call_without_path() -> TestResult {
     end
     "
         ),
-        &mut mast_forest,
     )?;
 
     //---------------------------------------------------------------------------------------------
@@ -262,7 +259,6 @@ fn call_without_path() -> TestResult {
     end
     "
         ),
-        &mut mast_forest,
     )?;
 
     //---------------------------------------------------------------------------------------------

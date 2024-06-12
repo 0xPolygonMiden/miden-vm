@@ -429,7 +429,6 @@ impl Assembler {
         module: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
-        mast_forest: &mut MastForest,
     ) -> Result<Vec<RpoDigest>, Report> {
         match context.kind() {
             _ if options.kind.is_executable() => {
@@ -461,9 +460,16 @@ impl Assembler {
         // Recompute graph with the provided module, and start assembly
         let module_id = self.module_graph.add_module(module)?;
         self.module_graph.recompute()?;
-        self.assemble_graph(context, mast_forest)?;
 
-        self.get_module_exports(module_id, mast_forest)
+        let mut mast_forest = core::mem::take(&mut self.mast_forest);
+
+        self.assemble_graph(context, &mut mast_forest)?;
+        let exported_procedure_digests = self.get_module_exports(module_id, &mut mast_forest);
+
+        // Reassign the mast_forest to the assembler for use is a future program assembly
+        self.mast_forest = mast_forest;
+
+        exported_procedure_digests
     }
 
     /// Compiles the given kernel module, returning both the compiled kernel and its index in the
