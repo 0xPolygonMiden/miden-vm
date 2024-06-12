@@ -337,7 +337,11 @@ where
         program: &Program,
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
-            let callee = &program[call_node.callee()];
+            let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
+                ExecutionError::MalformedMastForest {
+                    node_id: call_node.callee(),
+                }
+            })?;
 
             callee.digest()
         };
