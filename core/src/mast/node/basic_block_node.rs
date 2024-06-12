@@ -54,11 +54,9 @@ pub const BATCH_SIZE: usize = 8;
 pub struct BasicBlockNode {
     /// The primitive operations contained in this basic block.
     ///
-    /// The operations are broken up into batches of 8 groups,
-    /// with each group containing up to 9 operations, or a
-    /// single immediates. Thus the maximum size of each batch
-    /// is 72 operations. Multiple batches are used for blocks
-    /// consisting of more than 72 operations.
+    /// The operations are broken up into batches of 8 groups, with each group containing up to 9
+    /// operations, or a single immediates. Thus the maximum size of each batch is 72 operations.
+    /// Multiple batches are used for blocks consisting of more than 72 operations.
     op_batches: Vec<OpBatch>,
     digest: RpoDigest,
     decorators: DecoratorList,
