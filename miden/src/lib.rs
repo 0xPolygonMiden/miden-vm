@@ -10,9 +10,9 @@ pub use assembly::{
     diagnostics, Assembler, AssemblyError,
 };
 pub use processor::{
-    crypto, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost, ExecutionError,
-    ExecutionTrace, Host, Kernel, MemAdviceProvider, Operation, StackInputs, VmState,
-    VmStateIterator, ZERO,
+    crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost,
+    ExecutionError, ExecutionTrace, Host, Kernel, MemAdviceProvider, Operation, Program,
+    ProgramInfo, StackInputs, VmState, VmStateIterator, ZERO,
 };
 pub use prover::{
     math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Proof,
