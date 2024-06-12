@@ -124,7 +124,7 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-#[tracing::instrument("execute_mast_program", skip_all)]
+#[tracing::instrument("execute_program", skip_all)]
 pub fn execute<H>(
     program: &Program,
     stack_inputs: StackInputs,
