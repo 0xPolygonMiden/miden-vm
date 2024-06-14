@@ -77,8 +77,7 @@ impl MastForest {
             // node already exists in the forest; return previously assigned id
             *node_id
         } else {
-            let new_node_id =
-                MastNodeId(self.nodes.len().try_into().expect("u32 expected to fit in usize"));
+            let new_node_id = MastNodeId(self.nodes.len() as u32);
 
             self.node_id_by_hash.insert(node_digest, new_node_id);
             self.nodes.push(node);
@@ -152,7 +151,7 @@ impl Index<MastNodeId> for MastForest {
     type Output = MastNode;
 
     fn index(&self, node_id: MastNodeId) -> &Self::Output {
-        let idx: usize = node_id.0.try_into().expect("u32 expected to fit in usize");
+        let idx = node_id.0 as usize;
 
         &self.nodes[idx]
     }
