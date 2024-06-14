@@ -14,6 +14,7 @@ use crate::Kernel;
 #[cfg(test)]
 mod tests;
 
+/// Encapsulates the behavior that a [`MastNode`] (and all its variants) is expected to have.
 pub trait MerkleTreeNode {
     fn digest(&self) -> RpoDigest;
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
