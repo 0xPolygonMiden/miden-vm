@@ -129,7 +129,7 @@ impl MastForest {
     /// This is the faillible version of indexing (e.g. `mast_forest[node_id]`).
     #[inline(always)]
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
-        let idx: usize = node_id.0.try_into().expect("u32 expected to fit in usize");
+        let idx = node_id.0 as usize;
 
         if idx < self.nodes.len() {
             Some(&self.nodes[idx])
