@@ -80,7 +80,7 @@ impl MastForest {
             let new_node_id =
                 MastNodeId(self.nodes.len().try_into().expect("u32 expected to fit in usize"));
 
-            self.node_id_by_hash.insert(node.digest(), new_node_id);
+            self.node_id_by_hash.insert(node_digest, new_node_id);
             self.nodes.push(node);
 
             new_node_id
