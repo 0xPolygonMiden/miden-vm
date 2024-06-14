@@ -40,9 +40,7 @@ impl Kernel {
 
     /// Returns true if a procedure with the specified hash belongs to this kernel.
     pub fn contains_proc(&self, proc_hash: RpoDigest) -> bool {
-        // linear search here is OK because we expect the kernels to have a relatively small number
-        // of procedures (e.g., under 100)
-        self.0.iter().any(|&h| h == proc_hash)
+        self.0.binary_search(&proc_hash).is_ok()
     }
 
     /// Returns a list of procedure hashes contained in this kernel.
