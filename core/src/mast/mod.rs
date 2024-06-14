@@ -150,6 +150,7 @@ impl MastForest {
 impl Index<MastNodeId> for MastForest {
     type Output = MastNode;
 
+    #[inline(always)]
     fn index(&self, node_id: MastNodeId) -> &Self::Output {
         let idx = node_id.0 as usize;
 
