@@ -130,11 +130,7 @@ impl MastForest {
     pub fn get_node_by_id(&self, node_id: MastNodeId) -> Option<&MastNode> {
         let idx = node_id.0 as usize;
 
-        if idx < self.nodes.len() {
-            Some(&self.nodes[idx])
-        } else {
-            None
-        }
+        self.nodes.get(idx)
     }
 
     /// Returns the [`MastNodeId`] associated with a given digest, if any.
