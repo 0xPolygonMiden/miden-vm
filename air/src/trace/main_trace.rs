@@ -19,9 +19,6 @@ use super::{
 use core::ops::{Deref, Range};
 use vm_core::{utils::range, Felt, Word, ONE, ZERO};
 
-#[cfg(any(test, feature = "internals"))]
-use alloc::vec::Vec;
-
 // CONSTANTS
 // ================================================================================================
 
