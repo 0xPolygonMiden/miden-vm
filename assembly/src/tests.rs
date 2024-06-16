@@ -1210,15 +1210,13 @@ fn program_with_one_procedure() -> TestResult {
     let source =
         source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
     let program = context.assemble(source)?;
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         basic_block push(2) push(3) add end
         basic_block push(3) push(7) mul end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1233,8 +1231,7 @@ fn program_with_nested_procedure() -> TestResult {
         begin push.2 push.4 add exec.foo push.11 exec.bar sub end"
     );
     let program = context.assemble(source)?;
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
@@ -1255,8 +1252,7 @@ begin
         end
         basic_block neg add end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1278,8 +1274,7 @@ fn program_with_proc_locals() -> TestResult {
         end"
     );
     let program = context.assemble(source)?;
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         basic_block push(4) push(3) push(2) end
@@ -1299,8 +1294,7 @@ begin
             fmpupdate
         end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1480,8 +1474,7 @@ fn program_with_one_import_and_hex_call() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
@@ -1511,8 +1504,7 @@ begin
         end
         call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1627,8 +1619,7 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         end"#
     ));
     let program = context.assemble(source)?;
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
@@ -1637,8 +1628,7 @@ begin
         end
         basic_block eqz swap eqz and end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1695,8 +1685,7 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
@@ -1705,8 +1694,7 @@ begin
         end
         basic_block eqz swap eqz and end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
 
     // when the re-exported proc is part of a different library and the library is not passed to
@@ -1762,8 +1750,7 @@ fn module_alias() -> TestResult {
     );
 
     let program = context.assemble(source)?;
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         basic_block pad incr pad push(2) pad end
@@ -1780,8 +1767,7 @@ begin
             assert(0)
         end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
 
     // --- invalid module alias -----------------------------------------------

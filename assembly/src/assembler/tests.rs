@@ -131,7 +131,7 @@ fn nested_blocks() {
         let basic_block_2_id = expected_mast_forest.ensure_node(basic_block_2);
 
         let join_node =
-            MastNode::new_join(basic_block_1_id, basic_block_2_id, &mut expected_mast_forest);
+            MastNode::new_join(basic_block_1_id, basic_block_2_id, &expected_mast_forest);
         expected_mast_forest.ensure_node(join_node)
     };
 

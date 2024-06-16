@@ -254,10 +254,10 @@ fn hash_memoization_control_blocks() {
     let f_branch = MastNode::new_basic_block(vec![Operation::Push(ONE)]);
     let f_branch_id = mast_forest.ensure_node(f_branch.clone());
 
-    let split1 = MastNode::new_split(t_branch_id.clone(), f_branch_id.clone(), &mast_forest);
+    let split1 = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
     let split1_id = mast_forest.ensure_node(split1.clone());
 
-    let split2 = MastNode::new_split(t_branch_id.clone(), f_branch_id.clone(), &mast_forest);
+    let split2 = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
     let split2_id = mast_forest.ensure_node(split2.clone());
 
     let join_node = MastNode::new_join(split1_id, split2_id, &mast_forest);
