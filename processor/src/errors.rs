@@ -48,7 +48,7 @@ pub enum ExecutionError {
     },
     LogArgumentZero(u32),
     MalformedSignatureKey(&'static str),
-    MalformedMastForest {
+    MastNodeNotFoundInForest {
         node_id: MastNodeId,
     },
     MemoryAddressOutOfBounds(u64),
@@ -147,7 +147,7 @@ impl Display for ExecutionError {
                 )
             }
             MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
-            MalformedMastForest { node_id } => {
+            MastNodeNotFoundInForest { node_id } => {
                 write!(f, "Malformed MAST forest, node id {node_id} doesn't exist")
             }
             MemoryAddressOutOfBounds(addr) => {

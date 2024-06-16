@@ -246,7 +246,7 @@ where
     ) -> Result<(), ExecutionError> {
         let wrapper_node = &program
             .get_node_by_id(node_id)
-            .ok_or(ExecutionError::MalformedMastForest { node_id })?;
+            .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
         match wrapper_node {
             MastNode::Block(node) => self.execute_basic_block_node(node),
@@ -338,7 +338,7 @@ where
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
-                ExecutionError::MalformedMastForest {
+                ExecutionError::MastNodeNotFoundInForest {
                     node_id: call_node.callee(),
                 }
             })?;
