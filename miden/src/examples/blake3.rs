@@ -48,6 +48,7 @@ fn generate_blake3_program(n: usize) -> Program {
         .with_library(&StdLibrary::default())
         .unwrap()
         .assemble_program(program)
+        .unwrap()
 }
 
 /// Computes the `n`-th hash of blake3 1-to-1 hash chain
