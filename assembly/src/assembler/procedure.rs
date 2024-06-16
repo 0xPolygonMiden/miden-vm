@@ -29,7 +29,7 @@ pub struct Procedure {
     visibility: Visibility,
     num_locals: u32,
     /// The MAST node id for the root of this procedure
-    code: MastNodeId,
+    body_node_id: MastNodeId,
     /// The set of MAST roots called by this procedure
     callset: CallSet,
 }
@@ -40,7 +40,7 @@ impl Procedure {
         path: FullyQualifiedProcedureName,
         visibility: Visibility,
         num_locals: u32,
-        code: MastNodeId,
+        body_node_id: MastNodeId,
     ) -> Self {
         Self {
             span: SourceSpan::default(),
@@ -48,7 +48,7 @@ impl Procedure {
             path,
             visibility,
             num_locals,
-            code,
+            body_node_id,
             callset: Default::default(),
         }
     }
@@ -104,13 +104,13 @@ impl Procedure {
 
     /// Returns the root of this procedure's MAST.
     pub fn mast_root(&self, mast_forest: &MastForest) -> RpoDigest {
-        let code_node = &mast_forest[self.code];
-        code_node.digest()
+        let body_node = &mast_forest[self.body_node_id];
+        body_node.digest()
     }
 
     /// Returns a reference to the MAST node ID of this procedure.
-    pub fn code(&self) -> MastNodeId {
-        self.code
+    pub fn body_node_id(&self) -> MastNodeId {
+        self.body_node_id
     }
 
     /// Returns a reference to a set of all procedures (identified by their MAST roots) which may

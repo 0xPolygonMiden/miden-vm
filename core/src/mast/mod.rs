@@ -46,8 +46,8 @@ pub struct MastForest {
 
     /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
     /// node to all other roots in the forest. This corresponds to the executable entry point.
-    /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a MAST
-    /// which represents a library.
+    /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
+    /// MAST which represents a library.
     entrypoint: Option<MastNodeId>,
     kernel: Kernel,
 }

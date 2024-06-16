@@ -568,7 +568,7 @@ impl Assembler {
                 }
             });
 
-            let proc_code_node = &mast_forest[proc.code()];
+            let proc_code_node = &mast_forest[proc.body_node_id()];
             exports.push(proc_code_node.digest());
         }
 
@@ -592,7 +592,7 @@ impl Assembler {
         // Compile the module graph rooted at the entrypoint
         let entry_procedure = self.compile_subgraph(entrypoint, true, context, mast_forest)?;
 
-        mast_forest.set_entrypoint(entry_procedure.code());
+        mast_forest.set_entrypoint(entry_procedure.body_node_id());
 
         Ok(())
     }

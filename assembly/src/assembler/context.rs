@@ -265,11 +265,12 @@ impl ProcedureContext {
         self.visibility.is_syscall()
     }
 
-    pub fn into_procedure(self, code: MastNodeId) -> Box<Procedure> {
-        let procedure = Procedure::new(self.name, self.visibility, self.num_locals as u32, code)
-            .with_span(self.span)
-            .with_source_file(self.source_file)
-            .with_callset(self.callset);
+    pub fn into_procedure(self, body_node_id: MastNodeId) -> Box<Procedure> {
+        let procedure =
+            Procedure::new(self.name, self.visibility, self.num_locals as u32, body_node_id)
+                .with_span(self.span)
+                .with_source_file(self.source_file)
+                .with_callset(self.callset);
         Box::new(procedure)
     }
 }
