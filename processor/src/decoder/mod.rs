@@ -18,6 +18,9 @@ use trace::DecoderTrace;
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
 
+#[cfg(test)]
+pub use aux_trace::BlockHashTableRow;
+
 mod block_stack;
 use block_stack::{BlockStack, BlockType, ExecutionContextInfo};
 
@@ -309,7 +312,7 @@ where
 ///   of these columns contains a single binary value, which together form a single opcode.
 /// * Hasher state columns h0 through h7. These are multi purpose columns used as follows:
 ///   - When starting decoding of a new code block (e.g., via JOIN, SPLIT, LOOP, SPAN operations)
-///    these columns are used for providing inputs for the current block's hash computations.
+///     these columns are used for providing inputs for the current block's hash computations.
 ///   - When finishing decoding of a code block (i.e., via END operation), these columns are used to
 ///     record the result of the hash computation.
 ///   - Inside a SPAN block, the first two columns are used to keep track of un-executed operations

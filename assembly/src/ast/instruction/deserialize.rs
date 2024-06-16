@@ -42,9 +42,13 @@ impl Deserializable for Instruction {
             OpCode::NeqImm => Ok(Self::NeqImm(Felt::read_from(source)?.into())),
             OpCode::Eqw => Ok(Self::Eqw),
             OpCode::Lt => Ok(Self::Lt),
+            OpCode::LtImm => Ok(Self::LtImm(Felt::read_from(source)?.into())),
             OpCode::Lte => Ok(Self::Lte),
+            OpCode::LteImm => Ok(Self::LteImm(Felt::read_from(source)?.into())),
             OpCode::Gt => Ok(Self::Gt),
+            OpCode::GtImm => Ok(Self::GtImm(Felt::read_from(source)?.into())),
             OpCode::Gte => Ok(Self::Gte),
+            OpCode::GteImm => Ok(Self::GteImm(Felt::read_from(source)?.into())),
             OpCode::IsOdd => Ok(Self::IsOdd),
 
             // ----- ext2 operations --------------------------------------------------------------
@@ -272,6 +276,9 @@ impl Deserializable for Instruction {
             OpCode::MTreeSet => Ok(Self::MTreeSet),
             OpCode::MTreeMerge => Ok(Self::MTreeMerge),
             OpCode::MTreeVerify => Ok(Self::MTreeVerify),
+            OpCode::MTreeVerifyWithError => {
+                Ok(Self::MTreeVerifyWithError(source.read_u32()?.into()))
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             OpCode::FriExt2Fold4 => Ok(Self::FriExt2Fold4),

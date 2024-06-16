@@ -171,16 +171,16 @@ where
     /// Computes a single turn of exp accumulation for the given inputs. The top 4 elements in the
     /// stack is arranged as follows (from the top):
     /// - least significant bit of the exponent in the previous trace if there's an expacc call,
-    /// otherwise ZERO
+    ///   otherwise ZERO
     /// - exponent of base for this turn
     /// - accumulated power of base so far
     /// - number which needs to be shifted to the right
     ///
     /// To perform the operation we do the following:
     /// 1. Pops top three elements off the stack and calculate the least significant bit of the
-    /// number `b`.
+    ///    number `b`.
     /// 2. Use this bit to decide if the current `base` raise to the power exponent needs to be
-    /// included in the accumulator.
+    ///    included in the accumulator.
     /// 3. Update exponent with its square and the number b with one right shift.
     /// 4. Pushes the calcuted new values to the stack in the mentioned order.
     pub(super) fn op_expacc(&mut self) -> Result<(), ExecutionError> {

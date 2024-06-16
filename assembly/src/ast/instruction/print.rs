@@ -53,9 +53,13 @@ impl PrettyPrint for Instruction {
             Self::NeqImm(value) => inst_with_felt_imm("neq", value),
             Self::Eqw => const_text("eqw"),
             Self::Lt => const_text("lt"),
+            Self::LtImm(value) => inst_with_felt_imm("lt", value),
             Self::Lte => const_text("lte"),
+            Self::LteImm(value) => inst_with_felt_imm("lte", value),
             Self::Gt => const_text("gt"),
+            Self::GtImm(value) => inst_with_felt_imm("gt", value),
             Self::Gte => const_text("gte"),
+            Self::GteImm(value) => inst_with_felt_imm("gte", value),
             Self::IsOdd => const_text("is_odd"),
 
             // ----- ext2 operations --------------------------------------------------------------
@@ -258,6 +262,9 @@ impl PrettyPrint for Instruction {
             Self::MTreeSet => const_text("mtree_set"),
             Self::MTreeMerge => const_text("mtree_merge"),
             Self::MTreeVerify => const_text("mtree_verify"),
+            Self::MTreeVerifyWithError(err_code) => {
+                flatten(const_text("mtree_verify.err") + const_text("=") + display(err_code))
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => const_text("fri_ext2fold4"),

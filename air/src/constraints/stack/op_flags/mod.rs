@@ -100,7 +100,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// - composite flag for the stack if the stack has been shifted to the right.
     /// - composite flag if the current operation being executed is a control flow operation or not.
     /// - composite flag if the current operation being executed has a binary element constraint on
-    /// the top element in the stack.
+    ///   the top element in the stack.
     pub fn new(frame: &EvaluationFrame<E>) -> Self {
         // intermediary array to cache the value of intermediate flags.
         let mut degree7_op_flags = [E::ZERO; NUM_DEGREE_7_OPS];
@@ -866,7 +866,7 @@ impl<E: FieldElement> OpFlags<E> {
     /// Operation Flag of MPVERIFY operation.
     #[inline(always)]
     pub fn mpverify(&self) -> E {
-        self.degree5_op_flags[get_op_index(Operation::MpVerify.op_code())]
+        self.degree5_op_flags[get_op_index(Operation::MpVerify(0).op_code())]
     }
 
     /// Operation Flag of SPLIT operation.

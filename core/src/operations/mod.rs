@@ -14,8 +14,7 @@ pub use decorators::{
 /// These operations take exactly one cycle to execute.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
-    // ----- system operations
-    // --------------------------------------------------------------------
+    // ----- system operations -------------------------------------------------------------------
     /// Advances cycle counter, but does not change the state of user stack.
     Noop,
 
@@ -44,8 +43,7 @@ pub enum Operation {
     /// instruction.
     Clk,
 
-    // ----- flow control operations
-    // --------------------------------------------------------------
+    // ----- flow control operations -------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
 
@@ -81,8 +79,7 @@ pub enum Operation {
     /// by the VM (HALT operation itself excepted).
     Halt,
 
-    // ----- field operations
-    // ---------------------------------------------------------------------
+    // ----- field operations --------------------------------------------------------------------
     /// Pops two elements off the stack, adds them, and pushes the result back onto the stack.
     Add,
 
@@ -132,7 +129,7 @@ pub enum Operation {
     ///
     /// The top 4 elements of the stack are expected to be arranged as follows (form the top):
     /// - least significant bit of the exponent in the previous trace if there's an expacc call,
-    /// otherwise ZERO
+    ///   otherwise ZERO
     /// - exponent of base number `a` for this turn
     /// - accumulated power of base number `a` so far
     /// - number which needs to be shifted to the right
@@ -142,15 +139,13 @@ pub enum Operation {
     /// shifted to the right by one bit.
     Expacc,
 
-    // ----- ext2 operations
-    // ----------------------------------------------------------------------
+    // ----- ext2 operations ---------------------------------------------------------------------
     /// Computes the product of two elements in the extension field of degree 2 and pushes the
     /// result back onto the stack as the third and fourth elements. Pushes 0 onto the stack as
     /// the first and second elements.
     Ext2Mul,
 
-    // ----- u32 operations
-    // -----------------------------------------------------------------------
+    // ----- u32 operations ----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
     U32split,
@@ -215,8 +210,7 @@ pub enum Operation {
     /// If either of the elements is greater than or equal to 2^32, execution fails.
     U32xor,
 
-    // ----- stack manipulation
-    // -------------------------------------------------------------------
+    // ----- stack manipulation ------------------------------------------------------------------
     /// Pushes 0 onto the stack.
     Pad,
 
@@ -332,8 +326,7 @@ pub enum Operation {
     /// If the popped element is neither 0 nor 1, execution fails.
     CSwapW,
 
-    // ----- input / output
-    // -----------------------------------------------------------------------
+    // ----- input / output ----------------------------------------------------------------------
     /// Pushes the immediate value onto the stack.
     Push(Felt),
 
@@ -387,8 +380,7 @@ pub enum Operation {
     /// - All other stack elements remain the same.
     Pipe,
 
-    // ----- cryptographic operations
-    // -------------------------------------------------------------
+    // ----- cryptographic operations ------------------------------------------------------------
     /// Performs a Rescue Prime Optimized permutation on the top 3 words of the operand stack,
     /// where the top 2 words are the rate (words C and B), the deepest word is the capacity (word
     /// A), and the digest output is the middle word E.
@@ -410,7 +402,10 @@ pub enum Operation {
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
     /// merkle sets). If the prover is not able to provide the required path, the operation fails.
     /// The state of the stack does not change.
-    MpVerify,
+    ///
+    /// The internal value specifies an error code associated with the error in case when the
+    /// assertion fails.
+    MpVerify(u32),
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
@@ -542,7 +537,7 @@ impl Operation {
             Self::U32madd       => 0b0100_1110,
 
             Self::HPerm         => 0b0101_0000,
-            Self::MpVerify      => 0b0101_0001,
+            Self::MpVerify(_)   => 0b0101_0001,
             Self::Pipe          => 0b0101_0010,
             Self::MStream       => 0b0101_0011,
             Self::Split         => 0b0101_0100,
@@ -721,7 +716,7 @@ impl fmt::Display for Operation {
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::HPerm => write!(f, "hperm"),
-            Self::MpVerify => write!(f, "mpverify"),
+            Self::MpVerify(err_code) => write!(f, "mpverify({err_code})"),
             Self::MrUpdate => write!(f, "mrupdate"),
             Self::FriE2F4 => write!(f, "frie2f4"),
             Self::RCombBase => write!(f, "rcomb1"),
