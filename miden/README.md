@@ -57,7 +57,7 @@ use processor::ExecutionOptions;
 let mut assembler = Assembler::default();
 
 // compile Miden assembly source code into a program
-let program: Program = assembler.assemble("begin push.3 push.5 add end").unwrap().try_into().unwrap();
+let program: Program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
 
 // use an empty list as initial stack
 let stack_inputs = StackInputs::default();

@@ -216,8 +216,7 @@ where
     let program: Program = Assembler::default()
         .with_debug_mode(true)
         .with_library(&StdLibrary::default())?
-        .assemble(program)?
-        .try_into()?;
+        .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);

@@ -420,9 +420,8 @@ impl ProgramFile {
             .wrap_err("Failed to load libraries")?;
 
         let program: Program = assembler
-            .assemble(self.ast.as_ref())
-            .wrap_err("Failed to compile program")?
-            .try_into()?;
+            .assemble_program(self.ast.as_ref())
+            .wrap_err("Failed to compile program")?;
 
         Ok(program)
     }

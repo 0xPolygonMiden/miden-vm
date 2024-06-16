@@ -11,7 +11,7 @@ use crate::{
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use vm_core::{
     mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
-    Decorator, DecoratorList, Kernel, Operation,
+    Decorator, DecoratorList, Kernel, Operation, Program,
 };
 
 mod basic_block_builder;
@@ -312,8 +312,7 @@ impl Assembler {
 
 /// Compilation/Assembly
 impl Assembler {
-    /// Compiles the provided module into a [Program]. The resulting program can be executed
-    /// on Miden VM.
+    /// Compiles the provided module into a [`MastForest`].
     ///
     /// # Errors
     ///
@@ -323,6 +322,19 @@ impl Assembler {
         context.set_warnings_as_errors(self.warnings_as_errors);
 
         self.assemble_in_context(source, &mut context)
+    }
+
+    /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
+    /// Miden VM.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified program fails, or if the source
+    /// doesn't have an entrypoint.
+    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
+        let mast_forest = self.assemble(source)?;
+
+        Ok(mast_forest.try_into()?)
     }
 
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.

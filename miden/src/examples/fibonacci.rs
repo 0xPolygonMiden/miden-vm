@@ -39,8 +39,7 @@ fn generate_fibonacci_program(n: usize) -> Program {
         n - 1
     );
 
-    let mast_forest = Assembler::default().assemble(program).unwrap();
-    Program::new(mast_forest).unwrap()
+    Assembler::default().assemble_program(program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence
