@@ -61,16 +61,20 @@ where
         // use the hasher to compute the hash of the JOIN block; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
-        let child1_hash = {
-            let child_node = &program[node.first()];
-
-            child_node.digest().into()
-        };
-        let child2_hash = {
-            let child_node = &program[node.second()];
-
-            child_node.digest().into()
-        };
+        let child1_hash = program
+            .get_node_by_id(node.first())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                node_id: node.first(),
+            })?
+            .digest()
+            .into();
+        let child2_hash = program
+            .get_node_by_id(node.second())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                node_id: node.second(),
+            })?
+            .digest()
+            .into();
 
         let addr = self.chiplets.hash_control_block(
             child1_hash,
@@ -109,16 +113,20 @@ where
         // use the hasher to compute the hash of the SPLIT block; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
-        let child1_hash = {
-            let child_node = &program[node.on_true()];
-
-            child_node.digest().into()
-        };
-        let child2_hash = {
-            let child_node = &program[node.on_false()];
-
-            child_node.digest().into()
-        };
+        let child1_hash = program
+            .get_node_by_id(node.on_true())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                node_id: node.on_true(),
+            })?
+            .digest()
+            .into();
+        let child2_hash = program
+            .get_node_by_id(node.on_false())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                node_id: node.on_false(),
+            })?
+            .digest()
+            .into();
         let addr = self.chiplets.hash_control_block(
             child1_hash,
             child2_hash,
@@ -158,11 +166,13 @@ where
         // second child so we set the second hash to ZEROs; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
-        let body_hash = {
-            let body_node = &program[node.body()];
-
-            body_node.digest().into()
-        };
+        let body_hash = program
+            .get_node_by_id(node.body())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                node_id: node.body(),
+            })?
+            .digest()
+            .into();
         let addr = self.chiplets.hash_control_block(
             body_hash,
             EMPTY_WORD,
@@ -217,11 +227,13 @@ where
         // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
-        let callee_hash = {
-            let callee = &program[node.callee()];
-
-            callee.digest().into()
-        };
+        let callee_hash = program
+            .get_node_by_id(node.callee())
+            .ok_or(ExecutionError::MastNodeNotFoundInForest {
+                node_id: node.callee(),
+            })?
+            .digest()
+            .into();
         let addr =
             self.chiplets
                 .hash_control_block(callee_hash, EMPTY_WORD, node.domain(), node.digest());
