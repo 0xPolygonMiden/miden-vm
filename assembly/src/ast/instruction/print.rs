@@ -127,11 +127,17 @@ impl PrettyPrint for Instruction {
             Self::U32Clo => const_text("u32clo"),
             Self::U32Cto => const_text("u32cto"),
             Self::U32Lt => const_text("u32lt"),
+            Self::U32LtImm(value) => inst_with_imm("u32lt", value),
             Self::U32Lte => const_text("u32lte"),
+            Self::U32LteImm(value) => inst_with_imm("u32lte", value),
             Self::U32Gt => const_text("u32gt"),
+            Self::U32GtImm(value) => inst_with_imm("u32gt", value),
             Self::U32Gte => const_text("u32gte"),
+            Self::U32GteImm(value) => inst_with_imm("u32gte", value),
             Self::U32Min => const_text("u32min"),
+            Self::U32MinImm(value) => inst_with_imm("u32min", value),
             Self::U32Max => const_text("u32max"),
+            Self::U32MaxImm(value) => inst_with_imm("u32min", value),
 
             // ----- stack manipulation -----------------------------------------------------------
             Self::Drop => const_text("drop"),

@@ -714,17 +714,29 @@ fn calculate_cto(span: &mut BasicBlockBuilder) {
 // COMPARISON OPERATIONS
 // ================================================================================================
 
-/// Translates u32lt assembly instructions to VM operations.
+/// Translates u32lt assembly instruction to VM operations.
 ///
-/// This operation takes 3 cycles.
-pub fn u32lt(span_builder: &mut BasicBlockBuilder) {
+/// This operation takes:
+/// - 3 cycles without immediate value.
+/// - 4 cycles with immediate value.
+pub fn u32lt(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     compute_lt(span_builder);
 }
 
-/// Translates u32lte assembly instructions to VM operations.
+/// Translates u32lte assembly instruction to VM operations.
 ///
-/// This operation takes 5 cycles.
-pub fn u32lte(span_builder: &mut BasicBlockBuilder) {
+/// This operation takes:
+/// - 5 cycles without immediate value.
+/// - 6 cycles with immediate value.
+pub fn u32lte(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     // Compute the lt with reversed number to get a gt check
     span_builder.push_op(Swap);
     compute_lt(span_builder);
@@ -733,48 +745,72 @@ pub fn u32lte(span_builder: &mut BasicBlockBuilder) {
     span_builder.push_op(Not);
 }
 
-/// Translates u32gt assembly instructions to VM operations.
+/// Translates u32gt assembly instruction to VM operations.
 ///
-/// This operation takes 4 cycles.
-pub fn u32gt(span_builder: &mut BasicBlockBuilder) {
+/// This operation takes:
+/// - 4 cycles without immediate value.
+/// - 5 cycles with immediate value.
+pub fn u32gt(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     // Reverse the numbers so we can get a gt check.
     span_builder.push_op(Swap);
 
     compute_lt(span_builder);
 }
 
-/// Translates u32gte assembly instructions to VM operations.
+/// Translates u32gte assembly instruction to VM operations.
 ///
-/// This operation takes 4 cycles.
-pub fn u32gte(span_builder: &mut BasicBlockBuilder) {
+/// This operation takes:
+/// - 4 cycles without immediate value.
+/// - 5 cycles with immediate value.
+pub fn u32gte(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     compute_lt(span_builder);
 
     // Flip the final results to get the gte results.
     span_builder.push_op(Not);
 }
 
-/// Translates u32min assembly instructions to VM operations.
+/// Translates u32min assembly instruction to VM operations.
 ///
 /// Specifically, we subtract the top value from the second to the top value (U32SUB), check the
 /// underflow flag (EQZ), and perform a conditional swap (CSWAP) to have the max number in front.
 /// Then we finally drop the top element to keep the min.
 ///
-/// This operation takes 8 cycles.
-pub fn u32min(span_builder: &mut BasicBlockBuilder) {
+/// This operation takes:
+/// - 8 cycles without immediate value.
+/// - 9 cycles with immediate value.
+pub fn u32min(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     compute_max_and_min(span_builder);
 
     // Drop the max and keep the min
     span_builder.push_op(Drop);
 }
 
-/// Translates u32max assembly instructions to VM operations.
+/// Translates u32max assembly instruction to VM operations.
 ///
 /// Specifically, we subtract the top value from the second to the top value (U32SUB), check the
 /// underflow flag (EQZ), and perform a conditional swap (CSWAP) to have the max number in front.
 /// Then we finally drop the 2nd element to keep the max.
 ///
-/// This operation takes 9 cycles.
-pub fn u32max(span_builder: &mut BasicBlockBuilder) {
+/// This operation takes:
+/// - 9 cycles without immediate value.
+/// - 10 cycles with immediate value.
+pub fn u32max(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     compute_max_and_min(span_builder);
 
     // Drop the min and keep the max

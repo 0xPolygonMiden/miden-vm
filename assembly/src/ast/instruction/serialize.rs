@@ -204,11 +204,35 @@ impl Serializable for Instruction {
             Self::U32Clo => OpCode::U32Clo.write_into(target),
             Self::U32Cto => OpCode::U32Cto.write_into(target),
             Self::U32Lt => OpCode::U32Lt.write_into(target),
+            Self::U32LtImm(v) => {
+                OpCode::U32LtImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Lte => OpCode::U32Lte.write_into(target),
+            Self::U32LteImm(v) => {
+                OpCode::U32LteImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Gt => OpCode::U32Gt.write_into(target),
+            Self::U32GtImm(v) => {
+                OpCode::U32GtImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Gte => OpCode::U32Gte.write_into(target),
+            Self::U32GteImm(v) => {
+                OpCode::U32GteImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Min => OpCode::U32Min.write_into(target),
+            Self::U32MinImm(v) => {
+                OpCode::U32MinImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Max => OpCode::U32Max.write_into(target),
+            Self::U32MaxImm(v) => {
+                OpCode::U32MaxImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
 
             // ----- stack manipulation -----------------------------------------------------------
             Self::Drop => OpCode::Drop.write_into(target),

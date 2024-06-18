@@ -123,11 +123,17 @@ pub enum Instruction {
     U32Clo,
     U32Cto,
     U32Lt,
+    U32LtImm(ImmU32),
     U32Lte,
+    U32LteImm(ImmU32),
     U32Gt,
+    U32GtImm(ImmU32),
     U32Gte,
+    U32GteImm(ImmU32),
     U32Min,
+    U32MinImm(ImmU32),
     U32Max,
+    U32MaxImm(ImmU32),
 
     // ----- stack manipulation ------------------------------------------------------------------
     Drop,

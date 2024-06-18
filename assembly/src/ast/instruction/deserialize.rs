@@ -116,11 +116,17 @@ impl Deserializable for Instruction {
             OpCode::U32Clo => Ok(Self::U32Clo),
             OpCode::U32Cto => Ok(Self::U32Cto),
             OpCode::U32Lt => Ok(Self::U32Lt),
+            OpCode::U32LtImm => Ok(Self::U32LtImm(source.read_u32()?.into())),
             OpCode::U32Lte => Ok(Self::U32Lte),
+            OpCode::U32LteImm => Ok(Self::U32LteImm(source.read_u32()?.into())),
             OpCode::U32Gt => Ok(Self::U32Gt),
+            OpCode::U32GtImm => Ok(Self::U32GtImm(source.read_u32()?.into())),
             OpCode::U32Gte => Ok(Self::U32Gte),
+            OpCode::U32GteImm => Ok(Self::U32GteImm(source.read_u32()?.into())),
             OpCode::U32Min => Ok(Self::U32Min),
+            OpCode::U32MinImm => Ok(Self::U32MinImm(source.read_u32()?.into())),
             OpCode::U32Max => Ok(Self::U32Max),
+            OpCode::U32MaxImm => Ok(Self::U32MaxImm(source.read_u32()?.into())),
 
             // ----- stack manipulation -----------------------------------------------------------
             OpCode::Drop => Ok(Self::Drop),
