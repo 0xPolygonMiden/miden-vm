@@ -74,7 +74,10 @@ impl MastForest {
             // node already exists in the forest; return previously assigned id
             *node_id
         } else {
-            let new_node_id = MastNodeId(self.nodes.len() as u32);
+            let new_node_id =
+                MastNodeId(self.nodes.len().try_into().expect(
+                    "invalid node id: exceeded maximum number of nodes in a single forest",
+                ));
 
             self.node_id_by_hash.insert(node_digest, new_node_id);
             self.nodes.push(node);
