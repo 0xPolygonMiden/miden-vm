@@ -213,7 +213,7 @@ pub fn analyze<H>(
 where
     H: Host,
 {
-    let program: Program = Assembler::default()
+    let program = Assembler::default()
         .with_debug_mode(true)
         .with_library(&StdLibrary::default())?
         .assemble_program(program)?;
