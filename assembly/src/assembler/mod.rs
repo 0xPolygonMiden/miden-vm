@@ -335,7 +335,7 @@ impl Assembler {
     pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
         let mast_forest = self.assemble(source)?;
 
-        Ok(mast_forest.try_into().map_err(|program_err| miette!("{program_err}"))?)
+        mast_forest.try_into().map_err(|program_err| miette!("{program_err}"))
     }
 
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
