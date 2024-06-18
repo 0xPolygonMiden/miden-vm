@@ -52,10 +52,10 @@ where
     ///    with common denominator (x - gz).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
     ///    instruction.
-    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz
-    ///    i.e. T_i(z):= (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
-    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching
-    ///    the trace polynomial quotients.
+    /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz i.e. T_i(z):=
+    ///    (T_i(z)0, T_i(z)1) and T_i(gz):= (T_i(gz)0, T_i(gz)1).
+    /// 6. a_addr is the memory address of the i-th random element alpha_i used in batching the
+    ///    trace polynomial quotients.
     ///
     /// The instruction also makes use of the helper registers to hold the values of T_i(z), T_i(gz)
     /// and alpha_i during the course of its execution.
