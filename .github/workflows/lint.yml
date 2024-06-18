@@ -6,7 +6,7 @@ on:
   push:
     branches: [main, next]
   pull_request:
-    types: [opened, reopened, synchronize] 
+    types: [opened, reopened, synchronize]
 
 jobs:
   version:
@@ -32,12 +32,23 @@ jobs:
           make format-check
 
   clippy:
-    name: clippy stable on ubuntu-latest
+    name: clippy nightly on ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - name: Install minimal Rust with clippy
+      - name: Clippy
         run: |
           rustup update --no-self-update nightly
           rustup +nightly component add clippy
           make clippy
+
+  doc:
+    name: doc stable on ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - name: Build docs
+        run: |
+          rustup update --no-self-update
+          make doc
+
