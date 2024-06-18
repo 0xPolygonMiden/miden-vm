@@ -119,7 +119,7 @@ impl Hasher {
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
-    pub(super) fn hash_span_block(
+    pub(super) fn hash_basic_block(
         &mut self,
         op_batches: &[OpBatch],
         expected_hash: Digest,

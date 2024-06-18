@@ -18,9 +18,9 @@ use alloc::{
     vec::Vec,
 };
 use core::ops::Index;
+use vm_core::Kernel;
 
 use smallvec::{smallvec, SmallVec};
-use vm_core::Kernel;
 
 use self::{
     analysis::MaybeRewriteCheck, name_resolver::NameResolver, phantom::PhantomCall,

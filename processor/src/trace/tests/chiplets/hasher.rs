@@ -1,5 +1,5 @@
 use super::{
-    build_span_with_respan_ops, build_trace_from_block, build_trace_from_ops_with_inputs,
+    build_span_with_respan_ops, build_trace_from_ops_with_inputs, build_trace_from_program,
     init_state_from_words, rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation,
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
@@ -21,10 +21,10 @@ use miden_air::trace::{
 };
 use vm_core::{
     chiplets::hasher::apply_permutation,
-    code_blocks::CodeBlock,
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
+    mast::{MastForest, MastNode},
     utils::range,
-    Word,
+    Program, Word,
 };
 
 // CONSTANTS
@@ -47,8 +47,17 @@ pub const DECODER_OP_BITS_RANGE: Range<usize> =
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_span() {
-    let program = CodeBlock::new_span(vec![Operation::Add, Operation::Mul]);
-    let trace = build_trace_from_block(&program, &[]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block = MastNode::new_basic_block(vec![Operation::Add, Operation::Mul]);
+        let basic_block_id = mast_forest.ensure_node(basic_block);
+        mast_forest.set_entrypoint(basic_block_id);
+
+        Program::new(mast_forest).unwrap()
+    };
+
+    let trace = build_trace_from_program(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
@@ -111,9 +120,17 @@ pub fn b_chip_span() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_span_with_respan() {
-    let (ops, _) = build_span_with_respan_ops();
-    let program = CodeBlock::new_span(ops);
-    let trace = build_trace_from_block(&program, &[]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let (ops, _) = build_span_with_respan_ops();
+        let basic_block = MastNode::new_basic_block(ops);
+        let basic_block_id = mast_forest.ensure_node(basic_block);
+        mast_forest.set_entrypoint(basic_block_id);
+
+        Program::new(mast_forest).unwrap()
+    };
+    let trace = build_trace_from_program(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
@@ -197,10 +214,24 @@ pub fn b_chip_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_merge() {
-    let t_branch = CodeBlock::new_span(vec![Operation::Add]);
-    let f_branch = CodeBlock::new_span(vec![Operation::Mul]);
-    let program = CodeBlock::new_split(t_branch, f_branch);
-    let trace = build_trace_from_block(&program, &[]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let t_branch = MastNode::new_basic_block(vec![Operation::Add]);
+        let t_branch_id = mast_forest.ensure_node(t_branch);
+
+        let f_branch = MastNode::new_basic_block(vec![Operation::Mul]);
+        let f_branch_id = mast_forest.ensure_node(f_branch);
+
+        let split = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
+        let split_id = mast_forest.ensure_node(split);
+
+        mast_forest.set_entrypoint(split_id);
+
+        Program::new(mast_forest).unwrap()
+    };
+
+    let trace = build_trace_from_program(&program, &[]);
 
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
@@ -304,9 +335,17 @@ pub fn b_chip_merge() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 pub fn b_chip_permutation() {
-    let program = CodeBlock::new_span(vec![Operation::HPerm]);
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let basic_block = MastNode::new_basic_block(vec![Operation::HPerm]);
+        let basic_block_id = mast_forest.ensure_node(basic_block);
+        mast_forest.set_entrypoint(basic_block_id);
+
+        Program::new(mast_forest).unwrap()
+    };
     let stack = vec![8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
-    let trace = build_trace_from_block(&program, &stack);
+    let trace = build_trace_from_program(&program, &stack);
 
     let mut hperm_state: [Felt; STATE_WIDTH] = stack
         .iter()

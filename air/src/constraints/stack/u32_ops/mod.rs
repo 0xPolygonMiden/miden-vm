@@ -119,8 +119,8 @@ pub fn enforce_u32split_constraints<E: FieldElement<BaseField = Felt>>(
 /// Enforces constraints of the U32ADD operation. The U32ADD operation adds the top two
 /// elements in the current trace of the stack. Therefore, the following constraints are
 /// enforced:
-/// - The aggregation of limbs from the helper registers is equal to the sum of the top two
-///   element in the stack.
+/// - The aggregation of limbs from the helper registers is equal to the sum of the top two element
+///   in the stack.
 pub fn enforce_u32add_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],

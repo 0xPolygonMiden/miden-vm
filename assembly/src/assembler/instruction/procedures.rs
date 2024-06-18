@@ -1,10 +1,11 @@
-use super::{Assembler, AssemblyContext, CodeBlock, Operation, SpanBuilder};
+use super::{Assembler, AssemblyContext, BasicBlockBuilder, Operation};
 use crate::{
     ast::{InvocationTarget, InvokeKind},
     AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
 };
 
 use smallvec::SmallVec;
+use vm_core::mast::{MastForest, MastNode, MastNodeId};
 
 /// Procedure Invocation
 impl Assembler {
@@ -13,10 +14,11 @@ impl Assembler {
         kind: InvokeKind,
         callee: &InvocationTarget,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         let span = callee.span();
-        let digest = self.resolve_target(kind, callee, context)?;
-        self.invoke_mast_root(kind, span, digest, context)
+        let digest = self.resolve_target(kind, callee, context, mast_forest)?;
+        self.invoke_mast_root(kind, span, digest, context, mast_forest)
     }
 
     fn invoke_mast_root(
@@ -25,7 +27,8 @@ impl Assembler {
         span: SourceSpan,
         mast_root: RpoDigest,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         // Get the procedure from the assembler
         let cache = &self.procedure_cache;
         let current_source_file = context.unwrap_current_procedure().source_file();
@@ -65,9 +68,9 @@ impl Assembler {
                             })
                         }
                     })?;
-                context.register_external_call(&proc, false)?;
+                context.register_external_call(&proc, false, mast_forest)?;
             }
-            Some(proc) => context.register_external_call(&proc, false)?,
+            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
             None if matches!(kind, InvokeKind::SysCall) => {
                 return Err(AssemblyError::UnknownSysCallTarget {
                     span,
@@ -78,37 +81,71 @@ impl Assembler {
             None => context.register_phantom_call(Span::new(span, mast_root))?,
         }
 
-        let block = match kind {
-            // For `exec`, we use a PROXY block to reflect that the root is
-            // conceptually inlined at this location
-            InvokeKind::Exec => CodeBlock::new_proxy(mast_root),
-            // For `call`, we just use the corresponding CALL block
-            InvokeKind::Call => CodeBlock::new_call(mast_root),
-            // For `syscall`, we just use the corresponding SYSCALL block
-            InvokeKind::SysCall => CodeBlock::new_syscall(mast_root),
+        let mast_root_node_id = {
+            // Note that here we rely on the fact that we topologically sorted the procedures, such
+            // that when we assemble a procedure, all procedures that it calls will have been
+            // assembled, and hence be present in the `MastForest`. We currently assume that the
+            // `MastForest` contains all the procedures being called; "external procedures" only
+            // known by digest are not currently supported.
+            let callee_id = mast_forest
+                .get_node_id_by_digest(mast_root)
+                .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
+
+            match kind {
+                // For `exec`, we return the root of the procedure being exec'd, which has the
+                // effect of inlining it
+                InvokeKind::Exec => callee_id,
+                // For `call`, we just use the corresponding CALL block
+                InvokeKind::Call => {
+                    let node = MastNode::new_call(callee_id, mast_forest);
+                    mast_forest.ensure_node(node)
+                }
+                // For `syscall`, we just use the corresponding SYSCALL block
+                InvokeKind::SysCall => {
+                    let node = MastNode::new_syscall(callee_id, mast_forest);
+                    mast_forest.ensure_node(node)
+                }
+            }
         };
-        Ok(Some(block))
+
+        Ok(Some(mast_root_node_id))
     }
 
-    pub(super) fn dynexec(&self) -> Result<Option<CodeBlock>, AssemblyError> {
-        // create a new DYN block for the dynamic code execution and return
-        Ok(Some(CodeBlock::new_dyn()))
+    /// Creates a new DYN block for the dynamic code execution and return.
+    pub(super) fn dynexec(
+        &self,
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
+
+        Ok(Some(dyn_node_id))
     }
 
-    pub(super) fn dyncall(&self) -> Result<Option<CodeBlock>, AssemblyError> {
-        // create a new CALL block whose target is DYN
-        Ok(Some(CodeBlock::new_dyncall()))
+    /// Creates a new CALL block whose target is DYN.
+    pub(super) fn dyncall(
+        &self,
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let dyn_call_node_id = {
+            let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
+            let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest);
+
+            mast_forest.ensure_node(dyn_call_node)
+        };
+
+        Ok(Some(dyn_call_node_id))
     }
 
     pub(super) fn procref(
         &self,
         callee: &InvocationTarget,
         context: &mut AssemblyContext,
-        span_builder: &mut SpanBuilder,
+        span_builder: &mut BasicBlockBuilder,
+        mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
         let span = callee.span();
-        let digest = self.resolve_target(InvokeKind::Exec, callee, context)?;
-        self.procref_mast_root(span, digest, context, span_builder)
+        let digest = self.resolve_target(InvokeKind::Exec, callee, context, mast_forest)?;
+        self.procref_mast_root(span, digest, context, span_builder, mast_forest)
     }
 
     fn procref_mast_root(
@@ -116,13 +153,14 @@ impl Assembler {
         span: SourceSpan,
         mast_root: RpoDigest,
         context: &mut AssemblyContext,
-        span_builder: &mut SpanBuilder,
+        span_builder: &mut BasicBlockBuilder,
+        mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
         // Add the root to the callset to be able to use dynamic instructions
         // with the referenced procedure later
         let cache = &self.procedure_cache;
         match cache.get_by_mast_root(&mast_root) {
-            Some(proc) => context.register_external_call(&proc, false)?,
+            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
             None => context.register_phantom_call(Span::new(span, mast_root))?,
         }
 

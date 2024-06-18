@@ -419,8 +419,9 @@ impl ProgramFile {
             .with_libraries(libraries.into_iter())
             .wrap_err("Failed to load libraries")?;
 
-        let program =
-            assembler.assemble(self.ast.as_ref()).wrap_err("Failed to compile program")?;
+        let program: Program = assembler
+            .assemble_program(self.ast.as_ref())
+            .wrap_err("Failed to compile program")?;
 
         Ok(program)
     }

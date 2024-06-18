@@ -2,7 +2,7 @@ use super::cli::InputFile;
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use core::fmt;
-use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
+use miden_vm::{Assembler, DefaultHost, Host, Operation, Program, StackInputs};
 use processor::{AsmOpInfo, TraceLenSummary};
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
@@ -216,7 +216,7 @@ where
     let program = Assembler::default()
         .with_debug_mode(true)
         .with_library(&StdLibrary::default())?
-        .assemble(program)?;
+        .assemble_program(program)?;
     let mut execution_details = ExecutionDetails::default();
 
     let vm_state_iterator = processor::execute_iter(&program, stack_inputs, host);

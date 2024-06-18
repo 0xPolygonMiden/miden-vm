@@ -1,11 +1,11 @@
 use super::{
     crypto::MerkleError,
     system::{FMP_MAX, FMP_MIN},
-    CodeBlock, Digest, Felt, QuadFelt, Word,
+    Digest, Felt, QuadFelt, Word,
 };
 use alloc::string::String;
 use core::fmt::{Display, Formatter};
-use vm_core::{stack::STACK_TOP_SIZE, utils::to_hex};
+use vm_core::{mast::MastNodeId, stack::STACK_TOP_SIZE, utils::to_hex};
 use winter_prover::{math::FieldElement, ProverError};
 
 #[cfg(feature = "std")]
@@ -19,10 +19,9 @@ pub enum ExecutionError {
     AdviceMapKeyNotFound(Word),
     AdviceStackReadFailed(u32),
     CallerNotInSyscall,
-    CodeBlockNotFound(Digest),
     CycleLimitExceeded(u32),
     DivideByZero(u32),
-    DynamicCodeBlockNotFound(Digest),
+    DynamicNodeNotFound(Digest),
     EventError(String),
     Ext2InttError(Ext2InttError),
     FailedAssertion {
@@ -49,6 +48,9 @@ pub enum ExecutionError {
     },
     LogArgumentZero(u32),
     MalformedSignatureKey(&'static str),
+    MastNodeNotFoundInForest {
+        node_id: MastNodeId,
+    },
     MemoryAddressOutOfBounds(u64),
     MerklePathVerificationFailed {
         value: Word,
@@ -61,11 +63,11 @@ pub enum ExecutionError {
     MerkleStoreUpdateFailed(MerkleError),
     NotBinaryValue(Felt),
     NotU32Value(Felt, Felt),
+    ProgramAlreadyExecuted,
     ProverError(ProverError),
     SmtNodeNotFound(Word),
     SmtNodePreImageNotValid(Word, usize),
     SyscallTargetNotInKernel(Digest),
-    UnexecutableCodeBlock(CodeBlock),
 }
 
 impl Display for ExecutionError {
@@ -81,18 +83,11 @@ impl Display for ExecutionError {
             CallerNotInSyscall => {
                 write!(f, "Instruction `caller` used outside of kernel context")
             }
-            CodeBlockNotFound(digest) => {
-                let hex = to_hex(digest.as_bytes());
-                write!(
-                    f,
-                    "Failed to execute code block with root {hex}; the block could not be found"
-                )
-            }
             CycleLimitExceeded(max_cycles) => {
                 write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
             }
             DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
-            DynamicCodeBlockNotFound(digest) => {
+            DynamicNodeNotFound(digest) => {
                 let hex = to_hex(digest.as_bytes());
                 write!(
                     f,
@@ -152,6 +147,9 @@ impl Display for ExecutionError {
                 )
             }
             MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
+            MastNodeNotFoundInForest { node_id } => {
+                write!(f, "Malformed MAST forest, node id {node_id} doesn't exist")
+            }
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")
             }
@@ -191,13 +189,13 @@ impl Display for ExecutionError {
                 let node_hex = to_hex(Felt::elements_as_bytes(node));
                 write!(f, "Invalid pre-image for node {node_hex}. Expected pre-image length to be a multiple of 8, but was {preimage_len}")
             }
+            ProgramAlreadyExecuted => {
+                write!(f, "a program has already been executed in this process")
+            }
             ProverError(error) => write!(f, "Proof generation failed: {error}"),
             SyscallTargetNotInKernel(proc) => {
                 let hex = to_hex(proc.as_bytes());
                 write!(f, "Syscall failed: procedure with root {hex} was not found in the kernel")
-            }
-            UnexecutableCodeBlock(block) => {
-                write!(f, "Execution reached unexecutable code block {block:?}")
             }
         }
     }

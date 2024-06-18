@@ -106,7 +106,7 @@ enum MemoryTestDeltaType {
 /// - To test a valid write, the MemoryTestDeltaType must be Context or Address and the `old_values`
 ///   and `new_values` must change.
 /// - To test a valid read, the `delta_type` must be Clock and the `old_values` and `new_values`
-/// must be equal.
+///   must be equal.
 fn get_constraint_evaluation(
     selectors: Selectors,
     delta_type: MemoryTestDeltaType,

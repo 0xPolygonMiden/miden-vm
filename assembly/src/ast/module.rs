@@ -46,8 +46,8 @@ pub enum ModuleKind {
     /// A kernel is like a library module, but is special in a few ways:
     ///
     /// * Its code always executes in the root context, so it is stateful in a way that normal
-    ///   libraries cannot replicate. This can be used to provide core services that would otherwise
-    ///   not be possible to implement.
+    ///   libraries cannot replicate. This can be used to provide core services that would
+    ///   otherwise not be possible to implement.
     ///
     /// * The procedures exported from the kernel may be the target of the `syscall` instruction,
     ///   and in fact _must_ be called that way.

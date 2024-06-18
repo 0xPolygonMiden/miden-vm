@@ -9,16 +9,18 @@ use crate::{
     RpoDigest, Spanned, ONE, ZERO,
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use miette::miette;
 use vm_core::{
-    code_blocks::CodeBlock, CodeBlockTable, Decorator, DecoratorList, Kernel, Operation, Program,
+    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
+    Decorator, DecoratorList, Kernel, Operation, Program,
 };
 
+mod basic_block_builder;
 mod context;
 mod id;
 mod instruction;
 mod module_graph;
 mod procedure;
-mod span_builder;
 #[cfg(test)]
 mod tests;
 
@@ -27,9 +29,9 @@ pub use self::id::{GlobalProcedureIndex, ModuleIndex};
 pub(crate) use self::module_graph::ProcedureCache;
 pub use self::procedure::Procedure;
 
+use self::basic_block_builder::BasicBlockBuilder;
 use self::context::ProcedureContext;
 use self::module_graph::{CallerInfo, ModuleGraph, ResolvedTarget};
-use self::span_builder::SpanBuilder;
 
 // ARTIFACT KIND
 // ================================================================================================
@@ -83,7 +85,9 @@ pub enum ArtifactKind {
 ///   procedures, build the assembler with them first, using the various builder methods on
 ///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
 ///   [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
+#[derive(Clone)]
 pub struct Assembler {
+    mast_forest: MastForest,
     /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
     /// as a baseline.
     module_graph: Box<ModuleGraph>,
@@ -100,6 +104,7 @@ pub struct Assembler {
 impl Default for Assembler {
     fn default() -> Self {
         Self {
+            mast_forest: Default::default(),
             module_graph: Default::default(),
             procedure_cache: Default::default(),
             warnings_as_errors: false,
@@ -116,10 +121,14 @@ impl Assembler {
         Self::default()
     }
 
-    /// Start building an [Assembler] with the given [Kernel].
-    pub fn with_kernel(kernel: Kernel) -> Self {
+    /// Start building an [`Assembler`] with the given [`Kernel`] and the [`MastForest`] that was
+    /// used to compile the kernel.
+    pub fn with_kernel(kernel: Kernel, mast_forest: MastForest) -> Self {
         let mut assembler = Self::new();
+
         assembler.module_graph.set_kernel(None, kernel);
+        assembler.mast_forest = mast_forest;
+
         assembler
     }
 
@@ -131,8 +140,14 @@ impl Assembler {
         let mut assembler = Self::new();
         let opts = CompileOptions::for_kernel();
         let module = module.compile_with_options(opts)?;
-        let (kernel_index, kernel) = assembler.assemble_kernel_module(module)?;
+
+        let mut mast_forest = MastForest::new();
+
+        let (kernel_index, kernel) = assembler.assemble_kernel_module(module, &mut mast_forest)?;
         assembler.module_graph.set_kernel(Some(kernel_index), kernel);
+        mast_forest.set_kernel(assembler.module_graph.kernel().clone());
+
+        assembler.mast_forest = mast_forest;
 
         Ok(assembler)
     }
@@ -291,12 +306,6 @@ impl Assembler {
 
     #[cfg(any(test, feature = "testing"))]
     #[doc(hidden)]
-    pub fn procedure_cache(&self) -> &ProcedureCache {
-        &self.procedure_cache
-    }
-
-    #[cfg(any(test, feature = "testing"))]
-    #[doc(hidden)]
     pub fn module_graph(&self) -> &ModuleGraph {
         &self.module_graph
     }
@@ -304,25 +313,37 @@ impl Assembler {
 
 /// Compilation/Assembly
 impl Assembler {
-    /// Compiles the provided module into a [Program]. The resulting program can be executed
-    /// on Miden VM.
+    /// Compiles the provided module into a [`MastForest`].
     ///
     /// # Errors
     ///
     /// Returns an error if parsing or compilation of the specified program fails.
-    pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
+    pub fn assemble(self, source: impl Compile) -> Result<MastForest, Report> {
         let mut context = AssemblyContext::default();
         context.set_warnings_as_errors(self.warnings_as_errors);
 
         self.assemble_in_context(source, &mut context)
     }
 
+    /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
+    /// Miden VM.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if parsing or compilation of the specified program fails, or if the source
+    /// doesn't have an entrypoint.
+    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
+        let mast_forest = self.assemble(source)?;
+
+        mast_forest.try_into().map_err(|program_err| miette!("{program_err}"))
+    }
+
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
     pub fn assemble_in_context(
-        &mut self,
+        self,
         source: impl Compile,
         context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
+    ) -> Result<MastForest, Report> {
         let opts = CompileOptions {
             warnings_as_errors: context.warnings_as_errors(),
             ..CompileOptions::default()
@@ -339,10 +360,10 @@ impl Assembler {
     /// Returns an error if parsing or compilation of the specified program fails, or the options
     /// are invalid.
     pub fn assemble_with_options(
-        &mut self,
+        self,
         source: impl Compile,
         options: CompileOptions,
-    ) -> Result<Program, Report> {
+    ) -> Result<MastForest, Report> {
         let mut context = AssemblyContext::default();
         context.set_warnings_as_errors(options.warnings_as_errors);
 
@@ -353,16 +374,31 @@ impl Assembler {
     /// to configure the assembler.
     #[instrument("assemble_with_opts_in_context", skip_all)]
     pub fn assemble_with_options_in_context(
-        &mut self,
+        self,
         source: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
+    ) -> Result<MastForest, Report> {
+        self.assemble_with_options_in_context_impl(source, options, context)
+    }
+
+    /// Implementation of [`Self::assemble_with_options_in_context`] which doesn't consume `self`.
+    ///
+    /// The main purpose of this separation is to enable some tests to access the assembler state
+    /// after assembly.
+    fn assemble_with_options_in_context_impl(
+        mut self,
+        source: impl Compile,
+        options: CompileOptions,
+        context: &mut AssemblyContext,
+    ) -> Result<MastForest, Report> {
         if options.kind != ModuleKind::Executable {
             return Err(Report::msg(
                 "invalid compile options: assemble_with_opts_in_context requires that the kind be 'executable'",
             ));
         }
+
+        let mut mast_forest = core::mem::take(&mut self.mast_forest);
 
         let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
@@ -392,7 +428,9 @@ impl Assembler {
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        self.compile_program(entrypoint, context)
+        self.compile_program(entrypoint, context, &mut mast_forest)?;
+
+        Ok(mast_forest)
     }
 
     /// Compile and assembles all procedures in the specified module, adding them to the procedure
@@ -438,9 +476,16 @@ impl Assembler {
         // Recompute graph with the provided module, and start assembly
         let module_id = self.module_graph.add_module(module)?;
         self.module_graph.recompute()?;
-        self.assemble_graph(context)?;
 
-        self.get_module_exports(module_id)
+        let mut mast_forest = core::mem::take(&mut self.mast_forest);
+
+        self.assemble_graph(context, &mut mast_forest)?;
+        let exported_procedure_digests = self.get_module_exports(module_id, &mast_forest);
+
+        // Reassign the mast_forest to the assembler for use is a future program assembly
+        self.mast_forest = mast_forest;
+
+        exported_procedure_digests
     }
 
     /// Compiles the given kernel module, returning both the compiled kernel and its index in the
@@ -448,6 +493,7 @@ impl Assembler {
     fn assemble_kernel_module(
         &mut self,
         module: Box<ast::Module>,
+        mast_forest: &mut MastForest,
     ) -> Result<(ModuleIndex, Kernel), Report> {
         if !module.is_kernel() {
             return Err(Report::msg(format!("expected kernel module, got {}", module.kind())));
@@ -469,8 +515,8 @@ impl Assembler {
                 module: kernel_index,
                 index: ProcedureIndex::new(index),
             };
-            let compiled = self.compile_subgraph(gid, false, &mut context)?;
-            kernel.push(compiled.code().hash());
+            let compiled = self.compile_subgraph(gid, false, &mut context, mast_forest)?;
+            kernel.push(compiled.mast_root(mast_forest));
         }
 
         Kernel::new(&kernel)
@@ -481,7 +527,11 @@ impl Assembler {
     /// Get the set of procedure roots for all exports of the given module
     ///
     /// Returns an error if the provided Miden Assembly is invalid.
-    fn get_module_exports(&mut self, module: ModuleIndex) -> Result<Vec<RpoDigest>, Report> {
+    fn get_module_exports(
+        &mut self,
+        module: ModuleIndex,
+        mast_forest: &MastForest,
+    ) -> Result<Vec<RpoDigest>, Report> {
         assert!(self.module_graph.contains_module(module), "invalid module index");
 
         let mut exports = Vec::new();
@@ -519,7 +569,8 @@ impl Assembler {
                 }
             });
 
-            exports.push(proc.code().hash());
+            let proc_code_node = &mast_forest[proc.body_node_id()];
+            exports.push(proc_code_node.digest());
         }
 
         Ok(exports)
@@ -527,43 +578,39 @@ impl Assembler {
 
     /// Compile the provided [Module] into a [Program].
     ///
+    /// Ensures that the [`MastForest`] entrypoint is set to the entrypoint of the program.
+    ///
     /// Returns an error if the provided Miden Assembly is invalid.
     fn compile_program(
         &mut self,
         entrypoint: GlobalProcedureIndex,
         context: &mut AssemblyContext,
-    ) -> Result<Program, Report> {
+        mast_forest: &mut MastForest,
+    ) -> Result<(), Report> {
         // Raise an error if we are called with an invalid entrypoint
         assert!(self.module_graph[entrypoint].name().is_main());
 
         // Compile the module graph rooted at the entrypoint
-        let entry = self.compile_subgraph(entrypoint, true, context)?;
+        let entry_procedure = self.compile_subgraph(entrypoint, true, context, mast_forest)?;
 
-        // Construct the code block table by taking the call set of the
-        // executable entrypoint and adding the code blocks of all those
-        // procedures to the table.
-        let mut code_blocks = CodeBlockTable::default();
-        for callee in entry.callset().iter() {
-            let code_block = self
-                .procedure_cache
-                .get_by_mast_root(callee)
-                .map(|p| p.code().clone())
-                .ok_or(AssemblyError::UndefinedCallSetProcedure { digest: *callee })?;
-            code_blocks.insert(code_block);
-        }
+        mast_forest.set_entrypoint(entry_procedure.body_node_id());
 
-        let body = entry.code().clone();
-        Ok(Program::with_kernel(body, self.module_graph.kernel().clone(), code_blocks))
+        Ok(())
     }
 
     /// Compile all of the uncompiled procedures in the module graph, placing them
     /// in the procedure cache once compiled.
     ///
     /// Returns an error if any of the provided Miden Assembly is invalid.
-    fn assemble_graph(&mut self, context: &mut AssemblyContext) -> Result<(), Report> {
+    fn assemble_graph(
+        &mut self,
+        context: &mut AssemblyContext,
+        mast_forest: &mut MastForest,
+    ) -> Result<(), Report> {
         let mut worklist = self.module_graph.topological_sort().to_vec();
         assert!(!worklist.is_empty());
-        self.process_graph_worklist(&mut worklist, context, None).map(|_| ())
+        self.process_graph_worklist(&mut worklist, context, None, mast_forest)
+            .map(|_| ())
     }
 
     /// Compile the uncompiled procedure in the module graph which are members of the subgraph
@@ -575,6 +622,7 @@ impl Assembler {
         root: GlobalProcedureIndex,
         is_entrypoint: bool,
         context: &mut AssemblyContext,
+        mast_forest: &mut MastForest,
     ) -> Result<Arc<Procedure>, Report> {
         let mut worklist = self.module_graph.topological_sort_from_root(root).map_err(|cycle| {
             let iter = cycle.into_node_ids();
@@ -590,9 +638,9 @@ impl Assembler {
         assert!(!worklist.is_empty());
 
         let compiled = if is_entrypoint {
-            self.process_graph_worklist(&mut worklist, context, Some(root))?
+            self.process_graph_worklist(&mut worklist, context, Some(root), mast_forest)?
         } else {
-            let _ = self.process_graph_worklist(&mut worklist, context, None)?;
+            let _ = self.process_graph_worklist(&mut worklist, context, None, mast_forest)?;
             self.procedure_cache.get(root)
         };
 
@@ -604,6 +652,7 @@ impl Assembler {
         worklist: &mut Vec<GlobalProcedureIndex>,
         context: &mut AssemblyContext,
         entrypoint: Option<GlobalProcedureIndex>,
+        mast_forest: &mut MastForest,
     ) -> Result<Option<Arc<Procedure>>, Report> {
         // Process the topological ordering in reverse order (bottom-up), so that
         // each procedure is compiled with all of its dependencies fully compiled
@@ -611,7 +660,8 @@ impl Assembler {
         while let Some(procedure_gid) = worklist.pop() {
             // If we have already compiled this procedure, do not recompile
             if let Some(proc) = self.procedure_cache.get(procedure_gid) {
-                self.module_graph.register_mast_root(procedure_gid, proc.mast_root())?;
+                self.module_graph
+                    .register_mast_root(procedure_gid, proc.mast_root(mast_forest))?;
                 continue;
             }
             let is_entry = entrypoint == Some(procedure_gid);
@@ -631,17 +681,17 @@ impl Assembler {
                 .with_source_file(ast.source_file());
 
             // Compile this procedure
-            let procedure = self.compile_procedure(pctx, context)?;
+            let procedure = self.compile_procedure(pctx, context, mast_forest)?;
 
             // Cache the compiled procedure, unless it's the program entrypoint
             if is_entry {
                 compiled_entrypoint = Some(Arc::from(procedure));
             } else {
                 // Make the MAST root available to all dependents
-                let digest = procedure.mast_root();
+                let digest = procedure.mast_root(mast_forest);
                 self.module_graph.register_mast_root(procedure_gid, digest)?;
 
-                self.procedure_cache.insert(procedure_gid, Arc::from(procedure))?;
+                self.procedure_cache.insert(procedure_gid, Arc::from(procedure), mast_forest)?;
             }
         }
 
@@ -653,6 +703,7 @@ impl Assembler {
         &self,
         procedure: ProcedureContext,
         context: &mut AssemblyContext,
+        mast_forest: &mut MastForest,
     ) -> Result<Box<Procedure>, Report> {
         // Make sure the current procedure context is available during codegen
         let gid = procedure.id();
@@ -670,9 +721,9 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.iter(), context, Some(wrapper))?
+            self.compile_body(proc.iter(), context, Some(wrapper), mast_forest)?
         } else {
-            self.compile_body(proc.iter(), context, None)?
+            self.compile_body(proc.iter(), context, None, mast_forest)?
         };
 
         let pctx = context.take_current_procedure().unwrap();
@@ -684,69 +735,103 @@ impl Assembler {
         body: I,
         context: &mut AssemblyContext,
         wrapper: Option<BodyWrapper>,
-    ) -> Result<CodeBlock, Report>
+        mast_forest: &mut MastForest,
+    ) -> Result<MastNodeId, Report>
     where
         I: Iterator<Item = &'a ast::Op>,
     {
         use ast::Op;
 
-        let mut blocks: Vec<CodeBlock> = Vec::new();
-        let mut span = SpanBuilder::new(wrapper);
+        let mut mast_node_ids: Vec<MastNodeId> = Vec::new();
+        let mut basic_block_builder = BasicBlockBuilder::new(wrapper);
 
         for op in body {
             match op {
                 Op::Inst(inst) => {
-                    if let Some(block) = self.compile_instruction(inst, &mut span, context)? {
-                        span.extract_span_into(&mut blocks);
-                        blocks.push(block);
+                    if let Some(mast_node_id) = self.compile_instruction(
+                        inst,
+                        &mut basic_block_builder,
+                        context,
+                        mast_forest,
+                    )? {
+                        if let Some(basic_block_id) =
+                            basic_block_builder.make_basic_block(mast_forest)
+                        {
+                            mast_node_ids.push(basic_block_id);
+                        }
+
+                        mast_node_ids.push(mast_node_id);
                     }
                 }
 
                 Op::If {
                     then_blk, else_blk, ..
                 } => {
-                    span.extract_span_into(&mut blocks);
+                    if let Some(basic_block_id) = basic_block_builder.make_basic_block(mast_forest)
+                    {
+                        mast_node_ids.push(basic_block_id);
+                    }
 
-                    let then_blk = self.compile_body(then_blk.iter(), context, None)?;
+                    let then_blk =
+                        self.compile_body(then_blk.iter(), context, None, mast_forest)?;
                     // else is an exception because it is optional; hence, will have to be replaced
                     // by noop span
                     let else_blk = if else_blk.is_empty() {
-                        CodeBlock::new_span(vec![Operation::Noop])
+                        let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
+                        mast_forest.ensure_node(basic_block_node)
                     } else {
-                        self.compile_body(else_blk.iter(), context, None)?
+                        self.compile_body(else_blk.iter(), context, None, mast_forest)?
                     };
 
-                    let block = CodeBlock::new_split(then_blk, else_blk);
+                    let split_node_id = {
+                        let split_node = MastNode::new_split(then_blk, else_blk, mast_forest);
 
-                    blocks.push(block);
+                        mast_forest.ensure_node(split_node)
+                    };
+                    mast_node_ids.push(split_node_id);
                 }
 
                 Op::Repeat { count, body, .. } => {
-                    span.extract_span_into(&mut blocks);
+                    if let Some(basic_block_id) = basic_block_builder.make_basic_block(mast_forest)
+                    {
+                        mast_node_ids.push(basic_block_id);
+                    }
 
-                    let block = self.compile_body(body.iter(), context, None)?;
+                    let repeat_node_id =
+                        self.compile_body(body.iter(), context, None, mast_forest)?;
 
                     for _ in 0..*count {
-                        blocks.push(block.clone());
+                        mast_node_ids.push(repeat_node_id);
                     }
                 }
 
                 Op::While { body, .. } => {
-                    span.extract_span_into(&mut blocks);
+                    if let Some(basic_block_id) = basic_block_builder.make_basic_block(mast_forest)
+                    {
+                        mast_node_ids.push(basic_block_id);
+                    }
 
-                    let block = self.compile_body(body.iter(), context, None)?;
-                    let block = CodeBlock::new_loop(block);
+                    let loop_body_node_id =
+                        self.compile_body(body.iter(), context, None, mast_forest)?;
 
-                    blocks.push(block);
+                    let loop_node_id = {
+                        let loop_node = MastNode::new_loop(loop_body_node_id, mast_forest);
+                        mast_forest.ensure_node(loop_node)
+                    };
+                    mast_node_ids.push(loop_node_id);
                 }
             }
         }
 
-        span.extract_final_span_into(&mut blocks);
-        Ok(if blocks.is_empty() {
-            CodeBlock::new_span(vec![Operation::Noop])
+        if let Some(basic_block_id) = basic_block_builder.into_basic_block(mast_forest) {
+            mast_node_ids.push(basic_block_id);
+        }
+
+        Ok(if mast_node_ids.is_empty() {
+            let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
+            mast_forest.ensure_node(basic_block_node)
         } else {
-            combine_blocks(blocks)
+            combine_mast_node_ids(mast_node_ids, mast_forest)
         })
     }
 
@@ -755,6 +840,7 @@ impl Assembler {
         kind: InvokeKind,
         target: &InvocationTarget,
         context: &AssemblyContext,
+        mast_forest: &MastForest,
     ) -> Result<RpoDigest, AssemblyError> {
         let current_proc = context.unwrap_current_procedure();
         let caller = CallerInfo {
@@ -769,7 +855,7 @@ impl Assembler {
             ResolvedTarget::Exact { gid } | ResolvedTarget::Resolved { gid, .. } => Ok(self
                 .procedure_cache
                 .get(gid)
-                .map(|p| p.mast_root())
+                .map(|p| p.mast_root(mast_forest))
                 .expect("expected callee to have been compiled already")),
         }
     }
@@ -782,71 +868,36 @@ struct BodyWrapper {
     epilogue: Vec<Operation>,
 }
 
-fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
-    debug_assert!(!blocks.is_empty(), "cannot combine empty block list");
-    // merge consecutive Span blocks.
-    let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
-    // Keep track of all the consecutive Span blocks and are merged together when
-    // there is a discontinuity.
-    let mut contiguous_spans: Vec<CodeBlock> = Vec::new();
-
-    blocks.drain(0..).for_each(|block| {
-        if block.is_span() {
-            contiguous_spans.push(block);
-        } else {
-            if !contiguous_spans.is_empty() {
-                merged_blocks.push(combine_spans(&mut contiguous_spans));
-            }
-            merged_blocks.push(block);
-        }
-    });
-    if !contiguous_spans.is_empty() {
-        merged_blocks.push(combine_spans(&mut contiguous_spans));
-    }
+fn combine_mast_node_ids(
+    mut mast_node_ids: Vec<MastNodeId>,
+    mast_forest: &mut MastForest,
+) -> MastNodeId {
+    debug_assert!(!mast_node_ids.is_empty(), "cannot combine empty MAST node id list");
 
     // build a binary tree of blocks joining them using JOIN blocks
-    let mut blocks = merged_blocks;
-    while blocks.len() > 1 {
-        let last_block = if blocks.len() % 2 == 0 { None } else { blocks.pop() };
-
-        let mut source_blocks = Vec::new();
-        core::mem::swap(&mut blocks, &mut source_blocks);
-
-        let mut source_block_iter = source_blocks.drain(0..);
-        while let (Some(left), Some(right)) = (source_block_iter.next(), source_block_iter.next()) {
-            blocks.push(CodeBlock::new_join([left, right]));
-        }
-        if let Some(block) = last_block {
-            blocks.push(block);
-        }
-    }
-
-    debug_assert!(!blocks.is_empty(), "no blocks");
-    blocks.remove(0)
-}
-
-/// Combines a vector of SPAN blocks into a single SPAN block.
-///
-/// # Panics
-/// Panics if any of the provided blocks is not a SPAN block.
-fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
-    if spans.len() == 1 {
-        return spans.remove(0);
-    }
-
-    let mut ops = Vec::<Operation>::new();
-    let mut decorators = DecoratorList::new();
-    spans.drain(0..).for_each(|block| {
-        if let CodeBlock::Span(span) = block {
-            for decorator in span.decorators() {
-                decorators.push((decorator.0 + ops.len(), decorator.1.clone()));
-            }
-            for batch in span.op_batches() {
-                ops.extend_from_slice(batch.ops());
-            }
+    while mast_node_ids.len() > 1 {
+        let last_mast_node_id = if mast_node_ids.len() % 2 == 0 {
+            None
         } else {
-            panic!("CodeBlock was expected to be a Span Block, got {block:?}.");
+            mast_node_ids.pop()
+        };
+
+        let mut source_mast_node_ids = Vec::new();
+        core::mem::swap(&mut mast_node_ids, &mut source_mast_node_ids);
+
+        let mut source_mast_node_iter = source_mast_node_ids.drain(0..);
+        while let (Some(left), Some(right)) =
+            (source_mast_node_iter.next(), source_mast_node_iter.next())
+        {
+            let join_mast_node = MastNode::new_join(left, right, mast_forest);
+            let join_mast_node_id = mast_forest.ensure_node(join_mast_node);
+
+            mast_node_ids.push(join_mast_node_id);
         }
-    });
-    CodeBlock::new_span_with_decorators(ops, decorators)
+        if let Some(mast_node_id) = last_mast_node_id {
+            mast_node_ids.push(mast_node_id);
+        }
+    }
+
+    mast_node_ids.remove(0)
 }

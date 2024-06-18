@@ -52,6 +52,12 @@ assertion failed: `(left matches right)`
 pub mod chiplets;
 pub mod errors;
 
+mod program;
+pub use program::{Program, ProgramInfo};
+
+mod kernel;
+pub use kernel::Kernel;
+
 pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
     pub mod merkle {
@@ -82,6 +88,8 @@ pub mod crypto {
     }
 }
 
+pub mod mast;
+
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
     polynom, ExtensionOf, FieldElement, StarkField, ToElements,
@@ -90,9 +98,6 @@ pub use math::{
 pub mod prettier {
     pub use miden_formatting::{prettier::*, pretty_via_display, pretty_via_to_string};
 }
-
-mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};
 
 mod operations;
 pub use operations::{
