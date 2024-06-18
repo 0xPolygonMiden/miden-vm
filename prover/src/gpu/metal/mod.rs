@@ -15,15 +15,21 @@ use miden_gpu::{
     HashFn,
 };
 use pollster::block_on;
-use processor::{utils::group_vector_elements, ONE};
-use std::time::Instant;
+use processor::{
+    utils::group_vector_elements,
+    crypto::{ElementHasher, Hasher},
+    ONE,
+};
+use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
+use tracing::{event, Level};
+use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use winter_prover::{
     crypto::{Digest, MerkleTree},
     matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
     proof::Queries,
-    AuxTraceRandElements, CompositionPoly, CompositionPolyTrace, ConstraintCommitment,
+    CompositionPoly, CompositionPolyTrace, ConstraintCommitment,
     ConstraintCompositionCoefficients, DefaultConstraintEvaluator, EvaluationFrame, Prover,
-    StarkDomain, TraceInfo, TraceLayout, TraceLde, TracePolyTable,
+    StarkDomain, TraceInfo, TraceLde, TracePolyTable,
 };
 
 #[cfg(test)]
@@ -44,7 +50,7 @@ pub(crate) struct MetalExecutionProver<H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     pub execution_prover: ExecutionProver<H, R>,
     pub metal_hash_fn: HashFn,
@@ -55,7 +61,7 @@ impl<H, D, R> MetalExecutionProver<H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     pub fn new(execution_prover: ExecutionProver<H, R>, hash_fn: HashFn) -> Self {
         MetalExecutionProver {
@@ -122,7 +128,7 @@ impl<H, D, R> Prover for MetalExecutionProver<H, D, R>
 where
     H: Hasher<Digest = D> + ElementHasher<BaseField = R::BaseField>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
     type Air = ProcessorAir;
@@ -153,7 +159,7 @@ where
     fn new_evaluator<'a, E: FieldElement<BaseField = Felt>>(
         &self,
         air: &'a ProcessorAir,
-        aux_rand_elements: AuxTraceRandElements<E>,
+        aux_rand_elements: Option<AuxRandElements<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
         self.execution_prover
@@ -367,7 +373,7 @@ impl<
     /// This function will panic if any of the following are true:
     /// - the number of rows in the provided `aux_trace` does not match the main trace.
     /// - this segment would exceed the number of segments specified by the trace layout.
-    fn add_aux_segment(
+    fn set_aux_trace(
         &mut self,
         aux_trace: &ColMatrix<E>,
         domain: &StarkDomain<Felt>,
@@ -378,7 +384,7 @@ impl<
 
         // check errors
         assert!(
-            self.aux_segment_ldes.len() < self.trace_info.layout().num_aux_segments(),
+            self.aux_segment_ldes.len() < self.trace_info.num_aux_segments(),
             "the specified number of auxiliary segments has already been added"
         );
         assert_eq!(
@@ -449,9 +455,25 @@ impl<
         self.blowup
     }
 
-    /// Returns the trace layout of the execution trace.
-    fn trace_layout(&self) -> &TraceLayout {
-        self.trace_info.layout()
+    fn read_lagrange_kernel_frame_into(&self, lde_step: usize, col_idx: usize, frame: &mut LagrangeKernelEvaluationFrame<E>) {
+        let frame = frame.frame_mut();
+        frame.truncate(0);
+        let aux_segment = &self.aux_segment_ldes[0];
+
+        frame.push(aux_segment.get(col_idx, lde_step));
+
+        let frame_length = self.trace_info.length().ilog2() as usize + 1;
+        for i in 0..frame_length - 1 {
+            let shift = self.blowup() * (1 << i);
+            let next_lde_step = (lde_step + shift) % self.trace_len();
+
+            frame.push(aux_segment.get(col_idx, next_lde_step));
+        }
+    }
+
+    /// Returns the trace info
+    fn trace_info(&self) -> &TraceInfo {
+        &self.trace_info
     }
 }
 
