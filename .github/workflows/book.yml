@@ -3,29 +3,30 @@ name: miden book
 on:
   push:
     branches: [main, next]
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   deploy:
+    name: Check prover and winterfell packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-        with:
-          profile: minimal
-          override: true
-
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v1
-        with:
-          mdbook-version: "latest"
-
       - name: Install katex & linkcheck
-        run: cargo install mdbook-katex mdbook-linkcheck
+        run: |
+          rustup update --no-self-update stable
+          cargo +stable install mdbook-katex mdbook-linkcheck
 
-      - name: Build miden book
-        run: mdbook build docs/
+      # - name: Setup mdBook
+      #   uses: peaceiris/actions-mdbook@v1
+      #   with:
+      #     mdbook-version: "latest"
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/book/html
+      # - name: Build miden book
+      #   run: mdbook build docs/
+
+      # - name: Deploy to GitHub Pages
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./docs/book/html
