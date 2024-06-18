@@ -11,6 +11,7 @@ use crate::{
     ast::{AstSerdeOptions, Ident},
     diagnostics::{Report, SourceFile},
     sema::SemanticAnalysisError,
+    parser::ModuleParser,
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryNamespace, LibraryPath,
     Serializable, SourceSpan, Span, Spanned,
 };
@@ -276,13 +277,13 @@ impl Module {
         parser.parse(name, source_file)
     }
 
-    /// Get a [crate::parser::ModuleParser] for parsing modules of the provided [ModuleKind]
+    /// Get a [ModuleParser] for parsing modules of the provided [ModuleKind]
     ///
     /// This is mostly useful when you want tighter control over the parser configuration, otherwise
     /// it is generally more convenient to use [Module::parse_file] or [Module::parse_str] for most
     /// use cases.
-    pub fn parser(kind: ModuleKind) -> crate::parser::ModuleParser {
-        crate::parser::ModuleParser::new(kind)
+    pub fn parser(kind: ModuleKind) -> ModuleParser {
+        ModuleParser::new(kind)
     }
 }
 
@@ -371,7 +372,7 @@ impl Module {
         self.imports.iter()
     }
 
-    /// Same as [Self::imports()], but returns mutable references to each import.
+    /// Same as [Self::imports], but returns mutable references to each import.
     pub fn imports_mut(&mut self) -> core::slice::IterMut<'_, Import> {
         self.imports.iter_mut()
     }
