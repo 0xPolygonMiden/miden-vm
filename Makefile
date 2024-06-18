@@ -41,19 +41,27 @@ lint: format fix clippy ## Runs all linting tasks at once (Clippy, fixing, forma
 
 .PHONY: test
 test: ## Runs all tests
-	$(DEBUG_ASSERTIONS) cargo test --profile test-release --features internals
+	$(DEBUG_ASSERTIONS) cargo nextest run --cargo-profile test-release --features internals
 
 # --- docs ----------------------------------------------------------------------------------------
 
 .PHONY: doc
-doc: ## Generates & checks documentation 
+doc: ## Generates & checks documentation
 	$(WARNINGS) cargo doc --all-features --keep-going --release
 
 # --- building ------------------------------------------------------------------------------------
 
 .PHONY: build
-build: ## Builds VM with default profile and features
+build: ## Builds VM with optimized profile and features
 	cargo build --profile optimized $(FEATURES_CONCURRENT_EXEC)
+
+.PHONY: build-single
+build-single: ## Builds VM in single-threaded mode
+	cargo build --profile optimized --features executable
+
+.PHONY: build-release
+build-release: ## Builds VM with release mode and no optimizations
+	cargo build --release $(FEATURES_CONCURRENT_EXEC)
 
 .PHONY: build-metal
 build-metal: ## Builds VM for metal
