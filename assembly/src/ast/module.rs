@@ -276,7 +276,7 @@ impl Module {
         parser.parse(name, source_file)
     }
 
-    /// Get a [ModuleParser] for parsing modules of the provided [ModuleKind]
+    /// Get a [crate::parser::ModuleParser] for parsing modules of the provided [ModuleKind]
     ///
     /// This is mostly useful when you want tighter control over the parser configuration, otherwise
     /// it is generally more convenient to use [Module::parse_file] or [Module::parse_str] for most
@@ -371,7 +371,7 @@ impl Module {
         self.imports.iter()
     }
 
-    /// Same as [imports], but returns mutable references to each import.
+    /// Same as [Self::imports()], but returns mutable references to each import.
     pub fn imports_mut(&mut self) -> core::slice::IterMut<'_, Import> {
         self.imports.iter_mut()
     }

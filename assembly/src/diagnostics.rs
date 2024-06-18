@@ -24,7 +24,7 @@ pub struct Label {
 
 impl Label {
     /// Construct a label for the given range of bytes, expressible as any type which can be
-    /// converted to a [`Range<usize>`], e.g. [SourceSpan].
+    /// converted to a [`Range<usize>`], e.g. [miette::SourceSpan].
     pub fn at<R>(range: R) -> Self
     where
         Range<usize>: From<R>,
@@ -327,7 +327,7 @@ pub mod reporting {
     #[cfg(not(feature = "std"))]
     pub type DefaultReportHandler = miette::DebugReportHandler;
 
-    /// A type that can be used to render a [Diagnostic] via [core::fmt::Display]
+    /// A type that can be used to render a [super::Diagnostic] via [core::fmt::Display]
     pub struct PrintDiagnostic<D, R = DefaultReportHandler> {
         handler: R,
         diag: D,

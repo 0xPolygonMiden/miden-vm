@@ -87,11 +87,11 @@ impl Options {
 /// * A [Module] which was previously compiled or read from a [crate::Library].
 /// * A string representing the source code of a [Module].
 /// * A path to a file containing the source code of a [Module].
-/// * A vector of [Form]s comprising the contents of a [Module].
+/// * A vector of [crate::ast::Form]s comprising the contents of a [Module].
 pub trait Compile: Sized {
     /// Compile (or convert) `self` into an executable [Module].
     ///
-    /// See [Compile::compile_with_opts] for more details.
+    /// See [Compile::compile_with_options()] for more details.
     #[inline]
     fn compile(self) -> Result<Box<Module>, Report> {
         self.compile_with_options(Options::default())
