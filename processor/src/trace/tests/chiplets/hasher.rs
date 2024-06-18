@@ -428,7 +428,7 @@ fn b_chip_mpverify() {
     let advice_inputs = AdviceInputs::default().with_merkle_store(store);
 
     let trace =
-        build_trace_from_ops_with_inputs(vec![Operation::MpVerify], stack_inputs, advice_inputs);
+        build_trace_from_ops_with_inputs(vec![Operation::MpVerify(0)], stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);

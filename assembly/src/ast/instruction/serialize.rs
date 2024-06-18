@@ -76,9 +76,25 @@ impl Serializable for Instruction {
             }
             Self::Eqw => OpCode::Eqw.write_into(target),
             Self::Lt => OpCode::Lt.write_into(target),
+            Self::LtImm(v) => {
+                OpCode::LtImm.write_into(target);
+                v.expect_value().write_into(target);
+            }
             Self::Lte => OpCode::Lte.write_into(target),
+            Self::LteImm(v) => {
+                OpCode::LteImm.write_into(target);
+                v.expect_value().write_into(target);
+            }
             Self::Gt => OpCode::Gt.write_into(target),
+            Self::GtImm(v) => {
+                OpCode::GtImm.write_into(target);
+                v.expect_value().write_into(target);
+            }
             Self::Gte => OpCode::Gte.write_into(target),
+            Self::GteImm(v) => {
+                OpCode::GteImm.write_into(target);
+                v.expect_value().write_into(target);
+            }
             Self::IsOdd => OpCode::IsOdd.write_into(target),
 
             // ----- ext2 operations --------------------------------------------------------------
@@ -386,6 +402,10 @@ impl Serializable for Instruction {
             Self::MTreeSet => OpCode::MTreeSet.write_into(target),
             Self::MTreeMerge => OpCode::MTreeMerge.write_into(target),
             Self::MTreeVerify => OpCode::MTreeVerify.write_into(target),
+            Self::MTreeVerifyWithError(err_code) => {
+                OpCode::MTreeVerifyWithError.write_into(target);
+                target.write_u32(err_code.expect_value());
+            }
 
             // ----- STARK proof verification -----------------------------------------------------
             Self::FriExt2Fold4 => OpCode::FriExt2Fold4.write_into(target),

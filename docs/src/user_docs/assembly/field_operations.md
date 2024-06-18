@@ -23,7 +23,7 @@ If the error code is omitted, the default value of $0$ is assumed.
 
 ### Arithmetic and Boolean operations
 
-The arithmetic operations below are performed in a 64-bit [prime filed](https://en.wikipedia.org/wiki/Finite_field) defined by modulus $p = 2^{64} - 2^{32} + 1$. This means that overflow happens after a value exceeds $p$. Also, the result of divisions may appear counter-intuitive because divisions are defined via inversions.
+The arithmetic operations below are performed in a 64-bit [prime field](https://en.wikipedia.org/wiki/Finite_field) defined by modulus $p = 2^{64} - 2^{32} + 1$. This means that overflow happens after a value exceeds $p$. Also, the result of divisions may appear counter-intuitive because divisions are defined via inversions.
 
 | Instruction                                                                    | Stack_input | Stack_output  | Notes                                                                                                        |
 | ------------------------------------------------------------------------------ | ----------- | ------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -45,12 +45,12 @@ The arithmetic operations below are performed in a 64-bit [prime filed](https://
 
 | Instruction                                                | Stack_input | Stack_output   | Notes                                                                                                                        |
 | ---------------------------------------------------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| eq <br> - *(1 cycle)*  <br> eq.*b* <br> - *(1-2 cycles)*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a=b \\ 0, & \text{otherwise}\ \end{cases}$                                       |
-| neq <br> - *(2 cycle)*  <br> neq.*b* <br> - *(2-3 cycles)* | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$                                   |
-| lt <br> - *(14 cycles)*                                    | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$                                     |
-| lte <br> - *(15 cycles)*                                   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$                                   |
-| gt <br> - *(15 cycles)*                                    | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$                                     |
-| gte <br> - *(16 cycles)*                                   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$                                   |
+| eq <br> - *(1 cycle)* <br> eq.*b* <br> - *(1-2 cycles)*    | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a=b \\ 0, & \text{otherwise}\ \end{cases}$                                       |
+| neq <br> - *(2 cycle)* <br> neq.*b* <br> - *(2-3 cycles)*  | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$                                   |
+| lt <br> - *(14 cycles)* <br> lt.*b* <br> - *(15 cycles)*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$                                     |
+| lte <br> - *(15 cycles)* <br> lte.*b* <br> - *(16 cycles)* | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$                                   |
+| gt <br> - *(15 cycles)* <br> gt.*b* <br> - *(16 cycles)*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$                                     |
+| gte <br> - *(16 cycles)* <br> gte.*b* <br> - *(17 cycles)* | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$                                   |
 | is_odd <br> - *(5 cycles)*                                 | [a, ...]    | [b, ...]       | $b \leftarrow \begin{cases} 1, & \text{if}\ a \text{ is odd} \\ 0, & \text{otherwise}\ \end{cases}$                          |
 | eqw <br> - *(15 cycles)*                                   | [A, B, ...] | [c, A, B, ...] | $c \leftarrow \begin{cases} 1, & \text{if}\ a_i = b_i \; \forall i \in \{0, 1, 2, 3\} \\ 0, & \text{otherwise}\ \end{cases}$ |
 

@@ -118,7 +118,7 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) {
     let ops = [
         // verify the node V for root R with depth d and index i
         // => [V, d, i, R, ...]
-        MpVerify,
+        MpVerify(0),
 
         // move d, i back to the top of the stack and are dropped since they are
         // no longer needed => [V, R, ...]
@@ -170,21 +170,6 @@ pub(super) fn mtree_merge(span: &mut SpanBuilder) {
 
     // perform the `hmerge`, updating the operand stack
     hmerge(span);
-}
-
-/// Verifies if the node value `V`, on depth `d` and index `i` opens to the root `R` of a Merkle
-/// tree by appending a [Operation::MpVerify]. The stack is expected to be arranged as follows
-/// (from the top):
-/// - node value `V`, 4 elements
-/// - depth of the node `d`, 1 element
-/// - index of the node `i`, 1 element
-/// - root of the tree `R`, 4 elements
-///
-/// After the operation is executed, the stack remains unchanged.
-///
-/// This operation takes 1 VM cycle.
-pub(super) fn mtree_verify(span: &mut SpanBuilder) {
-    span.push_op(MpVerify);
 }
 
 // MERKLE TREES - HELPERS
