@@ -9,6 +9,7 @@ use crate::{
     WinterProofOptions,
 };
 
+use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use elsa::FrozenVec;
 use miden_gpu::{
     metal::{build_merkle_tree, utils::page_aligned_uninit_vector, RowHasher},
@@ -22,14 +23,13 @@ use processor::{
 };
 use std::{boxed::Box, marker::PhantomData, time::Instant, vec::Vec};
 use tracing::{event, Level};
-use air::{AuxRandElements, LagrangeKernelEvaluationFrame};
 use winter_prover::{
     crypto::{Digest, MerkleTree},
     matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
     proof::Queries,
-    CompositionPoly, CompositionPolyTrace, ConstraintCommitment,
-    ConstraintCompositionCoefficients, DefaultConstraintEvaluator, EvaluationFrame, Prover,
-    StarkDomain, TraceInfo, TraceLde, TracePolyTable,
+    CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
+    DefaultConstraintEvaluator, EvaluationFrame, Prover, StarkDomain, TraceInfo, TraceLde,
+    TracePolyTable,
 };
 
 #[cfg(test)]
@@ -455,7 +455,12 @@ impl<
         self.blowup
     }
 
-    fn read_lagrange_kernel_frame_into(&self, lde_step: usize, col_idx: usize, frame: &mut LagrangeKernelEvaluationFrame<E>) {
+    fn read_lagrange_kernel_frame_into(
+        &self,
+        lde_step: usize,
+        col_idx: usize,
+        frame: &mut LagrangeKernelEvaluationFrame<E>,
+    ) {
         let frame = frame.frame_mut();
         frame.truncate(0);
         let aux_segment = &self.aux_segment_ldes[0];
