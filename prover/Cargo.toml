@@ -26,6 +26,5 @@ winter-prover = { package = "winter-prover", version = "0.9", default-features =
 
 [target.'cfg(all(target_arch = "aarch64", target_os = "macos"))'.dependencies]
 elsa = { version = "1.9", optional = true }
-# miden-gpu = { version = "0.1", optional = true }
-miden-gpu = { path = "../../miden-gpu", optional = true }
+miden-gpu = { version = "0.1", optional = true }
 pollster = { version = "0.3", optional = true }
