@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    name: Check prover and winterfell packages
+    name: Deploy miden-vm mdbook
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
@@ -17,16 +17,16 @@ jobs:
           rustup update --no-self-update stable
           cargo +stable install mdbook-katex mdbook-linkcheck
 
-      # - name: Setup mdBook
-      #   uses: peaceiris/actions-mdbook@v1
-      #   with:
-      #     mdbook-version: "latest"
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: "latest"
 
-      # - name: Build miden book
-      #   run: mdbook build docs/
+      - name: Build miden book
+        run: mdbook build docs/
 
-      # - name: Deploy to GitHub Pages
-      #   uses: peaceiris/actions-gh-pages@v3
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     publish_dir: ./docs/book/html
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/book/html
