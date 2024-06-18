@@ -9,27 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
-            override: true
+          profile: minimal
+          override: true
 
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
-          mdbook-version: 'latest'
+          mdbook-version: "latest"
 
-      - name: Install mdbook-katex
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: mdbook-katex
-
-      - name: Install mdbook-linkcheck
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: mdbook-linkcheck
+      - name: Install katex & linkcheck
+        run: cargo install mdbook-katex mdbook-linkcheck
 
       - name: Build miden book
         run: mdbook build docs/
