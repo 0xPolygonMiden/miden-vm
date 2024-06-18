@@ -1,7 +1,6 @@
 use alloc::string::String;
 
 use miden_formatting::hex::DisplayHex;
-use miette::Diagnostic;
 
 // INPUT ERROR
 // ================================================================================================
@@ -45,9 +44,8 @@ pub enum KernelError {
 // PROGRAM ERROR
 // ================================================================================================
 
-#[derive(Clone, Debug, thiserror::Error, Diagnostic)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum ProgramError {
     #[error("tried to create a program from a MAST forest with no entrypoint")]
-    #[diagnostic()]
     NoEntrypoint,
 }

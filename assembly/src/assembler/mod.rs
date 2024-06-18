@@ -9,6 +9,7 @@ use crate::{
     RpoDigest, Spanned, ONE, ZERO,
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
+use miette::miette;
 use vm_core::{
     mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     Decorator, DecoratorList, Kernel, Operation, Program,
@@ -334,7 +335,7 @@ impl Assembler {
     pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
         let mast_forest = self.assemble(source)?;
 
-        Ok(mast_forest.try_into()?)
+        Ok(mast_forest.try_into().map_err(|program_err| miette!("{program_err}"))?)
     }
 
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
