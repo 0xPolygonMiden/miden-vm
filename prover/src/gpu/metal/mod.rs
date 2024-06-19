@@ -275,9 +275,9 @@ pub struct MetalTraceLde<E: FieldElement<BaseField = Felt>, H: Hasher> {
     // commitment to the main segment of the trace
     main_segment_tree: MerkleTree<H>,
     // low-degree extensions of the auxiliary segments of the trace
-    aux_segment_ldes: Vec<RowMatrix<E>>,
+    aux_segment_lde: Option<RowMatrix<E>>,
     // commitment to the auxiliary segments of the trace
-    aux_segment_trees: Vec<MerkleTree<H>>,
+    aux_segment_tree: Option<MerkleTree<H>>,
     blowup: usize,
     trace_info: TraceInfo,
     metal_hash_fn: HashFn,
@@ -310,8 +310,8 @@ impl<
         let trace_lde = MetalTraceLde {
             main_segment_lde,
             main_segment_tree,
-            aux_segment_ldes: Vec::new(),
-            aux_segment_trees: Vec::new(),
+            aux_segment_lde: None,
+            aux_segment_tree: None,
             blowup: domain.trace_to_lde_blowup(),
             trace_info: trace_info.clone(),
             metal_hash_fn,
@@ -382,11 +382,6 @@ impl<
         let (aux_segment_lde, aux_segment_tree, aux_segment_polys) =
             build_trace_commitment::<E, H, D>(aux_trace, domain, self.metal_hash_fn);
 
-        // check errors
-        assert!(
-            self.aux_segment_ldes.len() < self.trace_info.num_aux_segments(),
-            "the specified number of auxiliary segments has already been added"
-        );
         assert_eq!(
             self.main_segment_lde.num_rows(),
             aux_segment_lde.num_rows(),
@@ -394,9 +389,9 @@ impl<
         );
 
         // save the lde and commitment
-        self.aux_segment_ldes.push(aux_segment_lde);
+        self.aux_segment_lde = Some(aux_segment_lde);
         let root_hash = *aux_segment_tree.root();
-        self.aux_segment_trees.push(aux_segment_tree);
+        self.aux_segment_tree = Some(aux_segment_tree);
 
         (aux_segment_polys, root_hash)
     }
@@ -421,9 +416,10 @@ impl<
         let next_lde_step = (lde_step + self.blowup()) % self.trace_len();
 
         // copy auxiliary trace segment values into the frame
-        let segment = &self.aux_segment_ldes[0];
-        frame.current_mut().copy_from_slice(segment.row(lde_step));
-        frame.next_mut().copy_from_slice(segment.row(next_lde_step));
+        self.aux_segment_lde.as_ref().map(|mat| {
+            frame.current_mut().copy_from_slice(mat.row(lde_step));
+            frame.next_mut().copy_from_slice(mat.row(next_lde_step));
+        });
     }
 
     /// Returns trace table rows at the specified positions along with Merkle authentication paths
@@ -436,10 +432,10 @@ impl<
             positions,
         )];
 
-        // build queries for auxiliary trace segments
-        for (i, segment_tree) in self.aux_segment_trees.iter().enumerate() {
-            let segment_lde = &self.aux_segment_ldes[i];
-            result.push(build_segment_queries(segment_lde, segment_tree, positions));
+        if let (Some(aux_segment_lde), Some(aux_segment_tree)) =
+            (&self.aux_segment_lde, &self.aux_segment_tree)
+        {
+            result.push(build_segment_queries(aux_segment_lde, aux_segment_tree, positions));
         }
 
         result
@@ -465,19 +461,20 @@ impl<
         col_idx: usize,
         frame: &mut LagrangeKernelEvaluationFrame<E>,
     ) {
-        let frame = frame.frame_mut();
-        frame.truncate(0);
-        let aux_segment = &self.aux_segment_ldes[0];
+        self.aux_segment_lde.as_ref().map(|aux_segment| {
+            let frame = frame.frame_mut();
+            frame.truncate(0);
 
-        frame.push(aux_segment.get(col_idx, lde_step));
+            frame.push(aux_segment.get(col_idx, lde_step));
 
-        let frame_length = self.trace_info.length().ilog2() as usize + 1;
-        for i in 0..frame_length - 1 {
-            let shift = self.blowup() * (1 << i);
-            let next_lde_step = (lde_step + shift) % self.trace_len();
+            let frame_length = self.trace_info.length().ilog2() as usize + 1;
+            for i in 0..frame_length - 1 {
+                let shift = self.blowup() * (1 << i);
+                let next_lde_step = (lde_step + shift) % self.trace_len();
 
-            frame.push(aux_segment.get(col_idx, next_lde_step));
-        }
+                frame.push(aux_segment.get(col_idx, next_lde_step));
+            }
+        });
     }
 
     /// Returns the trace info
