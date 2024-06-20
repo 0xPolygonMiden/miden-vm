@@ -1,5 +1,5 @@
 use super::{Example, ONE, ZERO};
-use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, ProvingOptions, StackInputs};
 
 // EXAMPLE BUILDER
 // ================================================================================================
@@ -67,4 +67,10 @@ fn test_fib_example() {
 fn test_fib_example_fail() {
     let example = get_example(16);
     super::test_example(example, true);
+}
+
+#[test]
+fn test_fib_example_rpo() {
+    let example = get_example(16);
+    super::test_example_with_options(example, false, ProvingOptions::with_96_bit_security(true));
 }
