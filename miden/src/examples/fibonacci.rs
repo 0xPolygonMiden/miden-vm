@@ -1,5 +1,7 @@
 use super::{Example, ONE, ZERO};
-use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, ProvingOptions, StackInputs};
+use miden_vm::{
+    math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, ProvingOptions, StackInputs,
+};
 
 // EXAMPLE BUILDER
 // ================================================================================================

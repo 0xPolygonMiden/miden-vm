@@ -86,8 +86,9 @@ where
             // if we will fill the entire segment, we allocate uninitialized memory
             unsafe { page_aligned_uninit_vector(domain_size) }
         } else {
-            // but if some columns in the segment will remain unfilled, we allocate memory initialized
-            // to zeros to make sure we don't end up with memory with undefined values
+            // but if some columns in the segment will remain unfilled, we allocate memory
+            // initialized to zeros to make sure we don't end up with memory with
+            // undefined values
             group_vector_elements(Felt::zeroed_vector(N * domain_size))
         };
 
@@ -197,7 +198,11 @@ where
         let blowup = domain.trace_to_lde_blowup();
         let offsets =
             get_evaluation_offsets::<E>(composition_poly.column_len(), blowup, domain.offset());
-        let segments = Self::build_aligned_segements(composition_poly.data(), domain.trace_twiddles(), &offsets);
+        let segments = Self::build_aligned_segements(
+            composition_poly.data(),
+            domain.trace_twiddles(),
+            &offsets,
+        );
         event!(
             Level::INFO,
             "Evaluated {} composition polynomial columns over LDE domain (2^{} elements) in {} ms",

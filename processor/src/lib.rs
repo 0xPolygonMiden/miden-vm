@@ -255,6 +255,9 @@ where
             MastNode::Loop(node) => self.execute_loop_node(node, program),
             MastNode::Call(node) => self.execute_call_node(node, program),
             MastNode::Dyn => self.execute_dyn_node(program),
+            MastNode::External(_node) => {
+                todo!()
+            }
         }
     }
 
