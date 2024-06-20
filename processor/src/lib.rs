@@ -255,8 +255,16 @@ where
             MastNode::Loop(node) => self.execute_loop_node(node, program),
             MastNode::Call(node) => self.execute_call_node(node, program),
             MastNode::Dyn => self.execute_dyn_node(program),
-            MastNode::External(_node) => {
-                todo!()
+            MastNode::External(node) => {
+                let mast_forest = self
+                    .host
+                    .borrow()
+                    .get_mast_forest(&node.digest())
+                    .ok_or_else(|| ExecutionError::MastForestNotFound {
+                        root_digest: node.digest(),
+                    })?;
+                let node_id = mast_forest.find_root(node.digest()).expect(format!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", node.digest()).as_str());
+                self.execute_mast_node(node_id, mast_forest)
             }
         }
     }

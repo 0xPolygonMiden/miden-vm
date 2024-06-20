@@ -142,6 +142,11 @@ impl MastForest {
     pub fn find_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
         self.roots.iter().find(|&&root_id| self[root_id].digest() == digest).copied()
     }
+
+    /// Returns an iterator over the digest of the procedures in this MAST forest.
+    pub fn roots(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+        self.roots.iter().map(|&root_id| self[root_id].digest())
+    }
 }
 
 impl Index<MastNodeId> for MastForest {

@@ -1,12 +1,21 @@
 use super::{ExecutionError, Felt, ProcessState};
 use crate::MemAdviceProvider;
-use vm_core::{crypto::merkle::MerklePath, AdviceInjector, DebugOptions, Word};
+use alloc::sync::Arc;
+use mast_forest_store::MemMastForestStore;
+use vm_core::{
+    crypto::{hash::RpoDigest, merkle::MerklePath},
+    mast::MastForest,
+    AdviceInjector, DebugOptions, Word,
+};
 
 pub(super) mod advice;
 use advice::{AdviceExtractor, AdviceProvider};
 
 #[cfg(feature = "std")]
 mod debug;
+
+mod mast_forest_store;
+pub use mast_forest_store::MastForestStore;
 
 // HOST TRAIT
 // ================================================================================================
@@ -25,18 +34,22 @@ pub trait Host {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the requested advice, specified by [AdviceExtractor], from the host to the VM.
-    fn get_advice<S: ProcessState>(
+    fn get_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError>;
 
     /// Sets the requested advice, specified by [AdviceInjector], on the host.
-    fn set_advice<S: ProcessState>(
+    fn set_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError>;
+
+    /// Returns MAST forest corresponding to the specified digest, or None if the MAST forest for
+    /// this digest could not be found in this [Host].
+    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>>;
 
     // PROVIDED METHODS
     // --------------------------------------------------------------------------------------------
@@ -182,6 +195,10 @@ where
         H::set_advice(self, process, injector)
     }
 
+    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+        H::get_mast_forest(self, node_digest)
+    }
+
     fn on_debug<S: ProcessState>(
         &mut self,
         process: &S,
@@ -264,21 +281,30 @@ impl From<HostResponse> for Felt {
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A> {
+pub struct DefaultHost<A, S> {
     adv_provider: A,
+    store: S,
 }
 
-impl Default for DefaultHost<MemAdviceProvider> {
+impl Default for DefaultHost<MemAdviceProvider, MemMastForestStore> {
     fn default() -> Self {
         Self {
             adv_provider: MemAdviceProvider::default(),
+            store: MemMastForestStore::default(),
         }
     }
 }
 
-impl<A: AdviceProvider> DefaultHost<A> {
-    pub fn new(adv_provider: A) -> Self {
-        Self { adv_provider }
+impl<A, S> DefaultHost<A, S>
+where
+    A: AdviceProvider,
+    S: MastForestStore,
+{
+    pub fn new(adv_provider: A, store: S) -> Self {
+        Self {
+            adv_provider,
+            store,
+        }
     }
 
     #[cfg(any(test, feature = "internals"))]
@@ -296,20 +322,28 @@ impl<A: AdviceProvider> DefaultHost<A> {
     }
 }
 
-impl<A: AdviceProvider> Host for DefaultHost<A> {
-    fn get_advice<S: ProcessState>(
+impl<A, S> Host for DefaultHost<A, S>
+where
+    A: AdviceProvider,
+    S: MastForestStore,
+{
+    fn get_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.get_advice(process, &extractor)
     }
 
-    fn set_advice<S: ProcessState>(
+    fn set_advice<P: ProcessState>(
         &mut self,
-        process: &S,
+        process: &P,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
+    }
+
+    fn get_mast_forest(&self, node_digest: &RpoDigest) -> Option<Arc<MastForest>> {
+        self.store.get(node_digest)
     }
 }
