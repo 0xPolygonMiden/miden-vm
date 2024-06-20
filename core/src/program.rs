@@ -68,7 +68,7 @@ impl Program {
     /// forest that hashes to this digest, then its id is returned.
     #[inline(always)]
     pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
-        self.mast_forest.get_node_id_by_digest(digest)
+        self.mast_forest.find_root(digest)
     }
 }
 

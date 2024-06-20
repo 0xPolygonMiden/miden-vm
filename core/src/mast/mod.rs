@@ -1,6 +1,6 @@
 use core::{fmt, ops::Index};
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::vec::Vec;
 use miden_crypto::hash::rpo::RpoDigest;
 
 mod node;
@@ -20,6 +20,7 @@ pub trait MerkleTreeNode {
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
 }
 
+// TODOP: Remove `PartialEq/Eq` impls
 /// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
 /// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
 ///
@@ -40,9 +41,11 @@ impl fmt::Display for MastNodeId {
 
 #[derive(Clone, Debug, Default)]
 pub struct MastForest {
-    /// All of the blocks local to the trees comprising the MAST forest
+    /// All of the blocks local to the trees comprising the MAST forest.
     nodes: Vec<MastNode>,
-    node_id_by_hash: BTreeMap<RpoDigest, MastNodeId>,
+
+    /// Roots of all procedures defined within this MAST forest.
+    roots: Vec<MastNodeId>,
 
     /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
     /// node to all other roots in the forest. This corresponds to the executable entry point.
@@ -63,26 +66,23 @@ impl MastForest {
 /// Mutators
 impl MastForest {
     /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
-    ///
-    /// If a [`MastNode`] which is equal to the current node was previously added, the previously
-    /// returned [`MastNodeId`] will be returned. This enforces this invariant that equal
-    /// [`MastNode`]s have equal [`MastNodeId`]s.
-    pub fn ensure_node(&mut self, node: MastNode) -> MastNodeId {
-        let node_digest = node.digest();
+    pub fn add_node(&mut self, node: MastNode) -> MastNodeId {
+        let new_node_id = MastNodeId(
+            self.nodes
+                .len()
+                .try_into()
+                .expect("invalid node id: exceeded maximum number of nodes in a single forest"),
+        );
 
-        if let Some(node_id) = self.node_id_by_hash.get(&node_digest) {
-            // node already exists in the forest; return previously assigned id
-            *node_id
-        } else {
-            let new_node_id =
-                MastNodeId(self.nodes.len().try_into().expect(
-                    "invalid node id: exceeded maximum number of nodes in a single forest",
-                ));
+        self.nodes.push(node);
 
-            self.node_id_by_hash.insert(node_digest, new_node_id);
-            self.nodes.push(node);
+        new_node_id
+    }
 
-            new_node_id
+    // TODOP: Document
+    pub fn ensure_root(&mut self, new_root_id: MastNodeId) {
+        if !self.roots.contains(&new_root_id) {
+            self.roots.push(new_root_id);
         }
     }
 
@@ -92,15 +92,17 @@ impl MastForest {
     /// must be present in this forest.
     pub fn set_kernel(&mut self, kernel: Kernel) {
         #[cfg(debug_assertions)]
-        for proc_hash in kernel.proc_hashes() {
-            assert!(self.node_id_by_hash.contains_key(proc_hash));
+        for &proc_hash in kernel.proc_hashes() {
+            assert!(self.find_root(proc_hash).is_some());
         }
 
         self.kernel = kernel;
     }
 
-    /// Sets the entrypoint for this forest.
+    /// Sets the entrypoint for this forest. This also ensures that the entrypoint is a root in the
+    /// forest.
     pub fn set_entrypoint(&mut self, entrypoint: MastNodeId) {
+        self.ensure_root(entrypoint);
         self.entrypoint = Some(entrypoint);
     }
 }
@@ -133,13 +135,10 @@ impl MastForest {
         self.nodes.get(idx)
     }
 
-    /// Returns the [`MastNodeId`] associated with a given digest, if any.
-    ///
-    /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
-    /// forest that hashes to this digest, then its id is returned.
+    /// Returns the [`MastNodeId`] of the procedure associated with a given digest, if any.
     #[inline(always)]
-    pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
-        self.node_id_by_hash.get(&digest).copied()
+    pub fn find_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+        self.roots.iter().find(|&&root_id| self[root_id].digest() == digest).copied()
     }
 }
 

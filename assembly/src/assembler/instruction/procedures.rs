@@ -88,7 +88,7 @@ impl Assembler {
             // `MastForest` contains all the procedures being called; "external procedures" only
             // known by digest are not currently supported.
             let callee_id = mast_forest
-                .get_node_id_by_digest(mast_root)
+                .find_root(mast_root)
                 .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
 
             match kind {
@@ -98,12 +98,12 @@ impl Assembler {
                 // For `call`, we just use the corresponding CALL block
                 InvokeKind::Call => {
                     let node = MastNode::new_call(callee_id, mast_forest);
-                    mast_forest.ensure_node(node)
+                    mast_forest.add_node(node)
                 }
                 // For `syscall`, we just use the corresponding SYSCALL block
                 InvokeKind::SysCall => {
                     let node = MastNode::new_syscall(callee_id, mast_forest);
-                    mast_forest.ensure_node(node)
+                    mast_forest.add_node(node)
                 }
             }
         };
@@ -116,7 +116,7 @@ impl Assembler {
         &self,
         mast_forest: &mut MastForest,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
-        let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
+        let dyn_node_id = mast_forest.add_node(MastNode::Dyn);
 
         Ok(Some(dyn_node_id))
     }
@@ -127,10 +127,10 @@ impl Assembler {
         mast_forest: &mut MastForest,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         let dyn_call_node_id = {
-            let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
+            let dyn_node_id = mast_forest.add_node(MastNode::Dyn);
             let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest);
 
-            mast_forest.ensure_node(dyn_call_node)
+            mast_forest.add_node(dyn_call_node)
         };
 
         Ok(Some(dyn_call_node_id))

@@ -120,7 +120,7 @@ fn build_trace(
         let mut mast_forest = MastForest::new();
 
         let basic_block = MastNode::new_basic_block(operations);
-        let basic_block_id = mast_forest.ensure_node(basic_block);
+        let basic_block_id = mast_forest.add_node(basic_block);
         mast_forest.set_entrypoint(basic_block_id);
 
         mast_forest.try_into().unwrap()
