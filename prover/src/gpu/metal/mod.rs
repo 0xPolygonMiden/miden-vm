@@ -17,7 +17,6 @@ use miden_gpu::{
 };
 use pollster::block_on;
 use processor::{
-    utils::group_vector_elements,
     crypto::{ElementHasher, Hasher},
     ONE,
 };
@@ -94,7 +93,7 @@ where
         } else {
             // but if some columns in the segment will remain unfilled, we allocate memory initialized
             // to zeros to make sure we don't end up with memory with undefined values
-            group_vector_elements(Felt::zeroed_vector(N * domain_size))
+            vec![[E::ZERO; N]; N * domain_size]
         };
 
         Segment::new_with_buffer(data, polys, poly_offset, offsets, twiddles)
