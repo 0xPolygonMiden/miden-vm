@@ -93,7 +93,7 @@ where
         } else {
             // but if some columns in the segment will remain unfilled, we allocate memory initialized
             // to zeros to make sure we don't end up with memory with undefined values
-            vec![[E::ZERO; N]; N * domain_size]
+            vec![[E::BaseField::ZERO; N]; domain_size]
         };
 
         Segment::new_with_buffer(data, polys, poly_offset, offsets, twiddles)
