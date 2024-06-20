@@ -194,7 +194,6 @@ where
     }
 }
 
-
 #[cfg(test)]
 pub fn test_example<H>(example: Example<H>, fail: bool)
 where
