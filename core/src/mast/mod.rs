@@ -47,6 +47,8 @@ pub struct MastForest {
     /// Roots of all procedures defined within this MAST forest.
     roots: Vec<MastNodeId>,
 
+    // TODOP: Move fields to `Program`
+
     /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
     /// node to all other roots in the forest. This corresponds to the executable entry point.
     /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
