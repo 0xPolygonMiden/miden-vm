@@ -173,68 +173,72 @@ where
 }
 
 #[cfg(test)]
-impl Process<super::DefaultHost<super::MemAdviceProvider>> {
-    // TEST METHODS
-    // --------------------------------------------------------------------------------------------
+pub mod tests {
+    use super::*;
+    use miden_air::ExecutionOptions;
+    use vm_core::StackInputs;
 
-    /// Instantiates a new blank process for testing purposes. The stack in the process is
-    /// initialized with the provided values.
-    fn new_dummy(stack_inputs: super::StackInputs) -> Self {
-        let host = super::DefaultHost::default();
-        let mut process =
-            Self::new(Kernel::default(), stack_inputs, host, super::ExecutionOptions::default());
-        process.execute_op(Operation::Noop).unwrap();
-        process
-    }
+    use crate::{AdviceInputs, DefaultHost, MemAdviceProvider, MemMastForestStore};
 
-    /// Instantiates a new blank process for testing purposes.
-    fn new_dummy_with_empty_stack() -> Self {
-        let stack = super::StackInputs::default();
-        Self::new_dummy(stack)
-    }
+    impl Process<DefaultHost<MemAdviceProvider, MemMastForestStore>> {
+        /// Instantiates a new blank process for testing purposes. The stack in the process is
+        /// initialized with the provided values.
+        pub fn new_dummy(stack_inputs: StackInputs) -> Self {
+            let host = DefaultHost::default();
+            let mut process =
+                Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+            process.execute_op(Operation::Noop).unwrap();
+            process
+        }
 
-    /// Instantiates a new process with an advice stack for testing purposes.
-    fn new_dummy_with_advice_stack(advice_stack: &[u64]) -> Self {
-        let stack_inputs = super::StackInputs::default();
-        let advice_inputs = super::AdviceInputs::default()
-            .with_stack_values(advice_stack.iter().copied())
-            .unwrap();
-        let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let host = super::DefaultHost::new(advice_provider);
-        let mut process =
-            Self::new(Kernel::default(), stack_inputs, host, super::ExecutionOptions::default());
-        process.execute_op(Operation::Noop).unwrap();
-        process
-    }
+        /// Instantiates a new blank process for testing purposes.
+        pub fn new_dummy_with_empty_stack() -> Self {
+            let stack = StackInputs::default();
+            Self::new_dummy(stack)
+        }
 
-    /// Instantiates a new blank process with one decoder trace row for testing purposes. This
-    /// allows for setting helpers in the decoder when executing operations during tests.
-    fn new_dummy_with_decoder_helpers_and_empty_stack() -> Self {
-        let stack_inputs = super::StackInputs::default();
-        Self::new_dummy_with_decoder_helpers(stack_inputs)
-    }
+        /// Instantiates a new process with an advice stack for testing purposes.
+        pub fn new_dummy_with_advice_stack(advice_stack: &[u64]) -> Self {
+            let stack_inputs = StackInputs::default();
+            let advice_inputs =
+                AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
+            let advice_provider = MemAdviceProvider::from(advice_inputs);
+            let host = DefaultHost::new(advice_provider, MemMastForestStore::default());
+            let mut process =
+                Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+            process.execute_op(Operation::Noop).unwrap();
+            process
+        }
 
-    /// Instantiates a new blank process with one decoder trace row for testing purposes. This
-    /// allows for setting helpers in the decoder when executing operations during tests.
-    ///
-    /// The stack in the process is initialized with the provided values.
-    fn new_dummy_with_decoder_helpers(stack_inputs: super::StackInputs) -> Self {
-        let advice_inputs = super::AdviceInputs::default();
-        Self::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs)
-    }
+        /// Instantiates a new blank process with one decoder trace row for testing purposes. This
+        /// allows for setting helpers in the decoder when executing operations during tests.
+        pub fn new_dummy_with_decoder_helpers_and_empty_stack() -> Self {
+            let stack_inputs = StackInputs::default();
+            Self::new_dummy_with_decoder_helpers(stack_inputs)
+        }
 
-    /// Instantiates a new process having Program inputs along with one decoder trace row
-    /// for testing purposes.
-    fn new_dummy_with_inputs_and_decoder_helpers(
-        stack_inputs: super::StackInputs,
-        advice_inputs: super::AdviceInputs,
-    ) -> Self {
-        let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let host = super::DefaultHost::new(advice_provider);
-        let mut process =
-            Self::new(Kernel::default(), stack_inputs, host, super::ExecutionOptions::default());
-        process.decoder.add_dummy_trace_row();
-        process.execute_op(Operation::Noop).unwrap();
-        process
+        /// Instantiates a new blank process with one decoder trace row for testing purposes. This
+        /// allows for setting helpers in the decoder when executing operations during tests.
+        ///
+        /// The stack in the process is initialized with the provided values.
+        pub fn new_dummy_with_decoder_helpers(stack_inputs: StackInputs) -> Self {
+            let advice_inputs = AdviceInputs::default();
+            Self::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs)
+        }
+
+        /// Instantiates a new process having Program inputs along with one decoder trace row
+        /// for testing purposes.
+        pub fn new_dummy_with_inputs_and_decoder_helpers(
+            stack_inputs: StackInputs,
+            advice_inputs: AdviceInputs,
+        ) -> Self {
+            let advice_provider = MemAdviceProvider::from(advice_inputs);
+            let host = DefaultHost::new(advice_provider, MemMastForestStore::default());
+            let mut process =
+                Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+            process.decoder.add_dummy_trace_row();
+            process.execute_op(Operation::Noop).unwrap();
+            process
+        }
     }
 }

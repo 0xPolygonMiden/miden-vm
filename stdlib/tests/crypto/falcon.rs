@@ -1,4 +1,4 @@
-use processor::{Program, ProgramInfo};
+use processor::{MemMastForestStore, Program, ProgramInfo};
 use rand::{thread_rng, Rng};
 
 use assembly::{utils::Serializable, Assembler};
@@ -203,14 +203,12 @@ fn falcon_prove_verify() {
         .with_library(&StdLibrary::default())
         .expect("failed to load stdlib")
         .assemble(source)
-        .expect("failed to compile test source")
-        .try_into()
-        .expect("test source has no entrypoint");
+        .expect("failed to compile test source");
 
     let stack_inputs = StackInputs::try_from_ints(op_stack).expect("failed to create stack inputs");
     let advice_inputs = AdviceInputs::default().with_map(advice_map);
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
+    let host = DefaultHost::new(advice_provider, MemMastForestStore::default());
 
     let options = ProvingOptions::with_96_bit_security(false);
     let (stack_outputs, proof) = test_utils::prove(&program, stack_inputs.clone(), host, options)

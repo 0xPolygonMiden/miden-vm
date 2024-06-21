@@ -2,7 +2,10 @@ use super::{
     super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, Process, Trace,
     NUM_RAND_ROWS,
 };
-use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
+use crate::{
+    host::MemMastForestStore, AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider,
+    StackInputs,
+};
 use alloc::vec::Vec;
 use test_utils::rand::rand_array;
 use vm_core::{
@@ -51,7 +54,8 @@ pub fn build_trace_from_ops_with_inputs(
     advice_inputs: AdviceInputs,
 ) -> ExecutionTrace {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
+    let mast_forest_store = MemMastForestStore::default();
+    let host = DefaultHost::new(advice_provider, mast_forest_store);
     let mut process =
         Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
 

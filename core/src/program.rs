@@ -1,6 +1,6 @@
 use core::{fmt, ops::Index};
 
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
@@ -16,7 +16,7 @@ use super::Kernel;
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    mast_forest: MastForest,
+    mast_forest: Arc<MastForest>,
     /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
     /// node to all other roots in the forest. This corresponds to the executable entry point.
     /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
@@ -32,13 +32,41 @@ impl Program {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
+            mast_forest: Arc::new(mast_forest),
+            entrypoint,
+            kernel: Kernel::default(),
+        }
+    }
+
+    pub fn new_shared(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
+        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+
+        Self {
             mast_forest,
             entrypoint,
             kernel: Kernel::default(),
         }
     }
 
-    pub fn new_with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
+    pub fn new_with_kernel(
+        mast_forest: MastForest,
+        entrypoint: MastNodeId,
+        kernel: Kernel,
+    ) -> Self {
+        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+
+        Self {
+            mast_forest: Arc::new(mast_forest),
+            entrypoint,
+            kernel,
+        }
+    }
+
+    pub fn new_shared_with_kernel(
+        mast_forest: Arc<MastForest>,
+        entrypoint: MastNodeId,
+        kernel: Kernel,
+    ) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
@@ -115,7 +143,7 @@ impl fmt::Display for Program {
     }
 }
 
-impl From<Program> for MastForest {
+impl From<Program> for Arc<MastForest> {
     fn from(program: Program) -> Self {
         program.mast_forest
     }

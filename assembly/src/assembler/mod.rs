@@ -578,7 +578,11 @@ impl Assembler {
         // Compile the module graph rooted at the entrypoint
         let entry_procedure = self.compile_subgraph(entrypoint, true, context, &mut mast_forest)?;
 
-        Ok(Program::new_with_kernel(mast_forest, entry_procedure.body_node_id(), self.module_graph.kernel().clone()))
+        Ok(Program::new_with_kernel(
+            mast_forest,
+            entry_procedure.body_node_id(),
+            self.module_graph.kernel().clone(),
+        ))
     }
 
     /// Compile all of the uncompiled procedures in the module graph, placing them

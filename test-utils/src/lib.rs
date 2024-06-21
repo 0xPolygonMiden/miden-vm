@@ -8,7 +8,7 @@ extern crate std;
 // IMPORTS
 // ================================================================================================
 
-use processor::Program;
+use processor::{MemMastForestStore, Program};
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
@@ -226,7 +226,10 @@ impl Test {
     ) {
         // compile the program
         let program: Program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let host = DefaultHost::new(
+            MemAdviceProvider::from(self.advice_inputs.clone()),
+            MemMastForestStore::default(),
+        );
 
         // execute the test
         let mut process = Process::new(
@@ -305,7 +308,10 @@ impl Test {
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program: Program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let host = DefaultHost::new(
+            MemAdviceProvider::from(self.advice_inputs.clone()),
+            MemMastForestStore::default(),
+        );
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
 
@@ -313,9 +319,12 @@ impl Test {
     /// process once execution is finished.
     pub fn execute_process(
         &self,
-    ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
+    ) -> Result<Process<DefaultHost<MemAdviceProvider, MemMastForestStore>>, ExecutionError> {
         let program: Program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let host = DefaultHost::new(
+            MemAdviceProvider::from(self.advice_inputs.clone()),
+            MemMastForestStore::default(),
+        );
         let mut process = Process::new(
             program.kernel().clone(),
             self.stack_inputs.clone(),
@@ -332,7 +341,10 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
         let program: Program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let host = DefaultHost::new(
+            MemAdviceProvider::from(self.advice_inputs.clone()),
+            MemMastForestStore::default(),
+        );
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
 
@@ -351,7 +363,10 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program: Program = self.compile().expect("Failed to compile test source.");
-        let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
+        let host = DefaultHost::new(
+            MemAdviceProvider::from(self.advice_inputs.clone()),
+            MemMastForestStore::default(),
+        );
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }
 

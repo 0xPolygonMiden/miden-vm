@@ -51,6 +51,9 @@ pub enum ExecutionError {
     MastNodeNotFoundInForest {
         node_id: MastNodeId,
     },
+    MastForestNotFound {
+        root_digest: Digest,
+    },
     MemoryAddressOutOfBounds(u64),
     MerklePathVerificationFailed {
         value: Word,
@@ -149,6 +152,12 @@ impl Display for ExecutionError {
             MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
             MastNodeNotFoundInForest { node_id } => {
                 write!(f, "Malformed MAST forest, node id {node_id} doesn't exist")
+            }
+            MastForestNotFound { root_digest } => {
+                write!(
+                    f,
+                    "No MAST forest contains the following procedure root digest: {root_digest}"
+                )
             }
             MemoryAddressOutOfBounds(addr) => {
                 write!(f, "Memory address cannot exceed 2^32 but was {addr}")

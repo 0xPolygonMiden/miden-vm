@@ -53,7 +53,7 @@ pub use host::{
         AdviceExtractor, AdviceInputs, AdviceMap, AdviceProvider, AdviceSource, MemAdviceProvider,
         RecAdviceProvider,
     },
-    DefaultHost, Host, HostResponse,
+    DefaultHost, Host, HostResponse, MastForestStore, MemMastForestStore,
 };
 
 mod chiplets;
@@ -255,8 +255,19 @@ where
             MastNode::Loop(node) => self.execute_loop_node(node, program),
             MastNode::Call(node) => self.execute_call_node(node, program),
             MastNode::Dyn => self.execute_dyn_node(program),
-            MastNode::External(_node) => {
-                todo!()
+            MastNode::External(external_node) => {
+                let mast_forest =
+                    self.host.borrow().get_mast_forest(&external_node.digest()).ok_or_else(
+                        || ExecutionError::MastForestNotFound {
+                            root_digest: external_node.digest(),
+                        },
+                    )?;
+                let root_id = mast_forest.find_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
+
+                // TODOP: Don't clone kernel
+                let program =
+                    Program::new_shared_with_kernel(mast_forest, root_id, program.kernel().clone());
+                self.execute_mast_node(root_id, &program)
             }
         }
     }

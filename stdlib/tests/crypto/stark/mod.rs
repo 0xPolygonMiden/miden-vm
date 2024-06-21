@@ -3,7 +3,7 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::{DefaultHost, Program, ProgramInfo};
+use processor::{DefaultHost, MemMastForestStore, Program, ProgramInfo};
 use test_utils::{
     prove, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
 };
@@ -51,15 +51,11 @@ pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
 ) -> Result<VerifierData, VerifierError> {
-    let program: Program = Assembler::default()
-        .assemble(source)
-        .unwrap()
-        .try_into()
-        .expect("test source has no entrypoint");
+    let program: Program = Assembler::default().assemble(source).unwrap();
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
+    let host = DefaultHost::new(advice_provider, MemMastForestStore::default());
 
     let options =
         ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
