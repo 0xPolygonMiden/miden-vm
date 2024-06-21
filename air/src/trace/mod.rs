@@ -3,6 +3,7 @@ use vm_core::utils::range;
 
 pub mod chiplets;
 pub mod decoder;
+pub mod logup;
 pub mod main_trace;
 pub mod range;
 pub mod stack;
@@ -85,7 +86,13 @@ pub const CHIPLETS_AUX_TRACE_WIDTH: usize = 1;
 pub const CHIPLETS_AUX_TRACE_RANGE: Range<usize> =
     range(CHIPLETS_AUX_TRACE_OFFSET, CHIPLETS_AUX_TRACE_WIDTH);
 
-pub const AUX_TRACE_WIDTH: usize = CHIPLETS_AUX_TRACE_RANGE.end;
+// GKR-LogUp auxiliary columns
+pub const GKR_LOGUP_AUX_TRACE_OFFSET: usize = CHIPLETS_AUX_TRACE_RANGE.end;
+pub const GKR_LOGUP_AUX_TRACE_WIDTH: usize = 2;
+pub const GKR_LOGUP_AUX_TRACE_RANGE: Range<usize> =
+    range(GKR_LOGUP_AUX_TRACE_OFFSET, GKR_LOGUP_AUX_TRACE_WIDTH);
+
+pub const AUX_TRACE_WIDTH: usize = GKR_LOGUP_AUX_TRACE_RANGE.end;
 
 // TODOP: Probably less now that range checker is removed?
 /// Number of random elements available to the prover after the commitment to the main trace
