@@ -6,6 +6,7 @@ use crate::{
 impl Serializable for Instruction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
+            Self::Nop => OpCode::Nop.write_into(target),
             Self::Assert => OpCode::Assert.write_into(target),
             Self::AssertWithError(err_code) => {
                 OpCode::AssertWithError.write_into(target);

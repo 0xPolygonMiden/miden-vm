@@ -8,6 +8,7 @@ impl Deserializable for Instruction {
         let opcode = OpCode::read_from(source)?;
 
         match opcode {
+            OpCode::Nop => Ok(Self::Nop),
             OpCode::Assert => Ok(Self::Assert),
             OpCode::AssertWithError => Ok(Self::AssertWithError(source.read_u32()?.into())),
             OpCode::AssertEq => Ok(Self::AssertEq),

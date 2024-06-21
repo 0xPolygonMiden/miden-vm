@@ -148,6 +148,7 @@ pub enum Token<'input> {
     Neg,
     Neq,
     Not,
+    Nop,
     Or,
     Padw,
     Pow2,
@@ -324,6 +325,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Neg => write!(f, "neg"),
             Token::Neq => write!(f, "neq"),
             Token::Not => write!(f, "not"),
+            Token::Nop => write!(f, "nop"),
             Token::Or => write!(f, "or"),
             Token::Padw => write!(f, "padw"),
             Token::Pow2 => write!(f, "pow2"),
@@ -501,6 +503,7 @@ impl<'input> Token<'input> {
                 | Token::Neg
                 | Token::Neq
                 | Token::Not
+                | Token::Nop
                 | Token::Or
                 | Token::Padw
                 | Token::Pow2
@@ -651,6 +654,7 @@ impl<'input> Token<'input> {
         ("neg", Token::Neg),
         ("neq", Token::Neq),
         ("not", Token::Not),
+        ("nop", Token::Nop),
         ("or", Token::Or),
         ("padw", Token::Padw),
         ("pow2", Token::Pow2),

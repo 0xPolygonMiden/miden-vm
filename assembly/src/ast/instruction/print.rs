@@ -11,6 +11,7 @@ impl PrettyPrint for Instruction {
         use crate::prettier::*;
 
         match self {
+            Self::Nop => const_text("nop"),
             Self::Assert => const_text("assert"),
             Self::AssertWithError(err_code) => {
                 flatten(const_text("assert.err") + const_text("=") + display(err_code))
