@@ -12,7 +12,7 @@ use winter_prover::{crypto::Digest, math::fields::CubeExtension, CompositionPoly
 type CubeFelt = CubeExtension<Felt>;
 
 fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -43,7 +43,7 @@ fn build_trace_commitment_on_gpu_with_padding_matches_cpu<
 }
 
 fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -74,7 +74,7 @@ fn build_trace_commitment_on_gpu_without_padding_matches_cpu<
 }
 
 fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -103,7 +103,7 @@ fn build_constraint_commitment_on_gpu_with_padding_matches_cpu<
 }
 
 fn build_constraint_commitment_on_gpu_without_padding_matches_cpu<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt> + Hasher<Digest = D>,
     D: Digest + for<'a> From<&'a [Felt; DIGEST_SIZE]>,
 >(
@@ -204,7 +204,7 @@ fn get_trace_info(num_cols: usize, num_rows: usize) -> TraceInfo {
 }
 
 fn create_test_prover<
-    R: RandomCoin<BaseField = Felt, Hasher = H>,
+    R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
     H: ElementHasher<BaseField = Felt>,
 >(
     use_rpx: bool,
