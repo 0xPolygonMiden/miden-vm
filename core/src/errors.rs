@@ -40,13 +40,3 @@ pub enum KernelError {
     #[error("kernel can have at most {0} procedures, received {1}")]
     TooManyProcedures(usize, usize),
 }
-
-// PROGRAM ERROR
-// ================================================================================================
-
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum ProgramError {
-    // TODOP: REMOVE
-    #[error("tried to create a program from a MAST forest with no entrypoint")]
-    NoEntrypoint,
-}
