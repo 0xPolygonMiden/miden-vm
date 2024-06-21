@@ -266,7 +266,7 @@ where
 
                 // TODOP: Don't clone kernel
                 let program =
-                    Program::new_shared_with_kernel(mast_forest, root_id, program.kernel().clone());
+                    Program::new_with_kernel(mast_forest, root_id, program.kernel().clone());
                 self.execute_mast_node(root_id, &program)
             }
         }

@@ -27,18 +27,7 @@ pub struct Program {
 
 /// Constructors
 impl Program {
-    // TODOP: Document
-    pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
-        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
-
-        Self {
-            mast_forest: Arc::new(mast_forest),
-            entrypoint,
-            kernel: Kernel::default(),
-        }
-    }
-
-    pub fn new_shared(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
+    pub fn new(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
@@ -49,20 +38,6 @@ impl Program {
     }
 
     pub fn new_with_kernel(
-        mast_forest: MastForest,
-        entrypoint: MastNodeId,
-        kernel: Kernel,
-    ) -> Self {
-        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
-
-        Self {
-            mast_forest: Arc::new(mast_forest),
-            entrypoint,
-            kernel,
-        }
-    }
-
-    pub fn new_shared_with_kernel(
         mast_forest: Arc<MastForest>,
         entrypoint: MastNodeId,
         kernel: Kernel,

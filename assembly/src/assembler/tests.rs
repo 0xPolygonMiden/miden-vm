@@ -208,7 +208,7 @@ fn nested_blocks() {
         vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id],
         &mut expected_mast_forest,
     );
-    let expected_program = Program::new(expected_mast_forest, combined_node_id);
+    let expected_program = Program::new(expected_mast_forest.into(), combined_node_id);
 
     assert_eq!(expected_program.hash(), program.hash());
 }

@@ -37,7 +37,7 @@ impl fmt::Display for MastNodeId {
 // ===============================================================================================
 
 /// Represents one or more procedures, represented as a collection of [`MastNode`]s.
-/// 
+///
 /// A [`MastForest`] does not have an entrypoint, and hence is not executable. A [`crate::Program`]
 /// can be built from a [`MastForest`] to specify an entrypoint.
 #[derive(Clone, Debug, Default)]

@@ -122,7 +122,7 @@ fn build_trace(
         let basic_block = MastNode::new_basic_block(operations);
         let basic_block_id = mast_forest.add_node(basic_block);
 
-        Program::new(mast_forest, basic_block_id)
+        Program::new(mast_forest.into(), basic_block_id)
     };
     process.execute(&program).unwrap();
 
