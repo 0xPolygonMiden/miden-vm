@@ -894,7 +894,7 @@ fn syscall_block() {
     // build foo procedure body
     let foo_root = MastNode::new_basic_block(vec![Operation::Push(THREE), Operation::FmpUpdate]);
     let foo_root_id = mast_forest.add_node(foo_root.clone());
-    mast_forest.ensure_root(foo_root_id);
+    mast_forest.make_root(foo_root_id);
     let kernel = Kernel::new(&[foo_root.digest()]).unwrap();
 
     // build bar procedure body
@@ -906,7 +906,7 @@ fn syscall_block() {
 
     let bar_root_node = MastNode::new_join(bar_basic_block_id, foo_call_node_id, &mast_forest);
     let bar_root_node_id = mast_forest.add_node(bar_root_node.clone());
-    mast_forest.ensure_root(bar_root_node_id);
+    mast_forest.make_root(bar_root_node_id);
 
     // build the program
     let first_basic_block = MastNode::new_basic_block(vec![
@@ -1182,7 +1182,7 @@ fn dyn_block() {
 
     let foo_root_node = MastNode::new_basic_block(vec![Operation::Push(ONE), Operation::Add]);
     let foo_root_node_id = mast_forest.add_node(foo_root_node.clone());
-    mast_forest.ensure_root(foo_root_node_id);
+    mast_forest.make_root(foo_root_node_id);
 
     let mul_bb_node = MastNode::new_basic_block(vec![Operation::Mul]);
     let mul_bb_node_id = mast_forest.add_node(mul_bb_node.clone());

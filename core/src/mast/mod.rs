@@ -18,13 +18,12 @@ pub trait MerkleTreeNode {
     fn to_display<'a>(&'a self, mast_forest: &'a MastForest) -> impl fmt::Display + 'a;
 }
 
-// TODOP: Remove `PartialEq/Eq` impls
 /// An opaque handle to a [`MastNode`] in some [`MastForest`]. It is the responsibility of the user
 /// to use a given [`MastNodeId`] with the corresponding [`MastForest`].
 ///
-/// Note that since a [`MastForest`] enforces the invariant that equal [`MastNode`]s MUST have equal
-/// [`MastNodeId`]s, [`MastNodeId`] equality can be used to determine equality of the underlying
-/// [`MastNode`].
+/// Note that the [`MastForest`] does *not* ensure that equal [`MastNode`]s have equal
+/// [`MastNodeId`] handles. Hence, [`MastNodeId`] equality must not be used to test for equality of
+/// the underlying [`MastNode`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
@@ -37,12 +36,16 @@ impl fmt::Display for MastNodeId {
 // MAST FOREST
 // ===============================================================================================
 
+/// Represents one or more procedures, represented as a collection of [`MastNode`]s.
+/// 
+/// A [`MastForest`] does not have an entrypoint, and hence is not executable. A [`crate::Program`]
+/// can be built from a [`MastForest`] to specify an entrypoint.
 #[derive(Clone, Debug, Default)]
 pub struct MastForest {
-    /// All of the blocks local to the trees comprising the MAST forest.
+    /// All of the nodes local to the trees comprising the MAST forest.
     nodes: Vec<MastNode>,
 
-    /// Roots of all procedures defined within this MAST forest.
+    /// Roots of procedures defined within this MAST forest.
     roots: Vec<MastNodeId>,
 }
 
@@ -56,7 +59,7 @@ impl MastForest {
 
 /// Mutators
 impl MastForest {
-    /// Adds a node to the forest, and returns the [`MastNodeId`] associated with it.
+    /// Adds a node to the forest, and returns the associated [`MastNodeId`].
     pub fn add_node(&mut self, node: MastNode) -> MastNodeId {
         let new_node_id = MastNodeId(
             self.nodes
@@ -70,8 +73,8 @@ impl MastForest {
         new_node_id
     }
 
-    // TODOP: Document
-    pub fn ensure_root(&mut self, new_root_id: MastNodeId) {
+    /// Marks the given [`MastNodeId`] as being the root of a procedure.
+    pub fn make_root(&mut self, new_root_id: MastNodeId) {
         if !self.roots.contains(&new_root_id) {
             self.roots.push(new_root_id);
         }

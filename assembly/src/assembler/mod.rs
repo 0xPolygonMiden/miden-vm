@@ -817,7 +817,7 @@ impl Assembler {
         Ok(if mast_node_ids.is_empty() {
             let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
             let basic_block_node_id = mast_forest.add_node(basic_block_node);
-            mast_forest.ensure_root(basic_block_node_id);
+            mast_forest.make_root(basic_block_node_id);
 
             basic_block_node_id
         } else {
@@ -890,7 +890,7 @@ fn combine_mast_node_ids(
     }
 
     let root_id = mast_node_ids.remove(0);
-    mast_forest.ensure_root(root_id);
+    mast_forest.make_root(root_id);
 
     root_id
 }
