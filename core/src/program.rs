@@ -27,6 +27,8 @@ pub struct Program {
 
 /// Constructors
 impl Program {
+    /// Construct a new [`Program`] from the given MAST forest and entrypoint. The kernel is assumed
+    /// to be empty.
     pub fn new(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
@@ -37,6 +39,7 @@ impl Program {
         }
     }
 
+    /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
     pub fn new_with_kernel(
         mast_forest: Arc<MastForest>,
         entrypoint: MastNodeId,
@@ -69,7 +72,9 @@ impl Program {
         self.entrypoint
     }
 
-    /// A convenience method that provides the hash of the entrypoint.
+    /// Returns the hash of the program's entrypoint.
+    ///
+    /// Equivalently, returns the hash of the root of the entrypoint procedure.
     pub fn hash(&self) -> RpoDigest {
         self.mast_forest[self.entrypoint].digest()
     }
@@ -83,11 +88,7 @@ impl Program {
         self.mast_forest.get_node_by_id(node_id)
     }
 
-    // TODOP: fix docs
-    /// Returns the [`MastNodeId`] associated with a given digest, if any.
-    ///
-    /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
-    /// forest that hashes to this digest, then its id is returned.
+    /// Returns the [`MastNodeId`] of the procedure root associated with a given digest, if any.
     #[inline(always)]
     pub fn find_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
         self.mast_forest.find_root(digest)
