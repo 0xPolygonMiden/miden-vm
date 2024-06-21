@@ -233,7 +233,7 @@ impl Test {
 
         // execute the test
         let mut process = Process::new(
-            program.kernel().clone(),
+            program.kernel().as_ref().clone(),
             self.stack_inputs.clone(),
             host,
             ExecutionOptions::default(),
@@ -326,7 +326,7 @@ impl Test {
             MemMastForestStore::default(),
         );
         let mut process = Process::new(
-            program.kernel().clone(),
+            program.kernel().as_ref().clone(),
             self.stack_inputs.clone(),
             host,
             ExecutionOptions::default(),

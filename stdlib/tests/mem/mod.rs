@@ -29,7 +29,7 @@ fn test_memcopy() {
     let program: Program = assembler.assemble(source).expect("Failed to compile test source.");
 
     let mut process = Process::new(
-        program.kernel().clone(),
+        program.kernel().as_ref().clone(),
         StackInputs::default(),
         DefaultHost::default(),
         ExecutionOptions::default(),

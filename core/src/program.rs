@@ -22,7 +22,7 @@ pub struct Program {
     /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
     /// MAST which represents a library.
     entrypoint: MastNodeId,
-    kernel: Kernel,
+    kernel: Arc<Kernel>,
 }
 
 /// Constructors
@@ -35,7 +35,7 @@ impl Program {
         Self {
             mast_forest,
             entrypoint,
-            kernel: Kernel::default(),
+            kernel: Arc::new(Kernel::default()),
         }
     }
 
@@ -43,7 +43,7 @@ impl Program {
     pub fn new_with_kernel(
         mast_forest: Arc<MastForest>,
         entrypoint: MastNodeId,
-        kernel: Kernel,
+        kernel: Arc<Kernel>,
     ) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
@@ -63,8 +63,8 @@ impl Program {
     }
 
     /// Returns the kernel associated with this program.
-    pub fn kernel(&self) -> &Kernel {
-        &self.kernel
+    pub fn kernel(&self) -> Arc<Kernel> {
+        self.kernel.clone()
     }
 
     /// Returns the entrypoint associated with this program.
@@ -176,7 +176,7 @@ impl ProgramInfo {
 impl From<Program> for ProgramInfo {
     fn from(program: Program) -> Self {
         let program_hash = program.hash();
-        let kernel = program.kernel().clone();
+        let kernel = program.kernel().as_ref().clone();
 
         Self {
             program_hash,

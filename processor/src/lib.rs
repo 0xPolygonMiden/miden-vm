@@ -134,7 +134,7 @@ pub fn execute<H>(
 where
     H: Host,
 {
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
+    let mut process = Process::new(program.kernel().as_ref().clone(), stack_inputs, host, options);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -147,7 +147,7 @@ pub fn execute_iter<H>(program: &Program, stack_inputs: StackInputs, host: H) ->
 where
     H: Host,
 {
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
+    let mut process = Process::new_debug(program.kernel().as_ref().clone(), stack_inputs, host);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -264,7 +264,6 @@ where
                     )?;
                 let root_id = mast_forest.find_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
 
-                // TODOP: Don't clone kernel
                 let program =
                     Program::new_with_kernel(mast_forest, root_id, program.kernel().clone());
                 self.execute_mast_node(root_id, &program)
