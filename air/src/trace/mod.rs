@@ -57,8 +57,8 @@ pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      decoder         stack       range checks      hasher         chiplets
-//    (3 columns)     (1 column)     (1 column)    (1 column)      (1 column)
+//      decoder         stack          hasher       chiplets        LogUp GKR
+//    (3 columns)     (1 column)     (1 column)    (1 column)      (2 columns)
 // ├───────────────┴──────────────┴──────────────┴───────────────┴───────────────┤
 
 // Decoder auxiliary columns
@@ -73,11 +73,11 @@ pub const STACK_AUX_TRACE_WIDTH: usize = 1;
 pub const STACK_AUX_TRACE_RANGE: Range<usize> =
     range(STACK_AUX_TRACE_OFFSET, STACK_AUX_TRACE_WIDTH);
 
-// Range check auxiliary columns
-pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
-pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 1;
-pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
-    range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
+// Hasher auxiliary columns
+pub const HASHER_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
+pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
+pub const HASHER_AUX_TRACE_RANGE: Range<usize> =
+    range(HASHER_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
 
 // Chiplets auxiliary columns
 pub const CHIPLETS_AUX_TRACE_OFFSET: usize = HASHER_AUX_TRACE_RANGE.end;
@@ -85,14 +85,9 @@ pub const CHIPLETS_AUX_TRACE_WIDTH: usize = 1;
 pub const CHIPLETS_AUX_TRACE_RANGE: Range<usize> =
     range(CHIPLETS_AUX_TRACE_OFFSET, CHIPLETS_AUX_TRACE_WIDTH);
 
-// Hasher auxiliary columns
-pub const HASHER_AUX_TRACE_OFFSET: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
-pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
-pub const HASHER_AUX_TRACE_RANGE: Range<usize> =
-    range(HASHER_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
-
 pub const AUX_TRACE_WIDTH: usize = CHIPLETS_AUX_TRACE_RANGE.end;
 
+// TODOP: Probably less now that range checker is removed?
 /// Number of random elements available to the prover after the commitment to the main trace
 /// segment.
 pub const AUX_TRACE_RAND_ELEMENTS: usize = 16;

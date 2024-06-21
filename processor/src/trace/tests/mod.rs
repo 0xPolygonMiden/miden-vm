@@ -1,5 +1,5 @@
 use super::{
-    super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, Process, Trace,
+    super::chiplets::init_state_from_words, ExecutionTrace, Felt, FieldElement, Process,
     NUM_RAND_ROWS,
 };
 use crate::{AdviceInputs, DefaultHost, ExecutionOptions, MemAdviceProvider, StackInputs};
@@ -12,7 +12,6 @@ use vm_core::{
 mod chiplets;
 mod decoder;
 mod hasher;
-mod range;
 mod stack;
 
 // TEST HELPERS

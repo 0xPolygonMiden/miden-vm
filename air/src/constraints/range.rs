@@ -1,5 +1,5 @@
 use crate::{
-    trace::range::{B_RANGE_COL_IDX, M_COL_IDX, V_COL_IDX},
+    trace::range::{M_COL_IDX, V_COL_IDX},
     Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
 use alloc::vec::Vec;
@@ -82,10 +82,6 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn multiplicity(&self) -> E;
     /// The current value in column V.
     fn v(&self) -> E;
-    /// The current value in auxiliary column b_range.
-    fn b_range(&self) -> E;
-    /// The next value in auxiliary column b_range.
-    fn b_range_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
@@ -105,16 +101,6 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn v(&self) -> E {
         self.current()[V_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn b_range(&self) -> E {
-        self.current()[B_RANGE_COL_IDX]
-    }
-
-    #[inline(always)]
-    fn b_range_next(&self) -> E {
-        self.next()[B_RANGE_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
