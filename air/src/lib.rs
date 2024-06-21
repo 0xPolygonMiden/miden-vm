@@ -20,7 +20,7 @@ use winter_prover::matrix::ColMatrix;
 
 mod constraints;
 pub use constraints::stack;
-use constraints::{chiplets, range};
+use constraints::{chiplets, logup, range};
 
 pub mod trace;
 use trace::*;
@@ -82,7 +82,7 @@ impl Air for ProcessorAir {
         let mut range_checker_degrees = range::get_transition_constraint_degrees();
         main_degrees.append(&mut range_checker_degrees);
 
-        let aux_degrees = range::get_aux_transition_constraint_degrees();
+        let aux_degrees = logup::get_aux_transition_constraint_degrees();
 
         // --- chiplets (hasher, bitwise, memory) -------------------------
         let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
@@ -101,7 +101,7 @@ impl Air for ProcessorAir {
         let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
-        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
+        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + logup::NUM_AUX_ASSERTIONS;
 
         // Create the context and set the number of transition constraint exemptions to two; this
         // allows us to inject random values into the last row of the execution trace.
@@ -179,9 +179,6 @@ impl Air for ProcessorAir {
             self.stack_inputs.values(),
         );
 
-        // Add initial assertions for the range checker's auxiliary columns.
-        range::get_aux_assertions_first_step::<E>(&mut result);
-
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
 
@@ -193,8 +190,7 @@ impl Air for ProcessorAir {
             last_step,
         );
 
-        // Add the range checker's auxiliary column assertions for the last step.
-        range::get_aux_assertions_last_step::<E>(&mut result, last_step);
+        // TODOP: Add logup "s" column assertion
 
         result
     }
@@ -237,17 +233,15 @@ impl Air for ProcessorAir {
 
     fn evaluate_aux_transition<F, E>(
         &self,
-        main_frame: &EvaluationFrame<F>,
-        aux_frame: &EvaluationFrame<E>,
+        _main_frame: &EvaluationFrame<F>,
+        _aux_frame: &EvaluationFrame<E>,
         _periodic_values: &[F],
-        aux_rand_elements: &AuxRandElements<E>,
-        result: &mut [E],
+        _aux_rand_elements: &AuxRandElements<E>,
+        _result: &mut [E],
     ) where
         F: FieldElement<BaseField = Felt>,
         E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
     {
-        // --- range checker ----------------------------------------------------------------------
-        range::enforce_aux_constraints::<F, E>(main_frame, aux_frame, aux_rand_elements.rand_elements(), result);
     }
 
     fn context(&self) -> &AirContext<Felt> {

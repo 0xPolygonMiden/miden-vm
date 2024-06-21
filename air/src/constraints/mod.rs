@@ -6,6 +6,7 @@ use crate::trace::{
 use crate::utils::binary_not;
 
 pub mod chiplets;
+pub mod logup;
 pub mod range;
 pub mod stack;
 
@@ -13,6 +14,7 @@ pub mod stack;
 // ================================================================================================
 /// Trait to allow other processors to easily access the column values they need for constraint
 /// calculations.
+#[allow(dead_code)]
 pub trait MainFrameExt<F, E>
 where
     F: FieldElement<BaseField = Felt>,

@@ -227,8 +227,8 @@ impl ExecutionOptions {
     ///
     /// In debug mode the VM does the following:
     /// - Executes `debug` instructions (these are ignored in regular mode).
-    /// - Records additional info about program execution (e.g., keeps track of stack state at
-    ///   every cycle of the VM) which enables stepping through the program forward and backward.
+    /// - Records additional info about program execution (e.g., keeps track of stack state at every
+    ///   cycle of the VM) which enables stepping through the program forward and backward.
     pub fn with_debugging(mut self) -> Self {
         self.enable_debugging = true;
         self
