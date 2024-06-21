@@ -12,7 +12,7 @@ use vm_core::{Felt, FieldElement, StarkField, crypto::hash::RpoDigest};
 
 use crate::{LibraryPath, LibraryNamespace, ast::*, diagnostics::SourceFile, SourceSpan};
 use super::{
-    HexEncodedValue, Token, ParseError, ParsingError,
+    BinEncodedValue, HexEncodedValue, Token, ParseError, ParsingError,
     LiteralErrorKind, HexErrorKind, Span, Spanned,
     DocumentationType
 };
@@ -35,6 +35,7 @@ extern {
         const_ident => Token::ConstantIdent(<&'input str>),
         quoted_ident => Token::QuotedIdent(<&'input str>),
         hex_value => Token::HexValue(<HexEncodedValue>),
+        bin_value => Token::BinValue(<BinEncodedValue>),
         doc_comment => Token::DocComment(<DocumentationType>),
         comment => Token::Comment,
         uint => Token::Int(<u64>),
@@ -480,10 +481,7 @@ Inst: Instruction = {
     "rcomb_base" => Instruction::RCombBase,
     "sdepth" => Instruction::Sdepth,
     "swapdw" => Instruction::SwapDw,
-    "u32and" => Instruction::U32And,
     "u32cast" => Instruction::U32Cast,
-    "u32not" => Instruction::U32Not,
-    "u32or" => Instruction::U32Or,
     "u32overflowing_add3" => Instruction::U32OverflowingAdd3,
     "u32overflowing_madd" => Instruction::U32OverflowingMadd,
     "u32popcnt" => Instruction::U32Popcnt,
@@ -496,7 +494,6 @@ Inst: Instruction = {
     "u32testw" => Instruction::U32TestW,
     "u32wrapping_add3" => Instruction::U32WrappingAdd3,
     "u32wrapping_madd" => Instruction::U32WrappingMadd,
-    "u32xor" => Instruction::U32Xor,
     "xor" => Instruction::Xor,
 }
 
@@ -713,6 +710,37 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
             Some(imm) if imm == 0 => Err(ParseError::User { error: ParsingError::DivisionByZero { span: span!(l, r) } }),
             Some(imm) => Ok(smallvec![Op::Inst(Span::new(span, Instruction::U32ModImm(imm)))]),
             None => Ok(smallvec![Op::Inst(Span::new(span, Instruction::U32Mod))]),
+        }
+    },
+    <l:@L> "u32and" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) if imm == 0 => smallvec![Op::Inst(Span::new(span, Instruction::Drop)), Op::Inst(Span::new(span, Instruction::PushU8(0)))],
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32AndImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32And))],
+        }
+    },
+    <l:@L> "u32or" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) if imm == 0 => smallvec![],
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32OrImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Or))],
+        }
+    },
+    <l:@L> "u32xor" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) if imm == 0 => smallvec![],
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32XorImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Xor))],
+        }
+    },
+    <l:@L> "u32not" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32NotImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Not))],
         }
     },
     <l:@L> "u32wrapping_add" <imm:MaybeImm<U32>> <r:@R> => {
@@ -1081,6 +1109,15 @@ U32: u32 = {
             HexEncodedValue::U8(v) => Ok(v as u32),
             HexEncodedValue::U16(v) => Ok(v as u32),
             HexEncodedValue::U32(v) => Ok(v),
+            _ =>  Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::U32Overflow } }),
+        }
+    },
+
+    <l:@L> <value:bin_value> <r:@R> =>? {
+        match value {
+            BinEncodedValue::U8(v) => Ok(v as u32),
+            BinEncodedValue::U16(v) => Ok(v as u32),
+            BinEncodedValue::U32(v) => Ok(v),
             _ =>  Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::U32Overflow } }),
         }
     }

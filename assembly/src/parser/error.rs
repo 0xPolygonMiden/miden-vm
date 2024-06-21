@@ -162,6 +162,12 @@ pub enum ParsingError {
         span: SourceSpan,
         kind: HexErrorKind,
     },
+    #[error("Binary value overflowed the field modulus")]
+    #[diagnostic()]
+    InvalidBinaryLiteral {
+        #[label]
+        span: SourceSpan,
+    },
     #[error("invalid MAST root literal")]
     InvalidMastRoot {
         #[label]
@@ -335,6 +341,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                 "quoted_ident" => return Some("quoted identifier".to_string()),
                 "doc_comment" => return Some("doc comment".to_string()),
                 "hex_value" => return Some("hex-encoded literal".to_string()),
+                "bin_value" => return Some("bin-encoded literal".to_string()),
                 "uint" => return Some("integer literal".to_string()),
                 "EOF" => return Some("end of file".to_string()),
                 other => other[1..].strip_suffix('"').and_then(|t| Token::parse(t).ok()),

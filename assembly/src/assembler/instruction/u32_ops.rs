@@ -160,13 +160,38 @@ pub fn u32divmod(
 // BITWISE OPERATIONS
 // ================================================================================================
 
+pub fn u32and(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+    span_builder.push_op(U32and);
+}
+
+pub fn u32or(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+    span_builder.push_ops([Dup1, Dup1, U32and, Neg, Add, Add]);
+}
+
+pub fn u32xor(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+    span_builder.push_op(U32xor);
+}
+
 /// Translates u32not assembly instruction to VM operations.
 ///
 /// The reason this method works is because 2^32 -1 provides a bit mask of ones, which after
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
 ///
 /// This takes 5 VM cycles.
-pub fn u32not(span_builder: &mut BasicBlockBuilder) {
+pub fn u32not(span_builder: &mut BasicBlockBuilder, imm: Option<u32>) {
+    if let Some(imm) = imm {
+        span_builder.push_op(Push(Felt::from(imm)));
+    }
+
     #[rustfmt::skip]
     let ops = [
         // Perform the operation

@@ -176,9 +176,25 @@ impl Serializable for Instruction {
                 target.write_u32(v.expect_value());
             }
             Self::U32And => OpCode::U32And.write_into(target),
+            Self::U32AndImm(v) => {
+                OpCode::U32AndImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Or => OpCode::U32Or.write_into(target),
+            Self::U32OrImm(v) => {
+                OpCode::U32OrImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Xor => OpCode::U32Xor.write_into(target),
+            Self::U32XorImm(v) => {
+                OpCode::U32XorImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Not => OpCode::U32Not.write_into(target),
+            Self::U32NotImm(v) => {
+                OpCode::U32NotImm.write_into(target);
+                target.write_u32(v.expect_value());
+            }
             Self::U32Shr => OpCode::U32Shr.write_into(target),
             Self::U32ShrImm(v) => {
                 OpCode::U32ShrImm.write_into(target);
