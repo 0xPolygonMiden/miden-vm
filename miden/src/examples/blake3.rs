@@ -1,5 +1,6 @@
 use super::Example;
 use miden_vm::{Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+use processor::MemMastForestStore;
 use stdlib::StdLibrary;
 use vm_core::{utils::group_slice_elements, Felt};
 
@@ -11,7 +12,7 @@ const INITIAL_HASH_VALUE: [u32; 8] = [u32::MAX; 8];
 // EXAMPLE BUILDER
 // ================================================================================================
 
-pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
+pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider, MemMastForestStore>> {
     // generate the program and expected results
     let program = generate_blake3_program(n);
     let expected_result = compute_hash_chain(n);

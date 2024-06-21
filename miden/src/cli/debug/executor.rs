@@ -2,6 +2,7 @@ use super::DebugCommand;
 use miden_vm::{
     math::Felt, DefaultHost, MemAdviceProvider, Program, StackInputs, VmState, VmStateIterator,
 };
+use processor::MemMastForestStore;
 
 /// Holds debugger state and iterator used for debugging.
 pub struct DebugExecutor {
@@ -21,8 +22,11 @@ impl DebugExecutor {
         stack_inputs: StackInputs,
         advice_provider: MemAdviceProvider,
     ) -> Result<Self, String> {
-        let mut vm_state_iter =
-            processor::execute_iter(&program, stack_inputs, DefaultHost::new(advice_provider));
+        let mut vm_state_iter = processor::execute_iter(
+            &program,
+            stack_inputs,
+            DefaultHost::new(advice_provider, MemMastForestStore::default()),
+        );
         let vm_state = vm_state_iter
             .next()
             .ok_or(format!(

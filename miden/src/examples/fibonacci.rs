@@ -1,12 +1,11 @@
 use super::{Example, ONE, ZERO};
-use miden_vm::{
-    math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, ProvingOptions, StackInputs,
-};
+use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
+use processor::MemMastForestStore;
 
 // EXAMPLE BUILDER
 // ================================================================================================
 
-pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
+pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider, MemMastForestStore>> {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
     let expected_result = vec![compute_fibonacci(n)];
@@ -59,20 +58,27 @@ fn compute_fibonacci(n: usize) -> Felt {
 // EXAMPLE TESTER
 // ================================================================================================
 
-#[test]
-fn test_fib_example() {
-    let example = get_example(16);
-    super::test_example(example, false);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::examples::{test_example, test_example_with_options};
+    use prover::ProvingOptions;
 
-#[test]
-fn test_fib_example_fail() {
-    let example = get_example(16);
-    super::test_example(example, true);
-}
+    #[test]
+    fn test_fib_example() {
+        let example = get_example(16);
+        test_example(example, false);
+    }
 
-#[test]
-fn test_fib_example_rpo() {
-    let example = get_example(16);
-    super::test_example_with_options(example, false, ProvingOptions::with_96_bit_security(true));
+    #[test]
+    fn test_fib_example_fail() {
+        let example = get_example(16);
+        test_example(example, true);
+    }
+
+    #[test]
+    fn test_fib_example_rpo() {
+        let example = get_example(16);
+        test_example_with_options(example, false, ProvingOptions::with_96_bit_security(true));
+    }
 }

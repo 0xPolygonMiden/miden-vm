@@ -2,8 +2,8 @@ use super::cli::InputFile;
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
 use core::fmt;
-use miden_vm::{Assembler, DefaultHost, Host, Operation, Program, StackInputs};
-use processor::{AsmOpInfo, TraceLenSummary};
+use miden_vm::{Assembler, DefaultHost, Host, Operation, StackInputs};
+use processor::{AsmOpInfo, MemMastForestStore, TraceLenSummary};
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
 
@@ -35,7 +35,10 @@ impl Analyze {
 
         // fetch the stack and program inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-        let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
+        let host = DefaultHost::new(
+            input_data.parse_advice_provider().map_err(Report::msg)?,
+            MemMastForestStore::default(),
+        );
 
         let execution_details: ExecutionDetails = analyze(program.as_str(), stack_inputs, host)
             .expect("Could not retrieve execution details");
