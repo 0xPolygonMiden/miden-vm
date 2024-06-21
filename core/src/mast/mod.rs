@@ -9,8 +9,6 @@ pub use node::{
     OpBatch, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
 
-use crate::Kernel;
-
 #[cfg(test)]
 mod tests;
 
@@ -46,15 +44,6 @@ pub struct MastForest {
 
     /// Roots of all procedures defined within this MAST forest.
     roots: Vec<MastNodeId>,
-
-    // TODOP: Move fields to `Program`
-
-    /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
-    /// node to all other roots in the forest. This corresponds to the executable entry point.
-    /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
-    /// MAST which represents a library.
-    entrypoint: Option<MastNodeId>,
-    kernel: Kernel,
 }
 
 /// Constructors
@@ -87,45 +76,10 @@ impl MastForest {
             self.roots.push(new_root_id);
         }
     }
-
-    /// Sets the kernel for this forest.
-    ///
-    /// The kernel MUST have been compiled using this [`MastForest`]; that is, all kernel procedures
-    /// must be present in this forest.
-    pub fn set_kernel(&mut self, kernel: Kernel) {
-        #[cfg(debug_assertions)]
-        for &proc_hash in kernel.proc_hashes() {
-            assert!(self.find_root(proc_hash).is_some());
-        }
-
-        self.kernel = kernel;
-    }
-
-    /// Sets the entrypoint for this forest. This also ensures that the entrypoint is a root in the
-    /// forest.
-    pub fn set_entrypoint(&mut self, entrypoint: MastNodeId) {
-        self.ensure_root(entrypoint);
-        self.entrypoint = Some(entrypoint);
-    }
 }
 
 /// Public accessors
 impl MastForest {
-    /// Returns the kernel associated with this forest.
-    pub fn kernel(&self) -> &Kernel {
-        &self.kernel
-    }
-
-    /// Returns the entrypoint associated with this forest, if any.
-    pub fn entrypoint(&self) -> Option<MastNodeId> {
-        self.entrypoint
-    }
-
-    /// A convenience method that provides the hash of the entrypoint, if any.
-    pub fn entrypoint_digest(&self) -> Option<RpoDigest> {
-        self.entrypoint.map(|entrypoint| self[entrypoint].digest())
-    }
-
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
     /// `None`.
     ///

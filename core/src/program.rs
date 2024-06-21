@@ -5,8 +5,7 @@ use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{
-    errors::ProgramError,
-    mast::{MastForest, MastNode, MastNodeId},
+    mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     utils::ToElements,
 };
 
@@ -18,15 +17,34 @@ use super::Kernel;
 #[derive(Clone, Debug)]
 pub struct Program {
     mast_forest: MastForest,
+    /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
+    /// node to all other roots in the forest. This corresponds to the executable entry point.
+    /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
+    /// MAST which represents a library.
+    entrypoint: MastNodeId,
+    kernel: Kernel,
 }
 
 /// Constructors
 impl Program {
-    pub fn new(mast_forest: MastForest) -> Result<Self, ProgramError> {
-        if mast_forest.entrypoint().is_some() {
-            Ok(Self { mast_forest })
-        } else {
-            Err(ProgramError::NoEntrypoint)
+    // TODOP: Document
+    pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
+        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+
+        Self {
+            mast_forest,
+            entrypoint,
+            kernel: Kernel::default(),
+        }
+    }
+
+    pub fn new_with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
+        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+
+        Self {
+            mast_forest,
+            entrypoint,
+            kernel,
         }
     }
 }
@@ -40,17 +58,17 @@ impl Program {
 
     /// Returns the kernel associated with this program.
     pub fn kernel(&self) -> &Kernel {
-        self.mast_forest.kernel()
+        &self.kernel
     }
 
     /// Returns the entrypoint associated with this program.
     pub fn entrypoint(&self) -> MastNodeId {
-        self.mast_forest.entrypoint().unwrap()
+        self.entrypoint
     }
 
     /// A convenience method that provides the hash of the entrypoint.
     pub fn hash(&self) -> RpoDigest {
-        self.mast_forest.entrypoint_digest().unwrap()
+        self.mast_forest[self.entrypoint].digest()
     }
 
     /// Returns the [`MastNode`] associated with the provided [`MastNodeId`] if valid, or else
@@ -62,12 +80,13 @@ impl Program {
         self.mast_forest.get_node_by_id(node_id)
     }
 
+    // TODOP: fix docs
     /// Returns the [`MastNodeId`] associated with a given digest, if any.
     ///
     /// That is, every [`MastNode`] hashes to some digest. If there exists a [`MastNode`] in the
     /// forest that hashes to this digest, then its id is returned.
     #[inline(always)]
-    pub fn get_node_id_by_digest(&self, digest: RpoDigest) -> Option<MastNodeId> {
+    pub fn find_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
         self.mast_forest.find_root(digest)
     }
 }
@@ -93,14 +112,6 @@ impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use crate::prettier::PrettyPrint;
         self.pretty_print(f)
-    }
-}
-
-impl TryFrom<MastForest> for Program {
-    type Error = ProgramError;
-
-    fn try_from(mast_forest: MastForest) -> Result<Self, Self::Error> {
-        Self::new(mast_forest)
     }
 }
 

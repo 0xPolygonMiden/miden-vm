@@ -1,5 +1,8 @@
 use alloc::{boxed::Box, vec::Vec};
-use vm_core::mast::{MastForest, MastNode, MerkleTreeNode};
+use vm_core::{
+    mast::{MastForest, MastNode},
+    Program,
+};
 
 use super::{Assembler, Library, Operation};
 use crate::{
@@ -205,9 +208,7 @@ fn nested_blocks() {
         vec![before, r#if1, nested, exec_foo_bar_baz_node_id, syscall_foo_node_id],
         &mut expected_mast_forest,
     );
-    expected_mast_forest.set_entrypoint(combined_node_id);
+    let expected_program = Program::new(expected_mast_forest, combined_node_id);
 
-    let combined_node = &expected_mast_forest[combined_node_id];
-
-    assert_eq!(combined_node.digest(), program.entrypoint_digest().unwrap());
+    assert_eq!(expected_program.hash(), program.hash());
 }

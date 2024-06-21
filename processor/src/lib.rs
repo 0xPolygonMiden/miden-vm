@@ -375,7 +375,7 @@ where
 
         // get dynamic code from the code block table and execute it
         let callee_id = program
-            .get_node_id_by_digest(callee_hash.into())
+            .find_root(callee_hash.into())
             .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
         self.execute_mast_node(callee_id, program)?;
 

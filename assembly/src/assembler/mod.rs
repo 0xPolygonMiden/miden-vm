@@ -9,7 +9,6 @@ use crate::{
     RpoDigest, Spanned, ONE, ZERO,
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
-use miette::miette;
 use vm_core::{
     mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode},
     Decorator, DecoratorList, Kernel, Operation, Program,
@@ -145,7 +144,6 @@ impl Assembler {
 
         let (kernel_index, kernel) = assembler.assemble_kernel_module(module, &mut mast_forest)?;
         assembler.module_graph.set_kernel(Some(kernel_index), kernel);
-        mast_forest.set_kernel(assembler.module_graph.kernel().clone());
 
         assembler.mast_forest = mast_forest;
 
@@ -313,18 +311,6 @@ impl Assembler {
 
 /// Compilation/Assembly
 impl Assembler {
-    /// Compiles the provided module into a [`MastForest`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if parsing or compilation of the specified program fails.
-    pub fn assemble(self, source: impl Compile) -> Result<MastForest, Report> {
-        let mut context = AssemblyContext::default();
-        context.set_warnings_as_errors(self.warnings_as_errors);
-
-        self.assemble_in_context(source, &mut context)
-    }
-
     /// Compiles the provided module into a [`Program`]. The resulting program can be executed on
     /// Miden VM.
     ///
@@ -332,10 +318,11 @@ impl Assembler {
     ///
     /// Returns an error if parsing or compilation of the specified program fails, or if the source
     /// doesn't have an entrypoint.
-    pub fn assemble_program(self, source: impl Compile) -> Result<Program, Report> {
-        let mast_forest = self.assemble(source)?;
+    pub fn assemble(self, source: impl Compile) -> Result<Program, Report> {
+        let mut context = AssemblyContext::default();
+        context.set_warnings_as_errors(self.warnings_as_errors);
 
-        mast_forest.try_into().map_err(|program_err| miette!("{program_err}"))
+        self.assemble_in_context(source, &mut context)
     }
 
     /// Like [Assembler::compile], but also takes an [AssemblyContext] to configure the assembler.
@@ -343,7 +330,7 @@ impl Assembler {
         self,
         source: impl Compile,
         context: &mut AssemblyContext,
-    ) -> Result<MastForest, Report> {
+    ) -> Result<Program, Report> {
         let opts = CompileOptions {
             warnings_as_errors: context.warnings_as_errors(),
             ..CompileOptions::default()
@@ -363,7 +350,7 @@ impl Assembler {
         self,
         source: impl Compile,
         options: CompileOptions,
-    ) -> Result<MastForest, Report> {
+    ) -> Result<Program, Report> {
         let mut context = AssemblyContext::default();
         context.set_warnings_as_errors(options.warnings_as_errors);
 
@@ -378,7 +365,7 @@ impl Assembler {
         source: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
-    ) -> Result<MastForest, Report> {
+    ) -> Result<Program, Report> {
         self.assemble_with_options_in_context_impl(source, options, context)
     }
 
@@ -391,14 +378,14 @@ impl Assembler {
         source: impl Compile,
         options: CompileOptions,
         context: &mut AssemblyContext,
-    ) -> Result<MastForest, Report> {
+    ) -> Result<Program, Report> {
         if options.kind != ModuleKind::Executable {
             return Err(Report::msg(
                 "invalid compile options: assemble_with_opts_in_context requires that the kind be 'executable'",
             ));
         }
 
-        let mut mast_forest = core::mem::take(&mut self.mast_forest);
+        let mast_forest = core::mem::take(&mut self.mast_forest);
 
         let program = source.compile_with_options(CompileOptions {
             // Override the module name so that we always compile the executable
@@ -428,9 +415,7 @@ impl Assembler {
             })
             .ok_or(SemanticAnalysisError::MissingEntrypoint)?;
 
-        self.compile_program(entrypoint, context, &mut mast_forest)?;
-
-        Ok(mast_forest)
+        self.compile_program(entrypoint, context, mast_forest)
     }
 
     /// Compile and assembles all procedures in the specified module, adding them to the procedure
@@ -585,17 +570,15 @@ impl Assembler {
         &mut self,
         entrypoint: GlobalProcedureIndex,
         context: &mut AssemblyContext,
-        mast_forest: &mut MastForest,
-    ) -> Result<(), Report> {
+        mut mast_forest: MastForest,
+    ) -> Result<Program, Report> {
         // Raise an error if we are called with an invalid entrypoint
         assert!(self.module_graph[entrypoint].name().is_main());
 
         // Compile the module graph rooted at the entrypoint
-        let entry_procedure = self.compile_subgraph(entrypoint, true, context, mast_forest)?;
+        let entry_procedure = self.compile_subgraph(entrypoint, true, context, &mut mast_forest)?;
 
-        mast_forest.set_entrypoint(entry_procedure.body_node_id());
-
-        Ok(())
+        Ok(Program::new_with_kernel(mast_forest, entry_procedure.body_node_id(), self.module_graph.kernel().clone()))
     }
 
     /// Compile all of the uncompiled procedures in the module graph, placing them
