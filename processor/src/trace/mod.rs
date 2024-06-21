@@ -1,7 +1,6 @@
 use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
-    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process, StackTopState,
 };
@@ -38,7 +37,6 @@ pub const NUM_RAND_ROWS: usize = 1;
 pub struct AuxTraceBuilders {
     pub(crate) decoder: DecoderAuxTraceBuilder,
     pub(crate) stack: StackAuxTraceBuilder,
-    pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
@@ -210,10 +208,6 @@ impl ExecutionTrace {
         let stack_aux_columns =
             self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
 
-        // add the range checker's running product columns
-        let range_aux_columns =
-            self.aux_trace_builders.range.build_aux_columns(&self.main_trace, rand_elements);
-
         // add the running product columns for the chiplets
         let chiplets = self
             .aux_trace_builders
@@ -224,7 +218,6 @@ impl ExecutionTrace {
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
-            .chain(range_aux_columns)
             .chain(chiplets)
             .collect::<Vec<_>>();
 
@@ -337,14 +330,13 @@ where
         }
     }
 
-    let aux_trace_hints = AuxTraceBuilders {
+    let aux_trace_builders = AuxTraceBuilders {
         decoder: decoder_trace.aux_builder,
         stack: stack_trace.aux_builder,
-        range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };
 
     let main_trace = MainTrace::new(ColMatrix::new(trace));
 
-    (main_trace, aux_trace_hints, trace_len_summary)
+    (main_trace, aux_trace_builders, trace_len_summary)
 }
