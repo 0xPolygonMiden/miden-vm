@@ -94,8 +94,17 @@ impl fmt::Debug for Block {
 impl crate::prettier::PrettyPrint for Block {
     fn render(&self) -> crate::prettier::Document {
         use crate::prettier::*;
+        use crate::{ast::Instruction, Span};
 
-        let body = self.body.iter().map(PrettyPrint::render).reduce(|acc, doc| acc + nl() + doc);
+        // If a block is empty, pretty-print it with a `nop` instruction
+        let default_body = [Op::Inst(Span::new(self.span, Instruction::Nop))];
+        let body = match self.body.as_slice() {
+            [] => default_body.as_slice().iter(),
+            body => body.iter(),
+        }
+        .map(PrettyPrint::render)
+        .reduce(|acc, doc| acc + nl() + doc);
+
         body.map(|body| indent(4, body)).unwrap_or(Document::Empty)
     }
 }

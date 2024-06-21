@@ -348,8 +348,16 @@ Op: SmallOpsVec = {
 }
 
 IfElse: Op = {
-    <l:@L> "if" "." "true" <then_blk:Block> "else" <else_blk:Block> "end" <r:@R> => {
-        Op::If { span: span!(l, r), then_blk, else_blk }
+    <l:@L> "if" "." "true" "else" <else_blk:Block> "end" <r:@R> => {
+        let span = span!(l, r);
+        let then_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
+        Op::If { span, then_blk, else_blk }
+    },
+
+    <l:@L> "if" "." "true" <then_blk:Block> "else" <else_blk:Block?> "end" <r:@R> => {
+        let span = span!(l, r);
+        let else_blk = else_blk.unwrap_or_else(|| Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]));
+        Op::If { span, then_blk, else_blk }
     },
 
     <l:@L> "if" "." "true" <then_blk:Block> "end" <r:@R> => {
