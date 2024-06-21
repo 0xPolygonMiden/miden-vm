@@ -26,3 +26,10 @@ overflow-checks = true
 [patch.crates-io]
 thiserror = { git = "https://github.com/bitwalker/thiserror", branch = "no-std" }
 miette = { git = "https://github.com/bitwalker/miette", branch = "no-std" }
+winter-verifier = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}
+winter-prover = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}
+winter-air = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}
+winter-math = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}
+winter-crypto = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}
+winter-fri = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}
+winter-utils = {git = "https://github.com/plafer/winterfell", branch = "plafer-286-fix-gkrlogup-api"}

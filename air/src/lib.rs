@@ -166,7 +166,7 @@ impl Air for ProcessorAir {
 
     fn get_aux_assertions<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
-        aux_rand_elements: &[E],
+        aux_rand_elements: &AuxRandElements<E>,
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
@@ -175,7 +175,7 @@ impl Air for ProcessorAir {
         // add initial assertions for the stack's auxiliary columns.
         stack::get_aux_assertions_first_step(
             &mut result,
-            aux_rand_elements,
+            aux_rand_elements.rand_elements(),
             self.stack_inputs.values(),
         );
 
@@ -188,7 +188,7 @@ impl Air for ProcessorAir {
         // add the stack's auxiliary column assertions for the last step.
         stack::get_aux_assertions_last_step(
             &mut result,
-            aux_rand_elements,
+            aux_rand_elements.rand_elements(),
             &self.stack_outputs,
             last_step,
         );
@@ -240,14 +240,14 @@ impl Air for ProcessorAir {
         main_frame: &EvaluationFrame<F>,
         aux_frame: &EvaluationFrame<E>,
         _periodic_values: &[F],
-        aux_rand_elements: &[E],
+        aux_rand_elements: &AuxRandElements<E>,
         result: &mut [E],
     ) where
         F: FieldElement<BaseField = Felt>,
         E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
     {
         // --- range checker ----------------------------------------------------------------------
-        range::enforce_aux_constraints::<F, E>(main_frame, aux_frame, aux_rand_elements, result);
+        range::enforce_aux_constraints::<F, E>(main_frame, aux_frame, aux_rand_elements.rand_elements(), result);
     }
 
     fn context(&self) -> &AirContext<Felt> {
