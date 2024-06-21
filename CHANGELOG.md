@@ -8,6 +8,7 @@
 - Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
 - Change MAST to a table-based representation (#1349)
 - Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357)
+- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 - Skip writing MASM documentation to file when building on docs.rs (#1341).

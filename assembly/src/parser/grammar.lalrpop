@@ -447,12 +447,6 @@ Inst: Instruction = {
     "swapdw" => Instruction::SwapDw,
     "u32and" => Instruction::U32And,
     "u32cast" => Instruction::U32Cast,
-    "u32gt" => Instruction::U32Gt,
-    "u32gte" => Instruction::U32Gte,
-    "u32lt" => Instruction::U32Lt,
-    "u32lte" => Instruction::U32Lte,
-    "u32max" => Instruction::U32Max,
-    "u32min" => Instruction::U32Min,
     "u32not" => Instruction::U32Not,
     "u32or" => Instruction::U32Or,
     "u32overflowing_add3" => Instruction::U32OverflowingAdd3,
@@ -764,6 +758,48 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32Rotr))],
         }
     },
+    <l:@L> "u32lt" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32LtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Lt))],
+        }
+    },
+    <l:@L> "u32lte" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32LteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Lte))],
+        }
+    },
+    <l:@L> "u32gt" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32GtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Gt))],
+        }
+    },
+    <l:@L> "u32gte" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32GteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Gte))],
+        }
+    },
+    <l:@L> "u32min" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32MinImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Min))],
+        }
+    },
+    <l:@L> "u32max" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32MaxImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Max))],
+        }
+    },
 }
 
 #[inline]
@@ -975,7 +1011,6 @@ Shift32: u8 = {
         }
     }
 }
-
 
 #[inline]
 RawU8: u8 = {
