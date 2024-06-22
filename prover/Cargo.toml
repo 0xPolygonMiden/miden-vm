@@ -2,15 +2,16 @@
 name = "miden-prover"
 version = "0.9.1"
 description = "Miden VM prover"
-authors = ["miden contributors"]
-readme = "README.md"
-license = "MIT"
-repository = "https://github.com/0xPolygonMiden/miden-vm"
 documentation = "https://docs.rs/miden-prover/0.9.1"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "prover", "stark", "zkp"]
-edition = "2021"
-rust-version = "1.75"
+readme.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
 
 [features]
 concurrent = ["processor/concurrent", "std", "winter-prover/concurrent"]
