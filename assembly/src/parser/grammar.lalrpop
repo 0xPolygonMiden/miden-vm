@@ -93,6 +93,7 @@ extern {
         "exp" => Token::Exp,
         "exp.u" => Token::ExpU,
         "export" => Token::Export,
+        "false" => Token::False,
         "fri_ext2fold4" => Token::FriExt2Fold4,
         "gt" => Token::Gt,
         "gte" => Token::Gte,
@@ -348,27 +349,51 @@ Op: SmallOpsVec = {
 }
 
 IfElse: Op = {
-    <l:@L> "if" "." "true" "else" <else_blk:Block> "end" <r:@R> => {
+    // Handles the edge case of a code generator emitting an empty "then" block
+    <l:@L> "if" "." <cond:Condition> "else" <else_blk:Block> "end" <r:@R> => {
         let span = span!(l, r);
         let then_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
-        Op::If { span, then_blk, else_blk }
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     },
 
-    <l:@L> "if" "." "true" <then_blk:Block> "else" <else_blk:Block?> "end" <r:@R> => {
+    <l:@L> "if" "." <cond:Condition> <then_blk:Block> "else" <else_blk:Block?> "end" <r:@R> => {
         let span = span!(l, r);
         let else_blk = else_blk.unwrap_or_else(|| Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]));
-        Op::If { span, then_blk, else_blk }
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     },
 
-    <l:@L> "if" "." "true" <then_blk:Block> "end" <r:@R> => {
-        Op::If { span: span!(l, r), then_blk, else_blk: Default::default() }
+    <l:@L> "if" "." <cond:Condition> <then_blk:Block> "end" <r:@R> => {
+        let span = span!(l, r);
+        let else_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     }
+}
+
+#[inline]
+Condition: bool = {
+    "true" => true,
+    "false" => false,
 }
 
 While: Op = {
     <l:@L> "while" "." "true" <body:Block> "end" <r:@R> => {
         Op::While { span: span!(l, r), body }
-    }
+    },
 }
 
 Repeat: Op = {

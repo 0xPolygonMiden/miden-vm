@@ -513,14 +513,17 @@ fn test_ast_parsing_module_nested_if() -> Result<(), Report> {
         0,
         block!(
             inst!(PushU8(1)),
-            if_true!(block!(
-                inst!(PushU8(0)),
-                inst!(PushU8(1)),
-                if_true!(
-                    block!(inst!(PushU8(0)), inst!(Sub)),
-                    block!(inst!(PushU8(1)), inst!(Sub))
-                )
-            ))
+            if_true!(
+                block!(
+                    inst!(PushU8(0)),
+                    inst!(PushU8(1)),
+                    if_true!(
+                        block!(inst!(PushU8(0)), inst!(Sub)),
+                        block!(inst!(PushU8(1)), inst!(Sub))
+                    )
+                ),
+                block!(inst!(Nop))
+            )
         )
     ));
     assert_eq!(context.parse_forms(source)?, forms);
@@ -553,7 +556,7 @@ fn test_ast_parsing_module_sequential_if() -> Result<(), Report> {
         0,
         block!(
             inst!(PushU8(1)),
-            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1)))),
+            if_true!(block!(inst!(PushU8(5)), inst!(PushU8(1))), block!(inst!(Nop))),
             if_true!(block!(inst!(PushU8(0)), inst!(Sub)), block!(inst!(PushU8(1)), inst!(Sub)))
         )
     ));
@@ -585,7 +588,7 @@ fn parsed_while_if_body() {
         inst!(PushU8(1)),
         while_true!(block!(inst!(Mul))),
         inst!(Add),
-        if_true!(block!(inst!(Div))),
+        if_true!(block!(inst!(Div)), block!(inst!(Nop))),
         inst!(Mul)
     ));
 
