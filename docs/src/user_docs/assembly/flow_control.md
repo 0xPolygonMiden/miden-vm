@@ -100,3 +100,19 @@ while.true
     push.0
 end
 ```
+
+### No-op
+
+While rare, there may be situations where you have an empty block and require a do-nothing placeholder instruction, or where you specifically want to advance the cycle counter without any side-effects. The `nop` instruction can be used in these instances.
+
+```
+if.true
+  nop
+else
+  ..instructions..
+end
+```
+
+In the example above, we do not want to perform any work if the condition is true, so we place a `nop` in that branch. This explicit representation of "empty" blocks is automatically done by the assembler when parsing `if.true` or `if.false` in abbreviated form, or when one of the branches is empty.
+
+The semantics of this instruction are to increment the cycle count, and that is it - no other effects.
