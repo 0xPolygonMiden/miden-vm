@@ -290,7 +290,7 @@ impl PrettyPrint for Instruction {
                 const_text("exec") + const_text(".") + text(format!("{}::{}", module, name))
             }
             Self::Exec(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("exec") + const_text(".") + text(format!("{}::{}", path.last(), name))
+                const_text("exec") + const_text(".") + text(format!("::{}::{}", path.last(), name))
             }
             Self::Call(InvocationTarget::MastRoot(root)) => {
                 const_text("call")
@@ -304,7 +304,7 @@ impl PrettyPrint for Instruction {
                 const_text("call") + const_text(".") + text(format!("{}::{}", module, name))
             }
             Self::Call(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("call") + const_text(".") + text(format!("{}::{}", path.last(), name))
+                const_text("call") + const_text(".") + text(format!("::{}::{}", path.last(), name))
             }
             Self::SysCall(InvocationTarget::MastRoot(root)) => {
                 const_text("syscall")
@@ -318,7 +318,9 @@ impl PrettyPrint for Instruction {
                 const_text("syscall") + const_text(".") + text(format!("{}::{}", module, name))
             }
             Self::SysCall(InvocationTarget::AbsoluteProcedurePath { name, path }) => {
-                const_text("syscall") + const_text(".") + text(format!("{}::{}", path.last(), name))
+                const_text("syscall")
+                    + const_text(".")
+                    + text(format!("::{}::{}", path.last(), name))
             }
             Self::DynExec => const_text("dynexec"),
             Self::DynCall => const_text("dyncall"),
@@ -334,7 +336,7 @@ impl PrettyPrint for Instruction {
             Self::ProcRef(InvocationTarget::AbsoluteProcedurePath { name, path }) => flatten(
                 const_text("procref")
                     + const_text(".")
-                    + text(format!("{}::{}", path.last(), name)),
+                    + text(format!("::{}::{}", path.last(), name)),
             ),
 
             // ----- debug decorators -------------------------------------------------------------

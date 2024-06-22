@@ -1,9 +1,10 @@
 use alloc::{string::String, sync::Arc};
+use core::fmt;
 
 use super::{FullyQualifiedProcedureName, ProcedureName};
 use crate::{
     ast::AstSerdeOptions, diagnostics::SourceFile, ByteReader, ByteWriter, DeserializationError,
-    SourceSpan, Span, Spanned,
+    RpoDigest, SourceSpan, Span, Spanned,
 };
 
 // PROCEDURE ALIAS
@@ -27,17 +28,20 @@ pub struct ProcedureAlias {
     ///
     /// NOTE: This is fully-qualified from the perspective of the containing [Module], but may not
     /// be fully-resolved to the concrete definition until compilation time.
-    pub(crate) target: FullyQualifiedProcedureName,
+    pub(crate) target: AliasTarget,
+    /// If true, this alias was created with an absolute path, bypassing the need for an import
+    absolute: bool,
 }
 
 impl ProcedureAlias {
     /// Creates a new procedure alias called `name`, which resolves to `target`.
-    pub fn new(name: ProcedureName, target: FullyQualifiedProcedureName) -> Self {
+    pub fn new(name: ProcedureName, target: impl Into<AliasTarget>, absolute: bool) -> Self {
         Self {
             docs: None,
             source_file: None,
             name,
-            target,
+            target: target.into(),
+            absolute,
         }
     }
 
@@ -71,9 +75,15 @@ impl ProcedureAlias {
         &self.name
     }
 
-    /// Returns the fully-qualified procedure name of the aliased procedure.
-    pub fn target(&self) -> &FullyQualifiedProcedureName {
+    /// Returns the target of this procedure alias
+    pub fn target(&self) -> &AliasTarget {
         &self.target
+    }
+
+    /// Returns true if this procedure uses an absolute target path
+    #[inline]
+    pub fn absolute(&self) -> bool {
+        self.absolute
     }
 }
 
@@ -82,6 +92,7 @@ impl ProcedureAlias {
     pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         self.name.write_into_with_options(target, options);
         self.target.write_into_with_options(target, options);
+        target.write_bool(self.absolute);
     }
 
     pub fn read_from_with_options<R: ByteReader>(
@@ -89,12 +100,14 @@ impl ProcedureAlias {
         options: AstSerdeOptions,
     ) -> Result<Self, DeserializationError> {
         let name = ProcedureName::read_from_with_options(source, options)?;
-        let target = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
+        let target = AliasTarget::read_from_with_options(source, options)?;
+        let absolute = source.read_bool()?;
         Ok(Self {
             source_file: None,
             docs: None,
             name,
             target,
+            absolute,
         })
     }
 }
@@ -118,16 +131,113 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
                 .unwrap_or_default();
         }
 
-        if self.target.name == self.name {
-            doc += display(format_args!("export.{}::{}", self.target.module.last(), &self.name));
+        let is_renamed = match &self.target {
+            AliasTarget::Path(name) => name.name == self.name,
+            _ => false,
+        };
+        doc += const_text("export.");
+        if is_renamed {
+            if self.absolute {
+                doc += display(format_args!("::{}", &self.target));
+            } else {
+                doc += display(&self.target);
+            }
+        } else if self.absolute {
+            doc += display(format_args!("::{}->{}", self.target, &self.name));
         } else {
-            doc += display(format_args!(
-                "export.{}::{}->{}",
-                self.target.module.last(),
-                &self.target.name,
-                &self.name
-            ));
+            doc += display(format_args!("{}->{}", self.target, &self.name));
         }
         doc
+    }
+}
+
+/// A fully-qualified external procedure that is the target of a procedure alias
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AliasTarget {
+    /// An alias of a procedure with the given digest
+    MastRoot(Span<RpoDigest>),
+    /// An alias of a procedure with the given fully-qualified path
+    Path(FullyQualifiedProcedureName),
+}
+
+impl Spanned for AliasTarget {
+    fn span(&self) -> SourceSpan {
+        match self {
+            Self::MastRoot(spanned) => spanned.span(),
+            Self::Path(spanned) => spanned.span(),
+        }
+    }
+}
+
+impl From<Span<RpoDigest>> for AliasTarget {
+    fn from(digest: Span<RpoDigest>) -> Self {
+        Self::MastRoot(digest)
+    }
+}
+
+impl From<FullyQualifiedProcedureName> for AliasTarget {
+    fn from(path: FullyQualifiedProcedureName) -> Self {
+        Self::Path(path)
+    }
+}
+
+impl crate::prettier::PrettyPrint for AliasTarget {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        use vm_core::utils::DisplayHex;
+
+        match self {
+            Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
+            Self::Path(path) => display(format_args!("{}", path)),
+        }
+    }
+}
+
+impl fmt::Display for AliasTarget {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+
+        self.pretty_print(f)
+    }
+}
+
+impl AliasTarget {
+    fn tag(&self) -> u8 {
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
+        //
+        // See the section on "accessing the numeric value of the discriminant"
+        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
+        unsafe { *<*const _>::from(self).cast::<u8>() }
+    }
+
+    /// Serialize to `target` using `options`
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
+        target.write_u8(self.tag());
+        match self {
+            Self::MastRoot(spanned) => spanned.write_into(target, options),
+            Self::Path(path) => path.write_into_with_options(target, options),
+        }
+    }
+
+    /// Deserialize from `source` using `options`
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
+        match source.read_u8()? {
+            0 => {
+                let root = Span::<RpoDigest>::read_from(source, options)?;
+                Ok(Self::MastRoot(root))
+            }
+            1 => {
+                let path = FullyQualifiedProcedureName::read_from_with_options(source, options)?;
+                Ok(Self::Path(path))
+            }
+            n => Err(DeserializationError::InvalidValue(format!(
+                "{} is not a valid alias target type",
+                n
+            ))),
+        }
     }
 }

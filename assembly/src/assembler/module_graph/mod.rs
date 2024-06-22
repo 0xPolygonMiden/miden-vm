@@ -577,6 +577,16 @@ impl ModuleGraph {
                     next = Cow::Owned(fqn);
                     caller = module.source_file();
                 }
+                Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                    if let Some(id) = self.get_procedure_index_by_digest(digest) {
+                        break Ok(id);
+                    }
+                    break Err(AssemblyError::Failed {
+                        labels: vec![RelatedLabel::error("undefined procedure")
+                            .with_source_file(source_file)
+                            .with_labeled_span(next.span(), "unable to resolve this reference")],
+                    });
+                }
                 None => {
                     // No such procedure known to `module`
                     break Err(AssemblyError::Failed {
