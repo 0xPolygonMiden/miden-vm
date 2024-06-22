@@ -9,6 +9,13 @@
 - Change MAST to a table-based representation (#1349)
 - Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357)
 - Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
+- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics. This is implemented for use by compilers primarily.
+- Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
+- Relaxed the parser to allow one branch of an `if.(true|false)` to be empty
+
+#### Changed
+
+- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead, which is equivalent to the code emitted by the assembler when lowering to MAST.
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 - Skip writing MASM documentation to file when building on docs.rs (#1341).
