@@ -774,14 +774,8 @@ impl Assembler {
 
                     let then_blk =
                         self.compile_body(then_blk.iter(), context, None, mast_forest)?;
-                    // else is an exception because it is optional; hence, will have to be replaced
-                    // by noop span
-                    let else_blk = if else_blk.is_empty() {
-                        let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
-                        mast_forest.ensure_node(basic_block_node)
-                    } else {
-                        self.compile_body(else_blk.iter(), context, None, mast_forest)?
-                    };
+                    let else_blk =
+                        self.compile_body(else_blk.iter(), context, None, mast_forest)?;
 
                     let split_node_id = {
                         let split_node = MastNode::new_split(then_blk, else_blk, mast_forest);
