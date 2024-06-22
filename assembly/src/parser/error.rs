@@ -203,6 +203,11 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
     },
+    #[error("re-exporting a procedure identified by digest requires giving it a name, e.g. `export.DIGEST->foo`")]
+    UnnamedReexportOfMastRoot {
+        #[label]
+        span: SourceSpan,
+    },
 }
 
 impl ParsingError {

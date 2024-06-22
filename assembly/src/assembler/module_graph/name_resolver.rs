@@ -186,6 +186,12 @@ impl<'a> NameResolver<'a> {
                     }
                 }
             }
+            Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                match self.graph.get_procedure_index_by_digest(digest) {
+                    Some(gid) => Ok(ResolvedTarget::Exact { gid }),
+                    None => Ok(ResolvedTarget::Phantom(**digest)),
+                }
+            }
             None => Err(AssemblyError::Failed {
                 labels: vec![RelatedLabel::error("undefined procedure")
                     .with_source_file(caller.source_file.clone())
@@ -384,6 +390,28 @@ impl<'a> NameResolver<'a> {
                         kind: current_caller.kind,
                     });
                     current_callee = Cow::Owned(fqn);
+                }
+                Some(ResolvedProcedure::MastRoot(ref digest)) => {
+                    if let Some(id) = self.graph.get_procedure_index_by_digest(digest) {
+                        break Ok(id);
+                    }
+                    // This is a phantom procedure - we know its root, but do not have its definition
+                    break Err(AssemblyError::Failed {
+                        labels: vec![
+                            RelatedLabel::error("undefined procedure")
+                                .with_source_file(caller.source_file.clone())
+                                .with_labeled_span(
+                                    caller.span,
+                                    "unable to resolve this reference to its definition",
+                                ),
+                            RelatedLabel::error("name resolution cannot proceed")
+                                .with_source_file(self.module_source(module_index))
+                                .with_labeled_span(
+                                    current_callee.span(),
+                                    "this name cannot be resolved",
+                                ),
+                        ],
+                    });
                 }
                 None if matches!(current_caller.kind, InvokeKind::SysCall) => {
                     if self.graph.has_nonempty_kernel() {
