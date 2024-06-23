@@ -280,12 +280,12 @@ impl From<HostResponse> for Felt {
 // ================================================================================================
 
 /// A default [Host] implementation that provides the essential functionality required by the VM.
-pub struct DefaultHost<A, S> {
+pub struct DefaultHost<A> {
     adv_provider: A,
-    store: S,
+    store: MemMastForestStore,
 }
 
-impl Default for DefaultHost<MemAdviceProvider, MemMastForestStore> {
+impl Default for DefaultHost<MemAdviceProvider> {
     fn default() -> Self {
         Self {
             adv_provider: MemAdviceProvider::default(),
@@ -294,16 +294,19 @@ impl Default for DefaultHost<MemAdviceProvider, MemMastForestStore> {
     }
 }
 
-impl<A, S> DefaultHost<A, S>
+impl<A> DefaultHost<A>
 where
     A: AdviceProvider,
-    S: MastForestStore,
 {
-    pub fn new(adv_provider: A, store: S) -> Self {
+    pub fn new(adv_provider: A) -> Self {
         Self {
             adv_provider,
-            store,
+            store: MemMastForestStore::default(),
         }
+    }
+
+    pub fn load_mast_forest(&mut self, mast_forest: MastForest) {
+        self.store.insert(mast_forest)
     }
 
     #[cfg(any(test, feature = "internals"))]
@@ -321,10 +324,9 @@ where
     }
 }
 
-impl<A, S> Host for DefaultHost<A, S>
+impl<A> Host for DefaultHost<A>
 where
     A: AdviceProvider,
-    S: MastForestStore,
 {
     fn get_advice<P: ProcessState>(
         &mut self,

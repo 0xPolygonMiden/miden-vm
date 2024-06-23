@@ -178,9 +178,9 @@ pub mod tests {
     use miden_air::ExecutionOptions;
     use vm_core::StackInputs;
 
-    use crate::{AdviceInputs, DefaultHost, MemAdviceProvider, MemMastForestStore};
+    use crate::{AdviceInputs, DefaultHost, MemAdviceProvider};
 
-    impl Process<DefaultHost<MemAdviceProvider, MemMastForestStore>> {
+    impl Process<DefaultHost<MemAdviceProvider>> {
         /// Instantiates a new blank process for testing purposes. The stack in the process is
         /// initialized with the provided values.
         pub fn new_dummy(stack_inputs: StackInputs) -> Self {
@@ -203,7 +203,7 @@ pub mod tests {
             let advice_inputs =
                 AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
             let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let host = DefaultHost::new(advice_provider, MemMastForestStore::default());
+            let host = DefaultHost::new(advice_provider);
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
             process.execute_op(Operation::Noop).unwrap();
@@ -233,7 +233,7 @@ pub mod tests {
             advice_inputs: AdviceInputs,
         ) -> Self {
             let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let host = DefaultHost::new(advice_provider, MemMastForestStore::default());
+            let host = DefaultHost::new(advice_provider);
             let mut process =
                 Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
             process.decoder.add_dummy_trace_row();

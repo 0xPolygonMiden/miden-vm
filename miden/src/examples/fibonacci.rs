@@ -1,11 +1,10 @@
 use super::{Example, ONE, ZERO};
 use miden_vm::{math::Felt, Assembler, DefaultHost, MemAdviceProvider, Program, StackInputs};
-use processor::MemMastForestStore;
 
 // EXAMPLE BUILDER
 // ================================================================================================
 
-pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider, MemMastForestStore>> {
+pub fn get_example(n: usize) -> Example<DefaultHost<MemAdviceProvider>> {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
     let expected_result = vec![compute_fibonacci(n)];

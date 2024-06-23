@@ -1,7 +1,7 @@
 use super::data::{instrument, Debug, InputFile, Libraries, OutputFile, ProgramFile};
 use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
 use clap::Parser;
-use processor::{DefaultHost, ExecutionOptions, ExecutionTrace, MemMastForestStore};
+use processor::{DefaultHost, ExecutionOptions, ExecutionTrace};
 use std::{path::PathBuf, time::Instant};
 
 #[derive(Debug, Clone, Parser)]
@@ -117,10 +117,7 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
 
     // fetch the stack and program inputs from the arguments
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
-    let host = DefaultHost::new(
-        input_data.parse_advice_provider().map_err(Report::msg)?,
-        MemMastForestStore::default(),
-    );
+    let host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
 
     let program_hash: [u8; 32] = program.hash().into();
 
