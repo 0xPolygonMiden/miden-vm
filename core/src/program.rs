@@ -37,7 +37,7 @@ impl Program {
     }
 
     /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
-    pub fn new_with_kernel(
+    pub fn with_kernel(
         mast_forest: Arc<MastForest>,
         entrypoint: MastNodeId,
         kernel: Arc<Kernel>,

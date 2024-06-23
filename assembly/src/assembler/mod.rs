@@ -578,7 +578,7 @@ impl Assembler {
         // Compile the module graph rooted at the entrypoint
         let entry_procedure = self.compile_subgraph(entrypoint, true, context, &mut mast_forest)?;
 
-        Ok(Program::new_with_kernel(
+        Ok(Program::with_kernel(
             mast_forest.into(),
             entry_procedure.body_node_id(),
             self.module_graph.kernel().clone().into(),

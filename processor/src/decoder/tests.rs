@@ -928,7 +928,7 @@ fn syscall_block() {
     let program_root_node = MastNode::new_join(inner_join_node_id, last_basic_block_id, &mast_forest);
     let program_root_node_id = mast_forest.add_node(program_root_node.clone());
 
-    let program = Program::new_with_kernel(mast_forest.into(), program_root_node_id, kernel.clone());
+    let program = Program::with_kernel(mast_forest.into(), program_root_node_id, kernel.clone());
 
     let (sys_trace, dec_trace,   trace_len) =
         build_call_trace(&program, kernel.as_ref().clone());

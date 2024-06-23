@@ -264,8 +264,7 @@ where
                     )?;
                 let root_id = mast_forest.find_procedure_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
 
-                let program =
-                    Program::new_with_kernel(mast_forest, root_id, program.kernel().clone());
+                let program = Program::with_kernel(mast_forest, root_id, program.kernel().clone());
                 self.execute_mast_node(root_id, &program)
             }
         }
