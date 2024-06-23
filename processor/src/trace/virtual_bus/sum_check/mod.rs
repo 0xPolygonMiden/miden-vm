@@ -70,8 +70,11 @@ pub struct FinalOpeningClaim<E> {
     pub openings: Vec<E>,
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
-mod test {
+mod tests {
     use super::{
         prover::{FinalClaimBuilder, SumCheckProver},
         verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},

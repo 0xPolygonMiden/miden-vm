@@ -13,6 +13,9 @@ use alloc::{borrow::ToOwned, vec::Vec};
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
+// VERIFIER
+// ================================================================================================
+
 /// Verifies the validity of a GKR proof for the correct evaluation of a fractional sum circuit.
 pub fn verify<
     E: FieldElement<BaseField = Felt>,
@@ -102,9 +105,12 @@ pub fn verify<
     )
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
 /// Verifies sum-check proofs, as part of the GKR proof, for all GKR layers except for the last one
 /// i.e., the circuit input layer.
-pub fn verify_sum_check_proof_before_last<
+fn verify_sum_check_proof_before_last<
     E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
@@ -131,7 +137,7 @@ pub fn verify_sum_check_proof_before_last<
 }
 
 /// Verifies the final sum-check proof as part of the GKR proof.
-pub fn verify_sum_check_proof_last<
+fn verify_sum_check_proof_last<
     E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
@@ -168,15 +174,17 @@ pub fn verify_sum_check_proof_last<
         GkrCompositionMerge::new(r_sum_check, rand_merge.clone(), log_up_randomness);
     let verifier = SumCheckVerifier::new(
         gkr_composition,
-        GkrMergeQueryBuilder::new(gkr_eval_point.to_owned(), rand_merge),
+        GkrMergeQueryBuilder::new(gkr_eval_point.to_vec(), rand_merge),
     );
     verifier
         .verify(claim, after_merge_proof, transcript)
         .map_err(VerifierError::FailedToVerifySumCheck)
 }
 
-/// A [`FinalQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final
-/// one.
+// GKR QUERY BUILDERS
+// ================================================================================================
+
+/// A [`GkrQueryBuilder`] for the sum-check verifier used for all sum-checks but for the final one.
 #[derive(Default)]
 struct GkrQueryBuilder<E> {
     gkr_eval_point: Vec<E>,
@@ -200,7 +208,7 @@ impl<E: FieldElement> CompositionPolyQueryBuilder<E> for GkrQueryBuilder<E> {
     }
 }
 
-/// A [`FinalQueryBuilder`] for the sum-check verifier used for the final sum-check.
+/// A [`GkrMergeQueryBuilder`] for the sum-check verifier used for the final sum-check.
 #[derive(Default)]
 struct GkrMergeQueryBuilder<E> {
     gkr_eval_point: Vec<E>,

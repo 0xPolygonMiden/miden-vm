@@ -2,6 +2,9 @@ use alloc::vec::Vec;
 use vm_core::{polynom, FieldElement};
 use winter_prover::math::batch_inversion;
 
+// UNIVARIATE POLYNOMIAL (EVALUATION FORM)
+// ================================================================================================
+
 /// The evaluations of a univariate polynomial of degree n at 0, 1, ..., n with the evaluation at 0
 /// omitted.
 #[derive(Clone, Debug)]
@@ -62,6 +65,9 @@ impl<E: FieldElement> UnivariatePolyEvals<E> {
     }
 }
 
+// UNIVARIATE POLYNOMIAL (COEFFICIENT FORM)
+// ================================================================================================
+
 /// The coefficients of a univariate polynomial of degree n with the linear term coefficient
 /// omitted.
 #[derive(Clone, Debug)]
@@ -89,6 +95,9 @@ impl<E: FieldElement> UnivariatePolyCoef<E> {
         polynom::eval(&complete_coefficients, *challenge)
     }
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Given a (row) vector `v`, computes the vector-matrix product `v * V^{-1}` where `V` is
 /// the Vandermonde matrix over the points `1, ..., n` where `n` is the length of `v`.
@@ -213,6 +222,9 @@ fn compute_m_entry<E: FieldElement>(
     col_current[j] = value;
     value
 }
+
+// TESTS
+// ================================================================================================
 
 #[test]
 fn test_poly_partial() {

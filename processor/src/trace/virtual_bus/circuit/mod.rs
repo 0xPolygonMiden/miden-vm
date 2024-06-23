@@ -25,6 +25,9 @@ use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
 const NUM_WIRES_PER_TRACE_ROW: usize = 8;
 const_assert!(NUM_WIRES_PER_TRACE_ROW.is_power_of_two());
 
+// CIRCUIT WIRE
+// ================================================================================================
+
 /// Represents a fraction `numerator / denominator` as a pair `(numerator, denominator)`. This is
 /// the type for the gates' inputs in [`prover::EvaluatedCircuit`].
 ///

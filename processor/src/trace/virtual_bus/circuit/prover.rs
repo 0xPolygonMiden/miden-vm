@@ -14,6 +14,9 @@ use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
+// EVALUATED CIRCUIT
+// ================================================================================================
+
 /// Evaluation of a layered circuit for computing a sum of fractions.
 ///
 /// The circuit computes a sum of fractions based on the formula a / c + b / d = (a * d + b * c) /
@@ -149,6 +152,9 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     }
 }
 
+// CIRCUIT LAYER
+// ================================================================================================
+
 /// Represents a layer in a [`EvaluatedCircuit`].
 ///
 /// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
@@ -181,6 +187,9 @@ impl<E: FieldElement> CircuitLayer<E> {
         self.wires.len()
     }
 }
+
+// CIRCUIT LAYER POLYNOMIAL
+// ================================================================================================
 
 /// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
 /// evaluation using GKR.
@@ -215,6 +224,9 @@ where
         }
     }
 }
+
+// PROVER
+// ================================================================================================
 
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
@@ -304,6 +316,9 @@ pub fn prove<
         final_layer_proof,
     })
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Proves the final GKR layer which corresponds to the input circuit layer.
 fn prove_final_circuit_layer<
