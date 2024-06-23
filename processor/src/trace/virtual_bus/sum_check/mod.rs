@@ -70,6 +70,18 @@ pub struct FinalOpeningClaim<E> {
     pub openings: Vec<E>,
 }
 
+// COMPOSITION POLYNOMIAL
+// ================================================================================================
+
+/// A multi-variate polynomial for composing individual multi-linear polynomials.
+pub trait CompositionPolynomial<E: FieldElement> {
+    /// Maximum degree in all variables.
+    fn max_degree(&self) -> u32;
+
+    /// Given a query, of length equal the number of variables, evaluates [Self] at this query.
+    fn evaluate(&self, query: &[E]) -> E;
+}
+
 // TESTS
 // ================================================================================================
 
@@ -78,8 +90,9 @@ mod tests {
     use super::{
         prover::{FinalClaimBuilder, SumCheckProver},
         verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},
+        CompositionPolynomial,
     };
-    use crate::trace::virtual_bus::multilinear::{CompositionPolynomial, MultiLinearPoly};
+    use crate::trace::virtual_bus::multilinear::MultiLinearPoly;
     use alloc::{borrow::ToOwned, vec::Vec};
     use test_utils::rand::rand_vector;
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};

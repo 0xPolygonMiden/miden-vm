@@ -1,5 +1,4 @@
-use super::{FinalOpeningClaim, Proof, RoundClaim, RoundProof};
-use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
+use super::{CompositionPolynomial, FinalOpeningClaim, Proof, RoundClaim, RoundProof};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use vm_core::FieldElement;

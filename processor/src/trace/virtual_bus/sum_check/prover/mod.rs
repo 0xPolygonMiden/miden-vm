@@ -1,8 +1,7 @@
-use super::{reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof};
-use crate::trace::virtual_bus::{
-    multilinear::{CompositionPolynomial, MultiLinearPoly},
-    univariate::UnivariatePolyEvals,
+use super::{
+    reduce_claim, CompositionPolynomial, FinalOpeningClaim, Proof, RoundClaim, RoundProof,
 };
+use crate::trace::virtual_bus::{multilinear::MultiLinearPoly, univariate::UnivariatePolyEvals};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use vm_core::FieldElement;

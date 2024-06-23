@@ -1,7 +1,7 @@
 use core::ops::Add;
 
 use crate::trace::virtual_bus::multilinear::EqFunction;
-use crate::trace::virtual_bus::{multilinear::CompositionPolynomial, sum_check::RoundProof};
+use crate::trace::virtual_bus::sum_check::{CompositionPolynomial, RoundProof};
 use alloc::vec::Vec;
 use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
