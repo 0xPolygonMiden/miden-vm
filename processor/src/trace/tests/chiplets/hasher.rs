@@ -53,7 +53,7 @@ pub fn b_chip_span() {
         let basic_block = MastNode::new_basic_block(vec![Operation::Add, Operation::Mul]);
         let basic_block_id = mast_forest.add_node(basic_block);
 
-        Program::new(mast_forest.into(), basic_block_id)
+        Program::new(mast_forest, basic_block_id)
     };
 
     let trace = build_trace_from_program(&program, &[]);
@@ -126,7 +126,7 @@ pub fn b_chip_span_with_respan() {
         let basic_block = MastNode::new_basic_block(ops);
         let basic_block_id = mast_forest.add_node(basic_block);
 
-        Program::new(mast_forest.into(), basic_block_id)
+        Program::new(mast_forest, basic_block_id)
     };
     let trace = build_trace_from_program(&program, &[]);
 
@@ -224,7 +224,7 @@ pub fn b_chip_merge() {
         let split = MastNode::new_split(t_branch_id, f_branch_id, &mast_forest);
         let split_id = mast_forest.add_node(split);
 
-        Program::new(mast_forest.into(), split_id)
+        Program::new(mast_forest, split_id)
     };
 
     let trace = build_trace_from_program(&program, &[]);
@@ -337,7 +337,7 @@ pub fn b_chip_permutation() {
         let basic_block = MastNode::new_basic_block(vec![Operation::HPerm]);
         let basic_block_id = mast_forest.add_node(basic_block);
 
-        Program::new(mast_forest.into(), basic_block_id)
+        Program::new(mast_forest, basic_block_id)
     };
     let stack = vec![8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8];
     let trace = build_trace_from_program(&program, &stack);

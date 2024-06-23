@@ -1,6 +1,6 @@
 use core::{fmt, ops::Index};
 
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 use miden_crypto::{hash::rpo::RpoDigest, Felt, WORD_SIZE};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
@@ -16,7 +16,7 @@ use super::Kernel;
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    mast_forest: Arc<MastForest>,
+    mast_forest: MastForest,
     /// The "entrypoint" is the node where execution of the program begins.
     entrypoint: MastNodeId,
     kernel: Kernel,
@@ -26,7 +26,7 @@ pub struct Program {
 impl Program {
     /// Construct a new [`Program`] from the given MAST forest and entrypoint. The kernel is assumed
     /// to be empty.
-    pub fn new(mast_forest: Arc<MastForest>, entrypoint: MastNodeId) -> Self {
+    pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
@@ -37,11 +37,7 @@ impl Program {
     }
 
     /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
-    pub fn with_kernel(
-        mast_forest: Arc<MastForest>,
-        entrypoint: MastNodeId,
-        kernel: Kernel,
-    ) -> Self {
+    pub fn with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
@@ -121,7 +117,7 @@ impl fmt::Display for Program {
     }
 }
 
-impl From<Program> for Arc<MastForest> {
+impl From<Program> for MastForest {
     fn from(program: Program) -> Self {
         program.mast_forest
     }

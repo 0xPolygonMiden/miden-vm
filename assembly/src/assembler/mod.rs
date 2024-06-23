@@ -579,7 +579,7 @@ impl Assembler {
         let entry_procedure = self.compile_subgraph(entrypoint, true, context, &mut mast_forest)?;
 
         Ok(Program::with_kernel(
-            mast_forest.into(),
+            mast_forest,
             entry_procedure.body_node_id(),
             self.module_graph.kernel().clone(),
         ))
