@@ -17,10 +17,7 @@ use super::Kernel;
 #[derive(Clone, Debug)]
 pub struct Program {
     mast_forest: Arc<MastForest>,
-    /// The "entrypoint", when set, is the root of the entire forest, i.e. a path exists from this
-    /// node to all other roots in the forest. This corresponds to the executable entry point.
-    /// Whether or not the entrypoint is set distinguishes a MAST which is executable, versus a
-    /// MAST which represents a library.
+    /// The "entrypoint" is the node where execution of the program begins.
     entrypoint: MastNodeId,
     kernel: Arc<Kernel>,
 }
