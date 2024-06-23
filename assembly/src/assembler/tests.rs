@@ -215,3 +215,30 @@ fn nested_blocks() {
     // also check that the program has the right number of procedures
     assert_eq!(program.num_procedures(), 5);
 }
+
+/// Ensures that a single copy of procedures with the same MAST root are added only once to the MAST forest.
+#[test]
+fn duplicate_procedure() {
+    let assembler = Assembler::new();
+
+    let program_source = r#"
+        proc.foo
+            add
+            mul
+        end
+
+        proc.bar
+            add
+            mul
+        end
+
+        begin
+            # specific impl irrelevant
+            exec.foo
+            exec.bar
+        end
+    "#;
+
+    let program = assembler.assemble(program_source).unwrap();
+    assert_eq!(program.num_procedures(), 2);
+}
