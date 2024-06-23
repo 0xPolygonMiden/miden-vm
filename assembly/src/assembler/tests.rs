@@ -213,5 +213,5 @@ fn nested_blocks() {
     assert_eq!(expected_program.hash(), program.hash());
 
     // also check that the program has the right number of procedures
-    assert_eq!(program.num_procedures(), 3);
+    assert_eq!(program.num_procedures(), 5);
 }

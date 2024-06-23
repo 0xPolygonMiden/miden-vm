@@ -698,7 +698,7 @@ impl Assembler {
         context.set_current_procedure(procedure);
 
         let proc = self.module_graph[gid].unwrap_procedure();
-        let code = if num_locals > 0 {
+        let proc_body_root = if num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
             // procedure body is executed. specifically:
             // - to allocate procedure locals we need to increment fmp by the number of locals
@@ -713,8 +713,10 @@ impl Assembler {
             self.compile_body(proc.iter(), context, None, mast_forest)?
         };
 
+        mast_forest.make_root(proc_body_root);
+
         let pctx = context.take_current_procedure().unwrap();
-        Ok(pctx.into_procedure(code))
+        Ok(pctx.into_procedure(proc_body_root))
     }
 
     fn compile_body<'a, I>(
@@ -816,10 +818,7 @@ impl Assembler {
 
         Ok(if mast_node_ids.is_empty() {
             let basic_block_node = MastNode::new_basic_block(vec![Operation::Noop]);
-            let basic_block_node_id = mast_forest.add_node(basic_block_node);
-            mast_forest.make_root(basic_block_node_id);
-
-            basic_block_node_id
+            mast_forest.add_node(basic_block_node)
         } else {
             combine_mast_node_ids(mast_node_ids, mast_forest)
         })
@@ -889,8 +888,5 @@ fn combine_mast_node_ids(
         }
     }
 
-    let root_id = mast_node_ids.remove(0);
-    mast_forest.make_root(root_id);
-
-    root_id
+    mast_node_ids.remove(0)
 }
