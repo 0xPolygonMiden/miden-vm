@@ -60,7 +60,7 @@ impl MastForest {
 /// Mutators
 impl MastForest {
     /// Adds a node to the forest, and returns the associated [`MastNodeId`].
-    /// 
+    ///
     /// Adding two duplicate nodes will result in two distinct returned [`MastNodeId`]s.
     pub fn add_node(&mut self, node: MastNode) -> MastNodeId {
         let new_node_id = MastNodeId(
