@@ -231,7 +231,7 @@ where
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        self.execute_mast_node(program.entrypoint(), program)?;
+        self.execute_mast_node(program.entrypoint(), program.mast_forest())?;
 
         Ok(self.stack.build_stack_outputs())
     }
@@ -242,7 +242,7 @@ where
     fn execute_mast_node(
         &mut self,
         node_id: MastNodeId,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         let wrapper_node = &program
             .get_node_by_id(node_id)
@@ -264,8 +264,7 @@ where
                     )?;
                 let root_id = mast_forest.find_procedure_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
 
-                let program = Program::with_kernel(mast_forest, root_id, program.kernel().clone());
-                self.execute_mast_node(root_id, &program)
+                self.execute_mast_node(root_id, &mast_forest)
             }
         }
     }
@@ -274,7 +273,7 @@ where
     fn execute_join_node(
         &mut self,
         node: &JoinNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         self.start_join_node(node, program)?;
 
@@ -289,7 +288,7 @@ where
     fn execute_split_node(
         &mut self,
         node: &SplitNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
         let condition = self.start_split_node(node, program)?;
@@ -311,7 +310,7 @@ where
     fn execute_loop_node(
         &mut self,
         node: &LoopNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
         let condition = self.start_loop_node(node, program)?;
@@ -346,7 +345,7 @@ where
     fn execute_call_node(
         &mut self,
         call_node: &CallNode,
-        program: &Program,
+        program: &MastForest,
     ) -> Result<(), ExecutionError> {
         let callee_digest = {
             let callee = program.get_node_by_id(call_node.callee()).ok_or_else(|| {
@@ -377,7 +376,7 @@ where
 
     /// Executes the specified [DynNode] node.
     #[inline(always)]
-    fn execute_dyn_node(&mut self, program: &Program) -> Result<(), ExecutionError> {
+    fn execute_dyn_node(&mut self, program: &MastForest) -> Result<(), ExecutionError> {
         // get target hash from the stack
         let callee_hash = self.stack.get_word(0);
         self.start_dyn_node(callee_hash)?;
