@@ -111,7 +111,7 @@ pub enum AssemblyError {
         span: SourceSpan,
         #[source_code]
         source_file: Option<Arc<SourceFile>>,
-        callee: RpoDigest
+        callee: RpoDigest,
     },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(

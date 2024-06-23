@@ -91,8 +91,9 @@ where
             // if we will fill the entire segment, we allocate uninitialized memory
             unsafe { page_aligned_uninit_vector(domain_size) }
         } else {
-            // but if some columns in the segment will remain unfilled, we allocate memory initialized
-            // to zeros to make sure we don't end up with memory with undefined values
+            // but if some columns in the segment will remain unfilled, we allocate memory
+            // initialized to zeros to make sure we don't end up with memory with
+            // undefined values
             vec![[E::BaseField::ZERO; N]; domain_size]
         };
 

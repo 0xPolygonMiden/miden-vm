@@ -84,11 +84,12 @@ impl Assembler {
         let mast_root_node_id = {
             match kind {
                 InvokeKind::Exec => {
-                    // Note that here we rely on the fact that we topologically sorted the procedures, such
-                    // that when we assemble a procedure, all procedures that it calls will have been
-                    // assembled, and hence be present in the `MastForest`. We currently assume that the
-                    // `MastForest` contains all the procedures being called; "external procedures" only
-                    // known by digest are not currently supported.
+                    // Note that here we rely on the fact that we topologically sorted the
+                    // procedures, such that when we assemble a procedure, all
+                    // procedures that it calls will have been assembled, and
+                    // hence be present in the `MastForest`. We currently assume that the
+                    // `MastForest` contains all the procedures being called; "external procedures"
+                    // only known by digest are not currently supported.
                     mast_forest.find_procedure_root(mast_root).ok_or_else(|| {
                         AssemblyError::UnknownExecTarget {
                             span,
@@ -98,12 +99,13 @@ impl Assembler {
                     })?
                 }
                 InvokeKind::Call => {
-                    let callee_id = mast_forest.find_procedure_root(mast_root).unwrap_or_else(|| {
-                        // If the MAST root called isn't known to us, make it an external
-                        // reference.
-                        let external_node = MastNode::new_external(mast_root);
-                        mast_forest.add_node(external_node)
-                    });
+                    let callee_id =
+                        mast_forest.find_procedure_root(mast_root).unwrap_or_else(|| {
+                            // If the MAST root called isn't known to us, make it an external
+                            // reference.
+                            let external_node = MastNode::new_external(mast_root);
+                            mast_forest.add_node(external_node)
+                        });
 
                     let call_node = MastNode::new_call(callee_id, mast_forest);
                     mast_forest.add_node(call_node)
