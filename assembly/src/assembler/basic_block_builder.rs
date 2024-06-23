@@ -1,7 +1,10 @@
-use super::{AssemblyContext, BodyWrapper, Decorator, DecoratorList, Instruction};
+use super::{
+    mast_forest_builder::MastForestBuilder, AssemblyContext, BodyWrapper, Decorator, DecoratorList,
+    Instruction,
+};
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 use vm_core::{
-    mast::{MastForest, MastNode, MastNodeId},
+    mast::{MastNode, MastNodeId},
     AdviceInjector, AssemblyOp, Operation,
 };
 
@@ -123,13 +126,16 @@ impl BasicBlockBuilder {
     ///
     /// This consumes all operations and decorators in the builder, but does not touch the
     /// operations in the epilogue of the builder.
-    pub fn make_basic_block(&mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
+    pub fn make_basic_block(
+        &mut self,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Option<MastNodeId> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
             let decorators = self.decorators.drain(..).collect();
 
             let basic_block_node = MastNode::new_basic_block_with_decorators(ops, decorators);
-            let basic_block_node_id = mast_forest.add_node(basic_block_node);
+            let basic_block_node_id = mast_forest_builder.ensure_node(basic_block_node);
 
             Some(basic_block_node_id)
         } else if !self.decorators.is_empty() {
@@ -149,8 +155,11 @@ impl BasicBlockBuilder {
     /// - Operations contained in the epilogue of the builder are appended to the list of ops which
     ///   go into the new BASIC BLOCK node.
     /// - The builder is consumed in the process.
-    pub fn into_basic_block(mut self, mast_forest: &mut MastForest) -> Option<MastNodeId> {
+    pub fn into_basic_block(
+        mut self,
+        mast_forest_builder: &mut MastForestBuilder,
+    ) -> Option<MastNodeId> {
         self.ops.append(&mut self.epilogue);
-        self.make_basic_block(mast_forest)
+        self.make_basic_block(mast_forest_builder)
     }
 }
