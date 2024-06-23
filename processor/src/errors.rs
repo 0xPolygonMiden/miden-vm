@@ -48,6 +48,9 @@ pub enum ExecutionError {
     },
     LogArgumentZero(u32),
     MalformedSignatureKey(&'static str),
+    MalformedMastForestInHost {
+        root_digest: Digest,
+    },
     MastNodeNotFoundInForest {
         node_id: MastNodeId,
     },
@@ -150,6 +153,9 @@ impl Display for ExecutionError {
                 )
             }
             MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
+            MalformedMastForestInHost { root_digest } => {
+                write!(f, "Malformed host: MAST forest indexed by procedure root {} doesn't contain that root", root_digest)
+            }
             MastNodeNotFoundInForest { node_id } => {
                 write!(f, "Malformed MAST forest, node id {node_id} doesn't exist")
             }

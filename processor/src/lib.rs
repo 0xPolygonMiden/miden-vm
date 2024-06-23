@@ -262,7 +262,11 @@ where
                             root_digest: external_node.digest(),
                         },
                     )?;
-                let root_id = mast_forest.find_procedure_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
+                let root_id = mast_forest.find_procedure_root(external_node.digest()).ok_or(
+                    ExecutionError::MalformedMastForestInHost {
+                        root_digest: external_node.digest(),
+                    },
+                )?;
 
                 self.execute_mast_node(root_id, &mast_forest)
             }
