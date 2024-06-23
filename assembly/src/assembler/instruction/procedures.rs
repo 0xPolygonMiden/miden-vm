@@ -110,13 +110,14 @@ impl Assembler {
                     let call_node = MastNode::new_call(callee_id, mast_forest);
                     mast_forest.add_node(call_node)
                 }
-                // Syscall nodes always use external references, as the kernel should always be
-                // provided to the VM via the host.
                 InvokeKind::SysCall => {
-                    let callee_id = {
-                        let external_node = MastNode::new_external(mast_root);
-                        mast_forest.add_node(external_node)
-                    };
+                    let callee_id =
+                        mast_forest.find_procedure_root(mast_root).unwrap_or_else(|| {
+                            // If the MAST root called isn't known to us, make it an external
+                            // reference.
+                            let external_node = MastNode::new_external(mast_root);
+                            mast_forest.add_node(external_node)
+                        });
 
                     let syscall_node = MastNode::new_syscall(callee_id, mast_forest);
                     mast_forest.add_node(syscall_node)
