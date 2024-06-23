@@ -262,7 +262,7 @@ where
                             root_digest: external_node.digest(),
                         },
                     )?;
-                let root_id = mast_forest.find_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
+                let root_id = mast_forest.find_procedure_root(external_node.digest()).unwrap_or_else(|| panic!("Malformed host: MAST forest indexed by procedure root {} doesn't contain that root.", external_node.digest()));
 
                 let program =
                     Program::new_with_kernel(mast_forest, root_id, program.kernel().clone());
@@ -385,7 +385,7 @@ where
 
         // get dynamic code from the code block table and execute it
         let callee_id = program
-            .find_root(callee_hash.into())
+            .find_procedure_root(callee_hash.into())
             .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
         self.execute_mast_node(callee_id, program)?;
 

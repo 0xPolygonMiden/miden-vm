@@ -96,13 +96,21 @@ impl MastForest {
 
     /// Returns the [`MastNodeId`] of the procedure associated with a given digest, if any.
     #[inline(always)]
-    pub fn find_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+    pub fn find_procedure_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
         self.roots.iter().find(|&&root_id| self[root_id].digest() == digest).copied()
     }
 
     /// Returns an iterator over the digest of the procedures in this MAST forest.
-    pub fn roots(&self) -> impl Iterator<Item = RpoDigest> + '_ {
+    pub fn procedure_roots(&self) -> impl Iterator<Item = RpoDigest> + '_ {
         self.roots.iter().map(|&root_id| self[root_id].digest())
+    }
+
+    /// Returns the number of procedures in this MAST forest.
+    pub fn num_procedures(&self) -> u32 {
+        self.roots
+            .len()
+            .try_into()
+            .expect("MAST forest contains more than 2^32 procedures.")
     }
 }
 

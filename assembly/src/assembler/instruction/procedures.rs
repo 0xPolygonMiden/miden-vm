@@ -89,7 +89,7 @@ impl Assembler {
                     // assembled, and hence be present in the `MastForest`. We currently assume that the
                     // `MastForest` contains all the procedures being called; "external procedures" only
                     // known by digest are not currently supported.
-                    mast_forest.find_root(mast_root).ok_or_else(|| {
+                    mast_forest.find_procedure_root(mast_root).ok_or_else(|| {
                         AssemblyError::UnknownExecTarget {
                             span,
                             source_file: current_source_file,
@@ -98,7 +98,7 @@ impl Assembler {
                     })?
                 }
                 InvokeKind::Call => {
-                    let callee_id = mast_forest.find_root(mast_root).unwrap_or_else(|| {
+                    let callee_id = mast_forest.find_procedure_root(mast_root).unwrap_or_else(|| {
                         // If the MAST root called isn't known to us, make it an external
                         // reference.
                         let external_node = MastNode::new_external(mast_root);

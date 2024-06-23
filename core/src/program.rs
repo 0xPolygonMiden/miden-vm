@@ -90,8 +90,13 @@ impl Program {
 
     /// Returns the [`MastNodeId`] of the procedure root associated with a given digest, if any.
     #[inline(always)]
-    pub fn find_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
-        self.mast_forest.find_root(digest)
+    pub fn find_procedure_root(&self, digest: RpoDigest) -> Option<MastNodeId> {
+        self.mast_forest.find_procedure_root(digest)
+    }
+
+    /// Returns the number of procedures in this program.
+    pub fn num_procedures(&self) -> u32 {
+        self.mast_forest.num_procedures()
     }
 }
 

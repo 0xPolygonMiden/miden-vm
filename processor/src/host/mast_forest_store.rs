@@ -14,7 +14,7 @@ impl MemMastForestStore {
     pub fn insert(&mut self, mast_forest: MastForest) {
         let mast_forest = Arc::new(mast_forest);
 
-        for root in mast_forest.roots() {
+        for root in mast_forest.procedure_roots() {
             self.mast_forests.insert(root, mast_forest.clone());
         }
     }
