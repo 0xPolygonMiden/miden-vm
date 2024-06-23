@@ -581,7 +581,7 @@ impl Assembler {
         Ok(Program::with_kernel(
             mast_forest.into(),
             entry_procedure.body_node_id(),
-            self.module_graph.kernel().clone().into(),
+            self.module_graph.kernel().clone(),
         ))
     }
 

@@ -19,7 +19,7 @@ pub struct Program {
     mast_forest: Arc<MastForest>,
     /// The "entrypoint" is the node where execution of the program begins.
     entrypoint: MastNodeId,
-    kernel: Arc<Kernel>,
+    kernel: Kernel,
 }
 
 /// Constructors
@@ -32,7 +32,7 @@ impl Program {
         Self {
             mast_forest,
             entrypoint,
-            kernel: Arc::new(Kernel::default()),
+            kernel: Kernel::default(),
         }
     }
 
@@ -40,7 +40,7 @@ impl Program {
     pub fn with_kernel(
         mast_forest: Arc<MastForest>,
         entrypoint: MastNodeId,
-        kernel: Arc<Kernel>,
+        kernel: Kernel,
     ) -> Self {
         debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
@@ -60,8 +60,8 @@ impl Program {
     }
 
     /// Returns the kernel associated with this program.
-    pub fn kernel(&self) -> Arc<Kernel> {
-        self.kernel.clone()
+    pub fn kernel(&self) -> &Kernel {
+        &self.kernel
     }
 
     /// Returns the entrypoint associated with this program.
@@ -178,7 +178,7 @@ impl ProgramInfo {
 impl From<Program> for ProgramInfo {
     fn from(program: Program) -> Self {
         let program_hash = program.hash();
-        let kernel = program.kernel().as_ref().clone();
+        let kernel = program.kernel().clone();
 
         Self {
             program_hash,

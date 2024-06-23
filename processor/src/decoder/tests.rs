@@ -5,7 +5,7 @@ use super::{
     build_op_group,
 };
 use crate::DefaultHost;
-use alloc::{sync::Arc, vec::Vec};
+use alloc::vec::Vec;
 use miden_air::trace::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
@@ -895,7 +895,7 @@ fn syscall_block() {
     let foo_root = MastNode::new_basic_block(vec![Operation::Push(THREE), Operation::FmpUpdate]);
     let foo_root_id = mast_forest.add_node(foo_root.clone());
     mast_forest.make_root(foo_root_id);
-    let kernel: Arc<Kernel> = Kernel::new(&[foo_root.digest()]).unwrap().into();
+    let kernel = Kernel::new(&[foo_root.digest()]).unwrap();
 
     // build bar procedure body
     let bar_basic_block = MastNode::new_basic_block(vec![Operation::Push(TWO), Operation::FmpUpdate]);
@@ -931,7 +931,7 @@ fn syscall_block() {
     let program = Program::with_kernel(mast_forest.into(), program_root_node_id, kernel.clone());
 
     let (sys_trace, dec_trace,   trace_len) =
-        build_call_trace(&program, kernel.as_ref().clone());
+        build_call_trace(&program, kernel);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
