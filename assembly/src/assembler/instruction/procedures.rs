@@ -74,7 +74,7 @@ impl Assembler {
             None if matches!(kind, InvokeKind::SysCall) => {
                 return Err(AssemblyError::UnknownSysCallTarget {
                     span,
-                    source_file: current_source_file,
+                    source_file: current_source_file.clone(),
                     callee: mast_root,
                 });
             }
@@ -82,28 +82,42 @@ impl Assembler {
         }
 
         let mast_root_node_id = {
-            // Note that here we rely on the fact that we topologically sorted the procedures, such
-            // that when we assemble a procedure, all procedures that it calls will have been
-            // assembled, and hence be present in the `MastForest`. We currently assume that the
-            // `MastForest` contains all the procedures being called; "external procedures" only
-            // known by digest are not currently supported.
-            let callee_id = mast_forest
-                .find_root(mast_root)
-                .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
-
             match kind {
-                // For `exec`, we return the root of the procedure being exec'd, which has the
-                // effect of inlining it
-                InvokeKind::Exec => callee_id,
-                // For `call`, we just use the corresponding CALL block
-                InvokeKind::Call => {
-                    let node = MastNode::new_call(callee_id, mast_forest);
-                    mast_forest.add_node(node)
+                InvokeKind::Exec => {
+                    // Note that here we rely on the fact that we topologically sorted the procedures, such
+                    // that when we assemble a procedure, all procedures that it calls will have been
+                    // assembled, and hence be present in the `MastForest`. We currently assume that the
+                    // `MastForest` contains all the procedures being called; "external procedures" only
+                    // known by digest are not currently supported.
+                    mast_forest.find_root(mast_root).ok_or_else(|| {
+                        AssemblyError::UnknownExecTarget {
+                            span,
+                            source_file: current_source_file,
+                            callee: mast_root,
+                        }
+                    })?
                 }
-                // For `syscall`, we just use the corresponding SYSCALL block
+                InvokeKind::Call => {
+                    let callee_id = mast_forest.find_root(mast_root).unwrap_or_else(|| {
+                        // If the MAST root called isn't known to us, make it an external
+                        // reference.
+                        let external_node = MastNode::new_external(mast_root);
+                        mast_forest.add_node(external_node)
+                    });
+
+                    let call_node = MastNode::new_call(callee_id, mast_forest);
+                    mast_forest.add_node(call_node)
+                }
+                // Syscall nodes always use external references, as the kernel should always be
+                // provided to the VM via the host.
                 InvokeKind::SysCall => {
-                    let node = MastNode::new_syscall(callee_id, mast_forest);
-                    mast_forest.add_node(node)
+                    let callee_id = {
+                        let external_node = MastNode::new_external(mast_root);
+                        mast_forest.add_node(external_node)
+                    };
+
+                    let syscall_node = MastNode::new_syscall(callee_id, mast_forest);
+                    mast_forest.add_node(syscall_node)
                 }
             }
         };

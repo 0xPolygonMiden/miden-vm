@@ -104,6 +104,15 @@ pub enum AssemblyError {
         source_file: Option<Arc<SourceFile>>,
         callee: RpoDigest,
     },
+    #[error("invalid exec: exec'd procedures must be available during compilation, but '{callee}' is not")]
+    #[diagnostic()]
+    UnknownExecTarget {
+        #[label("call occurs here")]
+        span: SourceSpan,
+        #[source_code]
+        source_file: Option<Arc<SourceFile>>,
+        callee: RpoDigest
+    },
     #[error("invalid use of 'caller' instruction outside of kernel")]
     #[diagnostic(help(
         "the 'caller' instruction is only allowed in procedures defined in a kernel"
