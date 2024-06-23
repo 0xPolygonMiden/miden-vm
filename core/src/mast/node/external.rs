@@ -1,21 +1,26 @@
 use crate::mast::{MastForest, MerkleTreeNode};
 use core::fmt;
 use miden_crypto::hash::rpo::RpoDigest;
-/// Block for a unknown function call.
+
+/// Node for referencing procedures not present in a given [`MastForest`] (hence "external").
 ///
-/// Proxy blocks are used to verify the integrity of a program's hash while keeping parts
-/// of the program secret. Fails if executed.
+/// External nodes can be used to verify the integrity of a program's hash while keeping parts of
+/// the program secret. They also allow a program to refer to a well-known procedure that was not
+/// compiled with the program (e.g. a procedure in the standard library).
 ///
-/// Hash of a proxy block is not computed but is rather defined at instantiation time.
+/// The hash of an external node is the hash of the procedure it represents, such that an external
+/// node can be swapped with the actual subtree that it represents without changing the MAST root.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExternalNode {
     digest: RpoDigest,
 }
 
 impl ExternalNode {
-    /// Returns a new [Proxy] block instantiated with the specified code hash.
-    pub fn new(code_hash: RpoDigest) -> Self {
-        Self { digest: code_hash }
+    /// Returns a new [`ExternalNode`] instantiated with the specified procedure hash.
+    pub fn new(procedure_hash: RpoDigest) -> Self {
+        Self {
+            digest: procedure_hash,
+        }
     }
 }
 
