@@ -177,6 +177,73 @@
                 <div id="content" class="content">
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
+<style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
 <h2 id="flow-control"><a class="header" href="#flow-control">Flow control</a></h2>
 <p>As mentioned above, Miden assembly provides high-level constructs to facilitate flow control. These constructs are:</p>
 <ul>
@@ -185,21 +252,53 @@
 <li><em>while</em> expressions for unbounded condition-controlled loops.</li>
 </ul>
 <h3 id="conditional-execution"><a class="header" href="#conditional-execution">Conditional execution</a></h3>
-<p>Conditional execution in Miden VM can be accomplished with <em>if-else</em> statements. These statements look like so:</p>
+<p>Conditional execution in Miden VM can be accomplished with <em>if-else</em> statements. These statements can take one of the following forms:</p>
+<h4 id="iftrue--else--end"><a class="header" href="#iftrue--else--end"><code>if.true .. else .. end</code></a></h4>
+<p>This is the full form, when there is work to be done on both branches:</p>
 <pre><code>if.true
-    &lt;instructions&gt;
+  ..instructions..
 else
-    &lt;instructions&gt;
+  ..instructions..
 end
 </code></pre>
-<p>where <code>instructions</code> can be a sequence of any instructions, including nested control structures; the <code>else</code> clause is optional. The above does the following:</p>
+<h4 id="iftrue--end"><a class="header" href="#iftrue--end"><code>if.true .. end</code></a></h4>
+<p>This is the abbreviated form, for when there is only work to be done on one branch. In these cases the "unused" branch can be elided:</p>
+<pre><code>if.true
+  ..instructions..
+end
+</code></pre>
+<p>In addition to <code>if.true</code>, there is also <code>if.false</code>, which is identical in syntax, but for false-conditioned branches. It is equivalent in semantics to using <code>if.true</code> and swapping the branches.</p>
+<p>The body of each branch, i.e. <code>..instructions..</code> in the examples above, can be a sequence of zero or more instructions (an empty body is only valid so long as at least one branch is non-empty). These can consist of any instruction, including nested control flow.</p>
+<div class="mdbook-alerts mdbook-alerts-tip">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  tip
+</p>
+<p>As with other control structures described below that have nested blocks,
+it is essential that you ensure that the state of the operand stack is
+consistent at join points in control flow. For example, with <code>if.true</code>
+control flow implicitly joins at the end of each branch. If you have moved
+items around on the operand stack, or added/removed items, and those
+modifications would persist past the end of that branch, it is highly
+recommended that you make equivalent modifications in the opposite branch.
+This is not required if modifications are local to a block.</p>
+</div>
+<p>The semantics of the <code>if.true</code> and <code>if.false</code> control operator are as follows:</p>
 <ol>
-<li>Pops the top item from the stack.</li>
-<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, instructions in the <code>if.true</code> branch are executed.</li>
-<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, instructions in the <code>else</code> branch are executed.</li>
-<li>If the value is not binary, the execution fails.</li>
+<li>The condition is popped from the top of the stack. It must be a boolean value, i.e. <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span> for false, <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> for true. If the condition is <em>not</em> a boolean value, then execution traps.</li>
+<li>The conditional branch is chosen:
+a.  If the operator is <code>if.true</code>, and the condition is true, instructions in the first branch are executed; otherwise, if the condition is false, then the second branch is executed. If a branch was elided or empty, the assembler provides a default body consisting of a single <code>nop</code> instruction.
+b. If the operator is <code>if.false</code>, the behavior is identical to that of <code>if.true</code>, except the condition must be false for the first branch to be taken, and true for the second branch.</li>
+<li>Control joins at the next instruction immediately following the <code>if.true</code>/<code>if.false</code> instruction.</li>
 </ol>
+<div class="mdbook-alerts mdbook-alerts-tip">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  tip
+</p>
 <p>A note on performance: using <em>if-else</em> statements incurs a small, but non-negligible overhead. Thus, for simple conditional statements, it may be more efficient to compute the result of both branches, and then select the result using <a href="./stack_manipulation.html#conditional-manipulation">conditional drop</a> instructions.</p>
+<p>This does not apply to <em>if-else</em> statements whose bodies contain side-effects that cannot be easily adapted to this type of rewrite. For example, writing a value to global memory is a side effect, but if both branches would write to the same address, and only the value being written differs, then this can likely be rewritten to use <code>cdrop</code>.</p>
+</div>
 <h3 id="counter-controlled-loops"><a class="header" href="#counter-controlled-loops">Counter-controlled loops</a></h3>
 <p>Executing a sequence of instructions a predefined number of times can be accomplished with <em>repeat</em> statements. These statements look like so:</p>
 <pre><code>repeat.&lt;count&gt;
@@ -240,6 +339,16 @@ while.true
     push.0
 end
 </code></pre>
+<h3 id="no-op"><a class="header" href="#no-op">No-op</a></h3>
+<p>While rare, there may be situations where you have an empty block and require a do-nothing placeholder instruction, or where you specifically want to advance the cycle counter without any side-effects. The <code>nop</code> instruction can be used in these instances.</p>
+<pre><code>if.true
+  nop
+else
+  ..instructions..
+end
+</code></pre>
+<p>In the example above, we do not want to perform any work if the condition is true, so we place a <code>nop</code> in that branch. This explicit representation of "empty" blocks is automatically done by the assembler when parsing <code>if.true</code> or <code>if.false</code> in abbreviated form, or when one of the branches is empty.</p>
+<p>The semantics of this instruction are to increment the cycle count, and that is it - no other effects.</p>
 
                     </main>
 
