@@ -21,6 +21,7 @@ use crate::{
 /// NOTE: For control flow instructions, see [crate::ast::Op].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Instruction {
+    Nop,
     Assert,
     AssertWithError(ErrorCode),
     AssertEq,

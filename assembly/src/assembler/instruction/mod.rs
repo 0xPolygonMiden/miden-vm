@@ -56,6 +56,7 @@ impl Assembler {
         use Operation::*;
 
         match instruction {
+            Instruction::Nop => span_builder.push_op(Noop),
             Instruction::Assert => span_builder.push_op(Assert(0)),
             Instruction::AssertWithError(err_code) => {
                 span_builder.push_op(Assert(err_code.expect_value()))

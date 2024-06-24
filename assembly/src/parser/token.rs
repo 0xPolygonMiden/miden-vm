@@ -112,6 +112,7 @@ pub enum Token<'input> {
     Export,
     Exp,
     ExpU,
+    False,
     FriExt2Fold4,
     Gt,
     Gte,
@@ -148,6 +149,7 @@ pub enum Token<'input> {
     Neg,
     Neq,
     Not,
+    Nop,
     Or,
     Padw,
     Pow2,
@@ -288,6 +290,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Exp => write!(f, "exp"),
             Token::ExpU => write!(f, "exp.u"),
             Token::Export => write!(f, "export"),
+            Token::False => write!(f, "false"),
             Token::FriExt2Fold4 => write!(f, "fri_ext2fold4"),
             Token::Gt => write!(f, "gt"),
             Token::Gte => write!(f, "gte"),
@@ -324,6 +327,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::Neg => write!(f, "neg"),
             Token::Neq => write!(f, "neq"),
             Token::Not => write!(f, "not"),
+            Token::Nop => write!(f, "nop"),
             Token::Or => write!(f, "or"),
             Token::Padw => write!(f, "padw"),
             Token::Pow2 => write!(f, "pow2"),
@@ -501,6 +505,7 @@ impl<'input> Token<'input> {
                 | Token::Neg
                 | Token::Neq
                 | Token::Not
+                | Token::Nop
                 | Token::Or
                 | Token::Padw
                 | Token::Pow2
@@ -615,6 +620,7 @@ impl<'input> Token<'input> {
         ("exp", Token::Exp),
         ("exp.u", Token::ExpU),
         ("export", Token::Export),
+        ("false", Token::False),
         ("fri_ext2fold4", Token::FriExt2Fold4),
         ("gt", Token::Gt),
         ("gte", Token::Gte),
@@ -651,6 +657,7 @@ impl<'input> Token<'input> {
         ("neg", Token::Neg),
         ("neq", Token::Neq),
         ("not", Token::Not),
+        ("nop", Token::Nop),
         ("or", Token::Or),
         ("padw", Token::Padw),
         ("pow2", Token::Pow2),
