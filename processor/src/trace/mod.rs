@@ -5,11 +5,14 @@ use super::{
     Process, StackTopState,
 };
 use alloc::vec::Vec;
-use miden_air::trace::{
-    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    main_trace::MainTrace,
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH,
+use miden_air::{
+    trace::{
+        decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
+        main_trace::MainTrace,
+        AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
+        STACK_TRACE_OFFSET, TRACE_WIDTH,
+    },
+    AuxRandElements,
 };
 use vm_core::{stack::STACK_TOP_SIZE, ProgramInfo, StackOutputs, ZERO};
 use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
@@ -194,7 +197,7 @@ impl ExecutionTrace {
         finalize_trace(process, rng)
     }
 
-    pub fn build_aux_trace<E>(&self, rand_elements: &[E]) -> Option<ColMatrix<E>>
+    pub fn build_aux_trace<E>(&self, rand_elements: &AuxRandElements<E>) -> Option<ColMatrix<E>>
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -202,17 +205,19 @@ impl ExecutionTrace {
         let decoder_aux_columns = self
             .aux_trace_builders
             .decoder
-            .build_aux_columns(&self.main_trace, rand_elements);
+            .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
 
         // add stack's running product columns
-        let stack_aux_columns =
-            self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
+        let stack_aux_columns = self
+            .aux_trace_builders
+            .stack
+            .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
 
         // add the running product columns for the chiplets
         let chiplets = self
             .aux_trace_builders
             .chiplets
-            .build_aux_columns(&self.main_trace, rand_elements);
+            .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns

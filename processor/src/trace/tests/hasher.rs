@@ -1,13 +1,15 @@
 use super::{
-    super::NUM_RAND_ROWS, build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt,
-    Operation, Word, ONE, ZERO,
+    super::NUM_RAND_ROWS, build_trace_from_ops_with_inputs, AdviceInputs, Felt, Operation, Word,
+    ONE, ZERO,
 };
 
 use crate::StackInputs;
 use alloc::vec::Vec;
-use miden_air::trace::{
-    chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS,
+use miden_air::{
+    trace::{chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS},
+    AuxRandElements,
 };
+use test_utils::rand::rand_vector;
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     FieldElement,
@@ -35,7 +37,7 @@ fn hasher_p1_mp_verify() {
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MpVerify(0)];
     let trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
-    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let alphas: AuxRandElements<Felt> = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
@@ -70,16 +72,17 @@ fn hasher_p1_mr_update() {
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MrUpdate];
     let trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
-    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let alphas: AuxRandElements<Felt> = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        SiblingTableRow::new(Felt::new(index), path[0].into()).to_value(&trace.main_trace, &alphas),
+        SiblingTableRow::new(Felt::new(index), path[0].into())
+            .to_value(&trace.main_trace, alphas.rand_elements()),
         SiblingTableRow::new(Felt::new(index >> 1), path[1].into())
-            .to_value(&trace.main_trace, &alphas),
+            .to_value(&trace.main_trace, alphas.rand_elements()),
         SiblingTableRow::new(Felt::new(index >> 2), path[2].into())
-            .to_value(&trace.main_trace, &alphas),
+            .to_value(&trace.main_trace, alphas.rand_elements()),
     ];
 
     // make sure the first entry is ONE

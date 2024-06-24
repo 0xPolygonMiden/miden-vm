@@ -20,7 +20,6 @@
 //!
 //! [1]: https://dl.acm.org/doi/10.1145/2699436
 //! [2]: https://eprint.iacr.org/2023/1284
-//!
 use alloc::vec::Vec;
 use miden_air::{trace::main_trace::MainTrace, AuxRandElements};
 use vm_core::{Felt, FieldElement};
@@ -103,12 +102,12 @@ where
     let mut main_trace_row = vec![Felt::ZERO; main_trace.num_base_cols()];
     let mut last_row_value = E::ZERO;
 
-    for row_idx in 0..main_trace.num_rows() {
+    for (row_idx, &lagrange_kernel_row) in lagrange_kernel_col.iter().enumerate() {
         main_trace.read_row_into(row_idx, &mut main_trace_row);
         let row_value = last_row_value
-            + lagrange_kernel_col[row_idx]
+            + lagrange_kernel_row
                 * inner_product(
-                    openings_combining_randomness.iter().map(|ele| ele),
+                    openings_combining_randomness.iter(),
                     main_trace_row.iter().map(|ele| E::from(*ele)),
                 );
 
@@ -126,6 +125,6 @@ pub fn inner_product<'a, E: FieldElement + 'a>(
 ) -> E {
     evaluations
         .into_iter()
-        .zip(tensored_query.into_iter())
+        .zip(tensored_query)
         .fold(E::ZERO, |acc, (x_i, y_i)| acc + *x_i * y_i)
 }

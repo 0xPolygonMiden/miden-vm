@@ -233,6 +233,6 @@ where
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+        trace.build_aux_trace(aux_rand_elements).unwrap()
     }
 }
