@@ -6,7 +6,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{AuxRandElements, ProcessorAir, PublicInputs};
+use air::{AuxRandElements, GkrRandElements, ProcessorAir, PublicInputs};
+use alloc::vec;
+use alloc::vec::Vec;
 use core::marker::PhantomData;
 #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
 use miden_gpu::HashFn;
@@ -16,13 +18,13 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    ExecutionTrace,
+    prove_virtual_bus, ExecutionTrace,
 };
 use tracing::instrument;
 use winter_prover::{
     matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
-    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
-    TracePolyTable,
+    DefaultTraceLde, LagrangeKernelRandElements, ProofOptions as WinterProofOptions, Prover,
+    ProverGkrProof, StarkDomain, TraceInfo, TracePolyTable,
 };
 
 #[cfg(feature = "std")]
@@ -234,5 +236,41 @@ where
         E: FieldElement<BaseField = Self::BaseField>,
     {
         trace.build_aux_trace(aux_rand_elements).unwrap()
+    }
+
+    fn generate_gkr_proof<E>(
+        &self,
+        main_trace: &Self::Trace,
+        public_coin: &mut Self::RandomCoin,
+    ) -> (ProverGkrProof<Self>, GkrRandElements<E>)
+    where
+        E: FieldElement<BaseField = Self::BaseField>,
+    {
+        // TODOP: `generate_gkr_proof()` should return a `Result`
+        let logup_randomness: E = public_coin.draw().expect("failed to draw logup randomness");
+
+        let gkr_proof =
+            prove_virtual_bus(main_trace.main_segment(), vec![logup_randomness], public_coin)
+                .expect("Failed to generate GKR proof");
+
+        let final_opening_claim = gkr_proof.get_final_opening_claim();
+        // draw openings combining randomness
+        let openings_combining_randomness: Vec<E> = {
+            let openings_digest = H::hash_elements(&final_opening_claim.openings);
+
+            public_coin.reseed(openings_digest);
+
+            (0..main_trace.main_segment().num_cols())
+                .map(|_| public_coin.draw().expect("failed to draw openings combining randomness"))
+                .collect()
+        };
+
+        let gkr_rand_elements = GkrRandElements::new(
+            LagrangeKernelRandElements::new(final_opening_claim.eval_point),
+            openings_combining_randomness,
+        );
+
+        // TODOP: Return `gkr_proof` once type is available
+        ((), gkr_rand_elements)
     }
 }

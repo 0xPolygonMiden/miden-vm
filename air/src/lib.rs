@@ -42,7 +42,7 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::{AuxRandElements, FieldExtension};
+pub use winter_air::{AuxRandElements, FieldExtension, GkrRandElements};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -63,6 +63,7 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
+    // TODOP: `GkrCircuitProof` needs to be accessible in `air`
     type GkrProof = ();
     type GkrVerifier = ();
     type BaseField = Felt;

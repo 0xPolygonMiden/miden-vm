@@ -10,9 +10,11 @@ use crate::trace::virtual_bus::{
 };
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use miden_air::trace::main_trace::MainTrace;
 use vm_core::{Felt, FieldElement};
-use winter_prover::crypto::{ElementHasher, RandomCoin};
+use winter_prover::{
+    crypto::{ElementHasher, RandomCoin},
+    matrix::ColMatrix,
+};
 
 /// Evaluation of a layered circuit for computing a sum of fractions.
 ///
@@ -260,7 +262,7 @@ pub fn prove<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    trace: &MainTrace,
+    trace: &ColMatrix<Felt>,
     log_up_randomness: Vec<E>,
     transcript: &mut C,
 ) -> Result<GkrCircuitProof<E>, ProverError> {
