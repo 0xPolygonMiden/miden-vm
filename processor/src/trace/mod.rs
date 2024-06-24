@@ -219,11 +219,15 @@ impl ExecutionTrace {
             .chiplets
             .build_aux_columns(&self.main_trace, rand_elements.rand_elements());
 
+        // add the aux columns for LogUp-GKR
+        let logup_gkr = virtual_bus::build_aux_columns(&self.main_trace, rand_elements);
+
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
             .chain(chiplets)
+            .chain(logup_gkr)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
