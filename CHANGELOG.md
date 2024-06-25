@@ -7,6 +7,7 @@
 - Added error codes support for the `mtree_verify` instruction (#1328).
 - Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
 - Change MAST to a table-based representation (#1349)
+- Introduce `MastForestStore` (#1359)
 - Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357)
 
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
