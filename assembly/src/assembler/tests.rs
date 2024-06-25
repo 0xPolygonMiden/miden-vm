@@ -1,5 +1,9 @@
 use alloc::{boxed::Box, vec::Vec};
-use vm_core::{mast::MastNode, Program};
+use pretty_assertions::assert_eq;
+use vm_core::{
+    mast::{MastForest, MastNode},
+    Program,
+};
 
 use super::{Assembler, Library, Operation};
 use crate::{
@@ -252,4 +256,54 @@ fn duplicate_procedure() {
 
     let program = assembler.assemble(program_source).unwrap();
     assert_eq!(program.num_procedures(), 2);
+}
+
+/// Ensures that equal MAST nodes don't get added twice to a MAST forest
+#[test]
+fn duplicate_nodes() {
+    let assembler = Assembler::new();
+
+    let program_source = r#"
+    begin
+        if.true
+            mul
+        else
+            if.true add else mul end
+        end
+    end
+    "#;
+
+    let program = assembler.assemble(program_source).unwrap();
+
+    let mut expected_mast_forest = MastForest::new();
+
+    // basic block: mul
+    let mul_basic_block_id = {
+        let node = MastNode::new_basic_block(vec![Operation::Mul]);
+        expected_mast_forest.add_node(node)
+    };
+
+    // basic block: add
+    let add_basic_block_id = {
+        let node = MastNode::new_basic_block(vec![Operation::Add]);
+        expected_mast_forest.add_node(node)
+    };
+
+    // inner split: `if.true add else mul end`
+    let inner_split_id = {
+        let node =
+            MastNode::new_split(add_basic_block_id, mul_basic_block_id, &expected_mast_forest);
+        expected_mast_forest.add_node(node)
+    };
+
+    // root: outer split
+    let root_id = {
+        let node = MastNode::new_split(mul_basic_block_id, inner_split_id, &expected_mast_forest);
+        expected_mast_forest.add_node(node)
+    };
+    expected_mast_forest.make_root(root_id);
+
+    let expected_program = Program::new(expected_mast_forest, root_id);
+
+    assert_eq!(program, expected_program);
 }

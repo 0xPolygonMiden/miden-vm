@@ -40,7 +40,7 @@ impl fmt::Display for MastNodeId {
 ///
 /// A [`MastForest`] does not have an entrypoint, and hence is not executable. A [`crate::Program`]
 /// can be built from a [`MastForest`] to specify an entrypoint.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct MastForest {
     /// All of the nodes local to the trees comprising the MAST forest.
     nodes: Vec<MastNode>,

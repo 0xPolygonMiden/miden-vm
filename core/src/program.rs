@@ -14,7 +14,7 @@ use super::Kernel;
 // PROGRAM
 // ===============================================================================================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     mast_forest: MastForest,
     /// The "entrypoint" is the node where execution of the program begins.
