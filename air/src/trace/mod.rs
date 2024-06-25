@@ -74,6 +74,7 @@ pub const STACK_AUX_TRACE_WIDTH: usize = 1;
 pub const STACK_AUX_TRACE_RANGE: Range<usize> =
     range(STACK_AUX_TRACE_OFFSET, STACK_AUX_TRACE_WIDTH);
 
+// TODOP: REMOVE
 // Hasher auxiliary columns
 pub const HASHER_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
 pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
