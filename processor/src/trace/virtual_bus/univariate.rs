@@ -1,5 +1,6 @@
 use alloc::vec::Vec;
-use vm_core::{polynom, FieldElement};
+use miden_air::gkr_proof::UnivariatePolyCoef;
+use vm_core::FieldElement;
 use winter_prover::math::batch_inversion;
 
 /// The evaluations of a univariate polynomial of degree n at 0, 1, ..., n with the evaluation at 0
@@ -59,34 +60,6 @@ impl<E: FieldElement> UnivariatePolyEvals<E> {
         coefficients.extend_from_slice(&q_coefs[1..]);
 
         UnivariatePolyCoef { coefficients }
-    }
-}
-
-/// The coefficients of a univariate polynomial of degree n with the linear term coefficient
-/// omitted.
-#[derive(Clone, Debug)]
-pub struct UnivariatePolyCoef<E: FieldElement> {
-    pub(crate) coefficients: Vec<E>,
-}
-
-impl<E: FieldElement> UnivariatePolyCoef<E> {
-    /// Evaluates a polynomial at a challenge point using a round claim.
-    ///
-    /// The round claim is used to recover the coefficient of the linear term using the relation
-    /// 2 * c0 + c1 + ... c_{n - 1} = claim. Using the complete list of coefficients, the polynomial
-    /// is then evaluated using Horner's method.
-    pub fn evaluate_using_claim(&self, claim: &E, challenge: &E) -> E {
-        // recover the coefficient of the linear term
-        let c1 = *claim
-            - self.coefficients.iter().fold(E::ZERO, |acc, term| acc + *term)
-            - self.coefficients[0];
-
-        // construct the full coefficient list
-        let mut complete_coefficients = vec![self.coefficients[0], c1];
-        complete_coefficients.extend_from_slice(&self.coefficients[1..]);
-
-        // evaluate
-        polynom::eval(&complete_coefficients, *challenge)
     }
 }
 

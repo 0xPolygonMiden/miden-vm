@@ -26,6 +26,7 @@ pub mod trace;
 use trace::*;
 
 mod errors;
+pub mod gkr_proof;
 mod options;
 mod proof;
 

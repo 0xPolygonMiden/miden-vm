@@ -1,10 +1,10 @@
-use super::{reduce_claim, FinalOpeningClaim, Proof, RoundClaim, RoundProof};
+use super::{reduce_claim, RoundClaim, RoundProof};
 use crate::trace::virtual_bus::{
-    multilinear::{CompositionPolynomial, MultiLinearPoly},
-    univariate::UnivariatePolyEvals,
+    multilinear::CompositionPolynomial, univariate::UnivariatePolyEvals,
 };
 use alloc::vec::Vec;
 use core::marker::PhantomData;
+use miden_air::gkr_proof::{FinalOpeningClaim, MultiLinearPoly, SumCheckProof};
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -124,7 +124,7 @@ where
         claim: E,
         mut mls: Vec<MultiLinearPoly<E>>,
         coin: &mut C,
-    ) -> Result<Proof<E>, Error> {
+    ) -> Result<SumCheckProof<E>, Error> {
         let num_rounds = mls[0].num_variables();
         let (
             RoundClaim {
@@ -137,7 +137,7 @@ where
         let openings = mls.iter_mut().map(|ml| ml.evaluations()[0]).collect();
         let openings_claim = self.final_claim_builder.build_claim(openings, &eval_point);
 
-        Ok(Proof {
+        Ok(SumCheckProof {
             openings_claim,
             round_proofs,
         })

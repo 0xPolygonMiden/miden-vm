@@ -1,13 +1,12 @@
-use core::ops::Add;
-
+use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
 use crate::trace::virtual_bus::multilinear::EqFunction;
-use crate::trace::virtual_bus::{multilinear::CompositionPolynomial, sum_check::RoundProof};
 use alloc::vec::Vec;
+use miden_air::gkr_proof::CircuitWire;
+use miden_air::gkr_proof::MultiLinearPoly;
 use miden_air::trace::chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX};
 use miden_air::trace::decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET};
 use miden_air::trace::range::{M_COL_IDX, V_COL_IDX};
 use miden_air::trace::{CHIPLETS_OFFSET, TRACE_WIDTH};
-use prover::CircuitLayerPolys;
 use static_assertions::const_assert;
 use vm_core::{Felt, FieldElement};
 
@@ -18,52 +17,9 @@ pub use prover::prove;
 mod verifier;
 pub use verifier::verify;
 
-use super::multilinear::MultiLinearPoly;
-use super::sum_check::{FinalOpeningClaim, Proof as SumCheckProof};
-
 /// Defines the number of wires in the input layer that are generated from a single main trace row.
 const NUM_WIRES_PER_TRACE_ROW: usize = 8;
 const_assert!(NUM_WIRES_PER_TRACE_ROW.is_power_of_two());
-
-/// Represents a fraction `numerator / denominator` as a pair `(numerator, denominator)`. This is
-/// the type for the gates' inputs in [`prover::EvaluatedCircuit`].
-///
-/// Hence, addition is defined in the natural way fractions are added together: `a/b + c/d = (ad +
-/// bc) / bd`.
-#[derive(Debug, Clone, Copy)]
-pub struct CircuitWire<E: FieldElement> {
-    numerator: E,
-    denominator: E,
-}
-
-impl<E> CircuitWire<E>
-where
-    E: FieldElement,
-{
-    /// Creates new projective coordinates from a numerator and a denominator.
-    pub fn new(numerator: E, denominator: E) -> Self {
-        assert_ne!(denominator, E::ZERO);
-
-        Self {
-            numerator,
-            denominator,
-        }
-    }
-}
-
-impl<E> Add for CircuitWire<E>
-where
-    E: FieldElement,
-{
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        let numerator = self.numerator * other.denominator + other.numerator * self.denominator;
-        let denominator = self.denominator * other.denominator;
-
-        Self::new(numerator, denominator)
-    }
-}
 
 /// Converts a main trace row (or more generally "query") to numerators and denominators of the
 /// input layer.
@@ -134,33 +90,6 @@ where
         .map(|(numerator, denominator)| CircuitWire::new(numerator, denominator))
         .collect();
     input_gates_values.try_into().unwrap()
-}
-
-/// A GKR proof for the correct evaluation of the sum of fractions circuit.
-#[derive(Debug)]
-pub struct GkrCircuitProof<E: FieldElement> {
-    circuit_outputs: CircuitLayerPolys<E>,
-    before_final_layer_proofs: BeforeFinalLayerProof<E>,
-    final_layer_proof: FinalLayerProof<E>,
-}
-
-impl<E: FieldElement> GkrCircuitProof<E> {
-    pub fn get_final_opening_claim(&self) -> FinalOpeningClaim<E> {
-        self.final_layer_proof.after_merge_proof.openings_claim.clone()
-    }
-}
-
-/// A set of sum-check proofs for all GKR layers but for the input circuit layer.
-#[derive(Debug)]
-pub struct BeforeFinalLayerProof<E: FieldElement> {
-    pub proof: Vec<SumCheckProof<E>>,
-}
-
-/// A proof for the input circuit layer i.e., the final layer in the GKR protocol.
-#[derive(Debug)]
-pub struct FinalLayerProof<E: FieldElement> {
-    before_merge_proof: Vec<RoundProof<E>>,
-    after_merge_proof: SumCheckProof<E>,
 }
 
 /// Represents a claim to be proven by a subsequent call to the sum-check protocol.

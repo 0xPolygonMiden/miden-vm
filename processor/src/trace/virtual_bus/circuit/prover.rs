@@ -1,15 +1,18 @@
 use super::{
-    super::sum_check::Proof as SumCheckProof, compute_input_layer_wires_at_main_trace_query,
-    error::ProverError, BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof,
-    GkrClaim, GkrComposition, GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
+    compute_input_layer_wires_at_main_trace_query, error::ProverError, GkrClaim, GkrComposition,
+    GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
 };
 use crate::trace::virtual_bus::{
-    multilinear::{EqFunction, MultiLinearPoly},
-    sum_check::{FinalClaimBuilder, FinalOpeningClaim, RoundClaim, RoundProof},
+    multilinear::EqFunction,
+    sum_check::{FinalClaimBuilder, RoundClaim},
     SumCheckProver,
 };
 use alloc::vec::Vec;
 use core::marker::PhantomData;
+use miden_air::gkr_proof::{
+    BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys, FinalLayerProof, FinalOpeningClaim,
+    GkrCircuitProof, MultiLinearPoly, RoundProof, SumCheckProof,
+};
 use vm_core::{Felt, FieldElement};
 use winter_prover::{
     crypto::{ElementHasher, RandomCoin},
@@ -148,73 +151,6 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
             .collect();
 
         CircuitLayer::new(next_layer_wires)
-    }
-}
-
-/// Represents a layer in a [`EvaluatedCircuit`].
-///
-/// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
-/// circuit representation of a layer, where each consecutive pair of wires are summed to yield a
-/// wire in the subsequent layer of an [`EvaluatedCircuit`].
-///
-/// Note that a [`Layer`] needs to be first converted to a [`LayerPolys`] before the evaluation of
-/// the layer can be proved using GKR.
-struct CircuitLayer<E: FieldElement> {
-    wires: Vec<CircuitWire<E>>,
-}
-
-impl<E: FieldElement> CircuitLayer<E> {
-    /// Creates a new [`Layer`] from a set of projective coordinates.
-    ///
-    /// Panics if the number of projective coordinates is not a power of two.
-    pub fn new(wires: Vec<CircuitWire<E>>) -> Self {
-        assert!(wires.len().is_power_of_two());
-
-        Self { wires }
-    }
-
-    /// Returns the wires that make up this circuit layer.
-    pub fn wires(&self) -> &[CircuitWire<E>] {
-        &self.wires
-    }
-
-    /// Returns the number of wires in the layer.
-    pub fn num_wires(&self) -> usize {
-        self.wires.len()
-    }
-}
-
-/// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
-/// evaluation using GKR.
-#[derive(Clone, Debug)]
-pub struct CircuitLayerPolys<E: FieldElement> {
-    pub numerators: MultiLinearPoly<E>,
-    pub denominators: MultiLinearPoly<E>,
-}
-
-impl<E> CircuitLayerPolys<E>
-where
-    E: FieldElement,
-{
-    fn from_circuit_layer(layer: CircuitLayer<E>) -> Self {
-        Self::from_wires(layer.wires)
-    }
-
-    pub fn from_wires(wires: Vec<CircuitWire<E>>) -> Self {
-        let mut numerators = Vec::new();
-        let mut denominators = Vec::new();
-
-        for wire in wires {
-            numerators.push(wire.numerator);
-            denominators.push(wire.denominator);
-        }
-
-        Self {
-            numerators: MultiLinearPoly::from_evaluations(numerators)
-                .expect("evaluations guaranteed to be a power of two"),
-            denominators: MultiLinearPoly::from_evaluations(denominators)
-                .expect("evaluations guaranteed to be a power of two"),
-        }
     }
 }
 

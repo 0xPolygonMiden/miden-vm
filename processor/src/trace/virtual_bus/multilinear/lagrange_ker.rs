@@ -1,5 +1,6 @@
-use super::{FieldElement, MultiLinearPoly};
+use super::FieldElement;
 use alloc::vec::Vec;
+use miden_air::gkr_proof::{compute_lagrange_basis_evals_at, MultiLinearPoly};
 
 /// The EQ (equality) function is the binary function defined by
 ///
@@ -67,37 +68,4 @@ impl<E: FieldElement> EqFunction<E> {
         MultiLinearPoly::from_evaluations(eq_evals)
             .expect("should not fail because evaluations is a power of two")
     }
-}
-
-// HELPER
-// ================================================================================================
-
-/// Computes the inner product of two vectors of the same length.
-///
-/// Panics if the vectors have different lengths.
-pub fn inner_product<E: FieldElement>(evaluations: &[E], tensored_query: &[E]) -> E {
-    assert_eq!(evaluations.len(), tensored_query.len());
-    evaluations
-        .iter()
-        .zip(tensored_query.iter())
-        .fold(E::ZERO, |acc, (x_i, y_i)| acc + *x_i * *y_i)
-}
-
-/// Computes the evaluations of the Lagrange basis polynomials over the interpolating
-/// set {0 , 1}^ν at (r_0, ..., r_{ν - 1}) i.e., the Lagrange kernel at (r_0, ..., r_{ν - 1}).
-pub fn compute_lagrange_basis_evals_at<E: FieldElement>(query: &[E]) -> Vec<E> {
-    let nu = query.len();
-    let n = 1 << nu;
-
-    let mut evals: Vec<E> = vec![E::ONE; n];
-    let mut size = 1;
-    for r_i in query.iter().rev() {
-        size *= 2;
-        for i in (0..size).rev().step_by(2) {
-            let scalar = evals[i / 2];
-            evals[i] = scalar * *r_i;
-            evals[i - 1] = scalar - evals[i];
-        }
-    }
-    evals
 }

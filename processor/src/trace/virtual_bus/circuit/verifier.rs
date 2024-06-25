@@ -1,15 +1,13 @@
-use super::{
-    error::VerifierError, prover::CircuitLayerPolys, FinalLayerProof, GkrCircuitProof,
-    GkrComposition, GkrCompositionMerge,
-};
+use super::{error::VerifierError, GkrComposition, GkrCompositionMerge};
 use crate::trace::virtual_bus::{
     multilinear::EqFunction,
-    sum_check::{
-        CompositionPolyQueryBuilder, FinalOpeningClaim, Proof as SumCheckFullProof, RoundClaim,
-    },
+    sum_check::{CompositionPolyQueryBuilder, RoundClaim},
     SumCheckVerifier,
 };
 use alloc::{borrow::ToOwned, vec::Vec};
+use miden_air::gkr_proof::{
+    CircuitLayerPolys, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof, SumCheckProof,
+};
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -109,7 +107,7 @@ pub fn verify_sum_check_proof_before_last<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    proof: &SumCheckFullProof<E>,
+    proof: &SumCheckProof<E>,
     gkr_eval_point: &[E],
     claim: (E, E),
     transcript: &mut C,

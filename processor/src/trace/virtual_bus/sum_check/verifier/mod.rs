@@ -1,7 +1,8 @@
-use super::{FinalOpeningClaim, Proof, RoundClaim, RoundProof};
+use super::{RoundClaim, RoundProof};
 use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
+use miden_air::gkr_proof::{FinalOpeningClaim, SumCheckProof};
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -79,10 +80,10 @@ where
     pub fn verify(
         &self,
         claim: E,
-        proof: Proof<E>,
+        proof: SumCheckProof<E>,
         coin: &mut C,
     ) -> Result<FinalOpeningClaim<E>, Error> {
-        let Proof {
+        let SumCheckProof {
             openings_claim,
             round_proofs,
         } = proof;
