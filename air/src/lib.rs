@@ -8,6 +8,7 @@ extern crate std;
 
 use alloc::vec::Vec;
 
+use gkr_proof::{GkrCircuitProof, GkrCircuitVerifier};
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
@@ -64,9 +65,8 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
-    // TODOP: `GkrCircuitProof` needs to be accessible in `air`
-    type GkrProof = ();
-    type GkrVerifier = ();
+    type GkrProof<E: FieldElement> = GkrCircuitProof<E>;
+    type GkrVerifier<E: FieldElement> = GkrCircuitVerifier;
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 

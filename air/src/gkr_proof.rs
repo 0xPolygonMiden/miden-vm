@@ -3,6 +3,32 @@ use core::ops::{Add, Index};
 
 use alloc::vec::Vec;
 use vm_core::{polynom, FieldElement};
+use winter_air::{GkrRandElements, GkrVerifier};
+use winter_prover::{
+    crypto::{ElementHasher, RandomCoin},
+    Deserializable, Serializable,
+};
+
+pub struct GkrCircuitVerifier {}
+
+impl GkrVerifier for GkrCircuitVerifier {
+    type GkrProof<E: FieldElement> = GkrCircuitProof<E>;
+
+    // TODOP: Use proper Error type
+    type Error = alloc::string::String;
+
+    fn verify<E, Hasher>(
+        &self,
+        _gkr_proof: Self::GkrProof<E>,
+        _public_coin: &mut impl RandomCoin<BaseField = E::BaseField, Hasher = Hasher>,
+    ) -> Result<GkrRandElements<E>, Self::Error>
+    where
+        E: FieldElement,
+        Hasher: ElementHasher<BaseField = E::BaseField>,
+    {
+        todo!()
+    }
+}
 
 /// A GKR proof for the correct evaluation of the sum of fractions circuit.
 #[derive(Debug)]
@@ -15,6 +41,26 @@ pub struct GkrCircuitProof<E: FieldElement> {
 impl<E: FieldElement> GkrCircuitProof<E> {
     pub fn get_final_opening_claim(&self) -> FinalOpeningClaim<E> {
         self.final_layer_proof.after_merge_proof.openings_claim.clone()
+    }
+}
+
+impl<E> Serializable for GkrCircuitProof<E>
+where
+    E: FieldElement,
+{
+    fn write_into<W: winter_prover::ByteWriter>(&self, _target: &mut W) {
+        todo!()
+    }
+}
+
+impl<E> Deserializable for GkrCircuitProof<E>
+where
+    E: FieldElement,
+{
+    fn read_from<R: winter_prover::ByteReader>(
+        _source: &mut R,
+    ) -> Result<Self, winter_prover::DeserializationError> {
+        todo!()
     }
 }
 

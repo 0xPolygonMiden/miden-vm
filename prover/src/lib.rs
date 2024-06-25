@@ -242,7 +242,7 @@ where
         &self,
         main_trace: &Self::Trace,
         public_coin: &mut Self::RandomCoin,
-    ) -> (ProverGkrProof<Self>, GkrRandElements<E>)
+    ) -> (ProverGkrProof<Self, E>, GkrRandElements<E>)
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
@@ -270,7 +270,6 @@ where
             openings_combining_randomness,
         );
 
-        // TODOP: Return `gkr_proof` once type is available
-        ((), gkr_rand_elements)
+        (gkr_proof, gkr_rand_elements)
     }
 }
