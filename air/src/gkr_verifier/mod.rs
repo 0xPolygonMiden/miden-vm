@@ -3,7 +3,7 @@ use crate::gkr_proof::{
     GkrComposition, GkrCompositionMerge, SumCheckProof, SumCheckRoundClaim,
 };
 use alloc::{borrow::ToOwned, vec::Vec};
-use vm_core::{Felt, FieldElement};
+use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
 mod sum_check_verifier;
@@ -25,9 +25,9 @@ pub enum VerifierError {
 
 /// Verifies the validity of a GKR proof for the correct evaluation of a fractional sum circuit.
 pub fn verify_virtual_bus<
-    E: FieldElement<BaseField = Felt>,
-    C: RandomCoin<Hasher = H, BaseField = Felt>,
-    H: ElementHasher<BaseField = Felt>,
+    E: FieldElement,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
+    H: ElementHasher<BaseField = E::BaseField>,
 >(
     claim: E,
     proof: GkrCircuitProof<E>,
@@ -115,9 +115,9 @@ pub fn verify_virtual_bus<
 /// Verifies sum-check proofs, as part of the GKR proof, for all GKR layers except for the last one
 /// i.e., the circuit input layer.
 pub fn verify_sum_check_proof_before_last<
-    E: FieldElement<BaseField = Felt>,
-    C: RandomCoin<Hasher = H, BaseField = Felt>,
-    H: ElementHasher<BaseField = Felt>,
+    E: FieldElement,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
+    H: ElementHasher<BaseField = E::BaseField>,
 >(
     proof: &SumCheckProof<E>,
     gkr_eval_point: &[E],
@@ -142,9 +142,9 @@ pub fn verify_sum_check_proof_before_last<
 
 /// Verifies the final sum-check proof as part of the GKR proof.
 pub fn verify_sum_check_proof_last<
-    E: FieldElement<BaseField = Felt>,
-    C: RandomCoin<Hasher = H, BaseField = Felt>,
-    H: ElementHasher<BaseField = Felt>,
+    E: FieldElement,
+    C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
+    H: ElementHasher<BaseField = E::BaseField>,
 >(
     proof: FinalLayerProof<E>,
     log_up_randomness: Vec<E>,

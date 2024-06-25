@@ -3,8 +3,8 @@ use core::ops::{Add, Index};
 
 use alloc::vec::Vec;
 use static_assertions::const_assert;
-use vm_core::{polynom, Felt, FieldElement};
-use winter_air::{GkrRandElements, GkrVerifier};
+use vm_core::{polynom, FieldElement};
+use winter_air::{GkrRandElements, GkrVerifier, LagrangeKernelRandElements};
 use winter_prover::{
     crypto::{ElementHasher, RandomCoin},
     Deserializable, Serializable,
@@ -12,31 +12,50 @@ use winter_prover::{
 
 use crate::{
     decoder::{DECODER_OP_BITS_OFFSET, DECODER_USER_OP_HELPERS_OFFSET},
+    gkr_verifier::VerifierError,
     trace::{
         chiplets::{MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX},
         range::{M_COL_IDX, V_COL_IDX},
     },
-    CHIPLETS_OFFSET, TRACE_WIDTH,
+    verify_virtual_bus, CHIPLETS_OFFSET, TRACE_WIDTH,
 };
 
 pub struct GkrCircuitVerifier {}
 
 impl GkrVerifier for GkrCircuitVerifier {
     type GkrProof<E: FieldElement> = GkrCircuitProof<E>;
-
-    // TODOP: Use proper Error type
-    type Error = alloc::string::String;
+    type Error = VerifierError;
 
     fn verify<E, Hasher>(
         &self,
-        _gkr_proof: Self::GkrProof<E>,
-        _public_coin: &mut impl RandomCoin<BaseField = E::BaseField, Hasher = Hasher>,
+        gkr_proof: GkrCircuitProof<E>,
+        public_coin: &mut impl RandomCoin<BaseField = E::BaseField, Hasher = Hasher>,
     ) -> Result<GkrRandElements<E>, Self::Error>
     where
         E: FieldElement,
         Hasher: ElementHasher<BaseField = E::BaseField>,
     {
-        todo!()
+        let log_up_randomness: E = public_coin.draw().expect("failed to draw logup randomness");
+        let final_opening_claim =
+            verify_virtual_bus(E::ZERO, gkr_proof, vec![log_up_randomness], public_coin)?;
+
+        // draw openings combining randomness
+        let openings_combining_randomness: Vec<E> = {
+            let openings_digest = Hasher::hash_elements(&final_opening_claim.openings);
+
+            public_coin.reseed(openings_digest);
+
+            (0..TRACE_WIDTH)
+                .map(|_| public_coin.draw().expect("failed to draw openings combining randomness"))
+                .collect()
+        };
+
+        let gkr_rand_elements = GkrRandElements::new(
+            LagrangeKernelRandElements::new(final_opening_claim.eval_point),
+            openings_combining_randomness,
+        );
+
+        Ok(gkr_rand_elements)
     }
 }
 
@@ -443,14 +462,14 @@ pub trait CompositionPolynomial<E: FieldElement> {
 #[derive(Clone)]
 pub struct GkrComposition<E>
 where
-    E: FieldElement<BaseField = Felt>,
+    E: FieldElement,
 {
     pub combining_randomness: E,
 }
 
 impl<E> GkrComposition<E>
 where
-    E: FieldElement<BaseField = Felt>,
+    E: FieldElement,
 {
     pub fn new(combining_randomness: E) -> Self {
         Self {
@@ -461,7 +480,7 @@ where
 
 impl<E> CompositionPolynomial<E> for GkrComposition<E>
 where
-    E: FieldElement<BaseField = Felt>,
+    E: FieldElement,
 {
     fn max_degree(&self) -> u32 {
         3
@@ -484,7 +503,7 @@ where
 #[derive(Clone)]
 pub struct GkrCompositionMerge<E>
 where
-    E: FieldElement<BaseField = Felt>,
+    E: FieldElement,
 {
     pub sum_check_combining_randomness: E,
     pub tensored_merge_randomness: Vec<E>,
@@ -493,7 +512,7 @@ where
 
 impl<E> GkrCompositionMerge<E>
 where
-    E: FieldElement<BaseField = Felt>,
+    E: FieldElement,
 {
     pub fn new(
         combining_randomness: E,
@@ -513,7 +532,7 @@ where
 
 impl<E> CompositionPolynomial<E> for GkrCompositionMerge<E>
 where
-    E: FieldElement<BaseField = Felt>,
+    E: FieldElement,
 {
     fn max_degree(&self) -> u32 {
         // Computed as:
