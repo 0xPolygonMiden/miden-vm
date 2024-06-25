@@ -173,7 +173,7 @@ where
 }
 
 #[cfg(test)]
-pub mod tests {
+pub mod testing {
     use super::*;
     use miden_air::ExecutionOptions;
     use vm_core::StackInputs;
