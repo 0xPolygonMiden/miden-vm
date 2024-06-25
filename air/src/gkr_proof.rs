@@ -28,7 +28,7 @@ impl GkrVerifier for GkrCircuitVerifier {
 
     fn verify<E, Hasher>(
         &self,
-        gkr_proof: GkrCircuitProof<E>,
+        gkr_proof: &GkrCircuitProof<E>,
         public_coin: &mut impl RandomCoin<BaseField = E::BaseField, Hasher = Hasher>,
     ) -> Result<GkrRandElements<E>, Self::Error>
     where

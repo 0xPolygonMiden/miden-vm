@@ -79,7 +79,7 @@ where
     pub fn verify(
         &self,
         claim: E,
-        proof: SumCheckProof<E>,
+        proof: &SumCheckProof<E>,
         coin: &mut C,
     ) -> Result<FinalOpeningClaim<E>, Error> {
         let SumCheckProof {
@@ -100,7 +100,7 @@ where
         if self.composition_poly.evaluate(&query) != claimed_evaluation {
             Err(Error::FinalEvaluationCheckFailed)
         } else {
-            Ok(openings_claim)
+            Ok(openings_claim.clone())
         }
     }
 
@@ -108,7 +108,7 @@ where
     pub fn verify_rounds(
         &self,
         claim: E,
-        round_proofs: Vec<RoundProof<E>>,
+        round_proofs: &[RoundProof<E>],
         coin: &mut C,
     ) -> Result<SumCheckRoundClaim<E>, Error> {
         let mut round_claim = claim;

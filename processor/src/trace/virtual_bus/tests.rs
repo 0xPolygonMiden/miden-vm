@@ -33,7 +33,7 @@ fn test_vb_prover_verifier() {
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
     let final_opening_claim =
-        verify_virtual_bus(Felt::ZERO, proof, log_up_randomness, &mut transcript);
+        verify_virtual_bus(Felt::ZERO, &proof, log_up_randomness, &mut transcript);
     assert!(final_opening_claim.is_ok())
 }
 
@@ -64,7 +64,7 @@ fn test_vb_prover_verifier_failure() {
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
     let final_opening_claim =
-        verify_virtual_bus(Felt::ZERO, proof, log_up_randomness, &mut transcript);
+        verify_virtual_bus(Felt::ZERO, &proof, log_up_randomness, &mut transcript);
     assert!(final_opening_claim.is_err())
 }
 

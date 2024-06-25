@@ -55,7 +55,7 @@ mod test {
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let result = verifier.verify(claim, proof, &mut coin);
+        let result = verifier.verify(claim, &proof, &mut coin);
 
         assert!(result.is_ok())
     }
@@ -81,7 +81,7 @@ mod test {
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let result = verifier.verify(claim, proof, &mut coin);
+        let result = verifier.verify(claim, &proof, &mut coin);
 
         assert!(result.is_ok())
     }
@@ -111,7 +111,7 @@ mod test {
         let plain_query_builder = ProjectionPolyQueryBuilder::default();
         let verifier = SumCheckVerifier::new(virtual_poly, plain_query_builder);
         let mut coin = RpoRandomCoin::new(Word::default());
-        let result = verifier.verify(claim, proof, &mut coin);
+        let result = verifier.verify(claim, &proof, &mut coin);
 
         assert!(result.is_err())
     }

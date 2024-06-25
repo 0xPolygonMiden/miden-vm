@@ -30,7 +30,7 @@ pub fn verify_virtual_bus<
     H: ElementHasher<BaseField = E::BaseField>,
 >(
     claim: E,
-    proof: GkrCircuitProof<E>,
+    proof: &GkrCircuitProof<E>,
     log_up_randomness: Vec<E>,
     transcript: &mut C,
 ) -> Result<FinalOpeningClaim<E>, VerifierError> {
@@ -136,7 +136,7 @@ pub fn verify_sum_check_proof_before_last<
     let verifier =
         SumCheckVerifier::new(composition_poly, GkrQueryBuilder::new(gkr_eval_point.to_owned()));
     verifier
-        .verify(reduced_claim, proof.clone(), transcript)
+        .verify(reduced_claim, proof, transcript)
         .map_err(VerifierError::FailedToVerifySumCheck)
 }
 
@@ -146,7 +146,7 @@ pub fn verify_sum_check_proof_last<
     C: RandomCoin<Hasher = H, BaseField = E::BaseField>,
     H: ElementHasher<BaseField = E::BaseField>,
 >(
-    proof: FinalLayerProof<E>,
+    proof: &FinalLayerProof<E>,
     log_up_randomness: Vec<E>,
     gkr_eval_point: &[E],
     claim: (E, E),

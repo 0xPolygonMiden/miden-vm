@@ -6,7 +6,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-use air::{AuxRandElements, GkrRandElements, ProcessorAir, PublicInputs};
+use air::{
+    gkr_proof::GkrCircuitProof, AuxRandElements, GkrRandElements, ProcessorAir, PublicInputs,
+};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
@@ -222,9 +224,10 @@ where
         &self,
         air: &'a ProcessorAir,
         aux_rand_elements: Option<AuxRandElements<E>>,
+        gkr_proof: Option<&GkrCircuitProof<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
-        DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
+        DefaultConstraintEvaluator::new(air, aux_rand_elements, gkr_proof, composition_coefficients)
     }
 
     fn build_aux_trace<E>(

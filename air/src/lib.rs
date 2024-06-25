@@ -173,6 +173,7 @@ impl Air for ProcessorAir {
     fn get_aux_assertions<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         aux_rand_elements: &AuxRandElements<E>,
+        gkr_proof: Option<&Self::GkrProof<E>>,
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
@@ -185,6 +186,8 @@ impl Air for ProcessorAir {
             self.stack_inputs.values(),
         );
 
+        // TODOP: Add logup "s" column first step assertion
+
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
 
@@ -195,8 +198,6 @@ impl Air for ProcessorAir {
             &self.stack_outputs,
             last_step,
         );
-
-        // TODOP: Add logup "s" column assertion
 
         result
     }
