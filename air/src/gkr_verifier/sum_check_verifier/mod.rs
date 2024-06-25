@@ -1,8 +1,7 @@
-use super::{RoundClaim, RoundProof};
-use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
+use super::SumCheckRoundClaim;
+use crate::gkr_proof::{CompositionPolynomial, FinalOpeningClaim, RoundProof, SumCheckProof};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use miden_air::gkr_proof::{FinalOpeningClaim, SumCheckProof};
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -88,7 +87,7 @@ where
             round_proofs,
         } = proof;
 
-        let RoundClaim {
+        let SumCheckRoundClaim {
             eval_point: evaluation_point,
             claim: claimed_evaluation,
         } = self.verify_rounds(claim, round_proofs, coin)?;
@@ -111,7 +110,7 @@ where
         claim: E,
         round_proofs: Vec<RoundProof<E>>,
         coin: &mut C,
-    ) -> Result<RoundClaim<E>, Error> {
+    ) -> Result<SumCheckRoundClaim<E>, Error> {
         let mut round_claim = claim;
         let mut evaluation_point = vec![];
         for round_proof in round_proofs {
@@ -124,7 +123,7 @@ where
             evaluation_point.push(r);
         }
 
-        Ok(RoundClaim {
+        Ok(SumCheckRoundClaim {
             eval_point: evaluation_point,
             claim: round_claim,
         })

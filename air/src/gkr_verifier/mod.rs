@@ -1,18 +1,30 @@
-use super::{error::VerifierError, GkrComposition, GkrCompositionMerge};
-use crate::trace::virtual_bus::{
-    multilinear::EqFunction,
-    sum_check::{CompositionPolyQueryBuilder, RoundClaim},
-    SumCheckVerifier,
+use crate::gkr_proof::{
+    CircuitLayerPolys, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof,
+    GkrComposition, GkrCompositionMerge, SumCheckProof, SumCheckRoundClaim,
 };
 use alloc::{borrow::ToOwned, vec::Vec};
-use miden_air::gkr_proof::{
-    CircuitLayerPolys, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof, SumCheckProof,
-};
 use vm_core::{Felt, FieldElement};
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
+mod sum_check_verifier;
+pub use sum_check_verifier::{
+    CompositionPolyQueryBuilder, Error as SumCheckVerifierError, SumCheckVerifier,
+};
+
+#[derive(Debug, thiserror::Error)]
+pub enum VerifierError {
+    #[error("one of the claimed circuit denominators is zero")]
+    ZeroOutputDenominator,
+    #[error("the output of the fraction circuit is not equal to the expected value")]
+    MismatchingCircuitOutput,
+    #[error("failed to generate the random challenge")]
+    FailedToGenerateChallenge,
+    #[error("failed to verify the sum-check proof")]
+    FailedToVerifySumCheck(#[from] SumCheckVerifierError),
+}
+
 /// Verifies the validity of a GKR proof for the correct evaluation of a fractional sum circuit.
-pub fn verify<
+pub fn verify_virtual_bus<
     E: FieldElement<BaseField = Felt>,
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
@@ -156,7 +168,7 @@ pub fn verify_sum_check_proof_last<
     let composition_poly = GkrComposition::new(r_sum_check);
     let verifier =
         SumCheckVerifier::new(composition_poly, GkrQueryBuilder::new(gkr_eval_point.to_owned()));
-    let RoundClaim {
+    let SumCheckRoundClaim {
         eval_point: rand_merge,
         claim,
     } = verifier.verify_rounds(reduced_claim, before_merge_proof, transcript)?;

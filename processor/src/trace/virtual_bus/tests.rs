@@ -1,8 +1,8 @@
-use crate::{prove_virtual_bus, verify_virtual_bus, DefaultHost, ExecutionTrace, Process};
+use crate::{prove_virtual_bus, DefaultHost, ExecutionTrace, Process};
 use alloc::vec::Vec;
 use miden_air::{
     trace::{main_trace::MainTrace, range::M_COL_IDX},
-    ExecutionOptions,
+    verify_virtual_bus, ExecutionOptions,
 };
 use vm_core::crypto::random::RpoRandomCoin;
 use vm_core::{

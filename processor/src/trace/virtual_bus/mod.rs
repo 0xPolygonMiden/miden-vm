@@ -25,12 +25,10 @@ use miden_air::{trace::main_trace::MainTrace, AuxRandElements};
 use vm_core::{Felt, FieldElement};
 
 mod circuit;
-pub use circuit::{prove, verify};
-
-mod multilinear;
+pub use circuit::prove;
 
 mod sum_check;
-pub use sum_check::{SumCheckProver, SumCheckVerifier};
+pub use sum_check::SumCheckProver;
 use winter_prover::LagrangeKernelRandElements;
 
 mod univariate;

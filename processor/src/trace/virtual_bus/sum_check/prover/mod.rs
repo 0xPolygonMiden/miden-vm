@@ -1,10 +1,10 @@
-use super::{reduce_claim, RoundClaim, RoundProof};
-use crate::trace::virtual_bus::{
-    multilinear::CompositionPolynomial, univariate::UnivariatePolyEvals,
-};
+use super::{reduce_claim, RoundProof};
+use crate::trace::virtual_bus::univariate::UnivariatePolyEvals;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use miden_air::gkr_proof::{FinalOpeningClaim, MultiLinearPoly, SumCheckProof};
+use miden_air::gkr_proof::{
+    CompositionPolynomial, FinalOpeningClaim, MultiLinearPoly, SumCheckProof, SumCheckRoundClaim,
+};
 use vm_core::FieldElement;
 use winter_prover::crypto::{ElementHasher, RandomCoin};
 
@@ -127,7 +127,7 @@ where
     ) -> Result<SumCheckProof<E>, Error> {
         let num_rounds = mls[0].num_variables();
         let (
-            RoundClaim {
+            SumCheckRoundClaim {
                 eval_point,
                 claim: _claim,
             },
@@ -150,7 +150,7 @@ where
         mls: &mut [MultiLinearPoly<E>],
         num_rounds: usize,
         coin: &mut C,
-    ) -> Result<(RoundClaim<E>, Vec<RoundProof<E>>), Error> {
+    ) -> Result<(SumCheckRoundClaim<E>, Vec<RoundProof<E>>), Error> {
         // there should be at least one multi-linear polynomial provided
         if mls.is_empty() {
             return Err(Error::NoMlsProvided);
@@ -180,7 +180,7 @@ where
         let mut round_proofs = vec![];
 
         // setup first round claim
-        let mut current_round_claim = RoundClaim {
+        let mut current_round_claim = SumCheckRoundClaim {
             eval_point: vec![],
             claim,
         };

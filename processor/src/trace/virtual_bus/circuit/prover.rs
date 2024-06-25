@@ -1,17 +1,12 @@
-use super::{
-    compute_input_layer_wires_at_main_trace_query, error::ProverError, GkrClaim, GkrComposition,
-    GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
-};
-use crate::trace::virtual_bus::{
-    multilinear::EqFunction,
-    sum_check::{FinalClaimBuilder, RoundClaim},
-    SumCheckProver,
-};
+use super::{error::ProverError, GkrClaim};
+use crate::trace::virtual_bus::{sum_check::FinalClaimBuilder, SumCheckProver};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use miden_air::gkr_proof::{
-    BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys, FinalLayerProof, FinalOpeningClaim,
-    GkrCircuitProof, MultiLinearPoly, RoundProof, SumCheckProof,
+    evaluate_fractions_at_main_trace_query, BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys,
+    CircuitWire, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof, GkrComposition,
+    GkrCompositionMerge, MultiLinearPoly, RoundProof, SumCheckProof, SumCheckRoundClaim,
+    NUM_WIRES_PER_TRACE_ROW,
 };
 use vm_core::{Felt, FieldElement};
 use winter_prover::{
@@ -154,6 +149,25 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     }
 }
 
+/// Computes the wires added to the input layer that come from a given main trace row (or more
+/// generally, "query").
+fn compute_input_layer_wires_at_main_trace_query<E>(
+    query: &[E],
+    log_up_randomness: &[E],
+) -> [CircuitWire<E>; NUM_WIRES_PER_TRACE_ROW]
+where
+    E: FieldElement,
+{
+    let [numerators, denominators] =
+        evaluate_fractions_at_main_trace_query(query, log_up_randomness);
+    let input_gates_values: Vec<CircuitWire<E>> = numerators
+        .into_iter()
+        .zip(denominators)
+        .map(|(numerator, denominator)| CircuitWire::new(numerator, denominator))
+        .collect();
+    input_gates_values.try_into().unwrap()
+}
+
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
 /// For the input layer of the circuit, each individual component of the quadruple
@@ -281,7 +295,7 @@ fn prove_final_circuit_layer<
     )?;
 
     // parse the output of the first sum-check protocol
-    let RoundClaim {
+    let SumCheckRoundClaim {
         eval_point: rand_merge,
         claim,
     } = round_claim;
@@ -446,7 +460,7 @@ fn sum_check_prover_plain_partial<
     num_rounds: usize,
     ml_polys: &mut [MultiLinearPoly<E>],
     transcript: &mut C,
-) -> Result<((RoundClaim<E>, Vec<RoundProof<E>>), E), ProverError> {
+) -> Result<((SumCheckRoundClaim<E>, Vec<RoundProof<E>>), E), ProverError> {
     // generate challenge to batch two sumchecks
     let data = vec![claim.0, claim.1];
     transcript.reseed(H::hash_elements(&data));

@@ -254,6 +254,7 @@ where
                 .expect("Failed to generate GKR proof");
 
         let final_opening_claim = gkr_proof.get_final_opening_claim();
+
         // draw openings combining randomness
         let openings_combining_randomness: Vec<E> = {
             let openings_digest = H::hash_elements(&final_opening_claim.openings);

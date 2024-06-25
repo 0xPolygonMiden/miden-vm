@@ -28,6 +28,10 @@ use trace::*;
 
 mod errors;
 pub mod gkr_proof;
+mod gkr_verifier;
+pub use gkr_verifier::{
+    verify_virtual_bus, CompositionPolyQueryBuilder, SumCheckVerifier, SumCheckVerifierError,
+};
 mod options;
 mod proof;
 

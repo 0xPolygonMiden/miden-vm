@@ -1,26 +1,15 @@
-use alloc::vec::Vec;
-use miden_air::gkr_proof::RoundProof;
+use miden_air::gkr_proof::{RoundProof, SumCheckRoundClaim};
 use vm_core::FieldElement;
 
 mod prover;
 pub use prover::{Error as SumCheckProverError, FinalClaimBuilder, SumCheckProver};
-mod verifier;
-pub use verifier::{CompositionPolyQueryBuilder, Error as SumCheckVerifierError, SumCheckVerifier};
-
-/// Contains the round challenges sent by the Verifier up to some round as well as the current
-/// reduced claim.
-#[derive(Debug)]
-pub struct RoundClaim<E: FieldElement> {
-    pub eval_point: Vec<E>,
-    pub claim: E,
-}
 
 /// Reduces an old claim to a new claim using the round challenge.
 pub fn reduce_claim<E: FieldElement>(
     current_poly: &RoundProof<E>,
-    current_round_claim: RoundClaim<E>,
+    current_round_claim: SumCheckRoundClaim<E>,
     round_challenge: E,
-) -> RoundClaim<E> {
+) -> SumCheckRoundClaim<E> {
     // evaluate the round polynomial at the round challenge to obtain the new claim
     let new_claim = current_poly
         .round_poly_coefs
@@ -30,7 +19,7 @@ pub fn reduce_claim<E: FieldElement>(
     let mut new_partial_eval_point = current_round_claim.eval_point;
     new_partial_eval_point.push(round_challenge);
 
-    RoundClaim {
+    SumCheckRoundClaim {
         eval_point: new_partial_eval_point,
         claim: new_claim,
     }
@@ -38,13 +27,12 @@ pub fn reduce_claim<E: FieldElement>(
 
 #[cfg(test)]
 mod test {
-    use super::{
-        prover::{FinalClaimBuilder, SumCheckProver},
-        verifier::{CompositionPolyQueryBuilder, SumCheckVerifier},
-    };
-    use crate::trace::virtual_bus::multilinear::CompositionPolynomial;
+    use super::prover::{FinalClaimBuilder, SumCheckProver};
     use alloc::{borrow::ToOwned, vec::Vec};
-    use miden_air::gkr_proof::{FinalOpeningClaim, MultiLinearPoly};
+    use miden_air::{
+        gkr_proof::{CompositionPolynomial, FinalOpeningClaim, MultiLinearPoly},
+        CompositionPolyQueryBuilder, SumCheckVerifier,
+    };
     use test_utils::rand::rand_vector;
     use vm_core::{crypto::random::RpoRandomCoin, Felt, FieldElement, Word, ONE, ZERO};
 
