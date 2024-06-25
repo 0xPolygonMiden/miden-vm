@@ -199,6 +199,22 @@ impl Air for ProcessorAir {
             last_step,
         );
 
+        // Add LogUp's "s" column assertions for the last step.
+        {
+            let openings_combining_randomness = aux_rand_elements
+                .gkr_openings_combining_randomness()
+                .expect("GKR openings combining randomness not present in AuxRandElements");
+            let openings =
+                gkr_proof.expect("GKR proof not present").get_final_opening_claim().openings;
+
+            logup::get_aux_assertions_last_step(
+                &mut result,
+                openings_combining_randomness,
+                &openings,
+                last_step,
+            );
+        }
+
         result
     }
 

@@ -95,7 +95,7 @@ where
         if openings_claim.eval_point != evaluation_point {
             return Err(Error::WrongOpeningPoint);
         }
-        let query = self.final_query_builder.build_query(&openings_claim, &evaluation_point);
+        let query = self.final_query_builder.build_query(openings_claim, &evaluation_point);
 
         if self.composition_poly.evaluate(&query) != claimed_evaluation {
             Err(Error::FinalEvaluationCheckFailed)
