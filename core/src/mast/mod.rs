@@ -8,6 +8,7 @@ pub use node::{
     get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNode,
     OpBatch, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 #[cfg(test)]
 mod tests;
@@ -30,6 +31,20 @@ pub struct MastNodeId(u32);
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)
+    }
+}
+
+impl Serializable for MastNodeId {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.0.write_into(target)
+    }
+}
+
+impl Deserializable for MastNodeId {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let inner = source.read_u32()?;
+
+        Ok(Self(inner))
     }
 }
 
