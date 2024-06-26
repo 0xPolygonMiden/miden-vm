@@ -27,7 +27,7 @@ impl Program {
     /// Construct a new [`Program`] from the given MAST forest and entrypoint. The kernel is assumed
     /// to be empty.
     /// 
-    /// Panics:
+    /// # Panics:
     /// - if `mast_forest` doesn't have an entrypoint
     pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
         assert!(mast_forest.get_node_by_id(entrypoint).is_some());
@@ -41,7 +41,7 @@ impl Program {
 
     /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
     /// 
-    /// Panics:
+    /// # Panics:
     /// - if `mast_forest` doesn't have an entrypoint
     pub fn with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
         assert!(mast_forest.get_node_by_id(entrypoint).is_some());

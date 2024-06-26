@@ -76,7 +76,13 @@ impl MastForest {
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
+    /// 
+    /// # Panics
+    /// - if `new_root_id`'s internal index is larger than the number of nodes in this forest (i.e.
+    ///   clearly doesn't belong to this MAST forest).
     pub fn make_root(&mut self, new_root_id: MastNodeId) {
+        assert!((new_root_id.0 as usize) < self.nodes.len());
+
         if !self.roots.contains(&new_root_id) {
             self.roots.push(new_root_id);
         }
