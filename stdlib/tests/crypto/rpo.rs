@@ -11,7 +11,7 @@ fn test_invalid_end_addr() {
         push.0999 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
     let test = build_test!(empty_range, &[]);
@@ -32,7 +32,7 @@ fn test_invalid_end_addr() {
         push.1000 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
     let test = build_test!(empty_range, &[]);
@@ -69,7 +69,7 @@ fn test_hash_empty() {
     ]).into_iter().map(|e| e.as_int()).collect();
     build_test!(two_zeros_mem_stream, &[]).expect_stack(&zero_hash);
 
-    // checks the hash compute from 8 zero elements is the same when using hash_memory
+    // checks the hash compute from 8 zero elements is the same when using hash_memory_words
     let two_zeros = "
     use.std::crypto::hashes::rpo
 
@@ -77,7 +77,7 @@ fn test_hash_empty() {
         push.1002 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
 
@@ -110,7 +110,7 @@ fn test_single_iteration() {
     ]).into_iter().map(|e| e.as_int()).collect();
     build_test!(one_memstream, &[]).expect_stack(&one_hash);
 
-    // checks the hash of 1 is the same when using hash_memory
+    // checks the hash of 1 is the same when using hash_memory_words
     // Note: This is testing the hashing of two words, so no padding is added
     // here
     let one_element = "
@@ -123,7 +123,7 @@ fn test_single_iteration() {
         push.1002 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
 
@@ -141,7 +141,7 @@ fn test_hash_one_word() {
         1, 0, 0, 0,
     ]).into_iter().map(|e| e.as_int()).collect();
 
-    // checks the hash of 1 is the same when using hash_memory
+    // checks the hash of 1 is the same when using hash_memory_words
     let one_element = "
     use.std::crypto::hashes::rpo
 
@@ -151,7 +151,7 @@ fn test_hash_one_word() {
         push.1001 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
 
@@ -171,7 +171,7 @@ fn test_hash_even_words() {
         push.1002 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
 
@@ -197,7 +197,7 @@ fn test_hash_odd_words() {
         push.1003 # end address
         push.1000 # start address
 
-        exec.rpo::hash_memory
+        exec.rpo::hash_memory_words
     end
     ";
 
@@ -273,4 +273,31 @@ fn test_squeeze_digest() {
     even_hash.push(1004);
 
     build_test!(even_words, &[]).expect_stack(&even_hash);
+}
+
+#[test]
+fn test_hash_memory() {
+    let compute_inputs_hash = "
+    use.std::crypto::hashes::rpo
+
+    begin
+        push.1.2.3.4.1000 mem_storew dropw
+        push.5.6.7.8.1001 mem_storew dropw
+        push.9.10.11.12.1002 mem_storew dropw
+        push.13.14.15.0.1003 mem_storew dropw
+
+
+        push.15.1000
+
+        #######################################################
+
+        exec.rpo::hash_memory
+    end
+    ";
+
+    #[rustfmt::skip]
+    let expected_hash: Vec<u64> = build_expected_hash(&[
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+    ]).into_iter().map(|e| e.as_int()).collect();
+    build_test!(compute_inputs_hash, &[]).expect_stack(&expected_hash);
 }

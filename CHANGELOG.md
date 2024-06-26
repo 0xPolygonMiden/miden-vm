@@ -7,6 +7,7 @@
 
 #### Stdlib
 - Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
+- Added `hash_memory` procedure to `std::crypto::hashes::rpo` (#1368).
 
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
