@@ -13,19 +13,25 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
-            override: true
+          toolchain: nightly
+          override: true
 
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
-          mdbook-version: 'latest'
+          mdbook-version: "latest"
 
       - name: Install mdbook-katex
         uses: actions-rs/cargo@v1
         with:
           command: install
           args: mdbook-katex
+
+      - name: Install mdbook-alerts
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: mdbook-alerts
 
       - name: Install mdbook-linkcheck
         uses: actions-rs/cargo@v1

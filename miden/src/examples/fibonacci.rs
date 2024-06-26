@@ -39,7 +39,7 @@ fn generate_fibonacci_program(n: usize) -> Program {
         n - 1
     );
 
-    Assembler::default().assemble(program).unwrap()
+    Assembler::default().assemble_program(program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence
@@ -67,4 +67,14 @@ fn test_fib_example() {
 fn test_fib_example_fail() {
     let example = get_example(16);
     super::test_example(example, true);
+}
+
+#[test]
+fn test_fib_example_rpo() {
+    let example = get_example(16);
+    super::test_example_with_options(
+        example,
+        false,
+        prover::ProvingOptions::with_96_bit_security(true),
+    );
 }

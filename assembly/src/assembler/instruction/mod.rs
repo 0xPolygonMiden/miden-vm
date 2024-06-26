@@ -1,10 +1,13 @@
 use super::{
-    ast::InvokeKind, Assembler, AssemblyContext, CodeBlock, Felt, Instruction, Operation,
-    SpanBuilder, ONE, ZERO,
+    ast::InvokeKind, Assembler, AssemblyContext, BasicBlockBuilder, Felt, Instruction, Operation,
+    ONE, ZERO,
 };
 use crate::{diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
 use core::ops::RangeBounds;
-use vm_core::Decorator;
+use vm_core::{
+    mast::{MastForest, MastNodeId},
+    Decorator,
+};
 
 mod adv_ops;
 mod crypto_ops;
@@ -22,9 +25,10 @@ impl Assembler {
     pub(super) fn compile_instruction(
         &self,
         instruction: &Instruction,
-        span_builder: &mut SpanBuilder,
+        span_builder: &mut BasicBlockBuilder,
         ctx: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
         // executed as a part of this instruction.
@@ -32,7 +36,7 @@ impl Assembler {
             span_builder.track_instruction(instruction, ctx);
         }
 
-        let result = self.compile_instruction_impl(instruction, span_builder, ctx)?;
+        let result = self.compile_instruction_impl(instruction, span_builder, ctx, mast_forest)?;
 
         // compute and update the cycle count of the instruction which just finished executing
         if self.in_debug_mode() {
@@ -45,12 +49,14 @@ impl Assembler {
     fn compile_instruction_impl(
         &self,
         instruction: &Instruction,
-        span_builder: &mut SpanBuilder,
+        span_builder: &mut BasicBlockBuilder,
         ctx: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
         use Operation::*;
 
         match instruction {
+            Instruction::Nop => span_builder.push_op(Noop),
             Instruction::Assert => span_builder.push_op(Assert(0)),
             Instruction::AssertWithError(err_code) => {
                 span_builder.push_op(Assert(err_code.expect_value()))
@@ -195,12 +201,18 @@ impl Assembler {
             Instruction::U32Ctz => u32_ops::u32ctz(span_builder),
             Instruction::U32Clo => u32_ops::u32clo(span_builder),
             Instruction::U32Cto => u32_ops::u32cto(span_builder),
-            Instruction::U32Lt => u32_ops::u32lt(span_builder),
-            Instruction::U32Lte => u32_ops::u32lte(span_builder),
-            Instruction::U32Gt => u32_ops::u32gt(span_builder),
-            Instruction::U32Gte => u32_ops::u32gte(span_builder),
-            Instruction::U32Min => u32_ops::u32min(span_builder),
-            Instruction::U32Max => u32_ops::u32max(span_builder),
+            Instruction::U32Lt => u32_ops::u32lt(span_builder, None),
+            Instruction::U32LtImm(v) => u32_ops::u32lt(span_builder, Some(v.expect_value())),
+            Instruction::U32Lte => u32_ops::u32lte(span_builder, None),
+            Instruction::U32LteImm(v) => u32_ops::u32lte(span_builder, Some(v.expect_value())),
+            Instruction::U32Gt => u32_ops::u32gt(span_builder, None),
+            Instruction::U32GtImm(v) => u32_ops::u32gt(span_builder, Some(v.expect_value())),
+            Instruction::U32Gte => u32_ops::u32gte(span_builder, None),
+            Instruction::U32GteImm(v) => u32_ops::u32gte(span_builder, Some(v.expect_value())),
+            Instruction::U32Min => u32_ops::u32min(span_builder, None),
+            Instruction::U32MinImm(v) => u32_ops::u32min(span_builder, Some(v.expect_value())),
+            Instruction::U32Max => u32_ops::u32max(span_builder, None),
+            Instruction::U32MaxImm(v) => u32_ops::u32max(span_builder, Some(v.expect_value())),
 
             // ----- stack manipulation -----------------------------------------------------------
             Instruction::Drop => span_builder.push_op(Drop),
@@ -363,14 +375,20 @@ impl Assembler {
             Instruction::RCombBase => span_builder.push_op(RCombBase),
 
             // ----- exec/call instructions -------------------------------------------------------
-            Instruction::Exec(ref callee) => return self.invoke(InvokeKind::Exec, callee, ctx),
-            Instruction::Call(ref callee) => return self.invoke(InvokeKind::Call, callee, ctx),
-            Instruction::SysCall(ref callee) => {
-                return self.invoke(InvokeKind::SysCall, callee, ctx)
+            Instruction::Exec(ref callee) => {
+                return self.invoke(InvokeKind::Exec, callee, ctx, mast_forest)
             }
-            Instruction::DynExec => return self.dynexec(),
-            Instruction::DynCall => return self.dyncall(),
-            Instruction::ProcRef(ref callee) => self.procref(callee, ctx, span_builder)?,
+            Instruction::Call(ref callee) => {
+                return self.invoke(InvokeKind::Call, callee, ctx, mast_forest)
+            }
+            Instruction::SysCall(ref callee) => {
+                return self.invoke(InvokeKind::SysCall, callee, ctx, mast_forest)
+            }
+            Instruction::DynExec => return self.dynexec(mast_forest),
+            Instruction::DynCall => return self.dyncall(mast_forest),
+            Instruction::ProcRef(ref callee) => {
+                self.procref(callee, ctx, span_builder, mast_forest)?
+            }
 
             // ----- debug decorators -------------------------------------------------------------
             Instruction::Breakpoint => {
@@ -411,7 +429,7 @@ impl Assembler {
 ///
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_u32_value(span_builder: &mut SpanBuilder, value: u32) {
+fn push_u32_value(span_builder: &mut BasicBlockBuilder, value: u32) {
     use Operation::*;
 
     if value == 0 {
@@ -429,7 +447,7 @@ fn push_u32_value(span_builder: &mut SpanBuilder, value: u32) {
 ///
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_felt(span_builder: &mut SpanBuilder, value: Felt) {
+fn push_felt(span_builder: &mut BasicBlockBuilder, value: Felt) {
     use Operation::*;
 
     if value == ZERO {

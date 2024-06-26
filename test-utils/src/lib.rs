@@ -8,6 +8,7 @@ extern crate std;
 // IMPORTS
 // ================================================================================================
 
+use processor::Program;
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
 
@@ -17,7 +18,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use vm_core::chiplets::hasher::apply_permutation;
+use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};
 
 // EXPORTS
 // ================================================================================================
@@ -33,12 +34,12 @@ pub use processor::{
 };
 pub use prover::{prove, MemAdviceProvider, ProvingOptions};
 pub use test_case::test_case;
-pub use verifier::{verify, AcceptableOptions, ProgramInfo, VerifierError};
+pub use verifier::{verify, AcceptableOptions, VerifierError};
 pub use vm_core::{
     chiplets::hasher::{hash_elements, STATE_WIDTH},
     stack::STACK_TOP_SIZE,
     utils::{collections, group_slice_elements, IntoBytes, ToElements},
-    Felt, FieldElement, Program, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
+    Felt, FieldElement, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO,
 };
 
 pub mod math {
@@ -224,7 +225,7 @@ impl Test {
         expected_mem: &[u64],
     ) {
         // compile the program
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
 
         // execute the test
@@ -281,7 +282,7 @@ impl Test {
         } else {
             assembly::Assembler::default()
         };
-        let mut assembler = self
+        let assembler = self
             .add_modules
             .iter()
             .fold(assembler, |assembler, (path, source)| {
@@ -296,14 +297,14 @@ impl Test {
             .with_libraries(self.libraries.iter())
             .expect("failed to load stdlib");
 
-        assembler.assemble(self.source.clone())
+        assembler.assemble_program(self.source.clone())
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
     #[track_caller]
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
     }
@@ -313,7 +314,7 @@ impl Test {
     pub fn execute_process(
         &self,
     ) -> Result<Process<DefaultHost<MemAdviceProvider>>, ExecutionError> {
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let mut process = Process::new(
             program.kernel().clone(),
@@ -330,7 +331,7 @@ impl Test {
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_ints(pub_inputs).unwrap();
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         let (mut stack_outputs, proof) =
             prover::prove(&program, stack_inputs.clone(), host, ProvingOptions::default()).unwrap();
@@ -349,7 +350,7 @@ impl Test {
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
-        let program = self.compile().expect("Failed to compile test source.");
+        let program: Program = self.compile().expect("Failed to compile test source.");
         let host = DefaultHost::new(MemAdviceProvider::from(self.advice_inputs.clone()));
         processor::execute_iter(&program, self.stack_inputs.clone(), host)
     }

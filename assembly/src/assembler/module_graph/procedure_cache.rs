@@ -4,6 +4,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{fmt, ops::Index};
+use vm_core::mast::MastForest;
 
 use crate::{
     assembler::{GlobalProcedureIndex, ModuleIndex, Procedure},
@@ -33,7 +34,7 @@ use crate::{
 /// As a result of this design choice, a unique [ProcedureCache] is associated with each context in
 /// play during compilation: the global assembler context has its own cache, and each
 /// [AssemblyContext] has its own cache.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ProcedureCache {
     cache: Vec<Vec<Option<Arc<Procedure>>>>,
     /// This is always the same length as `cache`
@@ -142,12 +143,6 @@ impl ProcedureCache {
         self.by_mast_root.contains_key(hash)
     }
 
-    /// Returns an iterator over the non-empty entries in the cache
-    #[cfg(test)]
-    pub fn entries(&self) -> impl Iterator<Item = Arc<Procedure>> + '_ {
-        self.cache.iter().flat_map(|m| m.iter().filter_map(|p| p.clone()))
-    }
-
     /// Inserts the given [Procedure] into this cache, using the [GlobalProcedureIndex] as the
     /// cache key.
     ///
@@ -162,8 +157,9 @@ impl ProcedureCache {
         &mut self,
         id: GlobalProcedureIndex,
         procedure: Arc<Procedure>,
+        mast_forest: &MastForest,
     ) -> Result<(), AssemblyError> {
-        let mast_root = procedure.mast_root();
+        let mast_root = procedure.mast_root(mast_forest);
 
         // Make sure we can index to the cache slot for this procedure
         self.ensure_cache_slot_exists(id, procedure.path());
@@ -173,7 +169,9 @@ impl ProcedureCache {
         // If there is already a cache entry, but it conflicts with what we're trying to cache,
         // then raise an error.
         if let Some(cached) = self.get(id) {
-            if cached.mast_root() != mast_root || cached.num_locals() != procedure.num_locals() {
+            if cached.mast_root(mast_forest) != mast_root
+                || cached.num_locals() != procedure.num_locals()
+            {
                 return Err(AssemblyError::ConflictingDefinitions {
                     first: cached.fully_qualified_name().clone(),
                     second: procedure.fully_qualified_name().clone(),
@@ -194,7 +192,7 @@ impl ProcedureCache {
         // cache entry with the same MAST root:
         if let Some(cached) = self.get_by_mast_root(&mast_root) {
             // Sanity check
-            assert_eq!(cached.mast_root(), mast_root);
+            assert_eq!(cached.mast_root(mast_forest), mast_root);
 
             if cached.num_locals() != procedure.num_locals() {
                 return Err(AssemblyError::ConflictingDefinitions {

@@ -1,6 +1,9 @@
 use processor::FMP_MIN;
 use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
-use vm_core::{code_blocks::CodeBlock, Operation};
+use vm_core::{
+    mast::{MastForest, MastNode, MerkleTreeNode},
+    Operation,
+};
 
 // SDEPTH INSTRUCTION
 // ================================================================================================
@@ -155,9 +158,13 @@ fn caller() {
 }
 
 fn build_bar_hash() -> [u64; 4] {
-    let foo_root = CodeBlock::new_span(vec![Operation::Caller]);
-    let bar_root = CodeBlock::new_syscall(foo_root.hash());
-    let bar_hash: Word = bar_root.hash().into();
+    let mut mast_forest = MastForest::new();
+
+    let foo_root = MastNode::new_basic_block(vec![Operation::Caller]);
+    let foo_root_id = mast_forest.ensure_node(foo_root);
+
+    let bar_root = MastNode::new_syscall(foo_root_id, &mast_forest);
+    let bar_hash: Word = bar_root.digest().into();
     [
         bar_hash[0].as_int(),
         bar_hash[1].as_int(),

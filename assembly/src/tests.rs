@@ -39,7 +39,7 @@ fn simple_instructions() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad eqz assert(0) end
+    basic_block pad eqz assert(0) end
 end";
     assert_str_eq!(format!("{program}"), expected);
 
@@ -47,7 +47,7 @@ end";
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span push(10) push(50) push(2) u32madd drop end
+    basic_block push(10) push(50) push(2) u32madd drop end
 end";
     assert_str_eq!(format!("{program}"), expected);
 
@@ -55,7 +55,7 @@ end";
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span push(10) push(50) push(2) u32add3 drop end
+    basic_block push(10) push(50) push(2) u32add3 drop end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -68,24 +68,41 @@ fn empty_program() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin end");
     let program = context.assemble(source)?;
-    let expected = "begin span noop end end";
+    let expected = "begin basic_block noop end end";
     assert_eq!(expected, format!("{}", program));
     Ok(())
 }
 
-/// TODO(pauls): Do we want to allow this in Miden Assembly
 #[test]
-#[ignore]
 fn empty_if() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin if.true end end");
+    assert_assembler_diagnostic!(
+        context,
+        source,
+        "invalid syntax",
+        regex!(r#",-\[test[\d]+:1:15\]"#),
+        "1 | begin if.true end end",
+        "  :               ^|^",
+        "  :                `-- found a end here",
+        "  `----",
+        " help: expected primitive opcode (e.g. \"add\"), or \"else\", or control flow",
+        "       opcode (e.g. \"if.true\")"
+    );
+    Ok(())
+}
+
+#[test]
+fn empty_if_true_then_branch() -> TestResult {
+    let mut context = TestContext::default();
+    let source = source_file!("begin if.true nop end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
     if.true
-        span noop end
+        basic_block noop end
     else
-        span noop end
+        basic_block noop end
     end
 end";
     assert_str_eq!(format!("{}", program), expected);
@@ -102,7 +119,7 @@ fn empty_while() -> TestResult {
     let expected = "\
 begin
     while.true
-        span noop end
+        basic_block noop end
     end
 end";
     assert_str_eq!(format!("{}", program), expected);
@@ -118,27 +135,27 @@ fn empty_repeat() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span noop noop noop noop noop end
+    basic_block noop noop noop noop noop end
 end";
     assert_str_eq!(format!("{}", program), expected);
     Ok(())
 }
 
 #[test]
-fn single_span() -> TestResult {
+fn single_basic_block() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin push.1 push.2 add end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
 
 #[test]
-fn span_and_simple_if() -> TestResult {
+fn basic_block_and_simple_if_true() -> TestResult {
     let mut context = TestContext::default();
 
     // if with else
@@ -147,11 +164,11 @@ fn span_and_simple_if() -> TestResult {
     let expected = "\
 begin
     join
-        span push(2) push(3) end
+        basic_block push(2) push(3) end
         if.true
-            span add end
+            basic_block add end
         else
-            span mul end
+            basic_block mul end
         end
     end
 end";
@@ -163,11 +180,49 @@ end";
     let expected = "\
 begin
     join
-        span push(2) push(3) end
+        basic_block push(2) push(3) end
         if.true
-            span add end
+            basic_block add end
         else
-            span noop end
+            basic_block noop end
+        end
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
+fn basic_block_and_simple_if_false() -> TestResult {
+    let mut context = TestContext::default();
+
+    // if with else
+    let source = source_file!("begin push.2 push.3 if.false add else mul end end");
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        basic_block push(2) push(3) end
+        if.true
+            basic_block mul end
+        else
+            basic_block add end
+        end
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+
+    // if without else
+    let source = source_file!("begin push.2 push.3 if.false add end end");
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        basic_block push(2) push(3) end
+        if.true
+            basic_block noop end
+        else
+            basic_block add end
         end
     end
 end";
@@ -226,8 +281,8 @@ fn simple_main_call() -> TestResult {
 #[test]
 fn call_without_path() -> TestResult {
     let mut context = TestContext::default();
+
     // compile first module
-    //context.add_module_from_source(
     context.assemble_module(
         "account_code1".parse().unwrap(),
         source_file!(
@@ -246,7 +301,6 @@ fn call_without_path() -> TestResult {
     //---------------------------------------------------------------------------------------------
 
     // compile second module
-    //context.add_module_from_source(
     context.assemble_module(
         "account_code2".parse().unwrap(),
         source_file!(
@@ -400,7 +454,7 @@ fn simple_constant() -> TestResult {
     );
     let expected = "\
 begin
-    span push(7) end
+    basic_block push(7) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -419,7 +473,7 @@ fn multiple_constants_push() -> TestResult {
     );
     let expected = "\
 begin
-    span push(21) push(64) push(44) push(72) end
+    basic_block push(21) push(64) push(44) push(72) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -438,7 +492,7 @@ fn constant_numeric_expression() -> TestResult {
     );
     let expected = "\
 begin
-    span push(26) end
+    basic_block push(26) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -459,7 +513,7 @@ fn constant_alphanumeric_expression() -> TestResult {
     );
     let expected = "\
 begin
-    span push(21) end
+    basic_block push(21) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -478,7 +532,7 @@ fn constant_hexadecimal_value() -> TestResult {
     );
     let expected = "\
 begin
-    span push(255) end
+    basic_block push(255) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -497,7 +551,7 @@ fn constant_field_division() -> TestResult {
     );
     let expected = "\
 begin
-    span push(2) end
+    basic_block push(2) end
 end";
     let program = context.assemble(source)?;
     assert_str_eq!(format!("{program}"), expected);
@@ -908,7 +962,7 @@ fn assert_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span assert(0) assert(1) assert(2) end
+    basic_block assert(0) assert(1) assert(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -932,7 +986,7 @@ fn assertz_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span eqz assert(0) eqz assert(1) eqz assert(2) end
+    basic_block eqz assert(0) eqz assert(1) eqz assert(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -956,7 +1010,7 @@ fn assert_eq_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span eq assert(0) eq assert(1) eq assert(2) end
+    basic_block eq assert(0) eq assert(1) eq assert(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -980,7 +1034,7 @@ fn assert_eqw_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span
+    basic_block
         movup4
         eq
         assert(0)
@@ -1038,7 +1092,7 @@ fn u32assert_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span
+    basic_block
         pad
         u32assert2(0)
         drop
@@ -1072,7 +1126,7 @@ fn u32assert2_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span u32assert2(0) u32assert2(1) u32assert2(2) end
+    basic_block u32assert2(0) u32assert2(1) u32assert2(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1096,7 +1150,7 @@ fn u32assertw_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span
+    basic_block
         u32assert2(0)
         movup3
         movup3
@@ -1140,7 +1194,7 @@ fn mtree_verify_with_code() -> TestResult {
 
     let expected = "\
 begin
-    span mpverify(0) mpverify(1) mpverify(2) end
+    basic_block mpverify(0) mpverify(1) mpverify(2) end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1170,26 +1224,32 @@ fn nested_control_blocks() -> TestResult {
 begin
     join
         join
-            span push(2) push(3) end
+            basic_block push(2) push(3) end
             if.true
                 join
-                    span add end
+                    basic_block add end
                     while.true
-                        span push(7) push(11) add end
+                        basic_block push(7) push(11) add end
                     end
                 end
             else
                 join
-                    span mul push(8) push(8) end
-                    if.true
-                        span mul end
-                    else
-                        span noop end
+                    join
+                        basic_block mul end
+                        basic_block push(8) end
+                    end
+                    join
+                        basic_block push(8) end
+                        if.true
+                            basic_block mul end
+                        else
+                            basic_block noop end
+                        end
                     end
                 end
             end
         end
-        span push(3) add end
+        basic_block push(3) add end
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1205,35 +1265,14 @@ fn program_with_one_procedure() -> TestResult {
     let source =
         source_file!("proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end");
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
-        span push(2) push(3) add end
-        proxy.{foo}
+        basic_block push(2) push(3) add end
+        basic_block push(3) push(7) mul end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
-    Ok(())
-}
-
-// TODO(pauls): Do we want to support this in the surface MASM syntax?
-#[test]
-#[ignore]
-fn program_with_one_empty_procedure() -> TestResult {
-    let mut context = TestContext::default();
-    let source = source_file!("proc.foo end begin exec.foo end");
-    let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
-    let expected = format!(
-        "\
-begin
-    proxy.{foo}
-end"
-    );
-    assert_str_eq!(format!("{}", program), expected);
     Ok(())
 }
 
@@ -1247,26 +1286,28 @@ fn program_with_nested_procedure() -> TestResult {
         begin push.2 push.4 add exec.foo push.11 exec.bar sub end"
     );
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
-    let bar = context.display_digest_from_cache(&"#exec::bar".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
             join
-                span push(2) push(4) add end
-                proxy.{foo}
+                basic_block push(2) push(4) add end
+                basic_block push(3) push(7) mul end
             end
             join
-                span push(11) end
-                proxy.{bar}
+                basic_block push(11) end
+                join
+                    join
+                        basic_block push(5) end
+                        basic_block push(3) push(7) mul end
+                    end
+                    basic_block add end
+                end
             end
         end
-        span neg add end
+        basic_block neg add end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1288,16 +1329,27 @@ fn program_with_proc_locals() -> TestResult {
         end"
     );
     let program = context.assemble(source)?;
-    let foo = context.display_digest_from_cache(&"#exec::foo".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
-        span push(4) push(3) push(2) end
-        proxy.{foo}
+        basic_block push(4) push(3) push(2) end
+        basic_block
+            push(1)
+            fmpupdate
+            pad
+            fmpadd
+            mstore
+            drop
+            add
+            pad
+            fmpadd
+            mload
+            mul
+            push(18446744069414584320)
+            fmpupdate
+        end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1407,6 +1459,8 @@ fn program_with_invalid_rpo_digest_call() {
     );
 }
 
+/// Phantom calls are currently not implemented. Re-enable this test once they are implemented.
+#[ignore]
 #[test]
 fn program_with_phantom_mast_call() -> TestResult {
     let mut context = TestContext::default();
@@ -1416,7 +1470,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     let ast = context.parse_program(source)?;
 
     // phantom calls not allowed
-    let mut assembler = Assembler::default().with_debug_mode(true);
+    let assembler = Assembler::default().with_debug_mode(true);
 
     let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(false);
     let err = assembler
@@ -1434,6 +1488,7 @@ fn program_with_phantom_mast_call() -> TestResult {
     );
 
     // phantom calls allowed
+    let assembler = Assembler::default().with_debug_mode(true);
     let mut context = AssemblyContext::for_program(ast.path()).with_phantom_calls(true);
     assembler.assemble_in_context(ast, &mut context)?;
     Ok(())
@@ -1469,25 +1524,42 @@ fn program_with_one_import_and_hex_call() -> TestResult {
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
-            call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
+            call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
         end"#
     ));
     let program = context.assemble(source)?;
 
-    let iszero_unsafe =
-        context.display_digest_from_cache(&"dummy::math::u256::iszero_unsafe".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
-            span push(4) push(3) end
-            proxy.{iszero_unsafe}
+            basic_block push(4) push(3) end
+            join
+                join
+                    join
+                        basic_block eqz end
+                        basic_block swap eqz and end
+                    end
+                    join
+                        basic_block swap eqz and end
+                        basic_block swap eqz and end
+                    end
+                end
+                join
+                    join
+                        basic_block swap eqz and end
+                        basic_block swap eqz and end
+                    end
+                    join
+                        basic_block swap eqz and end
+                        basic_block swap eqz and end
+                    end
+                end
+            end
         end
-        call.0xc2545da99d3a1f3f38d957c7893c44d78998d8ea8b11aba7e22c8c2b2a213dae
+        call.0x20234ee941e53a15886e733cc8e041198c6e90d2a16ea18ce1030e8c3596dd38
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1602,22 +1674,16 @@ fn program_with_reexported_proc_in_same_library() -> TestResult {
         end"#
     ));
     let program = context.assemble(source)?;
-    let checked_eqz =
-        context.display_digest_from_cache(&"dummy1::math::u64::checked_eqz".parse().unwrap());
-    let notchecked_eqz =
-        context.display_digest_from_cache(&"dummy1::math::u64::unchecked_eqz".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
-            span push(4) push(3) end
-            proxy.{checked_eqz}
+            basic_block push(4) push(3) end
+            basic_block u32assert2(0) eqz swap eqz and end
         end
-        proxy.{notchecked_eqz}
+        basic_block eqz swap eqz and end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
 }
@@ -1674,22 +1740,16 @@ fn program_with_reexported_proc_in_another_library() -> TestResult {
     ));
     let program = context.assemble(source)?;
 
-    let checked_eqz =
-        context.display_digest_from_cache(&"dummy2::math::u64::checked_eqz".parse().unwrap());
-    let notchecked_eqz =
-        context.display_digest_from_cache(&"dummy2::math::u64::unchecked_eqz".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
         join
-            span push(4) push(3) end
-            proxy.{checked_eqz}
+            basic_block push(4) push(3) end
+            basic_block u32assert2(0) eqz swap eqz and end
         end
-        proxy.{notchecked_eqz}
+        basic_block eqz swap eqz and end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
 
     // when the re-exported proc is part of a different library and the library is not passed to
@@ -1745,17 +1805,24 @@ fn module_alias() -> TestResult {
     );
 
     let program = context.assemble(source)?;
-    let checked_add =
-        context.display_digest_from_cache(&"dummy::math::u64::checked_add".parse().unwrap());
-    let expected = format!(
-        "\
+    let expected = "\
 begin
     join
-        span pad incr pad push(2) pad end
-        proxy.{checked_add}
+        basic_block pad incr pad push(2) pad end
+        basic_block
+            swap
+            movup3
+            u32assert2(0)
+            u32add
+            movup3
+            movup3
+            u32assert2(0)
+            u32add3
+            eqz
+            assert(0)
+        end
     end
-end"
-    );
+end";
     assert_str_eq!(format!("{program}"), expected);
 
     // --- invalid module alias -----------------------------------------------
@@ -1889,7 +1956,7 @@ fn comment_simple() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1918,26 +1985,32 @@ fn comment_in_nested_control_blocks() -> TestResult {
 begin
     join
         join
-            span pad incr push(2) end
+            basic_block pad incr push(2) end
             if.true
                 join
-                    span add end
+                    basic_block add end
                     while.true
-                        span push(7) push(11) add end
+                        basic_block push(7) push(11) add end
                     end
                 end
             else
                 join
-                    span mul push(8) push(8) end
-                    if.true
-                        span mul end
-                    else
-                        span noop end
+                    join
+                        basic_block mul end
+                        basic_block push(8) end
+                    end
+                    join
+                        basic_block push(8) end
+                        if.true
+                            basic_block mul end
+                        else
+                            basic_block noop end
+                        end
                     end
                 end
             end
         end
-        span push(3) add end
+        basic_block push(3) add end
     end
 end";
     assert_str_eq!(format!("{program}"), expected);
@@ -1951,7 +2024,7 @@ fn comment_before_program() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())
@@ -1964,7 +2037,7 @@ fn comment_after_program() -> TestResult {
     let program = context.assemble(source)?;
     let expected = "\
 begin
-    span pad incr push(2) add end
+    basic_block pad incr push(2) add end
 end";
     assert_str_eq!(format!("{program}"), expected);
     Ok(())

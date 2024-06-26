@@ -20,7 +20,7 @@ use processor::{
         RpxRandomCoin, WinterRandomCoin,
     },
     math::{Felt, FieldElement},
-    prove_virtual_bus, ExecutionTrace,
+    prove_virtual_bus, ExecutionTrace, Program,
 };
 use tracing::instrument;
 use winter_prover::{
@@ -39,7 +39,7 @@ mod gpu;
 pub use air::{DeserializationError, ExecutionProof, FieldExtension, HashFunction, ProvingOptions};
 pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
-    Program, StackInputs, StackOutputs, Word,
+    StackInputs, StackOutputs, Word,
 };
 pub use winter_prover::Proof;
 

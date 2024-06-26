@@ -1,6 +1,6 @@
 use super::TestHost;
 use assembly::Assembler;
-use processor::ExecutionOptions;
+use processor::{ExecutionOptions, Program};
 
 #[test]
 fn test_event_handling() {
@@ -13,7 +13,11 @@ fn test_event_handling() {
     end";
 
     // compile and execute program
-    let program = Assembler::default().assemble(source).unwrap();
+    let program: Program = Assembler::default()
+        .assemble(source)
+        .unwrap()
+        .try_into()
+        .expect("test source has no entrypoint.");
     let mut host = TestHost::default();
     processor::execute(&program, Default::default(), &mut host, Default::default()).unwrap();
 
@@ -33,7 +37,11 @@ fn test_trace_handling() {
     end";
 
     // compile program
-    let program = Assembler::default().assemble(source).unwrap();
+    let program: Program = Assembler::default()
+        .assemble(source)
+        .unwrap()
+        .try_into()
+        .expect("test source has no entrypoint.");
     let mut host = TestHost::default();
 
     // execute program with disabled tracing
