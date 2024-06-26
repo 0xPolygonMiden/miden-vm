@@ -93,6 +93,7 @@ extern {
         "exp" => Token::Exp,
         "exp.u" => Token::ExpU,
         "export" => Token::Export,
+        "false" => Token::False,
         "fri_ext2fold4" => Token::FriExt2Fold4,
         "gt" => Token::Gt,
         "gte" => Token::Gte,
@@ -129,6 +130,7 @@ extern {
         "neg" => Token::Neg,
         "neq" => Token::Neq,
         "not" => Token::Not,
+        "nop" => Token::Nop,
         "or" => Token::Or,
         "padw" => Token::Padw,
         "pow2" => Token::Pow2,
@@ -347,19 +349,51 @@ Op: SmallOpsVec = {
 }
 
 IfElse: Op = {
-    <l:@L> "if" "." "true" <then_blk:Block> "else" <else_blk:Block> "end" <r:@R> => {
-        Op::If { span: span!(l, r), then_blk, else_blk }
+    // Handles the edge case of a code generator emitting an empty "then" block
+    <l:@L> "if" "." <cond:Condition> "else" <else_blk:Block> "end" <r:@R> => {
+        let span = span!(l, r);
+        let then_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     },
 
-    <l:@L> "if" "." "true" <then_blk:Block> "end" <r:@R> => {
-        Op::If { span: span!(l, r), then_blk, else_blk: Default::default() }
+    <l:@L> "if" "." <cond:Condition> <then_blk:Block> "else" <else_blk:Block?> "end" <r:@R> => {
+        let span = span!(l, r);
+        let else_blk = else_blk.unwrap_or_else(|| Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]));
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
+    },
+
+    <l:@L> "if" "." <cond:Condition> <then_blk:Block> "end" <r:@R> => {
+        let span = span!(l, r);
+        let else_blk = Block::new(span, vec![Op::Inst(Span::new(span, Instruction::Nop))]);
+        // If false-conditioned, swap the blocks
+        if cond {
+            Op::If { span, then_blk, else_blk }
+        } else {
+            Op::If { span, then_blk: else_blk, else_blk: then_blk }
+        }
     }
+}
+
+#[inline]
+Condition: bool = {
+    "true" => true,
+    "false" => false,
 }
 
 While: Op = {
     <l:@L> "while" "." "true" <body:Block> "end" <r:@R> => {
         Op::While { span: span!(l, r), body }
-    }
+    },
 }
 
 Repeat: Op = {
@@ -439,6 +473,7 @@ Inst: Instruction = {
     "mtree_set" => Instruction::MTreeSet,
     "neg" => Instruction::Neg,
     "not" => Instruction::Not,
+    "nop" => Instruction::Nop,
     "or" => Instruction::Or,
     "padw" => Instruction::PadW,
     "pow2" => Instruction::Pow2,
@@ -447,12 +482,6 @@ Inst: Instruction = {
     "swapdw" => Instruction::SwapDw,
     "u32and" => Instruction::U32And,
     "u32cast" => Instruction::U32Cast,
-    "u32gt" => Instruction::U32Gt,
-    "u32gte" => Instruction::U32Gte,
-    "u32lt" => Instruction::U32Lt,
-    "u32lte" => Instruction::U32Lte,
-    "u32max" => Instruction::U32Max,
-    "u32min" => Instruction::U32Min,
     "u32not" => Instruction::U32Not,
     "u32or" => Instruction::U32Or,
     "u32overflowing_add3" => Instruction::U32OverflowingAdd3,
@@ -764,6 +793,48 @@ FoldableInstWithU32Immediate: SmallOpsVec = {
             None => smallvec![Op::Inst(Span::new(span, Instruction::U32Rotr))],
         }
     },
+    <l:@L> "u32lt" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32LtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Lt))],
+        }
+    },
+    <l:@L> "u32lte" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32LteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Lte))],
+        }
+    },
+    <l:@L> "u32gt" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32GtImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Gt))],
+        }
+    },
+    <l:@L> "u32gte" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32GteImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Gte))],
+        }
+    },
+    <l:@L> "u32min" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32MinImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Min))],
+        }
+    },
+    <l:@L> "u32max" <imm:MaybeImm<U32>> <r:@R> => {
+        let span = span!(l, r);
+        match imm {
+            Some(imm) => smallvec![Op::Inst(Span::new(span, Instruction::U32MaxImm(imm)))],
+            None => smallvec![Op::Inst(Span::new(span, Instruction::U32Max))],
+        }
+    },
 }
 
 #[inline]
@@ -975,7 +1046,6 @@ Shift32: u8 = {
         }
     }
 }
-
 
 #[inline]
 RawU8: u8 = {

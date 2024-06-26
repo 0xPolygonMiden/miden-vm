@@ -54,6 +54,7 @@ impl Assembler {
         use Operation::*;
 
         match instruction {
+            Instruction::Nop => span_builder.push_op(Noop),
             Instruction::Assert => span_builder.push_op(Assert(0)),
             Instruction::AssertWithError(err_code) => {
                 span_builder.push_op(Assert(err_code.expect_value()))
@@ -198,12 +199,18 @@ impl Assembler {
             Instruction::U32Ctz => u32_ops::u32ctz(span_builder),
             Instruction::U32Clo => u32_ops::u32clo(span_builder),
             Instruction::U32Cto => u32_ops::u32cto(span_builder),
-            Instruction::U32Lt => u32_ops::u32lt(span_builder),
-            Instruction::U32Lte => u32_ops::u32lte(span_builder),
-            Instruction::U32Gt => u32_ops::u32gt(span_builder),
-            Instruction::U32Gte => u32_ops::u32gte(span_builder),
-            Instruction::U32Min => u32_ops::u32min(span_builder),
-            Instruction::U32Max => u32_ops::u32max(span_builder),
+            Instruction::U32Lt => u32_ops::u32lt(span_builder, None),
+            Instruction::U32LtImm(v) => u32_ops::u32lt(span_builder, Some(v.expect_value())),
+            Instruction::U32Lte => u32_ops::u32lte(span_builder, None),
+            Instruction::U32LteImm(v) => u32_ops::u32lte(span_builder, Some(v.expect_value())),
+            Instruction::U32Gt => u32_ops::u32gt(span_builder, None),
+            Instruction::U32GtImm(v) => u32_ops::u32gt(span_builder, Some(v.expect_value())),
+            Instruction::U32Gte => u32_ops::u32gte(span_builder, None),
+            Instruction::U32GteImm(v) => u32_ops::u32gte(span_builder, Some(v.expect_value())),
+            Instruction::U32Min => u32_ops::u32min(span_builder, None),
+            Instruction::U32MinImm(v) => u32_ops::u32min(span_builder, Some(v.expect_value())),
+            Instruction::U32Max => u32_ops::u32max(span_builder, None),
+            Instruction::U32MaxImm(v) => u32_ops::u32max(span_builder, Some(v.expect_value())),
 
             // ----- stack manipulation -----------------------------------------------------------
             Instruction::Drop => span_builder.push_op(Drop),

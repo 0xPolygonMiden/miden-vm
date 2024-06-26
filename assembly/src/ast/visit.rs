@@ -308,6 +308,12 @@ where
         | U32DivImm(ref imm)
         | U32ModImm(ref imm)
         | U32DivModImm(ref imm)
+        | U32LtImm(ref imm)
+        | U32LteImm(ref imm)
+        | U32GtImm(ref imm)
+        | U32GteImm(ref imm)
+        | U32MinImm(ref imm)
+        | U32MaxImm(ref imm)
         | MemLoadImm(ref imm)
         | MemLoadWImm(ref imm)
         | MemStoreImm(ref imm)
@@ -320,11 +326,11 @@ where
         SysCall(ref target) => visitor.visit_syscall(target),
         ProcRef(ref target) => visitor.visit_procref(target),
         Debug(ref options) => visitor.visit_debug_options(Span::new(span, options)),
-        Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2 | Inv
-        | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw | Lt
-        | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg | Ext2Inv
-        | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split | U32Cast
-        | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
+        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
+        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
+        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
+        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
+        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
         | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
         | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
         | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz
@@ -751,6 +757,12 @@ where
         | U32DivImm(ref mut imm)
         | U32ModImm(ref mut imm)
         | U32DivModImm(ref mut imm)
+        | U32LtImm(ref mut imm)
+        | U32LteImm(ref mut imm)
+        | U32GtImm(ref mut imm)
+        | U32GteImm(ref mut imm)
+        | U32MinImm(ref mut imm)
+        | U32MaxImm(ref mut imm)
         | MemLoadImm(ref mut imm)
         | MemLoadWImm(ref mut imm)
         | MemStoreImm(ref mut imm)
@@ -763,11 +775,11 @@ where
         SysCall(ref mut target) => visitor.visit_mut_syscall(target),
         ProcRef(ref mut target) => visitor.visit_mut_procref(target),
         Debug(ref mut options) => visitor.visit_mut_debug_options(Span::new(span, options)),
-        Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2 | Inv
-        | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw | Lt
-        | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg | Ext2Inv
-        | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split | U32Cast
-        | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
+        Nop | Assert | AssertEq | AssertEqw | Assertz | Add | Sub | Mul | Div | Neg | ILog2
+        | Inv | Incr | Pow2 | Exp | ExpBitLength(_) | Not | And | Or | Xor | Eq | Neq | Eqw
+        | Lt | Lte | Gt | Gte | IsOdd | Ext2Add | Ext2Sub | Ext2Mul | Ext2Div | Ext2Neg
+        | Ext2Inv | U32Test | U32TestW | U32Assert | U32Assert2 | U32AssertW | U32Split
+        | U32Cast | U32WrappingAdd | U32OverflowingAdd | U32OverflowingAdd3 | U32WrappingAdd3
         | U32WrappingSub | U32OverflowingSub | U32WrappingMul | U32OverflowingMul
         | U32OverflowingMadd | U32WrappingMadd | U32Div | U32Mod | U32DivMod | U32And | U32Or
         | U32Xor | U32Not | U32Shr | U32Shl | U32Rotr | U32Rotl | U32Popcnt | U32Clz | U32Ctz

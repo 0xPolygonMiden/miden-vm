@@ -73,12 +73,29 @@ fn empty_program() -> TestResult {
     Ok(())
 }
 
-/// TODO(pauls): Do we want to allow this in Miden Assembly
 #[test]
-#[ignore]
 fn empty_if() -> TestResult {
     let mut context = TestContext::default();
     let source = source_file!("begin if.true end end");
+    assert_assembler_diagnostic!(
+        context,
+        source,
+        "invalid syntax",
+        regex!(r#",-\[test[\d]+:1:15\]"#),
+        "1 | begin if.true end end",
+        "  :               ^|^",
+        "  :                `-- found a end here",
+        "  `----",
+        " help: expected primitive opcode (e.g. \"add\"), or \"else\", or control flow",
+        "       opcode (e.g. \"if.true\")"
+    );
+    Ok(())
+}
+
+#[test]
+fn empty_if_true_then_branch() -> TestResult {
+    let mut context = TestContext::default();
+    let source = source_file!("begin if.true nop end end");
     let program = context.assemble(source)?;
     let expected = "\
 begin
@@ -138,7 +155,7 @@ end";
 }
 
 #[test]
-fn basic_block_and_simple_if() -> TestResult {
+fn basic_block_and_simple_if_true() -> TestResult {
     let mut context = TestContext::default();
 
     // if with else
@@ -168,6 +185,44 @@ begin
             basic_block add end
         else
             basic_block noop end
+        end
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+    Ok(())
+}
+
+#[test]
+fn basic_block_and_simple_if_false() -> TestResult {
+    let mut context = TestContext::default();
+
+    // if with else
+    let source = source_file!("begin push.2 push.3 if.false add else mul end end");
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        basic_block push(2) push(3) end
+        if.true
+            basic_block mul end
+        else
+            basic_block add end
+        end
+    end
+end";
+    assert_str_eq!(format!("{program}"), expected);
+
+    // if without else
+    let source = source_file!("begin push.2 push.3 if.false add end end");
+    let program = context.assemble(source)?;
+    let expected = "\
+begin
+    join
+        basic_block push(2) push(3) end
+        if.true
+            basic_block noop end
+        else
+            basic_block add end
         end
     end
 end";

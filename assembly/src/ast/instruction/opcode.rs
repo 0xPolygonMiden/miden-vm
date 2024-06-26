@@ -12,7 +12,8 @@ use alloc::string::ToString;
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum OpCode {
-    Assert = 0,
+    Nop = 0,
+    Assert,
     AssertWithError,
     AssertEq,
     AssertEqWithError,
@@ -114,11 +115,17 @@ pub enum OpCode {
     U32Clo,
     U32Cto,
     U32Lt,
+    U32LtImm,
     U32Lte,
+    U32LteImm,
     U32Gt,
+    U32GtImm,
     U32Gte,
+    U32GteImm,
     U32Min,
+    U32MinImm,
     U32Max,
+    U32MaxImm,
 
     // ----- stack manipulation ------------------------------------------------------------------
     Drop,
