@@ -1,6 +1,7 @@
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use winter_utils::{ByteReader, Deserializable, DeserializationError, Serializable};
 
 use crate::{
     mast::{MastForest, MerkleTreeNode},
@@ -31,6 +32,18 @@ impl MerkleTreeNode for DynNode {
 
     fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
+    }
+}
+
+impl Serializable for DynNode {
+    fn write_into<W: winter_utils::ByteWriter>(&self, _target: &mut W) {
+        // nothing
+    }
+}
+
+impl Deserializable for DynNode {
+    fn read_from<R: ByteReader>(_source: &mut R) -> Result<Self, DeserializationError> {
+        Ok(Self)
     }
 }
 

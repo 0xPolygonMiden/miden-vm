@@ -2,6 +2,7 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{chiplets::hasher, Operation};
 
@@ -58,6 +59,24 @@ impl MerkleTreeNode for LoopNode {
             loop_node: self,
             mast_forest,
         }
+    }
+}
+
+impl Serializable for LoopNode {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self { body, digest } = self;
+
+        body.write_into(target);
+        digest.write_into(target);
+    }
+}
+
+impl Deserializable for LoopNode {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let body = Deserializable::read_from(source)?;
+        let digest = Deserializable::read_from(source)?;
+
+        Ok(Self { body, digest })
     }
 }
 

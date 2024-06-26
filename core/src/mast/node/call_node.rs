@@ -2,6 +2,7 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{chiplets::hasher, Operation};
 
@@ -95,6 +96,34 @@ impl MerkleTreeNode for CallNode {
             call_node: self,
             mast_forest,
         }
+    }
+}
+
+impl Serializable for CallNode {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let Self {
+            callee,
+            is_syscall,
+            digest,
+        } = self;
+
+        callee.write_into(target);
+        target.write_bool(*is_syscall);
+        digest.write_into(target);
+    }
+}
+
+impl Deserializable for CallNode {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let callee = Deserializable::read_from(source)?;
+        let is_syscall = source.read_bool()?;
+        let digest = Deserializable::read_from(source)?;
+
+        Ok(Self {
+            callee,
+            is_syscall,
+            digest,
+        })
     }
 }
 
