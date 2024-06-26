@@ -26,8 +26,11 @@ pub struct Program {
 impl Program {
     /// Construct a new [`Program`] from the given MAST forest and entrypoint. The kernel is assumed
     /// to be empty.
+    /// 
+    /// Panics:
+    /// - if `mast_forest` doesn't have an entrypoint
     pub fn new(mast_forest: MastForest, entrypoint: MastNodeId) -> Self {
-        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
             mast_forest,
@@ -37,8 +40,11 @@ impl Program {
     }
 
     /// Construct a new [`Program`] from the given MAST forest, entrypoint, and kernel.
+    /// 
+    /// Panics:
+    /// - if `mast_forest` doesn't have an entrypoint
     pub fn with_kernel(mast_forest: MastForest, entrypoint: MastNodeId, kernel: Kernel) -> Self {
-        debug_assert!(mast_forest.get_node_by_id(entrypoint).is_some());
+        assert!(mast_forest.get_node_by_id(entrypoint).is_some());
 
         Self {
             mast_forest,
