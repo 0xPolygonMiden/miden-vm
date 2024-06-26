@@ -1,12 +1,16 @@
 use super::{
-    build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
+    build_trace_from_ops, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
     AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
-use miden_air::trace::chiplets::{
-    memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
-    MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
-    MEMORY_V_COL_RANGE,
+use miden_air::{
+    trace::chiplets::{
+        memory::{MEMORY_READ_LABEL, MEMORY_WRITE, MEMORY_WRITE_LABEL, NUM_ELEMENTS},
+        MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTORS_COL_IDX,
+        MEMORY_V_COL_RANGE,
+    },
+    AuxRandElements,
 };
+use test_utils::rand::rand_vector;
 
 /// Tests the generation of the `b_chip` bus column when only memory lookups are included. It
 /// ensures that trace generation is correct when all of the following are true.
@@ -40,7 +44,7 @@ fn b_chip_trace_mem() {
     ];
     let trace = build_trace_from_ops(operations, &stack);
 
-    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let rand_elements = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
     let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
@@ -53,7 +57,14 @@ fn b_chip_trace_mem() {
 
     // The first memory request from the stack is sent when the `MStoreW` operation is executed, at
     // cycle 1, so the request is included in the next row. (The trace begins by executing `span`).
-    let value = build_expected_memory(&rand_elements, MEMORY_WRITE_LABEL, ZERO, ZERO, ONE, word);
+    let value = build_expected_memory(
+        rand_elements.rand_elements(),
+        MEMORY_WRITE_LABEL,
+        ZERO,
+        ZERO,
+        ONE,
+        word,
+    );
     let mut expected = value.inv();
     assert_eq!(expected, b_chip[2]);
 
@@ -64,8 +75,14 @@ fn b_chip_trace_mem() {
 
     // The next memory request from the stack is sent when `MLoad` is executed at cycle 6 and
     // included at row 7
-    let value =
-        build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(6), word);
+    let value = build_expected_memory(
+        rand_elements.rand_elements(),
+        MEMORY_READ_LABEL,
+        ZERO,
+        ZERO,
+        Felt::new(6),
+        word,
+    );
     expected *= value.inv();
     assert_eq!(expected, b_chip[7]);
 
@@ -80,24 +97,30 @@ fn b_chip_trace_mem() {
     // to the 5 memory operations (MStream requires 2 rows).
 
     // At cycle 8 `MLoadW` is requested by the stack and `MStoreW` is provided by memory
-    let value =
-        build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(8), word);
+    let value = build_expected_memory(
+        rand_elements.rand_elements(),
+        MEMORY_READ_LABEL,
+        ZERO,
+        ZERO,
+        Felt::new(8),
+        word,
+    );
     expected *= value.inv();
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 8);
+    expected *= build_expected_memory_from_trace(&trace, rand_elements.rand_elements(), 8);
     assert_eq!(expected, b_chip[9]);
 
     // At cycle 9, `MLoad` is provided by memory.
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 9);
+    expected *= build_expected_memory_from_trace(&trace, rand_elements.rand_elements(), 9);
     assert_eq!(expected, b_chip[10]);
 
     // At cycle 10,  `MLoadW` is provided by memory.
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 10);
+    expected *= build_expected_memory_from_trace(&trace, rand_elements.rand_elements(), 10);
     assert_eq!(expected, b_chip[11]);
 
     // At cycle 11, `MStore` is requested by the stack and the first read of `MStream` is provided
     // by the memory.
     let value = build_expected_memory(
-        &rand_elements,
+        rand_elements.rand_elements(),
         MEMORY_WRITE_LABEL,
         ZERO,
         ONE,
@@ -105,19 +128,25 @@ fn b_chip_trace_mem() {
         [ONE, ZERO, ZERO, ZERO],
     );
     expected *= value.inv();
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 11);
+    expected *= build_expected_memory_from_trace(&trace, rand_elements.rand_elements(), 11);
     assert_eq!(expected, b_chip[12]);
 
     // At cycle 12, `MStore` is provided by the memory
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 12);
+    expected *= build_expected_memory_from_trace(&trace, rand_elements.rand_elements(), 12);
     assert_eq!(expected, b_chip[13]);
 
     // At cycle 13, `MStream` is requested by the stack, and the second read of `MStream` is
     // provided by the memory.
-    let value1 =
-        build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(13), word);
+    let value1 = build_expected_memory(
+        rand_elements.rand_elements(),
+        MEMORY_READ_LABEL,
+        ZERO,
+        ZERO,
+        Felt::new(13),
+        word,
+    );
     let value2 = build_expected_memory(
-        &rand_elements,
+        rand_elements.rand_elements(),
         MEMORY_READ_LABEL,
         ZERO,
         ONE,
@@ -125,7 +154,7 @@ fn b_chip_trace_mem() {
         [ONE, ZERO, ZERO, ZERO],
     );
     expected *= (value1 * value2).inv();
-    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 13);
+    expected *= build_expected_memory_from_trace(&trace, rand_elements.rand_elements(), 13);
     assert_eq!(expected, b_chip[14]);
 
     // At cycle 14 the decoder requests the span hash. We set this as the inverse of the previously

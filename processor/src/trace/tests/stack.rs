@@ -1,9 +1,11 @@
-use super::{
-    build_trace_from_ops, rand_array, Felt, FieldElement, Operation, NUM_RAND_ROWS, ONE, ZERO,
-};
+use super::{build_trace_from_ops, Felt, FieldElement, Operation, NUM_RAND_ROWS, ONE, ZERO};
 use crate::stack::OverflowTableRow;
 use alloc::vec::Vec;
-use miden_air::trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
+use miden_air::{
+    trace::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET},
+    AuxRandElements,
+};
+use test_utils::rand::rand_vector;
 
 // CONSTANTS
 // ================================================================================================
@@ -32,15 +34,15 @@ fn p1_trace() {
     ];
     let init_stack = (1..17).collect::<Vec<_>>();
     let trace = build_trace_from_ops(ops, &init_stack);
-    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let alphas: AuxRandElements<Felt> = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
     let aux_columns = trace.build_aux_trace(&alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        OverflowTableRow::new(Felt::new(2), ONE, ZERO).to_value(&alphas),
-        OverflowTableRow::new(Felt::new(3), TWO, TWO).to_value(&alphas),
-        OverflowTableRow::new(Felt::new(6), TWO, TWO).to_value(&alphas),
-        OverflowTableRow::new(Felt::new(10), ZERO, ZERO).to_value(&alphas),
+        OverflowTableRow::new(Felt::new(2), ONE, ZERO).to_value(alphas.rand_elements()),
+        OverflowTableRow::new(Felt::new(3), TWO, TWO).to_value(alphas.rand_elements()),
+        OverflowTableRow::new(Felt::new(6), TWO, TWO).to_value(alphas.rand_elements()),
+        OverflowTableRow::new(Felt::new(10), ZERO, ZERO).to_value(alphas.rand_elements()),
     ];
 
     // make sure the first entry is ONE

@@ -1,10 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
+use super::{Felt, RangeCheckTrace, ZERO};
 use crate::utils::uninit_vector;
-
-mod aux_trace;
-pub use aux_trace::AuxTraceBuilder;
 
 #[cfg(test)]
 mod tests;
@@ -146,14 +143,7 @@ impl RangeChecker {
         // the "current" row of the main trace but placed into the "next" row of the bus column.)
         write_trace_row(&mut trace, &mut i, 0, (u16::MAX).into());
 
-        RangeCheckTrace {
-            trace,
-            aux_builder: AuxTraceBuilder::new(
-                self.lookups.keys().cloned().collect(),
-                self.cycle_lookups,
-                num_padding_rows,
-            ),
-        }
+        RangeCheckTrace { trace }
     }
 
     // PUBLIC ACCESSORS

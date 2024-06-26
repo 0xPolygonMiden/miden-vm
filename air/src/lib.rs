@@ -8,6 +8,7 @@ extern crate std;
 
 use alloc::vec::Vec;
 
+use gkr_proof::{GkrCircuitProof, GkrCircuitVerifier};
 use vm_core::{
     utils::{ByteReader, ByteWriter, Deserializable, Serializable},
     ExtensionOf, ProgramInfo, StackInputs, StackOutputs, ONE, ZERO,
@@ -20,12 +21,17 @@ use winter_prover::matrix::ColMatrix;
 
 mod constraints;
 pub use constraints::stack;
-use constraints::{chiplets, range};
+use constraints::{chiplets, logup, range};
 
 pub mod trace;
 use trace::*;
 
 mod errors;
+pub mod gkr_proof;
+mod gkr_verifier;
+pub use gkr_verifier::{
+    verify_virtual_bus, CompositionPolyQueryBuilder, SumCheckVerifier, SumCheckVerifierError,
+};
 mod options;
 mod proof;
 
@@ -42,7 +48,7 @@ pub use vm_core::{
     utils::{DeserializationError, ToElements},
     Felt, FieldElement, StarkField,
 };
-pub use winter_air::{AuxRandElements, FieldExtension, LagrangeKernelEvaluationFrame};
+pub use winter_air::{AuxRandElements, FieldExtension, GkrRandElements};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -63,8 +69,8 @@ impl ProcessorAir {
 }
 
 impl Air for ProcessorAir {
-    type GkrProof = ();
-    type GkrVerifier = ();
+    type GkrProof<E: FieldElement> = GkrCircuitProof<E>;
+    type GkrVerifier<E: FieldElement> = GkrCircuitVerifier;
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 
@@ -82,7 +88,7 @@ impl Air for ProcessorAir {
         let mut range_checker_degrees = range::get_transition_constraint_degrees();
         main_degrees.append(&mut range_checker_degrees);
 
-        let aux_degrees = range::get_aux_transition_constraint_degrees();
+        let aux_degrees = logup::get_aux_transition_constraint_degrees();
 
         // --- chiplets (hasher, bitwise, memory) -------------------------
         let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
@@ -101,7 +107,7 @@ impl Air for ProcessorAir {
         let num_main_assertions = 2 + stack::NUM_ASSERTIONS + range::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment.
-        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + range::NUM_AUX_ASSERTIONS;
+        let num_aux_assertions = stack::NUM_AUX_ASSERTIONS + logup::NUM_AUX_ASSERTIONS;
 
         // Create the context and set the number of transition constraint exemptions to two; this
         // allows us to inject random values into the last row of the execution trace.
@@ -166,7 +172,8 @@ impl Air for ProcessorAir {
 
     fn get_aux_assertions<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
-        aux_rand_elements: &[E],
+        aux_rand_elements: &AuxRandElements<E>,
+        gkr_proof: Option<&Self::GkrProof<E>>,
     ) -> Vec<Assertion<E>> {
         let mut result: Vec<Assertion<E>> = Vec::new();
 
@@ -175,12 +182,11 @@ impl Air for ProcessorAir {
         // add initial assertions for the stack's auxiliary columns.
         stack::get_aux_assertions_first_step(
             &mut result,
-            aux_rand_elements,
+            aux_rand_elements.rand_elements(),
             self.stack_inputs.values(),
         );
 
-        // Add initial assertions for the range checker's auxiliary columns.
-        range::get_aux_assertions_first_step::<E>(&mut result);
+        // TODOP: Add logup "s" column first step assertion
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
@@ -188,13 +194,26 @@ impl Air for ProcessorAir {
         // add the stack's auxiliary column assertions for the last step.
         stack::get_aux_assertions_last_step(
             &mut result,
-            aux_rand_elements,
+            aux_rand_elements.rand_elements(),
             &self.stack_outputs,
             last_step,
         );
 
-        // Add the range checker's auxiliary column assertions for the last step.
-        range::get_aux_assertions_last_step::<E>(&mut result, last_step);
+        // Add LogUp's "s" column assertions for the last step.
+        {
+            let openings_combining_randomness = aux_rand_elements
+                .gkr_openings_combining_randomness()
+                .expect("GKR openings combining randomness not present in AuxRandElements");
+            let openings =
+                gkr_proof.expect("GKR proof not present").get_final_opening_claim().openings;
+
+            logup::get_aux_assertions_last_step(
+                &mut result,
+                openings_combining_randomness,
+                &openings,
+                last_step,
+            );
+        }
 
         result
     }
@@ -237,17 +256,15 @@ impl Air for ProcessorAir {
 
     fn evaluate_aux_transition<F, E>(
         &self,
-        main_frame: &EvaluationFrame<F>,
-        aux_frame: &EvaluationFrame<E>,
+        _main_frame: &EvaluationFrame<F>,
+        _aux_frame: &EvaluationFrame<E>,
         _periodic_values: &[F],
-        aux_rand_elements: &[E],
-        result: &mut [E],
+        _aux_rand_elements: &AuxRandElements<E>,
+        _result: &mut [E],
     ) where
         F: FieldElement<BaseField = Felt>,
         E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
     {
-        // --- range checker ----------------------------------------------------------------------
-        range::enforce_aux_constraints::<F, E>(main_frame, aux_frame, aux_rand_elements, result);
     }
 
     fn context(&self) -> &AirContext<Felt> {

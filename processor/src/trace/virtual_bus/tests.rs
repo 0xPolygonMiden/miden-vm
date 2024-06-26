@@ -1,13 +1,15 @@
-use crate::{prove_virtual_bus, verify_virtual_bus, DefaultHost, ExecutionTrace, Process};
+use crate::{prove_virtual_bus, DefaultHost, ExecutionTrace, Process};
 use alloc::vec::Vec;
 use miden_air::{
     trace::{main_trace::MainTrace, range::M_COL_IDX},
-    ExecutionOptions,
+    verify_virtual_bus, ExecutionOptions,
 };
-use vm_core::crypto::random::RpoRandomCoin;
 use vm_core::{
-    code_blocks::CodeBlock, CodeBlockTable, Felt, FieldElement, Kernel, Operation, StackInputs,
+    crypto::random::RpoRandomCoin,
+    mast::{MastForest, MastNode},
+    Program,
 };
+use vm_core::{Felt, FieldElement, Kernel, Operation, StackInputs};
 
 #[test]
 fn test_vb_prover_verifier() {
@@ -33,7 +35,7 @@ fn test_vb_prover_verifier() {
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
     let final_opening_claim =
-        verify_virtual_bus(Felt::ZERO, proof, log_up_randomness, &mut transcript);
+        verify_virtual_bus(Felt::ZERO, &proof, log_up_randomness, &mut transcript);
     assert!(final_opening_claim.is_ok())
 }
 
@@ -64,7 +66,7 @@ fn test_vb_prover_verifier_failure() {
     let seed = [Felt::ZERO; 4]; // should be initialized with the appropriate transcript
     let mut transcript = RpoRandomCoin::new(seed.into());
     let final_opening_claim =
-        verify_virtual_bus(Felt::ZERO, proof, log_up_randomness, &mut transcript);
+        verify_virtual_bus(Felt::ZERO, &proof, log_up_randomness, &mut transcript);
     assert!(final_opening_claim.is_err())
 }
 
@@ -73,8 +75,16 @@ fn build_full_trace(stack_inputs: &[u64], operations: Vec<Operation>, kernel: Ke
     let stack_inputs = StackInputs::new(stack_inputs).unwrap();
     let host = DefaultHost::default();
     let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
-    let program = CodeBlock::new_span(operations);
-    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
+    let program = {
+        let mut mast_forest = MastForest::new();
+
+        let root_node = MastNode::new_basic_block(operations);
+        let root_node_id = mast_forest.ensure_node(root_node);
+        mast_forest.set_entrypoint(root_node_id);
+
+        Program::new(mast_forest).unwrap()
+    };
+    process.execute(&program).unwrap();
     let (trace, _, _): (MainTrace, _, _) = ExecutionTrace::test_finalize_trace(process);
 
     trace

@@ -1,21 +1,18 @@
-use super::{
-    super::sum_check::Proof as SumCheckProof, compute_input_layer_wires_at_main_trace_query,
-    error::ProverError, BeforeFinalLayerProof, CircuitWire, FinalLayerProof, GkrCircuitProof,
-    GkrClaim, GkrComposition, GkrCompositionMerge, NUM_WIRES_PER_TRACE_ROW,
-};
-use crate::trace::virtual_bus::{
-    multilinear::{EqFunction, MultiLinearPoly},
-    sum_check::{FinalClaimBuilder, FinalOpeningClaim, RoundClaim, RoundProof},
-    SumCheckProver,
-};
+use super::{error::ProverError, GkrClaim};
+use crate::trace::virtual_bus::{sum_check::FinalClaimBuilder, SumCheckProver};
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use miden_air::trace::main_trace::MainTrace;
+use miden_air::gkr_proof::{
+    evaluate_fractions_at_main_trace_query, BeforeFinalLayerProof, CircuitLayer, CircuitLayerPolys,
+    CircuitWire, EqFunction, FinalLayerProof, FinalOpeningClaim, GkrCircuitProof, GkrComposition,
+    GkrCompositionMerge, MultiLinearPoly, RoundProof, SumCheckProof, SumCheckRoundClaim,
+    NUM_WIRES_PER_TRACE_ROW,
+};
 use vm_core::{Felt, FieldElement};
-use winter_prover::crypto::{ElementHasher, RandomCoin};
-
-// EVALUATED CIRCUIT
-// ================================================================================================
+use winter_prover::{
+    crypto::{ElementHasher, RandomCoin},
+    matrix::ColMatrix,
+};
 
 /// Evaluation of a layered circuit for computing a sum of fractions.
 ///
@@ -152,81 +149,24 @@ impl<E: FieldElement> EvaluatedCircuit<E> {
     }
 }
 
-// CIRCUIT LAYER
-// ================================================================================================
-
-/// Represents a layer in a [`EvaluatedCircuit`].
-///
-/// A layer is made up of a set of `n` wires, where `n` is a power of two. This is the natural
-/// circuit representation of a layer, where each consecutive pair of wires are summed to yield a
-/// wire in the subsequent layer of an [`EvaluatedCircuit`].
-///
-/// Note that a [`Layer`] needs to be first converted to a [`LayerPolys`] before the evaluation of
-/// the layer can be proved using GKR.
-struct CircuitLayer<E: FieldElement> {
-    wires: Vec<CircuitWire<E>>,
-}
-
-impl<E: FieldElement> CircuitLayer<E> {
-    /// Creates a new [`Layer`] from a set of projective coordinates.
-    ///
-    /// Panics if the number of projective coordinates is not a power of two.
-    pub fn new(wires: Vec<CircuitWire<E>>) -> Self {
-        assert!(wires.len().is_power_of_two());
-
-        Self { wires }
-    }
-
-    /// Returns the wires that make up this circuit layer.
-    pub fn wires(&self) -> &[CircuitWire<E>] {
-        &self.wires
-    }
-
-    /// Returns the number of wires in the layer.
-    pub fn num_wires(&self) -> usize {
-        self.wires.len()
-    }
-}
-
-// CIRCUIT LAYER POLYNOMIAL
-// ================================================================================================
-
-/// Holds a layer of an [`EvaluatedCircuit`] in a representation amenable to proving circuit
-/// evaluation using GKR.
-#[derive(Clone, Debug)]
-pub struct CircuitLayerPolys<E: FieldElement> {
-    pub numerators: MultiLinearPoly<E>,
-    pub denominators: MultiLinearPoly<E>,
-}
-
-impl<E> CircuitLayerPolys<E>
+/// Computes the wires added to the input layer that come from a given main trace row (or more
+/// generally, "query").
+fn compute_input_layer_wires_at_main_trace_query<E>(
+    query: &[E],
+    log_up_randomness: &[E],
+) -> [CircuitWire<E>; NUM_WIRES_PER_TRACE_ROW]
 where
     E: FieldElement,
 {
-    fn from_circuit_layer(layer: CircuitLayer<E>) -> Self {
-        Self::from_wires(layer.wires)
-    }
-
-    pub fn from_wires(wires: Vec<CircuitWire<E>>) -> Self {
-        let mut numerators = Vec::new();
-        let mut denominators = Vec::new();
-
-        for wire in wires {
-            numerators.push(wire.numerator);
-            denominators.push(wire.denominator);
-        }
-
-        Self {
-            numerators: MultiLinearPoly::from_evaluations(numerators)
-                .expect("evaluations guaranteed to be a power of two"),
-            denominators: MultiLinearPoly::from_evaluations(denominators)
-                .expect("evaluations guaranteed to be a power of two"),
-        }
-    }
+    let [numerators, denominators] =
+        evaluate_fractions_at_main_trace_query(query, log_up_randomness);
+    let input_gates_values: Vec<CircuitWire<E>> = numerators
+        .into_iter()
+        .zip(denominators)
+        .map(|(numerator, denominator)| CircuitWire::new(numerator, denominator))
+        .collect();
+    input_gates_values.try_into().unwrap()
 }
-
-// PROVER
-// ================================================================================================
 
 /// Evaluates and proves a fractional sum circuit given a set of composition polynomials.
 ///
@@ -272,7 +212,7 @@ pub fn prove<
     C: RandomCoin<Hasher = H, BaseField = Felt>,
     H: ElementHasher<BaseField = Felt>,
 >(
-    trace: &MainTrace,
+    trace: &ColMatrix<Felt>,
     log_up_randomness: Vec<E>,
     transcript: &mut C,
 ) -> Result<GkrCircuitProof<E>, ProverError> {
@@ -317,9 +257,6 @@ pub fn prove<
     })
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
-
 /// Proves the final GKR layer which corresponds to the input circuit layer.
 fn prove_final_circuit_layer<
     E: FieldElement<BaseField = Felt>,
@@ -358,7 +295,7 @@ fn prove_final_circuit_layer<
     )?;
 
     // parse the output of the first sum-check protocol
-    let RoundClaim {
+    let SumCheckRoundClaim {
         eval_point: rand_merge,
         claim,
     } = round_claim;
@@ -523,7 +460,7 @@ fn sum_check_prover_plain_partial<
     num_rounds: usize,
     ml_polys: &mut [MultiLinearPoly<E>],
     transcript: &mut C,
-) -> Result<((RoundClaim<E>, Vec<RoundProof<E>>), E), ProverError> {
+) -> Result<((SumCheckRoundClaim<E>, Vec<RoundProof<E>>), E), ProverError> {
     // generate challenge to batch two sumchecks
     let data = vec![claim.0, claim.1];
     transcript.reseed(H::hash_elements(&data));
