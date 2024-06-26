@@ -308,10 +308,7 @@ impl TestContext {
     /// module represented in `source`.
     #[track_caller]
     pub fn assemble(&mut self, source: impl Compile) -> Result<Program, Report> {
-        self.assembler
-            .clone()
-            .assemble(source)
-            .map(|mast_forest| mast_forest.try_into().unwrap())
+        self.assembler.clone().assemble(source)
     }
 
     /// Compile a module from `source`, with the fully-qualified name `path`, to MAST, returning

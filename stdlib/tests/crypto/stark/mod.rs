@@ -51,11 +51,7 @@ pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
 ) -> Result<VerifierData, VerifierError> {
-    let program: Program = Assembler::default()
-        .assemble(source)
-        .unwrap()
-        .try_into()
-        .expect("test source has no entrypoint");
+    let program: Program = Assembler::default().assemble(source).unwrap();
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);

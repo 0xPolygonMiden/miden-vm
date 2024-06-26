@@ -1,13 +1,10 @@
 use super::{
-    ast::InvokeKind, Assembler, AssemblyContext, BasicBlockBuilder, Felt, Instruction, Operation,
-    ONE, ZERO,
+    ast::InvokeKind, mast_forest_builder::MastForestBuilder, Assembler, AssemblyContext,
+    BasicBlockBuilder, Felt, Instruction, Operation, ONE, ZERO,
 };
 use crate::{diagnostics::Report, utils::bound_into_included_u64, AssemblyError};
 use core::ops::RangeBounds;
-use vm_core::{
-    mast::{MastForest, MastNodeId},
-    Decorator,
-};
+use vm_core::{mast::MastNodeId, Decorator};
 
 mod adv_ops;
 mod crypto_ops;
@@ -27,7 +24,7 @@ impl Assembler {
         instruction: &Instruction,
         span_builder: &mut BasicBlockBuilder,
         ctx: &mut AssemblyContext,
-        mast_forest: &mut MastForest,
+        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
@@ -36,7 +33,8 @@ impl Assembler {
             span_builder.track_instruction(instruction, ctx);
         }
 
-        let result = self.compile_instruction_impl(instruction, span_builder, ctx, mast_forest)?;
+        let result =
+            self.compile_instruction_impl(instruction, span_builder, ctx, mast_forest_builder)?;
 
         // compute and update the cycle count of the instruction which just finished executing
         if self.in_debug_mode() {
@@ -51,7 +49,7 @@ impl Assembler {
         instruction: &Instruction,
         span_builder: &mut BasicBlockBuilder,
         ctx: &mut AssemblyContext,
-        mast_forest: &mut MastForest,
+        mast_forest_builder: &mut MastForestBuilder,
     ) -> Result<Option<MastNodeId>, AssemblyError> {
         use Operation::*;
 
@@ -376,18 +374,18 @@ impl Assembler {
 
             // ----- exec/call instructions -------------------------------------------------------
             Instruction::Exec(ref callee) => {
-                return self.invoke(InvokeKind::Exec, callee, ctx, mast_forest)
+                return self.invoke(InvokeKind::Exec, callee, ctx, mast_forest_builder)
             }
             Instruction::Call(ref callee) => {
-                return self.invoke(InvokeKind::Call, callee, ctx, mast_forest)
+                return self.invoke(InvokeKind::Call, callee, ctx, mast_forest_builder)
             }
             Instruction::SysCall(ref callee) => {
-                return self.invoke(InvokeKind::SysCall, callee, ctx, mast_forest)
+                return self.invoke(InvokeKind::SysCall, callee, ctx, mast_forest_builder)
             }
-            Instruction::DynExec => return self.dynexec(mast_forest),
-            Instruction::DynCall => return self.dyncall(mast_forest),
+            Instruction::DynExec => return self.dynexec(mast_forest_builder),
+            Instruction::DynCall => return self.dyncall(mast_forest_builder),
             Instruction::ProcRef(ref callee) => {
-                self.procref(callee, ctx, span_builder, mast_forest)?
+                self.procref(callee, ctx, span_builder, mast_forest_builder.forest())?
             }
 
             // ----- debug decorators -------------------------------------------------------------

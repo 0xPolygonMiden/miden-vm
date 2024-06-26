@@ -13,6 +13,9 @@ pub use call_node::CallNode;
 mod dyn_node;
 pub use dyn_node::DynNode;
 
+mod external;
+pub use external::ExternalNode;
+
 mod join_node;
 pub use join_node::JoinNode;
 
@@ -37,6 +40,7 @@ pub enum MastNode {
     Loop(LoopNode),
     Call(CallNode),
     Dyn,
+    External(ExternalNode),
 }
 
 /// Constructors
@@ -87,6 +91,10 @@ impl MastNode {
     pub fn new_dyncall(dyn_node_id: MastNodeId, mast_forest: &MastForest) -> Self {
         Self::Call(CallNode::new(dyn_node_id, mast_forest))
     }
+
+    pub fn new_external(mast_root: RpoDigest) -> Self {
+        Self::External(ExternalNode::new(mast_root))
+    }
 }
 
 /// Public accessors
@@ -116,6 +124,7 @@ impl MastNode {
                 MastNodePrettyPrint::new(Box::new(call_node.to_pretty_print(mast_forest)))
             }
             MastNode::Dyn => MastNodePrettyPrint::new(Box::new(DynNode)),
+            MastNode::External(external_node) => MastNodePrettyPrint::new(Box::new(external_node)),
         }
     }
 
@@ -127,6 +136,7 @@ impl MastNode {
             MastNode::Loop(_) => LoopNode::DOMAIN,
             MastNode::Call(call_node) => call_node.domain(),
             MastNode::Dyn => DynNode::DOMAIN,
+            MastNode::External(_) => panic!("Can't fetch domain for an `External` node."),
         }
     }
 }
@@ -140,6 +150,7 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => node.digest(),
             MastNode::Call(node) => node.digest(),
             MastNode::Dyn => DynNode.digest(),
+            MastNode::External(node) => node.digest(),
         }
     }
 
@@ -151,6 +162,7 @@ impl MerkleTreeNode for MastNode {
             MastNode::Loop(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Call(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
             MastNode::Dyn => MastNodeDisplay::new(DynNode.to_display(mast_forest)),
+            MastNode::External(node) => MastNodeDisplay::new(node.to_display(mast_forest)),
         }
     }
 }

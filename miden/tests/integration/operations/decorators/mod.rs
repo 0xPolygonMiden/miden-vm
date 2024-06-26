@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use processor::{
-    AdviceExtractor, AdviceProvider, ExecutionError, Host, HostResponse, MemAdviceProvider,
-    ProcessState,
+    AdviceExtractor, AdviceProvider, ExecutionError, Host, HostResponse, MastForest,
+    MemAdviceProvider, ProcessState,
 };
 use vm_core::AdviceInjector;
 
@@ -59,5 +61,10 @@ impl<A: AdviceProvider> Host for TestHost<A> {
     ) -> Result<HostResponse, ExecutionError> {
         self.trace_handler.push(trace_id);
         Ok(HostResponse::None)
+    }
+
+    fn get_mast_forest(&self, _node_digest: &prover::Digest) -> Option<Arc<MastForest>> {
+        // Empty MAST forest store
+        None
     }
 }
