@@ -184,14 +184,10 @@ impl Assembler {
             Instruction::U32DivModImm(v) => {
                 u32_ops::u32divmod(span_builder, ctx, Some(v.expect_spanned_value()))?
             }
-            Instruction::U32And => u32_ops::u32and(span_builder, None),
-            Instruction::U32AndImm(v) => u32_ops::u32and(span_builder, Some(v.expect_value())),
-            Instruction::U32Or => u32_ops::u32or(span_builder, None),
-            Instruction::U32OrImm(v) => u32_ops::u32or(span_builder, Some(v.expect_value())),
-            Instruction::U32Xor => u32_ops::u32xor(span_builder, None),
-            Instruction::U32XorImm(v) => u32_ops::u32xor(span_builder, Some(v.expect_value())),
-            Instruction::U32Not => u32_ops::u32not(span_builder, None),
-            Instruction::U32NotImm(v) => u32_ops::u32not(span_builder, Some(v.expect_value())),
+            Instruction::U32And => span_builder.push_op(U32and),
+            Instruction::U32Or => span_builder.push_ops([Dup1, Dup1, U32and, Neg, Add, Add]),
+            Instruction::U32Xor => span_builder.push_op(U32xor),
+            Instruction::U32Not => u32_ops::u32not(span_builder),
             Instruction::U32Shl => u32_ops::u32shl(span_builder, None)?,
             Instruction::U32ShlImm(v) => u32_ops::u32shl(span_builder, Some(v.expect_value()))?,
             Instruction::U32Shr => u32_ops::u32shr(span_builder, None)?,
