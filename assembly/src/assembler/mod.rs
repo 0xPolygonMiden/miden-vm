@@ -77,12 +77,12 @@ pub enum ArtifactKind {
 /// </div>
 ///
 /// * If you have a single executable module you want to compile, just call [Assembler::compile] or
-/// [Assembler::compile_ast], depending on whether you have source code in raw or parsed form.
+///   [Assembler::compile_ast], depending on whether you have source code in raw or parsed form.
 ///
 /// * If you want to link your executable to a few other modules that implement supporting
-/// procedures, build the assembler with them first, using the various builder methods on
-/// [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
-/// [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
+///   procedures, build the assembler with them first, using the various builder methods on
+///   [Assembler], e.g. [Assembler::with_module], [Assembler::with_library], etc. Then, call
+///   [Assembler::compile] or [Assembler::compile_ast] to get your compiled program.
 pub struct Assembler {
     /// The global [ModuleGraph] for this assembler. All new [AssemblyContext]s inherit this graph
     /// as a baseline.

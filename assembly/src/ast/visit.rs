@@ -22,16 +22,15 @@
 //! of the visitor, but here are some examples:
 //!
 //! 1. When implementing a visitor that performs constant folding/propagation, you need to visit the
-//! operands of an expression before the operator, in order to determine whether it is possible to
-//! fold, and if so, what the actual values of the operands are. As a result, this is implemented as
-//! a postorder visitor, so that the AST node corresponding to the expression is rewritten after all
-//! of it's children.
+//!    operands of an expression before the operator, in order to determine whether it is possible
+//!    to fold, and if so, what the actual values of the operands are. As a result, this is
+//!    implemented as a postorder visitor, so that the AST node corresponding to the expression is
+//!    rewritten after all of it's children.
 //!
 //! 2. When implementing an analysis based on lexical scope, it is necessary to "push down" context
-//!    from
-//! the root to the leaves of the AST - the context being the contents of each AST nodes inherited
-//! scope. As a result, this is implemented as a preorder traversal, so that the context at each
-//! node can be computed before visiting the children of that node.
+//!    from the root to the leaves of the AST - the context being the contents of each AST nodes
+//!    inherited scope. As a result, this is implemented as a preorder traversal, so that the
+//!    context at each node can be computed before visiting the children of that node.
 //!
 //! In both cases, the implementor must call the free function corresponding to the _current_ AST
 //! node at the appropriate point (i.e. before/after executing the logic for the node), so that the

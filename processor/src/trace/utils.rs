@@ -80,7 +80,7 @@ impl<'a> TraceFragment<'a> {
 /// - `main_trace_len` contains the length of the main trace.
 /// - `range_trace_len` contains the length of the range checker trace.
 /// - `chiplets_trace_len` contains the trace lengths of the all chiplets (hash, bitwise, memory,
-/// kernel ROM)
+///   kernel ROM)
 #[derive(Debug, Default, Eq, PartialEq, Clone, Copy)]
 pub struct TraceLenSummary {
     main_trace_len: usize,

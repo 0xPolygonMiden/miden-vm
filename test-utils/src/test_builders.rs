@@ -9,11 +9,11 @@
 ///
 /// * `source`: a string of one or more operations, e.g. "push.1 push.2".
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
-/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+///   executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
-/// `merkle_store` are also expected.
+///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_stack` are also expected.
+///   `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_op_test {
     ($op_str:expr) => {{
@@ -34,11 +34,11 @@ macro_rules! build_op_test {
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
-/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+///   executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
-/// `merkle_store` are also expected.
+///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_stack` are also expected.
+///   `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_test {
     ($($params:tt)+) => {{
@@ -54,11 +54,11 @@ macro_rules! build_test {
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
-/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+///   executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
-/// `merkle_store` are also expected.
+///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_stack` are also expected.
+///   `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_debug_test {
     ($($params:tt)+) => {{

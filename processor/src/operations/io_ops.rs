@@ -149,8 +149,8 @@ where
     /// The operation works as follows:
     /// - The memory address is popped off the stack.
     /// - The top stack element is saved into the first element of the word located at the specified
-    /// memory address. The remaining 3 elements of the word are not affected. The element is not
-    /// removed from the stack.
+    ///   memory address. The remaining 3 elements of the word are not affected. The element is not
+    ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     ///

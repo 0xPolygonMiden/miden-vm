@@ -46,11 +46,11 @@ pub enum ModuleKind {
     /// A kernel is like a library module, but is special in a few ways:
     ///
     /// * Its code always executes in the root context, so it is stateful in a way that normal
-    /// libraries cannot replicate. This can be used to provide core services that would otherwise
-    /// not be possible to implement.
+    ///   libraries cannot replicate. This can be used to provide core services that would otherwise
+    ///   not be possible to implement.
     ///
     /// * The procedures exported from the kernel may be the target of the `syscall` instruction,
-    /// and in fact _must_ be called that way.
+    ///   and in fact _must_ be called that way.
     ///
     /// * Kernels may not use `syscall` or `call` instructions internally.
     Kernel = 2,
@@ -294,7 +294,7 @@ impl Module {
     ///
     /// * The module was constructed in-memory via AST structures, and not derived from source code.
     /// * The module was serialized without debug info, and then deserialized. Without debug info,
-    /// the source code is lost when round-tripping through serialization.
+    ///   the source code is lost when round-tripping through serialization.
     pub fn source_file(&self) -> Option<Arc<SourceFile>> {
         self.source_file.clone()
     }

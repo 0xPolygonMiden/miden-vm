@@ -37,43 +37,44 @@ mod tests;
 /// chiplet selectors.
 ///
 /// The module's trace can be thought of as 5 stacked chiplet segments in the following form:
-/// * Hasher segment: contains the trace and selector for the hasher chiplet *
-/// This segment fills the first rows of the trace up to the length of the hasher `trace_len`.
-/// - column 0: selector column with values set to ZERO
-/// - columns 1-17: execution trace of hash chiplet
+/// * Hasher segment: contains the trace and selector for the hasher chiplet.\
+///   This segment fills the first rows of the trace up to the length of the hasher `trace_len`.
+///   - column 0: selector column with values set to ZERO
+///   - columns 1-17: execution trace of hash chiplet
 ///
-/// * Bitwise segment: contains the trace and selectors for the bitwise chiplet *
-/// This segment begins at the end of the hasher segment and fills the next rows of the trace for
-/// the `trace_len` of the bitwise chiplet.
-/// - column 0: selector column with values set to ONE
-/// - column 1: selector column with values set to ZERO
-/// - columns 2-14: execution trace of bitwise chiplet
-/// - columns 15-17: unused columns padded with ZERO
+/// * Bitwise segment: contains the trace and selectors for the bitwise chiplet.\
+///   This segment begins at the end of the hasher segment and fills the next rows of the trace for
+///   the `trace_len` of the bitwise chiplet.
+///   - column 0: selector column with values set to ONE
+///   - column 1: selector column with values set to ZERO
+///   - columns 2-14: execution trace of bitwise chiplet
+///   - columns 15-17: unused columns padded with ZERO
 ///
-/// * Memory segment: contains the trace and selectors for the memory chiplet *
-/// This segment begins at the end of the bitwise segment and fills the next rows of the trace for
-/// the `trace_len` of the memory chiplet.
-/// - column 0-1: selector columns with values set to ONE
-/// - column 2: selector column with values set to ZERO
-/// - columns 3-14: execution trace of memory chiplet
-/// - columns 15-17: unused column padded with ZERO
+/// * Memory segment: contains the trace and selectors for the memory chiplet.\
+///   This segment begins at the end of the bitwise segment and fills the next rows of the trace for
+///   the `trace_len` of the memory chiplet.
+///   - column 0-1: selector columns with values set to ONE
+///   - column 2: selector column with values set to ZERO
+///   - columns 3-14: execution trace of memory chiplet
+///   - columns 15-17: unused column padded with ZERO
 ///
-/// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet *
-/// This segment begins at the end of the memory segment and fills the next rows of the trace for
-/// the `trace_len` of the kernel ROM chiplet.
-/// - column 0-2: selector columns with values set to ONE
-/// - column 3: selector column with values set to ZERO
-/// - columns 4-9: execution trace of kernel ROM chiplet
-/// - columns 10-17: unused column padded with ZERO
+/// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet.\
+///   This segment begins at the end of the memory segment and fills the next rows of the trace for
+///   the `trace_len` of the kernel ROM chiplet.
+///   - column 0-2: selector columns with values set to ONE
+///   - column 3: selector column with values set to ZERO
+///   - columns 4-9: execution trace of kernel ROM chiplet
+///   - columns 10-17: unused column padded with ZERO
 ///
-/// * Padding segment: unused *
-/// This segment begins at the end of the kernel ROM segment and fills the rest of the execution
-/// trace minus the number of random rows. When it finishes, the execution trace should have
-/// exactly enough rows remaining for the specified number of random rows.
-/// - columns 0-3: selector columns with values set to ONE
-/// - columns 3-17: unused columns padded with ZERO
+/// * Padding segment: unused.\
+///   This segment begins at the end of the kernel ROM segment and fills the rest of the execution
+///   trace minus the number of random rows. When it finishes, the execution trace should have
+///   exactly enough rows remaining for the specified number of random rows.
+///   - columns 0-3: selector columns with values set to ONE
+///   - columns 3-17: unused columns padded with ZERO
 ///
 /// The following is a pictorial representation of the chiplet module:
+/// ```text
 ///             +---+-------------------------------------------------------+-------------+
 ///             | 0 |                   |                                   |-------------|
 ///             | . |  Hash chiplet     |       Hash chiplet                |-------------|
@@ -111,6 +112,7 @@ mod tests;
 ///             | . | . | . | . |---------------------------------------------------------|
 ///             | 1 | 1 | 1 | 1 |---------------------------------------------------------|
 ///             +---+---+---+---+---------------------------------------------------------+
+/// ```
 pub struct Chiplets {
     /// Current clock cycle of the VM.
     clk: u32,

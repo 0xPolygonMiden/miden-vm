@@ -94,7 +94,7 @@ pub fn enforce_pad_constraints<E: FieldElement>(
 /// at depth n in the stack and pushes the copy onto the stack, whereas MOVUPn opearation moves the
 /// element at depth n to the top of the stack. Therefore, the following constraints are enforced:
 /// - The top element in the next frame should be equal to the element at depth n in the
-/// current frame. s0` - sn = 0.
+///   current frame. s0` - sn = 0.
 pub fn enforce_dup_movup_n_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -245,7 +245,7 @@ pub fn enforce_swapwx_constraints<E: FieldElement>(
 /// Enforces constraints of the MOVDNn operation. The MOVDNn operation moves the top element
 /// to depth n in the stack. Therefore, the following constraints are enforced:
 /// - The top element in the current frame should be equal to the element at depth n in the
-/// next frame. s0 - sn` = 0.
+///   next frame. s0 - sn` = 0.
 pub fn enforce_movdnn_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],

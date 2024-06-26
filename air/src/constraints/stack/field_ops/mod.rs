@@ -188,7 +188,7 @@ pub fn enforce_incr_constraints<E: FieldElement>(
 /// enforced:
 /// - The top element should be a binary. It is enforced as a general constraint.
 /// - The first element of the next frame should be a binary not of the first element of
-/// the current frame. s0` + s0 = 1.
+///   the current frame. s0` + s0 = 1.
 pub fn enforce_not_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -207,7 +207,7 @@ pub fn enforce_not_constraints<E: FieldElement>(
 /// Enforces constraints of the AND operation. The AND operation computes the bitwise and of the
 /// first two elements in the current trace. Therefore, the following constraints are enforced:
 /// - The top two element in the current frame of the stack should be binary. s0^2 - s0 = 0,
-/// s1^2 - s1 = 0. The top element is binary or not is enforced as a general constraint.
+///   s1^2 - s1 = 0. The top element is binary or not is enforced as a general constraint.
 /// - The first element of the next frame should be a binary and of the first two elements in the
 ///   current frame. s0` - s0 * s1 = 0.
 pub fn enforce_and_constraints<E: FieldElement>(
@@ -234,7 +234,7 @@ pub fn enforce_and_constraints<E: FieldElement>(
 /// Enforces constraints of the OR operation. The OR operation computes the bitwise or of the
 /// first two elements in the current trace. Therefore, the following constraints are enforced:
 /// - The top two element in the current frame of the stack should be binary. s0^2 - s0 = 0,
-/// s1^2 - s1 = 0. The top element is binary or not is enforced as a general constraint.
+///   s1^2 - s1 = 0. The top element is binary or not is enforced as a general constraint.
 /// - The first element of the next frame should be a binary or of the first two elements in the
 ///   current frame. s0` - ( s0 + s1 - s0 * s1 ) = 0.
 pub fn enforce_or_constraints<E: FieldElement>(
@@ -324,7 +324,7 @@ pub fn enforce_eqz_constraints<E: FieldElement>(
 ///   constraint.
 /// - The exp value in the next frame should be the square of exp value in the current frame.
 /// - The accumulation value in the next frame is the product of the accumulation value in the
-/// current frame and the value which needs to be included in this turn.
+///   current frame and the value which needs to be included in this turn.
 /// - The b value is right shifted by 1 bit.
 pub fn enforce_expacc_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
