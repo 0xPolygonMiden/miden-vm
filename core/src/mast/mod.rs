@@ -76,7 +76,7 @@ impl MastForest {
     }
 
     /// Marks the given [`MastNodeId`] as being the root of a procedure.
-    /// 
+    ///
     /// # Panics
     /// - if `new_root_id`'s internal index is larger than the number of nodes in this forest (i.e.
     ///   clearly doesn't belong to this MAST forest).
