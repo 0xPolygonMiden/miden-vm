@@ -187,6 +187,9 @@ fn compute_m_entry<E: FieldElement>(
     value
 }
 
+// TESTS
+// ================================================================================================
+
 #[test]
 fn test_poly_partial() {
     use vm_core::Felt;
