@@ -3,17 +3,18 @@ use super::{
     ONE, ZERO,
 };
 
-use crate::StackInputs;
+use crate::{ExecutionTrace, StackInputs};
 use alloc::vec::Vec;
 use miden_air::{
     trace::{chiplets::hasher::P1_COL_IDX, main_trace::MainTrace, AUX_TRACE_RAND_ELEMENTS},
-    AuxRandElements,
+    AuxRandElements, GkrRandElements,
 };
 use test_utils::rand::rand_vector;
 use vm_core::{
     crypto::merkle::{MerkleStore, MerkleTree, NodeIndex},
     FieldElement,
 };
+use winter_prover::{LagrangeKernelRandElements, Trace};
 
 // SIBLING TABLE TESTS
 // ================================================================================================
@@ -37,8 +38,8 @@ fn hasher_p1_mp_verify() {
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MpVerify(0)];
     let trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
-    let alphas: AuxRandElements<Felt> = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
-    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
+    let aux_rand_eles = rand_aux_rand_elements(AUX_TRACE_RAND_ELEMENTS, &trace);
+    let aux_columns = trace.build_aux_trace(&aux_rand_eles).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     // executing MPVERIFY does not affect the sibling table - so, all values in the column must be
@@ -72,17 +73,17 @@ fn hasher_p1_mr_update() {
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MrUpdate];
     let trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
-    let alphas: AuxRandElements<Felt> = AuxRandElements::new(rand_vector(AUX_TRACE_RAND_ELEMENTS));
-    let aux_columns = trace.build_aux_trace(&alphas).unwrap();
+    let aux_rand_eles = rand_aux_rand_elements(AUX_TRACE_RAND_ELEMENTS, &trace);
+    let aux_columns = trace.build_aux_trace(&aux_rand_eles).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
         SiblingTableRow::new(Felt::new(index), path[0].into())
-            .to_value(&trace.main_trace, alphas.rand_elements()),
+            .to_value(&trace.main_trace, aux_rand_eles.rand_elements()),
         SiblingTableRow::new(Felt::new(index >> 1), path[1].into())
-            .to_value(&trace.main_trace, alphas.rand_elements()),
+            .to_value(&trace.main_trace, aux_rand_eles.rand_elements()),
         SiblingTableRow::new(Felt::new(index >> 2), path[2].into())
-            .to_value(&trace.main_trace, alphas.rand_elements()),
+            .to_value(&trace.main_trace, aux_rand_eles.rand_elements()),
     ];
 
     // make sure the first entry is ONE
@@ -172,6 +173,19 @@ fn init_leaf(value: u64) -> Word {
 
 fn append_word(target: &mut Vec<u64>, word: Word) {
     word.iter().rev().for_each(|v| target.push(v.as_int()));
+}
+
+fn rand_aux_rand_elements<E: FieldElement>(
+    num_rand_eles: usize,
+    trace: &ExecutionTrace,
+) -> AuxRandElements<E> {
+    AuxRandElements::new_with_gkr(
+        rand_vector(num_rand_eles),
+        GkrRandElements::new(
+            LagrangeKernelRandElements::new(rand_vector(trace.length().ilog2() as usize)),
+            rand_vector(trace.main_segment().num_base_cols()),
+        ),
+    )
 }
 
 /// Describes a single entry in the sibling table which consists of a tuple `(index, node)` where
