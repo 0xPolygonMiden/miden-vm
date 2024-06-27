@@ -236,7 +236,7 @@ fn convert_mast_node(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mast::JoinNode;
+    use crate::mast::{JoinNode, SplitNode};
 
     #[test]
     fn mast_node_type_serialization_join() {
@@ -252,6 +252,24 @@ mod tests {
         // Note: Join's discriminant is 0
         let expected_mast_node_type = [
             0b00001101, 0b10000110, 0b11001110, 0b10111110, 0b01100111, 0b10101010, 0b11111111,
+            0b11001110,
+        ];
+
+        assert_eq!(expected_mast_node_type, mast_node_type.0);
+    }
+
+    #[test]
+    fn mast_node_type_serialization_split() {
+        let on_true_id = MastNodeId(0b00111001_11101011_01101100_11011000);
+        let on_false_id = MastNodeId(0b00100111_10101010_11111111_11001110);
+        let mast_node =
+            MastNode::Split(SplitNode::new_test([on_true_id, on_false_id], RpoDigest::default()));
+
+        let mast_node_type = MastNodeType::new(&mast_node);
+
+        // Note: Split's discriminant is 0
+        let expected_mast_node_type = [
+            0b00011101, 0b10000110, 0b11001110, 0b10111110, 0b01100111, 0b10101010, 0b11111111,
             0b11001110,
         ];
 
