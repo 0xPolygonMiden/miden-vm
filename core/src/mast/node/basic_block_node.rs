@@ -107,7 +107,6 @@ impl BasicBlockNode {
 
 /// Public accessors
 impl BasicBlockNode {
-
     pub fn num_operations_and_decorators(&self) -> u32 {
         todo!()
     }

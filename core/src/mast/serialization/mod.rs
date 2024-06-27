@@ -118,10 +118,9 @@ impl MastNodeType {
             // msb is different from lsb, a and b since its 2 most significant bits are guaranteed
             // to be 0, and hence not encoded.
             //
-            // More specifically, let the bits of msb be `00abcdef`. We encode `abcd` in `result[3]`,
-            // and `ef` as the most significant bits of `result[4]`.
+            // More specifically, let the bits of msb be `00abcdef`. We encode `abcd` in
+            // `result[3]`, and `ef` as the most significant bits of `result[4]`.
             result[3] |= msb >> 2;
-
             result[4] |= msb << 6;
         };
 
@@ -232,4 +231,30 @@ fn convert_mast_node(
 
     // fill out encoded operations/decorators in data
     todo!()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mast::JoinNode;
+
+    #[test]
+    fn mast_node_type_serialization_join() {
+        let left_child_id = MastNodeId(0b00111001_11101011_01101100_11011000);
+        let right_child_id = MastNodeId(0b00100111_10101010_11111111_11001110);
+        let mast_node = MastNode::Join(JoinNode::new_test(
+            [left_child_id, right_child_id],
+            RpoDigest::default(),
+        ));
+
+        let mast_node_type = MastNodeType::new(&mast_node);
+
+        // Note: Join's discriminant is 0
+        let expected_mast_node_type = [
+            0b00001101, 0b10000110, 0b11001110, 0b10111110, 0b01100111, 0b10101010, 0b11111111,
+            0b11001110,
+        ];
+
+        assert_eq!(expected_mast_node_type, mast_node_type.0);
+    }
 }

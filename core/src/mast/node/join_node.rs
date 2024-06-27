@@ -33,14 +33,9 @@ impl JoinNode {
         Self { children, digest }
     }
 
-    pub(super) fn to_pretty_print<'a>(
-        &'a self,
-        mast_forest: &'a MastForest,
-    ) -> impl PrettyPrint + 'a {
-        JoinNodePrettyPrint {
-            join_node: self,
-            mast_forest,
-        }
+    #[cfg(test)]
+    pub fn new_test(children: [MastNodeId; 2], digest: RpoDigest) -> Self {
+        Self { children, digest }
     }
 }
 
@@ -52,6 +47,18 @@ impl JoinNode {
 
     pub fn second(&self) -> MastNodeId {
         self.children[1]
+    }
+}
+
+impl JoinNode {
+    pub(super) fn to_pretty_print<'a>(
+        &'a self,
+        mast_forest: &'a MastForest,
+    ) -> impl PrettyPrint + 'a {
+        JoinNodePrettyPrint {
+            join_node: self,
+            mast_forest,
+        }
     }
 }
 
