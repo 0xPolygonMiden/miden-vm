@@ -1,7 +1,6 @@
 use crate::mast::{MastForest, MerkleTreeNode};
 use core::fmt;
 use miden_crypto::hash::rpo::RpoDigest;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 /// Node for referencing procedures not present in a given [`MastForest`] (hence "external").
 ///
@@ -31,22 +30,6 @@ impl MerkleTreeNode for ExternalNode {
     }
     fn to_display<'a>(&'a self, _mast_forest: &'a MastForest) -> impl fmt::Display + 'a {
         self
-    }
-}
-
-impl Serializable for ExternalNode {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Self { digest } = self;
-
-        digest.write_into(target);
-    }
-}
-
-impl Deserializable for ExternalNode {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let digest = Deserializable::read_from(source)?;
-
-        Ok(Self { digest })
     }
 }
 

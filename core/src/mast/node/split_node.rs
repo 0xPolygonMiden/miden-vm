@@ -2,7 +2,6 @@ use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::PrettyPrint;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{chiplets::hasher, Operation};
 
@@ -72,24 +71,6 @@ impl MerkleTreeNode for SplitNode {
             split_node: self,
             mast_forest,
         }
-    }
-}
-
-impl Serializable for SplitNode {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Self { branches, digest } = self;
-
-        branches.write_into(target);
-        digest.write_into(target);
-    }
-}
-
-impl Deserializable for SplitNode {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let branches = Deserializable::read_from(source)?;
-        let digest = Deserializable::read_from(source)?;
-
-        Ok(Self { branches, digest })
     }
 }
 

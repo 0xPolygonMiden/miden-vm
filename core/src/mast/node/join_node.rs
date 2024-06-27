@@ -1,7 +1,6 @@
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{chiplets::hasher, prettier::PrettyPrint, Operation};
 
@@ -72,24 +71,6 @@ impl MerkleTreeNode for JoinNode {
             join_node: self,
             mast_forest,
         }
-    }
-}
-
-impl Serializable for JoinNode {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let Self { children, digest } = self;
-
-        children.write_into(target);
-        digest.write_into(target);
-    }
-}
-
-impl Deserializable for JoinNode {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let children = Deserializable::read_from(source)?;
-        let digest = Deserializable::read_from(source)?;
-
-        Ok(Self { children, digest })
     }
 }
 
