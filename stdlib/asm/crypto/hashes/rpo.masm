@@ -101,7 +101,7 @@ export.hash_memory_words
   movup.4 drop movup.4 drop
 end
 
-#! Computes hash of note inputs starting at the specified memory address.
+#! Computes hash of Felt values starting at the specified memory address.
 #!
 #! If the number if inputs is 0, procedure returns the empty word: [ZERO, ZERO, ZERO, ZERO].
 #!
@@ -116,7 +116,7 @@ export.hash_memory
     u32divmod.8 swap
     # => [num_inputs/8, num_inputs%8, inputs_ptr]
 
-    # get the end_addr for hash_memory_even proc (end address for pairs of words)
+    # get the end_addr for hash_memory_even procedure (end address for pairs of words)
     mul.2 dup.2 add movup.2
     # => [inputs_ptr, end_addr, num_inputs%8]
 
@@ -132,7 +132,7 @@ export.hash_memory
     exec.absorb_double_words_from_memory
     # => [C', B', A', inputs_ptr', end_addr, num_inputs%8] where inputs_ptr' = end_addr
 
-    # hash remaining input values if there any left
+    # hash remaining input values if there are any left
     # if num_inputs%8 is not ZERO
     dup.14 push.0 neq
     if.true
@@ -238,6 +238,9 @@ export.hash_memory
         # => [0, e_1_or_0, e_2_or_0, e_3_or_0, d_0_or_0, d_1_or_0, d_2_or_0, d_3, A']
         # or in other words
         # => [C, B, A', ... ]
+        # notice that we don't need to check the d_3 value: entering the if.true branch means that 
+        # we have number of elements not divisible by 8, so we will have at least one element to 
+        # hash here (which turns out to be d_3)
 
         hperm
         # => [F, E, D]
