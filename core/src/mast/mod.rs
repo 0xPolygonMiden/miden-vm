@@ -10,6 +10,8 @@ pub use node::{
 };
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
+mod serialization;
+
 #[cfg(test)]
 mod tests;
 
