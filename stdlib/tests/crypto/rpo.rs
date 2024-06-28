@@ -277,7 +277,48 @@ fn test_squeeze_digest() {
 
 #[test]
 fn test_hash_memory() {
-    let compute_inputs_hash = "
+    // hash fewer than 8 elements
+    let compute_inputs_hash_5 = "
+    use.std::crypto::hashes::rpo
+
+    begin
+        push.1.2.3.4.1000 mem_storew dropw
+        push.5.0.0.0.1001 mem_storew dropw
+
+        push.5.1000
+
+        exec.rpo::hash_memory
+    end
+    ";
+
+    #[rustfmt::skip]
+    let expected_hash: Vec<u64> = build_expected_hash(&[
+        1, 2, 3, 4, 5
+    ]).into_iter().map(|e| e.as_int()).collect();
+    build_test!(compute_inputs_hash_5, &[]).expect_stack(&expected_hash);
+
+    // hash exactly 8 elements
+    let compute_inputs_hash_8 = "
+    use.std::crypto::hashes::rpo
+
+    begin
+        push.1.2.3.4.1000 mem_storew dropw
+        push.5.6.7.8.1001 mem_storew dropw
+
+        push.8.1000
+
+        exec.rpo::hash_memory
+    end
+    ";
+
+    #[rustfmt::skip]
+    let expected_hash: Vec<u64> = build_expected_hash(&[
+        1, 2, 3, 4, 5, 6, 7, 8
+    ]).into_iter().map(|e| e.as_int()).collect();
+    build_test!(compute_inputs_hash_8, &[]).expect_stack(&expected_hash);
+
+    // hash more than 8 elements
+    let compute_inputs_hash_15 = "
     use.std::crypto::hashes::rpo
 
     begin
@@ -286,10 +327,7 @@ fn test_hash_memory() {
         push.9.10.11.12.1002 mem_storew dropw
         push.13.14.15.0.1003 mem_storew dropw
 
-
         push.15.1000
-
-        #######################################################
 
         exec.rpo::hash_memory
     end
@@ -297,7 +335,26 @@ fn test_hash_memory() {
 
     #[rustfmt::skip]
     let expected_hash: Vec<u64> = build_expected_hash(&[
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+        1, 2, 3, 4, 
+        5, 6, 7, 8, 
+        9, 10, 11, 12, 
+        13, 14, 15
     ]).into_iter().map(|e| e.as_int()).collect();
-    build_test!(compute_inputs_hash, &[]).expect_stack(&expected_hash);
+    build_test!(compute_inputs_hash_15, &[]).expect_stack(&expected_hash);
+}
+
+#[test]
+fn test_hash_memory_fail() {
+    // try to hash 0 values
+    let compute_inputs_hash = "
+    use.std::crypto::hashes::rpo
+
+    begin
+        push.0.1000
+
+        exec.rpo::hash_memory
+    end
+    ";
+
+    assert!(build_test!(compute_inputs_hash, &[]).execute().is_err());
 }
