@@ -149,7 +149,7 @@ export.hash_memory
     if.true
       # clean the stack
       exec.squeeze_digest
-      swapw dropw
+      swapw drop drop drop movdn.4
       # => [B']
     else
       # load the remaining double word
