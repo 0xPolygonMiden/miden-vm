@@ -284,6 +284,7 @@ fn test_hash_memory() {
     begin
         push.1.2.3.4.1000 mem_storew dropw
         push.5.0.0.0.1001 mem_storew dropw
+        push.11
 
         push.5.1000
 
@@ -292,9 +293,11 @@ fn test_hash_memory() {
     ";
 
     #[rustfmt::skip]
-    let expected_hash: Vec<u64> = build_expected_hash(&[
+    let mut expected_hash: Vec<u64> = build_expected_hash(&[
         1, 2, 3, 4, 5
     ]).into_iter().map(|e| e.as_int()).collect();
+    // make sure that value `11` stays unchanged
+    expected_hash.push(11);
     build_test!(compute_inputs_hash_5, &[]).expect_stack(&expected_hash);
 
     // hash exactly 8 elements
@@ -304,6 +307,7 @@ fn test_hash_memory() {
     begin
         push.1.2.3.4.1000 mem_storew dropw
         push.5.6.7.8.1001 mem_storew dropw
+        push.11
 
         push.8.1000
 
@@ -312,9 +316,11 @@ fn test_hash_memory() {
     ";
 
     #[rustfmt::skip]
-    let expected_hash: Vec<u64> = build_expected_hash(&[
+    let mut expected_hash: Vec<u64> = build_expected_hash(&[
         1, 2, 3, 4, 5, 6, 7, 8
     ]).into_iter().map(|e| e.as_int()).collect();
+    // make sure that value `11` stays unchanged
+    expected_hash.push(11);
     build_test!(compute_inputs_hash_8, &[]).expect_stack(&expected_hash);
 
     // hash more than 8 elements
@@ -326,6 +332,7 @@ fn test_hash_memory() {
         push.5.6.7.8.1001 mem_storew dropw
         push.9.10.11.12.1002 mem_storew dropw
         push.13.14.15.0.1003 mem_storew dropw
+        push.11
 
         push.15.1000
 
@@ -334,12 +341,14 @@ fn test_hash_memory() {
     ";
 
     #[rustfmt::skip]
-    let expected_hash: Vec<u64> = build_expected_hash(&[
+    let mut expected_hash: Vec<u64> = build_expected_hash(&[
         1, 2, 3, 4, 
         5, 6, 7, 8, 
         9, 10, 11, 12, 
         13, 14, 15
     ]).into_iter().map(|e| e.as_int()).collect();
+    // make sure that value `11` stays unchanged
+    expected_hash.push(11);
     build_test!(compute_inputs_hash_15, &[]).expect_stack(&expected_hash);
 }
 
