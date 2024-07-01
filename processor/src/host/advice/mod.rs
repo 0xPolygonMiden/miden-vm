@@ -533,20 +533,42 @@ pub trait AdviceProvider: Sized {
         injectors::smt::push_smtpeek_result(self, process)
     }
 
-    /// Currently unimplemented
+   /// Given a key and root associated with a Sparse Merkle Tree, pushes the value associated with the key onto the
+    /// advice stack along with the length of the leaf node containing the key-value pair.
+    /// Inputs:
+    ///  Operand stack: [KEY, ROOT, ...]
+    ///  Advice stack: [...]
+    /// 
+    /// Outputs:
+    ///  Operand stack: [KEY, ROOT, ...]
+    ///  Advice stack: [ZERO/ONE(empty or non_empty_leaf), LEAF_LENGTH, VALUE, ...]
+    /// 
+    /// # Errors
+    /// Returns an error if the provided Merkle root doesn't exist on the advice provider.
     fn push_smtget_inputs<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<HostResponse, ExecutionError> {
-        injectors::smt::push_smtget_inputs(self, process)
+        injectors::smt::push_smtget(self, process)
     }
 
-    /// Currently unimplemented
+    /// Pushes indicators onto the advice stack required for inserting
+    /// a new key-value pair into a Sparse Merkle Tree associated with the specified root.
+    /// Inputs:
+    ///  Operand stack: [VALUE, KEY, ROOT, ...]
+    ///  Advice stack: [...]
+    /// 
+    /// Outputs:
+    ///  Operand stack: [VALUE, KEY, ROOT, ...]
+    ///  Advice stack: [LEAF_LENGTH, ZERO(is_empty_subtree)/ONE(is_update), ...]
+    /// 
+    /// # Errors
+    /// Returns an error if the provided Merkle root doesn't exist on the advice provider.
     fn push_smtset_inputs<S: ProcessState>(
         &mut self,
         process: &S,
     ) -> Result<HostResponse, ExecutionError> {
-        injectors::smt::push_smtset_inputs(self, process)
+        injectors::smt::push_smtset(self, process)
     }
 
     // ACCESSORS

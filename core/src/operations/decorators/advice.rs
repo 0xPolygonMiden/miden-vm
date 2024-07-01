@@ -144,10 +144,26 @@ pub enum AdviceInjector {
     ///   degree coefficients are located at the top of the advice stack.
     Ext2Intt,
 
-    /// Currently unimplemented
+    /// Given a key and root associated with a Sparse Merkle Tree, pushes the value associated with the key onto the
+    /// advice stack along with the length of the leaf node containing the key-value pair.
+    /// Inputs:
+    ///  Operand stack: [KEY, ROOT, ...]
+    ///  Advice stack: [...]
+    /// 
+    /// Outputs:
+    ///  Operand stack: [KEY, ROOT, ...]
+    ///  Advice stack: [ZERO/ONE(empty or non_empty_leaf), LEAF_LENGTH, VALUE, ...]
     SmtGet,
 
-    /// Currently unimplemented
+    /// Pushes indicators onto the advice stack required for inserting
+    /// a new key-value pair into a Sparse Merkle Tree associated with the specified root.
+    /// Inputs:
+    ///  Operand stack: [VALUE, KEY, ROOT, ...]
+    ///  Advice stack: [...]
+    /// 
+    /// Outputs:
+    ///  Operand stack: [VALUE, KEY, ROOT, ...]
+    ///  Advice stack: [LEAF_LENGTH, ZERO(is_empty_subtree)/ONE(is_update), ...]
     SmtSet,
 
     /// Pushes onto the advice stack the value associated with the specified key in a Sparse

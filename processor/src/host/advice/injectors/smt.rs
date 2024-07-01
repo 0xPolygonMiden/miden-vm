@@ -1,5 +1,5 @@
 use super::super::{AdviceSource, ExecutionError, Felt, HostResponse, Word};
-use crate::{AdviceProvider, ProcessState};
+use crate::{ AdviceProvider, ProcessState};
 use alloc::vec::Vec;
 use vm_core::{
     crypto::{
@@ -65,20 +65,112 @@ pub(crate) fn push_smtpeek_result<S: ProcessState, A: AdviceProvider>(
     Ok(HostResponse::None)
 }
 
-/// Currently unimplemented
-pub(crate) fn push_smtget_inputs<S: ProcessState, A: AdviceProvider>(
-    _advice_provider: &mut A,
-    _process: &S,
+/// Given a key and root associated with a Sparse Merkle Tree, pushes the value associated with the key onto the
+/// advice stack along with the length of the leaf node containing the key-value pair.
+/// Inputs:
+///  Operand stack: [KEY, ROOT, ...]
+///  Advice stack: [...]
+/// 
+/// Outputs:
+///  Operand stack: [KEY, ROOT, ...]
+///  Advice stack: [ZERO/ONE(empty or non_empty_leaf), LEAF_LENGTH, VALUE, ...]
+/// 
+/// Errors:
+/// Returns an error if the provided Merkle root doesn't exist on the advice provider.
+pub(crate) fn push_smtget<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
 ) -> Result<HostResponse, ExecutionError> {
-    unimplemented!()
+    let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
+
+    let key = process.get_stack_word(0);
+    let root = process.get_stack_word(1);
+
+    let node = advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])?; 
+
+    if node == Word::from(empty_leaf) {
+        // if the node is a root of an empty subtree, then there is no value associated with
+        // the specified key
+
+        // advice stack: [ZERO(empty_leaf), ZERO(leaf_length), VALUE(empty_value), ...]
+        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        // advice_provider.push_stack(AdviceSource::Value(Felt::new(0)))?;
+        // advice_provider.push_stack(AdviceSource::Value(Felt::new(0)))?;
+    } else {
+        let leaf_preimage = get_smt_leaf_preimage(advice_provider, node)?;
+
+        for (key_in_leaf, value_in_leaf) in &leaf_preimage {
+            if key == *key_in_leaf {
+                // Found key - push value associated with key, and return
+
+                // advice stack: [ONE(non_empty_leaf), LEAF_LENGTH, VALUE(value), ...]
+                advice_provider.push_stack(AdviceSource::Word(*value_in_leaf))?;
+                // advice_provider.push_stack(AdviceSource::Value(Felt::new(leaf_preimage.len() as u64)))?;
+                // advice_provider.push_stack(AdviceSource::Value(Felt::new(1)))?;
+
+                return Ok(HostResponse::None);
+            } 
+        }
+
+        // if we can't find any key in the leaf that matches `key`, it means no value is associated
+        // with `key`
+
+        // advice stack: [ONE(non_empty_leaf), LEAF_LENGTH, VALUE(empty_value), ...]
+        advice_provider.push_stack(AdviceSource::Word(Smt::EMPTY_VALUE))?;
+        advice_provider.push_stack(AdviceSource::Value(Felt::new(leaf_preimage.len() as u64)))?;
+        advice_provider.push_stack(AdviceSource::Value(Felt::new(1)))?;
+    
+    }
+    Ok(HostResponse::None)
 }
 
-/// Currently unimplemented
-pub(crate) fn push_smtset_inputs<S: ProcessState, A: AdviceProvider>(
-    _advice_provider: &mut A,
-    _process: &S,
+/// Pushes indicators onto the advice stack required for inserting
+/// a new key-value pair into a Sparse Merkle Tree associated with the specified root.
+/// Inputs:
+///  Operand stack: [VALUE, KEY, ROOT, ...]
+///  Advice stack: [...]
+/// 
+/// Outputs:
+///  Operand stack: [VALUE, KEY, ROOT, ...]
+///  Advice stack: [LEAF_LENGTH, ZERO(is_empty_subtree)/ONE(is_update), ...]
+/// 
+/// Errors:
+/// Returns an error if the provided Merkle root doesn't exist on the advice provider.
+pub(crate) fn push_smtset<S: ProcessState, A: AdviceProvider>(
+    advice_provider: &mut A,
+    process: &S,
 ) -> Result<HostResponse, ExecutionError> {
-    unimplemented!()
+    let empty_leaf = EmptySubtreeRoots::entry(SMT_DEPTH, SMT_DEPTH);
+
+    let key = process.get_stack_word(1);
+    let root = process.get_stack_word(2);
+
+    let node = advice_provider.get_tree_node(root, &Felt::new(SMT_DEPTH as u64), &key[3])?; 
+
+ 
+    // - if the node is a root of an empty subtree, we need to insert a new leaf node
+    // - otherwise, we need to update the value associated with the key in the leaf node
+
+    if node == Word::from(empty_leaf) {
+        // advice stack: [ZERO(leaf_length), ZERO(is_empty_subtree), ...]
+        advice_provider.push_stack(AdviceSource::Value(Felt::new(0)))?;
+        advice_provider.push_stack(AdviceSource::Value(Felt::new(0)))?;
+    } else {
+        let leaf_preimage = get_smt_leaf_preimage(advice_provider, node)?;
+        for (key_in_leaf, _value_in_leaf) in &leaf_preimage {
+            if key == *key_in_leaf {
+                // Found key - push value associated with key, and return
+                // advice stack: [LEAF_LENGTH, ONE(is_update), ...]
+                advice_provider.push_stack(AdviceSource::Value(Felt::new(1)))?;
+                advice_provider.push_stack(AdviceSource::Value(Felt::new(leaf_preimage.len() as u64)))?;
+
+                return Ok(HostResponse::None);
+            } 
+        }
+
+    }
+    Ok(HostResponse::None)
+
 }
 
 // HELPER METHODS
