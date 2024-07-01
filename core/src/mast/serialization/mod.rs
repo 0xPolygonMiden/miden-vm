@@ -1,9 +1,9 @@
 use alloc::{string::String, vec::Vec};
 use miden_crypto::hash::rpo::RpoDigest;
 use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive, ToBytes, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 use thiserror::Error;
-use winter_utils::{ByteWriter, Serializable};
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use super::{MastForest, MastNode, MastNodeId};
 
@@ -44,6 +44,15 @@ impl Serializable for StringRef {
     }
 }
 
+impl Deserializable for StringRef {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let offset = DataOffset::read_from(source)?;
+        let len = source.read_u32()?;
+
+        Ok(Self { offset, len })
+    }
+}
+
 pub struct MastNodeInfo {
     ty: MastNodeType,
     offset: DataOffset,
@@ -55,6 +64,16 @@ impl Serializable for MastNodeInfo {
         self.ty.write_into(target);
         self.offset.write_into(target);
         self.digest.write_into(target);
+    }
+}
+
+impl Deserializable for MastNodeInfo {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let ty = Deserializable::read_from(source)?;
+        let offset = DataOffset::read_from(source)?;
+        let digest = RpoDigest::read_from(source)?;
+
+        Ok(Self { ty, offset, digest })
     }
 }
 
@@ -148,6 +167,14 @@ impl Serializable for MastNodeType {
     }
 }
 
+impl Deserializable for MastNodeType {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let bytes = source.read_array()?;
+
+        Ok(Self(bytes))
+    }
+}
+
 #[derive(Clone, Copy, Debug, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum MastNodeTypeVariant {
@@ -194,6 +221,7 @@ impl MastNodeTypeVariant {
 
 impl Serializable for MastForest {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODOP: make sure padding is in accordance with Paul's docs
         let mut strings: Vec<StringRef> = Vec::new();
         let mut data: Vec<u8> = Vec::new();
 
@@ -209,7 +237,7 @@ impl Serializable for MastForest {
 
         // MAST node infos
         for mast_node in &self.nodes {
-            let mast_node_info = convert_mast_node(mast_node, &mut data, &mut strings);
+            let mast_node_info = mast_node_to_info(mast_node, &mut data, &mut strings);
 
             mast_node_info.write_into(target);
         }
@@ -222,7 +250,56 @@ impl Serializable for MastForest {
     }
 }
 
-fn convert_mast_node(
+impl Deserializable for MastForest {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let magic: [u8; 5] = source.read_array()?;
+        if magic != *MAGIC {
+            return Err(DeserializationError::InvalidValue(format!(
+                "Invalid magic bytes. Expected '{:?}', got '{:?}'",
+                *MAGIC, magic
+            )));
+        }
+
+        let version: [u8; 3] = source.read_array()?;
+        if version != VERSION {
+            return Err(DeserializationError::InvalidValue(format!(
+                "Unsupported version. Got '{version:?}', but only '{VERSION:?}' is supported",
+            )));
+        }
+
+        let node_count = source.read_usize()?;
+
+        let roots: Vec<MastNodeId> = Deserializable::read_from(source)?;
+
+        let mast_node_infos = {
+            let mut mast_node_infos = Vec::with_capacity(node_count);
+            for _ in 0..node_count {
+                let mast_node_info = MastNodeInfo::read_from(source)?;
+                mast_node_infos.push(mast_node_info);
+            }
+
+            mast_node_infos
+        };
+
+        let strings: Vec<StringRef> = Deserializable::read_from(source)?;
+
+        let data: Vec<u8> = Deserializable::read_from(source)?;
+
+        let nodes = {
+            let mut nodes = Vec::with_capacity(node_count);
+            for mast_node_info in mast_node_infos {
+                let node = try_info_to_mast_node(mast_node_info, &data, &strings)?;
+                nodes.push(node);
+            }
+
+            nodes
+        };
+
+        Ok(Self { nodes, roots })
+    }
+}
+
+fn mast_node_to_info(
     mast_node: &MastNode,
     data: &mut Vec<u8>,
     strings: &mut Vec<StringRef>,
@@ -230,6 +307,14 @@ fn convert_mast_node(
     // mast node info
 
     // fill out encoded operations/decorators in data
+    todo!()
+}
+
+fn try_info_to_mast_node(
+    mast_node_info: MastNodeInfo,
+    data: &[u8],
+    strings: &[StringRef],
+) -> Result<MastNode, DeserializationError> {
     todo!()
 }
 
