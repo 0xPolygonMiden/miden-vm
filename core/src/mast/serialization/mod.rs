@@ -5,6 +5,8 @@ use num_traits::{FromPrimitive, ToPrimitive};
 use thiserror::Error;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
+use crate::mast::MerkleTreeNode;
+
 use super::{MastForest, MastNode, MastNodeId};
 
 /// Specifies an offset into the `data` section of an encoded [`MastForest`].
@@ -107,7 +109,22 @@ impl MastNodeType {
 
                 Self([discriminant << 4, body_byte1, body_byte2, body_byte3, body_byte4, 0, 0, 0])
             }
-            Call(_) | Dyn | External(_) => Self([discriminant << 4, 0, 0, 0, 0, 0, 0, 0]),
+            Call(call_node) => {
+                let [callee_byte1, callee_byte2, callee_byte3, callee_byte4] =
+                    call_node.callee().0.to_be_bytes();
+
+                Self([
+                    discriminant << 4,
+                    callee_byte1,
+                    callee_byte2,
+                    callee_byte3,
+                    callee_byte4,
+                    0,
+                    0,
+                    0,
+                ])
+            }
+            Dyn | External(_) => Self([discriminant << 4, 0, 0, 0, 0, 0, 0, 0]),
         }
     }
 
@@ -304,10 +321,17 @@ fn mast_node_to_info(
     data: &mut Vec<u8>,
     strings: &mut Vec<StringRef>,
 ) -> MastNodeInfo {
-    // mast node info
+    use MastNode::*;
 
-    // fill out encoded operations/decorators in data
-    todo!()
+    let ty = MastNodeType::new(mast_node);
+    let digest = mast_node.digest();
+
+    let offset = match mast_node {
+        Block(_) => todo!(),
+        Join(_) | Split(_) | Loop(_) | Call(_) | Dyn | External(_) => 0,
+    };
+
+    MastNodeInfo { ty, offset, digest }
 }
 
 fn try_info_to_mast_node(
