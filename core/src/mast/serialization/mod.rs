@@ -2,10 +2,14 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use num_traits::ToBytes;
 use thiserror::Error;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::MerkleTreeNode;
+use crate::{
+    mast::{MerkleTreeNode, OperationOrDecorator},
+    Operation,
+};
 
 use super::{MastForest, MastNode, MastNodeId};
 
@@ -155,11 +159,130 @@ fn mast_node_to_info(
     let digest = mast_node.digest();
 
     let offset = match mast_node {
-        Block(_) => todo!(),
+        Block(basic_block) => {
+            let offset: u32 = data
+                .len()
+                .try_into()
+                .expect("MastForest serialization: data field larger than 2^32 bytes");
+
+            for op_or_decorator in basic_block.iter() {
+                match op_or_decorator {
+                    OperationOrDecorator::Operation(operation) => encode_operation(operation, data),
+                    OperationOrDecorator::Decorator(_) => {
+                        // TODOP: Remember: you need to set the most significant bit to 1
+                        todo!()
+                    }
+                }
+            }
+
+            offset
+        }
         Join(_) | Split(_) | Loop(_) | Call(_) | Dyn | External(_) => 0,
     };
 
     MastNodeInfo { ty, offset, digest }
+}
+
+fn encode_operation(operation: &Operation, data: &mut Vec<u8>) {
+    data.push(operation.op_code());
+
+    // For operations that have extra data, encode it in `data`.
+    match operation {
+        Operation::Assert(value) | Operation::MpVerify(value) => {
+            data.extend_from_slice(&value.to_le_bytes())
+        }
+        Operation::U32assert2(value) | Operation::Push(value) => {
+            data.extend_from_slice(&value.as_int().to_le_bytes())
+        }
+        // Note: we explicitly write out all the operations so that whenever we make a modification
+        // to the `Operation` enum, we get a compile error here. This should help us remember to
+        // properly encode/decode each operation variant.
+        Operation::Noop
+        | Operation::FmpAdd
+        | Operation::FmpUpdate
+        | Operation::SDepth
+        | Operation::Caller
+        | Operation::Clk
+        | Operation::Join
+        | Operation::Split
+        | Operation::Loop
+        | Operation::Call
+        | Operation::Dyn
+        | Operation::SysCall
+        | Operation::Span
+        | Operation::End
+        | Operation::Repeat
+        | Operation::Respan
+        | Operation::Halt
+        | Operation::Add
+        | Operation::Neg
+        | Operation::Mul
+        | Operation::Inv
+        | Operation::Incr
+        | Operation::And
+        | Operation::Or
+        | Operation::Not
+        | Operation::Eq
+        | Operation::Eqz
+        | Operation::Expacc
+        | Operation::Ext2Mul
+        | Operation::U32split
+        | Operation::U32add
+        | Operation::U32add3
+        | Operation::U32sub
+        | Operation::U32mul
+        | Operation::U32madd
+        | Operation::U32div
+        | Operation::U32and
+        | Operation::U32xor
+        | Operation::Pad
+        | Operation::Drop
+        | Operation::Dup0
+        | Operation::Dup1
+        | Operation::Dup2
+        | Operation::Dup3
+        | Operation::Dup4
+        | Operation::Dup5
+        | Operation::Dup6
+        | Operation::Dup7
+        | Operation::Dup9
+        | Operation::Dup11
+        | Operation::Dup13
+        | Operation::Dup15
+        | Operation::Swap
+        | Operation::SwapW
+        | Operation::SwapW2
+        | Operation::SwapW3
+        | Operation::SwapDW
+        | Operation::MovUp2
+        | Operation::MovUp3
+        | Operation::MovUp4
+        | Operation::MovUp5
+        | Operation::MovUp6
+        | Operation::MovUp7
+        | Operation::MovUp8
+        | Operation::MovDn2
+        | Operation::MovDn3
+        | Operation::MovDn4
+        | Operation::MovDn5
+        | Operation::MovDn6
+        | Operation::MovDn7
+        | Operation::MovDn8
+        | Operation::CSwap
+        | Operation::CSwapW
+        | Operation::AdvPop
+        | Operation::AdvPopW
+        | Operation::MLoadW
+        | Operation::MStoreW
+        | Operation::MLoad
+        | Operation::MStore
+        | Operation::MStream
+        | Operation::Pipe
+        | Operation::HPerm
+        | Operation::MrUpdate
+        | Operation::FriE2F4
+        | Operation::RCombBase => (),
+    }
 }
 
 fn try_info_to_mast_node(

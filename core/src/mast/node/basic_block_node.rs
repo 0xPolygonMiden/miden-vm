@@ -8,7 +8,7 @@ use winter_utils::flatten_slice_elements;
 use crate::{
     chiplets::hasher,
     mast::{MastForest, MerkleTreeNode},
-    DecoratorIterator, DecoratorList, Operation,
+    Decorator, DecoratorIterator, DecoratorList, Operation,
 };
 
 // CONSTANTS
@@ -22,6 +22,12 @@ pub const BATCH_SIZE: usize = 8;
 
 // BASIC BLOCK NODE
 // ================================================================================================
+
+// TODOP: Document
+pub enum OperationOrDecorator {
+    Operation(Operation),
+    Decorator(Decorator),
+}
 
 /// Block for a linear sequence of operations (i.e., no branching or loops).
 ///
@@ -113,6 +119,13 @@ impl BasicBlockNode {
 
     pub fn op_batches(&self) -> &[OpBatch] {
         &self.op_batches
+    }
+
+    /// Returns an iterator over all operations and decorator, in the order in which they appear in
+    /// the program.
+    pub fn iter(&self) -> impl Iterator<Item = &OperationOrDecorator> {
+        // TODOP: implement
+        core::iter::empty()
     }
 
     /// Returns a [`DecoratorIterator`] which allows us to iterate through the decorator list of

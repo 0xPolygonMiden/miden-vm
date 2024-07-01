@@ -6,7 +6,7 @@ use miden_crypto::hash::rpo::RpoDigest;
 mod node;
 pub use node::{
     get_span_op_group_count, BasicBlockNode, CallNode, DynNode, JoinNode, LoopNode, MastNode,
-    OpBatch, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    OpBatch, OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
