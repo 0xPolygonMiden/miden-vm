@@ -1,4 +1,7 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use miden_crypto::hash::rpo::RpoDigest;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
@@ -82,6 +85,7 @@ impl Deserializable for MastNodeInfo {
 // TODOP: Describe how first 4 bits (i.e. high order bits of first byte) are the discriminant
 pub struct MastNodeType([u8; 8]);
 
+/// Constructors
 impl MastNodeType {
     pub fn new(mast_node: &MastNode) -> Self {
         use MastNode::*;
@@ -91,9 +95,9 @@ impl MastNodeType {
 
         match mast_node {
             Block(block_node) => {
-                let num_ops = block_node.num_operations_and_decorators().to_be_bytes();
+                let num_ops = block_node.num_operations_and_decorators();
 
-                Self([discriminant << 4, num_ops[0], num_ops[1], num_ops[2], num_ops[3], 0, 0, 0])
+                Self::encode_u32_payload(discriminant, num_ops)
             }
             Join(join_node) => {
                 Self::encode_join_or_split(discriminant, join_node.first(), join_node.second())
@@ -104,30 +108,31 @@ impl MastNodeType {
                 split_node.on_false(),
             ),
             Loop(loop_node) => {
-                let [body_byte1, body_byte2, body_byte3, body_byte4] =
-                    loop_node.body().0.to_be_bytes();
+                let child_id = loop_node.body().0;
 
-                Self([discriminant << 4, body_byte1, body_byte2, body_byte3, body_byte4, 0, 0, 0])
+                Self::encode_u32_payload(discriminant, child_id)
             }
             Call(call_node) => {
-                let [callee_byte1, callee_byte2, callee_byte3, callee_byte4] =
-                    call_node.callee().0.to_be_bytes();
+                let child_id = call_node.callee().0;
 
-                Self([
-                    discriminant << 4,
-                    callee_byte1,
-                    callee_byte2,
-                    callee_byte3,
-                    callee_byte4,
-                    0,
-                    0,
-                    0,
-                ])
+                Self::encode_u32_payload(discriminant, child_id)
             }
             Dyn | External(_) => Self([discriminant << 4, 0, 0, 0, 0, 0, 0, 0]),
         }
     }
+}
 
+/// Accessors
+impl MastNodeType {
+    pub fn variant(&self) -> Result<MastNodeTypeVariant, Error> {
+        let discriminant = self.0[0] >> 4;
+
+        MastNodeTypeVariant::try_from_discriminant(discriminant)
+    }
+}
+
+/// Helpers
+impl MastNodeType {
     // TODOP: Make a diagram of how the bits are split
     fn encode_join_or_split(
         discriminant: u8,
@@ -175,6 +180,60 @@ impl MastNodeType {
         };
 
         Self(result)
+    }
+
+    fn decode_join_or_split(&self) -> (MastNodeId, MastNodeId) {
+        let first = {
+            let mut first_le_bytes = [0_u8; 4];
+
+            first_le_bytes[0] = self.0[0] << 4;
+            first_le_bytes[0] |= self.0[1] >> 4;
+
+            first_le_bytes[1] = self.0[1] << 4;
+            first_le_bytes[1] |= self.0[2] >> 4;
+
+            first_le_bytes[2] = self.0[2] << 4;
+            first_le_bytes[2] |= self.0[3] >> 4;
+
+            first_le_bytes[3] = (self.0[3] & 0b1111) << 2;
+            first_le_bytes[3] |= self.0[4] >> 6;
+
+            u32::from_le_bytes(first_le_bytes)
+        };
+
+        let second = {
+            let mut second_be_bytes = [0_u8; 4];
+
+            second_be_bytes[0] = self.0[4] & 0b0011_1111;
+            second_be_bytes[1] = self.0[5];
+            second_be_bytes[2] = self.0[6];
+            second_be_bytes[3] = self.0[7];
+
+            u32::from_be_bytes(second_be_bytes)
+        };
+
+        (MastNodeId(first), MastNodeId(second))
+    }
+
+    fn encode_u32_payload(discriminant: u8, payload: u32) -> Self {
+        let [payload_byte1, payload_byte2, payload_byte3, payload_byte4] = payload.to_be_bytes();
+
+        Self([
+            discriminant << 4,
+            payload_byte1,
+            payload_byte2,
+            payload_byte3,
+            payload_byte4,
+            0,
+            0,
+            0,
+        ])
+    }
+
+    fn decode_u32_payload(&self) -> u32 {
+        let payload_be_bytes = [self.0[1], self.0[2], self.0[3], self.0[4]];
+
+        u32::from_be_bytes(payload_be_bytes)
     }
 }
 
@@ -302,17 +361,22 @@ impl Deserializable for MastForest {
 
         let data: Vec<u8> = Deserializable::read_from(source)?;
 
-        let nodes = {
-            let mut nodes = Vec::with_capacity(node_count);
+        let mast_forest = {
+            let mut mast_forest = MastForest::new();
+
             for mast_node_info in mast_node_infos {
-                let node = try_info_to_mast_node(mast_node_info, &data, &strings)?;
-                nodes.push(node);
+                let node = try_info_to_mast_node(mast_node_info, &mast_forest, &data, &strings)?;
+                mast_forest.add_node(node);
             }
 
-            nodes
+            for root in roots {
+                mast_forest.make_root(root);
+            }
+
+            mast_forest
         };
 
-        Ok(Self { nodes, roots })
+        Ok(mast_forest)
     }
 }
 
@@ -336,10 +400,47 @@ fn mast_node_to_info(
 
 fn try_info_to_mast_node(
     mast_node_info: MastNodeInfo,
+    mast_forest: &MastForest,
     data: &[u8],
     strings: &[StringRef],
 ) -> Result<MastNode, DeserializationError> {
-    todo!()
+    let mast_node_variant = mast_node_info
+        .ty
+        .variant()
+        .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+
+    // TODOP: Make a faillible version of `MastNode` ctors
+    // TODOP: Check digest of resulting `MastNode` matches `MastNodeInfo.digest`?
+    match mast_node_variant {
+        MastNodeTypeVariant::Block => todo!(),
+        MastNodeTypeVariant::Join => {
+            let (left_child, right_child) = MastNodeType::decode_join_or_split(&mast_node_info.ty);
+
+            Ok(MastNode::new_join(left_child, right_child, mast_forest))
+        }
+        MastNodeTypeVariant::Split => {
+            let (if_branch, else_branch) = MastNodeType::decode_join_or_split(&mast_node_info.ty);
+
+            Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
+        }
+        MastNodeTypeVariant::Loop => {
+            let body_id = MastNodeType::decode_u32_payload(&mast_node_info.ty);
+
+            Ok(MastNode::new_loop(MastNodeId(body_id), mast_forest))
+        }
+        MastNodeTypeVariant::Call => {
+            let callee_id = MastNodeType::decode_u32_payload(&mast_node_info.ty);
+
+            Ok(MastNode::new_call(MastNodeId(callee_id), mast_forest))
+        }
+        MastNodeTypeVariant::Syscall => {
+            let callee_id = MastNodeType::decode_u32_payload(&mast_node_info.ty);
+
+            Ok(MastNode::new_syscall(MastNodeId(callee_id), mast_forest))
+        }
+        MastNodeTypeVariant::Dyn => Ok(MastNode::new_dynexec()),
+        MastNodeTypeVariant::External => Ok(MastNode::new_external(mast_node_info.digest)),
+    }
 }
 
 #[cfg(test)]
@@ -348,7 +449,7 @@ mod tests {
     use crate::mast::{JoinNode, SplitNode};
 
     #[test]
-    fn mast_node_type_serialization_join() {
+    fn mast_node_type_serde_join() {
         let left_child_id = MastNodeId(0b00111001_11101011_01101100_11011000);
         let right_child_id = MastNodeId(0b00100111_10101010_11111111_11001110);
         let mast_node = MastNode::Join(JoinNode::new_test(
@@ -365,10 +466,14 @@ mod tests {
         ];
 
         assert_eq!(expected_mast_node_type, mast_node_type.0);
+
+        let (decoded_left, decoded_right) = mast_node_type.decode_join_or_split();
+        assert_eq!(left_child_id, decoded_left);
+        assert_eq!(right_child_id, decoded_right);
     }
 
     #[test]
-    fn mast_node_type_serialization_split() {
+    fn mast_node_type_serde_split() {
         let on_true_id = MastNodeId(0b00111001_11101011_01101100_11011000);
         let on_false_id = MastNodeId(0b00100111_10101010_11111111_11001110);
         let mast_node =
@@ -383,6 +488,10 @@ mod tests {
         ];
 
         assert_eq!(expected_mast_node_type, mast_node_type.0);
+
+        let (decoded_on_true, decoded_on_false) = mast_node_type.decode_join_or_split();
+        assert_eq!(on_true_id, decoded_on_true);
+        assert_eq!(on_false_id, decoded_on_false);
     }
 
     // TODOP: Test all other variants
