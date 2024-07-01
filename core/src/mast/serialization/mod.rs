@@ -59,7 +59,7 @@ impl Deserializable for StringRef {
 }
 
 pub struct MastNodeInfo {
-    ty: MastNodeType,
+    ty: EncodedMastNodeType,
     offset: DataOffset,
     digest: RpoDigest,
 }
@@ -83,10 +83,10 @@ impl Deserializable for MastNodeInfo {
 }
 
 // TODOP: Describe how first 4 bits (i.e. high order bits of first byte) are the discriminant
-pub struct MastNodeType([u8; 8]);
+pub struct EncodedMastNodeType([u8; 8]);
 
 /// Constructors
-impl MastNodeType {
+impl EncodedMastNodeType {
     pub fn new(mast_node: &MastNode) -> Self {
         use MastNode::*;
 
@@ -123,7 +123,7 @@ impl MastNodeType {
 }
 
 /// Accessors
-impl MastNodeType {
+impl EncodedMastNodeType {
     pub fn variant(&self) -> Result<MastNodeTypeVariant, Error> {
         let discriminant = self.0[0] >> 4;
 
@@ -132,7 +132,7 @@ impl MastNodeType {
 }
 
 /// Helpers
-impl MastNodeType {
+impl EncodedMastNodeType {
     // TODOP: Make a diagram of how the bits are split
     fn encode_join_or_split(
         discriminant: u8,
@@ -237,13 +237,13 @@ impl MastNodeType {
     }
 }
 
-impl Serializable for MastNodeType {
+impl Serializable for EncodedMastNodeType {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.0.write_into(target);
     }
 }
 
-impl Deserializable for MastNodeType {
+impl Deserializable for EncodedMastNodeType {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let bytes = source.read_array()?;
 
@@ -387,7 +387,7 @@ fn mast_node_to_info(
 ) -> MastNodeInfo {
     use MastNode::*;
 
-    let ty = MastNodeType::new(mast_node);
+    let ty = EncodedMastNodeType::new(mast_node);
     let digest = mast_node.digest();
 
     let offset = match mast_node {
@@ -414,27 +414,29 @@ fn try_info_to_mast_node(
     match mast_node_variant {
         MastNodeTypeVariant::Block => todo!(),
         MastNodeTypeVariant::Join => {
-            let (left_child, right_child) = MastNodeType::decode_join_or_split(&mast_node_info.ty);
+            let (left_child, right_child) =
+                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty);
 
             Ok(MastNode::new_join(left_child, right_child, mast_forest))
         }
         MastNodeTypeVariant::Split => {
-            let (if_branch, else_branch) = MastNodeType::decode_join_or_split(&mast_node_info.ty);
+            let (if_branch, else_branch) =
+                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty);
 
             Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
         }
         MastNodeTypeVariant::Loop => {
-            let body_id = MastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let body_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
 
             Ok(MastNode::new_loop(MastNodeId(body_id), mast_forest))
         }
         MastNodeTypeVariant::Call => {
-            let callee_id = MastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
 
             Ok(MastNode::new_call(MastNodeId(callee_id), mast_forest))
         }
         MastNodeTypeVariant::Syscall => {
-            let callee_id = MastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
 
             Ok(MastNode::new_syscall(MastNodeId(callee_id), mast_forest))
         }
@@ -457,7 +459,7 @@ mod tests {
             RpoDigest::default(),
         ));
 
-        let mast_node_type = MastNodeType::new(&mast_node);
+        let mast_node_type = EncodedMastNodeType::new(&mast_node);
 
         // Note: Join's discriminant is 0
         let expected_mast_node_type = [
@@ -479,7 +481,7 @@ mod tests {
         let mast_node =
             MastNode::Split(SplitNode::new_test([on_true_id, on_false_id], RpoDigest::default()));
 
-        let mast_node_type = MastNodeType::new(&mast_node);
+        let mast_node_type = EncodedMastNodeType::new(&mast_node);
 
         // Note: Split's discriminant is 0
         let expected_mast_node_type = [
