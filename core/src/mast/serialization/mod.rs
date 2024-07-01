@@ -2,13 +2,16 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use miden_crypto::{Felt, ZERO};
 use num_traits::ToBytes;
 use thiserror::Error;
-use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+use winter_utils::{
+    ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
+};
 
 use crate::{
     mast::{MerkleTreeNode, OperationOrDecorator},
-    Operation,
+    DecoratorList, Operation, OperationData,
 };
 
 use super::{MastForest, MastNode, MastNodeId};
@@ -128,12 +131,18 @@ impl Deserializable for MastForest {
         let strings: Vec<StringRef> = Deserializable::read_from(source)?;
 
         let data: Vec<u8> = Deserializable::read_from(source)?;
+        let mut data_reader = SliceReader::new(&data);
 
         let mast_forest = {
             let mut mast_forest = MastForest::new();
 
             for mast_node_info in mast_node_infos {
-                let node = try_info_to_mast_node(mast_node_info, &mast_forest, &data, &strings)?;
+                let node = try_info_to_mast_node(
+                    mast_node_info,
+                    &mast_forest,
+                    &mut data_reader,
+                    &strings,
+                )?;
                 mast_forest.add_node(node);
             }
 
@@ -288,7 +297,7 @@ fn encode_operation(operation: &Operation, data: &mut Vec<u8>) {
 fn try_info_to_mast_node(
     mast_node_info: MastNodeInfo,
     mast_forest: &MastForest,
-    data: &[u8],
+    data_reader: &mut SliceReader,
     strings: &[StringRef],
 ) -> Result<MastNode, DeserializationError> {
     let mast_node_variant = mast_node_info
@@ -299,7 +308,18 @@ fn try_info_to_mast_node(
     // TODOP: Make a faillible version of `MastNode` ctors
     // TODOP: Check digest of resulting `MastNode` matches `MastNodeInfo.digest`?
     match mast_node_variant {
-        MastNodeTypeVariant::Block => todo!(),
+        MastNodeTypeVariant::Block => {
+            let num_operations_and_decorators =
+                EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+
+            let (operations, decorators) = decode_operations_and_decorators(
+                num_operations_and_decorators,
+                data_reader,
+                strings,
+            )?;
+
+            Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
+        }
         MastNodeTypeVariant::Join => {
             let (left_child, right_child) =
                 EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty);
@@ -330,4 +350,60 @@ fn try_info_to_mast_node(
         MastNodeTypeVariant::Dyn => Ok(MastNode::new_dynexec()),
         MastNodeTypeVariant::External => Ok(MastNode::new_external(mast_node_info.digest)),
     }
+}
+
+fn decode_operations_and_decorators(
+    num_to_decode: u32,
+    data_reader: &mut SliceReader,
+    strings: &[StringRef],
+) -> Result<(Vec<Operation>, DecoratorList), DeserializationError> {
+    let mut operations: Vec<Operation> = Vec::new();
+    let mut decorators: DecoratorList = Vec::new();
+
+    for _ in 0..num_to_decode {
+        let first_byte = data_reader.read_u8()?;
+
+        if first_byte & 0b1000_0000 > 0 {
+            // operation.
+            let op_code = first_byte;
+
+            let maybe_operation = if op_code == Operation::Assert(0_u32).op_code()
+                || op_code == Operation::MpVerify(0_u32).op_code()
+            {
+                let value_le_bytes: [u8; 4] = data_reader.read_array()?;
+                let value = u32::from_le_bytes(value_le_bytes);
+
+                Operation::with_opcode_and_data(op_code, OperationData::U32(value))
+            } else if op_code == Operation::U32assert2(ZERO).op_code()
+                || op_code == Operation::Push(ZERO).op_code()
+            {
+                // Felt operation data
+                let value_le_bytes: [u8; 8] = data_reader.read_array()?;
+                let value_u64 = u64::from_le_bytes(value_le_bytes);
+                let value_felt = Felt::try_from(value_u64).map_err(|_| {
+                    DeserializationError::InvalidValue(format!(
+                        "Operation associated data doesn't fit in a field element: {value_u64}"
+                    ))
+                })?;
+
+                Operation::with_opcode_and_data(op_code, OperationData::Felt(value_felt))
+            } else {
+                // No operation data
+                Operation::with_opcode_and_data(op_code, OperationData::None)
+            };
+
+            let operation = maybe_operation.ok_or_else(|| {
+                DeserializationError::InvalidValue(format!("invalid op code: {op_code}"))
+            })?;
+
+            operations.push(operation);
+        } else {
+            // decorator.
+            let discriminant = first_byte & 0b0111_1111;
+
+            todo!()
+        }
+    }
+
+    Ok((operations, decorators))
 }

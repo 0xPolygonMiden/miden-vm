@@ -441,6 +441,20 @@ pub enum Operation {
     RCombBase,
 }
 
+pub enum OperationData {
+    Felt(Felt),
+    U32(u32),
+    None,
+}
+
+/// Constructors
+impl Operation {
+    // TODOP: document, and use `Result` instead?
+    pub fn with_opcode_and_data(opcode: u8, data: OperationData) -> Option<Self> {
+        todo!()
+    }
+}
+
 impl Operation {
     pub const OP_BITS: usize = 7;
 
