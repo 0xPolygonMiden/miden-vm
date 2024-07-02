@@ -21,12 +21,12 @@ mod scanner;
 mod span;
 mod token;
 
-pub use self::error::{HexErrorKind, LiteralErrorKind, ParsingError};
+pub use self::error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError};
 pub use self::lexer::Lexer;
 pub use self::location::SourceLocation;
 pub use self::scanner::Scanner;
 pub use self::span::{SourceSpan, Span, Spanned};
-pub use self::token::{DocumentationType, HexEncodedValue, Token};
+pub use self::token::{BinEncodedValue, DocumentationType, HexEncodedValue, Token};
 
 use crate::{
     ast,
