@@ -301,18 +301,47 @@ Proc: Form = {
         Ok(Form::Procedure(Export::Procedure(procedure)))
     },
 
-    <l:@L> "export" "." <qualified_name:QualifiedName> <alias:("->" <BareIdent>)?> <r:@R> => {
-        let (name, path) = qualified_name;
-        let name = ProcedureName::new_unchecked(name.clone());
-        let export_name = alias.map(ProcedureName::new_unchecked).unwrap_or_else(|| name.clone());
-        let target = FullyQualifiedProcedureName {
-            span: span!(l, r),
-            module: path,
-            name,
+    <l:@L> "export" "." <name:MaybeQualifiedProcedurePath> <alias:("->" <ProcedureName>)?> <r:@R> =>? {
+        let span = span!(l, r);
+        let alias = match name {
+            InvocationTarget::ProcedureName(_) =>  return Err(ParseError::User {
+                error: ParsingError::UnqualifiedImport { span },
+            }),
+            InvocationTarget::MastRoot(digest) => {
+                if alias.is_none() {
+                    return Err(ParseError::User {
+                        error: ParsingError::UnnamedReexportOfMastRoot { span },
+                    });
+                }
+                ProcedureAlias::new(alias.unwrap(), digest, true)
+            }
+            InvocationTarget::ProcedurePath { name, module } => {
+                let export_name = alias.unwrap_or_else(|| name.clone());
+                let module = match module.as_str() {
+                    LibraryNamespace::KERNEL_PATH => LibraryPath::new_from_components(LibraryNamespace::Kernel, []),
+                    LibraryNamespace::EXEC_PATH => LibraryPath::new_from_components(LibraryNamespace::Exec, []),
+                    LibraryNamespace::ANON_PATH => LibraryPath::new_from_components(LibraryNamespace::Anon, []),
+                    _ => LibraryPath::new_from_components(LibraryNamespace::User(module.into_inner()), []),
+                };
+                let target = FullyQualifiedProcedureName {
+                    span,
+                    module,
+                    name,
+                };
+                ProcedureAlias::new(export_name, target, false)
+            }
+            InvocationTarget::AbsoluteProcedurePath { name, path } => {
+                let export_name = alias.unwrap_or_else(|| name.clone());
+                let target = FullyQualifiedProcedureName {
+                    span,
+                    module: path,
+                    name,
+                };
+                ProcedureAlias::new(export_name, target, true)
+            }
         };
-        let alias = ProcedureAlias::new(export_name, target)
-                        .with_source_file(Some(source_file.clone()));
-        Form::Procedure(Export::Alias(alias))
+        let alias = alias.with_source_file(Some(source_file.clone()));
+        Ok(Form::Procedure(Export::Alias(alias)))
     }
 }
 
@@ -543,20 +572,9 @@ MaybeAssertCode: Option<Immediate<u32>> = {
 }
 
 Call: Instruction = {
-    "exec" "." <callee:Callee> => Instruction::Exec(callee),
-    "call" "." <callee:Callee> => Instruction::Call(callee),
-    "syscall" "." <callee:Callee> => Instruction::SysCall(callee),
-}
-
-Callee: InvocationTarget = {
-    <MastRoot> => InvocationTarget::MastRoot(<>),
-    <module_name:(<BareIdent> "::")?> <name:BareProcedureName> => {
-        match module_name {
-            Some(module) => InvocationTarget::ProcedurePath { name, module },
-            None => InvocationTarget::ProcedureName(name),
-        }
-    },
-    <QuotedProcedureName> => InvocationTarget::ProcedureName(<>),
+    "exec" "." <callee:InvocationTarget> => Instruction::Exec(callee),
+    "call" "." <callee:InvocationTarget> => Instruction::Call(callee),
+    "syscall" "." <callee:InvocationTarget> => Instruction::SysCall(callee),
 }
 
 #[inline]
@@ -587,23 +605,8 @@ Debug: Instruction = {
 
 #[inline]
 ProcRef: Instruction = {
-    "procref" "." <l:@L> <target:MaybeQualifiedName> <r:@R> => {
-        match target {
-            (name, None) => {
-                let name = ProcedureName::new_unchecked(name);
-                Instruction::ProcRef(InvocationTarget::ProcedureName(name))
-            },
-            (name, Some(module)) => {
-                let module = match module.namespace() {
-                    LibraryNamespace::User(ns) => Ident::new_unchecked(Span::new(span!(l, r), ns.clone())),
-                    _ => unreachable!(),
-                };
-                Instruction::ProcRef(InvocationTarget::ProcedurePath {
-                    name: ProcedureName::new_unchecked(name),
-                    module,
-                })
-            }
-        }
+    "procref" "." <l:@L> <target:InvocationTarget> <r:@R> => {
+        Instruction::ProcRef(target)
     }
 }
 
@@ -1219,6 +1222,54 @@ QuotedProcedureName: ProcedureName = {
     }
 }
 
+InvocationTarget: InvocationTarget = {
+    <MastRoot> => InvocationTarget::MastRoot(<>),
+    MaybeQualifiedProcedurePath,
+}
+
+MaybeQualifiedProcedurePath: InvocationTarget = {
+    "::" <components:(<BareIdent> "::")*> <name:ProcedureName> =>? {
+        // A fully-qualified path without a module is routed to the anonymous namespace
+        if components.is_empty() {
+            let path = LibraryPath::new_from_components(LibraryNamespace::Anon, []);
+            return Ok(InvocationTarget::AbsoluteProcedurePath { name, path });
+        }
+
+        // Otherwise, use the path specified
+        let mut components = VecDeque::from(components);
+        let ns = components.pop_front().unwrap();
+        let ns = match ns.as_str() {
+            // Disallow the use of special namespaces with other components
+            special_ns @ (
+                LibraryNamespace::KERNEL_PATH
+                | LibraryNamespace::EXEC_PATH
+                | LibraryNamespace::ANON_PATH
+            ) if !components.is_empty() => {
+                return Err(ParseError::User {
+                    error: ParsingError::InvalidLibraryPath {
+                        span: ns.span(),
+                        message: format!("the {special_ns} namespace cannot have submodules")
+                    },
+                });
+            }
+            LibraryNamespace::KERNEL_PATH => LibraryNamespace::Kernel,
+            LibraryNamespace::EXEC_PATH => LibraryNamespace::Exec,
+            LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,
+            _ => LibraryNamespace::User(ns.into_inner()),
+        };
+        let path = LibraryPath::new_from_components(ns, components);
+        Ok(InvocationTarget::AbsoluteProcedurePath { name, path })
+    },
+
+    <module:(<BareIdent> "::")?> <name:ProcedureName> => {
+        if let Some(module) = module {
+            InvocationTarget::ProcedurePath { name, module }
+        } else {
+            InvocationTarget::ProcedureName(name)
+        }
+    }
+}
+
 #[inline]
 BareIdent: Ident = {
     <l:@L> <name:bare_ident> <r:@R> => {
@@ -1243,6 +1294,19 @@ MaybeQualifiedName: (Ident, Option<LibraryPath>) = {
             let mut components = VecDeque::from(components);
             let ns = components.pop_front().unwrap();
             let ns = match ns.as_str() {
+                // Disallow the use of special namespaces with other components
+                special_ns @ (
+                    LibraryNamespace::KERNEL_PATH
+                    | LibraryNamespace::EXEC_PATH
+                    | LibraryNamespace::ANON_PATH
+                ) if !components.is_empty() => {
+                    return Err(ParseError::User {
+                        error: ParsingError::InvalidLibraryPath {
+                            span: ns.span(),
+                            message: format!("the {special_ns} namespace cannot have submodules")
+                        },
+                    });
+                }
                 LibraryNamespace::KERNEL_PATH => LibraryNamespace::Kernel,
                 LibraryNamespace::EXEC_PATH => LibraryNamespace::Exec,
                 LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,
@@ -1259,6 +1323,19 @@ QualifiedName: (Ident, LibraryPath) = {
 
         let name = components.pop().unwrap();
         let ns = match first.as_str() {
+            // Disallow the use of special namespaces with other components
+            special_ns @ (
+                LibraryNamespace::KERNEL_PATH
+                | LibraryNamespace::EXEC_PATH
+                | LibraryNamespace::ANON_PATH
+            ) if !components.is_empty() => {
+                return Err(ParseError::User {
+                    error: ParsingError::InvalidLibraryPath {
+                        span: first.span(),
+                        message: format!("the {special_ns} namespace cannot have submodules")
+                    },
+                });
+            }
             LibraryNamespace::KERNEL_PATH => LibraryNamespace::Kernel,
             LibraryNamespace::EXEC_PATH => LibraryNamespace::Exec,
             LibraryNamespace::ANON_PATH => LibraryNamespace::Anon,

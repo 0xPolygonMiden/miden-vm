@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{
     ast::{AstSerdeOptions, Ident, ProcedureName},
     ByteReader, ByteWriter, Deserializable, DeserializationError, LibraryPath, RpoDigest,
@@ -82,6 +84,29 @@ impl Spanned for InvocationTarget {
     }
 }
 
+impl crate::prettier::PrettyPrint for InvocationTarget {
+    fn render(&self) -> crate::prettier::Document {
+        use crate::prettier::*;
+        use vm_core::utils::DisplayHex;
+
+        match self {
+            Self::MastRoot(digest) => display(DisplayHex(digest.as_bytes().as_slice())),
+            Self::ProcedureName(name) => display(name),
+            Self::ProcedurePath { name, module } => display(format_args!("{}::{}", module, name)),
+            Self::AbsoluteProcedurePath { name, path } => {
+                display(format_args!("::{}::{}", path, name))
+            }
+        }
+    }
+}
+impl fmt::Display for InvocationTarget {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use crate::prettier::PrettyPrint;
+
+        self.pretty_print(f)
+    }
+}
+
 impl InvocationTarget {
     fn tag(&self) -> u8 {
         // SAFETY: This is safe because we have given this enum a primitive representation with
@@ -91,57 +116,45 @@ impl InvocationTarget {
         // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
         unsafe { *<*const _>::from(self).cast::<u8>() }
     }
-}
 
-impl Serializable for InvocationTarget {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+    /// Serialize to `target` using `options`
+    pub fn write_into_with_options<W: ByteWriter>(&self, target: &mut W, options: AstSerdeOptions) {
         target.write_u8(self.tag());
         match self {
-            Self::MastRoot(spanned) => {
-                spanned.write_into(target, AstSerdeOptions::new(false, true))
-            }
-            Self::ProcedureName(name) => {
-                name.write_into_with_options(target, AstSerdeOptions::new(false, true))
-            }
+            Self::MastRoot(spanned) => spanned.write_into(target, options),
+            Self::ProcedureName(name) => name.write_into_with_options(target, options),
             Self::ProcedurePath { name, module } => {
-                name.write_into_with_options(target, AstSerdeOptions::new(false, true));
+                name.write_into_with_options(target, options);
                 module.write_into(target);
             }
             Self::AbsoluteProcedurePath { name, path } => {
-                name.write_into_with_options(target, AstSerdeOptions::new(false, true));
+                name.write_into_with_options(target, options);
                 path.write_into(target);
             }
         }
     }
-}
 
-impl Deserializable for InvocationTarget {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+    /// Deserialize from `source` using `options`
+    pub fn read_from_with_options<R: ByteReader>(
+        source: &mut R,
+        options: AstSerdeOptions,
+    ) -> Result<Self, DeserializationError> {
         match source.read_u8()? {
             0 => {
-                let root = Span::<RpoDigest>::read_from(source, AstSerdeOptions::new(false, true))?;
+                let root = Span::<RpoDigest>::read_from(source, options)?;
                 Ok(Self::MastRoot(root))
             }
             1 => {
-                let name = ProcedureName::read_from_with_options(
-                    source,
-                    AstSerdeOptions::new(false, true),
-                )?;
+                let name = ProcedureName::read_from_with_options(source, options)?;
                 Ok(Self::ProcedureName(name))
             }
             2 => {
-                let name = ProcedureName::read_from_with_options(
-                    source,
-                    AstSerdeOptions::new(false, true),
-                )?;
+                let name = ProcedureName::read_from_with_options(source, options)?;
                 let module = Ident::read_from(source)?;
                 Ok(Self::ProcedurePath { name, module })
             }
             3 => {
-                let name = ProcedureName::read_from_with_options(
-                    source,
-                    AstSerdeOptions::new(false, true),
-                )?;
+                let name = ProcedureName::read_from_with_options(source, options)?;
                 let path = LibraryPath::read_from(source)?;
                 Ok(Self::AbsoluteProcedurePath { name, path })
             }
@@ -150,5 +163,17 @@ impl Deserializable for InvocationTarget {
                 n
             ))),
         }
+    }
+}
+
+impl Serializable for InvocationTarget {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.write_into_with_options(target, AstSerdeOptions::new(false, true));
+    }
+}
+
+impl Deserializable for InvocationTarget {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        Self::read_from_with_options(source, AstSerdeOptions::new(false, true))
     }
 }

@@ -1,6 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 use pretty_assertions::assert_eq;
 use vm_core::{
+    assert_matches,
     mast::{MastForest, MastNode},
     Program,
 };
@@ -306,4 +307,68 @@ fn duplicate_nodes() {
     let expected_program = Program::new(expected_mast_forest, root_id);
 
     assert_eq!(program, expected_program);
+}
+
+#[test]
+fn explicit_fully_qualified_procedure_references() {
+    const BAR_NAME: &str = "foo::bar";
+    const BAR: &str = r#"
+        export.bar
+            add
+        end"#;
+    const BAZ_NAME: &str = "foo::baz";
+    const BAZ: &str = r#"
+        export.baz
+            exec.::foo::bar::bar
+        end"#;
+
+    pub struct DummyLibrary {
+        namespace: LibraryNamespace,
+        #[allow(clippy::vec_box)]
+        modules: Vec<Box<Module>>,
+        dependencies: Vec<LibraryNamespace>,
+    }
+
+    impl Default for DummyLibrary {
+        fn default() -> Self {
+            let bar =
+                Module::parse_str(BAR_NAME.parse().unwrap(), ModuleKind::Library, BAR).unwrap();
+            let baz =
+                Module::parse_str(BAZ_NAME.parse().unwrap(), ModuleKind::Library, BAZ).unwrap();
+            let namespace = LibraryNamespace::new("foo").unwrap();
+            Self {
+                namespace,
+                modules: vec![bar, baz],
+                dependencies: Vec::new(),
+            }
+        }
+    }
+
+    impl Library for DummyLibrary {
+        fn root_ns(&self) -> &LibraryNamespace {
+            &self.namespace
+        }
+
+        fn version(&self) -> &Version {
+            const MIN: Version = Version::min();
+            &MIN
+        }
+
+        fn modules(&self) -> impl ExactSizeIterator<Item = &Module> + '_ {
+            self.modules.iter().map(|m| m.as_ref())
+        }
+
+        fn dependencies(&self) -> &[LibraryNamespace] {
+            &self.dependencies
+        }
+    }
+
+    let assembler = Assembler::new().with_library(&DummyLibrary::default()).unwrap();
+
+    let program = r#"
+    begin
+        exec.::foo::baz::baz
+    end"#;
+
+    assert_matches!(assembler.assemble(program), Ok(_));
 }

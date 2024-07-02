@@ -136,7 +136,12 @@ impl<'a> VisitMut for VerifyInvokeTargets<'a> {
     fn visit_mut_invoke_target(&mut self, target: &mut InvocationTarget) -> ControlFlow<()> {
         let span = target.span();
         match target {
-            InvocationTarget::MastRoot(_) | InvocationTarget::AbsoluteProcedurePath { .. } => (),
+            InvocationTarget::MastRoot(_) => (),
+            InvocationTarget::AbsoluteProcedurePath { name, path } => {
+                if self.module.path() == path && &self.current_procedure == name {
+                    self.analyzer.error(SemanticAnalysisError::SelfRecursive { span });
+                }
+            }
             InvocationTarget::ProcedureName(ref name) if name == &self.current_procedure => {
                 self.analyzer.error(SemanticAnalysisError::SelfRecursive { span });
             }

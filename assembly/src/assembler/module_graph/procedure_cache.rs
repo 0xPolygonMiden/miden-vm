@@ -137,10 +137,9 @@ impl ProcedureCache {
             .unwrap_or(false)
     }
 
-    /// Returns true if the procedure with the given MAST root is cached.
-    #[allow(unused)]
-    pub fn contains_mast_root(&self, hash: &RpoDigest) -> bool {
-        self.by_mast_root.contains_key(hash)
+    /// Returns the [GlobalProcedureIndex] of the procedure with the given MAST root, if cached.
+    pub fn contains_mast_root(&self, hash: &RpoDigest) -> Option<GlobalProcedureIndex> {
+        self.by_mast_root.get(hash).copied()
     }
 
     /// Inserts the given [Procedure] into this cache, using the [GlobalProcedureIndex] as the

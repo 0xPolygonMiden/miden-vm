@@ -426,7 +426,7 @@ impl<'input> Lexer<'input> {
                     self.skip();
                     continue;
                 }
-                '_' | '.' | '$' => {
+                '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => {
                     self.skip();
                     continue;
                 }

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        self, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget, InvokeKind,
-        ModuleKind, ProcedureIndex,
+        self, AliasTarget, Export, FullyQualifiedProcedureName, Instruction, InvocationTarget,
+        InvokeKind, ModuleKind, ProcedureIndex,
     },
     diagnostics::{tracing::instrument, Report},
     sema::SemanticAnalysisError,
@@ -535,7 +535,22 @@ impl Assembler {
                     index: ProcedureIndex::new(index),
                 },
                 Export::Alias(ref alias) => {
-                    self.module_graph.find(alias.source_file(), alias.target())?
+                    match alias.target() {
+                        AliasTarget::MastRoot(digest) => {
+                            self.procedure_cache.contains_mast_root(digest)
+                                .unwrap_or_else(|| {
+                                    panic!(
+                                        "compilation apparently succeeded, but did not find a \
+                                                entry in the procedure cache for alias '{}', i.e. '{}'",
+                                        alias.name(),
+                                        digest
+                                    );
+                                })
+                        }
+                        AliasTarget::Path(ref name)=> {
+                            self.module_graph.find(alias.source_file(), name)?
+                        }
+                    }
                 }
             };
             let proc = self.procedure_cache.get(gid).unwrap_or_else(|| match procedure {
