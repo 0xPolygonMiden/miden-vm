@@ -23,12 +23,6 @@ pub const BATCH_SIZE: usize = 8;
 // BASIC BLOCK NODE
 // ================================================================================================
 
-// TODOP: Document
-pub enum OperationOrDecorator {
-    Operation(Operation),
-    Decorator(Decorator),
-}
-
 /// Block for a linear sequence of operations (i.e., no branching or loops).
 ///
 /// Executes its operations in order. Fails if any of the operations fails.
@@ -128,9 +122,8 @@ impl BasicBlockNode {
 
     /// Returns an iterator over all operations and decorator, in the order in which they appear in
     /// the program.
-    pub fn iter(&self) -> impl Iterator<Item = &OperationOrDecorator> {
-        // TODOP: implement
-        core::iter::empty()
+    pub fn iter(&self) -> impl Iterator<Item = OperationOrDecorator> {
+        OperationOrDecoratorIterator::new(self)
     }
 
     /// Returns a [`DecoratorIterator`] which allows us to iterate through the decorator list of
@@ -223,6 +216,77 @@ impl fmt::Display for BasicBlockNode {
         self.pretty_print(f)
     }
 }
+
+// OPERATION OR DECORATOR
+// ================================================================================================
+
+// TODOP: Document
+pub enum OperationOrDecorator<'a> {
+    Operation(&'a Operation),
+    Decorator(&'a Decorator),
+}
+
+struct OperationOrDecoratorIterator<'a> {
+    node: &'a BasicBlockNode,
+
+    /// The index of the current batch
+    batch_index: usize,
+
+    /// The index of the operation in the current batch
+    op_index_in_batch: usize,
+
+    /// The index of the current operation across all batches
+    op_index: usize,
+
+    /// The index of the next element in `node.decorator_list`. This list is assumed to be sorted.
+    decorator_list_next_index: usize,
+}
+
+impl<'a> OperationOrDecoratorIterator<'a> {
+    fn new(node: &'a BasicBlockNode) -> Self {
+        Self {
+            node,
+            batch_index: 0,
+            op_index_in_batch: 0,
+            op_index: 0,
+            decorator_list_next_index: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for OperationOrDecoratorIterator<'a> {
+    type Item = OperationOrDecorator<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // check if there's a decorator to execute
+        if let Some((op_index, decorator)) =
+            self.node.decorators.get(self.decorator_list_next_index)
+        {
+            if *op_index == self.op_index {
+                self.decorator_list_next_index += 1;
+                return Some(OperationOrDecorator::Decorator(decorator));
+            }
+        }
+
+        // If no decorator needs to be executed, then execute the operation
+        if let Some(batch) = self.node.op_batches.get(self.batch_index) {
+            if let Some(operation) = batch.ops.get(self.op_index_in_batch) {
+                self.op_index_in_batch += 1;
+                self.op_index += 1;
+
+                Some(OperationOrDecorator::Operation(operation))
+            } else {
+                self.batch_index += 1;
+                self.op_index_in_batch = 0;
+
+                self.next()
+            }
+        } else {
+            None
+        }
+    }
+}
+
 
 // OPERATION BATCH
 // ================================================================================================
