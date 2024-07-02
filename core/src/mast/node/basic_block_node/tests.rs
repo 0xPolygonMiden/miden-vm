@@ -1,6 +1,5 @@
-
-use super::{hasher, Felt, Operation, BATCH_SIZE, ZERO};
-use crate::ONE;
+use super::*;
+use crate::{Decorator, ONE};
 
 #[test]
 fn batch_ops() {
@@ -292,6 +291,42 @@ fn batch_ops() {
 
     let all_groups = [batch0_groups, batch1_groups].concat();
     assert_eq!(hasher::hash_elements(&all_groups), hash);
+}
+
+#[test]
+fn operation_or_decorator_iterator() {
+    let operations = vec![Operation::Add, Operation::Mul, Operation::MovDn2, Operation::MovDn3];
+
+    // Note: there are 2 decorators after the last instruction
+    let decorators = vec![
+        (0, Decorator::Event(0)),
+        (0, Decorator::Event(1)),
+        (3, Decorator::Event(2)),
+        (4, Decorator::Event(3)),
+        (4, Decorator::Event(4)),
+    ];
+
+    let node = BasicBlockNode::with_decorators(operations, decorators);
+
+    let mut iterator = node.iter();
+
+    // operation index 0
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(0))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(1))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::Add)));
+
+    // operations indices 1, 2
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::Mul)));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::MovDn2)));
+
+    // operation index 3
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(2))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Operation(&Operation::MovDn3)));
+
+    // after last operation
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(3))));
+    assert_eq!(iterator.next(), Some(OperationOrDecorator::Decorator(&Decorator::Event(4))));
+    assert_eq!(iterator.next(), None);
 }
 
 // TEST HELPERS

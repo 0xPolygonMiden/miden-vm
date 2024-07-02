@@ -224,6 +224,7 @@ impl fmt::Display for BasicBlockNode {
 // ================================================================================================
 
 // TODOP: Document
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),
     Decorator(&'a Decorator),
