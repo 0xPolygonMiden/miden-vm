@@ -69,6 +69,25 @@ impl fmt::Display for HexErrorKind {
     }
 }
 
+// BINARY ERROR KIND
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinErrorKind {
+    /// Occurs when the bin-encoded value is > 32 digits
+    TooLong,
+}
+
+impl fmt::Display for BinErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::TooLong => f.write_str(
+                "value has too many digits, binary string can contain no more than 32 digits",
+            ),
+        }
+    }
+}
+
 // PARSING ERROR
 // ================================================================================================
 
@@ -161,6 +180,13 @@ pub enum ParsingError {
         #[label]
         span: SourceSpan,
         kind: HexErrorKind,
+    },
+    #[error("invalid literal: {}", kind)]
+    #[diagnostic()]
+    InvalidBinaryLiteral {
+        #[label]
+        span: SourceSpan,
+        kind: BinErrorKind,
     },
     #[error("invalid MAST root literal")]
     InvalidMastRoot {
@@ -340,6 +366,7 @@ fn simplify_expected_tokens(expected: Vec<String>) -> Vec<String> {
                 "quoted_ident" => return Some("quoted identifier".to_string()),
                 "doc_comment" => return Some("doc comment".to_string()),
                 "hex_value" => return Some("hex-encoded literal".to_string()),
+                "bin_value" => return Some("bin-encoded literal".to_string()),
                 "uint" => return Some("integer literal".to_string()),
                 "EOF" => return Some("end of file".to_string()),
                 other => other[1..].strip_suffix('"').and_then(|t| Token::parse(t).ok()),

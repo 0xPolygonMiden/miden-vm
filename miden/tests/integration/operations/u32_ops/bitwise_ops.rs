@@ -41,6 +41,38 @@ fn u32and() {
 }
 
 #[test]
+fn u32and_b() {
+    let build_asm_op = |param: u32| format!("u32and.{param}");
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(1), &[1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(1), &[0]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(0), &[1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(0), &[0]);
+    test.expect_stack(&[0]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(b), &[a as u64]);
+    test.expect_stack(&[(a & b) as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u32>();
+    let d = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(b), &[c as u64, d as u64, a as u64]);
+    test.expect_stack(&[(a & b) as u64, d as u64, c as u64]);
+}
+
+#[test]
 fn u32and_fail() {
     let asm_op = "u32and";
 
@@ -80,6 +112,38 @@ fn u32or() {
     let d = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[c as u64, d as u64, a as u64, b as u64]);
+    test.expect_stack(&[(a | b) as u64, d as u64, c as u64]);
+}
+
+#[test]
+fn u32or_b() {
+    let build_asm_op = |param: u32| format!("u32or.{param}");
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(1), &[1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(1), &[0]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(0), &[1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(0), &[0]);
+    test.expect_stack(&[0]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(b), &[a as u64]);
+    test.expect_stack(&[(a | b) as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u32>();
+    let d = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(b), &[c as u64, d as u64, a as u64]);
     test.expect_stack(&[(a | b) as u64, d as u64, c as u64]);
 }
 
@@ -126,6 +190,38 @@ fn u32xor() {
 }
 
 #[test]
+fn u32xor_b() {
+    let build_asm_op = |param: u32| format!("u32xor.{param}");
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(1), &[1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(1), &[0]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(0), &[1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(0), &[0]);
+    test.expect_stack(&[0]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(b), &[a as u64]);
+    test.expect_stack(&[(a ^ b) as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u32>();
+    let d = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(b), &[c as u64, d as u64, a as u64]);
+    test.expect_stack(&[(a ^ b) as u64, d as u64, c as u64]);
+}
+
+#[test]
 fn u32xor_fail() {
     let asm_op = "u32xor";
 
@@ -157,6 +253,30 @@ fn u32not() {
     let b = rand_value::<u32>();
 
     let test = build_op_test!(asm_op, &[b as u64, a as u64]);
+    test.expect_stack(&[!a as u64, b as u64]);
+}
+
+#[test]
+fn u32not_b() {
+    let build_asm_op = |param: u64| format!("u32not.{param}");
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(U32_BOUND - 1), &[]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(0), &[]);
+    test.expect_stack(&[U32_BOUND - 1]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(a as u64), &[]);
+    test.expect_stack(&[(!a) as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let b = rand_value::<u32>();
+
+    let test = build_op_test!(build_asm_op(a as u64), &[b as u64]);
     test.expect_stack(&[!a as u64, b as u64]);
 }
 
