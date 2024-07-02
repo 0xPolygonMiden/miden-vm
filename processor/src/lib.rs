@@ -262,6 +262,9 @@ where
                             root_digest: external_node.digest(),
                         },
                     )?;
+
+                // We temporarily limit the parts of the program that can be called externally to
+                // procedure roots, even though MAST doesn't have that restriction.
                 let root_id = mast_forest.find_procedure_root(external_node.digest()).ok_or(
                     ExecutionError::MalformedMastForestInHost {
                         root_digest: external_node.digest(),
