@@ -11,7 +11,7 @@ use winter_utils::{
 
 use crate::{
     mast::{MerkleTreeNode, OperationOrDecorator},
-    AdviceInjector, DebugOptions, Decorator, DecoratorList, Operation, OperationData,
+    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorList, Operation, OperationData,
     SignatureKind,
 };
 
@@ -148,6 +148,7 @@ impl Deserializable for MastForest {
                     mast_node_info,
                     &mast_forest,
                     &mut data_reader,
+                    &data,
                     &strings,
                 )?;
                 mast_forest.add_node(node);
@@ -316,12 +317,14 @@ fn encode_decorator(decorator: &Decorator, data: &mut Vec<u8>, strings: &mut Vec
                 include_len,
                 key_offset,
             } => {
-                data.push((*include_len).into());
+                data.write_bool(*include_len);
                 data.write_usize(*key_offset);
             }
             AdviceInjector::HdwordToMap { domain } => data.extend(domain.as_int().to_le_bytes()),
+
+            // Note: Since there is only 1 variant, we don't need to write any extra bytes.
             AdviceInjector::SigToStack { kind } => match kind {
-                SignatureKind::RpoFalcon512 => data.push(0_u8),
+                SignatureKind::RpoFalcon512 => (),
             },
             AdviceInjector::MerkleNodeMerge
             | AdviceInjector::MerkleNodeToStack
@@ -399,6 +402,7 @@ fn try_info_to_mast_node(
     mast_node_info: MastNodeInfo,
     mast_forest: &MastForest,
     data_reader: &mut SliceReader,
+    data: &[u8],
     strings: &[StringRef],
 ) -> Result<MastNode, DeserializationError> {
     let mast_node_variant = mast_node_info
@@ -416,6 +420,7 @@ fn try_info_to_mast_node(
             let (operations, decorators) = decode_operations_and_decorators(
                 num_operations_and_decorators,
                 data_reader,
+                data,
                 strings,
             )?;
 
@@ -456,6 +461,7 @@ fn try_info_to_mast_node(
 fn decode_operations_and_decorators(
     num_to_decode: u32,
     data_reader: &mut SliceReader,
+    data: &[u8],
     strings: &[StringRef],
 ) -> Result<(Vec<Operation>, DecoratorList), DeserializationError> {
     let mut operations: Vec<Operation> = Vec::new();
@@ -501,10 +507,178 @@ fn decode_operations_and_decorators(
         } else {
             // decorator.
             let discriminant = first_byte & 0b0111_1111;
+            let decorator = decode_decorator(discriminant, data_reader, data, strings)?;
 
-            todo!()
+            decorators.push((operations.len(), decorator));
         }
     }
 
     Ok((operations, decorators))
+}
+
+fn decode_decorator(
+    discriminant: u8,
+    data_reader: &mut SliceReader,
+    data: &[u8],
+    strings: &[StringRef],
+) -> Result<Decorator, DeserializationError> {
+    let decorator_variant =
+        EncodedDecoratorVariant::from_discriminant(discriminant).ok_or_else(|| {
+            DeserializationError::InvalidValue(format!(
+                "invalid decorator variant discriminant: {discriminant}"
+            ))
+        })?;
+
+    match decorator_variant {
+        EncodedDecoratorVariant::AdviceInjectorMerkleNodeMerge => {
+            Ok(Decorator::Advice(AdviceInjector::MerkleNodeMerge))
+        }
+        EncodedDecoratorVariant::AdviceInjectorMerkleNodeToStack => {
+            Ok(Decorator::Advice(AdviceInjector::MerkleNodeToStack))
+        }
+        EncodedDecoratorVariant::AdviceInjectorUpdateMerkleNode => {
+            Ok(Decorator::Advice(AdviceInjector::UpdateMerkleNode))
+        }
+        EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
+            let include_len = data_reader.read_bool()?;
+            let key_offset = data_reader.read_usize()?;
+
+            Ok(Decorator::Advice(AdviceInjector::MapValueToStack {
+                include_len,
+                key_offset,
+            }))
+        }
+        EncodedDecoratorVariant::AdviceInjectorU64Div => {
+            Ok(Decorator::Advice(AdviceInjector::U64Div))
+        }
+        EncodedDecoratorVariant::AdviceInjectorExt2Inv => {
+            Ok(Decorator::Advice(AdviceInjector::Ext2Inv))
+        }
+        EncodedDecoratorVariant::AdviceInjectorExt2Intt => {
+            Ok(Decorator::Advice(AdviceInjector::Ext2Intt))
+        }
+        EncodedDecoratorVariant::AdviceInjectorSmtGet => {
+            Ok(Decorator::Advice(AdviceInjector::SmtGet))
+        }
+        EncodedDecoratorVariant::AdviceInjectorSmtSet => {
+            Ok(Decorator::Advice(AdviceInjector::SmtSet))
+        }
+        EncodedDecoratorVariant::AdviceInjectorSmtPeek => {
+            Ok(Decorator::Advice(AdviceInjector::SmtPeek))
+        }
+        EncodedDecoratorVariant::AdviceInjectorU32Clz => {
+            Ok(Decorator::Advice(AdviceInjector::U32Clz))
+        }
+        EncodedDecoratorVariant::AdviceInjectorU32Ctz => {
+            Ok(Decorator::Advice(AdviceInjector::U32Ctz))
+        }
+        EncodedDecoratorVariant::AdviceInjectorU32Clo => {
+            Ok(Decorator::Advice(AdviceInjector::U32Clo))
+        }
+        EncodedDecoratorVariant::AdviceInjectorU32Cto => {
+            Ok(Decorator::Advice(AdviceInjector::U32Cto))
+        }
+        EncodedDecoratorVariant::AdviceInjectorILog2 => {
+            Ok(Decorator::Advice(AdviceInjector::ILog2))
+        }
+        EncodedDecoratorVariant::AdviceInjectorMemToMap => {
+            Ok(Decorator::Advice(AdviceInjector::MemToMap))
+        }
+        EncodedDecoratorVariant::AdviceInjectorHdwordToMap => {
+            let domain = data_reader.read_u64()?;
+            let domain = Felt::try_from(domain).map_err(|err| {
+                DeserializationError::InvalidValue(format!(
+                    "Error when deserializing HdwordToMap decorator domain: {err}"
+                ))
+            })?;
+
+            Ok(Decorator::Advice(AdviceInjector::HdwordToMap { domain }))
+        }
+        EncodedDecoratorVariant::AdviceInjectorHpermToMap => {
+            Ok(Decorator::Advice(AdviceInjector::HpermToMap))
+        }
+        EncodedDecoratorVariant::AdviceInjectorSigToStack => {
+            Ok(Decorator::Advice(AdviceInjector::SigToStack {
+                kind: SignatureKind::RpoFalcon512,
+            }))
+        }
+        EncodedDecoratorVariant::AssemblyOp => {
+            let num_cycles = data_reader.read_u8()?;
+            let should_break = data_reader.read_bool()?;
+
+            let context_name = {
+                let str_index_in_table = data_reader.read_usize()?;
+                read_string(str_index_in_table, data, strings)?
+            };
+
+            let op = {
+                let str_index_in_table = data_reader.read_usize()?;
+                read_string(str_index_in_table, data, strings)?
+            };
+
+            Ok(Decorator::AsmOp(AssemblyOp::new(context_name, num_cycles, op, should_break)))
+        }
+        EncodedDecoratorVariant::DebugOptionsStackAll => {
+            Ok(Decorator::Debug(DebugOptions::StackAll))
+        }
+        EncodedDecoratorVariant::DebugOptionsStackTop => {
+            let value = data_reader.read_u8()?;
+
+            Ok(Decorator::Debug(DebugOptions::StackTop(value)))
+        }
+        EncodedDecoratorVariant::DebugOptionsMemAll => Ok(Decorator::Debug(DebugOptions::MemAll)),
+        EncodedDecoratorVariant::DebugOptionsMemInterval => {
+            let start = u32::from_le_bytes(data_reader.read_array::<4>()?);
+            let end = u32::from_le_bytes(data_reader.read_array::<4>()?);
+
+            Ok(Decorator::Debug(DebugOptions::MemInterval(start, end)))
+        }
+        EncodedDecoratorVariant::DebugOptionsLocalInterval => {
+            let start = u16::from_le_bytes(data_reader.read_array::<2>()?);
+            let second = u16::from_le_bytes(data_reader.read_array::<2>()?);
+            let end = u16::from_le_bytes(data_reader.read_array::<2>()?);
+
+            Ok(Decorator::Debug(DebugOptions::LocalInterval(start, second, end)))
+        }
+        EncodedDecoratorVariant::Event => {
+            let value = u32::from_le_bytes(data_reader.read_array::<4>()?);
+
+            Ok(Decorator::Event(value))
+        }
+        EncodedDecoratorVariant::Trace => {
+            let value = u32::from_le_bytes(data_reader.read_array::<4>()?);
+
+            Ok(Decorator::Trace(value))
+        }
+    }
+}
+
+fn read_string(
+    str_index_in_table: usize,
+    data: &[u8],
+    strings: &[StringRef],
+) -> Result<String, DeserializationError> {
+    let str_ref = strings.get(str_index_in_table).ok_or_else(|| {
+        DeserializationError::InvalidValue(format!(
+            "invalid index in strings table: {str_index_in_table}"
+        ))
+    })?;
+
+    let str_bytes = {
+        let start = str_ref.offset as usize;
+        let end = (str_ref.offset + str_ref.len) as usize;
+
+        data.get(start..end).ok_or_else(|| {
+            DeserializationError::InvalidValue(format!(
+                "invalid string ref in strings table. Offset: {},  length: {}",
+                str_ref.offset, str_ref.len
+            ))
+        })?
+    };
+
+    String::from_utf8(str_bytes.to_vec()).map_err(|_| {
+        DeserializationError::InvalidValue(format!(
+            "Invalid UTF-8 string in strings table: {str_bytes:?}"
+        ))
+    })
 }

@@ -218,6 +218,7 @@ impl MastNodeTypeVariant {
         self.to_u8().expect("guaranteed to fit in a `u8` due to #[repr(u8)]")
     }
 
+    // TODOP: Just do `from_discriminant() -> Option<Self>`, and document what `None` means
     pub fn try_from_discriminant(discriminant: u8) -> Result<Self, super::Error> {
         Self::from_u8(discriminant).ok_or_else(|| super::Error::InvalidDiscriminant {
             ty: "MastNode".into(),

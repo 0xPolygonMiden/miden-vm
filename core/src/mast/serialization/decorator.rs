@@ -1,5 +1,5 @@
 use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::ToPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::{AdviceInjector, DebugOptions, Decorator};
 
@@ -39,6 +39,10 @@ pub enum EncodedDecoratorVariant {
 impl EncodedDecoratorVariant {
     pub fn discriminant(&self) -> u8 {
         self.to_u8().expect("guaranteed to fit in a `u8` due to #[repr(u8)]")
+    }
+
+    pub fn from_discriminant(discriminant: u8) -> Option<Self> {
+        Self::from_u8(discriminant)
     }
 }
 
