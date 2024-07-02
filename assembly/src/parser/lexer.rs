@@ -643,7 +643,7 @@ fn parse_bin(span: SourceSpan, bin_digits: &str) -> Result<BinEncodedValue, Pars
                 span,
                 kind: int_error_kind_to_literal_error_kind(
                     error.kind(),
-                    LiteralErrorKind::FeltOverflow,
+                    LiteralErrorKind::U32Overflow,
                 ),
             })?;
         Ok(shrink_u32_bin(value))
@@ -655,7 +655,7 @@ fn parse_bin(span: SourceSpan, bin_digits: &str) -> Result<BinEncodedValue, Pars
     }
 }
 
-#[inline]
+#[inline(always)]
 fn is_ascii_binary(c: char) -> bool {
     matches!(c, '0'..='1')
 }
