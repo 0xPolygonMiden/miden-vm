@@ -537,7 +537,7 @@ impl<'input> Lexer<'input> {
         loop {
             // If we hit a non-binary digit, we're done
             let c1 = self.read();
-            if !c1.is_ascii_hexdigit() {
+            if !is_ascii_binary(c1) {
                 break;
             }
             self.skip();
@@ -655,6 +655,7 @@ fn parse_bin(span: SourceSpan, bin_digits: &str) -> Result<BinEncodedValue, Pars
     }
 }
 
+#[inline]
 fn is_ascii_binary(c: char) -> bool {
     matches!(c, '0'..='1')
 }
