@@ -1,5 +1,5 @@
 use processor::{AsmOpInfo, VmStateIterator};
-use test_utils::build_debug_test;
+use test_utils::{assert_eq, build_debug_test};
 use vm_core::{AssemblyOp, Felt, Operation};
 
 #[test]
@@ -21,7 +21,7 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 2,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -29,7 +29,7 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -37,7 +37,7 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 4,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -45,7 +45,7 @@ fn asmop_one_span_block_test() {
         VmStatePartial {
             clk: 5,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -79,7 +79,7 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 2,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("foo".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::foo".to_string(), 2, "push.1".to_string(), false),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -87,7 +87,7 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("foo".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::foo".to_string(), 2, "push.1".to_string(), false),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -95,7 +95,7 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 4,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("foo".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new("#exec::foo".to_string(), 1, "push.2".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -103,7 +103,7 @@ fn asmop_with_one_procedure() {
         VmStatePartial {
             clk: 5,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("foo".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new("#exec::foo".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -136,76 +136,65 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 1,
             asmop: None,
-            op: Some(Operation::Span),
+            op: Some(Operation::Join),
         },
         VmStatePartial {
             clk: 2,
-            asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
-                1,
-            )),
-            op: Some(Operation::Pad),
+            asmop: None,
+            op: Some(Operation::Join),
         },
         VmStatePartial {
             clk: 3,
-            asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
-                2,
-            )),
-            op: Some(Operation::Incr),
+            asmop: None,
+            op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 4,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.2".to_string(), false),
-                1,
-            )),
-            op: Some(Operation::Push(Felt::new(2))),
-        },
-        VmStatePartial {
-            clk: 5,
-            asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "add".to_string(), false),
-                1,
-            )),
-            op: Some(Operation::Add),
-        },
-        VmStatePartial {
-            clk: 6,
-            asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 1,
             )),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
-            clk: 7,
+            clk: 5,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 2,
             )),
             op: Some(Operation::Incr),
         },
         VmStatePartial {
-            clk: 8,
+            clk: 6,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
-            clk: 9,
+            clk: 7,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
         },
+        // End first Span
+        VmStatePartial {
+            clk: 8,
+            asmop: None,
+            op: Some(Operation::End),
+        },
+        VmStatePartial {
+            clk: 9,
+            asmop: None,
+            op: Some(Operation::Span),
+        },
         VmStatePartial {
             clk: 10,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -213,7 +202,7 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 11,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -221,7 +210,7 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 12,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -229,28 +218,69 @@ fn asmop_repeat_test() {
         VmStatePartial {
             clk: 13,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
         },
+        // End second Span
         VmStatePartial {
             clk: 14,
             asmop: None,
-            op: Some(Operation::Noop),
+            op: Some(Operation::End),
         },
+        // End first Join
         VmStatePartial {
             clk: 15,
             asmop: None,
-            op: Some(Operation::Noop),
+            op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 16,
             asmop: None,
-            op: Some(Operation::Noop),
+            op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 17,
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                1,
+            )),
+            op: Some(Operation::Pad),
+        },
+        VmStatePartial {
+            clk: 18,
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
+                2,
+            )),
+            op: Some(Operation::Incr),
+        },
+        VmStatePartial {
+            clk: 19,
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
+                1,
+            )),
+            op: Some(Operation::Push(Felt::new(2))),
+        },
+        VmStatePartial {
+            clk: 20,
+            asmop: Some(AsmOpInfo::new(
+                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
+                1,
+            )),
+            op: Some(Operation::Add),
+        },
+        // End Span
+        VmStatePartial {
+            clk: 21,
+            asmop: None,
+            op: Some(Operation::End),
+        },
+        // End second Join
+        VmStatePartial {
+            clk: 22,
             asmop: None,
             op: Some(Operation::End),
         },
@@ -292,7 +322,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "eq".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "eq".to_string(), false),
                 1,
             )),
             op: Some(Operation::Eq),
@@ -315,7 +345,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 7,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 1,
             )),
             op: Some(Operation::Pad),
@@ -323,7 +353,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 8,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 2, "push.1".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 2, "push.1".to_string(), false),
                 2,
             )),
             op: Some(Operation::Incr),
@@ -331,7 +361,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 9,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.2".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.2".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(2))),
@@ -339,7 +369,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 10,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -385,7 +415,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 3,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "eq".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "eq".to_string(), false),
                 1,
             )),
             op: Some(Operation::Eq),
@@ -408,7 +438,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 7,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.3".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.3".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(3))),
@@ -416,7 +446,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 8,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "push.4".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "push.4".to_string(), false),
                 1,
             )),
             op: Some(Operation::Push(Felt::new(4))),
@@ -424,7 +454,7 @@ fn asmop_conditional_execution_test() {
         VmStatePartial {
             clk: 9,
             asmop: Some(AsmOpInfo::new(
-                AssemblyOp::new("#main".to_string(), 1, "add".to_string(), false),
+                AssemblyOp::new("#exec::#main".to_string(), 1, "add".to_string(), false),
                 1,
             )),
             op: Some(Operation::Add),
@@ -454,7 +484,8 @@ fn asmop_conditional_execution_test() {
     assert_eq!(expected_vm_state, vm_state);
 }
 
-/// This is a helper function to build a vector of [VmStatePartial] from a specified [VmStateIterator].
+/// This is a helper function to build a vector of [VmStatePartial] from a specified
+/// [VmStateIterator].
 fn build_vm_state(vm_state_iterator: VmStateIterator) -> Vec<VmStatePartial> {
     let mut vm_state = Vec::new();
     for state in vm_state_iterator {

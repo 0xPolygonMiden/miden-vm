@@ -5,8 +5,9 @@
 // ================================================================================================
 
 pub use assembly::{
-    ast::{ModuleAst, ProgramAst},
-    Assembler, AssemblyError, ParsingError,
+    self,
+    ast::{Module, ModuleKind},
+    diagnostics, Assembler, AssemblyError,
 };
 pub use processor::{
     crypto, execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, DefaultHost,
@@ -14,7 +15,7 @@ pub use processor::{
     ProgramInfo, StackInputs, VmState, VmStateIterator, ZERO,
 };
 pub use prover::{
-    math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, ProvingOptions,
-    StackOutputs, StarkProof, Word,
+    math, prove, Digest, ExecutionProof, FieldExtension, HashFunction, InputError, Proof,
+    ProvingOptions, StackOutputs, Word,
 };
 pub use verifier::{verify, VerificationError};

@@ -1,13 +1,62 @@
 #![no_std]
 
-#[cfg(feature = "std")]
-extern crate std;
-
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
+/// This is an implementation of `std::assert_matches::assert_matches`
+/// so it can be removed when that feature stabilizes upstream
+#[macro_export]
+macro_rules! assert_matches {
+    ($left:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )? $(,)?) => {
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                panic!(r#"
+assertion failed: `(left matches right)`
+    left: `{:?}`,
+    right: `{}`"#, left_val, stringify!($($pattern)|+ $(if $guard)?));
+            }
+        }
+    };
+
+    ($left:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )?, $msg:literal $(,)?) => {
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                panic!(concat!(r#"
+assertion failed: `(left matches right)`
+    left: `{:?}`,
+    right: `{}`
+"#, $msg), left_val, stringify!($($pattern)|+ $(if $guard)?));
+            }
+        }
+    };
+
+    ($left:expr, $(|)? $( $pattern:pat_param )|+ $( if $guard: expr )?, $msg:literal, $($arg:tt)+) => {
+        match $left {
+            $( $pattern )|+ $( if $guard )? => {}
+            ref left_val => {
+                panic!(concat!(r#"
+assertion failed: `(left matches right)`
+    left: `{:?}`,
+    right: `{}`
+"#, $msg), left_val, stringify!($($pattern)|+ $(if $guard)?), $($arg)+);
+            }
+        }
+    }
+}
+
 pub mod chiplets;
 pub mod errors;
+
+mod program;
+pub use program::{Program, ProgramInfo};
+
+mod kernel;
+pub use kernel::Kernel;
 
 pub use miden_crypto::{Word, EMPTY_WORD, ONE, WORD_SIZE, ZERO};
 pub mod crypto {
@@ -23,13 +72,14 @@ pub mod crypto {
         pub use miden_crypto::hash::{
             blake::{Blake3Digest, Blake3_160, Blake3_192, Blake3_256},
             rpo::{Rpo256, RpoDigest},
+            rpx::{Rpx256, RpxDigest},
             ElementHasher, Hasher,
         };
     }
 
     pub mod random {
         pub use miden_crypto::rand::{
-            RandomCoin, RandomCoinError, RpoRandomCoin, WinterRandomCoin,
+            RandomCoin, RandomCoinError, RpoRandomCoin, RpxRandomCoin, WinterRandomCoin,
         };
     }
 
@@ -38,13 +88,16 @@ pub mod crypto {
     }
 }
 
+pub mod mast;
+
 pub use math::{
     fields::{f64::BaseElement as Felt, QuadExtension},
     polynom, ExtensionOf, FieldElement, StarkField, ToElements,
 };
 
-mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};
+pub mod prettier {
+    pub use miden_formatting::{prettier::*, pretty_via_display, pretty_via_to_string};
+}
 
 mod operations;
 pub use operations::{

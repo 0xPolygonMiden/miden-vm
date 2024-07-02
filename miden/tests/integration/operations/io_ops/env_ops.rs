@@ -1,8 +1,9 @@
 use processor::FMP_MIN;
-use test_utils::{
-    build_op_test, build_test, AdviceInputs, StackInputs, Test, Word, STACK_TOP_SIZE,
+use test_utils::{build_op_test, build_test, StackInputs, Test, Word, STACK_TOP_SIZE};
+use vm_core::{
+    mast::{MastForest, MastNode, MerkleTreeNode},
+    Operation,
 };
-use vm_core::{code_blocks::CodeBlock, Operation};
 
 // SDEPTH INSTRUCTION
 // ================================================================================================
@@ -144,12 +145,9 @@ fn caller() {
 
     // TODO: update and use macro?
     let test = Test {
-        source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_ints([1, 2, 3, 4, 5]).unwrap(),
-        advice_inputs: AdviceInputs::default(),
-        in_debug_mode: false,
-        libraries: Vec::default(),
+        ..Test::new(&format!("test{}", line!()), program_source, false)
     };
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
     // element should remain untouched
@@ -160,9 +158,13 @@ fn caller() {
 }
 
 fn build_bar_hash() -> [u64; 4] {
-    let foo_root = CodeBlock::new_span(vec![Operation::Caller]);
-    let bar_root = CodeBlock::new_syscall(foo_root.hash());
-    let bar_hash: Word = bar_root.hash().into();
+    let mut mast_forest = MastForest::new();
+
+    let foo_root = MastNode::new_basic_block(vec![Operation::Caller]);
+    let foo_root_id = mast_forest.ensure_node(foo_root);
+
+    let bar_root = MastNode::new_syscall(foo_root_id, &mast_forest);
+    let bar_hash: Word = bar_root.digest().into();
     [
         bar_hash[0].as_int(),
         bar_hash[1].as_int(),

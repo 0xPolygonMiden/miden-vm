@@ -22,9 +22,9 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
         .arg("-n")
         .arg("1")
         .arg("-m")
-        .arg("4096")
+        .arg("8192")
         .arg("-e")
-        .arg("4096");
+        .arg("8192");
 
     let output = cmd.unwrap();
 

@@ -12,7 +12,7 @@ pub enum DebugOptions {
     /// Print out the entire contents of the stack for the current execution context.
     StackAll,
     /// Prints out the top n items of the stack for the current context.
-    StackTop(u16),
+    StackTop(u8),
     /// Prints out the entire contents of RAM.
     MemAll,
     /// Prints out the contents of memory stored in the provided interval. Interval boundaries are
@@ -26,6 +26,12 @@ pub enum DebugOptions {
     /// First parameter specifies the starting address, second -- the ending address, and the third
     /// specifies the overall number of locals.
     LocalInterval(u16, u16, u16),
+}
+
+impl crate::prettier::PrettyPrint for DebugOptions {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::display(self)
+    }
 }
 
 impl fmt::Display for DebugOptions {

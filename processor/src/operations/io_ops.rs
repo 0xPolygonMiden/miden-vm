@@ -27,9 +27,9 @@ where
     ///
     /// The operation works as follows:
     /// - The memory address is popped off the stack.
-    /// - A word is retrieved from memory at the specified address. The memory is always
-    ///   initialized to ZEROs, and thus, if the specified address has never been written to,
-    ///   four ZERO elements are returned.
+    /// - A word is retrieved from memory at the specified address. The memory is always initialized
+    ///   to ZEROs, and thus, if the specified address has never been written to, four ZERO elements
+    ///   are returned.
     /// - The top four elements of the stack are overwritten with values retrieved from memory.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
@@ -52,9 +52,9 @@ where
     ///
     /// The operation works as follows:
     /// - The memory address is popped off the stack.
-    /// - A word is retrieved from memory at the specified address. The memory is always
-    ///   initialized to ZEROs, and thus, if the specified address has never been written to,
-    ///   four ZERO elements are returned.
+    /// - A word is retrieved from memory at the specified address. The memory is always initialized
+    ///   to ZEROs, and thus, if the specified address has never been written to, four ZERO elements
+    ///   are returned.
     /// - The first element of the word retrieved from memory is pushed to the top of the stack.
     ///
     /// The first 3 helper registers are filled with the elements of the word which were not pushed
@@ -149,8 +149,8 @@ where
     /// The operation works as follows:
     /// - The memory address is popped off the stack.
     /// - The top stack element is saved into the first element of the word located at the specified
-    /// memory address. The remaining 3 elements of the word are not affected. The element is not
-    /// removed from the stack.
+    ///   memory address. The remaining 3 elements of the word are not affected. The element is not
+    ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     ///
@@ -396,8 +396,8 @@ mod tests {
         // arrange the stack such that:
         // - 101 is at position 13 (to make sure it is not overwritten)
         // - 1 (the address) is at position 12
-        // - values 1 - 12 are at positions 0 - 11. Adding the first 8 of these values to the
-        //   values stored in memory should result in 35.
+        // - values 1 - 12 are at positions 0 - 11. Adding the first 8 of these values to the values
+        //   stored in memory should result in 35.
         process.execute_op(Operation::Push(Felt::new(101))).unwrap();
         process.execute_op(Operation::Push(ONE)).unwrap();
         for i in 1..13 {

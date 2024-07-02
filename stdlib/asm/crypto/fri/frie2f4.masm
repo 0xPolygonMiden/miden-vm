@@ -1,5 +1,3 @@
-use.std::crypto::fri::ext2fri
-
 #! Stores the layer commitments C followed by [d_size, t_depth, a1, a0] and [poe, p, e1, e0] where:
 #! 1) d_size is the domain size divided by 4 of the domain corresponding to C.
 #! 2) t_depth is the tree depth of the Merkle tree with commitment C.

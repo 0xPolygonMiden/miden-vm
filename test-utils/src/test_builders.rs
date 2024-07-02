@@ -9,11 +9,11 @@
 ///
 /// * `source`: a string of one or more operations, e.g. "push.1 push.2".
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
-/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+///   executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
-/// `merkle_store` are also expected.
+///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_stack` are also expected.
+///   `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_op_test {
     ($op_str:expr) => {{
@@ -34,11 +34,11 @@ macro_rules! build_op_test {
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
-/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+///   executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
-/// `merkle_store` are also expected.
+///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_stack` are also expected.
+///   `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_test {
     ($($params:tt)+) => {{
@@ -54,11 +54,11 @@ macro_rules! build_test {
 ///
 /// * `source`: a well-formed source string.
 /// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
-/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+///   executing the `source`. Stack inputs can be provided independently without any advice inputs.
 /// * `advice_stack` (optional): the initial advice stack values. When provided, `stack_inputs` and
-/// `merkle_store` are also expected.
+///   `merkle_store` are also expected.
 /// * `merkle_store` (optional): the initial merkle set values. When provided, `stack_inputs` and
-/// `advice_stack` are also expected.
+///   `advice_stack` are also expected.
 #[macro_export]
 macro_rules! build_debug_test {
     ($($params:tt)+) => {{
@@ -78,20 +78,26 @@ macro_rules! build_debug_test {
 #[macro_export]
 macro_rules! build_test_by_mode {
     ($in_debug_mode:expr, $source:expr) => {{
-        $crate::Test::new($source, $in_debug_mode)
+        let name = format!("test{}", line!());
+        $crate::Test::new(&name, $source, $in_debug_mode)
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::StackInputs::try_from_ints(stack_inputs).unwrap();
         let advice_inputs = $crate::AdviceInputs::default();
+        let name = format!("test{}", line!());
 
         $crate::Test {
-            source: String::from($source),
+            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
+                name,
+                ::alloc::string::String::from($source),
+            )),
             kernel: None,
             stack_inputs,
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            add_modules: Vec::default(),
         }
     }};
     (
@@ -105,14 +111,19 @@ macro_rules! build_test_by_mode {
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store(store);
+        let name = format!("test{}", line!());
 
         $crate::Test {
-            source: std::string::String::from($source),
+            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
+                name,
+                ::alloc::string::String::from($source),
+            )),
             kernel: None,
             stack_inputs,
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            add_modules: Vec::default(),
         }
     }};
     (
@@ -125,14 +136,19 @@ macro_rules! build_test_by_mode {
             .with_stack_values(stack_values)
             .unwrap()
             .with_merkle_store($advice_merkle_store);
+        let name = format!("test{}", line!());
 
         $crate::Test {
-            source: String::from($source),
+            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
+                name,
+                String::from($source),
+            )),
             kernel: None,
             stack_inputs,
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            add_modules: Vec::default(),
         }
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_stack:expr, $advice_merkle_store:expr, $advice_map:expr) => {{
@@ -144,14 +160,19 @@ macro_rules! build_test_by_mode {
             .unwrap()
             .with_merkle_store($advice_merkle_store)
             .with_map($advice_map);
+        let name = format!("test{}", line!());
 
         $crate::Test {
-            source: String::from($source),
+            source: ::alloc::sync::Arc::new(::assembly::diagnostics::SourceFile::new(
+                name,
+                ::alloc::string::String::from($source),
+            )),
             kernel: None,
             stack_inputs,
             advice_inputs,
             in_debug_mode: $in_debug_mode,
             libraries: Vec::default(),
+            add_modules: Vec::default(),
         }
     }};
 }

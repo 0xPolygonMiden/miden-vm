@@ -8,8 +8,8 @@ use miden_air::trace::chiplets::{
     MEMORY_V_COL_RANGE,
 };
 
-/// Tests the generation of the `b_chip` bus column when only memory lookups are included. It ensures
-/// that trace generation is correct when all of the following are true.
+/// Tests the generation of the `b_chip` bus column when only memory lookups are included. It
+/// ensures that trace generation is correct when all of the following are true.
 ///
 /// - All possible memory operations are called by the stack.
 /// - Some requests from the Stack and responses from Memory occur at the same cycle.
@@ -38,10 +38,10 @@ fn b_chip_trace_mem() {
         Operation::Drop,      // ensure the stack overflow table is empty
         Operation::MStream,   // read 2 words starting at address 0
     ];
-    let mut trace = build_trace_from_ops(operations, &stack);
+    let trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
-    let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
+    let aux_columns = trace.build_aux_trace(&rand_elements).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_chip.len());

@@ -1,179 +1,175 @@
-use super::{
-    Assembler, AssemblyContext, AssemblyError, CodeBlock, Operation, ProcedureId, RpoDigest,
-    SpanBuilder,
+use super::{Assembler, AssemblyContext, BasicBlockBuilder, Operation};
+use crate::{
+    ast::{InvocationTarget, InvokeKind},
+    AssemblyError, RpoDigest, SourceSpan, Span, Spanned,
 };
-use alloc::vec::Vec;
 
-// PROCEDURE INVOCATIONS
-// ================================================================================================
+use smallvec::SmallVec;
+use vm_core::mast::{MastForest, MastNode, MastNodeId};
 
+/// Procedure Invocation
 impl Assembler {
-    pub(super) fn exec_local(
+    pub(super) fn invoke(
         &self,
-        proc_idx: u16,
+        kind: InvokeKind,
+        callee: &InvocationTarget,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // register an "inlined" call to the procedure at the specified index in the module
-        // currently being complied; this updates the callset of the procedure currently being
-        // compiled
-        let proc = context.register_local_call(proc_idx, true)?;
-
-        // TODO: if the procedure consists of a single SPAN block, we could just append all
-        // operations from that SPAN block to the span builder instead of returning a code block
-
-        // return the code block of the procedure
-        Ok(Some(proc.code().clone()))
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let span = callee.span();
+        let digest = self.resolve_target(kind, callee, context, mast_forest)?;
+        self.invoke_mast_root(kind, span, digest, context, mast_forest)
     }
 
-    pub(super) fn exec_imported(
+    fn invoke_mast_root(
         &self,
-        proc_id: &ProcedureId,
+        kind: InvokeKind,
+        span: SourceSpan,
+        mast_root: RpoDigest,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // make sure the procedure is in procedure cache
-        self.ensure_procedure_is_in_cache(proc_id, context)?;
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        // Get the procedure from the assembler
+        let cache = &self.procedure_cache;
+        let current_source_file = context.unwrap_current_procedure().source_file();
 
-        // get the procedure from the assembler
-        let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
-
-        // register an "inlined" call to the procedure; this updates the callset of the
-        // procedure currently being compiled
-        context.register_external_call(proc, true)?;
-
-        // TODO: if the procedure consists of a single SPAN block, we could just append all
-        // operations from that SPAN block to the span builder instead of returning a code block
-
-        // return the code block of the procedure
-        Ok(Some(proc.code().clone()))
-    }
-
-    pub(super) fn call_local(
-        &self,
-        index: u16,
-        context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // register a "non-inlined" call to the procedure at the specified index in the module
-        // currently being complied; this updates the callset of the procedure currently being
-        // compiled
-        let proc = context.register_local_call(index, false)?;
-
-        // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(proc.mast_root())))
-    }
-
-    pub(super) fn call_mast_root(
-        &self,
-        mast_root: &RpoDigest,
-        context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // get the procedure from the assembler
-        let proc_cache = self.proc_cache.borrow();
-
-        // if the procedure with the specified MAST root exists in procedure cache, register a
-        // "non-inlined" call to the procedure (to update the callset of the procedure currently
-        // being compiled); otherwise, register a "phantom" call.
-        match proc_cache.get_by_hash(mast_root) {
-            Some(proc) => context.register_external_call(proc, false)?,
-            None => context.register_phantom_call(*mast_root)?,
+        // If the procedure is cached, register the call to ensure the callset
+        // is updated correctly. Otherwise, register a phantom call.
+        match cache.get_by_mast_root(&mast_root) {
+            Some(proc) if matches!(kind, InvokeKind::SysCall) => {
+                // Verify if this is a syscall, that the callee is a kernel procedure
+                //
+                // NOTE: The assembler is expected to know the full set of all kernel
+                // procedures at this point, so if we can't identify the callee as a
+                // kernel procedure, it is a definite error.
+                if !proc.visibility().is_syscall() {
+                    return Err(AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file,
+                        callee: proc.fully_qualified_name().clone(),
+                    });
+                }
+                let maybe_kernel_path = proc.path();
+                self.module_graph
+                    .find_module(maybe_kernel_path)
+                    .ok_or_else(|| AssemblyError::InvalidSysCallTarget {
+                        span,
+                        source_file: current_source_file.clone(),
+                        callee: proc.fully_qualified_name().clone(),
+                    })
+                    .and_then(|module| {
+                        if module.is_kernel() {
+                            Ok(())
+                        } else {
+                            Err(AssemblyError::InvalidSysCallTarget {
+                                span,
+                                source_file: current_source_file.clone(),
+                                callee: proc.fully_qualified_name().clone(),
+                            })
+                        }
+                    })?;
+                context.register_external_call(&proc, false, mast_forest)?;
+            }
+            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
+            None if matches!(kind, InvokeKind::SysCall) => {
+                return Err(AssemblyError::UnknownSysCallTarget {
+                    span,
+                    source_file: current_source_file,
+                    callee: mast_root,
+                });
+            }
+            None => context.register_phantom_call(Span::new(span, mast_root))?,
         }
 
-        // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(*mast_root)))
+        let mast_root_node_id = {
+            // Note that here we rely on the fact that we topologically sorted the procedures, such
+            // that when we assemble a procedure, all procedures that it calls will have been
+            // assembled, and hence be present in the `MastForest`. We currently assume that the
+            // `MastForest` contains all the procedures being called; "external procedures" only
+            // known by digest are not currently supported.
+            let callee_id = mast_forest
+                .get_node_id_by_digest(mast_root)
+                .unwrap_or_else(|| panic!("MAST root {} not in MAST forest", mast_root));
+
+            match kind {
+                // For `exec`, we return the root of the procedure being exec'd, which has the
+                // effect of inlining it
+                InvokeKind::Exec => callee_id,
+                // For `call`, we just use the corresponding CALL block
+                InvokeKind::Call => {
+                    let node = MastNode::new_call(callee_id, mast_forest);
+                    mast_forest.ensure_node(node)
+                }
+                // For `syscall`, we just use the corresponding SYSCALL block
+                InvokeKind::SysCall => {
+                    let node = MastNode::new_syscall(callee_id, mast_forest);
+                    mast_forest.ensure_node(node)
+                }
+            }
+        };
+
+        Ok(Some(mast_root_node_id))
     }
 
-    pub(super) fn call_imported(
+    /// Creates a new DYN block for the dynamic code execution and return.
+    pub(super) fn dynexec(
         &self,
-        proc_id: &ProcedureId,
-        context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // make sure the procedure is in procedure cache
-        self.ensure_procedure_is_in_cache(proc_id, context)?;
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
 
-        // get the procedure from the assembler
-        let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
-
-        // register a "non-inlined" call to the procedure; this updates the callset of the
-        // procedure currently being compiled
-        context.register_external_call(proc, false)?;
-
-        // create a new CALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_call(proc.mast_root())))
+        Ok(Some(dyn_node_id))
     }
 
-    pub(super) fn syscall(
+    /// Creates a new CALL block whose target is DYN.
+    pub(super) fn dyncall(
         &self,
-        proc_id: &ProcedureId,
-        context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // fetch from proc cache and check if its a kernel procedure
-        // note: the assembler is expected to have all kernel procedures properly inserted in the
-        // proc cache upon initialization, with their correct procedure ids
-        let proc_cache = self.proc_cache.borrow();
+        mast_forest: &mut MastForest,
+    ) -> Result<Option<MastNodeId>, AssemblyError> {
+        let dyn_call_node_id = {
+            let dyn_node_id = mast_forest.ensure_node(MastNode::Dyn);
+            let dyn_call_node = MastNode::new_call(dyn_node_id, mast_forest);
 
-        let proc = proc_cache
-            .get_by_id(proc_id)
-            .ok_or_else(|| AssemblyError::kernel_proc_not_found(proc_id))?;
+            mast_forest.ensure_node(dyn_call_node)
+        };
 
-        // since call and syscall instructions cannot be executed inside a kernel, a callset for
-        // a kernel procedure must be empty.
-        debug_assert!(proc.callset().is_empty(), "non-empty callset for a kernel procedure");
-
-        // register a "non-inlined" call to the procedure; this updates the callset of the
-        // procedure currently being compiled
-        context.register_external_call(proc, false)?;
-
-        // create a new SYSCALL block for the procedure call and return
-        Ok(Some(CodeBlock::new_syscall(proc.mast_root())))
+        Ok(Some(dyn_call_node_id))
     }
 
-    pub(super) fn dynexec(&self) -> Result<Option<CodeBlock>, AssemblyError> {
-        // create a new DYN block for the dynamic code execution and return
-        Ok(Some(CodeBlock::new_dyn()))
-    }
-
-    pub(super) fn dyncall(&self) -> Result<Option<CodeBlock>, AssemblyError> {
-        // create a new CALL block whose target is DYN
-        Ok(Some(CodeBlock::new_dyncall()))
-    }
-
-    pub(super) fn procref_local(
+    pub(super) fn procref(
         &self,
-        proc_idx: u16,
+        callee: &InvocationTarget,
         context: &mut AssemblyContext,
-        span: &mut SpanBuilder,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // get root of the compiled local procedure and add it to the callset to be able to use
-        // dynamic instructions with this procedure later
-        let proc_root = context.register_local_call(proc_idx, false)?.mast_root();
-
-        // create an array with `Push` operations containing root elements
-        let ops: Vec<Operation> = proc_root.iter().map(|elem| Operation::Push(*elem)).collect();
-        span.add_ops(ops)
+        span_builder: &mut BasicBlockBuilder,
+        mast_forest: &MastForest,
+    ) -> Result<(), AssemblyError> {
+        let span = callee.span();
+        let digest = self.resolve_target(InvokeKind::Exec, callee, context, mast_forest)?;
+        self.procref_mast_root(span, digest, context, span_builder, mast_forest)
     }
 
-    pub(super) fn procref_imported(
+    fn procref_mast_root(
         &self,
-        proc_id: &ProcedureId,
+        span: SourceSpan,
+        mast_root: RpoDigest,
         context: &mut AssemblyContext,
-        span: &mut SpanBuilder,
-    ) -> Result<Option<CodeBlock>, AssemblyError> {
-        // make sure the procedure is in procedure cache
-        self.ensure_procedure_is_in_cache(proc_id, context)?;
+        span_builder: &mut BasicBlockBuilder,
+        mast_forest: &MastForest,
+    ) -> Result<(), AssemblyError> {
+        // Add the root to the callset to be able to use dynamic instructions
+        // with the referenced procedure later
+        let cache = &self.procedure_cache;
+        match cache.get_by_mast_root(&mast_root) {
+            Some(proc) => context.register_external_call(&proc, false, mast_forest)?,
+            None => context.register_phantom_call(Span::new(span, mast_root))?,
+        }
 
-        // get the procedure from the assembler
-        let proc_cache = self.proc_cache.borrow();
-        let proc = proc_cache.get_by_id(proc_id).expect("procedure not in cache");
-
-        // add the root of the procedure to the callset to be able to use dynamic instructions with
-        // this procedure later
-        context.register_external_call(proc, false)?;
-
-        // get root of the cimported procedure
-        let proc_root = proc.mast_root();
-        // create an array with `Push` operations containing root elements
-        let ops: Vec<Operation> = proc_root.iter().map(|elem| Operation::Push(*elem)).collect();
-        span.add_ops(ops)
+        // Create an array with `Push` operations containing root elements
+        let ops = mast_root
+            .iter()
+            .map(|elem| Operation::Push(*elem))
+            .collect::<SmallVec<[_; 4]>>();
+        span_builder.push_ops(ops);
+        Ok(())
     }
 }

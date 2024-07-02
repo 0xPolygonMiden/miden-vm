@@ -159,7 +159,7 @@ fn test_set_advice_map_empty_key() {
         # Fetch what was stored on advice map and clean stack
         adv.push_smtpeek dropw dropw
         # => [V]
-        
+
         # Push advice map values on stack
         adv_push.4
         # => [V_in_map, V]
@@ -202,7 +202,7 @@ fn test_set_advice_map_single_key() {
         # Fetch what was stored on advice map and clean stack
         adv.push_smtpeek dropw dropw
         # => [V]
-        
+
         # Push advice map values on stack
         adv_push.4
         # => [V_in_map, V]
@@ -253,6 +253,7 @@ fn test_set_empty_key_in_non_empty_leaf() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+#[allow(clippy::type_complexity)]
 fn prepare_insert_or_set(
     key: RpoDigest,
     value: Word,

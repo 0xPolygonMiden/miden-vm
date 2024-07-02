@@ -60,7 +60,7 @@ pub enum AdviceInjector {
     ///  Operand stack: [OLD_NODE, depth, index, OLD_ROOT, NEW_NODE, ...]
     ///  Advice stack: [...]
     ///  Merkle store: {path, ...}
-    ///  Return: [path]
+    ///  Return: \[path\]
     UpdateMerkleNode,
 
     /// Pushes a list of field elements onto the advice stack. The list is looked up in the advice
@@ -274,11 +274,17 @@ pub enum AdviceInjector {
     ///
     /// Outputs:
     ///   Operand stack: [PK, MSG, ...]
-    ///   Advice stack: [SIG_DATA]
+    ///   Advice stack: \[SIG_DATA\]
     ///
     /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
     /// is the signature data.
     SigToStack { kind: SignatureKind },
+}
+
+impl crate::prettier::PrettyPrint for AdviceInjector {
+    fn render(&self) -> crate::prettier::Document {
+        crate::prettier::display(self)
+    }
 }
 
 impl fmt::Display for AdviceInjector {

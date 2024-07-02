@@ -1,5 +1,8 @@
-use assembly::AssemblyError;
-use test_utils::{build_op_test, proptest::prelude::*, TestError, STACK_TOP_SIZE, WORD_SIZE};
+use assembly::regex;
+use test_utils::{
+    assert_assembler_diagnostic, assert_diagnostic_lines, build_op_test, proptest::prelude::*,
+    STACK_TOP_SIZE, WORD_SIZE,
+};
 
 // STACK OPERATIONS TESTS
 // ================================================================================================
@@ -55,9 +58,15 @@ fn dupn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `dup.16`: parameter '16' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 0..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin dup.16 end",
+        "  :           ^^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -84,9 +93,15 @@ fn dupwn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `dupw.4`: parameter '4' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 0..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin dupw.4 end",
+        "  :            ^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -113,10 +128,17 @@ fn swapn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `swap.16`: parameter '16' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 1..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin swap.16 end",
+        "  :            ^^",
+        "  `----"
+    );
 }
+
 #[test]
 fn swapw() {
     let asm_op = "swapw";
@@ -141,9 +163,15 @@ fn swapwn_fail() {
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `swapw.4`: parameter '4' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 1..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin swapw.4 end",
+        "  :             ^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -167,21 +195,39 @@ fn movup() {
 fn movup_fail() {
     let asm_op = "movup.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movup.0`: parameter '0' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movup.0 end",
+        "  :             ^",
+        "  `----"
+    );
 
     let asm_op = "movup.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movup.1`: parameter '1' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movup.1 end",
+        "  :             ^",
+        "  `----"
+    );
 
     let asm_op = "movup.16";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movup.16`: parameter '16' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movup.16 end",
+        "  :             ^^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -196,21 +242,39 @@ fn movupw() {
 fn movupw_fail() {
     let asm_op = "movupw.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movupw.0`: parameter '0' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movupw.0 end",
+        "  :              ^",
+        "  `----"
+    );
 
     let asm_op = "movupw.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movupw.1`: parameter '1' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movupw.1 end",
+        "  :              ^",
+        "  `----"
+    );
 
     let asm_op = "movupw.4";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movupw.4`: parameter '4' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movupw.4 end",
+        "  :              ^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -225,21 +289,39 @@ fn movdn() {
 fn movdn_fail() {
     let asm_op = "movdn.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movdn.0`: parameter '0' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdn.0 end",
+        "  :             ^",
+        "  `----"
+    );
 
     let asm_op = "movdn.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movdn.1`: parameter '1' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdn.1 end",
+        "  :             ^",
+        "  `----"
+    );
 
     let asm_op = "movdn.16";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movdn.16`: parameter '16' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..16 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdn.16 end",
+        "  :             ^^",
+        "  `----"
+    );
 }
 
 #[test]
@@ -254,21 +336,39 @@ fn movdnw() {
 fn movdnw_fail() {
     let asm_op = "movdnw.0";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movdnw.0`: parameter '0' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdnw.0 end",
+        "  :              ^",
+        "  `----"
+    );
 
     let asm_op = "movdnw.1";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movdnw.1`: parameter '1' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdnw.1 end",
+        "  :              ^",
+        "  `----"
+    );
 
     let asm_op = "movdnw.4";
     let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-    test.expect_error(TestError::AssemblyError(AssemblyError::ParsingError(String::from(
-        "malformed instruction `movdnw.4`: parameter '4' is invalid",
-    ))));
+
+    assert_assembler_diagnostic!(
+        test,
+        "invalid immediate: value must be in the range 2..4 (exclusive)",
+        regex!(r#",-\[test[\d]+:[\d]+:[\d]+\]"#),
+        "1 | begin movdnw.4 end",
+        "  :              ^",
+        "  `----"
+    );
 }
 
 #[test]

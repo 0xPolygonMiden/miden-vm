@@ -107,7 +107,8 @@ fn mem_stream() {
 
     // the state is built by replacing the values on the top of the stack with the values in memory
     // addresses 0 and 1 (i.e., 1 through 8). Thus, the first 8 elements on the stack will be 1
-    // through 8 (in stack order, with 8 at stack[0]), and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
+    // through 8 (in stack order, with 8 at stack[0]), and the remaining 4 are untouched (i.e., 9,
+    // 10, 11, 12).
     let state: [Felt; 12] =
         [12_u64, 11, 10, 9, 1, 2, 3, 4, 5, 6, 7, 8].to_elements().try_into().unwrap();
 

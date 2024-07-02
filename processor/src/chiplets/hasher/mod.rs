@@ -119,7 +119,7 @@ impl Hasher {
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started.
-    pub(super) fn hash_span_block(
+    pub(super) fn hash_basic_block(
         &mut self,
         op_batches: &[OpBatch],
         expected_hash: Digest,
@@ -164,8 +164,8 @@ impl Hasher {
                 //   operation batch on the last row.
                 // - middle permutations: continue hashing on the first row, and absorb the next
                 //   operation batch on the last row.
-                // - last permutation: continue hashing on the first row, and return the result
-                //   on the last row.
+                // - last permutation: continue hashing on the first row, and return the result on
+                //   the last row.
                 self.trace.append_permutation(&mut state, START, ABSORB);
 
                 for batch in op_batches.iter().take(num_batches - 1).skip(1) {
@@ -456,7 +456,8 @@ pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
 }
 
 /// Initializes hasher state with elements from the provided words.  Sets the second element of the
-/// capacity register to the provided domain.  All other elements of the capacity register are set to 0.
+/// capacity register to the provided domain.  All other elements of the capacity register are set
+/// to 0.
 #[inline(always)]
 pub fn init_state_from_words_with_domain(
     w1: &Word,

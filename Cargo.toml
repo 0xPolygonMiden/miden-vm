@@ -1,14 +1,14 @@
 [workspace]
 members = [
-  "air",
-  "assembly",
-  "core",
-  "miden",
-  "processor",
-  "prover",
-  "stdlib",
-  "test-utils",
-  "verifier"
+    "air",
+    "assembly",
+    "core",
+    "miden",
+    "processor",
+    "prover",
+    "stdlib",
+    "test-utils",
+    "verifier",
 ]
 resolver = "2"
 
@@ -22,3 +22,7 @@ inherits = "release"
 debug = true
 debug-assertions = true
 overflow-checks = true
+
+[patch.crates-io]
+thiserror = { git = "https://github.com/bitwalker/thiserror", branch = "no-std" }
+miette = { git = "https://github.com/bitwalker/miette", branch = "no-std" }

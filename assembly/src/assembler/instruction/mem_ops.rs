@@ -1,7 +1,6 @@
-use super::{
-    push_felt, push_u32_value, validate_param, AssemblyContext, AssemblyError, CodeBlock, Felt,
-    Operation::*, SpanBuilder,
-};
+use super::{push_felt, push_u32_value, validate_param, AssemblyContext, BasicBlockBuilder};
+use crate::AssemblyError;
+use vm_core::{Felt, Operation::*};
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -21,21 +20,22 @@ use super::{
 /// Returns an error if we are reading from local memory and local memory index is greater than
 /// the number of procedure locals.
 pub fn mem_read(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     context: &AssemblyContext,
     addr: Option<u32>,
     is_local: bool,
     is_single: bool,
-) -> Result<Option<CodeBlock>, AssemblyError> {
+) -> Result<(), AssemblyError> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
-            local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
+            let num_locals = context.unwrap_current_procedure().num_locals();
+            local_to_absolute_addr(span, addr as u16, num_locals)?;
         } else {
             push_u32_value(span, addr);
         }
-    } else if is_local {
-        unreachable!("local always contains addr value");
+    } else {
+        assert!(!is_local, "local always contains addr value");
     }
 
     // load from the memory address on top of the stack
@@ -45,7 +45,7 @@ pub fn mem_read(
         span.push_op(MLoadW);
     }
 
-    Ok(None)
+    Ok(())
 }
 
 /// Appends operations to the span needed to execute a memory write instruction with an immediate
@@ -71,14 +71,15 @@ pub fn mem_read(
 /// Returns an error if we are writing to local memory and local memory index is greater than
 /// the number of procedure locals.
 pub fn mem_write_imm(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     context: &AssemblyContext,
     addr: u32,
     is_local: bool,
     is_single: bool,
-) -> Result<Option<CodeBlock>, AssemblyError> {
+) -> Result<(), AssemblyError> {
     if is_local {
-        local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
+        let num_locals = context.unwrap_current_procedure().num_locals();
+        local_to_absolute_addr(span, addr as u16, num_locals)?;
     } else {
         push_u32_value(span, addr);
     }
@@ -90,7 +91,7 @@ pub fn mem_write_imm(
         span.push_op(MStoreW);
     }
 
-    Ok(None)
+    Ok(())
 }
 
 // HELPER FUNCTIONS
@@ -107,7 +108,7 @@ pub fn mem_write_imm(
 /// # Errors
 /// Returns an error if index is greater than the number of procedure locals.
 pub fn local_to_absolute_addr(
-    span: &mut SpanBuilder,
+    span: &mut BasicBlockBuilder,
     index: u16,
     num_proc_locals: u16,
 ) -> Result<(), AssemblyError> {

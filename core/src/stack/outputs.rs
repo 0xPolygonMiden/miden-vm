@@ -1,10 +1,11 @@
-use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 use alloc::vec::Vec;
+
 use miden_crypto::{Word, ZERO};
 
 use super::{
     ByteWriter, Felt, OutputError, Serializable, StackTopState, ToElements, STACK_TOP_SIZE,
 };
+use crate::utils::{range, ByteReader, Deserializable, DeserializationError};
 
 // STACK OUTPUTS
 // ================================================================================================

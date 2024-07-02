@@ -319,7 +319,7 @@ fn test_mmr_unpack_invalid_hash() {
     let store = MerkleStore::new();
 
     // corrupt the data, this changes the hash and the commitment check must fail
-    hash_data[0][0] = hash_data[0][0] + ONE;
+    hash_data[0][0] += ONE;
 
     let mut map_data: Vec<Felt> = Vec::with_capacity(hash_data.len() + 1);
     map_data.extend_from_slice(&[Felt::new(0b10101), ZERO, ZERO, ZERO]); // 3 peaks, 21 leaves
@@ -683,9 +683,9 @@ fn test_mmr_large_add_roundtrip() {
 // ================================================================================================
 
 fn digests_to_elements(digests: &[RpoDigest]) -> Vec<Felt> {
-    digests.iter().map(|d| Word::from(d)).flatten().collect()
+    digests.iter().flat_map(Word::from).collect()
 }
 
 fn digests_to_ints(digests: &[RpoDigest]) -> Vec<u64> {
-    digests.iter().map(|d| Word::from(d)).flatten().map(|v| v.as_int()).collect()
+    digests.iter().flat_map(Word::from).map(|v| v.as_int()).collect()
 }

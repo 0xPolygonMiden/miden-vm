@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.0 (TBD)
+
+#### Enhancements
+
+- Added error codes support for the `mtree_verify` instruction (#1328).
+- Added support for immediate values for `lt`, `lte`, `gt`, `gte` comparison instructions (#1346).
+- Change MAST to a table-based representation (#1349)
+- Adjusted prover's metal acceleration code to work with 0.9 versions of the crates (#1357)
+- Added support for immediate values for `u32lt`, `u32lte`, `u32gt`, `u32gte`, `u32min` and `u32max` comparison instructions (#1358).
+- Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics. This is implemented for use by compilers primarily.
+- Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
+- Relaxed the parser to allow one branch of an `if.(true|false)` to be empty
+
+#### Changed
+
+- When using `if.(true|false) .. end`, the parser used to emit an empty block for the branch that was elided. The parser now emits a block containing a single `nop` instruction instead, which is equivalent to the code emitted by the assembler when lowering to MAST.
+
 ## 0.9.2 (2024-05-22) - `stdlib` crate only
 - Skip writing MASM documentation to file when building on docs.rs (#1341).
 
@@ -18,12 +35,15 @@
 #### Packaging
 - [BREAKING] The package `miden-vm` crate was renamed from `miden` to `miden-vm`. Now the package and crate names match (#1271).
 
+#### Stdlib
+- Added `init_no_padding` procedure to `std::crypto::hashes::native` (#1313).
+
 #### VM Internals
 - Removed unused `find_lone_leaf()` function from the Advice Provider (#1262).
 - [BREAKING] Changed fields type of the `StackOutputs` struct from `Vec<u64>` to `Vec<Felt>` (#1268).
 - [BREAKING] Migrated to `miden-crypto` v0.9.0 (#1287).
 
-## 0.8.0 (2024-02-26)
+## 0.8.0 (02-26-2024)
 
 #### Assembly
 - Expanded capabilities of the `debug` decorator. Added `debug.mem` and `debug.local` variations (#1103).
