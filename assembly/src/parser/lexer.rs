@@ -3,8 +3,8 @@ use alloc::string::String;
 use core::{num::IntErrorKind, ops::Range};
 
 use super::{
-    BinEncodedValue, DocumentationType, HexEncodedValue, HexErrorKind, LiteralErrorKind,
-    ParsingError, Scanner, SourceSpan, Token,
+    BinEncodedValue, BinErrorKind, DocumentationType, HexEncodedValue, HexErrorKind,
+    LiteralErrorKind, ParsingError, Scanner, SourceSpan, Token,
 };
 
 /// The value produced by the [Lexer] when iterated
@@ -637,25 +637,21 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, Pars
 }
 
 fn parse_bin(span: SourceSpan, bin_digits: &str) -> Result<BinEncodedValue, ParsingError> {
-    use vm_core::StarkField;
-    if bin_digits.len() <= 64 {
+    if bin_digits.len() <= 32 {
         let value =
-            u64::from_str_radix(bin_digits, 2).map_err(|error| ParsingError::InvalidLiteral {
+            u32::from_str_radix(bin_digits, 2).map_err(|error| ParsingError::InvalidLiteral {
                 span,
                 kind: int_error_kind_to_literal_error_kind(
                     error.kind(),
                     LiteralErrorKind::FeltOverflow,
                 ),
             })?;
-        if value > Felt::MODULUS {
-            return Err(ParsingError::InvalidLiteral {
-                span,
-                kind: LiteralErrorKind::FeltOverflow,
-            });
-        }
-        Ok(shrink_u64_bin(value))
+        Ok(shrink_u32_bin(value))
     } else {
-        Err(ParsingError::InvalidBinaryLiteral { span })
+        Err(ParsingError::InvalidBinaryLiteral {
+            span,
+            kind: BinErrorKind::TooLong,
+        })
     }
 }
 
@@ -677,15 +673,13 @@ fn shrink_u64_hex(n: u64) -> HexEncodedValue {
 }
 
 #[inline]
-fn shrink_u64_bin(n: u64) -> BinEncodedValue {
-    if n <= (u8::MAX as u64) {
+fn shrink_u32_bin(n: u32) -> BinEncodedValue {
+    if n <= (u8::MAX as u32) {
         BinEncodedValue::U8(n as u8)
-    } else if n <= (u16::MAX as u64) {
+    } else if n <= (u16::MAX as u32) {
         BinEncodedValue::U16(n as u16)
-    } else if n <= (u32::MAX as u64) {
-        BinEncodedValue::U32(n as u32)
     } else {
-        BinEncodedValue::Felt(Felt::new(n))
+        BinEncodedValue::U32(n)
     }
 }
 

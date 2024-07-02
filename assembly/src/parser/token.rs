@@ -64,10 +64,6 @@ pub enum BinEncodedValue {
     U16(u16),
     /// A u32 constant, typically represents a memory address
     U32(u32),
-    /// A single field element, 8 bytes, encoded as 64 binary digits
-    Felt(Felt),
-    // /// A set of 4 field elements, 32 bytes, encoded as a contiguous string of 256 binary digits
-    // Word([Felt; 4]),
 }
 
 // TOKEN

@@ -69,6 +69,25 @@ impl fmt::Display for HexErrorKind {
     }
 }
 
+// BINARY ERROR KIND
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinErrorKind {
+    /// Occurs when the bin-encoded value is > 32 digits
+    TooLong,
+}
+
+impl fmt::Display for BinErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::TooLong => f.write_str(
+                "value has too many digits, binary string can contain no more than 32 digits",
+            ),
+        }
+    }
+}
+
 // PARSING ERROR
 // ================================================================================================
 
@@ -162,11 +181,12 @@ pub enum ParsingError {
         span: SourceSpan,
         kind: HexErrorKind,
     },
-    #[error("Binary value overflowed the field modulus")]
+    #[error("invalid literal: {}", kind)]
     #[diagnostic()]
     InvalidBinaryLiteral {
         #[label]
         span: SourceSpan,
+        kind: BinErrorKind,
     },
     #[error("invalid MAST root literal")]
     InvalidMastRoot {

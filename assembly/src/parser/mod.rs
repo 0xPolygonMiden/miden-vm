@@ -21,7 +21,7 @@ mod scanner;
 mod span;
 mod token;
 
-pub use self::error::{HexErrorKind, LiteralErrorKind, ParsingError};
+pub use self::error::{BinErrorKind, HexErrorKind, LiteralErrorKind, ParsingError};
 pub use self::lexer::Lexer;
 pub use self::location::SourceLocation;
 pub use self::scanner::Scanner;

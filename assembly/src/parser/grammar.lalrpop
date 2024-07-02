@@ -1138,7 +1138,6 @@ U32: u32 = {
             BinEncodedValue::U8(v) => Ok(v as u32),
             BinEncodedValue::U16(v) => Ok(v as u32),
             BinEncodedValue::U32(v) => Ok(v),
-            _ =>  Err(ParseError::User { error: ParsingError::InvalidLiteral { span: span!(l, r), kind: LiteralErrorKind::U32Overflow } }),
         }
     }
 }
