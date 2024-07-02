@@ -36,11 +36,14 @@ pub struct ProcedureAlias {
 impl ProcedureAlias {
     /// Creates a new procedure alias called `name`, which resolves to `target`.
     pub fn new(name: ProcedureName, target: impl Into<AliasTarget>, absolute: bool) -> Self {
+        let target = target.into();
+        // Ignore the absolute flag if the target is implicitly absolute
+        let absolute = matches!(target, AliasTarget::MastRoot(_)) || absolute;
         Self {
             docs: None,
             source_file: None,
             name,
-            target: target.into(),
+            target,
             absolute,
         }
     }
@@ -131,22 +134,18 @@ impl crate::prettier::PrettyPrint for ProcedureAlias {
                 .unwrap_or_default();
         }
 
-        let is_renamed = match &self.target {
-            AliasTarget::Path(name) => name.name == self.name,
-            _ => false,
-        };
         doc += const_text("export.");
-        if is_renamed {
-            if self.absolute {
-                doc += display(format_args!("::{}", &self.target));
-            } else {
-                doc += display(&self.target);
+        doc += match &self.target {
+            target @ AliasTarget::MastRoot(_) => display(format_args!("{}->{}", target, self.name)),
+            AliasTarget::Path(name) => {
+                let prefix = if self.absolute { "::" } else { "" };
+                if name.name == self.name {
+                    display(format_args!("{}{}", prefix, name))
+                } else {
+                    display(format_args!("{}{}->{}", prefix, name, &self.name))
+                }
             }
-        } else if self.absolute {
-            doc += display(format_args!("::{}->{}", self.target, &self.name));
-        } else {
-            doc += display(format_args!("{}->{}", self.target, &self.name));
-        }
+        };
         doc
     }
 }
