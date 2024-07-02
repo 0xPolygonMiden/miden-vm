@@ -11,16 +11,23 @@ use winter_utils::{
 
 use crate::{
     mast::{MerkleTreeNode, OperationOrDecorator},
-    DecoratorList, Operation, OperationData,
+    AdviceInjector, DebugOptions, Decorator, DecoratorList, Operation, OperationData,
+    SignatureKind,
 };
 
 use super::{MastForest, MastNode, MastNodeId};
+
+mod decorator;
+use decorator::EncodedDecoratorVariant;
 
 mod info;
 use info::{EncodedMastNodeType, MastNodeInfo, MastNodeTypeVariant};
 
 /// Specifies an offset into the `data` section of an encoded [`MastForest`].
 type DataOffset = u32;
+
+/// Specifies an offset into the `strings` table of an encoded [`MastForest`]
+type StringIndex = usize;
 
 /// Magic string for detecting that a file is binary-encoded MAST.
 const MAGIC: &[u8; 5] = b"MAST\0";
@@ -177,9 +184,8 @@ fn mast_node_to_info(
             for op_or_decorator in basic_block.iter() {
                 match op_or_decorator {
                     OperationOrDecorator::Operation(operation) => encode_operation(operation, data),
-                    OperationOrDecorator::Decorator(_) => {
-                        // TODOP: Remember: you need to set the most significant bit to 1
-                        todo!()
+                    OperationOrDecorator::Decorator(decorator) => {
+                        encode_decorator(decorator, data, strings)
                     }
                 }
             }
@@ -292,6 +298,101 @@ fn encode_operation(operation: &Operation, data: &mut Vec<u8>) {
         | Operation::FriE2F4
         | Operation::RCombBase => (),
     }
+}
+
+fn encode_decorator(decorator: &Decorator, data: &mut Vec<u8>, strings: &mut Vec<StringRef>) {
+    // Set the first byte to the decorator discriminant.
+    //
+    // Note: the most significant bit is set to 1 (to differentiate decorators from operations).
+    {
+        let decorator_variant: EncodedDecoratorVariant = decorator.into();
+        data.push(decorator_variant.discriminant() | 0b1000_0000);
+    }
+
+    // For decorators that have extra data, encode it in `data` and `strings`.
+    match decorator {
+        Decorator::Advice(advice_injector) => match advice_injector {
+            AdviceInjector::MapValueToStack {
+                include_len,
+                key_offset,
+            } => {
+                data.push((*include_len).into());
+                data.write_usize(*key_offset);
+            }
+            AdviceInjector::HdwordToMap { domain } => data.extend(domain.as_int().to_le_bytes()),
+            AdviceInjector::SigToStack { kind } => match kind {
+                SignatureKind::RpoFalcon512 => data.push(0_u8),
+            },
+            AdviceInjector::MerkleNodeMerge
+            | AdviceInjector::MerkleNodeToStack
+            | AdviceInjector::UpdateMerkleNode
+            | AdviceInjector::U64Div
+            | AdviceInjector::Ext2Inv
+            | AdviceInjector::Ext2Intt
+            | AdviceInjector::SmtGet
+            | AdviceInjector::SmtSet
+            | AdviceInjector::SmtPeek
+            | AdviceInjector::U32Clz
+            | AdviceInjector::U32Ctz
+            | AdviceInjector::U32Clo
+            | AdviceInjector::U32Cto
+            | AdviceInjector::ILog2
+            | AdviceInjector::MemToMap
+            | AdviceInjector::HpermToMap => (),
+        },
+        Decorator::AsmOp(assembly_op) => {
+            data.push(assembly_op.num_cycles());
+            data.push(assembly_op.should_break() as u8);
+
+            // TODOP: Make a StringTable type
+
+            // context name
+            {
+                let str_index_in_table = push_string(data, strings, assembly_op.context_name());
+
+                data.write_usize(str_index_in_table);
+            }
+
+            // op
+            {
+                let str_index_in_table = push_string(data, strings, assembly_op.op());
+
+                data.write_usize(str_index_in_table);
+            }
+        }
+        Decorator::Debug(debug_options) => match debug_options {
+            DebugOptions::StackTop(value) => data.push(*value),
+            DebugOptions::MemInterval(start, end) => {
+                data.extend(start.to_le_bytes());
+                data.extend(end.to_le_bytes());
+            }
+            DebugOptions::LocalInterval(start, second, end) => {
+                data.extend(start.to_le_bytes());
+                data.extend(second.to_le_bytes());
+                data.extend(end.to_le_bytes());
+            }
+            DebugOptions::StackAll | DebugOptions::MemAll => (),
+        },
+        Decorator::Event(value) | Decorator::Trace(value) => data.extend(value.to_le_bytes()),
+    }
+}
+
+// TODOP: Make this a method of `StringTable` type
+fn push_string(data: &mut Vec<u8>, strings: &mut Vec<StringRef>, value: &str) -> StringIndex {
+    let offset = data.len();
+    data.extend(value.as_bytes());
+
+    let str_ref = StringRef {
+        offset: offset
+            .try_into()
+            .expect("MastForest serialization: data field larger than 2^32 bytes"),
+        len: value.len().try_into().expect("decorator string length exceeds 2^32 bytes"),
+    };
+
+    let str_index_in_table = strings.len();
+    strings.push(str_ref);
+
+    str_index_in_table
 }
 
 fn try_info_to_mast_node(
