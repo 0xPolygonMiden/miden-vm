@@ -451,7 +451,122 @@ pub enum OperationData {
 impl Operation {
     // TODOP: document, and use `Result` instead?
     pub fn with_opcode_and_data(opcode: u8, data: OperationData) -> Option<Self> {
-        todo!()
+        match opcode {
+            0b0000_0000 => Some(Self::Noop),
+            0b0000_0001 => Some(Self::Eqz),
+            0b0000_0010 => Some(Self::Neg),
+            0b0000_0011 => Some(Self::Inv),
+            0b0000_0100 => Some(Self::Incr),
+            0b0000_0101 => Some(Self::Not),
+            0b0000_0110 => Some(Self::FmpAdd),
+            0b0000_0111 => Some(Self::MLoad),
+            0b0000_1000 => Some(Self::Swap),
+            0b0000_1001 => Some(Self::Caller),
+            0b0000_1010 => Some(Self::MovUp2),
+            0b0000_1011 => Some(Self::MovDn2),
+            0b0000_1100 => Some(Self::MovUp3),
+            0b0000_1101 => Some(Self::MovDn3),
+            0b0000_1110 => Some(Self::AdvPopW),
+            0b0000_1111 => Some(Self::Expacc),
+
+            0b0001_0000 => Some(Self::MovUp4),
+            0b0001_0001 => Some(Self::MovDn4),
+            0b0001_0010 => Some(Self::MovUp5),
+            0b0001_0011 => Some(Self::MovDn5),
+            0b0001_0100 => Some(Self::MovUp6),
+            0b0001_0101 => Some(Self::MovDn6),
+            0b0001_0110 => Some(Self::MovUp7),
+            0b0001_0111 => Some(Self::MovDn7),
+            0b0001_1000 => Some(Self::SwapW),
+            0b0001_1001 => Some(Self::Ext2Mul),
+            0b0001_1010 => Some(Self::MovUp8),
+            0b0001_1011 => Some(Self::MovDn8),
+            0b0001_1100 => Some(Self::SwapW2),
+            0b0001_1101 => Some(Self::SwapW3),
+            0b0001_1110 => Some(Self::SwapDW),
+            // 0b0001_1111 => <empty> ,
+            0b0010_0000 => match data {
+                OperationData::U32(value) => Some(Self::Assert(value)),
+                _ => None,
+            },
+            0b0010_0001 => Some(Self::Eq),
+            0b0010_0010 => Some(Self::Add),
+            0b0010_0011 => Some(Self::Mul),
+            0b0010_0100 => Some(Self::And),
+            0b0010_0101 => Some(Self::Or),
+            0b0010_0110 => Some(Self::U32and),
+            0b0010_0111 => Some(Self::U32xor),
+            0b0010_1000 => Some(Self::FriE2F4),
+            0b0010_1001 => Some(Self::Drop),
+            0b0010_1010 => Some(Self::CSwap),
+            0b0010_1011 => Some(Self::CSwapW),
+            0b0010_1100 => Some(Self::MLoadW),
+            0b0010_1101 => Some(Self::MStore),
+            0b0010_1110 => Some(Self::MStoreW),
+            0b0010_1111 => Some(Self::FmpUpdate),
+
+            0b0011_0000 => Some(Self::Pad),
+            0b0011_0001 => Some(Self::Dup0),
+            0b0011_0010 => Some(Self::Dup1),
+            0b0011_0011 => Some(Self::Dup2),
+            0b0011_0100 => Some(Self::Dup3),
+            0b0011_0101 => Some(Self::Dup4),
+            0b0011_0110 => Some(Self::Dup5),
+            0b0011_0111 => Some(Self::Dup6),
+            0b0011_1000 => Some(Self::Dup7),
+            0b0011_1001 => Some(Self::Dup9),
+            0b0011_1010 => Some(Self::Dup11),
+            0b0011_1011 => Some(Self::Dup13),
+            0b0011_1100 => Some(Self::Dup15),
+            0b0011_1101 => Some(Self::AdvPop),
+            0b0011_1110 => Some(Self::SDepth),
+            0b0011_1111 => Some(Self::Clk),
+
+            0b0100_0000 => Some(Self::U32add),
+            0b0100_0010 => Some(Self::U32sub),
+            0b0100_0100 => Some(Self::U32mul),
+            0b0100_0110 => Some(Self::U32div),
+            0b0100_1000 => Some(Self::U32split),
+            0b0100_1010 => match data {
+                OperationData::Felt(value) => Some(Self::U32assert2(value)),
+                _ => None,
+            },
+            0b0100_1100 => Some(Self::U32add3),
+            0b0100_1110 => Some(Self::U32madd),
+
+            0b0101_0000 => Some(Self::HPerm),
+            0b0101_0001 => match data {
+                OperationData::U32(value) => Some(Self::MpVerify(value)),
+                _ => None,
+            },
+            0b0101_0010 => Some(Self::Pipe),
+            0b0101_0011 => Some(Self::MStream),
+            0b0101_0100 => Some(Self::Split),
+            0b0101_0101 => Some(Self::Loop),
+            0b0101_0110 => Some(Self::Span),
+            0b0101_0111 => Some(Self::Join),
+            0b0101_1000 => Some(Self::Dyn),
+            0b0101_1001 => Some(Self::RCombBase),
+            // 0b0101_1010 => <empty>,
+            // 0b0101_1011 => <empty>,
+            // 0b0101_1100 => <empty>,
+            // 0b0101_1101 => <empty>,
+            // 0b0101_1110 => <empty>,
+            // 0b0101_1111 => <empty>,
+            0b0110_0000 => Some(Self::MrUpdate),
+            0b0110_0100 => match data {
+                OperationData::Felt(value) => Some(Self::Push(value)),
+                _ => None,
+            },
+            0b0110_1000 => Some(Self::SysCall),
+            0b0110_1100 => Some(Self::Call),
+            0b0111_0000 => Some(Self::End),
+            0b0111_0100 => Some(Self::Repeat),
+            0b0111_1000 => Some(Self::Respan),
+            0b0111_1100 => Some(Self::Halt),
+
+            _ => None,
+        }
     }
 }
 
@@ -472,6 +587,8 @@ impl Operation {
     ///   operations and some other operations requiring very high degree constraints.
     #[rustfmt::skip]
     pub const fn op_code(&self) -> u8 {
+        // REMEMBER: If you add/remove/modify an opcode here, you must also make the same change in
+        // `Operation::with_opcode_and_data()`.
         match self {
             Self::Noop          => 0b0000_0000,
             Self::Eqz           => 0b0000_0001,
