@@ -114,7 +114,12 @@ impl BasicBlockNode {
 /// Public accessors
 impl BasicBlockNode {
     pub fn num_operations_and_decorators(&self) -> u32 {
-        todo!()
+        let num_ops: usize = self.op_batches.iter().map(|batch| batch.ops().len()).sum();
+        let num_decorators = self.decorators.len();
+
+        (num_ops + num_decorators)
+            .try_into()
+            .expect("basic block contains more than 2^32 operations and decorators")
     }
 
     pub fn op_batches(&self) -> &[OpBatch] {
