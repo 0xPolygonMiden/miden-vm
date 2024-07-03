@@ -7,7 +7,6 @@ use crate::{chiplets::hasher, Operation};
 
 use crate::mast::{MastForest, MastNodeId, MerkleTreeNode};
 
-// TODOP: `callee` must be a digest,
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CallNode {
     callee: MastNodeId,
