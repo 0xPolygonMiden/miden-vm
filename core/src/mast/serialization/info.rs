@@ -31,6 +31,131 @@ impl Deserializable for MastNodeInfo {
     }
 }
 
+/// TODOP: Document the fact that encoded representation is always 8 bytes
+#[derive(Debug)]
+#[repr(u8)]
+pub enum MastNodeType {
+    Join {
+        left_child_id: u32,
+        right_child_id: u32,
+    },
+    Split {
+        if_branch_id: u32,
+        else_branch_id: u32,
+    },
+    Loop {
+        body: u32,
+    },
+    Block {
+        /// The number of operations and decorators in the basic block
+        len: u32,
+    },
+    Call {
+        callee_id: u32,
+    },
+    SysCall {
+        callee_id: u32,
+    },
+    Dyn,
+    External,
+}
+
+impl MastNodeType {
+    fn tag(&self) -> u8 {
+        // SAFETY: This is safe because we have given this enum a primitive representation with
+        // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
+        //
+        // See the section on "accessing the numeric value of the discriminant"
+        // here: https://doc.rust-lang.org/std/mem/fn.discriminant.html
+        unsafe { *<*const _>::from(self).cast::<u8>() }
+    }
+
+    fn inline_data_to_bytes(&self) -> [u8; 8] {
+        match self {
+            MastNodeType::Join {
+                left_child_id: left,
+                right_child_id: right,
+            } => Self::encode_join_or_split(*left, *right),
+            MastNodeType::Split {
+                if_branch_id: if_branch,
+                else_branch_id: else_branch,
+            } => Self::encode_join_or_split(*if_branch, *else_branch),
+            MastNodeType::Loop { body } => Self::encode_u32_payload(*body),
+            MastNodeType::Block { len } => Self::encode_u32_payload(*len),
+            MastNodeType::Call { callee_id } => Self::encode_u32_payload(*callee_id),
+            MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(*callee_id),
+            MastNodeType::Dyn => [0; 8],
+            MastNodeType::External => [0; 8],
+        }
+    }
+
+    // TODOP: Make a diagram of how the bits are split
+    fn encode_join_or_split(left_child_id: u32, right_child_id: u32) -> [u8; 8] {
+        assert!(left_child_id < 2_u32.pow(30));
+        assert!(right_child_id < 2_u32.pow(30));
+
+        let mut result: [u8; 8] = [0_u8; 8];
+
+        // write left child into result
+        {
+            let [lsb, a, b, msb] = left_child_id.to_le_bytes();
+            result[0] |= lsb >> 4;
+            result[1] |= lsb << 4;
+            result[1] |= a >> 4;
+            result[2] |= a << 4;
+            result[2] |= b >> 4;
+            result[3] |= b << 4;
+
+            // msb is different from lsb, a and b since its 2 most significant bits are guaranteed
+            // to be 0, and hence not encoded.
+            //
+            // More specifically, let the bits of msb be `00abcdef`. We encode `abcd` in
+            // `result[3]`, and `ef` as the most significant bits of `result[4]`.
+            result[3] |= msb >> 2;
+            result[4] |= msb << 6;
+        };
+
+        // write right child into result
+        {
+            // Recall that `result[4]` contains 2 bits from the left child id in the most
+            // significant bits. Also, the most significant byte of the right child is guaranteed to
+            // fit in 6 bits. Hence, we use big endian format for the right child id to simplify
+            // encoding and decoding.
+            let [msb, a, b, lsb] = right_child_id.to_be_bytes();
+
+            result[4] |= msb;
+            result[5] = a;
+            result[6] = b;
+            result[7] = lsb;
+        };
+
+        result
+    }
+
+    fn encode_u32_payload(payload: u32) -> [u8; 8] {
+        let [payload_byte1, payload_byte2, payload_byte3, payload_byte4] = payload.to_be_bytes();
+
+        [0, payload_byte1, payload_byte2, payload_byte3, payload_byte4, 0, 0, 0]
+    }
+}
+
+impl Serializable for MastNodeType {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let serialized_bytes = {
+            let mut serialized_bytes = self.inline_data_to_bytes();
+
+            // Tag is always placed in the first four bytes
+            let tag = self.tag();
+            assert!(tag <= 0b1111);
+            serialized_bytes[0] |= tag << 4;
+
+            serialized_bytes
+        };
+
+        serialized_bytes.write_into(target)
+    }
+}
+
 // TODOP: Describe how first 4 bits (i.e. high order bits of first byte) are the discriminant
 pub struct EncodedMastNodeType(pub(super) [u8; 8]);
 
