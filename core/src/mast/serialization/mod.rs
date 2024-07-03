@@ -630,6 +630,7 @@ fn decode_decorator(
     }
 }
 
+// TODOP: Rename and/or move to some struct?
 fn read_string(
     str_index_in_table: usize,
     data: &[u8],
