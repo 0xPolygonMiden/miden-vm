@@ -40,7 +40,7 @@ impl EncodedMastNodeType {
         use MastNode::*;
 
         let discriminant = MastNodeTypeVariant::from_mast_node(mast_node).discriminant();
-        assert!(discriminant < 2_u8.pow(4_u32));
+        assert!(discriminant <= 0b1111);
 
         match mast_node {
             Block(block_node) => {
