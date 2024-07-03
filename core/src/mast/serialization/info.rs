@@ -487,52 +487,60 @@ impl MastNodeTypeVariant {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mast::{JoinNode, SplitNode};
+    use alloc::vec::Vec;
 
     #[test]
     fn mast_node_type_serde_join() {
-        let left_child_id = MastNodeId(0b00111001_11101011_01101100_11011000);
-        let right_child_id = MastNodeId(0b00100111_10101010_11111111_11001110);
-        let mast_node = MastNode::Join(JoinNode::new_test(
-            [left_child_id, right_child_id],
-            RpoDigest::default(),
-        ));
+        let left_child_id = 0b00111001_11101011_01101100_11011000;
+        let right_child_id = 0b00100111_10101010_11111111_11001110;
 
-        let mast_node_type = EncodedMastNodeType::new(&mast_node);
+        let mast_node_type = MastNodeType::Join {
+            left_child_id,
+            right_child_id,
+        };
+
+        let mut encoded_mast_node_type: Vec<u8> = Vec::new();
+        mast_node_type.write_into(&mut encoded_mast_node_type);
 
         // Note: Join's discriminant is 0
-        let expected_mast_node_type = [
+        let expected_encoded_mast_node_type = [
             0b00001101, 0b10000110, 0b11001110, 0b10111110, 0b01100111, 0b10101010, 0b11111111,
             0b11001110,
         ];
 
-        assert_eq!(expected_mast_node_type, mast_node_type.0);
+        assert_eq!(expected_encoded_mast_node_type.to_vec(), encoded_mast_node_type);
 
-        let (decoded_left, decoded_right) = mast_node_type.decode_join_or_split_impl();
-        assert_eq!(left_child_id.0, decoded_left);
-        assert_eq!(right_child_id.0, decoded_right);
+        let (decoded_left, decoded_right) =
+            MastNodeType::decode_join_or_split(expected_encoded_mast_node_type);
+        assert_eq!(left_child_id, decoded_left);
+        assert_eq!(right_child_id, decoded_right);
     }
 
     #[test]
     fn mast_node_type_serde_split() {
-        let on_true_id = MastNodeId(0b00111001_11101011_01101100_11011000);
-        let on_false_id = MastNodeId(0b00100111_10101010_11111111_11001110);
-        let mast_node =
-            MastNode::Split(SplitNode::new_test([on_true_id, on_false_id], RpoDigest::default()));
+        let if_branch_id = 0b00111001_11101011_01101100_11011000;
+        let else_branch_id = 0b00100111_10101010_11111111_11001110;
 
-        let mast_node_type = EncodedMastNodeType::new(&mast_node);
+        let mast_node_type = MastNodeType::Split {
+            if_branch_id,
+            else_branch_id,
+        };
 
-        // Note: Split's discriminant is 0
-        let expected_mast_node_type = [
+        let mut encoded_mast_node_type: Vec<u8> = Vec::new();
+        mast_node_type.write_into(&mut encoded_mast_node_type);
+
+        // Note: Split's discriminant is 1
+        let expected_encoded_mast_node_type = [
             0b00011101, 0b10000110, 0b11001110, 0b10111110, 0b01100111, 0b10101010, 0b11111111,
             0b11001110,
         ];
 
-        assert_eq!(expected_mast_node_type, mast_node_type.0);
+        assert_eq!(expected_encoded_mast_node_type.to_vec(), encoded_mast_node_type);
 
-        let (decoded_on_true, decoded_on_false) = mast_node_type.decode_join_or_split_impl();
-        assert_eq!(on_true_id.0, decoded_on_true);
-        assert_eq!(on_false_id.0, decoded_on_false);
+        let (decoded_if_branch, decoded_else_branch) =
+            MastNodeType::decode_join_or_split(expected_encoded_mast_node_type);
+        assert_eq!(if_branch_id, decoded_if_branch);
+        assert_eq!(else_branch_id, decoded_else_branch);
     }
 
     // TODOP: Test all other variants
