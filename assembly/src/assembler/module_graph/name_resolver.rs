@@ -395,7 +395,8 @@ impl<'a> NameResolver<'a> {
                     if let Some(id) = self.graph.get_procedure_index_by_digest(digest) {
                         break Ok(id);
                     }
-                    // This is a phantom procedure - we know its root, but do not have its definition
+                    // This is a phantom procedure - we know its root, but do not have its
+                    // definition
                     break Err(AssemblyError::Failed {
                         labels: vec![
                             RelatedLabel::error("undefined procedure")
