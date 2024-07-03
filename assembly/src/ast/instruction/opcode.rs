@@ -47,13 +47,9 @@ pub enum OpCode {
     NeqImm,
     Eqw,
     Lt,
-    LtImm,
     Lte,
-    LteImm,
     Gt,
-    GtImm,
     Gte,
-    GteImm,
     IsOdd,
 
     // ----- ext2 operations ---------------------------------------------------------------------
@@ -115,17 +111,11 @@ pub enum OpCode {
     U32Clo,
     U32Cto,
     U32Lt,
-    U32LtImm,
     U32Lte,
-    U32LteImm,
     U32Gt,
-    U32GtImm,
     U32Gte,
-    U32GteImm,
     U32Min,
-    U32MinImm,
     U32Max,
-    U32MaxImm,
 
     // ----- stack manipulation ------------------------------------------------------------------
     Drop,
