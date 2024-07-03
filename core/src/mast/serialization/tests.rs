@@ -1,9 +1,11 @@
 use alloc::string::ToString;
 use math::FieldElement;
-use miden_crypto::hash::rpo::RpoDigest;
+use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use super::*;
-use crate::operations::Operation;
+use crate::{
+    operations::Operation, AdviceInjector, AssemblyOp, DebugOptions, Decorator, SignatureKind,
+};
 
 /// If this test fails to compile, it means that `Operation` or `Decorator` was changed. Make sure
 /// that all tests in this file are updated accordingly. For example, if a new `Operation` variant
