@@ -4,6 +4,11 @@ use super::*;
 use crate::operations::Operation;
 
 #[test]
+fn confirm_assumptions() {
+    // TODOP: match against all `Operation` and `Decorator`
+}
+
+#[test]
 fn serialize_deserialize_all_nodes() {
     let mut mast_forest = MastForest::new();
 
