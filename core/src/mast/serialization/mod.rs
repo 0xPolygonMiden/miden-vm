@@ -1,10 +1,6 @@
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{string::String, vec::Vec};
 use miden_crypto::{Felt, ZERO};
 use num_traits::ToBytes;
-use thiserror::Error;
 use winter_utils::{
     ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
@@ -44,13 +40,6 @@ const MAGIC: &[u8; 5] = b"MAST\0";
 /// version of `[255, 255, 255]` is reserved for future extensions that require extending the
 /// version field itself, but should be considered invalid for now.
 const VERSION: [u8; 3] = [0, 0, 0];
-
-// TODOP: move into info.rs? Make public?
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Invalid discriminant '{discriminant}' for type '{ty}'")]
-    InvalidDiscriminant { ty: String, discriminant: u8 },
-}
 
 /// An entry in the `strings` table of an encoded [`MastForest`].
 ///
@@ -396,10 +385,7 @@ fn try_info_to_mast_node(
     data: &[u8],
     strings: &[StringRef],
 ) -> Result<MastNode, DeserializationError> {
-    let mast_node_variant = mast_node_info
-        .ty
-        .variant()
-        .map_err(|err| DeserializationError::InvalidValue(err.to_string()))?;
+    let mast_node_variant = mast_node_info.ty.variant()?;
 
     // TODOP: Make a faillible version of `MastNode` ctors
     // TODOP: Check digest of resulting `MastNode` matches `MastNodeInfo.digest`?

@@ -73,10 +73,14 @@ impl EncodedMastNodeType {
 
 /// Accessors
 impl EncodedMastNodeType {
-    pub fn variant(&self) -> Result<MastNodeTypeVariant, super::Error> {
+    pub fn variant(&self) -> Result<MastNodeTypeVariant, DeserializationError> {
         let discriminant = self.0[0] >> 4;
 
-        MastNodeTypeVariant::try_from_discriminant(discriminant)
+        MastNodeTypeVariant::from_discriminant(discriminant).ok_or_else(|| {
+            DeserializationError::InvalidValue(format!(
+                "Invalid discriminant {discriminant} for MastNode"
+            ))
+        })
     }
 }
 
@@ -219,11 +223,8 @@ impl MastNodeTypeVariant {
     }
 
     // TODOP: Just do `from_discriminant() -> Option<Self>`, and document what `None` means
-    pub fn try_from_discriminant(discriminant: u8) -> Result<Self, super::Error> {
-        Self::from_u8(discriminant).ok_or_else(|| super::Error::InvalidDiscriminant {
-            ty: "MastNode".into(),
-            discriminant,
-        })
+    pub fn from_discriminant(discriminant: u8) -> Option<Self> {
+        Self::from_u8(discriminant)
     }
 
     pub fn from_mast_node(mast_node: &MastNode) -> Self {

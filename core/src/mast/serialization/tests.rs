@@ -1,3 +1,4 @@
+use alloc::string::ToString;
 use math::FieldElement;
 
 use super::*;
