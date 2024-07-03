@@ -23,6 +23,9 @@ use decorator::EncodedDecoratorVariant;
 mod info;
 use info::{EncodedMastNodeType, MastNodeInfo, MastNodeTypeVariant};
 
+#[cfg(test)]
+mod tests;
+
 /// Specifies an offset into the `data` section of an encoded [`MastForest`].
 type DataOffset = u32;
 
