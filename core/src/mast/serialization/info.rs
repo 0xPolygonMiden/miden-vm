@@ -1,19 +1,18 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::{MastNode, MerkleTreeNode};
+use crate::mast::{MastForest, MastNode, MastNodeId, MerkleTreeNode};
 
-use super::DataOffset;
+use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 
 // MAST NODE INFO
 // ===============================================================================================
 
 #[derive(Debug)]
 pub struct MastNodeInfo {
-    // TODOP: Remove pub(super)?
-    pub(super) ty: MastNodeType,
-    pub(super) offset: DataOffset,
-    pub(super) digest: RpoDigest,
+    ty: MastNodeType,
+    offset: DataOffset,
+    digest: RpoDigest,
 }
 
 impl MastNodeInfo {
@@ -30,6 +29,68 @@ impl MastNodeInfo {
             ty,
             offset,
             digest: mast_node.digest(),
+        }
+    }
+
+    pub fn try_into_mast_node(
+        self,
+        mast_forest: &MastForest,
+        basic_block_data_decoder: &mut BasicBlockDataDecoder,
+    ) -> Result<MastNode, DeserializationError> {
+        let mast_node = match self.ty {
+            MastNodeType::Block {
+                len: num_operations_and_decorators,
+            } => {
+                let (operations, decorators) = basic_block_data_decoder
+                    .decode_operations_and_decorators(num_operations_and_decorators)?;
+
+                Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
+            }
+            MastNodeType::Join {
+                left_child_id,
+                right_child_id,
+            } => {
+                let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
+                let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
+
+                Ok(MastNode::new_join(left_child, right_child, mast_forest))
+            }
+            MastNodeType::Split {
+                if_branch_id,
+                else_branch_id,
+            } => {
+                let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
+                let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
+
+                Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
+            }
+            MastNodeType::Loop { body_id } => {
+                let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
+
+                Ok(MastNode::new_loop(body_id, mast_forest))
+            }
+            MastNodeType::Call { callee_id } => {
+                let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
+
+                Ok(MastNode::new_call(callee_id, mast_forest))
+            }
+            MastNodeType::SysCall { callee_id } => {
+                let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
+
+                Ok(MastNode::new_syscall(callee_id, mast_forest))
+            }
+            MastNodeType::Dyn => Ok(MastNode::new_dynexec()),
+            MastNodeType::External => Ok(MastNode::new_external(self.digest)),
+        }?;
+
+        if mast_node.digest() == self.digest {
+            Ok(mast_node)
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "MastNodeInfo's digest '{}' doesn't match deserialized MastNode's digest '{}'",
+                self.digest,
+                mast_node.digest()
+            )))
         }
     }
 }
