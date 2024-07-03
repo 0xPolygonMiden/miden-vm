@@ -161,6 +161,7 @@ impl Deserializable for MastForest {
     }
 }
 
+// TODOP: Make `MastNode` method (impl in this module)?
 fn mast_node_to_info(
     mast_node: &MastNode,
     data: &mut Vec<u8>,
@@ -377,6 +378,8 @@ fn encode_decorator(
     }
 }
 
+// TODOP: Make `MastNodeInfo` method
+// TODOP: Can we not have both `data` and `data_reader`?
 fn try_info_to_mast_node(
     mast_node_info: MastNodeInfo,
     mast_forest: &MastForest,
