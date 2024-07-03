@@ -1,14 +1,13 @@
 use miden_crypto::hash::rpo::RpoDigest;
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive, ToPrimitive};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::{MastForest, MastNode, MastNodeId};
+use crate::mast::MastNode;
 
 use super::DataOffset;
 
+#[derive(Debug)]
 pub struct MastNodeInfo {
-    pub(super) ty: EncodedMastNodeType,
+    pub(super) ty: MastNodeType,
     pub(super) offset: DataOffset,
     pub(super) digest: RpoDigest,
 }
@@ -67,6 +66,45 @@ pub enum MastNodeType {
     } = SYSCALL,
     Dyn = DYN,
     External = EXTERNAL,
+}
+
+/// Constructors
+impl MastNodeType {
+    pub fn new(mast_node: &MastNode) -> Self {
+        use MastNode::*;
+
+        match mast_node {
+            Block(block_node) => {
+                let len = block_node.num_operations_and_decorators();
+
+                Self::Block { len }
+            }
+            Join(join_node) => Self::Join {
+                left_child_id: join_node.first().0,
+                right_child_id: join_node.second().0,
+            },
+            Split(split_node) => Self::Split {
+                if_branch_id: split_node.on_true().0,
+                else_branch_id: split_node.on_false().0,
+            },
+            Loop(loop_node) => Self::Loop {
+                body_id: loop_node.body().0,
+            },
+            Call(call_node) => {
+                if call_node.is_syscall() {
+                    Self::SysCall {
+                        callee_id: call_node.callee().0,
+                    }
+                } else {
+                    Self::Call {
+                        callee_id: call_node.callee().0,
+                    }
+                }
+            }
+            Dyn => Self::Dyn,
+            External(_) => Self::External,
+        }
+    }
 }
 
 impl Serializable for MastNodeType {
@@ -251,236 +289,6 @@ impl MastNodeType {
         let payload_be_bytes = [payload[1], payload[2], payload[3], payload[4]];
 
         u32::from_be_bytes(payload_be_bytes)
-    }
-}
-
-// TODOP: Describe how first 4 bits (i.e. high order bits of first byte) are the discriminant
-pub struct EncodedMastNodeType(pub(super) [u8; 8]);
-
-/// Constructors
-impl EncodedMastNodeType {
-    pub fn new(mast_node: &MastNode) -> Self {
-        use MastNode::*;
-
-        let discriminant = MastNodeTypeVariant::from_mast_node(mast_node).discriminant();
-        assert!(discriminant <= 0b1111);
-
-        match mast_node {
-            Block(block_node) => {
-                let num_ops = block_node.num_operations_and_decorators();
-
-                Self::encode_u32_payload(discriminant, num_ops)
-            }
-            Join(join_node) => {
-                Self::encode_join_or_split(discriminant, join_node.first(), join_node.second())
-            }
-            Split(split_node) => Self::encode_join_or_split(
-                discriminant,
-                split_node.on_true(),
-                split_node.on_false(),
-            ),
-            Loop(loop_node) => {
-                let child_id = loop_node.body().0;
-
-                Self::encode_u32_payload(discriminant, child_id)
-            }
-            Call(call_node) => {
-                let child_id = call_node.callee().0;
-
-                Self::encode_u32_payload(discriminant, child_id)
-            }
-            Dyn | External(_) => Self([discriminant << 4, 0, 0, 0, 0, 0, 0, 0]),
-        }
-    }
-}
-
-/// Accessors
-impl EncodedMastNodeType {
-    pub fn variant(&self) -> Result<MastNodeTypeVariant, DeserializationError> {
-        let discriminant = self.0[0] >> 4;
-
-        MastNodeTypeVariant::from_discriminant(discriminant).ok_or_else(|| {
-            DeserializationError::InvalidValue(format!(
-                "Invalid discriminant {discriminant} for MastNode"
-            ))
-        })
-    }
-}
-
-/// Helpers
-impl EncodedMastNodeType {
-    // TODOP: Make a diagram of how the bits are split
-    pub fn encode_join_or_split(
-        discriminant: u8,
-        left_child_id: MastNodeId,
-        right_child_id: MastNodeId,
-    ) -> Self {
-        assert!(left_child_id.0 < 2_u32.pow(30));
-        assert!(right_child_id.0 < 2_u32.pow(30));
-
-        let mut result: [u8; 8] = [0_u8; 8];
-
-        result[0] = discriminant << 4;
-
-        // write left child into result
-        {
-            let [lsb, a, b, msb] = left_child_id.0.to_le_bytes();
-            result[0] |= lsb >> 4;
-            result[1] |= lsb << 4;
-            result[1] |= a >> 4;
-            result[2] |= a << 4;
-            result[2] |= b >> 4;
-            result[3] |= b << 4;
-
-            // msb is different from lsb, a and b since its 2 most significant bits are guaranteed
-            // to be 0, and hence not encoded.
-            //
-            // More specifically, let the bits of msb be `00abcdef`. We encode `abcd` in
-            // `result[3]`, and `ef` as the most significant bits of `result[4]`.
-            result[3] |= msb >> 2;
-            result[4] |= msb << 6;
-        };
-
-        // write right child into result
-        {
-            // Recall that `result[4]` contains 2 bits from the left child id in the most
-            // significant bits. Also, the most significant byte of the right child is guaranteed to
-            // fit in 6 bits. Hence, we use big endian format for the right child id to simplify
-            // encoding and decoding.
-            let [msb, a, b, lsb] = right_child_id.0.to_be_bytes();
-
-            result[4] |= msb;
-            result[5] = a;
-            result[6] = b;
-            result[7] = lsb;
-        };
-
-        Self(result)
-    }
-
-    pub fn decode_join_or_split(
-        &self,
-        mast_forest: &MastForest,
-    ) -> Result<(MastNodeId, MastNodeId), DeserializationError> {
-        let (first, second) = self.decode_join_or_split_impl();
-
-        Ok((
-            MastNodeId::from_u32_safe(first, mast_forest)?,
-            MastNodeId::from_u32_safe(second, mast_forest)?,
-        ))
-    }
-
-    pub fn encode_u32_payload(discriminant: u8, payload: u32) -> Self {
-        let [payload_byte1, payload_byte2, payload_byte3, payload_byte4] = payload.to_be_bytes();
-
-        Self([
-            discriminant << 4,
-            payload_byte1,
-            payload_byte2,
-            payload_byte3,
-            payload_byte4,
-            0,
-            0,
-            0,
-        ])
-    }
-
-    pub fn decode_u32_payload(&self) -> u32 {
-        let payload_be_bytes = [self.0[1], self.0[2], self.0[3], self.0[4]];
-
-        u32::from_be_bytes(payload_be_bytes)
-    }
-}
-
-/// Helpers
-impl EncodedMastNodeType {
-    fn decode_join_or_split_impl(&self) -> (u32, u32) {
-        let first = {
-            let mut first_le_bytes = [0_u8; 4];
-
-            first_le_bytes[0] = self.0[0] << 4;
-            first_le_bytes[0] |= self.0[1] >> 4;
-
-            first_le_bytes[1] = self.0[1] << 4;
-            first_le_bytes[1] |= self.0[2] >> 4;
-
-            first_le_bytes[2] = self.0[2] << 4;
-            first_le_bytes[2] |= self.0[3] >> 4;
-
-            first_le_bytes[3] = (self.0[3] & 0b1111) << 2;
-            first_le_bytes[3] |= self.0[4] >> 6;
-
-            u32::from_le_bytes(first_le_bytes)
-        };
-
-        let second = {
-            let mut second_be_bytes = [0_u8; 4];
-
-            second_be_bytes[0] = self.0[4] & 0b0011_1111;
-            second_be_bytes[1] = self.0[5];
-            second_be_bytes[2] = self.0[6];
-            second_be_bytes[3] = self.0[7];
-
-            u32::from_be_bytes(second_be_bytes)
-        };
-
-        (first, second)
-    }
-}
-
-impl Serializable for EncodedMastNodeType {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        self.0.write_into(target);
-    }
-}
-
-impl Deserializable for EncodedMastNodeType {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let bytes = source.read_array()?;
-
-        Ok(Self(bytes))
-    }
-}
-
-// TODOP: Document (and rename `Encoded*`?)
-#[derive(Clone, Copy, Debug, FromPrimitive, ToPrimitive)]
-#[repr(u8)]
-pub enum MastNodeTypeVariant {
-    Join,
-    Split,
-    Loop,
-    Call,
-    Syscall,
-    Dyn,
-    Block,
-    External,
-}
-
-impl MastNodeTypeVariant {
-    pub fn discriminant(&self) -> u8 {
-        self.to_u8().expect("guaranteed to fit in a `u8` due to #[repr(u8)]")
-    }
-
-    pub fn from_discriminant(discriminant: u8) -> Option<Self> {
-        Self::from_u8(discriminant)
-    }
-
-    pub fn from_mast_node(mast_node: &MastNode) -> Self {
-        match mast_node {
-            MastNode::Block(_) => Self::Block,
-            MastNode::Join(_) => Self::Join,
-            MastNode::Split(_) => Self::Split,
-            MastNode::Loop(_) => Self::Loop,
-            MastNode::Call(call_node) => {
-                if call_node.is_syscall() {
-                    Self::Syscall
-                } else {
-                    Self::Call
-                }
-            }
-            MastNode::Dyn => Self::Dyn,
-            MastNode::External(_) => Self::External,
-        }
     }
 }
 

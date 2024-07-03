@@ -17,7 +17,7 @@ mod decorator;
 use decorator::EncodedDecoratorVariant;
 
 mod info;
-use info::{EncodedMastNodeType, MastNodeInfo, MastNodeTypeVariant};
+use info::{MastNodeInfo, MastNodeType};
 
 mod string_table_builder;
 use string_table_builder::StringTableBuilder;
@@ -169,7 +169,7 @@ fn mast_node_to_info(
 ) -> MastNodeInfo {
     use MastNode::*;
 
-    let ty = EncodedMastNodeType::new(mast_node);
+    let ty = MastNodeType::new(mast_node);
     let digest = mast_node.digest();
 
     let offset = match mast_node {
@@ -387,12 +387,10 @@ fn try_info_to_mast_node(
     data: &[u8],
     strings: &[StringRef],
 ) -> Result<MastNode, DeserializationError> {
-    let mast_node_variant = mast_node_info.ty.variant()?;
-
-    let mast_node = match mast_node_variant {
-        MastNodeTypeVariant::Block => {
-            let num_operations_and_decorators = mast_node_info.ty.decode_u32_payload();
-
+    let mast_node = match mast_node_info.ty {
+        MastNodeType::Block {
+            len: num_operations_and_decorators,
+        } => {
             let (operations, decorators) = decode_operations_and_decorators(
                 num_operations_and_decorators,
                 data_reader,
@@ -402,42 +400,41 @@ fn try_info_to_mast_node(
 
             Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
         }
-        MastNodeTypeVariant::Join => {
-            let (left_child, right_child) = mast_node_info.ty.decode_join_or_split(mast_forest)?;
+        MastNodeType::Join {
+            left_child_id,
+            right_child_id,
+        } => {
+            let left_child = MastNodeId::from_u32_safe(left_child_id, mast_forest)?;
+            let right_child = MastNodeId::from_u32_safe(right_child_id, mast_forest)?;
 
             Ok(MastNode::new_join(left_child, right_child, mast_forest))
         }
-        MastNodeTypeVariant::Split => {
-            let (if_branch, else_branch) = mast_node_info.ty.decode_join_or_split(mast_forest)?;
+        MastNodeType::Split {
+            if_branch_id,
+            else_branch_id,
+        } => {
+            let if_branch = MastNodeId::from_u32_safe(if_branch_id, mast_forest)?;
+            let else_branch = MastNodeId::from_u32_safe(else_branch_id, mast_forest)?;
 
             Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
         }
-        MastNodeTypeVariant::Loop => {
-            let body_id = {
-                let body_id = mast_node_info.ty.decode_u32_payload();
-                MastNodeId::from_u32_safe(body_id, mast_forest)?
-            };
+        MastNodeType::Loop { body_id } => {
+            let body_id = MastNodeId::from_u32_safe(body_id, mast_forest)?;
 
             Ok(MastNode::new_loop(body_id, mast_forest))
         }
-        MastNodeTypeVariant::Call => {
-            let callee_id = {
-                let callee_id = mast_node_info.ty.decode_u32_payload();
-                MastNodeId::from_u32_safe(callee_id, mast_forest)?
-            };
+        MastNodeType::Call { callee_id } => {
+            let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
             Ok(MastNode::new_call(callee_id, mast_forest))
         }
-        MastNodeTypeVariant::Syscall => {
-            let callee_id = {
-                let callee_id = mast_node_info.ty.decode_u32_payload();
-                MastNodeId::from_u32_safe(callee_id, mast_forest)?
-            };
+        MastNodeType::SysCall { callee_id } => {
+            let callee_id = MastNodeId::from_u32_safe(callee_id, mast_forest)?;
 
             Ok(MastNode::new_syscall(callee_id, mast_forest))
         }
-        MastNodeTypeVariant::Dyn => Ok(MastNode::new_dynexec()),
-        MastNodeTypeVariant::External => Ok(MastNode::new_external(mast_node_info.digest)),
+        MastNodeType::Dyn => Ok(MastNode::new_dynexec()),
+        MastNodeType::External => Ok(MastNode::new_external(mast_node_info.digest)),
     }?;
 
     if mast_node.digest() == mast_node_info.digest {
