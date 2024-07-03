@@ -1,15 +1,34 @@
 use miden_crypto::hash::rpo::RpoDigest;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::MastNode;
+use crate::mast::{MastNode, MerkleTreeNode};
 
 use super::DataOffset;
 
 #[derive(Debug)]
 pub struct MastNodeInfo {
+    // TODOP: Remove pub(super)?
     pub(super) ty: MastNodeType,
     pub(super) offset: DataOffset,
     pub(super) digest: RpoDigest,
+}
+
+impl MastNodeInfo {
+    pub fn new(mast_node: &MastNode, basic_block_offset: DataOffset) -> Self {
+        let ty = MastNodeType::new(mast_node);
+
+        let offset = if let MastNode::Block(_) = mast_node {
+            basic_block_offset
+        } else {
+            0
+        };
+
+        Self {
+            ty,
+            offset,
+            digest: mast_node.digest(),
+        }
+    }
 }
 
 impl Serializable for MastNodeInfo {
