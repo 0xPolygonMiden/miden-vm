@@ -19,8 +19,8 @@ use decorator::EncodedDecoratorVariant;
 mod info;
 use info::{MastNodeInfo, MastNodeType};
 
-mod string_table_builder;
-use string_table_builder::StringTableBuilder;
+mod basic_block_data_builder;
+use basic_block_data_builder::StringTableBuilder;
 
 #[cfg(test)]
 mod tests;
