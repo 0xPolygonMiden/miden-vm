@@ -388,8 +388,7 @@ fn try_info_to_mast_node(
     let mast_node_variant = mast_node_info.ty.variant()?;
 
     // TODOP: Make a faillible version of `MastNode` ctors
-    // TODOP: Check digest of resulting `MastNode` matches `MastNodeInfo.digest`?
-    match mast_node_variant {
+    let mast_node = match mast_node_variant {
         MastNodeTypeVariant::Block => {
             let num_operations_and_decorators =
                 EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
@@ -432,6 +431,16 @@ fn try_info_to_mast_node(
         }
         MastNodeTypeVariant::Dyn => Ok(MastNode::new_dynexec()),
         MastNodeTypeVariant::External => Ok(MastNode::new_external(mast_node_info.digest)),
+    }?;
+
+    if mast_node.digest() == mast_node_info.digest {
+        Ok(mast_node)
+    } else {
+        Err(DeserializationError::InvalidValue(format!(
+            "MastNodeInfo's digest '{}' doesn't match deserialized MastNode's digest '{}'",
+            mast_node_info.digest,
+            mast_node.digest()
+        )))
     }
 }
 
