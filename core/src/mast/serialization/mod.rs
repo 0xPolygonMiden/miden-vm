@@ -386,7 +386,6 @@ fn try_info_to_mast_node(
 ) -> Result<MastNode, DeserializationError> {
     let mast_node_variant = mast_node_info.ty.variant()?;
 
-    // TODOP: Make a faillible version of `MastNode` ctors
     let mast_node = match mast_node_variant {
         MastNodeTypeVariant::Block => {
             let num_operations_and_decorators =
@@ -403,30 +402,39 @@ fn try_info_to_mast_node(
         }
         MastNodeTypeVariant::Join => {
             let (left_child, right_child) =
-                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty);
+                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty, mast_forest)?;
 
             Ok(MastNode::new_join(left_child, right_child, mast_forest))
         }
         MastNodeTypeVariant::Split => {
             let (if_branch, else_branch) =
-                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty);
+                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty, mast_forest)?;
 
             Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
         }
         MastNodeTypeVariant::Loop => {
-            let body_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let body_id = {
+                let body_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+                MastNodeId::from_u32_safe(body_id, mast_forest)?
+            };
 
-            Ok(MastNode::new_loop(MastNodeId(body_id), mast_forest))
+            Ok(MastNode::new_loop(body_id, mast_forest))
         }
         MastNodeTypeVariant::Call => {
-            let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let callee_id = {
+                let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+                MastNodeId::from_u32_safe(callee_id, mast_forest)?
+            };
 
-            Ok(MastNode::new_call(MastNodeId(callee_id), mast_forest))
+            Ok(MastNode::new_call(callee_id, mast_forest))
         }
         MastNodeTypeVariant::Syscall => {
-            let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let callee_id = {
+                let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+                MastNodeId::from_u32_safe(callee_id, mast_forest)?
+            };
 
-            Ok(MastNode::new_syscall(MastNodeId(callee_id), mast_forest))
+            Ok(MastNode::new_syscall(callee_id, mast_forest))
         }
         MastNodeTypeVariant::Dyn => Ok(MastNode::new_dynexec()),
         MastNodeTypeVariant::External => Ok(MastNode::new_external(mast_node_info.digest)),

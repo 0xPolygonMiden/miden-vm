@@ -30,6 +30,27 @@ pub trait MerkleTreeNode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MastNodeId(u32);
 
+impl MastNodeId {
+    /// Returns a new `MastNodeId` with the provided inner value, or an error if the provided
+    /// `value` is greater than the number of nodes in the forest.
+    ///
+    /// For use in deserialization.
+    pub fn from_u32_safe(
+        value: u32,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        if (value as usize) < mast_forest.nodes.len() {
+            Ok(Self(value))
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST node ID '{}', but only {} nodes in the forest",
+                value,
+                mast_forest.nodes.len(),
+            )))
+        }
+    }
+}
+
 impl fmt::Display for MastNodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MastNodeId({})", self.0)

@@ -3,7 +3,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use crate::mast::{MastNode, MastNodeId};
+use crate::mast::{MastForest, MastNode, MastNodeId};
 
 use super::DataOffset;
 
@@ -135,7 +135,43 @@ impl EncodedMastNodeType {
         Self(result)
     }
 
-    pub fn decode_join_or_split(&self) -> (MastNodeId, MastNodeId) {
+    pub fn decode_join_or_split(
+        &self,
+        mast_forest: &MastForest,
+    ) -> Result<(MastNodeId, MastNodeId), DeserializationError> {
+        let (first, second) = self.decode_join_or_split_impl();
+
+        Ok((
+            MastNodeId::from_u32_safe(first, mast_forest)?,
+            MastNodeId::from_u32_safe(second, mast_forest)?,
+        ))
+    }
+
+    pub fn encode_u32_payload(discriminant: u8, payload: u32) -> Self {
+        let [payload_byte1, payload_byte2, payload_byte3, payload_byte4] = payload.to_be_bytes();
+
+        Self([
+            discriminant << 4,
+            payload_byte1,
+            payload_byte2,
+            payload_byte3,
+            payload_byte4,
+            0,
+            0,
+            0,
+        ])
+    }
+
+    pub fn decode_u32_payload(&self) -> u32 {
+        let payload_be_bytes = [self.0[1], self.0[2], self.0[3], self.0[4]];
+
+        u32::from_be_bytes(payload_be_bytes)
+    }
+}
+
+/// Helpers
+impl EncodedMastNodeType {
+    fn decode_join_or_split_impl(&self) -> (u32, u32) {
         let first = {
             let mut first_le_bytes = [0_u8; 4];
 
@@ -165,28 +201,7 @@ impl EncodedMastNodeType {
             u32::from_be_bytes(second_be_bytes)
         };
 
-        (MastNodeId(first), MastNodeId(second))
-    }
-
-    pub fn encode_u32_payload(discriminant: u8, payload: u32) -> Self {
-        let [payload_byte1, payload_byte2, payload_byte3, payload_byte4] = payload.to_be_bytes();
-
-        Self([
-            discriminant << 4,
-            payload_byte1,
-            payload_byte2,
-            payload_byte3,
-            payload_byte4,
-            0,
-            0,
-            0,
-        ])
-    }
-
-    pub fn decode_u32_payload(&self) -> u32 {
-        let payload_be_bytes = [self.0[1], self.0[2], self.0[3], self.0[4]];
-
-        u32::from_be_bytes(payload_be_bytes)
+        (first, second)
     }
 }
 
@@ -270,9 +285,9 @@ mod tests {
 
         assert_eq!(expected_mast_node_type, mast_node_type.0);
 
-        let (decoded_left, decoded_right) = mast_node_type.decode_join_or_split();
-        assert_eq!(left_child_id, decoded_left);
-        assert_eq!(right_child_id, decoded_right);
+        let (decoded_left, decoded_right) = mast_node_type.decode_join_or_split_impl();
+        assert_eq!(left_child_id.0, decoded_left);
+        assert_eq!(right_child_id.0, decoded_right);
     }
 
     #[test]
@@ -292,9 +307,9 @@ mod tests {
 
         assert_eq!(expected_mast_node_type, mast_node_type.0);
 
-        let (decoded_on_true, decoded_on_false) = mast_node_type.decode_join_or_split();
-        assert_eq!(on_true_id, decoded_on_true);
-        assert_eq!(on_false_id, decoded_on_false);
+        let (decoded_on_true, decoded_on_false) = mast_node_type.decode_join_or_split_impl();
+        assert_eq!(on_true_id.0, decoded_on_true);
+        assert_eq!(on_false_id.0, decoded_on_false);
     }
 
     // TODOP: Test all other variants
