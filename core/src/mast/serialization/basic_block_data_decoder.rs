@@ -43,13 +43,13 @@ impl<'a> BasicBlockDataDecoder<'a> {
                 // operation.
                 let op_code = first_byte;
 
-                let maybe_operation = if op_code == Operation::Assert(0_u32).op_code()
+                let operation = if op_code == Operation::Assert(0_u32).op_code()
                     || op_code == Operation::MpVerify(0_u32).op_code()
                 {
                     let value_le_bytes: [u8; 4] = self.data_reader.read_array()?;
                     let value = u32::from_le_bytes(value_le_bytes);
 
-                    Operation::with_opcode_and_data(op_code, OperationData::U32(value))
+                    Operation::with_opcode_and_data(op_code, OperationData::U32(value))?
                 } else if op_code == Operation::U32assert2(ZERO).op_code()
                     || op_code == Operation::Push(ZERO).op_code()
                 {
@@ -62,15 +62,11 @@ impl<'a> BasicBlockDataDecoder<'a> {
                         ))
                     })?;
 
-                    Operation::with_opcode_and_data(op_code, OperationData::Felt(value_felt))
+                    Operation::with_opcode_and_data(op_code, OperationData::Felt(value_felt))?
                 } else {
                     // No operation data
-                    Operation::with_opcode_and_data(op_code, OperationData::None)
+                    Operation::with_opcode_and_data(op_code, OperationData::None)?
                 };
-
-                let operation = maybe_operation.ok_or_else(|| {
-                    DeserializationError::InvalidValue(format!("invalid op code: {op_code}"))
-                })?;
 
                 operations.push(operation);
             } else {
