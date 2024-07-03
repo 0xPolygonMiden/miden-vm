@@ -5,6 +5,9 @@ use crate::mast::{MastNode, MerkleTreeNode};
 
 use super::DataOffset;
 
+// MAST NODE INFO
+// ===============================================================================================
+
 #[derive(Debug)]
 pub struct MastNodeInfo {
     // TODOP: Remove pub(super)?
@@ -48,6 +51,9 @@ impl Deserializable for MastNodeInfo {
         Ok(Self { ty, offset, digest })
     }
 }
+
+// MAST NODE TYPE
+// ===============================================================================================
 
 const JOIN: u8 = 0;
 const SPLIT: u8 = 1;
@@ -310,6 +316,9 @@ impl MastNodeType {
         u32::from_be_bytes(payload_be_bytes)
     }
 }
+
+// TESTS
+// ===============================================================================================
 
 #[cfg(test)]
 mod tests {
