@@ -3,8 +3,8 @@ use alloc::string::String;
 use core::{num::IntErrorKind, ops::Range};
 
 use super::{
-    DocumentationType, HexEncodedValue, HexErrorKind, LiteralErrorKind, ParsingError, Scanner,
-    SourceSpan, Token,
+    BinEncodedValue, BinErrorKind, DocumentationType, HexEncodedValue, HexErrorKind,
+    LiteralErrorKind, ParsingError, Scanner, SourceSpan, Token,
 };
 
 /// The value produced by the [Lexer] when iterated
@@ -293,6 +293,11 @@ impl<'input> Lexer<'input> {
                     self.skip();
                     self.lex_hex()
                 }
+                'b' => {
+                    self.skip();
+                    self.skip();
+                    self.lex_bin()
+                }
                 '0'..='9' => self.lex_number(),
                 _ => pop!(self, Token::Int(0)),
             },
@@ -426,7 +431,7 @@ impl<'input> Lexer<'input> {
                     self.skip();
                     continue;
                 }
-                '_' | '.' | '$' => {
+                '_' | '$' | '-' | '!' | '?' | '<' | '>' | ':' | '.' => {
                     self.skip();
                     continue;
                 }
@@ -524,6 +529,28 @@ impl<'input> Lexer<'input> {
         let value = parse_hex(span, self.slice_span(digit_start..end))?;
         Ok(Token::HexValue(value))
     }
+
+    fn lex_bin(&mut self) -> Result<Token<'input>, ParsingError> {
+        // Expect the first character to be a valid binary digit
+        debug_assert!(is_ascii_binary(self.read()));
+
+        loop {
+            // If we hit a non-binary digit, we're done
+            let c1 = self.read();
+            if !is_ascii_binary(c1) {
+                break;
+            }
+            self.skip();
+        }
+
+        let span = self.span();
+        let start = span.start() as u32;
+        let digit_start = start + 2;
+        let end = span.end() as u32;
+        let span = SourceSpan::from(start..end);
+        let value = parse_bin(span, self.slice_span(digit_start..end))?;
+        Ok(Token::BinValue(value))
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -561,7 +588,7 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, Pars
                     kind: LiteralErrorKind::FeltOverflow,
                 });
             }
-            Ok(shrink_u64(value))
+            Ok(shrink_u64_hex(value))
         }
         // Word
         64 => {
@@ -609,8 +636,32 @@ fn parse_hex(span: SourceSpan, hex_digits: &str) -> Result<HexEncodedValue, Pars
     }
 }
 
+fn parse_bin(span: SourceSpan, bin_digits: &str) -> Result<BinEncodedValue, ParsingError> {
+    if bin_digits.len() <= 32 {
+        let value =
+            u32::from_str_radix(bin_digits, 2).map_err(|error| ParsingError::InvalidLiteral {
+                span,
+                kind: int_error_kind_to_literal_error_kind(
+                    error.kind(),
+                    LiteralErrorKind::U32Overflow,
+                ),
+            })?;
+        Ok(shrink_u32_bin(value))
+    } else {
+        Err(ParsingError::InvalidBinaryLiteral {
+            span,
+            kind: BinErrorKind::TooLong,
+        })
+    }
+}
+
+#[inline(always)]
+fn is_ascii_binary(c: char) -> bool {
+    matches!(c, '0'..='1')
+}
+
 #[inline]
-fn shrink_u64(n: u64) -> HexEncodedValue {
+fn shrink_u64_hex(n: u64) -> HexEncodedValue {
     if n <= (u8::MAX as u64) {
         HexEncodedValue::U8(n as u8)
     } else if n <= (u16::MAX as u64) {
@@ -619,6 +670,17 @@ fn shrink_u64(n: u64) -> HexEncodedValue {
         HexEncodedValue::U32(n as u32)
     } else {
         HexEncodedValue::Felt(Felt::new(n))
+    }
+}
+
+#[inline]
+fn shrink_u32_bin(n: u32) -> BinEncodedValue {
+    if n <= (u8::MAX as u32) {
+        BinEncodedValue::U8(n as u8)
+    } else if n <= (u16::MAX as u32) {
+        BinEncodedValue::U16(n as u16)
+    } else {
+        BinEncodedValue::U32(n)
     }
 }
 

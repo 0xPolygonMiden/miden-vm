@@ -13,6 +13,7 @@
 - Added support for the `nop` instruction, which corresponds to the VM opcode of the same name, and has the same semantics. This is implemented for use by compilers primarily.
 - Added support for the `if.false` instruction, which can be used in the same manner as `if.true`
 - Relaxed the parser to allow one branch of an `if.(true|false)` to be empty
+- Added support for immediate values for `u32and`, `u32or`, `u32xor` and `u32not` bitwise instructions (#1362).
 
 #### Changed
 
