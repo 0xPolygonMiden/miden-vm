@@ -31,6 +31,15 @@ impl Deserializable for MastNodeInfo {
     }
 }
 
+const JOIN: u8 = 0;
+const SPLIT: u8 = 1;
+const LOOP: u8 = 2;
+const BLOCK: u8 = 3;
+const CALL: u8 = 4;
+const SYSCALL: u8 = 5;
+const DYN: u8 = 6;
+const EXTERNAL: u8 = 7;
+
 /// TODOP: Document the fact that encoded representation is always 8 bytes
 #[derive(Debug)]
 #[repr(u8)]
@@ -38,28 +47,46 @@ pub enum MastNodeType {
     Join {
         left_child_id: u32,
         right_child_id: u32,
-    },
+    } = JOIN,
     Split {
         if_branch_id: u32,
         else_branch_id: u32,
-    },
+    } = SPLIT,
     Loop {
-        body: u32,
-    },
+        body_id: u32,
+    } = LOOP,
     Block {
         /// The number of operations and decorators in the basic block
         len: u32,
-    },
+    } = BLOCK,
     Call {
         callee_id: u32,
-    },
+    } = CALL,
     SysCall {
         callee_id: u32,
-    },
-    Dyn,
-    External,
+    } = SYSCALL,
+    Dyn = DYN,
+    External = EXTERNAL,
 }
 
+impl Serializable for MastNodeType {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        let serialized_bytes = {
+            let mut serialized_bytes = self.inline_data_to_bytes();
+
+            // Tag is always placed in the first four bytes
+            let tag = self.tag();
+            assert!(tag <= 0b1111);
+            serialized_bytes[0] |= tag << 4;
+
+            serialized_bytes
+        };
+
+        serialized_bytes.write_into(target)
+    }
+}
+
+/// Serialization helpers
 impl MastNodeType {
     fn tag(&self) -> u8 {
         // SAFETY: This is safe because we have given this enum a primitive representation with
@@ -80,7 +107,7 @@ impl MastNodeType {
                 if_branch_id: if_branch,
                 else_branch_id: else_branch,
             } => Self::encode_join_or_split(*if_branch, *else_branch),
-            MastNodeType::Loop { body } => Self::encode_u32_payload(*body),
+            MastNodeType::Loop { body_id: body } => Self::encode_u32_payload(*body),
             MastNodeType::Block { len } => Self::encode_u32_payload(*len),
             MastNodeType::Call { callee_id } => Self::encode_u32_payload(*callee_id),
             MastNodeType::SysCall { callee_id } => Self::encode_u32_payload(*callee_id),
@@ -139,20 +166,91 @@ impl MastNodeType {
     }
 }
 
-impl Serializable for MastNodeType {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let serialized_bytes = {
-            let mut serialized_bytes = self.inline_data_to_bytes();
+impl Deserializable for MastNodeType {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let bytes: [u8; 8] = source.read_array()?;
 
-            // Tag is always placed in the first four bytes
-            let tag = self.tag();
-            assert!(tag <= 0b1111);
-            serialized_bytes[0] |= tag << 4;
+        let tag = bytes[0] >> 4;
 
-            serialized_bytes
+        match tag {
+            JOIN => {
+                let (left_child_id, right_child_id) = Self::decode_join_or_split(bytes);
+                Ok(Self::Join {
+                    left_child_id,
+                    right_child_id,
+                })
+            }
+            SPLIT => {
+                let (if_branch_id, else_branch_id) = Self::decode_join_or_split(bytes);
+                Ok(Self::Split {
+                    if_branch_id,
+                    else_branch_id,
+                })
+            }
+            LOOP => {
+                let body_id = Self::decode_u32_payload(bytes);
+                Ok(Self::Loop { body_id })
+            }
+            BLOCK => {
+                let len = Self::decode_u32_payload(bytes);
+                Ok(Self::Block { len })
+            }
+            CALL => {
+                let callee_id = Self::decode_u32_payload(bytes);
+                Ok(Self::Call { callee_id })
+            }
+            SYSCALL => {
+                let callee_id = Self::decode_u32_payload(bytes);
+                Ok(Self::SysCall { callee_id })
+            }
+            DYN => Ok(Self::Dyn),
+            EXTERNAL => Ok(Self::External),
+            _ => {
+                Err(DeserializationError::InvalidValue(format!("Invalid tag for MAST node: {tag}")))
+            }
+        }
+    }
+}
+
+/// Deserialization helpers
+impl MastNodeType {
+    fn decode_join_or_split(buffer: [u8; 8]) -> (u32, u32) {
+        let first = {
+            let mut first_le_bytes = [0_u8; 4];
+
+            first_le_bytes[0] = buffer[0] << 4;
+            first_le_bytes[0] |= buffer[1] >> 4;
+
+            first_le_bytes[1] = buffer[1] << 4;
+            first_le_bytes[1] |= buffer[2] >> 4;
+
+            first_le_bytes[2] = buffer[2] << 4;
+            first_le_bytes[2] |= buffer[3] >> 4;
+
+            first_le_bytes[3] = (buffer[3] & 0b1111) << 2;
+            first_le_bytes[3] |= buffer[4] >> 6;
+
+            u32::from_le_bytes(first_le_bytes)
         };
 
-        serialized_bytes.write_into(target)
+        let second = {
+            let mut second_be_bytes = [0_u8; 4];
+
+            second_be_bytes[0] = buffer[4] & 0b0011_1111;
+            second_be_bytes[1] = buffer[5];
+            second_be_bytes[2] = buffer[6];
+            second_be_bytes[3] = buffer[7];
+
+            u32::from_be_bytes(second_be_bytes)
+        };
+
+        (first, second)
+    }
+
+    pub fn decode_u32_payload(payload: [u8; 8]) -> u32 {
+        let payload_be_bytes = [payload[1], payload[2], payload[3], payload[4]];
+
+        u32::from_be_bytes(payload_be_bytes)
     }
 }
 
