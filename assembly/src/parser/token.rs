@@ -51,6 +51,21 @@ pub enum HexEncodedValue {
     Word([Felt; 4]),
 }
 
+// BINARY ENCODED VALUE
+// ================================================================================================
+
+/// Represents one of the various types of values that have a hex-encoded representation in Miden
+/// Assembly source files.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinEncodedValue {
+    /// A tiny value
+    U8(u8),
+    /// A small value
+    U16(u16),
+    /// A u32 constant, typically represents a memory address
+    U32(u32),
+}
+
 // TOKEN
 // ================================================================================================
 
@@ -224,6 +239,7 @@ pub enum Token<'input> {
     Rstab,
     DocComment(DocumentationType),
     HexValue(HexEncodedValue),
+    BinValue(BinEncodedValue),
     Int(u64),
     Ident(&'input str),
     ConstantIdent(&'input str),
@@ -403,6 +419,7 @@ impl<'input> fmt::Display for Token<'input> {
             Token::DocComment(DocumentationType::Module(_)) => f.write_str("module doc"),
             Token::DocComment(DocumentationType::Form(_)) => f.write_str("doc comment"),
             Token::HexValue(_) => f.write_str("hex-encoded value"),
+            Token::BinValue(_) => f.write_str("bin-encoded value"),
             Token::Int(_) => f.write_str("integer"),
             Token::Ident(_) => f.write_str("identifier"),
             Token::ConstantIdent(_) => f.write_str("constant identifier"),
@@ -804,6 +821,7 @@ impl<'input> Token<'input> {
                     "doc comment" => Ok(Token::DocComment(DocumentationType::Form(String::new()))),
                     "comment" => Ok(Token::Comment),
                     "hex-encoded value" => Ok(Token::HexValue(HexEncodedValue::U8(0))),
+                    "bin-encoded value" => Ok(Token::BinValue(BinEncodedValue::U8(0))),
                     "integer" => Ok(Token::Int(0)),
                     "identifier" => Ok(Token::Ident("")),
                     "constant identifier" => Ok(Token::ConstantIdent("")),
