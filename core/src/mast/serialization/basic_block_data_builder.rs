@@ -9,6 +9,7 @@ use crate::{
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
 
+/// TODOP: Document
 #[derive(Debug, Default)]
 pub struct BasicBlockDataBuilder {
     data: Vec<u8>,
