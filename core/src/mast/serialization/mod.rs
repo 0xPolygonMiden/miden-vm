@@ -20,6 +20,9 @@ use info::{MastNodeInfo, MastNodeType};
 mod basic_block_data_builder;
 use basic_block_data_builder::BasicBlockDataBuilder;
 
+mod basic_block_data_decoder;
+use basic_block_data_decoder::BasicBlockDataDecoder;
+
 #[cfg(test)]
 mod tests;
 
