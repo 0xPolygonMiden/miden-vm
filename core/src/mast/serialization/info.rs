@@ -439,6 +439,4 @@ mod tests {
         assert_eq!(if_branch_id, decoded_if_branch);
         assert_eq!(else_branch_id, decoded_else_branch);
     }
-
-    // TODOP: Test all other variants
 }
