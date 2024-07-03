@@ -7,8 +7,7 @@ use super::{StringIndex, StringRef};
 pub struct StringTableBuilder {
     table: Vec<StringRef>,
     str_to_index: BTreeMap<RpoDigest, StringIndex>,
-    // current length of table
-    strings: Vec<u8>,
+    strings_data: Vec<u8>,
 }
 
 impl StringTableBuilder {
@@ -25,7 +24,7 @@ impl StringTableBuilder {
             // NOTE: these string refs' offset will need to be shifted again in `into_buffer()`
             let str_ref = StringRef {
                 offset: self
-                    .strings
+                    .strings_data
                     .len()
                     .try_into()
                     .expect("strings table larger than 2^32 bytes"),
@@ -33,7 +32,7 @@ impl StringTableBuilder {
             };
             let str_idx = self.table.len();
 
-            self.strings.extend(string.as_bytes());
+            self.strings_data.extend(string.as_bytes());
             self.table.push(str_ref);
             self.str_to_index.insert(Rpo256::hash(string.as_bytes()), str_idx);
 
@@ -46,7 +45,7 @@ impl StringTableBuilder {
             .len()
             .try_into()
             .expect("MAST forest serialization: data field longer than 2^32 bytes");
-        data.extend(self.strings);
+        data.extend(self.strings_data);
 
         self.table
             .into_iter()
