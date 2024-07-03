@@ -52,7 +52,7 @@ impl From<&Decorator> for EncodedDecoratorVariant {
             Decorator::Advice(advice_injector) => match advice_injector {
                 AdviceInjector::MerkleNodeMerge => Self::AdviceInjectorMerkleNodeMerge,
                 AdviceInjector::MerkleNodeToStack => Self::AdviceInjectorMerkleNodeToStack,
-                AdviceInjector::UpdateMerkleNode => todo!(),
+                AdviceInjector::UpdateMerkleNode => Self::AdviceInjectorUpdateMerkleNode,
                 AdviceInjector::MapValueToStack {
                     include_len: _,
                     key_offset: _,
