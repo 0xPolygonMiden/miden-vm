@@ -388,8 +388,7 @@ fn try_info_to_mast_node(
 
     let mast_node = match mast_node_variant {
         MastNodeTypeVariant::Block => {
-            let num_operations_and_decorators =
-                EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+            let num_operations_and_decorators = mast_node_info.ty.decode_u32_payload();
 
             let (operations, decorators) = decode_operations_and_decorators(
                 num_operations_and_decorators,
@@ -401,20 +400,18 @@ fn try_info_to_mast_node(
             Ok(MastNode::new_basic_block_with_decorators(operations, decorators))
         }
         MastNodeTypeVariant::Join => {
-            let (left_child, right_child) =
-                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty, mast_forest)?;
+            let (left_child, right_child) = mast_node_info.ty.decode_join_or_split(mast_forest)?;
 
             Ok(MastNode::new_join(left_child, right_child, mast_forest))
         }
         MastNodeTypeVariant::Split => {
-            let (if_branch, else_branch) =
-                EncodedMastNodeType::decode_join_or_split(&mast_node_info.ty, mast_forest)?;
+            let (if_branch, else_branch) = mast_node_info.ty.decode_join_or_split(mast_forest)?;
 
             Ok(MastNode::new_split(if_branch, else_branch, mast_forest))
         }
         MastNodeTypeVariant::Loop => {
             let body_id = {
-                let body_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+                let body_id = mast_node_info.ty.decode_u32_payload();
                 MastNodeId::from_u32_safe(body_id, mast_forest)?
             };
 
@@ -422,7 +419,7 @@ fn try_info_to_mast_node(
         }
         MastNodeTypeVariant::Call => {
             let callee_id = {
-                let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+                let callee_id = mast_node_info.ty.decode_u32_payload();
                 MastNodeId::from_u32_safe(callee_id, mast_forest)?
             };
 
@@ -430,7 +427,7 @@ fn try_info_to_mast_node(
         }
         MastNodeTypeVariant::Syscall => {
             let callee_id = {
-                let callee_id = EncodedMastNodeType::decode_u32_payload(&mast_node_info.ty);
+                let callee_id = mast_node_info.ty.decode_u32_payload();
                 MastNodeId::from_u32_safe(callee_id, mast_forest)?
             };
 
