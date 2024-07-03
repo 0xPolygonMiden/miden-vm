@@ -3,7 +3,10 @@ use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::{AdviceInjector, DebugOptions, Decorator};
 
-/// TODOP: Document
+/// Stores all the possible [`Decorator`] variants, without any associated data.
+///
+/// This is effectively equivalent to a set of constants, and designed to convert between variant
+/// discriminant and enum variant conveniently.
 #[derive(FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum EncodedDecoratorVariant {

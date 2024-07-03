@@ -8,6 +8,15 @@ use super::{basic_block_data_decoder::BasicBlockDataDecoder, DataOffset};
 // MAST NODE INFO
 // ===============================================================================================
 
+/// Represents a serialized [`MastNode`], with some data inlined in its [`MastNodeType`].
+///
+/// In the case of [`crate::mast::BasicBlockNode`], all its operation- and decorator-related data is
+/// stored in the serialized [`MastForest`]'s `data` field at offset represented by the `offset`
+/// field. For all other variants of [`MastNode`], the `offset` field is guaranteed to be 0.
+///
+/// The serialized representation of [`MastNodeInfo`] is guaranteed to be fixed width, so that the
+/// nodes stored in the `nodes` table of the serialzied [`MastForest`] can be accessed quickly by
+/// index.
 #[derive(Debug)]
 pub struct MastNodeInfo {
     ty: MastNodeType,
@@ -125,7 +134,12 @@ const SYSCALL: u8 = 5;
 const DYN: u8 = 6;
 const EXTERNAL: u8 = 7;
 
-/// TODOP: Document the fact that encoded representation is always 8 bytes
+/// Represents the variant of a [`MastNode`], as well as any additional data. For example, for more
+/// efficient decoding, and because of the frequency with which these node types appear, we directly
+/// represent the child indices for `Join`, `Split`, and `Loop`, `Call` and `SysCall` inline.
+///
+/// The serialized representation of the MAST node type is guaranteed to be 8 bytes, so that
+/// [`MastNodeInfo`] (which contains it) can be of fixed width.
 #[derive(Debug)]
 #[repr(u8)]
 pub enum MastNodeType {
@@ -156,6 +170,7 @@ pub enum MastNodeType {
 
 /// Constructors
 impl MastNodeType {
+    /// Constructs a new [`MastNodeType`] from a [`MastNode`].
     pub fn new(mast_node: &MastNode) -> Self {
         use MastNode::*;
 
@@ -199,9 +214,9 @@ impl Serializable for MastNodeType {
             let mut serialized_bytes = self.inline_data_to_bytes();
 
             // Tag is always placed in the first four bytes
-            let tag = self.tag();
-            assert!(tag <= 0b1111);
-            serialized_bytes[0] |= tag << 4;
+            let discriminant = self.discriminant();
+            assert!(discriminant <= 0b1111);
+            serialized_bytes[0] |= discriminant << 4;
 
             serialized_bytes
         };
@@ -212,7 +227,7 @@ impl Serializable for MastNodeType {
 
 /// Serialization helpers
 impl MastNodeType {
-    fn tag(&self) -> u8 {
+    fn discriminant(&self) -> u8 {
         // SAFETY: This is safe because we have given this enum a primitive representation with
         // #[repr(u8)], with the first field of the underlying union-of-structs the discriminant.
         //
@@ -240,7 +255,6 @@ impl MastNodeType {
         }
     }
 
-    // TODOP: Make a diagram of how the bits are split
     fn encode_join_or_split(left_child_id: u32, right_child_id: u32) -> [u8; 8] {
         assert!(left_child_id < 2_u32.pow(30));
         assert!(right_child_id < 2_u32.pow(30));

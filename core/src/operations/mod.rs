@@ -451,7 +451,7 @@ pub enum OperationData {
 
 /// Constructors
 impl Operation {
-    // TODOP: document
+    /// Builds an operation from its opcode and inline data (if any).
     pub fn with_opcode_and_data(
         opcode: u8,
         data: OperationData,

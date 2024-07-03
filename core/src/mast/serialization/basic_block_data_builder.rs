@@ -9,7 +9,7 @@ use crate::{
 
 use super::{decorator::EncodedDecoratorVariant, DataOffset, StringIndex, StringRef};
 
-/// TODOP: Document
+/// Builds the `data` section of a serialized [`crate::mast::MastForest`].
 #[derive(Debug, Default)]
 pub struct BasicBlockDataBuilder {
     data: Vec<u8>,
@@ -25,7 +25,9 @@ impl BasicBlockDataBuilder {
 
 /// Accessors
 impl BasicBlockDataBuilder {
-    pub fn current_data_offset(&self) -> DataOffset {
+    /// Returns the offset in the serialized [`crate::mast::MastForest`] data field that the next
+    /// [`super::MastNodeInfo`] representing a [`BasicBlockNode`] will take.
+    pub fn next_data_offset(&self) -> DataOffset {
         self.data
             .len()
             .try_into()
@@ -35,6 +37,7 @@ impl BasicBlockDataBuilder {
 
 /// Mutators
 impl BasicBlockDataBuilder {
+    /// Encodes a [`BasicBlockNode`] into the serialized [`crate::mast::MastForest`] data field.
     pub fn encode_basic_block(&mut self, basic_block: &BasicBlockNode) {
         // 2nd part of `mast_node_to_info()` (inside the match)
         for op_or_decorator in basic_block.iter() {
@@ -45,6 +48,7 @@ impl BasicBlockDataBuilder {
         }
     }
 
+    /// Returns the serialized [`crate::mast::MastForest`] data field, as well as the string table.
     pub fn into_parts(mut self) -> (Vec<u8>, Vec<StringRef>) {
         let string_table = self.string_table_builder.into_table(&mut self.data);
         (self.data, string_table)

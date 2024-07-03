@@ -223,7 +223,7 @@ impl fmt::Display for BasicBlockNode {
 // OPERATION OR DECORATOR
 // ================================================================================================
 
-// TODOP: Document
+/// Encodes either an [`Operation`] or a [`Decorator`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),
